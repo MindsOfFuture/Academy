@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import Button from '../button/button';
+import CountUp from '../counting/couting';
+import Aurora from '../aurora/aurora';
 
 interface HeroProps {
   escolas_atendidas: number;
@@ -19,14 +21,29 @@ export function Hero({ escolas_atendidas, alunos_impactados }: HeroProps) {
       </h1>
       <div className='flex text-center gap-6 transition-all duration-300 hover:shadow-2xl p-3 rounded-lg'>
         <div className="flex flex-col items-center justify-center  gap-0">
-          <p className="text-black font-bold text-3xl">{escolas_atendidas}</p>
+          <p className="text-black font-bold text-3xl">
+            <CountUp
+              from={0}
+              to={escolas_atendidas}
+              separator=","
+              direction="up"
+              duration={0.3}
+              className="count-up-text"
+            /></p>
           <p className="text-lg text-[#767676] ">
             Escolas atendidas
           </p>
         </div>
         <div className='border-l-2 border-dotted border-black'></div>
         <div className="flex flex-col items-center justify-center">
-          <p className="text-black font-bold text-3xl">{alunos_impactados}</p>
+          <p className="text-black font-bold text-3xl"><CountUp
+            from={0}
+            to={alunos_impactados}
+            separator=","
+            direction="up"
+            duration={0.3}
+            className="count-up-text"
+          /></p>
           <p className="text-lg text-[#767676]">
             Alunos impactados
           </p>
