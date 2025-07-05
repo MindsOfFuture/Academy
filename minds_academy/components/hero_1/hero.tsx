@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Button from '../button/button';
 import CountUp from '../counting/couting';
-import Aurora from '../aurora/aurora';
+
 
 interface HeroProps {
   escolas_atendidas: number;
