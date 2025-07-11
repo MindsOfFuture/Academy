@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Comfortaa } from "next/font/google";
-import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import Navbar from "@/components/navbar/navbar";
 import Aurora from "@/components/aurora/aurora";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -34,7 +32,6 @@ export default function RootLayout({
           amplitude={0.3}
           speed={1}
         />
-        <Navbar />
         {children}
       </body>
     </html>
