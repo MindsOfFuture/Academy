@@ -1,15 +1,38 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
-import Link from "next/link";
+"use client";
+import { Hero } from "@/components/hero_1/hero";
+import Navbar from "@/components/navbar/navbar";
+import { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
+
+  const [isHeroLogoVisible, setIsHeroLogoVisible] = useState(true);
+
+  const heroLogoRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeroLogoVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentLogo = heroLogoRef.current;
+    if (currentLogo) {
+      observer.observe(currentLogo);
+    }
+    return () => {
+      if (currentLogo) {
+        observer.unobserve(currentLogo);
+      }
+    };
+  }, []);
+
   return (
-    <></>
+    <main>
+      <Navbar showTextLogo={!isHeroLogoVisible} />
+      <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
+      <div className="h-[10000px] bg-white"></div>
+    </main>
   );
 }
