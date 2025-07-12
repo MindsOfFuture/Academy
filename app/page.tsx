@@ -1,6 +1,7 @@
 "use client";
 import { Hero } from "@/components/hero_1/hero";
 import Navbar from "@/components/navbar/navbar";
+import { OurCourses } from "@/components/ourCourses/ourCourses";
 import { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
@@ -32,6 +33,8 @@ export default function Home() {
     <main>
       <Navbar showTextLogo={!isHeroLogoVisible} />
       <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
+      <OurCourses title="LEGO Education SPIKE" imageUrl="https://aquatividade.com.br/wp-content/uploads/2023/11/Peixe-Cioba.svg" description="lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi hendrerit vulputate risus. Nulla a eros nisi. Donec condimentum." />
+
       <div className="h-[10000px] bg-white"></div>
     </main>
   );
