@@ -28,11 +28,12 @@ export function OurCourses({ title, description, cursos }: OurCoursesProps) {
           {cursos.map((curso, index) => (
             <motion.div
               key={index}
-              className="p-3 rounded-[5] shadow-lg text-black flex flex-col items-start justify-start w-[300px] h-[500px]"
+              className="p-3 rounded-[5] shadow-lg text-black flex flex-col items-start justify-start w-[300px] h-[500px] "
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
               viewport={{ once: true }}
+              whileHover={{ scale: 1.05 }}
             >
               <Image
                 src={curso.imageUrl}
