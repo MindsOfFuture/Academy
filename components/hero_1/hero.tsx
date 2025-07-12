@@ -52,6 +52,8 @@ export function Hero({ escolas_atendidas, alunos_impactados, logoRef }: HeroProp
         </div>
       </div>
       <Button Texto="Saiba mais" Link="" />
+
+      
     </div>
   );
 }
