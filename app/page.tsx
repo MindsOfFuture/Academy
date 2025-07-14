@@ -5,6 +5,7 @@ import { OurCourses } from "@/components/ourCourses/ourCourses";
 import { log } from "console";
 import { useState, useEffect, useRef } from 'react';
 import logo from "@/public/logo.svg";
+import Footer from "@/components/footer/footer";
 export default function Home() {
 
   const [isHeroLogoVisible, setIsHeroLogoVisible] = useState(true);
@@ -60,7 +61,7 @@ export default function Home() {
       <Navbar showTextLogo={!isHeroLogoVisible} />
       <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
       <OurCourses title={cursoPage.title} description={cursoPage.description} cursos={cursoPage.cursos} />
-      <div className="h-[10000px] bg-white"></div>
+      <Footer/> 
     </main>
   );
 }
