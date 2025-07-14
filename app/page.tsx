@@ -5,6 +5,7 @@ import { OurCourses } from "@/components/ourCourses/ourCourses";
 import { log } from "console";
 import { useState, useEffect, useRef } from 'react';
 import logo from "@/public/logo.svg";
+import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us";
 export default function Home() {
 
@@ -62,6 +63,7 @@ export default function Home() {
       <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
       <OurCourses title={cursoPage.title} description={cursoPage.description} cursos={cursoPage.cursos} />
       <AboutUs />
+      <Footer />
 
     </main>
   );
