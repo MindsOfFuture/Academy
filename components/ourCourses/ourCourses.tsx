@@ -24,7 +24,7 @@ export function OurCourses({ title, description, cursos }: OurCoursesProps) {
       </div>
 
       <div className="flex flex-col">
-        <div className="flex h-screen justify-center items-start gap-20 flex-wrap p-6">
+        <div className="flex justify-center items-start gap-20 flex-wrap p-6">
           {cursos.map((curso, index) => (
             <motion.div
               key={index}
