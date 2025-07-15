@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import logo from "@/public/logo.svg";
 import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us";
+import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
 export default function Home() {
 
   const [isHeroLogoVisible, setIsHeroLogoVisible] = useState(true);
@@ -61,10 +62,24 @@ export default function Home() {
     <main>
       <Navbar showTextLogo={!isHeroLogoVisible} />
       <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
-      <OurCourses title={cursoPage.title} description={cursoPage.description} cursos={cursoPage.cursos} />
-      <AboutUs />
+      <BlurryBackground
+        color1="#684A97"
+        speed={12}
+      >
+        <OurCourses
+          title={cursoPage.title}
+          description={cursoPage.description}
+          cursos={cursoPage.cursos}
+        />
+      </BlurryBackground>
+      <BlurryBackground
+        color1="#F9E894"
+        speed={12}
+      >
+        <AboutUs />
+      </BlurryBackground>
       <Footer />
 
-    </main>
+    </main >
   );
 }
