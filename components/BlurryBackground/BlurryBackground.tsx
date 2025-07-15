@@ -18,7 +18,7 @@ export default function BlurryBackground({
         <div className="relative w-full h-full overflow-hidden -z-10 ">
             <div className="absolute rotate-1 inset-0 ">
                 <div
-                    className={`${blobClasses} w-4/5 h-[55%] top-[24%] left-[10%] ${animationClasses}`}
+                    className={`${blobClasses} w-4/5 h-[52%] top-[24%] left-[10%] ${animationClasses}`}
                     style={{
                         backgroundColor: color1,
                         animationDuration: `${speed}s`,
