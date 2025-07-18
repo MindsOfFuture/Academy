@@ -63,7 +63,8 @@ export default function Home() {
       <Navbar showTextLogo={!isHeroLogoVisible} />
       <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
       <BlurryBackground
-        color1="#684A97"
+        color2="rgba(104, 74, 151, 0.6)"
+        color1="rgba(255, 211, 0, 0.4)"
         speed={12}
       >
         <OurCourses
@@ -71,11 +72,6 @@ export default function Home() {
           description={cursoPage.description}
           cursos={cursoPage.cursos}
         />
-      </BlurryBackground>
-      <BlurryBackground
-        color1="#F9E894"
-        speed={12}
-      >
         <AboutUs />
       </BlurryBackground>
       <Footer />
