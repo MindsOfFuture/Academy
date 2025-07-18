@@ -69,6 +69,10 @@
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 @layer utilities {
   @keyframes scale-in-out {
 

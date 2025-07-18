@@ -6,6 +6,7 @@ interface BlurryBackgroundProps {
     speed?: number;
     children: React.ReactNode;
 }
+
 export default function BlurryBackground({
     color1,
     color2,
@@ -13,10 +14,10 @@ export default function BlurryBackground({
     children
 }: BlurryBackgroundProps) {
     return (
-        <div className="relative w-full overflow-visible -z-10">
-            <div className="absolute inset-0">
+        <div className="relative w-full">
+            <div className="absolute inset-0 z-[-1] pointer-events-none">
                 <div
-                    className="absolute rounded-full  filter blur-3xl opacity-60 w-4/5 h-1/2 top-[0%] left-[10%] animate-scale-in-out"
+                    className="absolute rounded-full filter blur-3xl opacity-60 w-4/5 h-1/2 top-[0%] left-[10%] animate-scale-in-out"
                     style={{
                         backgroundColor: color2,
                         animationDuration: `${speed}s`,
@@ -25,7 +26,7 @@ export default function BlurryBackground({
                 ></div>
 
                 <div
-                    className="absolute rounded-full  filter blur-[90px] opacity-60 w-4/5 h-[40%]  bottom-[0%] right-[10%] animate-scale-in-out"
+                    className="absolute rounded-full filter blur-[90px] opacity-60 w-4/5 h-[40%] bottom-[0%] right-[10%] animate-scale-in-out"
                     style={{
                         backgroundColor: color1,
                         animationDuration: `${speed}s`,
@@ -34,7 +35,8 @@ export default function BlurryBackground({
                     }}
                 ></div>
             </div>
-            <div className="relative z-10">
+
+            <div className="relative">
                 {children}
             </div>
         </div>

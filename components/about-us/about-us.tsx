@@ -7,18 +7,23 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-export default function AboutUs() {
+interface Slide {
+  src: string;
+  alt: string;
+}
+
+export default function AboutUs({ slides }: { slides: Slide[] }) {
   return (
-    <section className="w-full py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8 text-start">
-          <h2 className="text-3xl font-bold">Sobre nós</h2>
-          <p className="text-sm text-gray-600">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    <section id='about-us' className="w-full py-12 px-4">
+      <div className="flex flex-col items-center">
+        <div className="container mx-auto p-8">
+          <h2 className="text-3xl font-bold">Sobre Nós</h2>
+          <p className="max-w-[480px]">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi hendrerit vulputate risus. Nulla a eros nisi. Donec condimentum.
           </p>
         </div>
 
-        <div className="bg-white shadow-[8px_8px_0px_#fef3c7] p-8 rounded-xl flex flex-col lg:flex-row items-center justify-center gap-8">
+        <div className="bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] max-w-6xl p-8 rounded-xl flex flex-col lg:flex-row items-center justify-center gap-8">
           <div className="lg:w-1/2 w-full text-justify text-gray-800 font-medium leading-relaxed">
             <p>
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam in massa a
@@ -29,7 +34,6 @@ export default function AboutUs() {
               maximus ex elit lacinia ex.
             </p>
           </div>
-
           <div className="lg:w-1/2 w-full flex justify-center">
             <Swiper
               loop={true}
@@ -46,16 +50,16 @@ export default function AboutUs() {
                 disableOnInteraction: false,
               }}
               modules={[Autoplay, Pagination]}
-              className="w-[422px] h-[406px] rounded-md"
+              className="w-full max-w-[422px] h-[406px] rounded-md"
             >
-              {['/minds.jpg', '/lego.jpg', '/scratch.png', '/minds.jpg', '/lego.jpg'].map((src, index) => (
-                <SwiperSlide key={index} className="w-[422px] h-[406px]">
+              {slides.map((slide, index) => (
+                <SwiperSlide key={index} className="w-full h-full">
                   <Image
-                    src={src}
-                    alt={`Slide ${index + 1}`}
+                    src={slide.src}
+                    alt={slide.alt}
                     width={422}
                     height={406}
-                    className="w-[422px] h-[406px] object-cover rounded-md"
+                    className="w-full h-full object-cover rounded-md"
                   />
                 </SwiperSlide>
               ))}

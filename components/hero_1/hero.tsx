@@ -50,7 +50,7 @@ export function Hero({ escolas_atendidas, alunos_impactados, logoRef }: HeroProp
           </p>
         </div>
       </div>
-      <Button Texto="Saiba mais" Link="" />
+      <Button Texto="Saiba mais" Link="#about-us" />
 
 
     </div>

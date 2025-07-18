@@ -18,7 +18,7 @@ export function OurCourses({ title, description, cursos }: OurCoursesProps) {
     <div className="flex flex-col h-auto items-center">
       <div className="container mx-auto p-8">
         <h2 className="text-3xl font-bold">Nossos Cursos</h2>
-        <p className="w-[480px]">
+        <p className="max-w-[480px]">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi hendrerit vulputate risus. Nulla a eros nisi. Donec condimentum.
         </p>
       </div>
@@ -28,12 +28,15 @@ export function OurCourses({ title, description, cursos }: OurCoursesProps) {
           {cursos.map((curso, index) => (
             <motion.div
               key={index}
-              className="p-3 rounded-[5] bg-white shadow-lg text-black flex flex-col items-start justify-start w-[300px] h-[500px] "
+              className="p-3 rounded-[5] bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] text-black flex flex-col items-start justify-start w-[300px] h-[500px]"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
               viewport={{ once: true }}
-              whileHover={{ scale: 1.05 }}
+              whileHover={{
+                scale: 1.05,
+                transition: { duration: 0.3 }
+              }}
             >
               <Image
                 src={curso.imageUrl}

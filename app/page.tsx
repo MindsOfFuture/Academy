@@ -2,11 +2,10 @@
 import { Hero } from "@/components/hero_1/hero";
 import Navbar from "@/components/navbar/navbar";
 import { OurCourses } from "@/components/ourCourses/ourCourses";
-import { log } from "console";
 import { useState, useEffect, useRef } from 'react';
 import logo from "@/public/logo.svg";
 import Footer from "@/components/footer/footer";
-import AboutUs from "@/components/about-us";
+import AboutUs from "@/components/about-us/about-us";
 import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
 export default function Home() {
 
@@ -58,6 +57,21 @@ export default function Home() {
       }
     ]
   }
+  const aboutUsSlides = [
+    { src: '/minds.jpg', alt: 'Imagem de um robô Mindstorms' },
+    { src: '/lego.jpg', alt: 'Peças de Lego coloridas' },
+    { src: '/scratch.png', alt: 'Logo do Scratch' },
+    { src: '/minds.jpg', alt: 'Outra imagem de um robô Mindstorms' },
+    { src: '/lego.jpg', alt: 'Outra imagem de peças de Lego' }
+  ];
+  const socialLinks = [
+    {
+      href: "https://www.instagram.com/Mindsofthefuture.ufjf",
+      iconSrc: "/instagram-svgrepo-com.svg",
+      alt: "Ícone do Instagram",
+      nome: "MindsOfTheFuture.ufjf"
+    },
+  ];
   return (
     <main>
       <Navbar showTextLogo={!isHeroLogoVisible} />
@@ -72,9 +86,9 @@ export default function Home() {
           description={cursoPage.description}
           cursos={cursoPage.cursos}
         />
-        <AboutUs />
+        <AboutUs slides={aboutUsSlides} />
       </BlurryBackground>
-      <Footer />
+      <Footer socials={socialLinks} />
 
     </main >
   );
