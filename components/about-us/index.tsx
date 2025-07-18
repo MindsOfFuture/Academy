@@ -9,7 +9,7 @@ import "swiper/css/pagination";
 
 export default function AboutUs() {
   return (
-    <section className="w-full py-12 px-4 bg-white">
+    <section className="w-full py-12 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 text-start">
           <h2 className="text-3xl font-bold">Sobre nós</h2>
