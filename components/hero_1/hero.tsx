@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Button from '../button/button';
 import CountUp from '../counting/couting';
-import { RefObject } from 'react';
 
 
 interface HeroProps {

@@ -31,7 +31,7 @@ export default function Home() {
       }
     };
   }, []);
-  let cursoPage = {
+  const cursoPage = {
     title: "Nossos Cursos",
     description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi hendrerit vulputate risus. Nulla a eros nisi. Donec condimentum.",
     cursos: [
