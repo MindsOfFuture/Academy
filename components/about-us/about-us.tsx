@@ -18,9 +18,6 @@ export default function AboutUs({ slides }: { slides: Slide[] }) {
       <div className="flex flex-col items-center">
         <div className="container mx-auto p-8">
           <h2 className="text-3xl font-bold">Sobre Nós</h2>
-          <p className="max-w-[480px]">
-            Saiba como o Minds prepara os jovens para revolucionar o futuro com tecnologia.
-          </p>
         </div>
 
         <div className="bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] max-w-6xl p-8 rounded-xl flex flex-col lg:flex-row items-center justify-center gap-8">

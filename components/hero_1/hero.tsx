@@ -16,8 +16,7 @@ export function Hero({ escolas_atendidas, alunos_impactados, logoRef }: HeroProp
         <Image className='transition-all duration-300 hover:scale-[1.02]' src="logo.svg" alt="Hero Image" width={400} height={180} ref={logoRef} />
       </div>
       <h1 className="text-2xl text-[#767676] font-bold text-center p-1">
-        Um projeto <span className="text-black">inovador</span><br />
-        que vai <span className="text-black">revolucionar</span> o futuro de diversos jovens com a tecnologia <br/> Seja um deles também.
+         <b className='text-black'>Projeto da UFJF</b> voltado ao ensino lúdico de inovação,<br/> empreendedorismo, pensamento computacional, robótica e modelagem 3D.
       </h1>
       <div className='flex text-center gap-6 transition-all duration-300 hover:shadow-lg p-3 rounded-lg'>
         <div className="flex flex-col items-center justify-center  gap-0">
