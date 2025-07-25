@@ -33,26 +33,26 @@ export default function Home() {
   }, []);
   const cursoPage = {
     title: "Nossos Cursos",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi hendrerit vulputate risus. Nulla a eros nisi. Donec condimentum.",
+    description: "Nossos cursos",
     cursos: [
       {
         title: "LEGO Education SPIKE",
-        description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit ",
+        description: "Este curso utiliza o kit LEGO® Education SPIKE™ para ensinar programação e robótica de forma divertida. Os alunos montam robôs e programam seus comportamentos usando uma interface intuitiva baseada em blocos, explorando sensores, motores e conceitos como loops e condicionais. Através de desafios, eles desenvolvem habilidades em lógica e resolução de problemas",
         imageUrl: logo
       },
       {
         title: "Scratch - MIT",
-        description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit ",
+        description: "Este curso faz com que, através de blocos visuais, os alunos criem programas e animações com cenários e objetos, enquanto aprendem lógica de programação, incluindo condicionais, repetições e eventos. Com projetos divertidos e interativos, o curso estimula o raciocínio lógico e a criatividade.",
         imageUrl: logo
       },
       {
         title: "Python",
-        description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit ",
+        description: "Este curso ensina os fundamentos de Python aplicados à robótica, focando em estruturas condicionais, loops e controle de motores/sensores. Usando kits de montagem, os alunos programam comportamentos robóticos como seguir linhas, evitar obstáculos e responder a estímulos enquanto desenvolvem pensamento computacional.",
         imageUrl: logo
       },
       {
         title: "3D",
-        description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit ",
+        description: "Este curso ensina você a operar impressoras 3D com confiança, desde a preparação de arquivos e escolha de materiais até a resolução dos problemas mais comuns. Você vai aprender técnicas profissionais de modelagem para impressão, configuração ideal de máquinas e como finalizar peças com qualidade.",
         imageUrl: logo
       }
     ]

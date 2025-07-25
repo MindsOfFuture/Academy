@@ -19,7 +19,7 @@ export function OurCourses({ title, description, cursos }: OurCoursesProps) {
       <div className="container mx-auto p-8">
         <h2 className="text-3xl font-bold">Nossos Cursos</h2>
         <p className="max-w-[480px]">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi hendrerit vulputate risus. Nulla a eros nisi. Donec condimentum.
+          Explore abaixo nossas opções de cursos e descubra o ideal para sua jornada!
         </p>
       </div>
 
