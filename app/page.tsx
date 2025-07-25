@@ -82,8 +82,6 @@ export default function Home() {
         speed={12}
       >
         <OurCourses
-          title={cursoPage.title}
-          description={cursoPage.description}
           cursos={cursoPage.cursos}
         />
         <AboutUs slides={aboutUsSlides} />
