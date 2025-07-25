@@ -8,8 +8,6 @@ type CourseProps = {
 };
 
 type OurCoursesProps = {
-  title: string;
-  description: string;
   cursos: CourseProps[];
 };
 
