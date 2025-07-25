@@ -19,19 +19,18 @@ export default function AboutUs({ slides }: { slides: Slide[] }) {
         <div className="container mx-auto p-8">
           <h2 className="text-3xl font-bold">Sobre Nós</h2>
           <p className="max-w-[480px]">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi hendrerit vulputate risus. Nulla a eros nisi. Donec condimentum.
+            Saiba como o Minds prepara os jovens para revolucionar o futuro com tecnologia.
           </p>
         </div>
 
         <div className="bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] max-w-6xl p-8 rounded-xl flex flex-col lg:flex-row items-center justify-center gap-8">
           <div className="lg:w-1/2 w-full text-justify text-gray-800 font-medium leading-relaxed">
             <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam in massa a
-              dolor vestibulum dictum. Ut quis porttitor nisl. Proin ultrices mi orci, a
-              ultricies lectus viverra et. Nam dictum placerat posuere. Vestibulum ante
-              ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Ut
-              interdum, nisi a blandit iaculis, elit est condimentum libero, vitae
-              maximus ex elit lacinia ex.
+              Somos um projeto da Universidade Federal de Juiz de Fora (UFJF)
+              em parceria com o Governo de Minas Gerais. 
+              Atuamos na formação tecnológica de jovens da rede pública, utilizando robótica educacional e programação.
+              Nosso objetivo é democratizar o acesso à inovação, desenvolver competências digitais e fomentar o protagonismo
+              juvenil em território mineiro.
             </p>
           </div>
           <div className="lg:w-1/2 w-full flex justify-center">
