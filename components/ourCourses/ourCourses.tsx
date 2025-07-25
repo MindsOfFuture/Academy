@@ -13,7 +13,7 @@ type OurCoursesProps = {
   cursos: CourseProps[];
 };
 
-export function OurCourses({ title, description, cursos }: OurCoursesProps) {
+export function OurCourses({ cursos }: OurCoursesProps) {
   return (
     <div className="flex flex-col h-auto items-center">
       <div className="container mx-auto p-8">
