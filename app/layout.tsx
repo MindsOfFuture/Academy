@@ -9,8 +9,61 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  title: "Minds Academy",
+  description: "Transforme seu aprendizado com os cursos online da Minds Academy. Aprenda Lógica de Programação, impressão 3d, LEGO Education SPIKE, Scratch e mais. Comece hoje e ganhe seu certificado!",
+  keywords: [
+    "Minds Academy",
+    "Cursos online",
+    "Lógica de Programação",
+    "Impressão 3D",
+    "LEGO Education SPIKE",
+    "Scratch",
+    "Certificados",
+  ],
+  openGraph: {
+    title: "Minds Academy",
+    description: "Transforme seu aprendizado com os cursos online da Minds Academy.",
+    url: defaultUrl,
+    siteName: "Minds Academy",
+    images: [
+      {
+        url: `${defaultUrl}/logo.svg`,
+        width: 1200,
+        height: 630,
+        alt: "Minds Academy - Transforme seu aprendizado",
+      },
+    ],
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Minds Academy",
+    description: "Transforme seu aprendizado com os cursos online da Minds Academy.",
+    images: [
+      {
+        url: `${defaultUrl}/logo.svg`,
+        width: 1200,
+        height: 630,
+        alt: "Minds Academy - Transforme seu aprendizado",
+      },
+    ],
+  },
+  icons: {
+    icon: "/logo_navbar.svg",
+    shortcut: "/logo_navbar.svg",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 const comfortaa = Comfortaa({

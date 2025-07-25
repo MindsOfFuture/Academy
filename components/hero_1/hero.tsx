@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Button from '../button/button';
 import CountUp from '../counting/couting';
-import { RefObject } from 'react';
 
 
 interface HeroProps {
@@ -14,12 +13,10 @@ export function Hero({ escolas_atendidas, alunos_impactados, logoRef }: HeroProp
   return (
     <div className="flex flex-col gap-8 items-center mt-[50px] ">
       <div className='relative p-8 rounded-lg  flex flex-col items-center justify-center'>
-        <div className="absolute bg-[rgba(136,113,172,1)]  -inset-0 blur-[180px] -z-10"></div>
         <Image className='transition-all duration-300 hover:scale-[1.02]' src="logo.svg" alt="Hero Image" width={400} height={180} ref={logoRef} />
       </div>
       <h1 className="text-2xl text-[#767676] font-bold text-center p-1">
-        Lorem ipsum dolor sit amet, <span className="text-black">consectetur adipiscing elit.</span><br />
-        Morbi hendrerit <span className="text-black">vulputate risus.</span> Nulla a eros nisi. <span className="text-black">onec condimentum.</span>
+         <b className='text-black'>Projeto da UFJF</b> voltado ao ensino lúdico de inovação,<br/> empreendedorismo, pensamento computacional, robótica e modelagem 3D.
       </h1>
       <div className='flex text-center gap-6 transition-all duration-300 hover:shadow-lg p-3 rounded-lg'>
         <div className="flex flex-col items-center justify-center  gap-0">
@@ -51,7 +48,9 @@ export function Hero({ escolas_atendidas, alunos_impactados, logoRef }: HeroProp
           </p>
         </div>
       </div>
-      <Button Texto="Saiba mais" Link="" />
+      <Button Texto="Saiba mais" Link="#about-us" />
+
+
     </div>
   );
 }

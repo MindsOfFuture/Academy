@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Navbar({ showTextLogo }: { showTextLogo: boolean }) {
     return (
@@ -12,14 +13,14 @@ export default function Navbar({ showTextLogo }: { showTextLogo: boolean }) {
                     className="mr-2"
                 />
                 {showTextLogo && (
-                    <a href="/" className="text-2xl font-bold">
+                    <Link href="/" className="text-m md:text-2xl font-bold">
                         Minds of the Future
-                    </a>
+                    </Link>
                 )}
             </div>
-            <a href="/login" className="bold text-2xl  transition-all duration-300 hover:text-[26px]">
+            {/* <a href="/login" className="text-m md:text-2xl bold  transition-all duration-300 hover:text-[26px]">
                 Login
-            </a>
+            </a> */}
         </nav>
     );
 }

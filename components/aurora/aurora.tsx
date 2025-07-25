@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react";
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 
+// Shaders remain the same...
 const VERT = `#version 300 es
 in vec2 position;
 void main() {
@@ -9,7 +10,6 @@ void main() {
 }
 `;
 
-// ✅ FRAGMENT SHADER CORRIGIDO
 const FRAG = `#version 300 es
 precision highp float;
 
@@ -70,18 +70,18 @@ struct ColorStop {
   float position;
 };
 
-#define COLOR_RAMP(colors, factor, finalColor) {                      \
-  int index = 0;                                                      \
-  for (int i = 0; i < 2; i++) {                                       \
-    ColorStop currentColor = colors[i];                               \
-    bool isInBetween = currentColor.position <= factor;               \
-    index = int(mix(float(index), float(i), float(isInBetween)));     \
-  }                                                                   \
-  ColorStop currentColor = colors[index];                             \
-  ColorStop nextColor = colors[index + 1];                            \
-  float range = nextColor.position - currentColor.position;           \
-  float lerpFactor = (factor - currentColor.position) / range;        \
-  finalColor = mix(currentColor.color, nextColor.color, lerpFactor);  \
+#define COLOR_RAMP(colors, factor, finalColor) {                       \
+  int index = 0;                                                       \
+  for (int i = 0; i < 2; i++) {                                        \
+    ColorStop currentColor = colors[i];                                \
+    bool isInBetween = currentColor.position <= factor;                \
+    index = int(mix(float(index), float(i), float(isInBetween)));      \
+  }                                                                    \
+  ColorStop currentColor = colors[index];                              \
+  ColorStop nextColor = colors[index + 1];                             \
+  float range = nextColor.position - currentColor.position;            \
+  float lerpFactor = (factor - currentColor.position) / range;         \
+  finalColor = mix(currentColor.color, nextColor.color, lerpFactor);   \
 }
 
 void main() {
@@ -143,19 +143,6 @@ export default function Aurora(props: AuroraProps) {
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.canvas.style.backgroundColor = "transparent";
 
-        let program: Program | undefined;
-
-        function resize() {
-            if (!ctn) return;
-            const width = ctn.offsetWidth;
-            const height = ctn.offsetHeight;
-            renderer.setSize(width, height);
-            if (program) {
-                program.uniforms.uResolution.value = [width, height];
-            }
-        }
-        window.addEventListener("resize", resize);
-
         const geometry = new Triangle(gl);
         if (geometry.attributes.uv) {
             delete (geometry.attributes).uv;
@@ -166,7 +153,8 @@ export default function Aurora(props: AuroraProps) {
             return [c.r, c.g, c.b];
         });
 
-        program = new Program(gl, {
+        // ✅ FIX 1: Use 'const' for program since it's not reassigned.
+        const program = new Program(gl, {
             vertex: VERT,
             fragment: FRAG,
             uniforms: {
@@ -181,21 +169,28 @@ export default function Aurora(props: AuroraProps) {
         const mesh = new Mesh(gl, { geometry, program });
         ctn.appendChild(gl.canvas);
 
+        function resize() {
+            if (!ctn) return;
+            const width = ctn.offsetWidth;
+            const height = ctn.offsetHeight;
+            renderer.setSize(width, height);
+            program.uniforms.uResolution.value = [width, height];
+        }
+        window.addEventListener("resize", resize);
+
         let animateId = 0;
         const update = (t: number) => {
             animateId = requestAnimationFrame(update);
             const { time = t * 0.01, speed = 1.0 } = propsRef.current;
-            if (program) {
-                program.uniforms.uTime.value = time * speed * 0.1;
-                program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
-                program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-                const stops = propsRef.current.colorStops ?? colorStops;
-                program.uniforms.uColorStops.value = stops.map((hex: string) => {
-                    const c = new Color(hex);
-                    return [c.r, c.g, c.b];
-                });
-                renderer.render({ scene: mesh });
-            }
+            program.uniforms.uTime.value = time * speed * 0.1;
+            program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
+            program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
+            const stops = propsRef.current.colorStops ?? colorStops;
+            program.uniforms.uColorStops.value = stops.map((hex: string) => {
+                const c = new Color(hex);
+                return [c.r, c.g, c.b];
+            });
+            renderer.render({ scene: mesh });
         };
         animateId = requestAnimationFrame(update);
 
@@ -209,7 +204,8 @@ export default function Aurora(props: AuroraProps) {
             }
             gl.getExtension("WEBGL_lose_context")?.loseContext();
         };
-    }, [amplitude]); // O array de dependências original estava correto
+        // ✅ FIX 2: Add 'blend' and 'colorStops' to dependency array.
+    }, [amplitude, blend, colorStops]);
 
     return <div ref={ctnDom} className="w-full h-full absolute inset-0 -z-40" />;
 }

@@ -1,8 +1,12 @@
 "use client";
 import { Hero } from "@/components/hero_1/hero";
 import Navbar from "@/components/navbar/navbar";
+import { OurCourses } from "@/components/ourCourses/ourCourses";
 import { useState, useEffect, useRef } from 'react';
-
+import logo from "@/public/logo.svg";
+import Footer from "@/components/footer/footer";
+import AboutUs from "@/components/about-us/about-us";
+import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
 export default function Home() {
 
   const [isHeroLogoVisible, setIsHeroLogoVisible] = useState(true);
@@ -27,12 +31,65 @@ export default function Home() {
       }
     };
   }, []);
-
+  const cursoPage = {
+    title: "Nossos Cursos",
+    description: "Nossos cursos",
+    cursos: [
+      {
+        title: "LEGO Education SPIKE",
+        description: "Este curso utiliza o kit LEGO® Education SPIKE™ para ensinar programação e robótica de forma divertida. Os alunos montam robôs e programam seus comportamentos usando uma interface intuitiva baseada em blocos, explorando sensores, motores e conceitos como loops e condicionais. Através de desafios, eles desenvolvem habilidades em lógica e resolução de problemas",
+        imageUrl: logo
+      },
+      {
+        title: "Scratch - MIT",
+        description: "Este curso faz com que, através de blocos visuais, os alunos criem programas e animações com cenários e objetos, enquanto aprendem lógica de programação, incluindo condicionais, repetições e eventos. Com projetos divertidos e interativos, o curso estimula o raciocínio lógico e a criatividade.",
+        imageUrl: logo
+      },
+      {
+        title: "Python",
+        description: "Este curso ensina os fundamentos de Python aplicados à robótica, focando em estruturas condicionais, loops e controle de motores/sensores. Usando kits de montagem, os alunos programam comportamentos robóticos como seguir linhas, evitar obstáculos e responder a estímulos enquanto desenvolvem pensamento computacional.",
+        imageUrl: logo
+      },
+      {
+        title: "3D",
+        description: "Este curso ensina você a operar impressoras 3D com confiança, desde a preparação de arquivos e escolha de materiais até a resolução dos problemas mais comuns. Você vai aprender técnicas profissionais de modelagem para impressão, configuração ideal de máquinas e como finalizar peças com qualidade.",
+        imageUrl: logo
+      }
+    ]
+  }
+  const aboutUsSlides = [
+    { src: '/minds.jpg', alt: 'Imagem de um robô Mindstorms' },
+    { src: '/lego.jpg', alt: 'Peças de Lego coloridas' },
+    { src: '/scratch.png', alt: 'Logo do Scratch' },
+    { src: '/minds.jpg', alt: 'Outra imagem de um robô Mindstorms' },
+    { src: '/lego.jpg', alt: 'Outra imagem de peças de Lego' }
+  ];
+  const socialLinks = [
+    {
+      href: "https://www.instagram.com/Mindsofthefuture.ufjf",
+      iconSrc: "/instagram-svgrepo-com.svg",
+      alt: "Ícone do Instagram",
+      nome: "MindsOfTheFuture.ufjf"
+    },
+  ];
   return (
     <main>
       <Navbar showTextLogo={!isHeroLogoVisible} />
       <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
-      <div className="h-[10000px] bg-white"></div>
-    </main>
+      <BlurryBackground
+        color2="rgba(104, 74, 151, 0.6)"
+        color1="rgba(255, 211, 0, 0.4)"
+        speed={12}
+      >
+        <OurCourses
+          title={cursoPage.title}
+          description={cursoPage.description}
+          cursos={cursoPage.cursos}
+        />
+        <AboutUs slides={aboutUsSlides} />
+      </BlurryBackground>
+      <Footer socials={socialLinks} />
+
+    </main >
   );
 }

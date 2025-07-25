@@ -10,6 +10,18 @@ export default {
   ],
   theme: {
     extend: {
+      backgroundImage: {
+        'bg-roxo': "url('/bg-roxo.svg')",
+      },
+      animation: {
+        'scale-in-out': 'scale-in-out 15s ease-in-out infinite',
+      },
+      keyframes: {
+        'scale-in-out': {
+          '0%, 100%': { transform: 'scale(1)  rotate(-12deg)' },
+          '50%': { transform: 'scale(1.2)  rotate(12deg)' },
+        },
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
