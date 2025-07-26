@@ -37,17 +37,17 @@ export default function Home() {
     cursos: [
       {
         title: "LEGO Education SPIKE",
-        description: "Este curso utiliza o kit LEGO® Education SPIKE™ para ensinar programação e robótica de forma divertida. Os alunos montam robôs e programam seus comportamentos usando uma interface intuitiva baseada em blocos, explorando sensores, motores e conceitos como loops e condicionais. Através de desafios, eles desenvolvem habilidades em lógica e resolução de problemas",
+        description: "Este curso utiliza o kit LEGO® Education SPIKE™ para ensinar programação e robótica de forma divertida. Você monta robôs e programa seus comportamentos usando uma interface intuitiva baseada em blocos, explorando sensores, motores e conceitos como loops e condicionais. Através de desafios, você desenvolve habilidades em lógica e resolução de problemas",
         imageUrl: logo
       },
       {
         title: "Scratch - MIT",
-        description: "Este curso faz com que, através de blocos visuais, os alunos criem programas e animações com cenários e objetos, enquanto aprendem lógica de programação, incluindo condicionais, repetições e eventos. Com projetos divertidos e interativos, o curso estimula o raciocínio lógico e a criatividade.",
+        description: "Este curso faz com que, através de blocos visuais, você crie programas e animações com cenários e objetos, enquanto aprende lógica de programação, incluindo condicionais, repetições e eventos. Com projetos divertidos e interativos, o curso estimula seu raciocínio lógico e a criatividade.",
         imageUrl: logo
       },
       {
         title: "Python",
-        description: "Este curso ensina os fundamentos de Python aplicados à robótica, focando em estruturas condicionais, loops e controle de motores/sensores. Usando kits de montagem, os alunos programam comportamentos robóticos como seguir linhas, evitar obstáculos e responder a estímulos enquanto desenvolvem pensamento computacional.",
+        description: "Este curso te ensina os fundamentos de Python aplicados à robótica, focando em estruturas condicionais, loops e controle de motores/sensores. Usando kits de montagem, você vai programar comportamentos robóticos como seguir linhas, evitar obstáculos e responder a estímulos enquanto desenvolve pensamento computacional.",
         imageUrl: logo
       },
       {
