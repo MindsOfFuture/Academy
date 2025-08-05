@@ -7,8 +7,11 @@ import logo from "@/public/logo.svg";
 import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us/about-us";
 import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
-export default function Home() {
 
+
+
+
+export default function Home() {
   const [isHeroLogoVisible, setIsHeroLogoVisible] = useState(true);
 
   const heroLogoRef = useRef<HTMLImageElement>(null);
@@ -75,7 +78,7 @@ export default function Home() {
   return (
     <main>
       <Navbar showTextLogo={!isHeroLogoVisible} />
-      <Hero escolas_atendidas={23} alunos_impactados={243} logoRef={heroLogoRef} />
+      <Hero logoRef={heroLogoRef} />
       <BlurryBackground
         color2="rgba(104, 74, 151, 0.6)"
         color1="rgba(255, 211, 0, 0.4)"
@@ -87,7 +90,6 @@ export default function Home() {
         <AboutUs slides={aboutUsSlides} />
       </BlurryBackground>
       <Footer socials={socialLinks} />
-
     </main >
   );
 }
