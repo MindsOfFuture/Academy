@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 type CourseProps = {
+  id: string;
   title: string;
   description: string;
   imageUrl: string;
@@ -25,7 +26,7 @@ export function OurCourses({ cursos }: OurCoursesProps) {
         <div className="flex justify-center items-start gap-20 flex-wrap p-6">
           {cursos.map((curso, index) => (
             <motion.div
-              key={index}
+              key={curso.id}
               className="p-3 rounded-[5] bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] text-black flex flex-col items-start justify-start w-[300px] h-[500px]"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
