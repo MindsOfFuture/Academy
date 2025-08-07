@@ -207,5 +207,5 @@ export default function Aurora(props: AuroraProps) {
         // ✅ FIX 2: Add 'blend' and 'colorStops' to dependency array.
     }, [amplitude, blend, colorStops]);
 
-    return <div ref={ctnDom} className="w-full h-full absolute inset-0 -z-40" />;
+    return <div ref={ctnDom} className="w-full max-w-[100vw] h-full absolute inset-0 -z-40" />;
 }

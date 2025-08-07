@@ -14,7 +14,7 @@ export default function BlurryBackground({
     children
 }: BlurryBackgroundProps) {
     return (
-        <div className="relative w-full">
+        <div className="relative w-full max-w-[100vw]">
             <div className="absolute inset-0 z-[-1] pointer-events-none">
                 <div
                     className="absolute rounded-full filter blur-3xl opacity-60 w-4/5 h-1/2 top-[0%] left-[10%] animate-scale-in-out"
