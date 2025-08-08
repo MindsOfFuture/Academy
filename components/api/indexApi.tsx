@@ -80,14 +80,14 @@ export async function getUserTypes(user: User | null | undefined): Promise<strin
     }
     return data[0]?.tipo || "errooooo";
 }
-export async function getFooter(): Promise<FooterProps[] | null> {
+export async function getFooter(): Promise<FooterProps[] | []> {
     const supabase = createClient();
     const { data, error } = await supabase
         .from('footer')
         .select('href, iconSrc, alt, nome'); 
 
     if (error) {
-        return null;
+        return [];
     }
 
     return data as FooterProps[];

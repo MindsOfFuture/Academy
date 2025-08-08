@@ -12,7 +12,7 @@ export default async function Home() {
       heroData={heroData}
       nossosCursosData={cursos}
       aboutUsSlides={aboutus?.aboutUsSlides ?? []}
-      socialLinks={footer ?? []} 
+      socialLinks={footer} 
     />
   );
 }
