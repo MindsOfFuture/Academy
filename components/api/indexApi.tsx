@@ -40,3 +40,15 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
 
     return data as CourseProps[];
 }
+export async function getUserTypes(user: any): Promise<string> {
+    const supabase = createClient();
+    console.log(user);
+    const { data, error } = await supabase
+        .from('users')
+        .select('tipo')
+        .eq('id', user?.id);
+    if (error) {
+        return error.message || "Erro ao buscar tipo de usuário";
+    }
+    return data[0]?.tipo || "errooooo";
+}
