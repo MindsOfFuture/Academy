@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 
 // Shaders remain the same...
@@ -127,6 +128,7 @@ export default function Aurora(props: AuroraProps) {
     propsRef.current = props;
 
     const ctnDom = useRef<HTMLDivElement>(null);
+    const pathname = usePathname(); // Hook para detectar mudanças de rota
 
     useEffect(() => {
         const ctn = ctnDom.current;
@@ -204,8 +206,8 @@ export default function Aurora(props: AuroraProps) {
             }
             gl.getExtension("WEBGL_lose_context")?.loseContext();
         };
-        // ✅ FIX 2: Add 'blend' and 'colorStops' to dependency array.
-    }, [amplitude, blend, colorStops]);
+        // ✅ FIX 2: Add 'blend', 'colorStops' and 'pathname' to dependency array.
+    }, [amplitude, blend, colorStops, pathname]);
 
     return <div ref={ctnDom} className="w-full max-w-[100vw] h-full absolute inset-0 -z-40" />;
 }
