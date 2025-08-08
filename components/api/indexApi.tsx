@@ -15,6 +15,11 @@ export type CourseProps = {
     imageUrl: string;
 };
 
+export type AboutUsProps = {
+    src: string;
+    alt: string;
+}
+
 export async function getHero(): Promise<HeroProps | null> {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -28,6 +33,22 @@ export async function getHero(): Promise<HeroProps | null> {
 
     return data.conteudo as HeroProps;
 }
+
+export async function getAboutUs(): Promise<{ aboutUsSlides: AboutUsProps[] } | null> {
+    const supabase = createClient(); 
+    const { data, error } = await supabase
+        .from('about-us')
+        .select('src, alt');
+
+    if (error || !data) {
+        return null;
+    }
+
+    return {
+        aboutUsSlides: data as AboutUsProps[]
+    };
+}
+
 
 export async function getNossosCursos(): Promise<CourseProps[]> {
     const supabase = createClient();
