@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InfoIcon } from "lucide-react";
 import { getUserTypes } from "@/components/api/indexApi";
-import { AuthButton } from "@/components/auth-button";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -29,8 +28,7 @@ export default async function ProtectedPage() {
       <div>
         <h2 className="font-bold text-2xl mb-4">Next steps</h2>
       </div>
-      <AuthButton />
-
+      <p>usuario tipo {userType}</p>
     </div>
   );
 }

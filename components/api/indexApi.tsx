@@ -1,5 +1,6 @@
 
 import { createClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 export type HeroProps = {
     n_alunos: number;
@@ -40,7 +41,7 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
 
     return data as CourseProps[];
 }
-export async function getUserTypes(user: any): Promise<string> {
+export async function getUserTypes(user: User | null | undefined): Promise<string> {
     const supabase = createClient();
     console.log(user);
     const { data, error } = await supabase
