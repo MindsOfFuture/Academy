@@ -19,6 +19,12 @@ export type AboutUsProps = {
     src: string;
     alt: string;
 }
+export type FooterProps = {
+  href: string;
+  iconSrc: string;
+  alt: string;
+  nome: string;
+};
 
 export async function getHero(): Promise<HeroProps | null> {
     const supabase = createClient();
@@ -73,4 +79,16 @@ export async function getUserTypes(user: User | null | undefined): Promise<strin
         return error.message || "Erro ao buscar tipo de usuário";
     }
     return data[0]?.tipo || "errooooo";
+}
+export async function getFooter(): Promise<FooterProps[] | null> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('footer')
+        .select('href, iconSrc, alt, nome'); 
+
+    if (error) {
+        return null;
+    }
+
+    return data as FooterProps[];
 }
