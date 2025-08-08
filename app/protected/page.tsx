@@ -1,19 +1,15 @@
 import { redirect } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
 import { InfoIcon } from "lucide-react";
-import { FetchDataSteps } from "@/components/tutorial/fetch-data-steps";
 import { getUserTypes } from "@/components/api/indexApi";
-
-
+import { AuthButton } from "@/components/auth-button";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
-
   const { data, error } = await supabase.auth.getUser();
-  console.log(getUserTypes(data.user));
+  const userType = await getUserTypes(data?.user);
   if (error || !data?.user) {
-    redirect("/auth/login");
+    redirect("/auth");
   }
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
@@ -32,8 +28,9 @@ export default async function ProtectedPage() {
       </div>
       <div>
         <h2 className="font-bold text-2xl mb-4">Next steps</h2>
-        <FetchDataSteps />
       </div>
+      <AuthButton />
+
     </div>
   );
 }
