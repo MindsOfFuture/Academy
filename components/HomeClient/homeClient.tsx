@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { HeroProps, CourseProps } from "@/components/api/indexApi";
+import { HeroProps, CourseProps, ArticleProps } from "@/components/api/indexApi";
 import Navbar from "@/components/navbar/navbar";
 import { Hero } from "@/components/hero_1/hero";
 import { OurCourses } from "@/components/ourCourses/ourCourses";
 import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us/about-us";
+import OurArticles from "@/components/ourArticles/ourArticles";
 import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
 
 interface HomeClientProps {
@@ -14,9 +15,10 @@ interface HomeClientProps {
     nossosCursosData: CourseProps[];
     aboutUsSlides: { src: string; alt: string; }[];
     socialLinks: { href: string; iconSrc: string; alt: string; nome: string; }[];
+    articlesData: ArticleProps[];
 }
 
-export default function HomeClient({ heroData, nossosCursosData, aboutUsSlides, socialLinks }: HomeClientProps) {
+export default function HomeClient({ heroData, nossosCursosData, aboutUsSlides, socialLinks, articlesData }: HomeClientProps) {
     const [isHeroLogoVisible, setIsHeroLogoVisible] = useState(true);
     const heroLogoRef = useRef<HTMLImageElement>(null);
 
@@ -55,6 +57,7 @@ export default function HomeClient({ heroData, nossosCursosData, aboutUsSlides, 
             >
                 <OurCourses cursos={nossosCursosData} />
                 <AboutUs slides={aboutUsSlides} />
+                <OurArticles articles={articlesData} />
             </BlurryBackground>
             <Footer socials={socialLinks} />
         </main>
