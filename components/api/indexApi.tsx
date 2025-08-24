@@ -1,6 +1,6 @@
 
-import { createClient } from "@/lib/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export type HeroProps = {
     n_alunos: number;
@@ -27,7 +27,7 @@ export type FooterProps = {
 };
 
 export async function getHero(): Promise<HeroProps | null> {
-    const supabase = createClient();
+    const supabase = createBrowserClient();
     const { data, error } = await supabase
         .from('hero')
         .select('*')
@@ -40,7 +40,7 @@ export async function getHero(): Promise<HeroProps | null> {
 }
 
 export async function getAboutUs(): Promise<{ aboutUsSlides: AboutUsProps[] } | null> {
-    const supabase = createClient();
+    const supabase = createBrowserClient();
     const { data, error } = await supabase
         .from('about_us')
         .select('src, alt');
@@ -56,7 +56,7 @@ export async function getAboutUs(): Promise<{ aboutUsSlides: AboutUsProps[] } | 
 
 
 export async function getNossosCursos(): Promise<CourseProps[]> {
-    const supabase = createClient();
+    const supabase = createBrowserClient();
     const { data, error } = await supabase
         .from('nossos_cursos')
         .select('*');
@@ -64,23 +64,34 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
     if (error) {
         return [];
     }
-    console.log(data);
     return data as CourseProps[];
 }
-export async function getUserTypes(user: User | null | undefined): Promise<string> {
-    const supabase = createClient();
-    console.log(user);
+export async function getUserTypeServer(): Promise<string> {
+    const supabase = await createServerClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("Usuário não autenticado.");
+    }
+
     const { data, error } = await supabase
         .from('users')
-        .select('tipo')
-        .eq('id', user?.id);
+        .select('type')
+        .eq('id', user.id)
+        .single();
+
     if (error) {
-        return error.message || "Erro ao buscar tipo de usuário";
+        console.error("Erro do Supabase ao buscar tipo de usuário:", error);
+        throw new Error("Não foi possível encontrar o perfil do usuário.");
     }
-    return data[0]?.tipo || "errooooo";
+
+    return data.type;
 }
+
+
 export async function getFooter(): Promise<FooterProps[] | []> {
-    const supabase = createClient();
+    const supabase = createBrowserClient();
     const { data, error } = await supabase
         .from('footer')
         .select('href, iconSrc, alt, nome');

@@ -1,15 +1,23 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InfoIcon } from "lucide-react";
-import { getUserTypes } from "@/components/api/indexApi";
+import { getUserTypeServer } from "@/components/api/indexApi";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
-  const userType = await getUserTypes(data?.user);
+
   if (error || !data?.user) {
     redirect("/auth");
   }
+
+  let userType;
+  try {
+    userType = await getUserTypeServer();
+  } catch (error) {
+    console.error("Erro ao buscar tipo de usuário:", error);
+  }
+
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
       <div className="w-full">

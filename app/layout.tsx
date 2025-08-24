@@ -78,7 +78,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br" suppressHydrationWarning>
-      <body className={`${comfortaa.className} antialiased tracking-[-1.5px]`}>
+      <body className={`${comfortaa.className} antialiased tracking-[0px]`}>
         <Aurora
           colorStops={["#684A97", "#FFD300", "#684A97"]}
           blend={1.0}
