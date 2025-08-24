@@ -20,30 +20,29 @@ export type AboutUsProps = {
     alt: string;
 }
 export type FooterProps = {
-  href: string;
-  iconSrc: string;
-  alt: string;
-  nome: string;
+    href: string;
+    iconSrc: string;
+    alt: string;
+    nome: string;
 };
 
 export async function getHero(): Promise<HeroProps | null> {
     const supabase = createClient();
     const { data, error } = await supabase
-        .from('hero1')
-        .select('conteudo')
+        .from('hero')
+        .select('*')
         .single();
 
     if (error) {
         return null;
     }
-
-    return data.conteudo as HeroProps;
+    return data as HeroProps;
 }
 
 export async function getAboutUs(): Promise<{ aboutUsSlides: AboutUsProps[] } | null> {
-    const supabase = createClient(); 
+    const supabase = createClient();
     const { data, error } = await supabase
-        .from('about-us')
+        .from('about_us')
         .select('src, alt');
 
     if (error || !data) {
@@ -59,13 +58,13 @@ export async function getAboutUs(): Promise<{ aboutUsSlides: AboutUsProps[] } | 
 export async function getNossosCursos(): Promise<CourseProps[]> {
     const supabase = createClient();
     const { data, error } = await supabase
-        .from('nossos-cursos')
+        .from('nossos_cursos')
         .select('*');
 
     if (error) {
         return [];
     }
-
+    console.log(data);
     return data as CourseProps[];
 }
 export async function getUserTypes(user: User | null | undefined): Promise<string> {
@@ -84,7 +83,7 @@ export async function getFooter(): Promise<FooterProps[] | []> {
     const supabase = createClient();
     const { data, error } = await supabase
         .from('footer')
-        .select('href, iconSrc, alt, nome'); 
+        .select('href, iconSrc, alt, nome');
 
     if (error) {
         return [];
