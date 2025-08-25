@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Comfortaa } from "next/font/google";
 import "./globals.css";
 import Aurora from "@/components/aurora/aurora";
+import { Toaster } from "react-hot-toast";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -86,6 +87,28 @@ export default function RootLayout({
           speed={1}
         />
         {children}
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 3500,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              style: {
+                background: '#4CAF50',
+                color: '#fff',
+              },
+            },
+            error: {
+              style: {
+                background: '#f44336',
+                color: '#fff',
+              },
+            },
+          }}
+        />
       </body>
     </html>
   );

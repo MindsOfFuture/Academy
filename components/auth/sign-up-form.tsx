@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { User, Mail, Lock } from "lucide-react";
+import Notificacao from "../notificacao";
+import toast from "react-hot-toast";
 
 interface SignUpFormProps extends React.ComponentPropsWithoutRef<"div"> {
   onToggleView: () => void;
@@ -38,7 +40,7 @@ export function SignUpForm({
     try {
       const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name }, emailRedirectTo: `${window.location.origin}/protected` } });
       if (error) throw error;
-      router.push("/auth/sign-up-success");
+      toast.success("Conta criada com sucesso! Por favor verifique seu e-mail.");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Ocorreu um erro ao criar a conta.");
     } finally {

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Mail, Lock } from "lucide-react";
 import Image from "next/image";
+import toast from "react-hot-toast";
 
 interface LoginFormProps extends React.ComponentPropsWithoutRef<"div"> {
   onToggleView: () => void;
@@ -32,9 +33,12 @@ export function LoginForm({
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      toast.success("Login realizado com sucesso!");
       router.push("/protected");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Ocorreu um erro.");
+      const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
