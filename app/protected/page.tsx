@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { InfoIcon } from "lucide-react";
+import Navbar from "@/components/navbar/navbar";
+import CoursesSection from "@/components/courses-section";
+import UsersTable from "@/components/users-table";
 import { getUserTypeServer } from "@/components/api/indexApi";
+
 export default async function ProtectedPage() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
@@ -9,33 +12,53 @@ export default async function ProtectedPage() {
   if (error || !data?.user) {
     redirect("/auth");
   }
-
   let userType;
   try {
     userType = await getUserTypeServer();
   } catch (error) {
     console.error("Erro ao buscar tipo de usuário:", error);
   }
+  const userName = data.user.user_metadata.full_name || "Fulano";
+  if (userType === 'adm') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar showTextLogo={true} />
 
-  return (
-    <div className="flex-1 w-full flex flex-col gap-12">
-      <div className="w-full">
-        <div className="bg-accent text-sm p-3 px-5 rounded-md text-foreground flex gap-3 items-center">
-          <InfoIcon size="16" strokeWidth={2} />
-          This is a protected page that you can only see as an authenticated
-          user
+        <div className="flex justify-center p-4 sm:p-6 md:p-8">
+          <div className="w-full max-w-7xl mx-auto space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                Olá, {userName} ({userType || "usuário"})
+              </h1>
+            </div>
+
+            <div className="space-y-8">
+              <CoursesSection />
+              <UsersTable />
+            </div>
+          </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2 items-start">
-        <h2 className="font-bold text-2xl mb-4">Your user details</h2>
-        <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
-          {JSON.stringify(data.user, null, 2)}
-        </pre>
+    );
+  }
+  else {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar showTextLogo={true} />
+
+        <div className="flex justify-center p-4 sm:p-6 md:p-8">
+          <div className="w-full max-w-7xl mx-auto space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                Olá, {userName} ({userType || "usuário"})
+              </h1>
+            </div>
+
+            <div className="space-y-8">
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        <h2 className="font-bold text-2xl mb-4">Next steps</h2>
-      </div>
-      <p>usuario tipo {userType}</p>
-    </div>
-  );
+    )
+  }
 }

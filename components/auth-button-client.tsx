@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
 
 export function AuthButtonClient() {
     const [user, setUser] = useState<User | null>(null);
@@ -21,6 +22,7 @@ export function AuthButtonClient() {
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
+        redirect("/");
     };
 
     return user ? (
