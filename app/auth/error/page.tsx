@@ -2,6 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/navbar/navbar";
 import Image from "next/image";
+import Link from "next/link";
 
 export default async function Page({
   searchParams,
@@ -42,7 +43,7 @@ export default async function Page({
           </CardContent>
           <CardFooter className="flex justify-center">
             <Button asChild>
-              <a href="/">Voltar para Home</a>
+              <Link href="/">Voltar para Home</Link>
             </Button>
           </CardFooter>
         </Card>

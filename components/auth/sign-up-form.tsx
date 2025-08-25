@@ -4,10 +4,8 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { User, Mail, Lock } from "lucide-react";
-import Notificacao from "../notificacao";
 import toast from "react-hot-toast";
 
 interface SignUpFormProps extends React.ComponentPropsWithoutRef<"div"> {
@@ -25,7 +23,6 @@ export function SignUpForm({
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
