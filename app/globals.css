@@ -93,4 +93,33 @@ html {
   .animation-delay-4000 {
     animation-delay: 4s;
   }
+
+  /* Swiper pro carrossel de artigos */
+  .swiper-button-next,
+  .swiper-button-prev {
+    @apply text-[#684A97] bg-white w-10 h-10 rounded-full shadow-lg;
+  }
+  
+  .swiper-button-next:after,
+  .swiper-button-prev:after {
+    @apply text-base font-bold;
+  }
+  
+  .swiper-pagination-bullet-active {
+    @apply bg-[#684A97] opacity-100;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
