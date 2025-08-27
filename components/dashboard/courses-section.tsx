@@ -1,5 +1,5 @@
 "use client";
-//fazer tipagem do q vem do sv 
+
 export default function CoursesSection() {
     return (
         <div>
@@ -14,7 +14,7 @@ export default function CoursesSection() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
-                {[1, 2, 3, 4, 5].map((i) => (
+                {[1, 2, 3].map((i) => (
                     <div key={i} className="bg-white rounded-lg shadow border overflow-hidden w-full max-w-sm">
                         <div className="h-40 bg-yellow-400 flex items-center justify-center">
                             <span className="text-2xl font-bold text-black">SPIKE</span>

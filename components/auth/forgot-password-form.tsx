@@ -66,10 +66,10 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
             className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
           />
         </div>
-        
+
         {error && <p className="text-center text-sm text-red-500">{error}</p>}
         {message && <p className="text-center text-sm text-green-600">{message}</p>}
-        
+
         <Button
           type="submit"
           className="w-full rounded-full bg-[#6A4A98] py-6 text-base font-semibold text-white hover:bg-[#5a3e85]"
