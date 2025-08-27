@@ -7,7 +7,10 @@ import Link from "next/link";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ error: string }>;
+  searchParams: Promise<{
+    error_description: string;
+    error: string;
+  }>;
 }) {
   const params = await searchParams;
 
@@ -33,7 +36,7 @@ export default async function Page({
 
             {params?.error ? (
               <p className="text-sm text-muted-foreground">
-                Code error: {params.error}
+                {params.error_description}
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">

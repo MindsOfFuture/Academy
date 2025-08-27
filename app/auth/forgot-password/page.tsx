@@ -1,6 +1,5 @@
 import Aurora from "@/components/aurora/aurora";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
-import Navbar from "@/components/navbar/navbar";
 
 export default function ForgotPasswordPage() {
   return (
