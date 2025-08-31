@@ -28,7 +28,9 @@ export function UserEditModal({ user, onClose, updateUserAction }: UserEditModal
             onClose();
         } finally {
             setLoading(false);
+            window.location.reload();
         }
+
     }
 
     return (
