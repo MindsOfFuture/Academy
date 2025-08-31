@@ -1,21 +1,37 @@
 import { getAllUsers, UserProfile } from "../api/admApi";
+import { createAdminClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { Button } from "@/components/ui/button";
 
 export default async function UsersTable() {
     const data = await getAllUsers();
+
+    async function deleteUserAction(formData: FormData) {
+        'use server';
+        const id = formData.get('id') as string | null;
+        if (!id) return;
+        const supabase = await createAdminClient();
+        await supabase.auth.admin.deleteUser(id);
+        revalidatePath('/protected');
+    }
+
     return (
         <div>
             <div className="text-center sm:text-left mb-4">
                 <h2 className="text-xl font-semibold">Usuários</h2>
                 <p className="text-gray-600 text-sm">Lista completa dos usuários cadastrados</p>
             </div>
-
             <div className="flex justify-center">
                 <div className="bg-white rounded-lg shadow border p-6 w-full max-w-4xl">
                     {data.length > 0 ? (
                         <ul>
                             {data.map((u: UserProfile) => (
-                                <li key={u.id} className="border-b py-2">
-                                    {u.email} – {u.id} - {u.display_name}
+                                <li key={u.id} className="border-b py-2 flex flex-wrap items-center gap-2">
+                                    <span className="text-sm break-all flex-1 min-w-40">{u.email} – {u.id} – {u.display_name}</span>
+                                    <form action={deleteUserAction}>
+                                        <input type="hidden" name="id" value={u.id} />
+                                        <Button variant="destructive" size="sm">Apagar</Button>
+                                    </form>
                                 </li>
                             ))}
                         </ul>
@@ -29,3 +45,4 @@ export default async function UsersTable() {
         </div>
     );
 }
+

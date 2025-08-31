@@ -1,5 +1,4 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
-
 export type UserProfile = {
     id: string;
     type: 'adm' | 'normal';
