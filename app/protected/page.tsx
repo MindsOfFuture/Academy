@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/navbar/navbar";
 import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
-import { getUserTypeServer } from "@/components/api/indexApi";
+import { getUserTypeServer } from "@/components/api/admApi";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -28,10 +28,10 @@ export default async function ProtectedPage() {
           {userType === "adm" && (
             <div className="space-y-8">
               <CoursesSection />
-              <UsersTable />
             </div>
           )}
-
+          <UsersTable />
+          {userType}
         </div>
       </div>
     </div>

@@ -1,16 +1,7 @@
-import { createAdminClient } from "@/lib/supabase/server";
-import type { User } from "@supabase/supabase-js"; // Importa tipo User
+import { getAllUsers, UserProfile } from "../api/admApi";
 
 export default async function UsersTable() {
-    const supabase = await createAdminClient();
-
-    const { data, error } = await supabase.auth.admin.listUsers();
-    const users: User[] = data?.users ?? [];
-
-    if (error) {
-        console.error("Erro ao listar usuários:", error.message);
-    }
-
+    const data = await getAllUsers();
     return (
         <div>
             <div className="text-center sm:text-left mb-4">
@@ -20,11 +11,11 @@ export default async function UsersTable() {
 
             <div className="flex justify-center">
                 <div className="bg-white rounded-lg shadow border p-6 w-full max-w-4xl">
-                    {users.length > 0 ? (
+                    {data.length > 0 ? (
                         <ul>
-                            {users.map((u: User) => (
+                            {data.map((u: UserProfile) => (
                                 <li key={u.id} className="border-b py-2">
-                                    {u.email} – {u.id}
+                                    {u.email} – {u.id} - {u.display_name}
                                 </li>
                             ))}
                         </ul>
