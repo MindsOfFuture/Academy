@@ -24,17 +24,29 @@ export default async function UsersTable() {
             <div className="flex justify-center">
                 <div className="bg-white rounded-lg shadow border p-6 w-full max-w-4xl">
                     {data.length > 0 ? (
-                        <ul>
-                            {data.map((u: UserProfile) => (
-                                <li key={u.id} className="border-b py-2 flex flex-wrap items-center gap-2">
-                                    <span className="text-sm break-all flex-1 min-w-40">{u.email} – {u.id} – {u.display_name}</span>
-                                    <form action={deleteUserAction}>
-                                        <input type="hidden" name="id" value={u.id} />
-                                        <Button variant="destructive" size="sm">Apagar</Button>
-                                    </form>
-                                </li>
-                            ))}
-                        </ul>
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b">
+                                    <th className="text-left py-2 px-4">Email</th>
+                                    <th className="text-left py-2 px-4">Nome</th>
+                                    <th className="text-center py-2 px-4">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.map((u: UserProfile) => (
+                                    <tr key={u.id} className="border-b">
+                                        <td className="py-2 px-4 text-sm break-all">{u.email}</td>
+                                        <td className="py-2 px-4 text-sm">{u.display_name}</td>
+                                        <td className="py-2 px-4 text-center">
+                                            <form action={deleteUserAction}>
+                                                <input type="hidden" name="id" value={u.id} />
+                                                <Button variant="destructive" size="sm">Apagar</Button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     ) : (
                         <div className="h-48 border-2 border-dashed border-gray-200 rounded flex items-center justify-center">
                             <span className="text-gray-500">Nenhum usuário encontrado</span>
