@@ -118,33 +118,67 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
             </div>
 
             <div className="flex justify-center">
-                <div className="bg-white rounded-lg shadow border p-6 w-full max-w-[100%]">
+                <div className="bg-white rounded-lg shadow border p-4 sm:p-6 w-full max-w-[100%]">
                     {users.length > 0 ? (
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-2 px-4">Email</th>
-                                    <th className="text-left py-2 px-4">Nome</th>
-                                    <th className="text-left py-2 px-4">Tipo</th>
-                                    <th className="text-center py-2 px-4">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                        <>
+                            {/* Visão tabela (md e acima) */}
+                            <div className="hidden md:block">
+                                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                                    <table className="min-w-full table-auto">
+                                        <thead>
+                                            <tr className="border-b bg-gray-50">
+                                                <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wide">Email</th>
+                                                <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wide">Nome</th>
+                                                <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wide">Tipo</th>
+                                                <th className="text-center py-2 px-4 text-xs font-semibold uppercase tracking-wide">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {users.map(u => (
+                                                <tr key={u.id} className="border-b last:border-b-0 hover:bg-gray-50 transition-colors">
+                                                    <td className="py-2 px-4 text-sm break-all max-w-xs">{u.email}</td>
+                                                    <td className="py-2 px-4 text-sm">{u.display_name}</td>
+                                                    <td className="py-2 px-4 text-sm">{u.type}</td>
+                                                    <td className="py-2 px-4 text-center">
+                                                        <div className="flex flex-col items-center gap-1 lg:flex-row lg:justify-center">
+                                                            <Button variant="destructive" size="sm" onClick={() => onAskDelete(u)}>Apagar</Button>
+                                                            <Button variant="outline" size="sm" onClick={() => onEdit(u)}>Editar</Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {/* Visão cards (mobile) */}
+                            <ul className="md:hidden space-y-3">
                                 {users.map(u => (
-                                    <tr key={u.id} className="border-b">
-                                        <td className="py-2 px-4 text-sm break-all">{u.email}</td>
-                                        <td className="py-2 px-4 text-sm">{u.display_name}</td>
-                                        <td className="py-2 px-4 text-sm">{u.type}</td>
-                                        <td className="py-2 px-4 text-center space-y-1">
-                                            <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-center">
+                                    <li key={u.id} className="border rounded-lg p-4 shadow-sm bg-white">
+                                        <div className="flex flex-col gap-2">
+                                            <div>
+                                                <p className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Email</p>
+                                                <p className="text-sm font-medium break-all">{u.email}</p>
+                                            </div>
+                                            <div className="flex flex-wrap gap-6">
+                                                <div>
+                                                    <p className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Nome</p>
+                                                    <p className="text-sm">{u.display_name}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Tipo</p>
+                                                    <p className="text-sm">{u.type}</p>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2 flex flex-wrap gap-2">
                                                 <Button variant="destructive" size="sm" onClick={() => onAskDelete(u)}>Apagar</Button>
                                                 <Button variant="outline" size="sm" onClick={() => onEdit(u)}>Editar</Button>
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                    </li>
                                 ))}
-                            </tbody>
-                        </table>
+                            </ul>
+                        </>
                     ) : (
                         <div className="h-48 border-2 border-dashed border-gray-200 rounded flex items-center justify-center">
                             <span className="text-gray-500">Nenhum usuário encontrado</span>
