@@ -28,10 +28,9 @@ export default async function ProtectedPage() {
           {userType === "adm" && (
             <div className="space-y-8">
               <CoursesSection />
+              <UsersTable />
             </div>
           )}
-          <UsersTable />
-          {userType}
         </div>
       </div>
     </div>

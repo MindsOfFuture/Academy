@@ -1,5 +1,8 @@
 "use client";
 
+// Componente placeholder de listagem de cursos.
+// Futuramente pode ser substituído por busca real de cursos do usuário.
+
 export default function CoursesSection() {
     return (
         <div>

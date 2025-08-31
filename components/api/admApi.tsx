@@ -94,3 +94,30 @@ export async function updateUserAction(formData: FormData) {
     await supabase.from('users').update({ display_name, type, email }).eq('id', id);
     revalidatePath('/protected');
 }
+
+export async function getUsersPage(page: number = 1, pageSize: number = 10): Promise<{ users: UserProfile[]; total: number; page: number; pageSize: number; }> {
+    const supabase = await createServerClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("Usuário não autenticado.");
+    }
+
+    const safePageSize = Math.min(Math.max(pageSize, 1), 100);
+    const safePage = Math.max(page, 1);
+    const from = (safePage - 1) * safePageSize;
+    const to = from + safePageSize - 1;
+
+    const { data, error, count } = await supabase
+        .from('users')
+        .select('*', { count: 'exact' })
+        .range(from, to);
+
+    if (error) {
+        console.error("Erro do Supabase ao buscar usuários (paginados):", error);
+        throw new Error("Não foi possível listar os usuários.");
+    }
+
+    return { users: data || [], total: count || 0, page: safePage, pageSize: safePageSize };
+}
