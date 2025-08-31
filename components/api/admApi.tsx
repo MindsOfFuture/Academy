@@ -1,4 +1,6 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 export type UserProfile = {
     id: string;
     type: 'adm' | 'normal';
@@ -48,4 +50,37 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     }
 
     return data;
+}
+export async function deleteUserAction(formData: FormData) {
+    'use server';
+    const id = formData.get('id') as string | null;
+    if (!id) return;
+    const supabase = await createAdminClient();
+    await supabase.auth.admin.deleteUser(id);
+    revalidatePath('/protected');
+}
+
+export async function updateUserAction(formData: FormData) {
+    'use server';
+    const id = formData.get('id') as string | null;
+    const display_name = formData.get('display_name') as string | null;
+    const type = formData.get('type') as string | null;
+    const email = formData.get('email') as string | null;
+    if (!id) return;
+    const supabase = await createAdminClient();
+    const { data: existing } = await supabase.auth.admin.getUserById(id);
+    const existingMeta = existing?.user?.user_metadata || {};
+    const newMeta = { ...existingMeta } as Record<string, any>;
+    if (display_name) newMeta.display_name = display_name;
+    if (display_name) newMeta.full_name = display_name;
+    if (email) newMeta.email = email;
+
+    if (email || display_name) {
+        await supabase.auth.admin.updateUserById(id, {
+            ...(email ? { email } : {}),
+            user_metadata: newMeta,
+        });
+    }
+    await supabase.from('users').update({ display_name, type, email }).eq('id', id);
+    revalidatePath('/protected');
 }
