@@ -9,6 +9,16 @@ export type UserProfile = {
     display_name: string | null;
 };
 
+export type UserMetadata = {
+    sub?: string;
+    email?: string;
+    full_name?: string;
+    display_name?: string;
+    email_verified?: boolean;
+    phone_verified?: boolean;
+    [key: string]: unknown;
+};
+
 export async function getUserTypeServer(): Promise<string> {
     const supabase = await createServerClient();
 
@@ -70,7 +80,7 @@ export async function updateUserAction(formData: FormData) {
     const supabase = await createAdminClient();
     const { data: existing } = await supabase.auth.admin.getUserById(id);
     const existingMeta = existing?.user?.user_metadata || {};
-    const newMeta = { ...existingMeta } as Record<string, any>;
+    const newMeta: UserMetadata = { ...existingMeta };
     if (display_name) newMeta.display_name = display_name;
     if (display_name) newMeta.full_name = display_name;
     if (email) newMeta.email = email;

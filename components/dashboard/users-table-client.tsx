@@ -11,10 +11,12 @@ interface UsersTableClientProps {
     updateUserAction: (formData: FormData) => Promise<void>;
 }
 
+type EditFormState = { display_name: string; type: 'adm' | 'normal'; email: string };
+
 export default function UsersTableClient({ users, deleteUserAction, updateUserAction }: UsersTableClientProps) {
     const [open, setOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-    const [form, setForm] = useState({ display_name: "", type: "normal", email: "" });
+    const [form, setForm] = useState<EditFormState>({ display_name: "", type: "normal", email: "" });
     const [loading, setLoading] = useState(false);
 
     function onEdit(u: UserProfile) {
@@ -106,7 +108,7 @@ export default function UsersTableClient({ users, deleteUserAction, updateUserAc
                                     id="type"
                                     name="type"
                                     value={form.type}
-                                    onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}
+                                    onChange={e => setForm(f => ({ ...f, type: e.target.value as EditFormState['type'] }))}
                                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option value="normal">Normal</option>
