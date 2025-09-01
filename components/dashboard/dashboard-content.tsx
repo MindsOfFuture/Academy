@@ -1,5 +1,8 @@
 "use client";
 
+// DashboardContent: layout alternativo (parece não estar em uso principal) para a área autenticada.
+// Mantém estrutura de saudação, listagem de cursos estática e placeholder para tabela de usuários.
+
 import Image from "next/image";
 import Link from "next/link";
 

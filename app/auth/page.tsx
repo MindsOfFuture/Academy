@@ -1,7 +1,9 @@
 import { AuthForms } from "@/components/auth/auth-forms";
 import Navbar from "@/components/navbar/navbar";
 
+
 export default function Page() {
+
   return (
     <div className="flex w-screen flex-col min-h-screen">
       <Navbar showTextLogo={true} />
