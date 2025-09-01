@@ -5,13 +5,7 @@ import Navbar from "@/components/navbar/navbar";
 import { getUserTypeServer } from "@/components/api/admApi";
 import { useSearchParams } from "next/navigation";
 
-export default  function CoursePage() {
-
-  const searchParams = useSearchParams();
-  const courseId = searchParams.get("id");
-  console.log(courseId);
-  
-  const course = {
+ const course = {
     id: "24",
     title: "Scratch",
     percentCourse: 25,
@@ -42,7 +36,16 @@ export default  function CoursePage() {
       ],
     },
   };
+export default  function CoursePage() {
 
+  const searchParams = useSearchParams();
+  const courseId = searchParams.get("id");
+  console.log(courseId);
+  // buscar o curso pelo id
+  // const course = await getCourseById(courseId);
+  // if (!course) {
+  //   redirect("/protected");
+  // }
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar showTextLogo={true} />
@@ -51,7 +54,6 @@ export default  function CoursePage() {
           <h2 className="text-3xl font-bold mb-6">
             Explore o módulo de: {course.title}
           </h2>
-
           {/* trilha dos módulos */}
           <div className="flex flex-col gap-8">
             {course.content.modules.map((module, idx) => (

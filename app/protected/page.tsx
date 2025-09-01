@@ -5,6 +5,7 @@ import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
 import { getUserTypeServer } from "@/components/api/admApi";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
+import { getNossosCursos, getUserCourse } from "@/components/api/indexApi";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -14,27 +15,10 @@ export default async function ProtectedPage() {
   }
   const userType = await getUserTypeServer();
   const userName = data.user.user_metadata.full_name || "Fulano";
-  const courses = [
-    {
-      id: "1",
-      title: "Scratch",
-      percentCourse: 25,
-      imageUrl:"https://upload.wikimedia.org/wikipedia/commons/f/f2/SCRATCH_BLOCK_PLATFORMER.svg"
-    },
-    {
-      id: "2",
-      title: "Python",
-      percentCourse: 50,
-      imageUrl:"https://upload.wikimedia.org/wikipedia/commons/1/1f/Python_logo_01.svg"
-    },
-    {
-      id: "3",
-      title: "Python 2",
-      percentCourse: 50,
-      imageUrl:"https://upload.wikimedia.org/wikipedia/commons/1/1f/Python_logo_01.svg"
-    },
+
+  const courses = await getUserCourse(data.user.id);
+  console.log(data.user.id,courses);
   
-  ]
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar showTextLogo={true} />

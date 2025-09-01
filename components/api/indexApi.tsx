@@ -13,6 +13,12 @@ export type CourseProps = {
     description: string;
     imageUrl: string;
 };
+export type YCourseProps = {
+  id: string;
+  progresso: number;
+  Curso: CourseProps;
+
+};
 
 export type AboutUsProps = {
     src: string;
@@ -74,6 +80,22 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
         return [];
     }
     return data as CourseProps[];
+}
+
+export async function getUserCourse(user: string): Promise<YCourseProps[]> {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase
+    .from("users_cursos")
+    .select("*")
+    .eq("User", user);
+
+  if (error) {
+    console.error("Erro ao buscar cursos:", error.message);
+    return [];
+  }
+  console.log(data);
+  return data as YCourseProps[];
 }
 
 export async function getFooter(): Promise<FooterProps[] | []> {
