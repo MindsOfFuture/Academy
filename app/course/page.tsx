@@ -1,18 +1,16 @@
+"use client";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/navbar/navbar";
 import { getUserTypeServer } from "@/components/api/admApi";
+import { useSearchParams } from "next/navigation";
 
-export default async function CoursePage() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
+export default  function CoursePage() {
 
-  if (error || !data?.user) {
-    redirect("/auth");
-  }
-  const userType = await getUserTypeServer();
-  const userName = data.user.user_metadata.full_name || "Fulano";
-
+  const searchParams = useSearchParams();
+  const courseId = searchParams.get("id");
+  console.log(courseId);
+  
   const course = {
     id: "24",
     title: "Scratch",
@@ -24,21 +22,21 @@ export default async function CoursePage() {
         {
           title: "Introdução ao Scratch",
           lessons: [
-            { title: "O que é o Scratch?", duration: "10:00", link: "www.google.com" },
-            { title: "Sprites, oque comem, onde dorme?", duration: "10:00", link: "www.google.com" },
+            { title: "O que é o Scratch?", duration: "10:00", link: "https://www.youtube.com/watch?v=8DhQG27oLPs" },
+            { title: "Sprites, oque comem, onde dorme?", duration: "10:00", link: "https://www.youtube.com/watch?v=8DhQG27oLPs" },
 
           ],
         },
         {
           title: "Jogo da Cobrinha",
           lessons: [
-            { title: "Clonagem", duration: "15:00", link: "www.google.com" },
+            { title: "Clonagem", duration: "15:00", link: "https://www.youtube.com/watch?v=8DhQG27oLPs" },
           ],
         },
         {
           title: "Variaveis?",
           lessons: [
-            { title: "tem que ter??", duration: "15:00", link: "www.google.com" },
+            { title: "tem que ter??", duration: "15:00", link: "https://www.youtube.com/watch?v=8DhQG27oLPs" },
           ],
         },
       ],
