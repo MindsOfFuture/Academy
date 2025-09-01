@@ -25,12 +25,20 @@ export default async function CoursePage() {
           title: "Introdução ao Scratch",
           lessons: [
             { title: "O que é o Scratch?", duration: "10:00", link: "www.google.com" },
+            { title: "Sprites, oque comem, onde dorme?", duration: "10:00", link: "www.google.com" },
+
           ],
         },
         {
-          title: "teste ao 2",
+          title: "Jogo da Cobrinha",
           lessons: [
-            { title: "Outra aula", duration: "15:00", link: "www.google.com" },
+            { title: "Clonagem", duration: "15:00", link: "www.google.com" },
+          ],
+        },
+        {
+          title: "Variaveis?",
+          lessons: [
+            { title: "tem que ter??", duration: "15:00", link: "www.google.com" },
           ],
         },
       ],
