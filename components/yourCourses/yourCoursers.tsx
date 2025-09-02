@@ -32,7 +32,7 @@ export function YourCourses({ cursos }: YourCoursesProps) {
               <div className="relative size-40">
                 <svg className="size-full rotate-180" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="16" fill="none" className="stroke-current text-orange-100" strokeWidth="3" strokeDasharray="50 100" strokeLinecap="round"></circle>
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-current text-orange-600" strokeWidth="1" strokeDasharray="25 100" strokeLinecap="round"></circle>
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-current text-orange-600" strokeWidth="1" strokeDasharray={`${curso.progresso/2} 100`} strokeLinecap="round"></circle>
                 </svg>
                 <div className="absolute top-9 start-1/2 transform -translate-x-1/2 text-center">
                   <span className="text-2xl font-bold text-orange-600">{curso.progresso}%</span>

@@ -33,7 +33,7 @@ export default async function ProtectedPage() {
           <div className="w-full max-w-7xl mx-auto space-y-8">
             <h2 className="text-3xl font-bold">Nossos Cursos</h2>
             <p className="max-w-[480px]">
-              Explore abaixo nossas opções de cursos e descubra o ideal para sua jornada!
+              Explore abaixo a suas opções de cursos e descubra o ideal para sua jornada!
             </p>
           </div>
           <YourCourses cursos={courses} />
