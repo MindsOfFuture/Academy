@@ -14,19 +14,19 @@ export function YourCourses({ cursos }: YourCoursesProps) {
         <div className="flex justify-center items-start gap-20 flex-wrap p-6">
           {cursos.map((curso) => (
             <Link 
-              key={curso.id} 
-              href={`/course?id=${curso.id}`}
+              key={curso.Curso.id} 
+              href={`/course?id=${curso.Curso.id}`}
               className="flex flex-col gap-4 h-auto items-center p-3 rounded-[5] bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] text-black w-[300px] h-[500px] cursor-pointer hover:shadow-lg transition"
             >
               <Image
-                src={curso.imageUrl}
-                alt={curso.title}
+                src={curso.Curso.imageUrl}
+                alt={curso.Curso.title}
                 width={430}
                 height={72}
                 className="w-full h-[180px] bg-gray-200 p-4"
               />
               <h3 className="text-[18pt] font-bold w-full flex items-center justify-center">
-                {curso.title}
+                {curso.Curso.title}
               </h3>
 
               <div className="relative size-40">
