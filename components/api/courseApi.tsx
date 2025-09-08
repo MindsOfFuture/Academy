@@ -49,3 +49,27 @@ export async function getCursos(): Promise<CourseProps[]> {
 
   return data as CourseProps[];
 }
+export async function updateCurso(
+  id: string,
+  course: Omit<CourseProps, "id">
+): Promise<CourseProps | null> {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase
+    .from("nossos_cursos")
+    .update({
+      title: course.title,
+      description: course.description,
+      imageUrl: course.imageUrl,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao atualizar curso:", error.message);
+    return null;
+  }
+
+  return data as CourseProps;
+}
