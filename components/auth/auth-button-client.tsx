@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from "@heroui/react";
+
 
 export function AuthButtonClient() {
     const [user, setUser] = useState<User | null>(null);
@@ -26,17 +28,18 @@ export function AuthButtonClient() {
     };
 
     return user ? (
-        <div className="flex items-center gap-4">
-            <Link href="/protected" className="text-m md:text-xl bold">
-                {user.user_metadata.full_name}
-            </Link>
-            <button
-                onClick={handleSignOut}
-                className="text-m md:text-2xl bold transition-all duration-300 hover:text-[26px]"
-            >
-                Sair
-            </button>
-        </div>
+        <Dropdown className="text-lg hover:cursor-pointer">
+            <DropdownTrigger className="text-lg rounded-lg">
+                <Button variant="bordered" ><p className="text-2xl">Menu</p></Button>
+            </DropdownTrigger>
+            <DropdownMenu aria-label="Static Actions" className="bg-[#FFD300] p-2 rounded-lg">
+                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Dashboard"><Link href="protected">Dashboard</Link></DropdownItem>
+                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil"><Link href="protected/perfil"> Perfil</Link></DropdownItem>
+                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onClick={handleSignOut} color="danger">
+                    Sair
+                </DropdownItem>
+            </DropdownMenu>
+        </Dropdown>
     ) : (
         <Link
             className="text-m md:text-2xl bold transition-all duration-300 hover:text-[26px]"

@@ -1,5 +1,6 @@
 
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import type { UserAttributes } from "@supabase/supabase-js";
 
 export type HeroProps = {
     n_alunos: number;
@@ -34,6 +35,18 @@ export type ArticleProps = {
     publishedAt: string;
     readTime: string;
 };
+export interface UpdateProfilePayload {
+    userId: string;
+    name: string;
+    email: string;
+    originalEmail: string;
+}
+
+interface ProfileMetadata {
+    full_name: string;
+    display_name: string;
+    [key: string]: unknown;
+}
 
 export async function getHero(): Promise<HeroProps | null> {
     const supabase = createBrowserClient();
@@ -165,3 +178,41 @@ export async function getArticles(): Promise<ArticleProps[]> {
     return data as ArticleProps[];
     */
 }
+
+
+
+
+export async function updateUserProfileClient({ userId, name, email, originalEmail }: UpdateProfilePayload): Promise<{ emailChanged: boolean; message: string; }> {
+    const supabase = createBrowserClient();
+    const trimmedName = name.trim();
+    if (!trimmedName) throw new Error('Nome inválido');
+
+    const meta: ProfileMetadata = { full_name: trimmedName, display_name: trimmedName };
+    const emailChanged = !!email && email !== originalEmail;
+    const updateAuth: UserAttributes = emailChanged ? { data: meta, email } : { data: meta };
+
+    const { error: authError } = await supabase.auth.updateUser(updateAuth);
+    if (authError) throw authError;
+    const { error: tableError } = await supabase
+        .from('users')
+        .update({ display_name: trimmedName, email })
+        .eq('id', userId);
+    if (tableError) throw tableError;
+
+    return {
+        emailChanged,
+        message: emailChanged
+            ? 'Perfil salvo. Verifique seu e-mail para confirmar mudança.'
+            : 'Perfil salvo com sucesso.'
+    };
+}
+
+export async function updatePasswordClient(newPassword: string): Promise<void> {
+    const supabase = createBrowserClient();
+    if (newPassword.trim().length < 6) {
+        throw new Error('Senha mínima de 6 caracteres');
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword } as UserAttributes);
+    if (error) throw error;
+}
+
