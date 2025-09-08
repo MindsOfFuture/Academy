@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { insertCurso, getCursos, CourseProps } from "@/components/api/courseApi";
+import {
+  insertCurso,
+  getCursos,
+  updateCurso,
+  CourseProps,
+} from "@/components/api/courseApi";
 
 export default function CoursesSection() {
   const [isOpen, setIsOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<CourseProps | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -19,6 +25,13 @@ export default function CoursesSection() {
     fetchCursos();
   }, []);
 
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setImageUrl("");
+    setEditingCourse(null);
+  };
+
   const handleCreateCourse = async () => {
     if (!title || !description) {
       alert("Preencha título e descrição!");
@@ -32,14 +45,39 @@ export default function CoursesSection() {
     });
 
     if (newCourse) {
-      alert("Curso criado com sucesso!");
+      setCourses((prev) => [...prev, newCourse]);
+      resetForm();
       setIsOpen(false);
-      setTitle("");
-      setDescription("");
-      setImageUrl("");
-      setCourses((prev) => [...prev, newCourse]); // atualiza a listagem sem recarregar
     } else {
       alert("Erro ao criar curso.");
+    }
+  };
+
+  const handleEditCourse = (course: CourseProps) => {
+    setEditingCourse(course);
+    setTitle(course.title);
+    setDescription(course.description);
+    setImageUrl(course.imageUrl);
+    setIsOpen(true);
+  };
+
+  const handleUpdateCourse = async () => {
+    if (!editingCourse) return;
+
+    const updated = await updateCurso(editingCourse.id, {
+      title,
+      description,
+      imageUrl,
+    });
+
+    if (updated) {
+      setCourses((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c))
+      );
+      resetForm();
+      setIsOpen(false);
+    } else {
+      alert("Erro ao atualizar curso.");
     }
   };
 
@@ -53,14 +91,17 @@ export default function CoursesSection() {
           </p>
         </div>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            resetForm();
+            setIsOpen(true);
+          }}
           className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 mx-auto sm:mx-0"
         >
           Criar novo curso
         </button>
       </div>
 
-      {/* LISTAGEM REAL */}
+      {/* LISTAGEM */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
         {courses.map((course) => (
           <div
@@ -85,7 +126,10 @@ export default function CoursesSection() {
               <p className="text-gray-600 text-sm mb-3 line-clamp-2">
                 {course.description}
               </p>
-              <button className="w-full bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200">
+              <button
+                onClick={() => handleEditCourse(course)}
+                className="w-full bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200"
+              >
                 Editar curso
               </button>
             </div>
@@ -101,7 +145,9 @@ export default function CoursesSection() {
       {isOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
-            <h2 className="text-xl font-bold mb-4">Novo Curso</h2>
+            <h2 className="text-xl font-bold mb-4">
+              {editingCourse ? "Editar Curso" : "Novo Curso"}
+            </h2>
 
             <div className="flex flex-col gap-3">
               <input
@@ -128,16 +174,19 @@ export default function CoursesSection() {
 
             <div className="flex justify-end gap-3 mt-6">
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  resetForm();
+                  setIsOpen(false);
+                }}
                 className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleCreateCourse}
+                onClick={editingCourse ? handleUpdateCourse : handleCreateCourse}
                 className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
               >
-                Criar
+                {editingCourse ? "Salvar alterações" : "Criar"}
               </button>
             </div>
           </div>
