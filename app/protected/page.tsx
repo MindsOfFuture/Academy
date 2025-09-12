@@ -4,17 +4,21 @@ import Navbar from "@/components/navbar/navbar";
 import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
 import { getUserTypeServer } from "@/components/api/admApi";
+import { YourCourses } from "@/components/yourCourses/yourCoursers";
+import { getNossosCursos, getUserCourse } from "@/components/api/indexApi";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
-
   if (error || !data?.user) {
     redirect("/auth");
   }
   const userType = await getUserTypeServer();
   const userName = data.user.user_metadata.full_name || "Fulano";
 
+  const courses = await getUserCourse(data.user.id);
+  console.log(data.user.id,courses);
+  
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar showTextLogo={true} />
@@ -25,13 +29,24 @@ export default async function ProtectedPage() {
               Olá, {userName}
             </h1>
           </div>
+
+          <div className="w-full max-w-7xl mx-auto space-y-8">
+            <h2 className="text-3xl font-bold">Nossos Cursos</h2>
+            <p className="max-w-[480px]">
+              Explore abaixo a suas opções de cursos e descubra o ideal para sua jornada!
+            </p>
+          </div>
+          <YourCourses cursos={courses} />
+
           {userType === "adm" && (
             <div className="space-y-8">
               <CoursesSection />
               <UsersTable />
             </div>
           )}
+
         </div>
+        
       </div>
     </div>
   );

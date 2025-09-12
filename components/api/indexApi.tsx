@@ -1,5 +1,17 @@
 
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+export type LessonProps = {
+  id: string;
+  title: string;
+  duration: string;
+  link: string;
+};
+
+export type ModuleProps = {
+  id: string;
+  title: string;
+  lessons: LessonProps[];
+};
 
 export type HeroProps = {
     n_alunos: number;
@@ -12,6 +24,14 @@ export type CourseProps = {
     title: string;
     description: string;
     imageUrl: string;
+
+
+};
+export type YCourseProps = {
+  id: string;
+  progresso: number;
+  Curso: CourseProps;
+
 };
 
 export type AboutUsProps = {
@@ -75,6 +95,77 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
     }
     return data as CourseProps[];
 }
+export async function getLessons(cursoId:string): Promise<CourseProps[]> {
+    const supabase = createBrowserClient();
+    const { data, error } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('cursoId', cursoId);
+
+    if (error) {
+        return [];
+    }
+    return data as CourseProps[];
+}
+
+
+export async function getUserCourse(user: string): Promise<any[]> {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase
+    .from("users_cursos")
+    .select(`
+      id,
+      progresso,
+      created_at,
+      Curso (*),
+      User (*)
+    `)
+    .eq("User", user);
+
+  if (error) {
+    console.error("Erro ao buscar cursos:", error.message);
+    return [];
+  }
+
+  console.log(data);
+  return data;
+}
+export async function getCurso(id: string) {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase
+    .from("users_cursos")
+    .select(`
+      id,
+      Curso:nossos_cursos (
+        id,
+        title,
+        description,
+        imageUrl,
+        modules (
+          id,
+          title,
+          lessons (
+            id,
+            title,
+            duration,
+            link
+          )
+        )
+      )
+    `)
+    .eq("Curso", id) // pega o registro de users_cursos específico
+    .single();
+
+  if (error) {
+    console.error(error);
+    return null;
+  }
+
+  return data;
+}
+
 
 export async function getFooter(): Promise<FooterProps[] | []> {
     const supabase = createBrowserClient();
