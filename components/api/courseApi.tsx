@@ -229,16 +229,31 @@ export async function getCurso(id: string) {
 }
 
 // Deletar módulo
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
+
+// Deletar módulo com lições
 export async function deleteModule(moduleId: string): Promise<boolean> {
   const supabase = createBrowserClient();
 
-  const { error } = await supabase
+  // 1. Deletar todas as lições do módulo
+  const { error: lessonError } = await supabase
+    .from("lessons")
+    .delete()
+    .eq("modulo", moduleId);
+
+  if (lessonError) {
+    console.error("Erro ao deletar lições do módulo:", lessonError.message);
+    return false;
+  }
+
+  // 2. Deletar o módulo
+  const { error: moduleError } = await supabase
     .from("modules")
     .delete()
     .eq("id", moduleId);
 
-  if (error) {
-    console.error("Erro ao deletar módulo:", error.message);
+  if (moduleError) {
+    console.error("Erro ao deletar módulo:", moduleError.message);
     return false;
   }
 
