@@ -81,12 +81,6 @@ export default function CourseDetail({ courseId, onBack }: Props) {
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="mb-4 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
-      >
-        ← Voltar
-      </button>
 
       <h2 className="text-2xl font-bold">{course.title}</h2>
       <p className="text-gray-600 mb-6">{course.description}</p>

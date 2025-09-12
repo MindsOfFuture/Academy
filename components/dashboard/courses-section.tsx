@@ -83,23 +83,14 @@ export default function CoursesSection() {
     }
   };
 
-  // Se tiver curso selecionado → mostra tela de detalhe
-  if (selectedCourseId) {
-    return (
-      <CourseDetail
-        courseId={selectedCourseId}
-        onBack={() => setSelectedCourseId(null)}
-      />
-    );
-  }
-
   return (
     <div>
+      {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div className="text-center sm:text-left">
           <h2 className="text-xl font-semibold">Seus Cursos</h2>
           <p className="text-gray-600 text-sm">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            Gerencie seus cursos e módulos abaixo.
           </p>
         </div>
         <button
@@ -113,7 +104,7 @@ export default function CoursesSection() {
         </button>
       </div>
 
-      {/* LISTAGEM */}
+      {/* LISTAGEM DE CURSOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
         {courses.map((course) => (
           <div
@@ -161,7 +152,7 @@ export default function CoursesSection() {
         )}
       </div>
 
-      {/* MODAL */}
+      {/* MODAL DE CRIAR / EDITAR CURSO */}
       {isOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
@@ -209,6 +200,25 @@ export default function CoursesSection() {
                 {editingCourse ? "Salvar alterações" : "Criar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE DETALHE DO CURSO */}
+      {selectedCourseId && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-5xl p-6 overflow-auto max-h-[90vh]">
+            <button
+              onClick={() => setSelectedCourseId(null)}
+              className="mb-4 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+            >
+              ← Fechar
+            </button>
+
+            <CourseDetail
+              courseId={selectedCourseId}
+              onBack={() => setSelectedCourseId(null)}
+            />
           </div>
         </div>
       )}
