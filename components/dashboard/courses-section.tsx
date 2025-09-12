@@ -130,27 +130,7 @@ export default function CoursesSection() {
                   Gerenciar
                 </button>
               
-                <button
-                  onClick={async () => {
-                    if (
-                      !confirm(
-                        "Deseja realmente deletar este curso e todo o seu conteúdo?"
-                      )
-                    )
-                      return;
-                    const success = await deleteCurso(course.id);
-                    if (success) {
-                      setCourses((prev) =>
-                        prev.filter((c) => c.id !== course.id)
-                      );
-                      if (selectedCourseId === course.id)
-                        setSelectedCourseId(null);
-                    }
-                  }}
-                  className="flex-auto bg-red-500 text-white py-2 rounded hover:bg-red-600"
-                >
-                  Deletar
-                </button>
+           
               </div>
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
     insertModule,
     insertLesson,
     updateCurso,
+    deleteCurso,
     deleteModule,
     deleteLesson,
     ModuleProps,
@@ -15,21 +16,19 @@ import {
 type Props = {
     courseId: string;
     onBack: () => void;
+    onCourseDeleted?: () => void; // callback quando curso for deletado
 };
 
-export default function CourseDetail({ courseId, onBack }: Props) {
+export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Props) {
     const [course, setCourse] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    // States do curso para edição
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [imageUrl, setImageUrl] = useState("");
 
-    // States para novo módulo
     const [moduleTitle, setModuleTitle] = useState("");
 
-    // States para nova lição
     const [lessonTitle, setLessonTitle] = useState("");
     const [lessonDuration, setLessonDuration] = useState("");
     const [lessonLink, setLessonLink] = useState("");
@@ -68,7 +67,7 @@ export default function CourseDetail({ courseId, onBack }: Props) {
         });
 
         if (updated) {
-            await refreshCourse(); // 🔥 força atualizar da API
+            await refreshCourse();
             alert("Curso atualizado!");
         } else {
             alert("Erro ao atualizar curso.");
@@ -80,7 +79,7 @@ export default function CourseDetail({ courseId, onBack }: Props) {
 
         const newModule = await insertModule({ Curso: courseId, title: moduleTitle });
         if (newModule) {
-            await refreshCourse(); // 🔥 recarrega curso inteiro
+            await refreshCourse();
             setModuleTitle("");
         }
     };
@@ -97,7 +96,7 @@ export default function CourseDetail({ courseId, onBack }: Props) {
         });
 
         if (newLesson) {
-            await refreshCourse(); // 🔥 recarrega curso inteiro
+            await refreshCourse();
             setLessonTitle("");
             setLessonDuration("");
             setLessonLink("");
@@ -107,27 +106,33 @@ export default function CourseDetail({ courseId, onBack }: Props) {
     const handleDeleteModule = async (id: string) => {
         if (!confirm("Deseja realmente deletar este módulo e todas as lições?")) return;
         const success = await deleteModule(id);
-        if (success) {
-            await refreshCourse(); // 🔥 recarrega curso inteiro
-        }
+        if (success) await refreshCourse();
     };
 
     const handleDeleteLesson = async (id: string) => {
         if (!confirm("Deseja realmente deletar esta lição?")) return;
         const success = await deleteLesson(id);
-        if (success) {
-            await refreshCourse(); // 🔥 recarrega curso inteiro
-        }
+        if (success) await refreshCourse();
     };
 
+    const handleDeleteCourse = async () => {
+        if (!confirm("Deseja realmente deletar este curso e todo o seu conteúdo?")) return;
+
+        const success = await deleteCurso(courseId);
+        if (success) {
+            alert("Curso deletado com sucesso!");
+            if (onCourseDeleted) onCourseDeleted();
+            onBack();
+        } else {
+            alert("Erro ao deletar curso.");
+        }
+    };
 
     if (loading) return <p>Carregando curso...</p>;
     if (!course) return <p>Curso não encontrado.</p>;
 
     return (
         <div>
-
-
             {/* Edição do curso */}
             <div className="bg-white p-4 rounded shadow mb-6">
                 <h2 className="text-2xl font-bold mb-3">Editar Curso</h2>
@@ -151,12 +156,20 @@ export default function CourseDetail({ courseId, onBack }: Props) {
                     onChange={(e) => setImageUrl(e.target.value)}
                     className="border rounded px-2 py-1 w-full mb-2"
                 />
-                <button
-                    onClick={handleUpdateCourse}
-                    className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
-                >
-                    Salvar alterações
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleUpdateCourse}
+                        className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                    >
+                        Salvar alterações
+                    </button>
+                    <button
+                        onClick={handleDeleteCourse}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                    >
+                        Deletar curso
+                    </button>
+                </div>
             </div>
 
             {/* Módulos */}
@@ -181,7 +194,7 @@ export default function CourseDetail({ courseId, onBack }: Props) {
                                             {lesson.title} – {lesson.duration} min
                                         </span>
                                         <button
-                                            onClick={() => handleDeleteLesson(lesson.id, mod.id)}
+                                            onClick={() => handleDeleteLesson(lesson.id)}
                                             className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-xs"
                                         >
                                             X
@@ -214,54 +227,49 @@ export default function CourseDetail({ courseId, onBack }: Props) {
                 </div>
             </div>
 
+            {/* Adicionar lição */}
             <div className="bg-white p-4 rounded shadow mb-6">
-                {/* Adicionar lição */}
-                <div className="">
-                    <h3 className="text-lg font-semibold mb-2">Adicionar Lição</h3>
-                    <select
-                        value={selectedModule}
-                        onChange={(e) => setSelectedModule(e.target.value)}
-                        className="border rounded px-2 py-1 w-full mb-2"
-                    >
-                        <option value="">Selecione um módulo</option>
-                        {course.modules?.map((m: ModuleProps) => (
-                            <option key={m.id} value={m.id}>
-                                {m.title}
-                            </option>
-                        ))}
-                    </select>
-                    <input
-                        type="text"
-                        placeholder="Título da lição"
-                        value={lessonTitle}
-                        onChange={(e) => setLessonTitle(e.target.value)}
-                        className="border rounded px-2 py-1 w-full mb-2"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Duração (ex: 10 min)"
-                        value={lessonDuration}
-                        onChange={(e) => setLessonDuration(e.target.value)}
-                        className="border rounded px-2 py-1 w-full mb-2"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Link da lição (YouTube, etc.)"
-                        value={lessonLink}
-                        onChange={(e) => setLessonLink(e.target.value)}
-                        className="border rounded px-2 py-1 w-full mb-2"
-                    />
-                    <button
-                        onClick={handleAddLesson}
-                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                    >
-                        Adicionar Lição
-                    </button>
-                </div>
+                <h3 className="text-lg font-semibold mb-2">Adicionar Lição</h3>
+                <select
+                    value={selectedModule}
+                    onChange={(e) => setSelectedModule(e.target.value)}
+                    className="border rounded px-2 py-1 w-full mb-2"
+                >
+                    <option value="">Selecione um módulo</option>
+                    {course.modules?.map((m: ModuleProps) => (
+                        <option key={m.id} value={m.id}>
+                            {m.title}
+                        </option>
+                    ))}
+                </select>
+                <input
+                    type="text"
+                    placeholder="Título da lição"
+                    value={lessonTitle}
+                    onChange={(e) => setLessonTitle(e.target.value)}
+                    className="border rounded px-2 py-1 w-full mb-2"
+                />
+                <input
+                    type="text"
+                    placeholder="Duração (ex: 10 min)"
+                    value={lessonDuration}
+                    onChange={(e) => setLessonDuration(e.target.value)}
+                    className="border rounded px-2 py-1 w-full mb-2"
+                />
+                <input
+                    type="text"
+                    placeholder="Link da lição (YouTube, etc.)"
+                    value={lessonLink}
+                    onChange={(e) => setLessonLink(e.target.value)}
+                    className="border rounded px-2 py-1 w-full mb-2"
+                />
+                <button
+                    onClick={handleAddLesson}
+                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                >
+                    Adicionar Lição
+                </button>
             </div>
-
-
-
         </div>
     );
 }
