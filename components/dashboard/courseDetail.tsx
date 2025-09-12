@@ -7,6 +7,8 @@ import {
   insertLesson,
   ModuleProps,
   LessonProps,
+  deleteLesson,
+  deleteModule
 } from "@/components/api/courseApi";
 
 type Props = {
@@ -85,25 +87,61 @@ export default function CourseDetail({ courseId, onBack }: Props) {
       <h2 className="text-2xl font-bold">{course.title}</h2>
       <p className="text-gray-600 mb-6">{course.description}</p>
 
-      {/* MÓDULOS */}
-      <h3 className="text-xl font-semibold mb-2">Módulos</h3>
-      <div className="space-y-4">
-        {course.modules?.map((mod: any) => (
-          <div key={mod.id} className="border rounded p-4 bg-white shadow">
-            <h4 className="font-semibold">{mod.title}</h4>
-            <ul className="list-disc pl-6 text-sm text-gray-600 mt-2">
-              {mod.lessons?.map((lesson: LessonProps) => (
-                <li key={lesson.id}>
-                  {lesson.title} – {lesson.duration}
-                </li>
-              ))}
-              {(!mod.lessons || mod.lessons.length === 0) && (
-                <li className="text-gray-400">Nenhuma lição ainda</li>
-              )}
-            </ul>
-          </div>
-        ))}
-      </div>
+      {/* Módulos */}
+{course.modules?.map((mod: any) => (
+  <div key={mod.id} className="border rounded p-4 bg-white shadow">
+    <div className="flex justify-between items-center">
+      <h4 className="font-semibold">{mod.title}</h4>
+      <button
+        onClick={async () => {
+          if (!confirm("Deseja realmente deletar este módulo?")) return;
+          const success = await deleteModule(mod.id);
+          if (success) {
+            setCourse((prev: any) => ({
+              ...prev,
+              modules: prev.modules.filter((m: any) => m.id !== mod.id),
+            }));
+          }
+        }}
+        className="text-red-600 hover:underline text-sm"
+      >
+        Deletar módulo
+      </button>
+    </div>
+
+    {/* Lições */}
+    <ul className="list-disc pl-6 text-sm text-gray-600 mt-2">
+      {mod.lessons?.map((lesson: LessonProps) => (
+        <li key={lesson.id} className="flex justify-between items-center">
+          <span>{lesson.title} – {lesson.duration}</span>
+          <button
+            onClick={async () => {
+              if (!confirm("Deseja realmente deletar esta lição?")) return;
+              const success = await deleteLesson(lesson.id);
+              if (success) {
+                setCourse((prev: any) => ({
+                  ...prev,
+                  modules: prev.modules.map((m: any) =>
+                    m.id === mod.id
+                      ? { ...m, lessons: m.lessons.filter((l: any) => l.id !== lesson.id) }
+                      : m
+                  ),
+                }));
+              }
+            }}
+            className="text-red-500 hover:underline text-xs"
+          >
+            Deletar
+          </button>
+        </li>
+      ))}
+      {(!mod.lessons || mod.lessons.length === 0) && (
+        <li className="text-gray-400">Nenhuma lição ainda</li>
+      )}
+    </ul>
+  </div>
+))}
+
 
       {/* Adicionar módulo */}
       <div className="mt-6 flex gap-2">

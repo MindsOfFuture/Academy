@@ -227,3 +227,37 @@ export async function getCurso(id: string) {
 
   return data;
 }
+
+// Deletar módulo
+export async function deleteModule(moduleId: string): Promise<boolean> {
+  const supabase = createBrowserClient();
+
+  const { error } = await supabase
+    .from("modules")
+    .delete()
+    .eq("id", moduleId);
+
+  if (error) {
+    console.error("Erro ao deletar módulo:", error.message);
+    return false;
+  }
+
+  return true;
+}
+
+// Deletar lição
+export async function deleteLesson(lessonId: string): Promise<boolean> {
+  const supabase = createBrowserClient();
+
+  const { error } = await supabase
+    .from("lessons")
+    .delete()
+    .eq("id", lessonId);
+
+  if (error) {
+    console.error("Erro ao deletar lição:", error.message);
+    return false;
+  }
+
+  return true;
+}
