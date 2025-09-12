@@ -7,6 +7,7 @@ import {
   updateCurso,
   CourseProps,
 } from "@/components/api/courseApi";
+import CourseDetail from "@/components/dashboard/courseDetail";
 
 export default function CoursesSection() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +16,7 @@ export default function CoursesSection() {
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [courses, setCourses] = useState<CourseProps[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   // Buscar cursos ao carregar
   useEffect(() => {
@@ -81,6 +83,16 @@ export default function CoursesSection() {
     }
   };
 
+  // Se tiver curso selecionado → mostra tela de detalhe
+  if (selectedCourseId) {
+    return (
+      <CourseDetail
+        courseId={selectedCourseId}
+        onBack={() => setSelectedCourseId(null)}
+      />
+    );
+  }
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -126,12 +138,20 @@ export default function CoursesSection() {
               <p className="text-gray-600 text-sm mb-3 line-clamp-2">
                 {course.description}
               </p>
-              <button
-                onClick={() => handleEditCourse(course)}
-                className="w-full bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200"
-              >
-                Editar curso
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEditCourse(course)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => setSelectedCourseId(course.id)}
+                  className="flex-1 bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
+                >
+                  Gerenciar
+                </button>
+              </div>
             </div>
           </div>
         ))}
