@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import Link from 'next/link';
@@ -20,6 +20,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -43,7 +44,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
 
   return (
     <div
-      className={cn( "flex w-full flex-col items-center justify-center gap-8 bg-white p-8 md:w-1/2 lg:p-12", className )} {...props} >
+      className={cn("flex w-full flex-col items-center justify-center gap-8 bg-white p-8 md:w-1/2 lg:p-12", className)} {...props} >
       <Image src="/logo.svg" alt="Logo" width={170} height={100} />
       <div className="w-full max-w-sm text-center">
         <h2 className="text-2xl font-bold text-[#6A4A98]">Bem-vindo de volta!</h2>
@@ -57,7 +58,23 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
 
         <div className="relative flex items-center">
           <Lock className="absolute left-4 text-[#6A4A98]" size={20} />
-          <Input id="password" type="password" placeholder="Senha" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2" />
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Senha"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-12 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((p) => !p)}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            className="absolute right-4 text-[#6A4A98] transition-colors hover:text-[#5a3e85]"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
         </div>
         <div className="w-full flex text-sm">
           <Link
