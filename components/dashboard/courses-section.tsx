@@ -5,6 +5,7 @@ import {
   insertCurso,
   getCursos,
   updateCurso,
+  deleteCurso,
   CourseProps,
 } from "@/components/api/courseApi";
 import CourseDetail from "@/components/dashboard/courseDetail";
@@ -18,13 +19,15 @@ export default function CoursesSection() {
   const [courses, setCourses] = useState<CourseProps[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
+  // 🔄 Função para atualizar cursos
+  const refreshCourses = async () => {
+    const data = await getCursos();
+    setCourses(data);
+  };
+
   // Buscar cursos ao carregar
   useEffect(() => {
-    const fetchCursos = async () => {
-      const data = await getCursos();
-      setCourses(data);
-    };
-    fetchCursos();
+    refreshCourses();
   }, []);
 
   const resetForm = () => {
@@ -32,6 +35,12 @@ export default function CoursesSection() {
     setDescription("");
     setImageUrl("");
     setEditingCourse(null);
+  };
+
+  const handleCourseUpdated = (updatedCourse: CourseProps) => {
+    setCourses((prev) =>
+      prev.map((c) => (c.id === updatedCourse.id ? updatedCourse : c))
+    );
   };
 
   const handleCreateCourse = async () => {
@@ -52,34 +61,6 @@ export default function CoursesSection() {
       setIsOpen(false);
     } else {
       alert("Erro ao criar curso.");
-    }
-  };
-
-  const handleEditCourse = (course: CourseProps) => {
-    setEditingCourse(course);
-    setTitle(course.title);
-    setDescription(course.description);
-    setImageUrl(course.imageUrl);
-    setIsOpen(true);
-  };
-
-  const handleUpdateCourse = async () => {
-    if (!editingCourse) return;
-
-    const updated = await updateCurso(editingCourse.id, {
-      title,
-      description,
-      imageUrl,
-    });
-
-    if (updated) {
-      setCourses((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c))
-      );
-      resetForm();
-      setIsOpen(false);
-    } else {
-      alert("Erro ao atualizar curso.");
     }
   };
 
@@ -131,16 +112,31 @@ export default function CoursesSection() {
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleEditCourse(course)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded hover:bg-gray-200"
-                >
-                  Editar
-                </button>
-                <button
                   onClick={() => setSelectedCourseId(course.id)}
-                  className="flex-1 bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
+                  className="flex-auto bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
                 >
                   Gerenciar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        "Deseja realmente deletar este curso e todo o seu conteúdo?"
+                      )
+                    )
+                      return;
+                    const success = await deleteCurso(course.id);
+                    if (success) {
+                      setCourses((prev) =>
+                        prev.filter((c) => c.id !== course.id)
+                      );
+                      if (selectedCourseId === course.id)
+                        setSelectedCourseId(null);
+                    }
+                  }}
+                  className="flex-auto bg-red-500 text-white py-2 rounded hover:bg-red-600 transition"
+                >
+                  Deletar
                 </button>
               </div>
             </div>
@@ -152,72 +148,27 @@ export default function CoursesSection() {
         )}
       </div>
 
-      {/* MODAL DE CRIAR / EDITAR CURSO */}
-      {isOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
-            <h2 className="text-xl font-bold mb-4">
-              {editingCourse ? "Editar Curso" : "Novo Curso"}
-            </h2>
-
-            <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                placeholder="Título do curso"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="border p-2 rounded w-full"
-              />
-              <textarea
-                placeholder="Descrição do curso"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="border p-2 rounded w-full"
-              />
-              <input
-                type="text"
-                placeholder="URL da imagem"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="border p-2 rounded w-full"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  resetForm();
-                  setIsOpen(false);
-                }}
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={editingCourse ? handleUpdateCourse : handleCreateCourse}
-                className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-              >
-                {editingCourse ? "Salvar alterações" : "Criar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* MODAL DE DETALHE DO CURSO */}
       {selectedCourseId && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-2xl shadow-lg w-full max-w-5xl p-6 overflow-auto max-h-[90vh]">
             <button
-              onClick={() => setSelectedCourseId(null)}
+              onClick={async () => {
+                await refreshCourses(); // 🔄 Atualiza cursos
+                setSelectedCourseId(null); // Fecha modal
+              }}
               className="mb-4 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
             >
-              ← Fechar
+              Fechar
             </button>
 
             <CourseDetail
               courseId={selectedCourseId}
-              onBack={() => setSelectedCourseId(null)}
+              onBack={async () => {
+                await refreshCourses();
+                setSelectedCourseId(null);
+              }}
+              onCourseUpdated={handleCourseUpdated}
             />
           </div>
         </div>
