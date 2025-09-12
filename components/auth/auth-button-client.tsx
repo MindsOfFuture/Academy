@@ -32,7 +32,7 @@ export function AuthButtonClient() {
             <DropdownTrigger className="text-lg rounded-lg">
                 <Button variant="bordered" ><p className="text-2xl">Menu</p></Button>
             </DropdownTrigger>
-            <DropdownMenu aria-label="Static Actions" className="bg-[#FFD300] p-2 rounded-lg">
+            <DropdownMenu aria-label="Menu do usuário" className="bg-[#FFD300] p-2 rounded-lg">
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Dashboard"><Link href="protected">Dashboard</Link></DropdownItem>
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil"><Link href="protected/perfil"> Perfil</Link></DropdownItem>
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onClick={handleSignOut} color="danger">
