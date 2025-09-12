@@ -113,7 +113,7 @@ export default function CoursesSection() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setSelectedCourseId(course.id)}
-                  className="flex-auto bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
+                  className="flex-auto   bg-gray-100 rounded hover:bg-gray-300  py-2 rounded hover:bg-gray-300"
                 >
                   Gerenciar
                 </button>
