@@ -19,13 +19,12 @@ export default function CoursesSection() {
   const [courses, setCourses] = useState<CourseProps[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
-  // 🔄 Função para atualizar cursos
+  // 🔄 Atualiza lista de cursos
   const refreshCourses = async () => {
     const data = await getCursos();
     setCourses(data);
   };
 
-  // Buscar cursos ao carregar
   useEffect(() => {
     refreshCourses();
   }, []);
@@ -43,25 +42,38 @@ export default function CoursesSection() {
     );
   };
 
-  const handleCreateCourse = async () => {
+  // Criar ou atualizar curso
+  const handleSaveCourse = async () => {
     if (!title || !description) {
       alert("Preencha título e descrição!");
       return;
     }
 
-    const newCourse = await insertCurso({
-      title,
-      description,
-      imageUrl,
-    });
-
-    if (newCourse) {
-      setCourses((prev) => [...prev, newCourse]);
-      resetForm();
-      setIsOpen(false);
+    if (editingCourse) {
+      const updated = await updateCurso(editingCourse.id, {
+        title,
+        description,
+        imageUrl,
+      });
+      if (updated) handleCourseUpdated(updated);
+      else alert("Erro ao atualizar curso.");
     } else {
-      alert("Erro ao criar curso.");
+      const newCourse = await insertCurso({ title, description, imageUrl });
+      if (newCourse) setCourses((prev) => [...prev, newCourse]);
+      else alert("Erro ao criar curso.");
     }
+
+    resetForm();
+    setIsOpen(false);
+  };
+
+  // Abrir modal para editar curso
+  const handleEditCourse = (course: CourseProps) => {
+    setEditingCourse(course);
+    setTitle(course.title);
+    setDescription(course.description);
+    setImageUrl(course.imageUrl);
+    setIsOpen(true);
   };
 
   return (
@@ -113,10 +125,11 @@ export default function CoursesSection() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setSelectedCourseId(course.id)}
-                  className="flex-auto   bg-gray-100 rounded hover:bg-gray-300  py-2 rounded hover:bg-gray-300"
+                  className="flex-auto bg-gray-100 rounded hover:bg-gray-200 py-2"
                 >
                   Gerenciar
                 </button>
+              
                 <button
                   onClick={async () => {
                     if (
@@ -134,7 +147,7 @@ export default function CoursesSection() {
                         setSelectedCourseId(null);
                     }
                   }}
-                  className="flex-auto bg-red-500 text-white py-2 rounded hover:bg-red-600 transition"
+                  className="flex-auto bg-red-500 text-white py-2 rounded hover:bg-red-600"
                 >
                   Deletar
                 </button>
@@ -142,11 +155,62 @@ export default function CoursesSection() {
             </div>
           </div>
         ))}
-
         {courses.length === 0 && (
           <p className="text-gray-500">Nenhum curso encontrado.</p>
         )}
       </div>
+
+      {/* MODAL DE CRIAR / EDITAR CURSO */}
+      {isOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {editingCourse ? "Editar Curso" : "Novo Curso"}
+            </h2>
+
+            <div className="flex flex-col gap-3">
+              <input
+                type="text"
+                placeholder="Título do curso"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="border p-2 rounded w-full"
+              />
+              <textarea
+                placeholder="Descrição do curso"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="border p-2 rounded w-full"
+              />
+              <input
+                type="text"
+                placeholder="URL da imagem (opcional)"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="border p-2 rounded w-full"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  resetForm();
+                  setIsOpen(false);
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveCourse}
+                className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+              >
+                {editingCourse ? "Salvar alterações" : "Criar Curso"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE DETALHE DO CURSO */}
       {selectedCourseId && (
@@ -154,8 +218,8 @@ export default function CoursesSection() {
           <div className="bg-white rounded-2xl shadow-lg w-full max-w-5xl p-6 overflow-auto max-h-[90vh]">
             <button
               onClick={async () => {
-                await refreshCourses(); // 🔄 Atualiza cursos
-                setSelectedCourseId(null); // Fecha modal
+                await refreshCourses();
+                setSelectedCourseId(null);
               }}
               className="mb-4 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
             >
