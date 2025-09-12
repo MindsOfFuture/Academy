@@ -280,11 +280,27 @@ export async function deleteLesson(lessonId: string): Promise<boolean> {
 export async function deleteCurso(courseId: string): Promise<boolean> {
   const supabase = createBrowserClient();
 
+  // 0. Deletar registros em users_cursos
+  const { error: usersError } = await supabase
+    .from("users_cursos")
+    .delete()
+    .eq("Curso", courseId);
+
+  if (usersError) {
+    console.error("Erro ao deletar usuários do curso:", usersError.message);
+    return false;
+  }
+
   // 1. Deletar lições dos módulos do curso
-  const { data: modules } = await supabase
+  const { data: modules, error: modulesError } = await supabase
     .from("modules")
     .select("id")
     .eq("Curso", courseId);
+
+  if (modulesError) {
+    console.error("Erro ao buscar módulos do curso:", modulesError.message);
+    return false;
+  }
 
   if (modules?.length) {
     const lessonIds = modules.map((m: any) => m.id);
@@ -323,3 +339,4 @@ export async function deleteCurso(courseId: string): Promise<boolean> {
 
   return true;
 }
+
