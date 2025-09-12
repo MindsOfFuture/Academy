@@ -121,7 +121,7 @@ export async function getLessons(cursoId:string): Promise<CourseProps[]> {
 }
 
 
-export async function getUserCourse(user: string): Promise<any[]> {
+export async function getUserCourse(user: string): Promise<unknown[]> {
   const supabase = createBrowserClient();
 
   const { data, error } = await supabase

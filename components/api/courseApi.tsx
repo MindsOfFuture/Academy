@@ -303,7 +303,7 @@ export async function deleteCurso(courseId: string): Promise<boolean> {
   }
 
   if (modules?.length) {
-    const lessonIds = modules.map((m: any) => m.id);
+    const lessonIds = modules.map((m: unknown) => m.id);
     const { error: lessonError } = await supabase
       .from("lessons")
       .delete()
