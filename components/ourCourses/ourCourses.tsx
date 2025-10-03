@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 type CourseProps = {
   id: string;
@@ -55,13 +56,15 @@ export function OurCourses({ cursos }: OurCoursesProps) {
         </div>
 
         <div className="flex justify-center mt-6">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl shadow-md hover:bg-purple-700 transition"
-          >
-            Explorar todos os cursos
-          </motion.button>
+          <Link href="/trilhas">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl shadow-md hover:bg-purple-700 transition"
+            >
+              Explorar todos os cursos
+            </motion.button>
+          </Link>
         </div>
       </div>
     </div>
