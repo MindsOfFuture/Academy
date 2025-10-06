@@ -86,3 +86,19 @@ export async function removeAlunoDoCurso(
 
   return true;
 }
+
+export async function getAllUsers() {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, display_name, email")
+    .order("display_name", { ascending: true });
+
+  if (error) {
+    console.error("Erro ao buscar usuários:", error.message);
+    return [];
+  }
+
+  return data;
+}
