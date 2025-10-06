@@ -270,6 +270,61 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
                     Adicionar Lição
                 </button>
             </div>
+
+              {/* Alunos */}
+            <div className="bg-white p-4 rounded shadow mb-6">
+                <h3 className="text-xl font-semibold mb-2">Adicionar Alunos</h3>
+                <div className="space-y-4">
+                    {course.modules?.map((mod: ModuleProps) => (
+                        <div key={mod.id} className="border rounded p-4 bg-white shadow">
+                            <div className="flex justify-between items-center">
+                                <h4 className="font-semibold">{mod.title}</h4>
+                                <button
+                                    onClick={() => handleDeleteModule(mod.id)}
+                                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                                >
+                                    Deletar módulo
+                                </button>
+                            </div>
+                            <ul className="list-disc pl-6 text-sm text-gray-600 mt-2">
+                                {mod.lessons?.map((lesson: LessonProps) => (
+                                    <li key={lesson.id}     className="flex justify-between items-center mt-1">
+                                        <span>
+                                            {lesson.title} – {lesson.duration} min
+                                        </span>
+                                        <button
+                                            onClick={() => handleDeleteLesson(lesson.id)}
+                                            className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-xs"
+                                        >
+                                            X
+                                        </button>
+                                    </li>
+                                ))}
+                                {(!mod.lessons || mod.lessons.length === 0) && (
+                                    <li className="text-gray-400">Nenhuma lição ainda</li>
+                                )}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Adicionar módulo */}
+                <div className="mt-6 flex gap-2">
+                    <input
+                        type="text"
+                        placeholder="Novo módulo"
+                        value={moduleTitle}
+                        onChange={(e) => setModuleTitle(e.target.value)}
+                        className="border rounded px-2 py-1 w-full"
+                    />
+                    <button
+                        onClick={handleAddModule}
+                        className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                    >
+                        Adicionar
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
