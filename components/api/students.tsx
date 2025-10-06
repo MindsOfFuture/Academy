@@ -39,15 +39,15 @@ export async function getAlunosDoCurso(
   cursoId: string
 ): Promise<UserCursoProps[]> {
   const supabase = createBrowserClient();
-
+    console.log("cursoID"+cursoId)
   const { data, error } = await supabase
-    .from("user_cursos")
+    .from("users_cursos")
     .select(`
       id,
       progresso,
-      Aluno:users (
+      User:users (
         id,
-        nome,
+        display_name,
         email
       )
     `)
@@ -58,6 +58,7 @@ export async function getAlunosDoCurso(
     console.error("Erro ao buscar alunos do curso:", error.message);
     return [];
   }
+    console.log("cursoID", data)
 
   return data as UserCursoProps[];
 }

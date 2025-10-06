@@ -13,10 +13,17 @@ import {
     LessonProps,
 } from "@/components/api/courseApi";
 
+import {
+    getAlunosDoCurso,
+    insertAlunoNoCurso,
+    removeAlunoDoCurso,
+    UserCursoProps,
+} from "@/components/api/students";
+
 type Props = {
     courseId: string;
     onBack: () => void;
-    onCourseDeleted?: () => void; // callback quando curso for deletado
+    onCourseDeleted?: () => void;
 };
 
 export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Props) {
@@ -34,6 +41,14 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
     const [lessonLink, setLessonLink] = useState("");
     const [selectedModule, setSelectedModule] = useState<string>("");
 
+    // ======== Alunos =========
+    const [alunos, setAlunos] = useState<UserCursoProps[]>([]);
+    const [novoAlunoId, setNovoAlunoId] = useState("");
+    const [loadingAlunos, setLoadingAlunos] = useState(false);
+
+    // =========================
+    // Carregar dados do curso
+    // =========================
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -47,12 +62,24 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
             setLoading(false);
         };
         fetchData();
+        fetchAlunos();
     }, [courseId]);
 
     const refreshCourse = async () => {
         const data = await getCursoCompleto(courseId);
         setCourse(data);
     };
+
+    const fetchAlunos = async () => {
+        setLoadingAlunos(true);
+        const lista = await getAlunosDoCurso(courseId);
+        setAlunos(lista);
+        setLoadingAlunos(false);
+    };
+
+    // =========================
+    // Ações de curso / módulos / lições
+    // =========================
 
     const handleUpdateCourse = async () => {
         if (!title.trim() || !description.trim()) {
@@ -127,6 +154,38 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
             alert("Erro ao deletar curso.");
         }
     };
+
+    // =========================
+    // Ações de alunos
+    // =========================
+
+    const handleAddAluno = async () => {
+        if (!novoAlunoId.trim()) return alert("Informe o ID do aluno!");
+
+        const novo = await insertAlunoNoCurso(courseId, novoAlunoId);
+        if (novo) {
+            setAlunos((prev) => [...prev, novo]);
+            setNovoAlunoId("");
+        } else {
+            alert("Erro ao adicionar aluno.");
+        }
+    };
+
+    const handleRemoveAluno = async (alunoId: string) => {
+        const ok = confirm("Remover este aluno do curso?");
+        if (!ok) return;
+
+        const sucesso = await removeAlunoDoCurso(courseId, alunoId);
+        if (sucesso) {
+            setAlunos((prev) => prev.filter((a) => a.Aluno !== alunoId));
+        } else {
+            alert("Erro ao remover aluno.");
+        }
+    };
+
+    // =========================
+    // Render
+    // =========================
 
     if (loading) return <p>Carregando curso...</p>;
     if (!course) return <p>Curso não encontrado.</p>;
@@ -271,54 +330,46 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
                 </button>
             </div>
 
-              {/* Alunos */}
+            {/* Alunos */}
             <div className="bg-white p-4 rounded shadow mb-6">
-                <h3 className="text-xl font-semibold mb-2">Adicionar Alunos</h3>
-                <div className="space-y-4">
-                    {course.modules?.map((mod: ModuleProps) => (
-                        <div key={mod.id} className="border rounded p-4 bg-white shadow">
-                            <div className="flex justify-between items-center">
-                                <h4 className="font-semibold">{mod.title}</h4>
-                                <button
-                                    onClick={() => handleDeleteModule(mod.id)}
-                                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                                >
-                                    Deletar módulo
-                                </button>
-                            </div>
-                            <ul className="list-disc pl-6 text-sm text-gray-600 mt-2">
-                                {mod.lessons?.map((lesson: LessonProps) => (
-                                    <li key={lesson.id}     className="flex justify-between items-center mt-1">
-                                        <span>
-                                            {lesson.title} – {lesson.duration} min
-                                        </span>
-                                        <button
-                                            onClick={() => handleDeleteLesson(lesson.id)}
-                                            className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-xs"
-                                        >
-                                            X
-                                        </button>
-                                    </li>
-                                ))}
-                                {(!mod.lessons || mod.lessons.length === 0) && (
-                                    <li className="text-gray-400">Nenhuma lição ainda</li>
-                                )}
-                            </ul>
-                        </div>
-                    ))}
-                </div>
+                <h3 className="text-xl font-semibold mb-2">Gerenciar Alunos</h3>
 
-                {/* Adicionar módulo */}
-                <div className="mt-6 flex gap-2">
+                {loadingAlunos ? (
+                    <p className="text-gray-500">Carregando alunos...</p>
+                ) : alunos.length > 0 ? (
+                    <ul className="divide-y divide-gray-200 mb-4">
+                        {alunos.map((a) => (
+                            <li key={a.id} className="flex justify-between items-center py-2">
+                                <div>
+                                    <span className="font-medium">{a.User?.display_name || a.User}</span>
+                                    <span className="text-sm text-gray-500 ml-2">
+                                        {a.progresso ?? 0}% concluído
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => handleRemoveAluno(a.Aluno)}
+                                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
+                                >
+                                    Remover
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-gray-500 mb-4">Nenhum aluno matriculado.</p>
+                )}
+
+                {/* Adicionar novo aluno */}
+                <div className="mt-4 flex gap-2">
                     <input
                         type="text"
-                        placeholder="Novo módulo"
-                        value={moduleTitle}
-                        onChange={(e) => setModuleTitle(e.target.value)}
+                        placeholder="ID do aluno"
+                        value={novoAlunoId}
+                        onChange={(e) => setNovoAlunoId(e.target.value)}
                         className="border rounded px-2 py-1 w-full"
                     />
                     <button
-                        onClick={handleAddModule}
+                        onClick={handleAddAluno}
                         className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
                     >
                         Adicionar
