@@ -3,7 +3,10 @@ import { createClient as createBrowserClient } from "@/lib/supabase/client";
 export type UserCursoProps = {
   id: string;
   Curso: string;      // FK para nossos_cursos
-  Aluno: string;      // FK para users
+  User: {
+    id: string;
+    display_name: string;
+  };      // FK para users
   progresso?: number; // opcional
 };
 
@@ -20,14 +23,22 @@ export async function insertAlunoNoCurso(
   const { data, error } = await supabase
     .from("users_cursos")
     .insert([{ Curso: cursoId, User: alunoId, progresso: 0 }])
-    .select()
+    .select(`
+      id,
+      Curso,
+      progresso,
+      User: users(
+        id,
+        display_name
+      )
+    `)
     .single();
 
   if (error) {
     console.error("Erro ao adicionar aluno ao curso:", error.message);
     return null;
   }
-
+  console.log("cachorro",data)
   return data as UserCursoProps;
 }
 

@@ -8,7 +8,7 @@ import {
   deleteCurso,
   CourseProps,
 } from "@/components/api/courseApi";
-import CourseDetail from "@/components/dashboard/courseDetail";
+import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
 
 export default function CoursesSection() {
   const [isOpen, setIsOpen] = useState(false);
