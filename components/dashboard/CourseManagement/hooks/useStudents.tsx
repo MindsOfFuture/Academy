@@ -27,9 +27,9 @@ export default function useStudents(courseId: string) {
     fetchAlunos();
   }, [courseId]);
 
-  const addAluno = async (id: string) => {
-    const novo = await insertAlunoNoCurso(courseId, id);
-    if (novo) setAlunos((prev) => [...prev, novo]);
+  const addAluno = async (aluno: any) => {
+    const novo = await insertAlunoNoCurso(courseId, aluno.id);
+    if (novo) setAlunos((prev) => [...prev, novo.User.display_name]);
     return novo;
   };
 

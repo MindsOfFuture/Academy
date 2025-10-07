@@ -5,9 +5,10 @@ type StudentsManagerProps = {
   alunos: any[];
   alunosDisponiveis: any[];
   loading: boolean;
-  onAdd: (id: string) => void;
+  onAdd: (aluno: any) => void;
   onRemove: (id: string) => void;
 };
+
 
 export default function StudentsManager({
   alunos,
@@ -27,6 +28,7 @@ export default function StudentsManager({
     setFiltered(result);
   }, [search, alunosDisponiveis]);
 
+
   return (
     <div className="bg-white p-4 rounded shadow mb-6">
       <h3 className="text-xl font-semibold mb-2">Gerenciar Alunos</h3>
@@ -38,7 +40,8 @@ export default function StudentsManager({
           <ul className="divide-y mb-4">
             {alunos.map((a) => (
               <li key={a.id} className="flex justify-between py-2">
-                <span>{a.User?.display_name || a.User}</span>
+              
+                <span>{a.User?.display_name || a}</span>
                 <button
                   onClick={() => onRemove(a.id)}
                   className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
@@ -63,7 +66,7 @@ export default function StudentsManager({
                 <li
                   key={u.id}
                   onClick={() => {
-                    onAdd(u.id);
+                    onAdd(u);
                     setSearch("");
                     setFiltered([]);
                   }}
