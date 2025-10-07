@@ -18,8 +18,8 @@ export async function insertAlunoNoCurso(
   const supabase = createBrowserClient();
 
   const { data, error } = await supabase
-    .from("user_cursos")
-    .insert([{ Curso: cursoId, Aluno: alunoId, progresso: 0 }])
+    .from("users_cursos")
+    .insert([{ Curso: cursoId, User: alunoId, progresso: 0 }])
     .select()
     .single();
 
@@ -68,16 +68,13 @@ export async function getAlunosDoCurso(
 // =======================
 
 export async function removeAlunoDoCurso(
-  cursoId: string,
-  alunoId: string
+  matriculaId:string
 ): Promise<boolean> {
   const supabase = createBrowserClient();
-
+    console.log(matriculaId)
   const { error } = await supabase
-    .from("user_cursos")
-    .delete()
-    .eq("Curso", cursoId)
-    .eq("Aluno", alunoId);
+    .from("users_cursos").delete()
+    .eq("id", matriculaId)
 
   if (error) {
     console.error("Erro ao remover aluno do curso:", error.message);
