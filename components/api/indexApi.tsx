@@ -135,41 +135,39 @@ export async function getUserCourse(user: string): Promise<unknown[]> {
     `)
     .eq("User", user);
 
+
   if (error) {
     console.error("Erro ao buscar cursos:", error.message);
     return [];
   }
 
-  console.log(data);
   return data;
 }
-export async function getCurso(id: string) {
+export async function getCurso(idCurso) {
   const supabase = createBrowserClient();
 
   const { data, error } = await supabase
-    .from("users_cursos")
+    .from("nossos_cursos")
     .select(`
-      id,
-      Curso:nossos_cursos (
-        id,
-        title,
-        description,
-        imageUrl,
-        modules (
-          id,
-          title,
-          lessons (
+       
             id,
             title,
-            duration,
-            link
-          )
-        )
-      )
-    `)
-    .eq("Curso", id) // pega o registro de users_cursos específico
-    .single();
-
+            description,
+            imageUrl,
+            modules (
+            id,
+            title,
+            lessons (
+                id,
+                title,
+                duration,
+                link
+            )
+            )
+        
+        `)
+    .eq("id", idCurso).single() // pega o registro de users_cursos específico
+    console.log(data)
   if (error) {
     console.error(error);
     return null;

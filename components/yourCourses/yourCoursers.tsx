@@ -12,6 +12,7 @@ export function YourCourses({ cursos }: YourCoursesProps) {
     <div className="flex flex-col h-auto items-center">
       <div className="flex flex-col">
         <div className="flex justify-center items-start gap-20 flex-wrap p-6">
+
           {cursos.map((curso) => (
             <Link 
               key={curso.Curso.id} 

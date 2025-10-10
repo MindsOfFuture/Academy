@@ -40,18 +40,20 @@ export default function CoursePage() {
     const fetchCourse = async () => {
       try {
         const data = await getCurso(courseId);
+                console.log(data)
 
-        if (!data || !data.Curso) {
-          router.push("/protected");
+        if (!data) {
+         // router.push("/protected");
           return;
         }
 
-        setCourse(data.Curso);
+        setCourse(data);
       } catch (err) {
         console.error("Erro ao buscar curso:", err);
-        router.push("/protected");
+       // router.push("/protected");
       } finally {
-        setLoading(false);
+
+       setLoading(false);
       }
     };
 
