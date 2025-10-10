@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AuthButtonClient } from "../auth-button-client";
+import { AuthButtonClient } from "../auth/auth-button-client";
 
 export default function Navbar({ showTextLogo }: { showTextLogo: boolean }) {
     return (

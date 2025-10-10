@@ -1,6 +1,17 @@
 
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+export type LessonProps = {
+  id: string;
+  title: string;
+  duration: string;
+  link: string;
+};
+
+export type ModuleProps = {
+  id: string;
+  title: string;
+  lessons: LessonProps[];
+};
 
 export type HeroProps = {
     n_alunos: number;
@@ -13,6 +24,14 @@ export type CourseProps = {
     title: string;
     description: string;
     imageUrl: string;
+
+
+};
+export type YCourseProps = {
+  id: string;
+  progresso: number;
+  Curso: CourseProps;
+
 };
 
 export type AboutUsProps = {
@@ -27,14 +46,26 @@ export type FooterProps = {
 };
 
 export type ArticleProps = {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  author: string;
-  publishedAt: string;
-  readTime: string;
+    id: string;
+    title: string;
+    description: string;
+    imageUrl: string;
+    author: string;
+    publishedAt: string;
+    readTime: string;
 };
+export interface UpdateProfilePayload {
+    userId: string;
+    name: string;
+    email: string;
+    originalEmail: string;
+}
+
+interface ProfileMetadata {
+    full_name: string;
+    display_name: string;
+    [key: string]: unknown;
+}
 
 export async function getHero(): Promise<HeroProps | null> {
     const supabase = createBrowserClient();
@@ -76,27 +107,73 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
     }
     return data as CourseProps[];
 }
-export async function getUserTypeServer(): Promise<string> {
-    const supabase = await createServerClient();
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        throw new Error("Usuário não autenticado.");
-    }
-
+export async function getLessons(cursoId:string): Promise<CourseProps[]> {
+    const supabase = createBrowserClient();
     const { data, error } = await supabase
-        .from('users')
-        .select('type')
-        .eq('id', user.id)
-        .single();
+        .from('lessons')
+        .select('*')
+        .eq('cursoId', cursoId);
 
     if (error) {
-        console.error("Erro do Supabase ao buscar tipo de usuário:", error);
-        throw new Error("Não foi possível encontrar o perfil do usuário.");
+        return [];
     }
+    return data as CourseProps[];
+}
 
-    return data.type;
+
+export async function getUserCourse(user: string): Promise<unknown[]> {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase
+    .from("users_cursos")
+    .select(`
+      id,
+      progresso,
+      created_at,
+      Curso (*),
+      User (*)
+    `)
+    .eq("User", user);
+
+
+  if (error) {
+    console.error("Erro ao buscar cursos:", error.message);
+    return [];
+  }
+
+  return data;
+}
+export async function getCurso(idCurso) {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase
+    .from("nossos_cursos")
+    .select(`
+       
+            id,
+            title,
+            description,
+            imageUrl,
+            modules (
+            id,
+            title,
+            lessons (
+                id,
+                title,
+                duration,
+                link
+            )
+            )
+        
+        `)
+    .eq("id", idCurso).single() // pega o registro de users_cursos específico
+    console.log(data)
+  if (error) {
+    console.error(error);
+    return null;
+  }
+
+  return data;
 }
 
 
@@ -189,3 +266,41 @@ export async function getArticles(): Promise<ArticleProps[]> {
     return data as ArticleProps[];
     */
 }
+
+
+
+
+export async function updateUserProfileClient({ userId, name, email, originalEmail }: UpdateProfilePayload): Promise<{ emailChanged: boolean; message: string; }> {
+    const supabase = createBrowserClient();
+    const trimmedName = name.trim();
+    if (!trimmedName) throw new Error('Nome inválido');
+
+    const meta: ProfileMetadata = { full_name: trimmedName, display_name: trimmedName };
+    const emailChanged = !!email && email !== originalEmail;
+    const updateAuth: UserAttributes = emailChanged ? { data: meta, email } : { data: meta };
+
+    const { error: authError } = await supabase.auth.updateUser(updateAuth);
+    if (authError) throw authError;
+    const { error: tableError } = await supabase
+        .from('users')
+        .update({ display_name: trimmedName, email })
+        .eq('id', userId);
+    if (tableError) throw tableError;
+
+    return {
+        emailChanged,
+        message: emailChanged
+            ? 'Perfil salvo. Verifique seu e-mail para confirmar mudança.'
+            : 'Perfil salvo com sucesso.'
+    };
+}
+
+export async function updatePasswordClient(newPassword: string): Promise<void> {
+    const supabase = createBrowserClient();
+    if (newPassword.trim().length < 6) {
+        throw new Error('Senha mínima de 6 caracteres');
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword } as UserAttributes);
+    if (error) throw error;
+}
+
