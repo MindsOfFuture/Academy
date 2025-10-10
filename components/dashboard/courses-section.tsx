@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   insertCurso,
   getCursos,
   updateCurso,
-  deleteCurso,
   CourseProps,
 } from "@/components/api/courseApi";
 import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
@@ -67,15 +67,6 @@ export default function CoursesSection() {
     setIsOpen(false);
   };
 
-  // Abrir modal para editar curso
-  const handleEditCourse = (course: CourseProps) => {
-    setEditingCourse(course);
-    setTitle(course.title);
-    setDescription(course.description);
-    setImageUrl(course.imageUrl);
-    setIsOpen(true);
-  };
-
   return (
     <div>
       {/* Cabeçalho */}
@@ -104,12 +95,14 @@ export default function CoursesSection() {
             key={course.id}
             className="bg-white rounded-lg shadow border overflow-hidden w-full max-w-sm"
           >
-            <div className="h-40 bg-gray-100 flex items-center justify-center">
+            <div className="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
               {course.imageUrl ? (
-                <img
+                <Image
                   src={course.imageUrl}
                   alt={course.title}
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 />
               ) : (
                 <span className="text-2xl font-bold text-gray-500">
@@ -129,8 +122,8 @@ export default function CoursesSection() {
                 >
                   Gerenciar
                 </button>
-              
-           
+
+
               </div>
             </div>
           </div>
