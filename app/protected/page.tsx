@@ -17,7 +17,6 @@ export default async function ProtectedPage() {
   const userName = data.user.user_metadata.full_name || "Fulano";
 
   const courses = await getUserCourse(data.user.id);
-  console.log(data.user.id,courses);
   
   return (
     <div className="min-h-screen bg-gray-100">
