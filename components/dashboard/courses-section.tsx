@@ -81,7 +81,7 @@ export default function CoursesSection() {
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div className="text-center sm:text-left">
-          <h2 className="text-xl font-semibold">Seus Cursos</h2>
+          <h2 className="text-xl font-semibold">Gerenciamento</h2>
           <p className="text-gray-600 text-sm">
             Gerencie seus cursos e módulos abaixo.
           </p>
