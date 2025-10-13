@@ -1,5 +1,22 @@
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
+export type LessonProps = {
+  id: string;
+  module_id?: string;
+  modulo?: string;
+  title: string;
+  duration: number;
+  link: string;
+};
+
+export type ModuleProps = {
+  id: string;
+  course_id?: string;
+  Curso?: string;
+  title: string;
+  lessons?: LessonProps[];
+};
+
 export type CourseProps = {
   id: string;
   title: string;
@@ -7,18 +24,8 @@ export type CourseProps = {
   imageUrl: string;
 };
 
-export type ModuleProps = {
-  id: string;
-  course_id: string;
-  title: string;
-};
-
-export type LessonProps = {
-  id: string;
-  module_id: string;
-  title: string;
-  duration: number; // em minutos, por ex
-  link: string;
+export type CourseWithModules = CourseProps & {
+  modules?: ModuleProps[] | null;
 };
 
 // =======================
@@ -85,7 +92,7 @@ export async function updateCurso(
 // MÓDULOS
 // =======================
 
-export async function insertModule(module: { Curso: string; title: string }) {
+export async function insertModule(module: { Curso: string; title: string }): Promise<ModuleProps | null> {
   const supabase = createBrowserClient();
 
   const { data, error } = await supabase
@@ -99,7 +106,8 @@ export async function insertModule(module: { Curso: string; title: string }) {
     return null;
   }
 
-  return data;}
+  return data as ModuleProps;
+}
 
 export async function getModules(courseId: string): Promise<ModuleProps[]> {
   const supabase = createBrowserClient();
@@ -162,7 +170,7 @@ export async function getLessons(moduleId: string): Promise<LessonProps[]> {
 // CURSO COMPLETO (com módulos e lições)
 // =======================
 
-export async function getCursoCompleto(id: string) {
+export async function getCursoCompleto(id: string): Promise<CourseWithModules | null> {
   const supabase = createBrowserClient();
 
   const { data, error } = await supabase
@@ -191,7 +199,7 @@ export async function getCursoCompleto(id: string) {
     return null;
   }
 
-  return data;
+  return data as CourseWithModules;
 }
 export async function getCurso(id: string) {
   const supabase = createBrowserClient();
@@ -303,7 +311,7 @@ export async function deleteCurso(courseId: string): Promise<boolean> {
   }
 
   if (modules?.length) {
-    const lessonIds = modules.map((m: unknown) => m.id);
+    const lessonIds = modules.map((m) => (m as { id: string }).id);
     const { error: lessonError } = await supabase
       .from("lessons")
       .delete()

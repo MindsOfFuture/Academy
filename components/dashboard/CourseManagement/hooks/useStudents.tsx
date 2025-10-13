@@ -1,18 +1,20 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getAlunosDoCurso,
   getAllUsers,
   insertAlunoNoCurso,
   removeAlunoDoCurso,
+  UserCursoProps,
+  UserSummary,
 } from "@/components/api/students";
 
 export default function useStudents(courseId: string) {
-  const [alunos, setAlunos] = useState<any[]>([]);
-  const [alunosDisponiveis, setAlunosDisponiveis] = useState<any[]>([]);
+  const [alunos, setAlunos] = useState<UserCursoProps[]>([]);
+  const [alunosDisponiveis, setAlunosDisponiveis] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchAlunos = async () => {
+  const fetchAlunos = useCallback(async () => {
     setLoading(true);
     const [lista, listaUsers] = await Promise.all([
       getAlunosDoCurso(courseId),
@@ -21,15 +23,15 @@ export default function useStudents(courseId: string) {
     setAlunos(lista);
     setAlunosDisponiveis(listaUsers);
     setLoading(false);
-  };
+  }, [courseId]);
 
   useEffect(() => {
     fetchAlunos();
-  }, [courseId]);
+  }, [fetchAlunos]);
 
-  const addAluno = async (aluno: any) => {
+  const addAluno = async (aluno: UserSummary) => {
     const novo = await insertAlunoNoCurso(courseId, aluno.id);
-    if (novo) setAlunos((prev) => [...prev, novo.User.display_name]);
+    if (novo) setAlunos((prev) => [...prev, novo]);
     return novo;
   };
 

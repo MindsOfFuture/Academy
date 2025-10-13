@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
 import { getCurso } from "@/components/api/indexApi";
 
 type Lesson = {
   id: string;
   title: string;
-  duration: string;
+  duration: number;
   link: string;
 };
 
@@ -22,13 +22,12 @@ type Course = {
   id: string;
   title: string;
   description: string;
-  imageurl: string;
+  imageUrl: string;
   modules: Module[];
 };
 
-export default function CoursePage() {
+function CoursePageContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const courseId = searchParams.get("id");
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -38,27 +37,28 @@ export default function CoursePage() {
     console.log("Course ID from URL:", courseId);
     //devaneio do typescript
     const fetchCourse = async () => {
+      if (!courseId) {
+        setLoading(false);
+        return;
+      }
       try {
         const data = await getCurso(courseId);
-                console.log(data)
+        console.log(data);
 
         if (!data) {
-         // router.push("/protected");
           return;
         }
 
         setCourse(data);
       } catch (err) {
         console.error("Erro ao buscar curso:", err);
-       // router.push("/protected");
       } finally {
-
-       setLoading(false);
+        setLoading(false);
       }
     };
 
     fetchCourse();
-  }, [courseId, router]);
+  }, [courseId]);
 
   if (loading) {
     return (
@@ -116,5 +116,19 @@ export default function CoursePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CoursePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <p>Carregando curso...</p>
+        </div>
+      }
+    >
+      <CoursePageContent />
+    </Suspense>
   );
 }

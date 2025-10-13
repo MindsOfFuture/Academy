@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import useCourse  from "@/components/dashboard/CourseManagement/hooks/useCourse";
-import  useStudents from "@/components/dashboard/CourseManagement/hooks/useStudents";
+import useCourse from "@/components/dashboard/CourseManagement/hooks/useCourse";
+import useStudents from "@/components/dashboard/CourseManagement/hooks/useStudents";
+import { CourseProps } from "@/components/api/courseApi";
 
 import CourseEditor from "@/components/dashboard/CourseManagement/CourseEditor";
 import ModuleManager from "./ModuleManager";
@@ -11,9 +12,10 @@ type Props = {
   courseId: string;
   onBack: () => void;
   onCourseDeleted?: () => void;
+  onCourseUpdated?: (course: CourseProps) => void;
 };
 
-export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Props) {
+export default function CourseDetail({ courseId, onBack, onCourseDeleted, onCourseUpdated }: Props) {
   const { course, loading, refreshCourse, updateCurso, deleteCurso, insertModule, deleteModule, deleteLesson } =
     useCourse(courseId);
   const { alunos, alunosDisponiveis, loading: loadingAlunos, addAluno, removeAluno } =
@@ -25,9 +27,12 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
   if (!course) return <p>Curso não encontrado.</p>;
 
   const handleSave = async () => {
-    await updateCurso(courseId, form);
-    await refreshCourse();
-    alert("Curso atualizado!");
+    const updated = await updateCurso(courseId, form);
+    if (updated) {
+      await refreshCourse();
+      onCourseUpdated?.(updated);
+      alert("Curso atualizado!");
+    }
   };
 
   const handleDelete = async () => {

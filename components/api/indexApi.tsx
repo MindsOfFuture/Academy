@@ -1,16 +1,17 @@
 
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import type { UserAttributes } from "@supabase/supabase-js";
 export type LessonProps = {
-  id: string;
-  title: string;
-  duration: string;
-  link: string;
+    id: string;
+    title: string;
+    duration: string;
+    link: string;
 };
 
 export type ModuleProps = {
-  id: string;
-  title: string;
-  lessons: LessonProps[];
+    id: string;
+    title: string;
+    lessons: LessonProps[];
 };
 
 export type HeroProps = {
@@ -28,9 +29,9 @@ export type CourseProps = {
 
 };
 export type YCourseProps = {
-  id: string;
-  progresso: number;
-  Curso: CourseProps;
+    id: string;
+    progresso: number;
+    Curso: CourseProps;
 
 };
 
@@ -107,7 +108,7 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
     }
     return data as CourseProps[];
 }
-export async function getLessons(cursoId:string): Promise<CourseProps[]> {
+export async function getLessons(cursoId: string): Promise<CourseProps[]> {
     const supabase = createBrowserClient();
     const { data, error } = await supabase
         .from('lessons')
@@ -121,34 +122,34 @@ export async function getLessons(cursoId:string): Promise<CourseProps[]> {
 }
 
 
-export async function getUserCourse(user: string): Promise<unknown[]> {
-  const supabase = createBrowserClient();
+export async function getUserCourse(user: string): Promise<YCourseProps[]> {
+    const supabase = createBrowserClient();
 
-  const { data, error } = await supabase
-    .from("users_cursos")
-    .select(`
+    const { data, error } = await supabase
+        .from("users_cursos")
+        .select(`
       id,
       progresso,
       created_at,
       Curso (*),
       User (*)
     `)
-    .eq("User", user);
+        .eq("User", user);
 
 
-  if (error) {
-    console.error("Erro ao buscar cursos:", error.message);
-    return [];
-  }
+    if (error) {
+        console.error("Erro ao buscar cursos:", error.message);
+        return [];
+    }
 
-  return data;
+    return (data ?? []) as unknown as YCourseProps[];
 }
-export async function getCurso(idCurso) {
-  const supabase = createBrowserClient();
+export async function getCurso(idCurso: string) {
+    const supabase = createBrowserClient();
 
-  const { data, error } = await supabase
-    .from("nossos_cursos")
-    .select(`
+    const { data, error } = await supabase
+        .from("nossos_cursos")
+        .select(`
        
             id,
             title,
@@ -166,14 +167,14 @@ export async function getCurso(idCurso) {
             )
         
         `)
-    .eq("id", idCurso).single() // pega o registro de users_cursos específico
+        .eq("id", idCurso).single() // pega o registro de users_cursos específico
     console.log(data)
-  if (error) {
-    console.error(error);
-    return null;
-  }
+    if (error) {
+        console.error(error);
+        return null;
+    }
 
-  return data;
+    return data;
 }
 
 

@@ -41,26 +41,20 @@ export default function OurArticles({ articles }: OurArticlesProps) {
           </p>
         </div>
 
-        <div className="w-full max-w-7xl">
+        <div className="w-full max-w-7xl relative overflow-visible">
           <Swiper
             spaceBetween={30}
             slidesPerView={1}
             breakpoints={{
-              640: {
-                slidesPerView: 2,
-              },
-              1024: {
-                slidesPerView: 3,
-              },
+              640: { slidesPerView: 2 },
+              1024: { slidesPerView: 3 },
             }}
             loop={articles.length > 3}
             autoplay={{
               delay: 4000,
               disableOnInteraction: false,
             }}
-            pagination={{
-              clickable: true,
-            }}
+            pagination={{ clickable: true }}
             navigation={true}
             modules={[Autoplay, Pagination, Navigation]}
             className="w-full pb-12"
@@ -86,7 +80,7 @@ export default function OurArticles({ articles }: OurArticlesProps) {
                       className="object-cover"
                     />
                   </div>
-                  
+
                   <div className="p-6 flex-1 flex flex-col">
                     <div className="flex items-center text-sm text-gray-600 mb-3">
                       <span>{article.author}</span>
@@ -95,15 +89,15 @@ export default function OurArticles({ articles }: OurArticlesProps) {
                       <span className="mx-2">•</span>
                       <span>{article.readTime}</span>
                     </div>
-                    
+
                     <h3 className="text-xl font-bold text-gray-800 mb-3 overflow-hidden text-ellipsis line-clamp-2">
                       {article.title}
                     </h3>
-                    
+
                     <p className="text-gray-600 text-sm leading-relaxed flex-1 overflow-hidden text-ellipsis line-clamp-3">
                       {article.description}
                     </p>
-                    
+
                     <button className="mt-4 text-[#684A97] font-semibold hover:text-[#5a3f7d] transition-colors duration-200 self-start">
                       Ler mais →
                     </button>
@@ -114,6 +108,27 @@ export default function OurArticles({ articles }: OurArticlesProps) {
           </Swiper>
         </div>
       </div>
+
+      <style jsx global>{`
+        .swiper-button-next,
+        .swiper-button-prev {
+          color: #684A97;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .swiper-button-prev {
+          left: -30px;
+        }
+
+        .swiper-button-next {
+          right: -30px;
+        }
+
+        .swiper-pagination-bullet-active {
+          background-color: #684A97 !important;
+        }
+      `}</style>
     </section>
   )
 }

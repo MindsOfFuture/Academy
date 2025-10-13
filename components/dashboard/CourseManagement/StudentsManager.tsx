@@ -1,12 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import {
+  UserCursoProps,
+  UserSummary,
+} from "@/components/api/students";
 
 type StudentsManagerProps = {
-  alunos: any[];
-  alunosDisponiveis: any[];
+  alunos: UserCursoProps[];
+  alunosDisponiveis: UserSummary[];
   loading: boolean;
-  onAdd: (aluno: any) => void;
-  onRemove: (id: string) => void;
+  onAdd: (aluno: UserSummary) => Promise<UserCursoProps | null>;
+  onRemove: (id: string) => Promise<boolean>;
 };
 
 export default function StudentsManager({
@@ -17,7 +21,7 @@ export default function StudentsManager({
   onRemove,
 }: StudentsManagerProps) {
   const [search, setSearch] = useState("");
-  const [filtered, setFiltered] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<UserSummary[]>([]);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   // Fecha a lista ao clicar fora
@@ -38,7 +42,7 @@ export default function StudentsManager({
   useEffect(() => {
     if (!search) return;
     const result = alunosDisponiveis.filter((u) =>
-      (u.display_name || u.email)
+      (u.display_name || u.email || "")
         .toLowerCase()
         .includes(search.toLowerCase())
     );
@@ -56,7 +60,7 @@ export default function StudentsManager({
           <ul className="divide-y mb-4">
             {alunos.map((a) => (
               <li key={a.id} className="flex justify-between py-2">
-                <span>{a.User?.display_name || a}</span>
+                <span>{a.User?.display_name || a.User?.email}</span>
                 <button
                   onClick={() => onRemove(a.id)}
                   className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
@@ -83,7 +87,7 @@ export default function StudentsManager({
                   <li
                     key={u.id}
                     onClick={() => {
-                      onAdd(u);
+                      void onAdd(u);
                       setSearch("");
                       setFiltered([]);
                     }}

@@ -65,10 +65,38 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 export async function deleteUserAction(formData: FormData) {
     'use server';
     const id = formData.get('id') as string | null;
-    if (!id) return;
-    const supabase = await createAdminClient();
-    await supabase.auth.admin.deleteUser(id);
-    revalidatePath('/protected');
+    if (!id) {
+        throw new Error("ID do usuário não fornecido");
+    }
+
+    try {
+        const supabase = await createAdminClient();
+
+        // Primeiro deleta da tabela users
+        const { error: tableError } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', id);
+
+        if (tableError) {
+            console.error("Erro ao deletar usuário da tabela:", tableError);
+            throw new Error(`Erro ao deletar usuário da tabela: ${tableError.message}`);
+        }
+
+        // Depois deleta do Auth
+        const { error: authError } = await supabase.auth.admin.deleteUser(id);
+
+        if (authError) {
+            console.error("Erro ao deletar usuário do Auth:", authError);
+            throw new Error(`Erro ao deletar usuário do Auth: ${authError.message}`);
+        }
+
+        console.log("Usuário deletado com sucesso:", id);
+        revalidatePath('/protected');
+    } catch (error) {
+        console.error("Erro ao deletar usuário:", error);
+        throw error;
+    }
 }
 
 export async function updateUserAction(formData: FormData) {

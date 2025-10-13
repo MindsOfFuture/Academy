@@ -1,13 +1,16 @@
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
+export type UserSummary = {
+  id: string;
+  display_name: string;
+  email: string | null;
+};
+
 export type UserCursoProps = {
   id: string;
-  Curso: string;      // FK para nossos_cursos
-  User: {
-    id: string;
-    display_name: string;
-  };      // FK para users
-  progresso?: number; // opcional
+  Curso: string;
+  User: UserSummary;
+  progresso?: number;
 };
 
 // =======================
@@ -29,7 +32,8 @@ export async function insertAlunoNoCurso(
       progresso,
       User: users(
         id,
-        display_name
+        display_name,
+        email
       )
     `)
     .single();
@@ -38,8 +42,8 @@ export async function insertAlunoNoCurso(
     console.error("Erro ao adicionar aluno ao curso:", error.message);
     return null;
   }
-  console.log("cachorro",data)
-  return data as UserCursoProps;
+
+  return data as unknown as UserCursoProps;
 }
 
 // =======================
@@ -50,11 +54,12 @@ export async function getAlunosDoCurso(
   cursoId: string
 ): Promise<UserCursoProps[]> {
   const supabase = createBrowserClient();
-    console.log("cursoID"+cursoId)
+
   const { data, error } = await supabase
     .from("users_cursos")
     .select(`
       id,
+      Curso,
       progresso,
       User:users (
         id,
@@ -69,9 +74,8 @@ export async function getAlunosDoCurso(
     console.error("Erro ao buscar alunos do curso:", error.message);
     return [];
   }
-    console.log("cursoID", data)
 
-  return data as UserCursoProps[];
+  return (data ?? []) as unknown as UserCursoProps[];
 }
 
 // =======================
@@ -79,10 +83,9 @@ export async function getAlunosDoCurso(
 // =======================
 
 export async function removeAlunoDoCurso(
-  matriculaId:string
+  matriculaId: string
 ): Promise<boolean> {
   const supabase = createBrowserClient();
-    console.log(matriculaId)
   const { error } = await supabase
     .from("users_cursos").delete()
     .eq("id", matriculaId)
@@ -95,7 +98,7 @@ export async function removeAlunoDoCurso(
   return true;
 }
 
-export async function getAllUsers() {
+export async function getAllUsers(): Promise<UserSummary[]> {
   const supabase = createBrowserClient();
 
   const { data, error } = await supabase
@@ -108,5 +111,5 @@ export async function getAllUsers() {
     return [];
   }
 
-  return data;
+  return (data ?? []) as UserSummary[];
 }
