@@ -341,6 +341,29 @@ export async function deleteCurso(courseId: string): Promise<boolean> {
   return true;
 }
 
+export async function verificarMatriculaExistente(
+  courseId: string,
+) {
+  const supabase = await createBrowserClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from("users_cursos")
+    .select("id") // Só precisamos saber se existe
+    .eq("Curso", courseId)
+    .eq("User", user?.id)
+    .maybeSingle(); // Retorna o objeto (se achar) ou null (se não achar)
+
+  if (error) {
+    console.error("Erro ao verificar matrícula:", error.message);
+    // Em caso de erro na consulta, retornamos null
+    // A função principal tratará isso
+    return null;
+  }
+  console.log("Dados da verificação de matrícula:", data);
+  // Retorna os dados (pode ser o objeto da matrícula ou null)
+  return data;
+}
+
 export async function matricularAluno(
   courseId: string
 ) {
@@ -352,7 +375,24 @@ export async function matricularAluno(
     return null;
   }
 
-  const { data, error } = await supabase
+  const { data: matriculaExistente, error: selectError } = await supabase
+    .from("users_cursos")
+    .select("id")
+    .eq("Curso", courseId)
+    .eq("User", user.id)
+    .maybeSingle();
+
+  if (selectError) {
+    console.error("Erro ao verificar matrícula:", selectError.message);
+    return null;
+  }
+
+  if (matriculaExistente) {
+    console.warn("Usuário já matriculado neste curso.");
+    return matriculaExistente;
+  }
+
+  const { data: novaMatricula, error: insertError } = await supabase
     .from("users_cursos")
     .insert({
       Curso: courseId,
@@ -361,10 +401,9 @@ export async function matricularAluno(
     .select()
     .single();
 
-  if (error) {
-    console.error("Erro ao matricular aluno:", error.message);
+  if (insertError) {
     return null;
   }
 
-  return data;
+  return novaMatricula;
 }

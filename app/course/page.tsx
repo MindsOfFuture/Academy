@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
 import { getCurso } from "@/components/api/indexApi";
-import { matricularAluno } from "@/components/api/courseApi";
+import {
+  matricularAluno,
+  verificarMatriculaExistente,
+} from "@/components/api/courseApi";
+import toast from "react-hot-toast";
+
+// ... (as types Lesson, Module, Course permanecem as mesmas) ...
 
 type Lesson = {
   id: string;
@@ -34,14 +40,17 @@ export default function CoursePage() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
+  // NOVO ESTADO: null = verificando, true = matriculado, false = não matriculado
+  const [isMatriculado, setIsMatriculado] = useState<boolean | null>(null);
 
+  // 1. useEffect para buscar os dados do CURSO
   useEffect(() => {
     console.log("Course ID from URL:", courseId);
-    //devaneio do typescript
+
     const fetchCourse = async () => {
       try {
         const data = await getCurso(courseId);
-        console.log(data)
+        console.log(data);
 
         if (!data) {
           // router.push("/protected");
@@ -53,13 +62,51 @@ export default function CoursePage() {
         console.error("Erro ao buscar curso:", err);
         // router.push("/protected");
       } finally {
-
         setLoading(false);
       }
     };
 
     fetchCourse();
   }, [courseId, router]);
+
+  // 2. NOVO useEffect para VERIFICAR A MATRÍCULA (roda APÓS o curso ser carregado)
+  useEffect(() => {
+    // Só executa se já tivermos o ID do curso
+    if (course?.id) {
+      const checkMatricula = async () => {
+        try {
+          // Assumindo que sua função é async e retorna algo se matriculado, null se não
+          const matricula = await verificarMatriculaExistente(course.id);
+
+          if (matricula != null) {
+            setIsMatriculado(true);
+          } else {
+            setIsMatriculado(false);
+          }
+        } catch (error) {
+          console.error("Erro ao verificar matrícula:", error);
+          setIsMatriculado(false); // Assume que não está matriculado em caso de erro
+        }
+      };
+
+      checkMatricula();
+    }
+  }, [course]); // A dependência é o 'course'. Quando 'course' mudar (de null para dados), isso roda.
+
+  // NOVA FUNÇÃO para lidar com o clique de matricular
+  const handleMatricula = async () => {
+    if (!course?.id) return; // Guarda de segurança
+
+    try {
+      await matricularAluno(course.id);
+      setIsMatriculado(true); // Atualiza o estado para esconder o botão
+      toast.success("Matrícula realizada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao matricular:", error);
+      toast.error("Erro ao realizar matrícula. Tente novamente.");
+    }
+  };
+
 
   if (loading) {
     return (
@@ -70,6 +117,7 @@ export default function CoursePage() {
   }
 
   if (!course) return null; // já redirecionou
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar showTextLogo={true} />
@@ -78,13 +126,21 @@ export default function CoursePage() {
           <h2 className="text-3xl font-bold mb-6">
             Explore o módulo de: {course.title}
           </h2>
-          {/* trilha dos módulos */}
-          <button
-            onClick={() => matricularAluno(course.id)}
-            className="mb-4 text-blue-500 hover:underline"
-          >
-            Matricule-se!
-          </button>
+
+          {/* LÓGICA ATUALIZADA:
+            Só mostra o botão se a verificação terminou (isMatriculado !== null)
+            E o resultado foi 'false' (não está matriculado).
+          */}
+          {isMatriculado === false && (
+            <button
+              onClick={handleMatricula} // Usa a nova função
+              className="mb-4 text-blue-500 hover:underline"
+            >
+              Matricule-se!
+            </button>
+          )}
+
+          {/* O resto do seu componente... */}
           <div className="flex flex-col gap-8">
             {course.modules.map((module, idx) => (
               <div key={module.id ?? idx} className="flex items-start gap-4">
