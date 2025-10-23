@@ -99,7 +99,8 @@ export async function insertModule(module: { Curso: string; title: string }) {
     return null;
   }
 
-  return data;}
+  return data;
+}
 
 export async function getModules(courseId: string): Promise<ModuleProps[]> {
   const supabase = createBrowserClient();
@@ -340,3 +341,30 @@ export async function deleteCurso(courseId: string): Promise<boolean> {
   return true;
 }
 
+export async function matricularAluno(
+  courseId: string
+) {
+  const supabase = await createBrowserClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Erro: Usuário não autenticado.");
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("users_cursos")
+    .insert({
+      Curso: courseId,
+      User: user.id
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao matricular aluno:", error.message);
+    return null;
+  }
+
+  return data;
+}

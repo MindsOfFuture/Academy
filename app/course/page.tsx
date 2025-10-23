@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
 import { getCurso } from "@/components/api/indexApi";
+import { matricularAluno } from "@/components/api/courseApi";
 
 type Lesson = {
   id: string;
@@ -40,20 +41,20 @@ export default function CoursePage() {
     const fetchCourse = async () => {
       try {
         const data = await getCurso(courseId);
-                console.log(data)
+        console.log(data)
 
         if (!data) {
-         // router.push("/protected");
+          // router.push("/protected");
           return;
         }
 
         setCourse(data);
       } catch (err) {
         console.error("Erro ao buscar curso:", err);
-       // router.push("/protected");
+        // router.push("/protected");
       } finally {
 
-       setLoading(false);
+        setLoading(false);
       }
     };
 
@@ -78,6 +79,12 @@ export default function CoursePage() {
             Explore o módulo de: {course.title}
           </h2>
           {/* trilha dos módulos */}
+          <button
+            onClick={() => matricularAluno(course.id)}
+            className="mb-4 text-blue-500 hover:underline"
+          >
+            Matricule-se!
+          </button>
           <div className="flex flex-col gap-8">
             {course.modules.map((module, idx) => (
               <div key={module.id ?? idx} className="flex items-start gap-4">
