@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface SignUpFormProps extends React.ComponentPropsWithoutRef<"div"> {
@@ -23,6 +23,8 @@ export function SignUpForm({
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,11 +71,43 @@ export function SignUpForm({
         </div>
         <div className="relative flex items-center">
           <Lock className="absolute left-4 text-[#6A4A98]" size={20} />
-          <Input id="password" type="password" placeholder="Senha" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-full border-none bg-[#EFEBF5] py-6 pl-12 pr-4 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6A4A98]" />
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Senha"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-full border-none bg-[#EFEBF5] py-6 pl-12 pr-12 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6A4A98]"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(p => !p)}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            className="absolute right-4 text-[#6A4A98] transition-colors"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
         </div>
         <div className="relative flex items-center">
           <Lock className="absolute left-4 text-[#6A4A98]" size={20} />
-          <Input id="repeat-password" type="password" placeholder="Repita a Senha" required value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} className="w-full rounded-full border-none bg-[#EFEBF5] py-6 pl-12 pr-4 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6A4A98]" />
+          <Input
+            id="repeat-password"
+            type={showRepeatPassword ? "text" : "password"}
+            placeholder="Repita a Senha"
+            required
+            value={repeatPassword}
+            onChange={(e) => setRepeatPassword(e.target.value)}
+            className="w-full rounded-full border-none bg-[#EFEBF5] py-6 pl-12 pr-12 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6A4A98]"
+          />
+          <button
+            type="button"
+            onClick={() => setShowRepeatPassword(p => !p)}
+            aria-label={showRepeatPassword ? "Ocultar senha" : "Mostrar senha"}
+            className="absolute right-4 text-[#6A4A98] transition-colors"
+          >
+            {showRepeatPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
         </div>
 
         {error && <p className="text-center text-sm text-yellow-300">{error}</p>}

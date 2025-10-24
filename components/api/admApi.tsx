@@ -1,6 +1,7 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 export type UserProfile = {
     id: string;
     type: 'adm' | 'normal';
@@ -120,4 +121,66 @@ export async function getUsersPage(page: number = 1, pageSize: number = 10): Pro
     }
 
     return { users: data || [], total: count || 0, page: safePage, pageSize: safePageSize };
+}
+
+export interface CurrentUserProfileResult {
+    id: string;
+    email: string;
+    displayName: string;
+    type: string;
+}
+
+export async function getCurrentUserProfile(): Promise<CurrentUserProfileResult | null> {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data: profileRow } = await supabase
+        .from('users')
+        .select('display_name, type, email')
+        .eq('id', user.id)
+        .single();
+    return {
+        id: user.id,
+        email: profileRow?.email || user.email || '',
+        displayName: (profileRow?.display_name || (user.user_metadata as UserMetadata)?.full_name || 'Usuário'),
+        type: profileRow?.type || 'normal'
+    };
+}
+
+// -------- Server Actions de Perfil do Usuário Logado --------
+export async function updateCurrentUserProfileAction(formData: FormData) {
+    'use server';
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        redirect('/auth');
+    }
+    const targetId = formData.get('id');
+    const name = (formData.get('display_name') || '').toString().trim();
+    const email = (formData.get('email') || '').toString().trim();
+    if (!targetId || targetId !== user.id) {
+        redirect('/protected/perfil?error=unauthorized');
+    }
+    if (!name) {
+        redirect('/protected/perfil?error=invalid_name');
+    }
+    // Atualiza auth (metadados e email se mudou)
+    const emailChanged = !!email && email !== user.email;
+    const { error: authError } = await supabase.auth.updateUser({
+        ...(emailChanged ? { email } : {}),
+        data: { full_name: name, display_name: name }
+    });
+    if (authError) {
+        redirect(`/protected/perfil?error=auth_${encodeURIComponent(authError.message)}`);
+    }
+    // Atualiza linha complementar
+    const { error: tableError } = await supabase
+        .from('users')
+        .update({ display_name: name, email })
+        .eq('id', user.id);
+    if (tableError) {
+        redirect(`/protected/perfil?error=db_${encodeURIComponent(tableError.message)}`);
+    }
+    revalidatePath('/protected/perfil');
+    redirect(`/protected/perfil?updated=1${emailChanged ? '&email_changed=1' : ''}`);
 }

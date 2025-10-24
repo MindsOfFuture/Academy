@@ -5,7 +5,7 @@ import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
 import { getUserTypeServer } from "@/components/api/admApi";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
-import { getNossosCursos, getUserCourse } from "@/components/api/indexApi";
+import {  getUserCourse } from "@/components/api/indexApi";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
