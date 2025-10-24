@@ -1,5 +1,23 @@
-
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { UserAttributes } from "@supabase/supabase-js";
+
+export interface ConteudoTrilhaProps {
+  id: number;
+  created_at: string;
+  id_trilha: number; 
+  id_cursos: string;
+  // --- MUDANÇA AQUI ---
+  // Adiciona o objeto do curso que vem do join
+  nossos_cursos: CourseProps;
+}
+
+export interface TrilhaProps {
+  id: number;
+  created_at: string;
+  nome_trilha: string;
+  
+  conteudo_trilha: ConteudoTrilhaProps[];
+}
 export type LessonProps = {
   id: string;
   title: string;
@@ -24,14 +42,11 @@ export type CourseProps = {
     title: string;
     description: string;
     imageUrl: string;
-
-
 };
 export type YCourseProps = {
   id: string;
   progresso: number;
   Curso: CourseProps;
-
 };
 
 export type AboutUsProps = {
@@ -213,7 +228,7 @@ export async function getArticles(): Promise<ArticleProps[]> {
         {
             id: "3",
             title: "Parceria UFJF e Governo de MG: Inovação na Educação",
-            description: "Conheça os resultados da parceria entre a Universidade Federal de Juiz de Fora e o Governo de Minas Gerais no desenvolvimento tecnológico educacional.",
+            description: "Conheça os resultados da parceria entre a Universidade Federal de Juiz de Por Fora e o Governo de Minas Gerais no desenvolvimento tecnológico educacional.",
             imageUrl: "/scratch.png",
             author: "Dr. Inovação",
             publishedAt: "2024-08-05",
@@ -258,11 +273,11 @@ export async function getArticles(): Promise<ArticleProps[]> {
         .select('*')
         .order('publishedAt', { ascending: false })
         .limit(6);
-
+ 
     if (error) {
         return [];
     }
-
+ 
     return data as ArticleProps[];
     */
 }
@@ -304,3 +319,23 @@ export async function updatePasswordClient(newPassword: string): Promise<void> {
     if (error) throw error;
 }
 
+export async function getTrilhas(): Promise<TrilhaProps[]> {
+    const supabase = createBrowserClient();
+
+    const { data, error } = await supabase
+        .from('trilhas') 
+        .select(`
+            *,
+            conteudo_trilha (
+                *,
+                nossos_cursos ( * )
+            )
+        `); 
+
+    if (error) {
+        console.error('Erro ao buscar trilhas com conteúdo:', error.message);
+        return [];
+    }
+
+    return data || [];
+}
