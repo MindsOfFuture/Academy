@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 type CourseProps = {
   id: string;
