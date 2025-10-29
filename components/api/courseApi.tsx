@@ -135,6 +135,7 @@ export async function insertLesson(
 ): Promise<LessonProps | null> {
   const supabase = createBrowserClient();
 
+  console.log("lesson",lesson)
   const { data, error } = await supabase
     .from("lessons")
     .insert([lesson])
