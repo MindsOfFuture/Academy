@@ -438,3 +438,37 @@ export async function verificaProgresso(
   }
   return data as ProgressoProps[];
 }
+export async function registraProgresso(
+  courseId: string,
+  moduleId: number,
+  itemId: number
+) {
+  const supabase = createBrowserClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Erro: Usuário não autenticado.");
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("progresso_aluno")
+    .upsert({
+      id_curso: courseId,
+      id_modulo: moduleId,
+      id_item_concluido: itemId,
+      id: user.id
+    }, {
+      onConflict: 'id, id_curso, id_modulo, id_item_concluido'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao registrar progresso (upsert):", error.message);
+    return null;
+  }
+
+  console.log("Progresso registrado/atualizado:", data);
+  return data;
+}

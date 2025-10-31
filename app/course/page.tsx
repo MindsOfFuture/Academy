@@ -8,13 +8,13 @@ import {
   matricularAluno,
   verificaProgresso,
   verificarMatriculaExistente,
+  registraProgresso, // 1. IMPORTADO AQUI
 } from "@/components/api/courseApi";
 import toast from "react-hot-toast";
 import type { ProgressoProps } from "@/components/api/courseApi";
 import { CheckCircle } from "lucide-react";
 
-// ... (as types Lesson, Module, Course permanecem as mesmas) ...
-
+// Definição dos Types
 type Lesson = {
   id: string;
   title: string;
@@ -43,9 +43,7 @@ export default function CoursePage() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
-  // NOVO ESTADO: null = verificando, true = matriculado, false = não matriculado
   const [isMatriculado, setIsMatriculado] = useState<boolean | null>(null);
-  // Progresso do aluno no curso
   const [progresso, setProgresso] = useState<ProgressoProps[]>([]);
 
   // 1. useEffect para buscar os dados do CURSO
@@ -73,29 +71,24 @@ export default function CoursePage() {
     fetchCourse();
   }, [courseId, router]);
 
-  // 2. NOVO useEffect para VERIFICAR A MATRÍCULA (roda APÓS o curso ser carregado)
+  // 2. useEffect para VERIFICAR A MATRÍCULA
   useEffect(() => {
-    // Só executa se já tivermos o ID do curso
     if (course?.id) {
       const checkMatricula = async () => {
         try {
-          // Assumindo que sua função é async e retorna algo se matriculado, null se não
           const matricula = await verificarMatriculaExistente(course.id);
-
-          if (matricula != null) {
-            setIsMatriculado(true);
-          } else {
-            setIsMatriculado(false);
-          }
+          setIsMatriculado(matricula != null);
         } catch (error) {
           console.error("Erro ao verificar matrícula:", error);
-          setIsMatriculado(false); // Assume que não está matriculado em caso de erro
+          setIsMatriculado(false);
         }
       };
 
       checkMatricula();
     }
-  }, [course]); // A dependência é o 'course'. Quando 'course' mudar (de null para dados), isso roda.
+  }, [course]);
+
+  // 3. useEffect para buscar o PROGRESSO
   useEffect(() => {
     const fetchProgresso = async () => {
       if (course?.id) {
@@ -112,18 +105,20 @@ export default function CoursePage() {
     fetchProgresso();
   }, [course]);
 
-  // Checa se a lição foi concluída sem useMemo
+  // Checa se a lição foi concluída
   const isLessonDone = (lessonId: string) => {
     return progresso.some(
       (p) => p.id_item_concluido === Number(lessonId) || String(p.id_item_concluido) === lessonId
     );
   };
+
+  // Função para lidar com a matrícula
   const handleMatricula = async () => {
-    if (!course?.id) return; // Guarda de segurança
+    if (!course?.id) return;
 
     try {
       await matricularAluno(course.id);
-      setIsMatriculado(true); // Atualiza o estado para esconder o botão
+      setIsMatriculado(true);
       toast.success("Matrícula realizada com sucesso!");
     } catch (error) {
       console.error("Erro ao matricular:", error);
@@ -131,6 +126,34 @@ export default function CoursePage() {
     }
   };
 
+  // 2. FUNÇÃO DE PROGRESSO IMPLEMENTADA
+  function handelProgresso(
+    courseId: string,
+    moduleId: number,
+    itemId: number
+  ) {
+    if (!isLessonDone(String(itemId))) {
+      const fakeProgresso = {
+        id_item_concluido: itemId,
+      } as ProgressoProps;
+
+      setProgresso((prevProgresso) => [...prevProgresso, fakeProgresso]);
+    }
+
+    registraProgresso(courseId, moduleId, itemId)
+      .then((data) => {
+        if (data) {
+        } else {
+          toast.error("Erro ao salvar progresso.");
+        }
+      })
+      .catch((err) => {
+        console.error("Erro na API de progresso:", err);
+        toast.error("Erro ao salvar progresso.");
+      });
+  }
+
+  // --- Renderização ---
 
   if (loading) {
     return (
@@ -140,10 +163,7 @@ export default function CoursePage() {
     );
   }
 
-  if (!course) return null; // já redirecionou
-
-  function handelProgresso() {
-  }
+  if (!course) return null;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -154,20 +174,17 @@ export default function CoursePage() {
             Explore o módulo de: {course.title}
           </h2>
 
-          {/* LÓGICA ATUALIZADA:
-            Só mostra o botão se a verificação terminou (isMatriculado !== null)
-            E o resultado foi 'false' (não está matriculado).
-          */}
+          {/* Botão de Matrícula */}
           {isMatriculado === false && (
             <button
-              onClick={handleMatricula} // Usa a nova função
+              onClick={handleMatricula}
               className="mb-4 text-blue-500 hover:underline"
             >
               Matricule-se!
             </button>
           )}
 
-          {/* O resto do seu componente... */}
+          {/* Lista de Módulos */}
           <div className="flex flex-col gap-8">
             {course.modules.map((module, idx) => (
               <div key={module.id ?? idx} className="flex items-start gap-4">
@@ -187,7 +204,17 @@ export default function CoursePage() {
                   <div className="flex flex-col gap-2">
                     {module.lessons.map((lesson) => (
                       <a
-                        onClick={handelProgresso}
+                        onClick={(e) => {
+                          e.preventDefault();
+
+                          handelProgresso(
+                            course.id,
+                            Number(module.id),
+                            Number(lesson.id)
+                          );
+
+                          window.open(lesson.link, "_blank");
+                        }}
                         href={lesson.link}
                         key={lesson.id}
                         target="_blank"
