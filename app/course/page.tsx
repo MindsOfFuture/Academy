@@ -6,6 +6,7 @@ import Navbar from "@/components/navbar/navbar";
 import { getCurso } from "@/components/api/indexApi";
 import {
   matricularAluno,
+  verificaProgresso,
   verificarMatriculaExistente,
 } from "@/components/api/courseApi";
 import toast from "react-hot-toast";
@@ -92,7 +93,17 @@ export default function CoursePage() {
       checkMatricula();
     }
   }, [course]); // A dependência é o 'course'. Quando 'course' mudar (de null para dados), isso roda.
+  useEffect(() => {
+    const fetchProgresso = async () => {
+      if (course?.id) {
+        console.log("Fetching progresso for course ID:", course);
+        const data = await verificaProgresso(Number(course.id));
+        console.log("Progresso data:", data);
+      }
+    };
 
+    fetchProgresso();
+  }, [course]);
   // NOVA FUNÇÃO para lidar com o clique de matricular
   const handleMatricula = async () => {
     if (!course?.id) return; // Guarda de segurança
@@ -117,6 +128,10 @@ export default function CoursePage() {
   }
 
   if (!course) return null; // já redirecionou
+
+  function handelProgresso(event: MouseEvent<HTMLAnchorElement, MouseEvent>): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -160,6 +175,7 @@ export default function CoursePage() {
                   <div className="flex flex-col gap-2">
                     {module.lessons.map((lesson) => (
                       <a
+                        onClick={handelProgresso}
                         href={lesson.link}
                         key={lesson.id}
                         target="_blank"
