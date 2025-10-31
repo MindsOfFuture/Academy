@@ -22,9 +22,12 @@ export type LessonProps = {
 };
 export type ProgressoProps = {
   id: string;
-  id_item_concluido: string;
-  id_modulo: string;
+  created_at: string;
+  id_item_concluido: number;
+  id_modulo: number;
+  id_curso: string;
 }
+
 
 // =======================
 // CURSOS
@@ -413,7 +416,7 @@ export async function matricularAluno(
   return novaMatricula;
 }
 export async function verificaProgresso(
-  courseId: number
+  courseId: string
 ) {
   const supabase = createBrowserClient();
 
@@ -423,17 +426,15 @@ export async function verificaProgresso(
     console.error("Erro: Usuário não autenticado.");
     return null;
   }
-
   const { data, error } = await supabase
     .from("progresso_aluno")
     .select("*")
-    .eq("id_modulo", courseId)
+    .eq("id_curso", courseId)
     .eq("id", user.id);
 
   if (error) {
     console.error("Erro ao verificar progresso:", error.message);
     return null;
   }
-  console.log("Dados do progresso:", data);
   return data as ProgressoProps[];
 }

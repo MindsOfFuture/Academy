@@ -10,6 +10,8 @@ import {
   verificarMatriculaExistente,
 } from "@/components/api/courseApi";
 import toast from "react-hot-toast";
+import type { ProgressoProps } from "@/components/api/courseApi";
+import { CheckCircle } from "lucide-react";
 
 // ... (as types Lesson, Module, Course permanecem as mesmas) ...
 
@@ -30,7 +32,7 @@ type Course = {
   id: string;
   title: string;
   description: string;
-  imageurl: string;
+  imageUrl: string;
   modules: Module[];
 };
 
@@ -43,6 +45,8 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true);
   // NOVO ESTADO: null = verificando, true = matriculado, false = não matriculado
   const [isMatriculado, setIsMatriculado] = useState<boolean | null>(null);
+  // Progresso do aluno no curso
+  const [progresso, setProgresso] = useState<ProgressoProps[]>([]);
 
   // 1. useEffect para buscar os dados do CURSO
   useEffect(() => {
@@ -51,7 +55,6 @@ export default function CoursePage() {
     const fetchCourse = async () => {
       try {
         const data = await getCurso(courseId);
-        console.log(data);
 
         if (!data) {
           // router.push("/protected");
@@ -96,15 +99,25 @@ export default function CoursePage() {
   useEffect(() => {
     const fetchProgresso = async () => {
       if (course?.id) {
-        console.log("Fetching progresso for course ID:", course);
-        const data = await verificaProgresso(Number(course.id));
-        console.log("Progresso data:", data);
+        try {
+          const data = await verificaProgresso(course.id);
+          setProgresso(Array.isArray(data) ? data : []);
+        } catch (e) {
+          console.error("Erro ao buscar progresso:", e);
+          setProgresso([]);
+        }
       }
     };
 
     fetchProgresso();
   }, [course]);
-  // NOVA FUNÇÃO para lidar com o clique de matricular
+
+  // Checa se a lição foi concluída sem useMemo
+  const isLessonDone = (lessonId: string) => {
+    return progresso.some(
+      (p) => p.id_item_concluido === Number(lessonId) || String(p.id_item_concluido) === lessonId
+    );
+  };
   const handleMatricula = async () => {
     if (!course?.id) return; // Guarda de segurança
 
@@ -129,8 +142,7 @@ export default function CoursePage() {
 
   if (!course) return null; // já redirecionou
 
-  function handelProgresso(event: MouseEvent<HTMLAnchorElement, MouseEvent>): void {
-    throw new Error("Function not implemented.");
+  function handelProgresso() {
   }
 
   return (
@@ -181,7 +193,12 @@ export default function CoursePage() {
                         target="_blank"
                         className="flex justify-between items-center border p-3 rounded-lg hover:bg-gray-50 transition"
                       >
-                        <span>{lesson.title}</span>
+                        <div className="flex items-center gap-2">
+                          {isLessonDone(lesson.id) ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" aria-label="Concluída" />
+                          ) : null}
+                          <span>{lesson.title}</span>
+                        </div>
                         <span className="text-sm text-gray-500">
                           {lesson.duration}
                         </span>
