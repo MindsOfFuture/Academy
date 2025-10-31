@@ -5,7 +5,7 @@ import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
 import { getUserTypeServer } from "@/components/api/admApi";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
-import {  getUserCourse } from "@/components/api/indexApi";
+import { getProgressCount, getUserCourse } from "@/components/api/indexApi";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -17,7 +17,7 @@ export default async function ProtectedPage() {
   const userName = data.user.user_metadata.full_name || "Fulano";
 
   const courses = await getUserCourse(data.user.id);
-  
+  console.log(courses);
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar showTextLogo={true} />
@@ -35,6 +35,7 @@ export default async function ProtectedPage() {
               Explore abaixo a suas opções de cursos e descubra o ideal para sua jornada!
             </p>
           </div>
+
           <YourCourses cursos={courses} />
 
           {userType === "adm" && (
@@ -45,7 +46,7 @@ export default async function ProtectedPage() {
           )}
 
         </div>
-        
+
       </div>
     </div>
   );

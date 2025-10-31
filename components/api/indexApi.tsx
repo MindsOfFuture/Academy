@@ -2,33 +2,33 @@ import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { UserAttributes } from "@supabase/supabase-js";
 
 export interface ConteudoTrilhaProps {
-  id: number;
-  created_at: string;
-  id_trilha: number; 
-  id_cursos: string;
-  // --- MUDANÇA AQUI ---
-  // Adiciona o objeto do curso que vem do join
-  nossos_cursos: CourseProps;
+    id: number;
+    created_at: string;
+    id_trilha: number;
+    id_cursos: string;
+    // --- MUDANÇA AQUI ---
+    // Adiciona o objeto do curso que vem do join
+    nossos_cursos: CourseProps;
 }
 
 export interface TrilhaProps {
-  id: number;
-  created_at: string;
-  nome_trilha: string;
-  
-  conteudo_trilha: ConteudoTrilhaProps[];
+    id: number;
+    created_at: string;
+    nome_trilha: string;
+
+    conteudo_trilha: ConteudoTrilhaProps[];
 }
 export type LessonProps = {
-  id: string;
-  title: string;
-  duration: string;
-  link: string;
+    id: string;
+    title: string;
+    duration: string;
+    link: string;
 };
 
 export type ModuleProps = {
-  id: string;
-  title: string;
-  lessons: LessonProps[];
+    id: string;
+    title: string;
+    lessons: LessonProps[];
 };
 
 export type HeroProps = {
@@ -44,9 +44,9 @@ export type CourseProps = {
     imageUrl: string;
 };
 export type YCourseProps = {
-  id: string;
-  progresso: number;
-  Curso: CourseProps;
+    id: string;
+    progresso: number;
+    Curso: CourseProps;
 };
 
 export type AboutUsProps = {
@@ -122,7 +122,7 @@ export async function getNossosCursos(): Promise<CourseProps[]> {
     }
     return data as CourseProps[];
 }
-export async function getLessons(cursoId:string): Promise<CourseProps[]> {
+export async function getLessons(cursoId: string): Promise<CourseProps[]> {
     const supabase = createBrowserClient();
     const { data, error } = await supabase
         .from('lessons')
@@ -136,34 +136,50 @@ export async function getLessons(cursoId:string): Promise<CourseProps[]> {
 }
 
 
+// Não se esqueça de importar a getProgressCount
+
+// Esta função (a "mãe") vai passar o 'user' para a getProgressCount
 export async function getUserCourse(user: string): Promise<unknown[]> {
-  const supabase = createBrowserClient();
+    const supabase = createBrowserClient();
 
-  const { data, error } = await supabase
-    .from("users_cursos")
-    .select(`
-      id,
-      progresso,
-      created_at,
-      Curso (*),
-      User (*)
-    `)
-    .eq("User", user);
+    const { data, error } = await supabase
+        .from("users_cursos")
+        .select(`
+            id, progresso, created_at, Curso (*), User (*)
+        `)
+        .eq("User", user);
 
+    if (error) {
+        console.error("Erro ao buscar cursos:", error.message);
+        return [];
+    }
 
-  if (error) {
-    console.error("Erro ao buscar cursos:", error.message);
-    return [];
-  }
+    if (!data) {
+        return [];
+    }
 
-  return data;
+    const dataComProgresso = await Promise.all(
+        data.map(async (row) => {
+            const curso = Array.isArray(row.Curso) ? row.Curso[0] : row.Curso;
+            const cursoId = curso?.id;
+
+            if (cursoId) {
+                const contagem = await getProgressCount(user, cursoId);
+                row.progresso = contagem;
+            }
+
+            return row;
+        })
+    );
+
+    return dataComProgresso;
 }
-export async function getCurso(idCurso) {
-  const supabase = createBrowserClient();
+export async function getCurso(idCurso: string) {
+    const supabase = createBrowserClient();
 
-  const { data, error } = await supabase
-    .from("nossos_cursos")
-    .select(`
+    const { data, error } = await supabase
+        .from("nossos_cursos")
+        .select(`
        
             id,
             title,
@@ -181,14 +197,14 @@ export async function getCurso(idCurso) {
             )
         
         `)
-    .eq("id", idCurso).single() // pega o registro de users_cursos específico
+        .eq("id", idCurso).single() // pega o registro de users_cursos específico
     console.log(data)
-  if (error) {
-    console.error(error);
-    return null;
-  }
+    if (error) {
+        console.error(error);
+        return null;
+    }
 
-  return data;
+    return data;
 }
 
 
@@ -323,14 +339,14 @@ export async function getTrilhas(): Promise<TrilhaProps[]> {
     const supabase = createBrowserClient();
 
     const { data, error } = await supabase
-        .from('trilhas') 
+        .from('trilhas')
         .select(`
             *,
             conteudo_trilha (
                 *,
                 nossos_cursos ( * )
             )
-        `); 
+        `);
 
     if (error) {
         console.error('Erro ao buscar trilhas com conteúdo:', error.message);
@@ -338,4 +354,20 @@ export async function getTrilhas(): Promise<TrilhaProps[]> {
     }
 
     return data || [];
+}
+export async function getProgressCount(userId: string, courseId: string): Promise<number> {
+
+    const supabase = createBrowserClient();
+    const { count, error } = await supabase
+        .from("progresso_aluno")
+        .select('*', { count: 'exact', head: true })
+        .eq("id", userId)
+        .eq("id_curso", courseId);
+
+    if (error) {
+        return 0;
+    }
+
+
+    return count || 0;
 }
