@@ -1,166 +1,188 @@
-# Academy - Plataforma de Educação Tecnológica
+# Academy – Plataforma de Educação Tecnológica
 
-Uma plataforma moderna de educação tecnológica desenvolvida para democratizar o acesso ao ensino de robótica e programação em escolas públicas de Minas Gerais, através de uma parceria entre a Universidade Federal de Juiz de Fora (UFJF) e o Governo de Minas Gerais.
+Uma plataforma visada a democratizar o ensino de robótica e programação nas escolas públicas de Minas Gerais. Projeto realizado em parceria entre a Universidade Federal de Juiz de Fora (UFJF), Governo de Minas Gerais e Minds of Future.
 
 ## 🚀 Visão Geral
 
-O **Academy** é uma aplicação web completa construída com as mais modernas tecnologias, oferecendo:
-- **Plataforma de Cursos**: Sistema completo de gestão de cursos de robótica e programação
-- **Dashboard Administrativo**: Gerenciamento de usuários, cursos e progresso dos alunos
-- **Sistema de Autenticação**: Login/registro seguro com diferentes níveis de acesso
-- **Interface Responsiva**: Design moderno e adaptável para todos os dispositivos
-- **Experiências Interativas**: Animações e elementos visuais avançados com Three.js
+O **Academy** é uma aplicação web full-stack construída sobre **Next.js** e **Supabase**, oferecendo:
 
-## 🛠️ Stack Tecnológica
+- Plataforma de cursos modular (Cursos → Módulos → Aulas / Atividades)
+- Interface responsiva, acessível e animada
 
-### Frontend
-- **Next.js 15** com App Router
-- **React 19** com TypeScript
-- **Tailwind CSS** + **Tailwind Animate** para estilização
-- **Framer Motion** para animações
-- **Three.js** + **React Three Fiber** para gráficos 3D
-- **Radix UI** para componentes acessíveis
-- **Lucide React** para ícones
-- **React Hot Toast** para notificações
+## 🛠️ Stack Tecnológica (atual)
 
-### Backend & Banco de Dados
-- **Supabase** para autenticação e banco de dados
-- **Supabase SSR** para renderização server-side
-- Middleware customizado para autenticação de rotas
+| Camada | Tecnologias |
+|--------|-------------|
+| Framework | Next.js 15.x (App Router) |
+| Linguagem | React 19 + TypeScript 5 |
+| Estilo | Tailwind CSS 3 + tailwindcss-animate + `clsx` + `tailwind-merge` |
+| UI/Acessibilidade | Radix UI (checkbox, dropdown, label, slot) + HeroUI |
+| Estado / Helpers | Class Variance Authority (CVA) para variantes de componentes |
+| 3D / Visual | Three.js, @react-three/fiber, @react-three/drei, maath, OGL |
+| Animações | Framer Motion |
+| Ícones | lucide-react |
+| Carrosséis / Slides | Splide.js (@splidejs/react-splide), Swiper |
+| Temas | next-themes |
+| Notificações | react-hot-toast |
+| Backend / Auth / DB | Supabase JS + SSR (`@supabase/ssr`) |
+| Lint / Qualidade | ESLint 9 + eslint-config-next (core-web-vitals) |
 
-### Bibliotecas Adicionais
-- **Splide.js** para carrosséis
-- **Swiper** para sliders
-- **next-themes** para suporte a temas
-- **Class Variance Authority** para variantes de componentes
+> Observação: Dependências com versão `latest` (ex.: `next`, `@supabase/supabase-js`) podem variar. Consulte o `package.json` para estados precisos no momento do clone.
 
-## 📁 Estrutura do Projeto
+## 🔐 Autenticação & Segurança
 
-```
-Academy/
-├── 📁 app/                          # App Router do Next.js
-│   ├── 📄 layout.tsx               # Layout principal da aplicação
-│   ├── 📄 page.tsx                 # Página inicial (landing page)
-│   ├── 📁 auth/                    # Fluxo de autenticação
-│   │   ├── 📄 page.tsx            # Página de login/registro
-│   │   ├── 📁 confirm/            # Confirmação por email
-│   │   ├── 📁 error/              # Páginas de erro
-│   │   ├── 📁 forgot-password/    # Recuperação de senha
-│   │   └── 📁 reset-password/     # Redefinição de senha
-│   ├── 📁 course/                  # Páginas de cursos
-│   └── 📁 protected/              # Área restrita (dashboard)
-│       ├── 📄 layout.tsx          # Layout para área protegida
-│       └── 📄 page.tsx            # Dashboard principal
-│
-├── 📁 components/                   # Componentes React
-│   ├── 📁 api/                     # Integração com APIs
-│   │   ├── 📄 indexApi.tsx        # API pública (cursos, artigos)
-│   │   └── 📄 admApi.tsx          # API administrativa
-│   ├── 📁 auth/                    # Componentes de autenticação
-│   ├── 📁 dashboard/               # Componentes do dashboard
-│   ├── 📁 ui/                      # Biblioteca de componentes UI
-│   ├── 📁 navbar/                  # Barra de navegação
-│   ├── 📁 hero_1/                  # Seção hero da landing page
-│   ├── 📁 ourCourses/             # Seção de cursos
-│   ├── 📁 about-us/               # Seção sobre nós
-│   ├── 📁 ourArticles/            # Seção de artigos
-│   ├── 📁 yourCourses/            # Cursos do usuário
-│   ├── 📁 footer/                  # Rodapé
-│   └── 📁 BlurryBackground/       # Background com efeitos visuais
-│
-├── 📁 lib/                         # Utilitários e configurações
-│   ├── 📄 utils.ts                # Funções utilitárias
-│   └── 📁 supabase/               # Configuração do Supabase
-│       ├── 📄 client.ts           # Cliente Supabase (browser)
-│       ├── 📄 server.ts           # Cliente Supabase (server)
-│       └── 📄 middleware.ts       # Middleware de autenticação
-│
-├── 📁 public/                      # Assets estáticos
-│   ├── 🖼️ logo.svg               # Logo principal
-│   ├── 🖼️ logo_navbar.svg        # Logo da navbar
-│   ├── 🖼️ logo_ufjf.svg          # Logo da UFJF
-│   ├── 🖼️ bg-roxo.svg            # Background decorativo
-│   └── 📷 [imagens dos cursos]    # Imagens dos cursos
-│
-└── 📁 Arquivos de Configuração
-    ├── 📄 components.json         # Configuração dos componentes shadcn/ui
-    ├── 📄 tailwind.config.ts      # Configuração do Tailwind CSS
-    ├── 📄 next.config.ts          # Configuração do Next.js
-    ├── 📄 middleware.ts           # Middleware global
-    └── 📄 package.json            # Dependências e scripts
+- Middleware (`lib/supabase/middleware.ts`) garante sessão válida e redireciona usuários não autenticados.
+- Clientes separados: `client.ts` (browser), `server.ts` (SSR) e `createAdminClient()` com validação de perfil.
+- Chave de serviço (`SUPABASE_SERVICE_ROLE_KEY`) usada somente no servidor (NUNCA exponha em `NEXT_PUBLIC_*`).
+- Checagem de variáveis de ambiente via utilitário `hasEnvVars`.
+
+### Variáveis de Ambiente Necessárias
+
+Crie um arquivo `.env.local` na raiz com:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=xxxxxxxxxxxxxxxx
+NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxxxxxxxxxxxxxx
+# Apenas no servidor / Vercel (não expor ao cliente):
+SUPABASE_SERVICE_ROLE_KEY=xxxxxxxxxxxxxxxx
 ```
 
-## 🎯 Funcionalidades Principais
+## � Estrutura Atual (principais diretórios)
 
-### 🏠 Landing Page
-- **Hero Section**: Apresentação do projeto com estatísticas dinâmicas
-- **Seção de Cursos**: Catálogo completo de cursos disponíveis
-- **Sobre Nós**: Carrossel de imagens e informações do projeto
-- **Artigos**: Blog com conteúdo educacional
-- **Footer**: Links para redes sociais e contatos
+```
+app/
+    layout.tsx
+    page.tsx
+    auth/ (login, registro, recuperação, confirmação, erros)
+    course/
+    protected/ (dashboard restrito)
+        layout.tsx
+        page.tsx
+        activitie/
+        perfil/
+            layout.tsx
+            page.tsx
+        trilhas/
+components/
+    api/ (indexApi, admApi, courseApi, students)
+    auth/ (forms e botões)
+    dashboard/ (users table, modals, CourseManagement/*)
+    ui/ (design system local – badge, button, card, input, label)
+    navbar/, hero_1/, ourCourses/, ourArticles/, about-us/, footer/
+    trilhas/, yourCourses/, activitie_cards/, activities/, profile/
+    BlurryBackground/, aurora/, button/, cards/, counting/
+lib/
+    utils.ts (helpers: cn, hasEnvVars)
+    supabase/ (client, server, middleware, student_projects)
+public/ (logos, imagens)
+config (root arquivos: tailwind.config.ts, next.config.ts, eslint.config.mjs)
+```
 
-### 🔐 Sistema de Autenticação
-- Login e registro de usuários
-- Recuperação e redefinição de senhas
-- Confirmação por email
-- Diferentes níveis de acesso (usuário/administrador)
+## 🎯 Principais Funcionalidades
 
-### 📊 Dashboard
-- **Área do Aluno**: Visualização de cursos inscritos e progresso
-- **Área Administrativa**: Gerenciamento completo de usuários e cursos
-- Interface responsiva e intuitiva
+### Landing Page
+- Hero com métricas dinâmicas
+- Carrosséis de cursos e trilhas
+- Seção “Sobre Nós” com imagens e narrativa
+- Artigos educativos
+- Footer com canais oficiais
 
-### 🎓 Sistema de Cursos
-- Estrutura modular (Cursos → Módulos → Aulas)
-- Acompanhamento de progresso
-- Integração com conteúdo multimídia
+### Sistema de Cursos
+- Organização modular (Curso → Módulos → Aulas / Atividades)
+- Gerenciamento administrativo de detalhes do curso, estudantes e módulos
+- Progresso do aluno e listagem personalizada
+
+### Dashboard
+- Área do aluno (inscrições, progresso)
+- Área do administrador (CRUD de usuários e cursos, paginação, busca, modais de edição/remoção)
+
+### Autenticação
+- Registro, login, recuperação e redefinição de senha
+- Confirmação por e-mail
+- Proteção SSR de rotas privadas
+- Elevação para cliente administrativo após checagem de perfil (`type === "adm"`)
+
+### Experiência & UI
+- Tema dinâmico (dark/light)
+- Animações suaves (Framer Motion)
+- Elementos 3D e fundos animados (Three.js / Aurora / BlurryBackground)
+- Componentização reutilizável via estratégia CVA & Radix
 
 ## 🎨 Design System
 
-O projeto utiliza um design system moderno com:
-- **Cores**: Paleta baseada em roxo e amarelo (identidade visual do projeto)
-- **Tipografia**: Fonte system stack para melhor performance
-- **Componentes**: Biblioteca baseada em Radix UI para acessibilidade
-- **Animações**: Transições suaves com Framer Motion
-- **Responsividade**: Mobile-first approach
+Baseado em:
+- Paleta roxo / amarelo (identidade)
+- Componentes acessíveis (Radix + HeroUI + layer própria `components/ui`)
+- Utilização de variantes (CVA) para consistência e escalabilidade
+- Foco em performance: system fonts + render SSR
+
+## 🧪 Qualidade & Lint
+
+ESLint configurado com `next/core-web-vitals` e TypeScript strict. Recomenda-se executar `npm run lint` antes de abrir PR.
 
 ## 🚀 Scripts Disponíveis
 
 ```bash
-# Desenvolvimento com Turbopack
+# Desenvolvimento (Turbopack habilitado)
 npm run dev
 
 # Build de produção
 npm run build
 
-# Iniciar servidor de produção
+# Servir build
 npm start
 
-# Linting
+# Lint
 npm run lint
 ```
 
-## 🌐 Deploy e Produção
+## ⚙️ Instalação & Uso Local
 
-O projeto está configurado para:
-- **Vercel**: Deploy automático com Next.js
-- **Supabase**: Backend em produção
-- **CDN**: Assets estáticos otimizados
+```bash
+git clone <url-do-repositorio>
+cd Academy
+npm install
+cp .env.example .env.local   # Se você criar um modelo de exemplo
+# Edite .env.local com suas chaves Supabase
+npm run dev
+```
+
+Depois acesse: `http://localhost:3000`.
+
+## 🌐 Deploy
+
+- **Vercel**: Deploy rápido (importar repositório, adicionar variáveis de ambiente).
+- **Supabase**: Criar projeto, copiar URL e ANON KEY, gerar Service Role Key para uso apenas no backend.
+- **Boas práticas**: Jamais expor `SUPABASE_SERVICE_ROLE_KEY` em público ou no cliente.
+
+## 🔄 Fluxo SSR + Auth (Resumo)
+
+1. Middleware verifica sessão (`supabase.auth.getUser()`).
+2. Redireciona visitantes não autenticados para `/auth` (exceto rota pública `/`).
+3. Em rotas administrativas, `createAdminClient()` valida antes de liberar operações sensíveis.
 
 ## 🤝 Contribuindo
 
-Este projeto faz parte de uma iniciativa educacional importante. Para contribuir:
+1. Faça fork
+2. Crie branch: `git checkout -b feature/minha-feature`
+3. Implemente e rode `npm run lint`
+4. Commit: `git commit -m "feat: minha feature"`
+5. Push: `git push origin feature/minha-feature`
+6. Abra Pull Request descrevendo objetivo e contexto
 
-1. Fork o repositório
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+## 🛡️ Segurança
 
-## 📝 Licença
+- Nunca commitar `.env.local`
+- Rotas protegidas checam sessão; operações administrativas validam tipo de usuário
+- Service role restrito ao backend (funções server-side / edge)
 
-Este projeto é mantido pela **Minds of Future** em parceria com a **UFJF** e **Governo de Minas Gerais**, com o objetivo de democratizar o acesso à educação tecnológica.
+## 📝 Licença / Direitos
+
+Projeto mantido por **Minds of Future** em parceria com **UFJF** e **Governo de Minas Gerais**. Uso educacional e de impacto social.
 
 ## 📞 Contato
 
-Para dúvidas ou sugestões sobre o projeto, entre em contato através dos canais oficiais disponíveis no footer da aplicação.
+Use os canais oficiais no footer da aplicação ou abra uma Issue com a tag apropriada.
+
+---
+Se algo estiver desatualizado, abra uma Issue ou PR propondo ajuste. Boas contribuições! 🚀
