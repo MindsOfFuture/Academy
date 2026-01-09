@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-interface Teacher_CardProps{
+interface Teacher_CardProps {
     link: string;
     titleLink: string;
 }
