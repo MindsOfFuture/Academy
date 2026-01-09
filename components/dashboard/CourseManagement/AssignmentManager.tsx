@@ -197,7 +197,7 @@ export default function AssignmentManager({
                                     <div className="flex-1">
                                         <p className="font-medium text-sm">{assignment.title}</p>
                                         {assignment.description && (
-                                            <p className="text-xs text-gray-600 mt-1">{assignment.description}</p>
+                                            <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{assignment.description}</p>
                                         )}
                                         <div className="flex gap-4 mt-1 text-xs text-gray-500">
                                             <span>Prazo: {formatDate(assignment.dueDate)}</span>

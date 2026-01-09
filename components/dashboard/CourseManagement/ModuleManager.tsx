@@ -107,7 +107,7 @@ export default function ModuleManager({
                       </button>
                     </div>
                     {lesson.description && (
-                      <span className="text-sm text-gray-500 ml-6 block">{lesson.description}</span>
+                      <span className="text-sm text-gray-500 ml-6 block whitespace-pre-wrap">{lesson.description}</span>
                     )}
                     {lesson.contentUrl && (
                       <a
@@ -163,12 +163,12 @@ export default function ModuleManager({
                 min={0}
               />
             </div>
-            <input
-              type="text"
+            <textarea
               placeholder="Descrição da lição"
               value={getLessonForm(mod.id).description}
               onChange={(e) => updateLessonForm(mod.id, "description", e.target.value)}
-              className="border rounded px-2 py-1 w-full"
+              className="border rounded px-2 py-1 w-full resize-y min-h-[60px]"
+              rows={2}
             />
             <input
               type="text"

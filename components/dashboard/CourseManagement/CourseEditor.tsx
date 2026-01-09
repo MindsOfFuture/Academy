@@ -33,7 +33,8 @@ export default function CourseEditor({
         placeholder="Descrição do curso"
         value={description ?? ""}
         onChange={(e) => onChange("description", e.target.value)}
-        className="border rounded px-2 py-1 w-full mb-2"
+        className="border rounded px-2 py-1 w-full mb-2 resize-y min-h-[100px]"
+        rows={4}
       />
 
       <input

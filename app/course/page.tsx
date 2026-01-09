@@ -117,7 +117,7 @@ function CoursePageContent() {
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
                   {course.description && (
-                    <p className="text-gray-600 mt-1">{course.description}</p>
+                    <p className="text-gray-600 mt-1 whitespace-pre-wrap">{course.description}</p>
                   )}
                 </div>
               </div>
@@ -151,7 +151,7 @@ function CoursePageContent() {
                               )}
                             </div>
                             {lesson.description && (
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-gray-600 whitespace-pre-wrap">
                                 {lesson.description}
                               </p>
                             )}
