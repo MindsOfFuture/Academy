@@ -30,10 +30,10 @@ function ActivitiePageContent() {
         const assignmentData = await getAssignment(assignmentId);
         if (assignmentData) {
           setAssignment(assignmentData);
-          
+
           // Buscar informações adicionais (professor, submissão existente)
           const supabase = createClient();
-          
+
           // Buscar submissão do aluno
           const { data: submissionData } = await supabase
             .from("assignment_submission")
@@ -56,7 +56,7 @@ function ActivitiePageContent() {
               gradedAt: submissionData.graded_at ?? null,
             });
           }
-          
+
           // Buscar nome do professor criador
           if (assignmentData.id) {
             const { data: creatorData } = await supabase
@@ -66,8 +66,8 @@ function ActivitiePageContent() {
               .single();
 
             if (creatorData?.user_profile) {
-              const profile = Array.isArray(creatorData.user_profile) 
-                ? creatorData.user_profile[0] 
+              const profile = Array.isArray(creatorData.user_profile)
+                ? creatorData.user_profile[0]
                 : creatorData.user_profile;
               if (profile?.full_name) {
                 setTeacherName(profile.full_name);

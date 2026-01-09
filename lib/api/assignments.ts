@@ -112,10 +112,10 @@ export async function updateAssignment(
 // Remove uma atividade
 export async function deleteAssignment(assignmentId: string): Promise<boolean> {
     const supabase = createBrowserSupabase();
-    
+
     // Primeiro remove todas as submissões relacionadas
     await supabase.from("assignment_submission").delete().eq("assignment_id", assignmentId);
-    
+
     // Depois remove a atividade
     const { error } = await supabase.from("assignment").delete().eq("id", assignmentId);
     return !error;

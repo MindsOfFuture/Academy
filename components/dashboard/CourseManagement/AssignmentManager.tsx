@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { type AssignmentSummary } from "@/lib/api/types";
-import { 
-    createAssignment, 
-    updateAssignment, 
-    deleteAssignment 
+import {
+    createAssignment,
+    updateAssignment,
+    deleteAssignment
 } from "@/lib/api/assignments";
 import { Plus, Trash2, Edit2, Save, X, FileText } from "lucide-react";
 

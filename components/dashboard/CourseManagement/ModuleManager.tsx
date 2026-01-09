@@ -91,11 +91,10 @@ export default function ModuleManager({
                       </span>
                       <button
                         onClick={() => toggleLessonExpanded(lesson.id)}
-                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                          expandedLessons[lesson.id]
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${expandedLessons[lesson.id]
                             ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
                             : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
+                          }`}
                         title="Gerenciar atividades desta lição"
                       >
                         <ClipboardList className="w-3 h-3" />
@@ -128,7 +127,7 @@ export default function ModuleManager({
                     X
                   </button>
                 </div>
-                
+
                 {/* Gerenciador de Atividades */}
                 {expandedLessons[lesson.id] && (
                   <AssignmentManager
