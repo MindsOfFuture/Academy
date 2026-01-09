@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   createCourse,
   listCourses,
   updateCourse,
-  deleteCourse,
 } from "@/lib/api/courses";
 import { type CourseSummary } from "@/lib/api/types";
 import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
@@ -67,8 +67,8 @@ export default function CoursesSection() {
     setIsOpen(false);
   };
 
-  // Abrir modal para editar curso
-  const handleEditCourse = (course: CourseSummary) => {
+  // Função disponível para uso futuro (edição inline de cursos)
+  const _handleEditCourse = (course: CourseSummary) => {
     setEditingCourse(course);
     setTitle(course.title);
     setDescription(course.description ?? "");
@@ -106,9 +106,11 @@ export default function CoursesSection() {
           >
             <div className="h-40 bg-gray-100 flex items-center justify-center">
               {course.thumbUrl ? (
-                <img
+                <Image
                   src={course.thumbUrl}
                   alt={course.title}
+                  width={400}
+                  height={160}
                   className="h-full w-full object-cover"
                 />
               ) : (

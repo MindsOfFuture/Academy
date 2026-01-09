@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 interface Teacher_CardProps{
     link: string;
     titleLink: string;
@@ -18,7 +20,7 @@ export default function Teacher_Card({ link, titleLink }: Teacher_CardProps) {
                 <a href={repoLink} target="_blank" rel="noopener noreferrer">
                     <div className="flex items-center gap-3 w-fit">
                         <div className="w-16 p-0 flex items-center justify-center">
-                            <img
+                            <Image
                                 src={faviconUrl}
                                 alt="Favicon"
                                 width={50}

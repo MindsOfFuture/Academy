@@ -26,7 +26,7 @@ export async function getHero(): Promise<HeroData | null> {
         };
     }
 
-    const lookup = Object.fromEntries(data.map((row: any) => [row.key, row.value]));
+    const lookup = Object.fromEntries(data.map((row) => [(row as { key: string; value: string }).key, (row as { key: string; value: string }).value]));
     return {
         n_alunos: Number(lookup.hero_n_alunos || 0),
         n_escolas: Number(lookup.hero_n_escolas || 0),

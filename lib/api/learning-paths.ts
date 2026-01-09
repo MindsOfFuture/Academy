@@ -1,15 +1,20 @@
 import "server-only";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
-import { type LearningPathSummary, type CourseSummary } from "./types";
+import { type LearningPathSummary, type CourseSummary, type CourseRow, type LearningPathRow, getThumbUrl, getCoverUrl } from "./types";
 
-function mapCourse(row: any): CourseSummary {
+interface LearningPathCourseJoin {
+    order?: number | null;
+    course?: CourseRow;
+}
+
+function mapCourse(row: CourseRow): CourseSummary {
     return {
         id: row.id,
         title: row.title,
         description: row.description ?? null,
         level: row.level ?? null,
         status: row.status ?? null,
-        thumbUrl: row.thumb?.url ?? null,
+        thumbUrl: getThumbUrl(row.thumb),
     };
 }
 
@@ -28,13 +33,16 @@ export async function getLearningPaths(): Promise<LearningPathSummary[]> {
 
     if (error || !data) return [];
 
-    return data.map((row: any) => ({
-        id: row.id,
-        title: row.title,
-        description: row.description ?? null,
-        coverUrl: row.cover?.url ?? null,
-        courses: (row.courses || [])
-            .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-            .map((item: any) => mapCourse(item.course || {})),
-    }));
+    return data.map((row) => {
+        const lpRow = row as unknown as LearningPathRow;
+        return {
+            id: lpRow.id,
+            title: lpRow.title,
+            description: lpRow.description ?? null,
+            coverUrl: getCoverUrl(lpRow.cover),
+            courses: ((lpRow.courses || []) as LearningPathCourseJoin[])
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                .map((item) => mapCourse((item.course || {}) as CourseRow)),
+        };
+    });
 }

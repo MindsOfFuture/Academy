@@ -1,11 +1,22 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
+interface UserInfo {
+  id?: string;
+  full_name?: string;
+  email?: string;
+}
+
+interface Aluno {
+  id: string;
+  user?: UserInfo | null;
+}
+
 type StudentsManagerProps = {
-  alunos: any[];
-  alunosDisponiveis: any[];
+  alunos: Aluno[];
+  alunosDisponiveis: UserInfo[];
   loading: boolean;
-  onAdd: (aluno: any) => void;
+  onAdd: (aluno: UserInfo) => void;
   onRemove: (id: string) => void;
 };
 
@@ -17,7 +28,7 @@ export default function StudentsManager({
   onRemove,
 }: StudentsManagerProps) {
   const [search, setSearch] = useState("");
-  const [filtered, setFiltered] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<UserInfo[]>([]);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   // Fecha a lista ao clicar fora
@@ -38,7 +49,7 @@ export default function StudentsManager({
   useEffect(() => {
     if (!search) return;
     const result = alunosDisponiveis.filter((u) =>
-      (u.full_name || u.email)
+      (u.full_name ?? u.email ?? "")
         .toLowerCase()
         .includes(search.toLowerCase())
     );

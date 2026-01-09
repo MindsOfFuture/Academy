@@ -1,5 +1,6 @@
 "use client";
 import { LucideArchive, LucideEllipsisVertical, LucideUsers, Play } from "lucide-react";
+import Image from "next/image";
 import React, { useState } from "react";
 import Teacher_Card from "../activitie_cards/teacher_card";
 import YourProjects from "../cards/yourProjects";
@@ -13,14 +14,14 @@ interface ActivitiesProps{
     score: number;
     studentScore: number;
     teacherName: string;
-    userName: string;
+    userName?: string;  // Reservado para uso futuro
     deliveryDate?: Date | string;     // data de entrega (vencimento)
     teacherTitleLink: string;
     studentTitleLink: string;
 }
 
 
-export default function Activities({teacherLink, studentLink, title, description, date, score, teacherName, deliveryDate, userName, teacherTitleLink, studentTitleLink, studentScore}: ActivitiesProps) {
+export default function Activities({teacherLink, studentLink, title, description, date, score, teacherName, deliveryDate, userName: _userName, teacherTitleLink, studentTitleLink, studentScore}: ActivitiesProps) {
     
     const [showOptions, setShowOptions] = useState(false);
     const [showCopy, setShowCopy] = useState(false);
@@ -45,7 +46,7 @@ export default function Activities({teacherLink, studentLink, title, description
     const activityLink = typeof window !== 'undefined' ? window.location.href : '';
     
     const [showPrivateCommentBox, setShowPrivateCommentBox] = useState(false);
-    const [showProfCommentBox, setShowProfCommentBox] = useState(false);
+    const [_showProfCommentBox, _setShowProfCommentBox] = useState(false);
     const [privateComment, setPrivateComment] = useState("");
     
     type Comment = { user: string; photo: string; date: Date; text: string };
@@ -149,9 +150,11 @@ export default function Activities({teacherLink, studentLink, title, description
                             {showPrivateCommentBox && (
                                 <div className="flex flex-col gap-2 mt-4">
                                     <div className="flex items-center gap-2">
-                                        <img
+                                        <Image
                                             src={userPhoto}
                                             alt="Usuário"
+                                            width={40}
+                                            height={40}
                                             className="w-10 h-10 rounded-full object-cover border"
                                         />
                                         <input
@@ -188,7 +191,7 @@ export default function Activities({teacherLink, studentLink, title, description
                                         <div className="mt-2 flex flex-col gap-2">
                                             {privateComments.map((comment, idx) => (
                                                 <div key={idx} className="flex items-center gap-2 px-4 py-2">
-                                                    <img src={comment.photo} alt={comment.user} className="w-10 h-10 rounded-full object-cover border" />
+                                                    <Image src={comment.photo} alt={comment.user} width={40} height={40} className="w-10 h-10 rounded-full object-cover border" />
                                                     <div className="flex flex-col flex-1">
                                                         <div className="flex items-center gap-2">
                                                             <span className="font-semibold text-sm">{comment.user}</span>

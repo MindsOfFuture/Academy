@@ -1,4 +1,5 @@
 import { LucideX, Paperclip } from "lucide-react";
+import Image from "next/image";
 
 interface Student_CardProps{
     link: string;
@@ -52,9 +53,11 @@ export default function Student_Card({link, StudentTitleLink, onDelete}:Student_
                                 
                                 <>
                                     {isImageFile ? (
-                                        <img
+                                        <Image
                                             src={repoLink}
                                             alt={StudentTitleLink}
+                                            width={48}
+                                            height={48}
                                             className="w-12 h-12 object-cover rounded mr-2"
                                         />
                                     ) : (
@@ -71,7 +74,7 @@ export default function Student_Card({link, StudentTitleLink, onDelete}:Student_
                             ) : (
                                 // Link externo com favicon
                                 <>
-                                    <img
+                                    <Image
                                         src={faviconUrl}
                                         alt="Favicon"
                                         width={48}

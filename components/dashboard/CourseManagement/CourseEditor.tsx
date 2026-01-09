@@ -2,7 +2,7 @@
 
 type CourseEditorProps = {
   title: string;
-  description: string;
+  description: string | null;
   imageUrl: string;
   onChange: (field: string, value: string) => void;
   onSave: () => void;
@@ -31,7 +31,7 @@ export default function CourseEditor({
 
       <textarea
         placeholder="Descrição do curso"
-        value={description}
+        value={description ?? ""}
         onChange={(e) => onChange("description", e.target.value)}
         className="border rounded px-2 py-1 w-full mb-2"
       />

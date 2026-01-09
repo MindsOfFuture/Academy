@@ -35,11 +35,14 @@ export async function listUsersClient() {
         .select("id, full_name, email")
         .order("full_name", { ascending: true });
     if (error || !data) return [];
-    return data.map((row: any) => ({
-        id: row.id,
-        full_name: row.full_name,
-        email: row.email,
-    }));
+    return data.map((row) => {
+        const userRow = row as { id: string; full_name: string; email: string };
+        return {
+            id: userRow.id,
+            full_name: userRow.full_name,
+            email: userRow.email,
+        };
+    });
 }
 
 export type { UserProfileSummary, RoleName };

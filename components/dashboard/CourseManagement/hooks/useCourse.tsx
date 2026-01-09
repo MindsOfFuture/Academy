@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   getCourseDetail,
   addModule,
@@ -9,20 +9,21 @@ import {
   removeModule,
   removeLesson,
 } from "@/lib/api/courses";
+import { type CourseDetail } from "@/lib/api/types";
 
 export default function useCourse(courseId: string) {
-  const [course, setCourse] = useState<any>(null);
+  const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshCourse = async () => {
+  const refreshCourse = useCallback(async () => {
     const data = await getCourseDetail(courseId);
     setCourse(data);
-  };
+  }, [courseId]);
 
   useEffect(() => {
     setLoading(true);
     refreshCourse().finally(() => setLoading(false));
-  }, [courseId]);
+  }, [refreshCourse]);
 
   return {
     course,

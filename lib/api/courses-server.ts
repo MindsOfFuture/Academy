@@ -1,20 +1,20 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { type CourseSummary, type CourseDetail, type LessonSummary, type ModuleSummary } from "./types";
+import { type CourseSummary, type CourseDetail, type LessonSummary, type ModuleSummary, type CourseRow, type LessonRow, type ModuleRow, getThumbUrl } from "./types";
 
-function mapCourse(row: any): CourseSummary {
+function mapCourse(row: CourseRow): CourseSummary {
     return {
         id: row.id,
         title: row.title,
         description: row.description ?? null,
         level: row.level ?? null,
         status: row.status ?? null,
-        thumbUrl: row.thumb?.url ?? null,
+        thumbUrl: getThumbUrl(row.thumb),
     };
 }
 
-function mapLesson(row: any): LessonSummary {
+function mapLesson(row: LessonRow): LessonSummary {
     return {
         id: row.id,
         title: row.title,
@@ -27,7 +27,7 @@ function mapLesson(row: any): LessonSummary {
     };
 }
 
-function mapModule(row: any): ModuleSummary {
+function mapModule(row: ModuleRow): ModuleSummary {
     return {
         id: row.id,
         title: row.title,
@@ -44,7 +44,7 @@ export async function listCoursesServer(): Promise<CourseSummary[]> {
         .order("created_at", { ascending: false });
 
     if (error || !data) return [];
-    return data.map(mapCourse);
+    return data.map((row) => mapCourse(row as unknown as CourseRow));
 }
 
 export async function getCourseDetailServer(courseId: string): Promise<CourseDetail | null> {
@@ -79,13 +79,14 @@ export async function getCourseDetailServer(courseId: string): Promise<CourseDet
 
     if (error || !data) return null;
 
+    const courseRow = data as unknown as CourseRow;
     return {
-        id: data.id,
-        title: data.title,
-        description: data.description ?? null,
-        level: data.level ?? null,
-        status: data.status ?? null,
-        thumbUrl: (data as any).thumb?.url ?? null,
-        modules: ((data as any).modules || []).map(mapModule),
+        id: courseRow.id,
+        title: courseRow.title,
+        description: courseRow.description ?? null,
+        level: courseRow.level ?? null,
+        status: courseRow.status ?? null,
+        thumbUrl: getThumbUrl(courseRow.thumb),
+        modules: (courseRow.modules || []).map(mapModule),
     };
 }

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import Navbar from "@/components/navbar/navbar";
 import { getCourseDetail } from "@/lib/api/courses";
 import {
@@ -106,9 +107,11 @@ function CoursePageContent() {
           <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
             <div className="bg-white shadow rounded-lg p-6 space-y-4">
               <div className="flex items-start gap-4">
-                <img
+                <Image
                   src={course.thumbUrl || "/logo_navbar.svg"}
                   alt={course.title}
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded object-cover"
                 />
                 <div>

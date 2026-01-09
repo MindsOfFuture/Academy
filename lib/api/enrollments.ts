@@ -1,14 +1,14 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { type CourseSummary, type EnrollmentSummary } from "./types";
+import { type CourseSummary, type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonRow, type LessonProgressRow, getThumbUrl } from "./types";
 
-function mapCourse(row: any): CourseSummary {
+function mapCourse(row: CourseRow): CourseSummary {
     return {
         id: row.id,
         title: row.title,
         description: row.description ?? null,
         level: row.level ?? null,
         status: row.status ?? null,
-        thumbUrl: row.thumb?.url ?? null,
+        thumbUrl: getThumbUrl(row.thumb),
     };
 }
 
@@ -66,8 +66,8 @@ export async function getUserCourses(): Promise<EnrollmentSummary[]> {
 
     if (error || !enrollments) return [];
 
-    const enrollmentIds = enrollments.map((e: any) => e.id);
-    const courseIds = enrollments.map((e: any) => e.course?.id).filter(Boolean);
+    const enrollmentIds = enrollments.map((e) => (e as unknown as EnrollmentRow).id);
+    const courseIds = enrollments.map((e) => (e as unknown as EnrollmentRow).course?.id).filter(Boolean);
 
     const { data: lessons } = await supabase
         .from("lesson")
@@ -79,19 +79,20 @@ export async function getUserCourses(): Promise<EnrollmentSummary[]> {
             .from("lesson_progress")
             .select("enrollment_id, lesson_id, is_completed")
             .in("enrollment_id", enrollmentIds)
-        : { data: [] as any[] };
+        : { data: [] as LessonProgressRow[] };
 
-    return enrollments.map<EnrollmentSummary>((row: any) => {
-        const totalLessons = (lessons || []).filter((l: any) => l.course_id === row.course?.id).length;
+    return enrollments.map<EnrollmentSummary>((row) => {
+        const enrollmentRow = row as unknown as EnrollmentRow;
+        const totalLessons = (lessons || []).filter((l) => (l as LessonRow).course_id === enrollmentRow.course?.id).length;
         const completed = (progresses || []).filter(
-            (p: any) => p.enrollment_id === row.id && (p.is_completed ?? true)
+            (p) => (p as LessonProgressRow).enrollment_id === enrollmentRow.id && ((p as LessonProgressRow).is_completed ?? true)
         ).length;
         const progressPercent = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
 
         return {
-            enrollmentId: row.id,
-            status: row.status ?? null,
-            course: mapCourse(row.course || {}),
+            enrollmentId: enrollmentRow.id,
+            status: enrollmentRow.status ?? null,
+            course: mapCourse((enrollmentRow.course || {}) as CourseRow),
             progressPercent,
             completedLessons: completed,
             totalLessons,
@@ -120,7 +121,7 @@ export async function fetchLessonProgress(courseId: string) {
         .eq("enrollment_id", enrollment.id)
         .eq("is_completed", true);
 
-    return (data || []).map((row: any) => row.lesson_id as string);
+    return (data || []).map((row) => (row as LessonProgressRow).lesson_id as string);
 }
 
 export async function toggleLessonProgress(courseId: string, lessonId: string): Promise<boolean> {
@@ -187,11 +188,17 @@ export async function listCourseStudents(courseId: string) {
         .order("enrolled_at", { ascending: true });
 
     if (error || !data) return [];
-    return data.map((row: any) => ({
-        id: row.id,
-        status: row.status,
-        user: row.user,
-    }));
+    return data.map((row) => {
+        const enrollmentRow = row as unknown as EnrollmentRow;
+        // user pode vir como array (join) - pegar o primeiro elemento
+        const userData = enrollmentRow.user;
+        const user = Array.isArray(userData) ? userData[0] : userData;
+        return {
+            id: enrollmentRow.id,
+            status: enrollmentRow.status,
+            user,
+        };
+    });
 }
 
 export async function addStudentToCourse(courseId: string, userId: string) {
@@ -202,7 +209,10 @@ export async function addStudentToCourse(courseId: string, userId: string) {
         .select("id, status, user:user_id (id, full_name, email)")
         .maybeSingle();
     if (error || !data) return null;
-    return { id: data.id, status: data.status, user: data.user };
+    // user pode vir como array (join) - pegar o primeiro elemento
+    const userData = data.user;
+    const user = Array.isArray(userData) ? userData[0] : userData;
+    return { id: data.id, status: data.status, user };
 }
 
 export async function removeStudentFromCourse(enrollmentId: string): Promise<boolean> {

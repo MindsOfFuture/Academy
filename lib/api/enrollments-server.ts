@@ -1,16 +1,16 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { type CourseSummary, type EnrollmentSummary } from "./types";
+import { type CourseSummary, type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonRow, type LessonProgressRow, getThumbUrl } from "./types";
 
-function mapCourse(row: any): CourseSummary {
+function mapCourse(row: CourseRow): CourseSummary {
     return {
         id: row.id,
         title: row.title,
         description: row.description ?? null,
         level: row.level ?? null,
         status: row.status ?? null,
-        thumbUrl: row.thumb?.url ?? null,
+        thumbUrl: getThumbUrl(row.thumb),
     };
 }
 
@@ -29,8 +29,8 @@ export async function getUserCoursesServer(): Promise<EnrollmentSummary[]> {
 
     if (error || !enrollments) return [];
 
-    const enrollmentIds = enrollments.map((e: any) => e.id);
-    const courseIds = enrollments.map((e: any) => e.course?.id).filter(Boolean);
+    const enrollmentIds = enrollments.map((e) => (e as unknown as EnrollmentRow).id);
+    const courseIds = enrollments.map((e) => (e as unknown as EnrollmentRow).course?.id).filter(Boolean);
 
     if (courseIds.length === 0) return [];
 
@@ -47,27 +47,31 @@ export async function getUserCoursesServer(): Promise<EnrollmentSummary[]> {
         : { data: [] };
 
     const lessonsByCourse: Record<string, string[]> = {};
-    (lessons || []).forEach((l: any) => {
-        if (!lessonsByCourse[l.course_id]) lessonsByCourse[l.course_id] = [];
-        lessonsByCourse[l.course_id].push(l.id);
+    (lessons || []).forEach((l) => {
+        const lesson = l as LessonRow;
+        if (!lesson.course_id) return;
+        if (!lessonsByCourse[lesson.course_id]) lessonsByCourse[lesson.course_id] = [];
+        lessonsByCourse[lesson.course_id].push(lesson.id);
     });
 
     const completedByEnrollment: Record<string, Set<string>> = {};
-    (progresses || []).forEach((p: any) => {
-        if (!completedByEnrollment[p.enrollment_id]) completedByEnrollment[p.enrollment_id] = new Set();
-        if (p.is_completed) completedByEnrollment[p.enrollment_id].add(p.lesson_id);
+    (progresses || []).forEach((p) => {
+        const progress = p as LessonProgressRow;
+        if (!completedByEnrollment[progress.enrollment_id]) completedByEnrollment[progress.enrollment_id] = new Set();
+        if (progress.is_completed) completedByEnrollment[progress.enrollment_id].add(progress.lesson_id);
     });
 
-    return enrollments.map((e: any) => {
-        const courseId = e.course?.id;
-        const totalLessons = lessonsByCourse[courseId]?.length || 0;
-        const completedLessons = completedByEnrollment[e.id]?.size || 0;
+    return enrollments.map((e) => {
+        const enrollmentRow = e as unknown as EnrollmentRow;
+        const courseId = enrollmentRow.course?.id;
+        const totalLessons = courseId ? lessonsByCourse[courseId]?.length || 0 : 0;
+        const completedLessons = completedByEnrollment[enrollmentRow.id]?.size || 0;
         const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
         return {
-            enrollmentId: e.id,
-            status: e.status,
-            course: mapCourse(e.course),
+            enrollmentId: enrollmentRow.id,
+            status: enrollmentRow.status ?? null,
+            course: mapCourse(enrollmentRow.course as CourseRow),
             progressPercent,
             completedLessons,
             totalLessons,

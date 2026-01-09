@@ -1,18 +1,18 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { type CourseSummary, type CourseDetail, type LessonSummary, type ModuleSummary } from "./types";
+import { type CourseSummary, type CourseDetail, type LessonSummary, type ModuleSummary, type CourseRow, type LessonRow, type ModuleRow, getThumbUrl } from "./types";
 
-function mapCourse(row: any): CourseSummary {
+function mapCourse(row: CourseRow): CourseSummary {
     return {
         id: row.id,
         title: row.title,
         description: row.description ?? null,
         level: row.level ?? null,
         status: row.status ?? null,
-        thumbUrl: row.thumb?.url ?? null,
+        thumbUrl: getThumbUrl(row.thumb),
     };
 }
 
-function mapLesson(row: any): LessonSummary {
+function mapLesson(row: LessonRow): LessonSummary {
     return {
         id: row.id,
         title: row.title,
@@ -25,7 +25,7 @@ function mapLesson(row: any): LessonSummary {
     };
 }
 
-function mapModule(row: any): ModuleSummary {
+function mapModule(row: ModuleRow): ModuleSummary {
     return {
         id: row.id,
         title: row.title,
@@ -34,7 +34,9 @@ function mapModule(row: any): ModuleSummary {
     };
 }
 
-async function withSupabase<T>(handler: (supabase: any) => Promise<T>): Promise<T> {
+type SupabaseClient = ReturnType<typeof createBrowserSupabase>;
+
+async function withSupabase<T>(handler: (supabase: SupabaseClient) => Promise<T>): Promise<T> {
     const supabase = createBrowserSupabase();
     return handler(supabase);
 }
@@ -84,13 +86,13 @@ export async function getCourseDetail(courseId: string): Promise<CourseDetail | 
         if (error || !data) return null;
 
         return {
-            ...mapCourse(data),
-            modules: (data.modules || []).map(mapModule),
+            ...mapCourse(data as CourseRow),
+            modules: ((data as CourseRow).modules || []).map(mapModule),
         };
     });
 }
 
-async function ensureThumbId(url: string | null | undefined, supabase: any, ownerId: string | null) {
+async function ensureThumbId(url: string | null | undefined, supabase: SupabaseClient, ownerId: string | null) {
     if (!url || !ownerId) return null;
     const { data, error } = await supabase
         .from("media_file")
@@ -125,7 +127,7 @@ export async function createCourse(payload: { title: string; description: string
         .maybeSingle();
 
     if (error || !data) return null;
-    return mapCourse(data);
+    return mapCourse(data as CourseRow);
 }
 
 export async function updateCourse(courseId: string, payload: { title?: string; description?: string; imageUrl?: string; level?: string; status?: string; }) {
@@ -153,7 +155,7 @@ export async function updateCourse(courseId: string, payload: { title?: string; 
         .maybeSingle();
 
     if (error || !data) return null;
-    return mapCourse(data);
+    return mapCourse(data as CourseRow);
 }
 
 export async function deleteCourse(courseId: string): Promise<boolean> {
@@ -164,7 +166,7 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
         .select("id")
         .eq("course_id", courseId);
 
-    const moduleIds = (modules || []).map((m: any) => m.id);
+    const moduleIds = (modules || []).map((m: { id: string }) => m.id);
     if (moduleIds.length) {
         await supabase.from("lesson").delete().in("module_id", moduleIds);
     }
@@ -235,7 +237,7 @@ export async function addLesson(courseId: string, moduleId: string, payload: { t
         .select("id, title, description, duration_minutes, content_url, content_type, order, is_public")
         .maybeSingle();
     if (error || !data) return null;
-    return mapLesson(data);
+    return mapLesson(data as LessonRow);
 }
 
 export async function removeLesson(lessonId: string): Promise<boolean> {
@@ -258,5 +260,5 @@ export async function updateLesson(lessonId: string, payload: { title?: string; 
         .select("id, title, description, duration_minutes, content_url, content_type, order, is_public")
         .maybeSingle();
     if (error || !data) return null;
-    return mapLesson(data);
+    return mapLesson(data as LessonRow);
 }

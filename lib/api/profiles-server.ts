@@ -10,7 +10,7 @@ async function ensureRoleId(roleName: RoleName, supabase: Awaited<ReturnType<typ
         return null;
     }
 
-    const { data, error } = await supabase
+    const { data } = await supabase
         .from("role")
         .select("id")
         .eq("name", normalized)

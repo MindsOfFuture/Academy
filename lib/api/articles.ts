@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
-import { type ArticleSummary } from "./types";
+import { type ArticleSummary, type ArticleRow, getCoverUrl } from "./types";
 
 export async function getArticles(limit: number = 6): Promise<ArticleSummary[]> {
     const supabase = await createServerSupabase();
@@ -14,14 +14,17 @@ export async function getArticles(limit: number = 6): Promise<ArticleSummary[]> 
 
     if (error || !data) return [];
 
-    return data.map((row: any) => ({
-        id: row.id,
-        title: row.title,
-        slug: row.slug ?? null,
-        excerpt: row.excerpt ?? null,
-        content: row.content ?? null,
-        coverUrl: row.cover?.url ?? null,
-        authorId: row.author_id ?? null,
-        publishedAt: row.published_at ?? null,
-    }));
+    return data.map((row) => {
+        const articleRow = row as unknown as ArticleRow;
+        return {
+            id: articleRow.id,
+            title: articleRow.title,
+            slug: articleRow.slug ?? null,
+            excerpt: articleRow.excerpt ?? null,
+            content: articleRow.content ?? null,
+            coverUrl: getCoverUrl(articleRow.cover),
+            authorId: articleRow.author_id ?? null,
+            publishedAt: articleRow.published_at ?? null,
+        };
+    });
 }

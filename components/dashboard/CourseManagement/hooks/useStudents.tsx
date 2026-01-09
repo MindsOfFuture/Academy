@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   listCourseStudents,
   addStudentToCourse,
@@ -7,12 +7,24 @@ import {
 } from "@/lib/api/enrollments";
 import { listUsersClient } from "@/lib/api/profiles";
 
+interface UserInfo {
+  id?: string;
+  full_name?: string;
+  email?: string;
+}
+
+interface Aluno {
+  id: string;
+  status?: string | null;
+  user?: UserInfo | null;
+}
+
 export default function useStudents(courseId: string) {
-  const [alunos, setAlunos] = useState<any[]>([]);
-  const [alunosDisponiveis, setAlunosDisponiveis] = useState<any[]>([]);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [alunosDisponiveis, setAlunosDisponiveis] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchAlunos = async () => {
+  const fetchAlunos = useCallback(async () => {
     setLoading(true);
     const [lista, listaUsers] = await Promise.all([
       listCourseStudents(courseId),
@@ -21,15 +33,16 @@ export default function useStudents(courseId: string) {
     setAlunos(lista);
     setAlunosDisponiveis(listaUsers);
     setLoading(false);
-  };
+  }, [courseId]);
 
   useEffect(() => {
     fetchAlunos();
-  }, [courseId]);
+  }, [fetchAlunos]);
 
-  const addAluno = async (aluno: any) => {
+  const addAluno = async (aluno: UserInfo) => {
+    if (!aluno.id) return null;
     const novo = await addStudentToCourse(courseId, aluno.id);
-    if (novo) setAlunos((prev) => [...prev, novo]);
+    if (novo) setAlunos((prev) => [...prev, novo as Aluno]);
     return novo;
   };
 
