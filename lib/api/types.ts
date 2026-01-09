@@ -166,3 +166,40 @@ export interface LearningPathSummary {
     coverUrl?: string | null;
     courses: CourseSummary[];
 }
+
+// Tipos para Atividades (Assignments)
+export interface AssignmentRow {
+    id: string;
+    lesson_id: string;
+    title: string;
+    description?: string | null;
+    due_date?: string | null;
+    max_score?: number | null;
+    created_by?: string | null;
+    created_at?: string | null;
+}
+
+export interface AssignmentSummary {
+    id: string;
+    lessonId: string;
+    title: string;
+    description: string | null;
+    dueDate: string | null;
+    maxScore: number | null;
+    createdAt: string | null;
+}
+
+// Tipos para Submissões de Atividades
+export interface SubmissionSummary {
+    id: string;
+    assignmentId: string;
+    enrollmentId: string | null;
+    userId: string | null;
+    submittedAt: string | null;
+    answerUrl: string | null;
+    contentUrl: string | null;
+    comments: string | null;
+    score: number | null;
+    feedback: string | null;
+    gradedAt: string | null;
+}
