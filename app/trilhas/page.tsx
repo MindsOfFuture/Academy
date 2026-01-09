@@ -4,7 +4,7 @@ import Navbar from "@/components/navbar/navbar";
 export default function TrilhasPage() {
   return (
     <>
-      <Navbar />
+      <Navbar showTextLogo={true} />
       <Trilhas />
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { updateUserProfileClient } from "@/components/api/indexApi";
+import { updateUserProfileClient } from "@/lib/api/profiles";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { User as UserIcon, Mail, Save, RefreshCw } from "lucide-react";
@@ -58,7 +58,7 @@ export function ProfileClient({ userId, initialName, initialEmail, userType }: P
                         <h2 className="text-2xl font-bold">Meu Perfil</h2>
                         <p className="text-sm text-gray-600">Gerencie suas informações pessoais e segurança da conta.</p>
                         <div className="mt-2 inline-flex items-center text-xs px-3 py-1 rounded-full bg-[#684A97]/10 text-[#684A97] font-medium uppercase tracking-wide">
-                            {userType === 'adm' ? 'Administrador' : 'Usuário'}
+                            {userType === 'admin' ? 'Administrador' : userType === 'teacher' ? 'Professor' : 'Usuário'}
                         </div>
                     </div>
                 </div>

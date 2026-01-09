@@ -38,7 +38,7 @@ export default function StudentsManager({
   useEffect(() => {
     if (!search) return;
     const result = alunosDisponiveis.filter((u) =>
-      (u.display_name || u.email)
+      (u.full_name || u.email)
         .toLowerCase()
         .includes(search.toLowerCase())
     );
@@ -56,7 +56,7 @@ export default function StudentsManager({
           <ul className="divide-y mb-4">
             {alunos.map((a) => (
               <li key={a.id} className="flex justify-between py-2">
-                <span>{a.User?.display_name || a}</span>
+                <span>{a.user?.full_name || a.user?.email || a.id}</span>
                 <button
                   onClick={() => onRemove(a.id)}
                   className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
@@ -89,7 +89,7 @@ export default function StudentsManager({
                     }}
                     className="py-1 px-2 hover:bg-gray-100 cursor-pointer"
                   >
-                    {u.display_name || u.email}
+                    {u.full_name || u.email}
                   </li>
                 ))}
               </ul>

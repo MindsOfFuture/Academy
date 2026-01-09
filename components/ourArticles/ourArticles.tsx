@@ -7,19 +7,10 @@ import { motion } from 'framer-motion'
 import "swiper/css"
 import "swiper/css/navigation"
 import "swiper/css/pagination"
-
-export type ArticleProps = {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  author: string;
-  publishedAt: string;
-  readTime: string;
-}
+import { type ArticleSummary } from "@/lib/api/types"
 
 interface OurArticlesProps {
-  articles: ArticleProps[];
+  articles: ArticleSummary[];
 }
 
 export default function OurArticles({ articles }: OurArticlesProps) {
@@ -80,30 +71,30 @@ export default function OurArticles({ articles }: OurArticlesProps) {
                 >
                   <div className="relative h-48 overflow-hidden">
                     <Image
-                      src={article.imageUrl}
+                      src={article.coverUrl || "/logo_navbar.svg"}
                       alt={article.title}
                       fill
                       className="object-cover"
                     />
                   </div>
-                  
+
                   <div className="p-6 flex-1 flex flex-col">
                     <div className="flex items-center text-sm text-gray-600 mb-3">
-                      <span>{article.author}</span>
+                      <span>{article.authorId || "Equipe"}</span>
                       <span className="mx-2">•</span>
-                      <span>{formatDate(article.publishedAt)}</span>
+                      <span>{article.publishedAt ? formatDate(article.publishedAt) : ""}</span>
                       <span className="mx-2">•</span>
-                      <span>{article.readTime}</span>
+                      <span>leitura rápida</span>
                     </div>
-                    
+
                     <h3 className="text-xl font-bold text-gray-800 mb-3 overflow-hidden text-ellipsis line-clamp-2">
                       {article.title}
                     </h3>
-                    
+
                     <p className="text-gray-600 text-sm leading-relaxed flex-1 overflow-hidden text-ellipsis line-clamp-3">
-                      {article.description}
+                      {article.excerpt || article.content || ""}
                     </p>
-                    
+
                     <button className="mt-4 text-[#684A97] font-semibold hover:text-[#5a3f7d] transition-colors duration-200 self-start">
                       Ler mais →
                     </button>

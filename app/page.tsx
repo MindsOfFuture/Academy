@@ -1,17 +1,21 @@
-import { getAboutUs, getFooter, getHero, getNossosCursos, getArticles } from "@/components/api/indexApi";
 import HomeClient from "@/components/HomeClient/homeClient";
+import { getAboutUs, getFooter, getHero } from "@/lib/api/content";
+import { listCoursesServer } from "@/lib/api/courses-server";
+import { getArticles } from "@/lib/api/articles";
 
 export default async function Home() {
-  const heroData = await getHero();
-  const cursos = await getNossosCursos();
-  const aboutus = await getAboutUs();
-  const footer = await getFooter();
-  const articles = await getArticles();
+  const [heroData, cursos, aboutus, footer, articles] = await Promise.all([
+    getHero(),
+    listCoursesServer(),
+    getAboutUs(),
+    getFooter(),
+    getArticles(),
+  ]);
 
   return (
     <HomeClient
       heroData={heroData}
-      nossosCursosData={cursos}
+      courses={cursos}
       aboutUsSlides={aboutus?.aboutUsSlides ?? []}
       socialLinks={footer}
       articlesData={articles}

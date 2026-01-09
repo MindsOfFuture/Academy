@@ -1,4 +1,5 @@
-import { deleteUserAction, getUsersPage, updateUserAction, UserProfile } from "../api/admApi";
+import { deleteUserAction, getUsersPage, updateUserAction } from "@/lib/api/profiles-server";
+import { type UserProfileSummary } from "@/lib/api/types";
 import UsersTableClient from "./users-table-client";
 
 // Componente server-side que busca a primeira página de usuários.
@@ -9,7 +10,7 @@ export default async function UsersTable() {
 
     return (
         <UsersTableClient
-            initialUsers={users as UserProfile[]}
+            initialUsers={users as UserProfileSummary[]}
             initialTotal={total}
             initialPage={page}
             initialPageSize={pageSize}

@@ -2,26 +2,26 @@
 
 import { useEffect, useState } from "react";
 import {
-  insertCurso,
-  getCursos,
-  updateCurso,
-  deleteCurso,
-  CourseProps,
-} from "@/components/api/courseApi";
+  createCourse,
+  listCourses,
+  updateCourse,
+  deleteCourse,
+} from "@/lib/api/courses";
+import { type CourseSummary } from "@/lib/api/types";
 import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
 
 export default function CoursesSection() {
   const [isOpen, setIsOpen] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<CourseProps | null>(null);
+  const [editingCourse, setEditingCourse] = useState<CourseSummary | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [courses, setCourses] = useState<CourseProps[]>([]);
+  const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   // 🔄 Atualiza lista de cursos
   const refreshCourses = async () => {
-    const data = await getCursos();
+    const data = await listCourses();
     setCourses(data);
   };
 
@@ -36,7 +36,7 @@ export default function CoursesSection() {
     setEditingCourse(null);
   };
 
-  const handleCourseUpdated = (updatedCourse: CourseProps) => {
+  const handleCourseUpdated = (updatedCourse: CourseSummary) => {
     setCourses((prev) =>
       prev.map((c) => (c.id === updatedCourse.id ? updatedCourse : c))
     );
@@ -50,7 +50,7 @@ export default function CoursesSection() {
     }
 
     if (editingCourse) {
-      const updated = await updateCurso(editingCourse.id, {
+      const updated = await updateCourse(editingCourse.id, {
         title,
         description,
         imageUrl,
@@ -58,7 +58,7 @@ export default function CoursesSection() {
       if (updated) handleCourseUpdated(updated);
       else alert("Erro ao atualizar curso.");
     } else {
-      const newCourse = await insertCurso({ title, description, imageUrl });
+      const newCourse = await createCourse({ title, description, imageUrl });
       if (newCourse) setCourses((prev) => [...prev, newCourse]);
       else alert("Erro ao criar curso.");
     }
@@ -68,11 +68,11 @@ export default function CoursesSection() {
   };
 
   // Abrir modal para editar curso
-  const handleEditCourse = (course: CourseProps) => {
+  const handleEditCourse = (course: CourseSummary) => {
     setEditingCourse(course);
     setTitle(course.title);
-    setDescription(course.description);
-    setImageUrl(course.imageUrl);
+    setDescription(course.description ?? "");
+    setImageUrl(course.thumbUrl ?? "");
     setIsOpen(true);
   };
 
@@ -105,9 +105,9 @@ export default function CoursesSection() {
             className="bg-white rounded-lg shadow border overflow-hidden w-full max-w-sm"
           >
             <div className="h-40 bg-gray-100 flex items-center justify-center">
-              {course.imageUrl ? (
+              {course.thumbUrl ? (
                 <img
-                  src={course.imageUrl}
+                  src={course.thumbUrl}
                   alt={course.title}
                   className="h-full w-full object-cover"
                 />
@@ -129,8 +129,8 @@ export default function CoursesSection() {
                 >
                   Gerenciar
                 </button>
-              
-           
+
+
               </div>
             </div>
           </div>
@@ -212,7 +212,6 @@ export default function CoursesSection() {
                 await refreshCourses();
                 setSelectedCourseId(null);
               }}
-              onCourseUpdated={handleCourseUpdated}
             />
           </div>
         </div>

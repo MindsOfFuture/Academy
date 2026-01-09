@@ -1,21 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  getCursoCompleto,
-  insertModule,
-  insertLesson,
-  updateCurso,
-  deleteCurso,
-  deleteModule,
-  deleteLesson,
-} from "@/components/api/courseApi";
+  getCourseDetail,
+  addModule,
+  addLesson,
+  updateCourse,
+  deleteCourse,
+  removeModule,
+  removeLesson,
+} from "@/lib/api/courses";
 
 export default function useCourse(courseId: string) {
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshCourse = async () => {
-    const data = await getCursoCompleto(courseId);
+    const data = await getCourseDetail(courseId);
     setCourse(data);
   };
 
@@ -28,11 +28,11 @@ export default function useCourse(courseId: string) {
     course,
     loading,
     refreshCourse,
-    insertModule,
-    insertLesson,
-    updateCurso,
-    deleteCurso,
-    deleteModule,
-    deleteLesson,
+    insertModule: addModule,
+    insertLesson: addLesson,
+    updateCurso: updateCourse,
+    deleteCurso: deleteCourse,
+    deleteModule: removeModule,
+    deleteLesson: removeLesson,
   };
 }

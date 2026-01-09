@@ -3,9 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/navbar/navbar";
 import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
-import { getUserTypeServer } from "@/components/api/admApi";
+import { getUserTypeServer } from "@/lib/api/profiles-server";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
-import { getProgressCount, getUserCourse } from "@/components/api/indexApi";
+import { getUserCoursesServer } from "@/lib/api/enrollments-server";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -16,7 +16,7 @@ export default async function ProtectedPage() {
   const userType = await getUserTypeServer();
   const userName = data.user.user_metadata.full_name || "Fulano";
 
-  const courses = await getUserCourse(data.user.id);
+  const courses = await getUserCoursesServer();
   console.log(courses);
   return (
     <div className="min-h-screen bg-gray-100">
@@ -38,7 +38,7 @@ export default async function ProtectedPage() {
 
           <YourCourses cursos={courses} />
 
-          {userType === "adm" && (
+          {userType === "admin" && (
             <div className="space-y-8">
               <CoursesSection />
               <UsersTable />

@@ -31,24 +31,30 @@ export async function createClient() {
 
 export async function createAdminClient() {
   const supabase = await createClient();
-
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     throw new Error("Usuário não autenticado.");
   }
 
-  const { data: profile, error } = await supabase
-    .from('users')
-    .select('type')
-    .eq('id', user.id)
-    .single();
+  const { data: roleLink } = await supabase
+    .from('user_role')
+    .select('role_id')
+    .eq('user_profile_id', user.id)
+    .maybeSingle();
 
-  if (error || !profile) {
-    throw new Error("Perfil de usuário não encontrado ou erro ao buscar.");
+  const roleId = roleLink?.role_id;
+  if (!roleId) {
+    throw new Error("Acesso negado. Permissões de administrador necessárias.");
   }
 
-  if (profile.type !== "adm") {
+  const { data: roleRow } = await supabase
+    .from('role')
+    .select('name')
+    .eq('id', roleId)
+    .maybeSingle();
+
+  if (roleRow?.name !== 'admin') {
     throw new Error("Acesso negado. Permissões de administrador necessárias.");
   }
 

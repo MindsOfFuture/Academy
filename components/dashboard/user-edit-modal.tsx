@@ -5,18 +5,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserProfile } from "../api/admApi";
+import { type UserProfileSummary } from "@/lib/api/types";
 
-type EditFormState = { display_name: string; type: 'adm' | 'normal'; email: string };
+type EditFormState = { display_name: string; type: 'admin' | 'teacher' | 'student'; email: string };
 
 interface UserEditModalProps {
-    user: UserProfile;
+    user: UserProfileSummary;
     onClose: () => void;
     updateUserAction: (formData: FormData) => Promise<void>;
 }
 
 export function UserEditModal({ user, onClose, updateUserAction }: UserEditModalProps) {
-    const [form, setForm] = useState<EditFormState>({ display_name: user.display_name || '', type: user.type, email: user.email || '' });
+    const [form, setForm] = useState<EditFormState>({ display_name: user.fullName || '', type: (user.role as EditFormState['type']) || 'student', email: user.email || '' });
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -26,9 +26,13 @@ export function UserEditModal({ user, onClose, updateUserAction }: UserEditModal
         try {
             await updateUserAction(fd);
             onClose();
+            window.location.reload();
+        } catch (err) {
+            console.error("Falha ao atualizar usuário", err);
+            const message = err instanceof Error ? err.message : "Falha ao atualizar usuário";
+            alert(message);
         } finally {
             setLoading(false);
-            window.location.reload();
         }
 
     }
@@ -57,8 +61,9 @@ export function UserEditModal({ user, onClose, updateUserAction }: UserEditModal
                             onChange={e => setForm(f => ({ ...f, type: e.target.value as EditFormState['type'] }))}
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
-                            <option value="normal">Normal</option>
-                            <option value="adm">Administrador</option>
+                            <option value="student">Aluno</option>
+                            <option value="teacher">Professor</option>
+                            <option value="admin">Administrador</option>
                         </select>
                     </div>
                     <div className="flex justify-end gap-2 pt-2">

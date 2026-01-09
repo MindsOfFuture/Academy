@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  getAlunosDoCurso,
-  getAllUsers,
-  insertAlunoNoCurso,
-  removeAlunoDoCurso,
-} from "@/components/api/students";
+  listCourseStudents,
+  addStudentToCourse,
+  removeStudentFromCourse,
+} from "@/lib/api/enrollments";
+import { listUsersClient } from "@/lib/api/profiles";
 
 export default function useStudents(courseId: string) {
   const [alunos, setAlunos] = useState<any[]>([]);
@@ -15,8 +15,8 @@ export default function useStudents(courseId: string) {
   const fetchAlunos = async () => {
     setLoading(true);
     const [lista, listaUsers] = await Promise.all([
-      getAlunosDoCurso(courseId),
-      getAllUsers(),
+      listCourseStudents(courseId),
+      listUsersClient(),
     ]);
     setAlunos(lista);
     setAlunosDisponiveis(listaUsers);
@@ -28,13 +28,13 @@ export default function useStudents(courseId: string) {
   }, [courseId]);
 
   const addAluno = async (aluno: any) => {
-    const novo = await insertAlunoNoCurso(courseId, aluno.id);
-    if (novo) setAlunos((prev) => [...prev, novo.User.display_name]);
+    const novo = await addStudentToCourse(courseId, aluno.id);
+    if (novo) setAlunos((prev) => [...prev, novo]);
     return novo;
   };
 
   const removeAluno = async (matriculaId: string) => {
-    const ok = await removeAlunoDoCurso(matriculaId);
+    const ok = await removeStudentFromCourse(matriculaId);
     if (ok) setAlunos((prev) => prev.filter((a) => a.id !== matriculaId));
     return ok;
   };

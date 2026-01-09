@@ -7,15 +7,15 @@
 //  - Modal separado para edição e confirmação de exclusão.
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { UserProfile } from "../api/admApi";
 import { createClient } from "@/lib/supabase/client";
+import { type UserProfileSummary } from "@/lib/api/types";
 import { UsersSearch } from "./users-search";
 import { UsersPagination } from "./users-pagination";
 import { UserEditModal } from "./user-edit-modal";
 import { UserDeleteConfirmModal } from "./user-delete-confirm-modal";
 
 interface UsersTableClientProps {
-    initialUsers: UserProfile[];
+    initialUsers: UserProfileSummary[];
     initialTotal: number;
     initialPage: number;
     initialPageSize: number;
@@ -26,8 +26,8 @@ interface UsersTableClientProps {
 export default function UsersTableClient({ initialUsers, initialTotal, initialPage, initialPageSize, deleteUserAction, updateUserAction }: UsersTableClientProps) {
 
     const [open, setOpen] = useState(false);
-    const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-    const [users, setUsers] = useState<UserProfile[]>(initialUsers);
+    const [editingUser, setEditingUser] = useState<UserProfileSummary | null>(null);
+    const [users, setUsers] = useState<UserProfileSummary[]>(initialUsers);
     const [total, setTotal] = useState<number>(initialTotal);
     const [page, setPage] = useState<number>(initialPage);
     const [pageSize, setPageSize] = useState<number>(initialPageSize);
@@ -35,7 +35,15 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
     const [search, setSearch] = useState("");
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
-    const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
+    const [deletingUser, setDeletingUser] = useState<UserProfileSummary | null>(null);
+
+    function mapRole(userId: string, links: Array<{ user_profile_id: string; role?: { name?: string | null } | { name?: string | null }[] | null }>): import("@/lib/api/types").RoleName {
+        const link = links.find((item) => item.user_profile_id === userId);
+        const roleField = link?.role;
+        const name = Array.isArray(roleField) ? roleField[0]?.name : roleField?.name;
+        if (name === "admin" || name === "teacher" || name === "student") return name;
+        return "student";
+    }
 
     // Carrega uma página de usuários considerando parâmetros opcionais de tamanho e termo de busca.
     // Aplica sanidade e calcula range baseado em página (1-based).
@@ -50,19 +58,36 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
             const to = from + safeSize - 1;
             const term = (overrideSearch ?? search).trim();
             let query = supabase
-                .from('users')
-                .select('*', { count: 'exact' });
+                .from('user_profile')
+                .select('id, full_name, email, avatar_url, bio, is_active', { count: 'exact' })
+                .order('created_at', { ascending: false });
 
             if (term) {
-                // Sanitização básica removendo % e normalizando espaços. Busca parcial com ilike.
                 const cleaned = term.replace(/%/g, '').replace(/\s+/g, ' ');
                 const pattern = `%${cleaned}%`;
-                query = query.or(`display_name.ilike.${pattern},email.ilike.${pattern}`);
+                query = query.or(`full_name.ilike.${pattern},email.ilike.${pattern}`);
             }
 
             const { data, error, count } = await query.range(from, to);
             if (error) throw error;
-            setUsers(data || []);
+
+            const ids = (data || []).map((u) => u.id);
+            const { data: roleLinks } = await supabase
+                .from('user_role')
+                .select('user_profile_id, role:role_id(name)')
+                .in('user_profile_id', ids);
+
+            const mapped = (data || []).map((row) => ({
+                id: row.id,
+                email: row.email,
+                fullName: row.full_name,
+                avatarUrl: row.avatar_url,
+                bio: row.bio,
+                isActive: row.is_active,
+                role: mapRole(row.id, roleLinks || []),
+            }));
+
+            setUsers(mapped);
             setTotal(count || 0);
             setPage(safePage);
             setPageSize(safeSize);
@@ -89,9 +114,9 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
     const canPrev = page > 1;
     const canNext = page < totalPages;
 
-    function onEdit(u: UserProfile) { setEditingUser(u); setOpen(true); }
+    function onEdit(u: UserProfileSummary) { setEditingUser(u); setOpen(true); }
     function close() { setOpen(false); setEditingUser(null); }
-    function onAskDelete(u: UserProfile) { setDeletingUser(u); setDeleteOpen(true); }
+    function onAskDelete(u: UserProfileSummary) { setDeletingUser(u); setDeleteOpen(true); }
     function closeDelete() { setDeletingUser(null); setDeleteOpen(false); }
 
     // Após excluir usuário, recalcula página alvo (se última ficou vazia, volta uma página).
@@ -137,8 +162,8 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                                             {users.map(u => (
                                                 <tr key={u.id} className="border-b last:border-b-0 hover:bg-gray-50 transition-colors">
                                                     <td className="py-2 px-4 text-sm break-all max-w-xs">{u.email}</td>
-                                                    <td className="py-2 px-4 text-sm">{u.display_name}</td>
-                                                    <td className="py-2 px-4 text-sm">{u.type}</td>
+                                                    <td className="py-2 px-4 text-sm">{u.fullName || u.email}</td>
+                                                    <td className="py-2 px-4 text-sm">{u.role}</td>
                                                     <td className="py-2 px-4 text-center">
                                                         <div className="flex flex-col items-center gap-1 lg:flex-row lg:justify-center">
                                                             <Button variant="destructive" size="sm" onClick={() => onAskDelete(u)}>Apagar</Button>
@@ -163,11 +188,11 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                                             <div className="flex flex-wrap gap-6">
                                                 <div>
                                                     <p className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Nome</p>
-                                                    <p className="text-sm">{u.display_name}</p>
+                                                    <p className="text-sm">{u.fullName || u.email}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Tipo</p>
-                                                    <p className="text-sm">{u.type}</p>
+                                                    <p className="text-sm">{u.role}</p>
                                                 </div>
                                             </div>
                                             <div className="pt-2 flex flex-wrap gap-2">

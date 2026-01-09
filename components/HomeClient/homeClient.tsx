@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { HeroProps, CourseProps, ArticleProps } from "@/components/api/indexApi";
+import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/navbar/navbar";
 import { Hero } from "@/components/hero_1/hero";
 import { OurCourses } from "@/components/ourCourses/ourCourses";
@@ -9,16 +8,18 @@ import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us/about-us";
 import OurArticles from "@/components/ourArticles/ourArticles";
 import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
+import { type CourseSummary, type ArticleSummary } from "@/lib/api/types";
+import { type HeroData, type AboutUsSlide, type FooterLink } from "@/lib/api/content";
 
 interface HomeClientProps {
-    heroData: HeroProps | null;
-    nossosCursosData: CourseProps[];
-    aboutUsSlides: { src: string; alt: string; }[];
-    socialLinks: { href: string; iconSrc: string; alt: string; nome: string; }[];
-    articlesData: ArticleProps[];
+    heroData: HeroData | null;
+    courses: CourseSummary[];
+    aboutUsSlides: AboutUsSlide[];
+    socialLinks: FooterLink[];
+    articlesData: ArticleSummary[];
 }
 
-export default function HomeClient({ heroData, nossosCursosData, aboutUsSlides, socialLinks, articlesData }: HomeClientProps) {
+export default function HomeClient({ heroData, courses, aboutUsSlides, socialLinks, articlesData }: HomeClientProps) {
     const [isHeroLogoVisible, setIsHeroLogoVisible] = useState(true);
     const heroLogoRef = useRef<HTMLImageElement>(null);
 
@@ -55,7 +56,7 @@ export default function HomeClient({ heroData, nossosCursosData, aboutUsSlides, 
                 color1="rgba(255, 211, 0, 0.4)"
                 speed={12}
             >
-                <OurCourses cursos={nossosCursosData} />
+                <OurCourses cursos={courses} />
                 <AboutUs slides={aboutUsSlides} />
                 <OurArticles articles={articlesData} />
             </BlurryBackground>

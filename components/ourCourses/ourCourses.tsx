@@ -1,16 +1,10 @@
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-
-type CourseProps = {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-};
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { type CourseSummary } from "@/lib/api/types";
 
 type OurCoursesProps = {
-  cursos: CourseProps[];
+  cursos: CourseSummary[];
 };
 
 export function OurCourses({ cursos }: OurCoursesProps) {
@@ -54,9 +48,9 @@ export function OurCourses({ cursos }: OurCoursesProps) {
               }}
             >
               <Image
-                src={curso.imageUrl}
+                src={curso.thumbUrl || "/logo_navbar.svg"}
                 alt={curso.title}
-                width={300}  // Proporções que correspondem melhor ao layout do card
+                width={300}
                 height={180}
                 className="w-full h-[180px] bg-gray-200 object-cover"
               />

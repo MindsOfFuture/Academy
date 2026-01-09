@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
 import { ProfileClient } from "@/components/profile/profile-client";
-import { getCurrentUserProfile } from "@/components/api/admApi";
+import { getCurrentUserProfile } from "@/lib/api/profiles-server";
 
 export default async function ProtectedProfilePage() {
   const profile = await getCurrentUserProfile();
   if (!profile) {
     redirect("/auth");
   }
-  const { id, displayName, email, type } = profile;
+  const { id, displayName, email, role } = profile;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -23,7 +23,7 @@ export default async function ProtectedProfilePage() {
             userId={id}
             initialName={displayName}
             initialEmail={email}
-            userType={type}
+            userType={role}
           />
         </div>
       </div>
