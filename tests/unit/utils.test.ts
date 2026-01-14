@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+// globals: true está habilitado no vitest.config.ts, mas mantemos imports explícitos por clareza
 import { cn } from '@/lib/utils';
 
 describe('cn utility', () => {

@@ -30,7 +30,7 @@ describe('getThumbUrl', () => {
   it('should return null when thumb array is empty', () => {
     expect(getThumbUrl([])).toBeNull();
   });
-  
+
   it('should return null when first element of thumb array has no url', () => {
     expect(getThumbUrl([{}])).toBeNull();
   });
