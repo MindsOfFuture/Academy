@@ -55,24 +55,26 @@ app/
     page.tsx
     auth/ (login, registro, recuperação, confirmação, erros)
     course/
-    protected/ (dashboard restrito)
+    trilhas/ (página de trilhas de aprendizado)
+    protected/ (dashboard restrito e áreas do aluno)
         layout.tsx
         page.tsx
         activitie/
         perfil/
             layout.tsx
             page.tsx
-        trilhas/
 components/
-    api/ (indexApi, admApi, courseApi, students)
+    api/ (indexApi, admApi, courseApi - camadas de compatibilidade)
     auth/ (forms e botões)
     dashboard/ (users table, modals, CourseManagement/*)
     ui/ (design system local – badge, button, card, input, label)
     navbar/, hero_1/, ourCourses/, ourArticles/, about-us/, footer/
     trilhas/, yourCourses/, activitie_cards/, activities/, profile/
     BlurryBackground/, aurora/, button/, cards/, counting/
+    HomeClient/ (Lógica da Landing Page)
 lib/
     utils.ts (helpers: cn, hasEnvVars)
+    api/ (Lógica central de serviços e acesso a dados)
     supabase/ (client, server, middleware, student_projects)
 public/ (logos, imagens)
 config (root arquivos: tailwind.config.ts, next.config.ts, eslint.config.mjs)
