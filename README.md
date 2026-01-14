@@ -120,11 +120,15 @@ Baseado em:
 
 ## 🧪 Qualidade, Testes & Lint
 
-- **Lint**: ESLint configurado com `next/core-web-vitals` e TypeScript strict.
-- **Testes**: Vitest configurado para testes unitários e de integração.
-- **Coverage**: Cobertura de testes disponível (opcional com `--coverage`).
+O projeto mantém um alto padrão de qualidade de código através de testes automatizados e integração contínua (CI).
 
-Recomenda-se executar `npm run lint` e `npm test` antes de abrir PR.
+- **Lint**: ESLint configurado com `next/core-web-vitals` e TypeScript strict.
+- **Framework**: Vitest com `@testing-library/react` para testes unitários e de integração.
+- **Ambiente**: `jsdom` para simulação de DOM em componentes React.
+- **Cobertura**: Relatórios via C8/v8 com thresholds mínimos configurados (60% statements/functions, 50% branches).
+- **CI/CD**: GitHub Actions valida lint e testes automaticamente em Pull Requests.
+
+Recomenda-se executar `npm run lint` e garantir que `npm test` passe antes de submeter alterações.
 
 ## 🚀 Scripts Disponíveis
 
@@ -144,8 +148,11 @@ npm run lint
 # Rodar testes unitários (watch mode)
 npm test
 
-# Rodar testes (única execução)
-npx vitest run
+# Rodar testes (única execução - ideal para CI)
+npm test -- --run
+
+# Rodar testes com relatório de cobertura
+npm test -- --run --coverage
 ```
 
 ## ⚙️ Instalação & Uso Local
