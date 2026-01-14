@@ -116,9 +116,13 @@ Baseado em:
 - Utilização de variantes (CVA) para consistência e escalabilidade
 - Foco em performance: system fonts + render SSR
 
-## 🧪 Qualidade & Lint
+## 🧪 Qualidade, Testes & Lint
 
-ESLint configurado com `next/core-web-vitals` e TypeScript strict. Recomenda-se executar `npm run lint` antes de abrir PR.
+- **Lint**: ESLint configurado com `next/core-web-vitals` e TypeScript strict.
+- **Testes**: Vitest configurado para testes unitários e de integração.
+- **Coverage**: Cobertura de testes disponível (opcional com `--coverage`).
+
+Recomenda-se executar `npm run lint` e `npm test` antes de abrir PR.
 
 ## 🚀 Scripts Disponíveis
 
@@ -134,6 +138,12 @@ npm start
 
 # Lint
 npm run lint
+
+# Rodar testes unitários (watch mode)
+npm test
+
+# Rodar testes (única execução)
+npx vitest run
 ```
 
 ## ⚙️ Instalação & Uso Local
