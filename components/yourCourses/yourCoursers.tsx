@@ -16,7 +16,7 @@ export function YourCourses({ cursos }: YourCoursesProps) {
             <Link
               key={curso.enrollmentId}
               href={`/course?id=${curso.course.id}`}
-              className="flex flex-col gap-4 h-auto items-center p-3 rounded-[5] bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] text-black w-[300px] h-[500px] cursor-pointer hover:shadow-lg transition"
+              className="flex flex-col gap-4 items-center p-3 rounded-[5px] bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] text-black w-[300px] h-[500px] cursor-pointer hover:shadow-lg transition"
             >
               <Image
                 src={curso.course.thumbUrl || "/logo_navbar.svg"}

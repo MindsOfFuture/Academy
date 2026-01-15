@@ -7,16 +7,21 @@ import {
   listCourses,
   updateCourse,
 } from "@/lib/api/courses";
-import { type CourseSummary } from "@/lib/api/types";
+import { type CourseSummary, type LearningPathSummary } from "@/lib/api/types";
 import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
+import LearningPathManager from "@/components/dashboard/LearningPathManagement/LearningPathManager";
+
+type TabType = "courses" | "paths";
 
 export default function CoursesSection() {
+  const [activeTab, setActiveTab] = useState<TabType>("courses");
   const [isOpen, setIsOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseSummary | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [paths, setPaths] = useState<LearningPathSummary[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   // 🔄 Atualiza lista de cursos
@@ -25,8 +30,22 @@ export default function CoursesSection() {
     setCourses(data);
   };
 
+  // 🔄 Atualiza lista de trilhas
+  const refreshPaths = async () => {
+    try {
+      const res = await fetch("/api/learning-paths");
+      if (res.ok) {
+        const data = await res.json();
+        setPaths(data);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar trilhas:", error);
+    }
+  };
+
   useEffect(() => {
     refreshCourses();
+    refreshPaths();
   }, []);
 
   const resetForm = () => {
@@ -78,17 +97,52 @@ export default function CoursesSection() {
 
   return (
     <div>
-      {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div className="text-center sm:text-left">
-          <h2 className="text-xl font-semibold">Seus Cursos</h2>
-          <p className="text-gray-600 text-sm">
-            Gerencie seus cursos e módulos abaixo.
-          </p>
-        </div>
+      {/* Tabs */}
+      <div className="flex border-b mb-6">
         <button
-          onClick={() => {
-            resetForm();
+          onClick={() => setActiveTab("courses")}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === "courses"
+              ? "text-purple-600 border-b-2 border-purple-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Cursos
+        </button>
+        <button
+          onClick={() => setActiveTab("paths")}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === "paths"
+              ? "text-purple-600 border-b-2 border-purple-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          Trilhas de Aprendizagem
+        </button>
+      </div>
+
+      {/* Conteúdo da Tab de Trilhas */}
+      {activeTab === "paths" && (
+        <LearningPathManager
+          initialPaths={paths}
+          availableCourses={courses}
+        />
+      )}
+
+      {/* Conteúdo da Tab de Cursos */}
+      {activeTab === "courses" && (
+        <>
+          {/* Cabeçalho */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <div className="text-center sm:text-left">
+              <h2 className="text-xl font-semibold">Seus Cursos</h2>
+              <p className="text-gray-600 text-sm">
+                Gerencie seus cursos e módulos abaixo.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                resetForm();
             setIsOpen(true);
           }}
           className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 mx-auto sm:mx-0"
@@ -217,6 +271,8 @@ export default function CoursesSection() {
             />
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

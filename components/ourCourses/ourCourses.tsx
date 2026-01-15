@@ -18,7 +18,7 @@ export function OurCourses({ cursos }: OurCoursesProps) {
 
   // Função para navegar para a página de todos os cursos.
   const handleExploreAllClick = () => {
-    router.push('/courses'); // Ou qualquer que seja a sua rota para todos os cursos.
+    router.push('/trilhas'); // Ou qualquer que seja a sua rota para todos os cursos.
   };
 
   return (
