@@ -2,9 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { type LearningPathSummary, type CourseSummary } from "@/lib/api/types";
-import LearningPathEditor from "./LearningPathEditor";
 import LearningPathCourseManager from "./LearningPathCourseManager";
 import { Plus, ChevronRight, Trash2, Edit2 } from "lucide-react";
+import LearningPathEditor from "./LearningPathEditor";
 
 interface LearningPathManagerProps {
     initialPaths: LearningPathSummary[];
