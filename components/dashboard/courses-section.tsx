@@ -101,21 +101,19 @@ export default function CoursesSection() {
       <div className="flex border-b mb-6">
         <button
           onClick={() => setActiveTab("courses")}
-          className={`px-4 py-2 font-medium transition-colors ${
-            activeTab === "courses"
+          className={`px-4 py-2 font-medium transition-colors ${activeTab === "courses"
               ? "text-purple-600 border-b-2 border-purple-600"
               : "text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
           Cursos
         </button>
         <button
           onClick={() => setActiveTab("paths")}
-          className={`px-4 py-2 font-medium transition-colors ${
-            activeTab === "paths"
+          className={`px-4 py-2 font-medium transition-colors ${activeTab === "paths"
               ? "text-purple-600 border-b-2 border-purple-600"
               : "text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
           Trilhas de Aprendizagem
         </button>
@@ -143,135 +141,135 @@ export default function CoursesSection() {
             <button
               onClick={() => {
                 resetForm();
-            setIsOpen(true);
-          }}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 mx-auto sm:mx-0"
-        >
-          Criar novo curso
-        </button>
-      </div>
+                setIsOpen(true);
+              }}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 mx-auto sm:mx-0"
+            >
+              Criar novo curso
+            </button>
+          </div>
 
-      {/* LISTAGEM DE CURSOS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
-        {courses.map((course) => (
-          <div
-            key={course.id}
-            className="bg-white rounded-lg shadow border overflow-hidden w-full max-w-sm"
-          >
-            <div className="h-40 bg-gray-100 flex items-center justify-center">
-              {course.thumbUrl ? (
-                <Image
-                  src={course.thumbUrl}
-                  alt={course.title}
-                  width={400}
-                  height={160}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="text-2xl font-bold text-gray-500">
-                  {course.title[0]}
-                </span>
-              )}
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">{course.title}</h3>
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                {course.description}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedCourseId(course.id)}
-                  className="flex-auto bg-gray-100 rounded hover:bg-gray-200 py-2"
-                >
-                  Gerenciar
-                </button>
+          {/* LISTAGEM DE CURSOS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+            {courses.map((course) => (
+              <div
+                key={course.id}
+                className="bg-white rounded-lg shadow border overflow-hidden w-full max-w-sm"
+              >
+                <div className="h-40 bg-gray-100 flex items-center justify-center">
+                  {course.thumbUrl ? (
+                    <Image
+                      src={course.thumbUrl}
+                      alt={course.title}
+                      width={400}
+                      height={160}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold text-gray-500">
+                      {course.title[0]}
+                    </span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold mb-2">{course.title}</h3>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                    {course.description}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedCourseId(course.id)}
+                      className="flex-auto bg-gray-100 rounded hover:bg-gray-200 py-2"
+                    >
+                      Gerenciar
+                    </button>
 
 
+                  </div>
+                </div>
+              </div>
+            ))}
+            {courses.length === 0 && (
+              <p className="text-gray-500">Nenhum curso encontrado.</p>
+            )}
+          </div>
+
+          {/* MODAL DE CRIAR / EDITAR CURSO */}
+          {isOpen && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+              <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
+                <h2 className="text-xl font-bold mb-4">
+                  {editingCourse ? "Editar Curso" : "Novo Curso"}
+                </h2>
+
+                <div className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    placeholder="Título do curso"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                  <textarea
+                    placeholder="Descrição do curso"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                  <input
+                    type="text"
+                    placeholder="URL da imagem (opcional)"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      resetForm();
+                      setIsOpen(false);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveCourse}
+                    className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                  >
+                    {editingCourse ? "Salvar alterações" : "Criar Curso"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-        {courses.length === 0 && (
-          <p className="text-gray-500">Nenhum curso encontrado.</p>
-        )}
-      </div>
+          )}
 
-      {/* MODAL DE CRIAR / EDITAR CURSO */}
-      {isOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
-            <h2 className="text-xl font-bold mb-4">
-              {editingCourse ? "Editar Curso" : "Novo Curso"}
-            </h2>
+          {/* MODAL DE DETALHE DO CURSO */}
+          {selectedCourseId && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-lg w-full max-w-5xl p-6 overflow-auto max-h-[90vh]">
+                <button
+                  onClick={async () => {
+                    await refreshCourses();
+                    setSelectedCourseId(null);
+                  }}
+                  className="mb-4 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  Fechar
+                </button>
 
-            <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                placeholder="Título do curso"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="border p-2 rounded w-full"
-              />
-              <textarea
-                placeholder="Descrição do curso"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="border p-2 rounded w-full"
-              />
-              <input
-                type="text"
-                placeholder="URL da imagem (opcional)"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="border p-2 rounded w-full"
-              />
+                <CourseDetail
+                  courseId={selectedCourseId}
+                  onBack={async () => {
+                    await refreshCourses();
+                    setSelectedCourseId(null);
+                  }}
+                />
+              </div>
             </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  resetForm();
-                  setIsOpen(false);
-                }}
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveCourse}
-                className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-              >
-                {editingCourse ? "Salvar alterações" : "Criar Curso"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE DETALHE DO CURSO */}
-      {selectedCourseId && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-5xl p-6 overflow-auto max-h-[90vh]">
-            <button
-              onClick={async () => {
-                await refreshCourses();
-                setSelectedCourseId(null);
-              }}
-              className="mb-4 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            >
-              Fechar
-            </button>
-
-            <CourseDetail
-              courseId={selectedCourseId}
-              onBack={async () => {
-                await refreshCourses();
-                setSelectedCourseId(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
+          )}
         </>
       )}
     </div>

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { 
-    getLearningPathDetail, 
-    updateLearningPath, 
-    deleteLearningPath 
+import {
+    getLearningPathDetail,
+    updateLearningPath,
+    deleteLearningPath
 } from "@/lib/api/learning-paths";
 
 type RouteParams = { params: Promise<{ pathId: string }> };
@@ -29,10 +29,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         const body = await request.json();
         const { title, description, coverMediaId } = body;
 
-        const updated = await updateLearningPath(pathId, { 
-            title, 
-            description, 
-            coverMediaId 
+        const updated = await updateLearningPath(pathId, {
+            title,
+            description,
+            coverMediaId
         });
 
         if (!updated) {

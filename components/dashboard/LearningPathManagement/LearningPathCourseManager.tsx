@@ -86,14 +86,14 @@ export default function LearningPathCourseManager({
 
     const handleMoveUp = async (index: number) => {
         if (index === 0 || loading) return;
-        
+
         setLoading(true);
         const newCourses = [...courses];
         [newCourses[index - 1], newCourses[index]] = [newCourses[index], newCourses[index - 1]];
-        
+
         // Atualiza localmente imediatamente
         setCourses(newCourses);
-        
+
         // Salva no servidor
         await saveOrder(newCourses);
         setLoading(false);
@@ -101,14 +101,14 @@ export default function LearningPathCourseManager({
 
     const handleMoveDown = async (index: number) => {
         if (index === courses.length - 1 || loading) return;
-        
+
         setLoading(true);
         const newCourses = [...courses];
         [newCourses[index], newCourses[index + 1]] = [newCourses[index + 1], newCourses[index]];
-        
+
         // Atualiza localmente imediatamente
         setCourses(newCourses);
-        
+
         // Salva no servidor
         await saveOrder(newCourses);
         setLoading(false);
