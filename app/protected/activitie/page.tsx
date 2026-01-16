@@ -3,22 +3,22 @@
 import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/navbar/navbar";
-import { 
-  getAssignment, 
-  getUserSubmission, 
-  submitAssignment, 
-  updateSubmission, 
-  deleteSubmission 
+import {
+  getAssignment,
+  getUserSubmission,
+  submitAssignment,
+  updateSubmission,
+  deleteSubmission
 } from "@/lib/api/assignments";
 import { type AssignmentSummary, type SubmissionSummary } from "@/lib/api/types";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { 
-  FileText, 
-  Clock, 
-  Award, 
-  Upload, 
-  CheckCircle, 
+import {
+  FileText,
+  Clock,
+  Award,
+  Upload,
+  CheckCircle,
   AlertCircle,
   Trash2,
   Link2,
@@ -94,8 +94,8 @@ function ActivitiePageContent() {
           if (lessonData) {
             setLessonTitle(lessonData.title);
             if (lessonData.course) {
-              const course = Array.isArray(lessonData.course) 
-                ? lessonData.course[0] 
+              const course = Array.isArray(lessonData.course)
+                ? lessonData.course[0]
                 : lessonData.course;
               setCourseTitle(course?.title || "");
             }
@@ -124,34 +124,34 @@ function ActivitiePageContent() {
     });
   };
 
-  const isOverdue = assignment?.dueDate 
-    ? new Date(assignment.dueDate) < new Date() 
+  const isOverdue = assignment?.dueDate
+    ? new Date(assignment.dueDate) < new Date()
     : false;
 
   const getStatusInfo = () => {
     if (submission?.gradedAt) {
-      return { 
-        label: "Avaliado", 
+      return {
+        label: "Avaliado",
         color: "bg-green-100 text-green-700 border-green-200",
         icon: <Award className="w-4 h-4" />
       };
     }
     if (submission?.submittedAt) {
-      return { 
-        label: "Entregue", 
+      return {
+        label: "Entregue",
         color: "bg-blue-100 text-blue-700 border-blue-200",
         icon: <CheckCircle className="w-4 h-4" />
       };
     }
     if (isOverdue) {
-      return { 
-        label: "Atrasado", 
+      return {
+        label: "Atrasado",
         color: "bg-red-100 text-red-700 border-red-200",
         icon: <AlertCircle className="w-4 h-4" />
       };
     }
-    return { 
-      label: "Pendente", 
+    return {
+      label: "Pendente",
       color: "bg-yellow-100 text-yellow-700 border-yellow-200",
       icon: <Clock className="w-4 h-4" />
     };
@@ -200,7 +200,7 @@ function ActivitiePageContent() {
 
   const handleDelete = async () => {
     if (!submission) return;
-    
+
     if (!confirm("Tem certeza que deseja remover sua resposta?")) return;
 
     try {
@@ -369,11 +369,10 @@ function ActivitiePageContent() {
                   <button
                     onClick={handleSubmit}
                     disabled={submitting || !answerUrl.trim()}
-                    className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                      submitting || !answerUrl.trim()
+                    className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${submitting || !answerUrl.trim()
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-purple-600 text-white hover:bg-purple-700"
-                    }`}
+                      }`}
                   >
                     {submitting ? (
                       <>
@@ -419,7 +418,7 @@ function ActivitiePageContent() {
             {/* Status Card */}
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Status da Entrega</h3>
-              
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Situação</span>

@@ -19,7 +19,7 @@ function isValidUrl(str: string): boolean {
 export default function Teacher_Card({ link, titleLink }: Teacher_CardProps) {
     const repoLink = link;
     const hasValidLink = isValidUrl(repoLink);
-    
+
     let faviconUrl = "";
     if (hasValidLink) {
         try {
