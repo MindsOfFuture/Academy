@@ -271,21 +271,15 @@ function ActivitiePageContent() {
                   <FileText className="w-8 h-8 text-purple-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="min-w-0 flex-1">
-                      <h1 className="text-2xl font-bold text-gray-900 break-words">
-                        {assignment.title}
-                      </h1>
-                      {courseTitle && (
-                        <p className="text-sm text-gray-500 mt-1 truncate">
-                          {courseTitle} {lessonTitle && `• ${lessonTitle}`}
-                        </p>
-                      )}
-                    </div>
-                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border flex-shrink-0 ${status.color}`}>
-                      {status.icon}
-                      {status.label}
-                    </span>
+                  <div className="min-w-0">
+                    <h1 className="text-2xl font-bold text-gray-900 break-words">
+                      {assignment.title}
+                    </h1>
+                    {courseTitle && (
+                      <p className="text-sm text-gray-500 mt-1 truncate">
+                        {courseTitle} {lessonTitle && `• ${lessonTitle}`}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-4 mt-4 text-sm text-gray-600 flex-wrap">
@@ -297,12 +291,6 @@ function ActivitiePageContent() {
                       <Clock className="w-4 h-4 flex-shrink-0" />
                       Prazo: {formatDate(assignment.dueDate)}
                     </div>
-                    {assignment.maxScore && (
-                      <div className="flex items-center gap-1.5">
-                        <Award className="w-4 h-4" />
-                        {assignment.maxScore} pontos
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -436,18 +424,10 @@ function ActivitiePageContent() {
                 )}
 
                 {submission?.gradedAt && (
-                  <>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Avaliado em</span>
-                      <span className="text-gray-900">{formatDate(submission.gradedAt)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Nota</span>
-                      <span className="text-lg font-bold text-green-600">
-                        {submission.score}/{assignment.maxScore || 10}
-                      </span>
-                    </div>
-                  </>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Avaliado em</span>
+                    <span className="text-gray-900">{formatDate(submission.gradedAt)}</span>
+                  </div>
                 )}
 
                 {isOverdue && !submission && (
