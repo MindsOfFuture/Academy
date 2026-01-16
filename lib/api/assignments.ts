@@ -228,8 +228,8 @@ export async function submitAssignment(params: {
 
     let enrollmentId: string | null = null;
     if (assignmentData?.lesson) {
-        const lesson = Array.isArray(assignmentData.lesson) 
-            ? assignmentData.lesson[0] 
+        const lesson = Array.isArray(assignmentData.lesson)
+            ? assignmentData.lesson[0]
             : assignmentData.lesson;
         const courseId = (lesson as { course_id: string }).course_id;
         const { data: enrollment } = await supabase
