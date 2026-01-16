@@ -66,11 +66,13 @@
 
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
   }
 }
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 @layer utilities {
@@ -99,12 +101,12 @@ html {
   .swiper-button-prev {
     @apply text-[#684A97] bg-white w-10 h-10 rounded-full shadow-lg;
   }
-  
+
   .swiper-button-next:after,
   .swiper-button-prev:after {
     @apply text-base font-bold;
   }
-  
+
   .swiper-pagination-bullet-active {
     @apply bg-[#684A97] opacity-100;
   }
@@ -115,7 +117,7 @@ html {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  
+
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;

@@ -135,9 +135,9 @@ function CoursePageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Navbar showTextLogo={true} />
-      <div className="max-w-6xl mx-auto py-8 px-4">
+      <div className="max-w-6xl mx-auto py-8 px-4 overflow-hidden">
         <button
           onClick={() => router.back()}
           className="mb-4 text-purple-600 hover:text-purple-800 transition"
@@ -149,16 +149,16 @@ function CoursePageContent() {
           <p className="text-center text-gray-600">Carregando curso...</p>
         ) : course ? (
           <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-            <div className="bg-white shadow rounded-lg p-6 space-y-4">
+            <div className="bg-white shadow rounded-lg p-6 space-y-4 overflow-hidden">
               <div className="flex items-start gap-4">
                 <Image
                   src={course.thumbUrl || "/logo_navbar.svg"}
                   alt={course.title}
                   width={80}
                   height={80}
-                  className="w-20 h-20 rounded object-cover"
+                  className="w-20 h-20 rounded object-cover flex-shrink-0"
                 />
-                <div>
+                <div className="min-w-0">
                   <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
                   {course.description && (
                     <p className="text-gray-600 mt-1 whitespace-pre-wrap">{course.description}</p>
@@ -167,12 +167,12 @@ function CoursePageContent() {
               </div>
 
               {course.modules.map((module, moduleIndex) => (
-                <div key={module.id} className="border rounded-lg p-4">
+                <div key={module.id} className="border rounded-lg p-4 overflow-hidden">
                   <div className="flex items-center justify-between mb-2">
                     <h2 className="text-lg font-semibold">
                       Módulo {moduleIndex + 1}: {module.title}
                     </h2>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 flex-shrink-0">
                       {module.lessons.length} aulas
                     </span>
                   </div>
@@ -180,128 +180,117 @@ function CoursePageContent() {
                   <div className="space-y-3">
                     {module.lessons.map((lesson, lessonIndex) => {
                       const isCompleted = progresso.includes(lesson.id);
+                      // Filtrar atividades desta lição
+                      const lessonAssignments = assignments.filter(a => a.lessonId === lesson.id);
+
                       return (
-                        <div
-                          key={lesson.id}
-                          className="flex items-start justify-between gap-4 bg-gray-50 rounded-lg p-3"
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">
-                                Aula {lessonIndex + 1}: {lesson.title}
-                              </span>
-                              {isCompleted && (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
+                        <div key={lesson.id} className="space-y-2">
+                          {/* Card da Aula */}
+                          <div className="flex items-start justify-between gap-4 bg-gray-50 rounded-lg p-3">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-gray-900">
+                                  Aula {lessonIndex + 1}: {lesson.title}
+                                </span>
+                                {isCompleted && (
+                                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                )}
+                              </div>
+                              {lesson.description && (
+                                <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                                  {lesson.description}
+                                </p>
+                              )}
+                              {lesson.durationMinutes && (
+                                <p className="text-sm text-gray-500">
+                                  Duração: {lesson.durationMinutes} min
+                                </p>
+                              )}
+                              {lesson.contentUrl && (
+                                <a
+                                  href={lesson.contentUrl.startsWith('http') ? lesson.contentUrl : `https://${lesson.contentUrl}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-purple-600 hover:text-purple-800"
+                                >
+                                  Assistir aula
+                                </a>
                               )}
                             </div>
-                            {lesson.description && (
-                              <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                                {lesson.description}
-                              </p>
-                            )}
-                            {lesson.durationMinutes && (
-                              <p className="text-sm text-gray-500">
-                                Duração: {lesson.durationMinutes} min
-                              </p>
-                            )}
-                            {lesson.contentUrl && (
-                              <a
-                                href={lesson.contentUrl.startsWith('http') ? lesson.contentUrl : `https://${lesson.contentUrl}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-purple-600 hover:text-purple-800"
-                              >
-                                Assistir aula
-                              </a>
-                            )}
+                            <button
+                              onClick={() => handleConcluirAula(lesson.id)}
+                              className={`px-3 py-1 text-sm rounded flex-shrink-0 ${isCompleted
+                                ? "bg-green-100 text-green-700 border border-green-200"
+                                : "bg-purple-100 text-purple-700 border border-purple-200"
+                                }`}
+                            >
+                              {isCompleted ? "Concluída" : "Marcar como concluída"}
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleConcluirAula(lesson.id)}
-                            className={`px-3 py-1 text-sm rounded ${isCompleted
-                              ? "bg-green-100 text-green-700 border border-green-200"
-                              : "bg-purple-100 text-purple-700 border border-purple-200"
-                              }`}
-                          >
-                            {isCompleted ? "Concluída" : "Marcar como concluída"}
-                          </button>
+
+                          {/* Atividades da Lição */}
+                          {isMatriculado && lessonAssignments.length > 0 && (
+                            <div className="ml-4 space-y-2">
+                              {lessonAssignments.map((assignment) => {
+                                const status = getAssignmentStatus(assignment);
+                                const sub = submissions[assignment.id];
+                                return (
+                                  <Link
+                                    key={assignment.id}
+                                    href={`/protected/activitie?id=${assignment.id}`}
+                                    className="flex items-center justify-between gap-3 bg-purple-50 rounded-lg p-3 hover:bg-purple-100 transition-colors border border-purple-100"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <FileText className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-medium text-gray-900 text-sm truncate">
+                                            {assignment.title}
+                                          </span>
+                                          <span className={`px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${status.color}`}>
+                                            {status.label}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5 flex-wrap">
+                                          <span className="flex items-center gap-1">
+                                            <Clock className="w-3 h-3 flex-shrink-0" />
+                                            {formatDate(assignment.dueDate)}
+                                          </span>
+                                          {assignment.maxScore && (
+                                            <span className="flex-shrink-0">{assignment.maxScore} pts</span>
+                                          )}
+                                          {sub?.score !== null && sub?.score !== undefined && (
+                                            <span className="text-green-600 font-medium flex-shrink-0">
+                                              Nota: {sub.score}/{assignment.maxScore || 10}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      {sub?.submittedAt && (
+                                        <CheckCheck className="w-4 h-4 text-green-500" />
+                                      )}
+                                      <span className="text-purple-600 text-xs font-medium">
+                                        {sub?.submittedAt ? "Ver" : "Responder"} →
+                                      </span>
+                                    </div>
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
                 </div>
               ))}
-
-              {/* Seção de Atividades */}
-              {isMatriculado && assignments.length > 0 && (
-                <div className="border rounded-lg p-4 bg-purple-50">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FileText className="w-5 h-5 text-purple-600" />
-                    <h2 className="text-lg font-semibold text-purple-900">
-                      Atividades do Curso
-                    </h2>
-                    <span className="text-sm text-purple-600 ml-auto">
-                      {assignments.length} atividade{assignments.length > 1 ? "s" : ""}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {assignments.map((assignment) => {
-                      const status = getAssignmentStatus(assignment);
-                      const sub = submissions[assignment.id];
-                      return (
-                        <Link
-                          key={assignment.id}
-                          href={`/protected/activitie?id=${assignment.id}`}
-                          className="flex items-center justify-between gap-4 bg-white rounded-lg p-4 hover:shadow-md transition-shadow border border-purple-100"
-                        >
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">
-                                {assignment.title}
-                              </span>
-                              <span className={`px-2 py-0.5 text-xs rounded-full ${status.color}`}>
-                                {status.label}
-                              </span>
-                            </div>
-                            {assignment.description && (
-                              <p className="text-sm text-gray-600 line-clamp-2">
-                                {assignment.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Prazo: {formatDate(assignment.dueDate)}
-                              </span>
-                              {assignment.maxScore && (
-                                <span>Pontuação: {assignment.maxScore} pts</span>
-                              )}
-                              {sub?.score !== null && sub?.score !== undefined && (
-                                <span className="text-green-600 font-medium">
-                                  Nota: {sub.score}/{assignment.maxScore || 10}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {sub?.submittedAt && (
-                              <CheckCheck className="w-5 h-5 text-green-500" />
-                            )}
-                            <span className="text-purple-600 text-sm font-medium">
-                              {sub?.submittedAt ? "Ver entrega" : "Responder"} →
-                            </span>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="bg-white shadow rounded-lg p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Matrícula</h2>
+            <div className="bg-white shadow rounded-lg p-6 space-y-4 overflow-hidden min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-xl font-semibold text-gray-900 truncate">Matrícula</h2>
                 <span className={`px-3 py-1 rounded-full text-sm ${isMatriculado
                   ? "bg-green-100 text-green-700"
                   : "bg-yellow-100 text-yellow-700"
@@ -334,11 +323,11 @@ function CoursePageContent() {
                     {course.modules.flatMap((module) => module.lessons).map((lesson, index) => {
                       const isCompleted = progresso.includes(lesson.id);
                       return (
-                        <div key={lesson.id} className="flex items-center gap-3">
+                        <div key={lesson.id} className="flex items-center gap-3 min-w-0">
                           <div
-                            className={`w-3 h-3 rounded-full ${isCompleted ? "bg-green-500" : "bg-gray-300"}`}
+                            className={`w-3 h-3 rounded-full flex-shrink-0 ${isCompleted ? "bg-green-500" : "bg-gray-300"}`}
                           />
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-gray-700 truncate">
                             Aula {index + 1}: {lesson.title}
                           </span>
                         </div>

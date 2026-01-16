@@ -251,9 +251,9 @@ function ActivitiePageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Navbar showTextLogo={true} />
-      <div className="max-w-4xl mx-auto py-8 px-4">
+      <div className="max-w-4xl mx-auto py-8 px-4 overflow-hidden">
         <button
           onClick={() => router.back()}
           className="mb-4 text-purple-600 hover:text-purple-800 transition"
@@ -263,38 +263,38 @@ function ActivitiePageContent() {
 
         <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
           {/* Conteúdo Principal */}
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {/* Header da Atividade */}
-            <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
+                <div className="p-3 bg-purple-100 rounded-lg flex-shrink-0">
                   <FileText className="w-8 h-8 text-purple-600" />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h1 className="text-2xl font-bold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <h1 className="text-2xl font-bold text-gray-900 break-words">
                         {assignment.title}
                       </h1>
                       {courseTitle && (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-gray-500 mt-1 truncate">
                           {courseTitle} {lessonTitle && `• ${lessonTitle}`}
                         </p>
                       )}
                     </div>
-                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${status.color}`}>
+                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border flex-shrink-0 ${status.color}`}>
                       {status.icon}
                       {status.label}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4 mt-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-4 mt-4 text-sm text-gray-600 flex-wrap">
                     <div className="flex items-center gap-1.5">
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4 flex-shrink-0" />
                       Prof. {teacherName}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4 flex-shrink-0" />
                       Prazo: {formatDate(assignment.dueDate)}
                     </div>
                     {assignment.maxScore && (
@@ -370,8 +370,8 @@ function ActivitiePageContent() {
                     onClick={handleSubmit}
                     disabled={submitting || !answerUrl.trim()}
                     className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${submitting || !answerUrl.trim()
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-purple-600 text-white hover:bg-purple-700"
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-purple-600 text-white hover:bg-purple-700"
                       }`}
                   >
                     {submitting ? (
@@ -414,9 +414,9 @@ function ActivitiePageContent() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {/* Status Card */}
-            <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
               <h3 className="font-semibold text-gray-900 mb-4">Status da Entrega</h3>
 
               <div className="space-y-3">
