@@ -1,17 +1,42 @@
 import Image from "next/image";
+import { FileText } from "lucide-react";
 
 interface Teacher_CardProps {
     link: string;
     titleLink: string;
 }
 
+function isValidUrl(str: string): boolean {
+    if (!str || str.trim() === "") return false;
+    try {
+        new URL(str.startsWith("http") ? str : `https://${str}`);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export default function Teacher_Card({ link, titleLink }: Teacher_CardProps) {
     const repoLink = link;
-    const url = new URL(repoLink);
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}`;
+    const hasValidLink = isValidUrl(repoLink);
+    
+    let faviconUrl = "";
+    if (hasValidLink) {
+        try {
+            const url = new URL(repoLink.startsWith("http") ? repoLink : `https://${repoLink}`);
+            faviconUrl = `https://www.google.com/s2/favicons?domain=${url.hostname}`;
+        } catch {
+            faviconUrl = "";
+        }
+    }
 
     function truncate(str: string, max: number) {
         return str.length > max ? str.slice(0, max) : str;
+    }
+
+    // Se não tiver link válido, não renderiza nada
+    if (!hasValidLink) {
+        return null;
     }
 
     return (

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
 import { getCourseDetail } from "@/lib/api/courses";
 import {
@@ -11,9 +12,10 @@ import {
   fetchLessonProgress,
   toggleLessonProgress,
 } from "@/lib/api/enrollments";
+import { listCourseAssignments, getUserCourseSubmissions } from "@/lib/api/assignments";
 import toast from "react-hot-toast";
-import { CheckCircle } from "lucide-react";
-import { type CourseDetail } from "@/lib/api/types";
+import { CheckCircle, FileText, Clock, CheckCheck } from "lucide-react";
+import { type CourseDetail, type AssignmentSummary, type SubmissionSummary } from "@/lib/api/types";
 
 function CoursePageContent() {
   const searchParams = useSearchParams();
@@ -24,6 +26,8 @@ function CoursePageContent() {
   const [loading, setLoading] = useState(true);
   const [isMatriculado, setIsMatriculado] = useState<boolean | null>(null);
   const [progresso, setProgresso] = useState<string[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
+  const [submissions, setSubmissions] = useState<Record<string, SubmissionSummary>>({});
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -60,6 +64,46 @@ function CoursePageContent() {
         });
     }
   }, [course]);
+
+  // Buscar atividades do curso quando matriculado
+  useEffect(() => {
+    if (course?.id && isMatriculado) {
+      listCourseAssignments(course.id)
+        .then((data) => setAssignments(data))
+        .catch((e) => {
+          console.error("Erro ao buscar atividades:", e);
+          setAssignments([]);
+        });
+
+      getUserCourseSubmissions(course.id)
+        .then((data) => setSubmissions(data))
+        .catch((e) => {
+          console.error("Erro ao buscar submissões:", e);
+          setSubmissions({});
+        });
+    }
+  }, [course, isMatriculado]);
+
+  // Helper para formatar data
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "Sem prazo";
+    return new Date(dateStr).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // Helper para status da atividade
+  const getAssignmentStatus = (assignment: AssignmentSummary) => {
+    const sub = submissions[assignment.id];
+    if (sub?.gradedAt) return { label: "Avaliado", color: "bg-green-100 text-green-700" };
+    if (sub?.submittedAt) return { label: "Entregue", color: "bg-blue-100 text-blue-700" };
+    if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
+      return { label: "Atrasado", color: "bg-red-100 text-red-700" };
+    }
+    return { label: "Pendente", color: "bg-yellow-100 text-yellow-700" };
+  };
 
   async function handleMatricula() {
     if (!course?.id) return;
@@ -186,6 +230,73 @@ function CoursePageContent() {
                   </div>
                 </div>
               ))}
+
+              {/* Seção de Atividades */}
+              {isMatriculado && assignments.length > 0 && (
+                <div className="border rounded-lg p-4 bg-purple-50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="w-5 h-5 text-purple-600" />
+                    <h2 className="text-lg font-semibold text-purple-900">
+                      Atividades do Curso
+                    </h2>
+                    <span className="text-sm text-purple-600 ml-auto">
+                      {assignments.length} atividade{assignments.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {assignments.map((assignment) => {
+                      const status = getAssignmentStatus(assignment);
+                      const sub = submissions[assignment.id];
+                      return (
+                        <Link
+                          key={assignment.id}
+                          href={`/protected/activitie?id=${assignment.id}`}
+                          className="flex items-center justify-between gap-4 bg-white rounded-lg p-4 hover:shadow-md transition-shadow border border-purple-100"
+                        >
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {assignment.title}
+                              </span>
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${status.color}`}>
+                                {status.label}
+                              </span>
+                            </div>
+                            {assignment.description && (
+                              <p className="text-sm text-gray-600 line-clamp-2">
+                                {assignment.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                Prazo: {formatDate(assignment.dueDate)}
+                              </span>
+                              {assignment.maxScore && (
+                                <span>Pontuação: {assignment.maxScore} pts</span>
+                              )}
+                              {sub?.score !== null && sub?.score !== undefined && (
+                                <span className="text-green-600 font-medium">
+                                  Nota: {sub.score}/{assignment.maxScore || 10}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {sub?.submittedAt && (
+                              <CheckCheck className="w-5 h-5 text-green-500" />
+                            )}
+                            <span className="text-purple-600 text-sm font-medium">
+                              {sub?.submittedAt ? "Ver entrega" : "Responder"} →
+                            </span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white shadow rounded-lg p-6 space-y-4">
