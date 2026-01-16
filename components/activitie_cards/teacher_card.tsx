@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { FileText } from "lucide-react";
 
 interface Teacher_CardProps {
     link: string;
