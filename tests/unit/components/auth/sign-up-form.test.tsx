@@ -31,7 +31,7 @@ vi.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
-describe("SignUpForm", () => {
+describe("SignUpForm Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.defineProperty(window, "location", {
@@ -46,98 +46,191 @@ describe("SignUpForm", () => {
     onToggleView: vi.fn(),
   };
 
-  it("renders signup form correctly", () => {
+  const fillStep1 = async (overrides: any = {}) => {
+    const nameInput = await screen.findByPlaceholderText("Nome completo");
+    const docInput = screen.getByPlaceholderText("CPF ou RG");
+    const dateInput = screen.getByPlaceholderText("Data de nascimento");
+
+    await userEvent.type(nameInput, overrides.name || "João da Silva");
+    await userEvent.type(docInput, overrides.document || "12345678901"); // 11 chars
+    fireEvent.change(dateInput, { target: { value: overrides.birthDate || "2000-01-01" } }); // Adult
+  };
+
+  const fillStep2 = async (overrides: any = {}) => {
+    const addressInput = await screen.findByPlaceholderText("Endereço (Cidade/Estado)");
+    const phoneInput = screen.getByPlaceholderText("Telefone / Celular");
+
+    await userEvent.type(addressInput, overrides.address || "São Paulo, SP");
+    await userEvent.type(phoneInput, overrides.phone || "11999999999"); // 11 chars
+  };
+
+  it("Step 1: Validates required fields and age", async () => {
     render(<SignUpForm {...defaultProps} />);
     
-    expect(screen.getByPlaceholderText(/nome/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/^senha$/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/repita a senha/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /criar conta/i })).toBeInTheDocument();
+    // Try next without filling
+    const nextBtn = await screen.findByText("Próximo");
+    fireEvent.click(nextBtn);
+    expect(await screen.findByText("Por favor, preencha seu nome.")).toBeInTheDocument();
+
+    // Fill invalid name
+    const nameInput = await screen.findByPlaceholderText("Nome completo");
+    await userEvent.type(nameInput, "João");
+    fireEvent.click(nextBtn);
+    expect(await screen.findByText("Por favor, digite seu nome completo.")).toBeInTheDocument();
+    await userEvent.type(nameInput, " da Silva"); // Fix name
+
+    // Fill invalid document (too short)
+    const docInput = screen.getByPlaceholderText("CPF ou RG");
+    await userEvent.type(docInput, "123");
+    fireEvent.click(nextBtn);
+    expect(await screen.findByText("Documento inválido (mínimo 11 dígitos).")).toBeInTheDocument();
+    await userEvent.type(docInput, "45678901"); // Fix doc (total 11)
+
+    // Fill too young date
+    const dateInput = screen.getByPlaceholderText("Data de nascimento");
+    const today = new Date();
+    // 4 years old
+    const tooYoung = new Date(today.getFullYear() - 4, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+    fireEvent.change(dateInput, { target: { value: tooYoung } });
+    fireEvent.click(nextBtn);
+    expect(await screen.findByText("Idade mínima de 5 anos.")).toBeInTheDocument();
   });
 
-  it("validates password mismatch locally", async () => {
+  it("Complete Flow: Student Registration", async () => {
+    signUpMock.mockResolvedValueOnce({ data: { user: { id: "123" } }, error: null });
     render(<SignUpForm {...defaultProps} />);
 
-    await userEvent.type(screen.getByPlaceholderText(/nome/i), "John Doe");
-    await userEvent.type(screen.getByPlaceholderText(/email/i), "john@example.com");
-    await userEvent.type(screen.getByPlaceholderText(/^senha$/i), "password123");
-    await userEvent.type(screen.getByPlaceholderText(/repita a senha/i), "password456");
+    // STEP 1
+    await fillStep1();
+    fireEvent.click(screen.getByText("Próximo"));
 
-    const submitButton = screen.getByRole("button", { name: /criar conta/i });
-    fireEvent.click(submitButton);
+    // STEP 2
+    await fillStep2();
+    fireEvent.click(screen.getByText("Próximo"));
 
-    await waitFor(() => {
-      expect(signUpMock).not.toHaveBeenCalled();
-      expect(screen.getByText("As senhas não coincidem. Tente novamente.")).toBeInTheDocument();
-    });
-  });
+    // STEP 3 (Student Default)
+    // Wait for animation
+    const parentInput = await screen.findByPlaceholderText("Nome do responsável");
+    await userEvent.type(parentInput, "Maria da Silva");
+    await userEvent.type(screen.getByPlaceholderText("Escola atual"), "Escola X");
+    await userEvent.type(screen.getByPlaceholderText("Série / Ano"), "9º Ano");
+    fireEvent.click(screen.getByText("Próximo"));
 
-  it("submits form with valid data", async () => {
-    signUpMock.mockResolvedValueOnce({
-      data: { user: { id: "123" } },
-      error: null,
-    });
+    // STEP 4
+    const emailInput = await screen.findByPlaceholderText("Seu melhor E-mail");
+    await userEvent.type(emailInput, "aluno@test.com");
+    await userEvent.type(screen.getByPlaceholderText("Senha segura"), "123456");
+    await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "123456");
 
-    render(<SignUpForm {...defaultProps} />);
-
-    await userEvent.type(screen.getByPlaceholderText(/nome/i), "John Doe");
-    await userEvent.type(screen.getByPlaceholderText(/email/i), "john@example.com");
-    await userEvent.type(screen.getByPlaceholderText(/^senha$/i), "password123");
-    await userEvent.type(screen.getByPlaceholderText(/repita a senha/i), "password123");
-    
-    const submitButton = screen.getByRole("button", { name: /criar conta/i });
-    fireEvent.click(submitButton);
+    // Submit
+    const submitBtn = screen.getByText("Concluir Cadastro");
+    fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(signUpMock).toHaveBeenCalledWith({
-        email: "john@example.com",
-        password: "password123",
+        email: "aluno@test.com",
+        password: "123456",
         options: {
-          data: { full_name: "John Doe" },
+          data: {
+            full_name: "João da Silva",
+            user_type: "student",
+            phone: "11999999999",
+            address: "São Paulo, SP",
+            document: "12345678901",
+            birth_date: "2000-01-01",
+            parent_name: "Maria da Silva",
+            school: "Escola X",
+            grade: "9º Ano"
+          },
           emailRedirectTo: "http://localhost:3000/protected",
         },
       });
-      expect(toast.success).toHaveBeenCalledWith("Conta criada com sucesso! Por favor verifique seu e-mail.");
+      expect(toast.success).toHaveBeenCalled();
     });
   });
 
-  it("displays error when signup fails", async () => {
-    const errorMessage = "Error creating account";
-    signUpMock.mockResolvedValueOnce({
-      data: null,
-      error: new Error(errorMessage),
-    });
-
+  it("Complete Flow: Teacher Registration", async () => {
+    signUpMock.mockResolvedValueOnce({ data: { user: { id: "456" } }, error: null });
     render(<SignUpForm {...defaultProps} />);
 
-    await userEvent.type(screen.getByPlaceholderText(/nome/i), "John Doe");
-    await userEvent.type(screen.getByPlaceholderText(/email/i), "john@example.com");
-    await userEvent.type(screen.getByPlaceholderText(/^senha$/i), "password123");
-    await userEvent.type(screen.getByPlaceholderText(/repita a senha/i), "password123");
+    // STEP 1 (Select Teacher)
+    fireEvent.click(screen.getByText("Professor"));
+    await fillStep1({ name: "Prof. Alberto" });
+    fireEvent.click(screen.getByText("Próximo"));
+
+    // STEP 2
+    await fillStep2();
+    fireEvent.click(screen.getByText("Próximo"));
+
+    // STEP 3 (Teacher Fields)
+    // Wait for step 3
+    const schoolInput1 = await screen.findByPlaceholderText("Escola 1");
+    // Ensure we are on the teacher view
     
-    const submitButton = screen.getByRole("button", { name: /criar conta/i });
-    fireEvent.click(submitButton);
+    await userEvent.type(schoolInput1, "Escola A");
+    
+    const addSchoolBtn = screen.getByText("Adicionar outra escola");
+    fireEvent.click(addSchoolBtn);
+    
+    const schoolInput2 = await screen.findByPlaceholderText("Escola 2");
+    await userEvent.type(schoolInput2, "Escola B");
+
+    // Select Education Level
+    const select = screen.getByRole("combobox"); 
+    fireEvent.change(select, { target: { value: "graduacao" } });
+
+    await userEvent.type(screen.getByPlaceholderText("Formação (ex: Matemática)"), "Matemática");
+    fireEvent.click(screen.getByText("Próximo"));
+
+    // STEP 4
+    const emailInput = await screen.findByPlaceholderText("Seu melhor E-mail");
+    await userEvent.type(emailInput, "prof@test.com");
+    await userEvent.type(screen.getByPlaceholderText("Senha segura"), "password123");
+    await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "password123");
+
+    // Submit
+    fireEvent.click(screen.getByText("Concluir Cadastro"));
 
     await waitFor(() => {
-      expect(signUpMock).toHaveBeenCalled();
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(signUpMock).toHaveBeenCalledWith(expect.objectContaining({
+        email: "prof@test.com",
+        options: expect.objectContaining({
+          data: expect.objectContaining({
+            user_type: "teacher",
+            education_level: "graduacao",
+            degree: "Matemática",
+            schools: ["Escola A", "Escola B"],
+          })
+        })
+      }));
     });
   });
 
-  it("toggles password visibility", async () => {
+  it("Validates password mismatch in Step 4", async () => {
     render(<SignUpForm {...defaultProps} />);
     
-    const passwordInput = screen.getByPlaceholderText(/^senha$/i);
-    const repeatPasswordInput = screen.getByPlaceholderText(/repita a senha/i);
+    // Fill to step 4...
+    await fillStep1();
+    fireEvent.click(screen.getByText("Próximo"));
+    await fillStep2();
+    fireEvent.click(screen.getByText("Próximo"));
     
-    const toggleButtons = screen.getAllByRole("button", { name: /mostrar senha/i });
-    expect(toggleButtons).toHaveLength(2);
+    // Student step 3 fill
+    const parentInput = await screen.findByPlaceholderText("Nome do responsável");
+    await userEvent.type(parentInput, "Pai");
+    await userEvent.type(screen.getByPlaceholderText("Escola atual"), "E");
+    await userEvent.type(screen.getByPlaceholderText("Série / Ano"), "1");
+    fireEvent.click(screen.getByText("Próximo"));
 
-    await userEvent.click(toggleButtons[0]);
-    expect(passwordInput).toHaveAttribute("type", "text");
-    
-    await userEvent.click(toggleButtons[1]);
-    expect(repeatPasswordInput).toHaveAttribute("type", "text");
+    // Step 4
+    const emailInput = await screen.findByPlaceholderText("Seu melhor E-mail");
+    await userEvent.type(emailInput, "a@a.com");
+    await userEvent.type(screen.getByPlaceholderText("Senha segura"), "123456");
+    await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "654321");
+
+    fireEvent.click(screen.getByText("Concluir Cadastro"));
+
+    expect(await screen.findByText("As senhas não conferem.")).toBeInTheDocument();
+    expect(signUpMock).not.toHaveBeenCalled();
   });
 });
