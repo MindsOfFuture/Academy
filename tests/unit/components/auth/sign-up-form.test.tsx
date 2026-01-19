@@ -122,6 +122,10 @@ describe("SignUpForm Integration", () => {
     await userEvent.type(screen.getByPlaceholderText("Senha segura"), "123456");
     await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "123456");
 
+    // Click terms
+    const termsCheckbox = screen.getByRole("checkbox");
+    fireEvent.click(termsCheckbox);
+
     // Submit
     const submitBtn = screen.getByText("Concluir Cadastro");
     fireEvent.click(submitBtn);
@@ -187,6 +191,10 @@ describe("SignUpForm Integration", () => {
     await userEvent.type(emailInput, "prof@test.com");
     await userEvent.type(screen.getByPlaceholderText("Senha segura"), "password123");
     await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "password123");
+
+    // Click terms
+    const termsCheckbox = screen.getByRole("checkbox");
+    fireEvent.click(termsCheckbox);
 
     // Submit
     fireEvent.click(screen.getByText("Concluir Cadastro"));
