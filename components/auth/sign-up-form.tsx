@@ -83,30 +83,59 @@ export function SignUpForm({
     setSchools(updated);
   };
 
-  const validateStep = (currentStep: number) => {
+  const validateStep = (currentStep: number): string | null => {
     switch (currentStep) {
       case 1: // Perfil
-        return name && document && birthDate;
+        if (!name.trim()) return "Por favor, preencha seu nome.";
+        if (name.trim().split(" ").length < 2) return "Por favor, digite seu nome completo.";
+        if (document.replace(/\D/g, "").length < 11) return "Documento inválido (mínimo 11 dígitos).";
+        if (!birthDate) return "Data de nascimento é obrigatória.";
+        
+        const birth = new Date(birthDate);
+        if (birth > new Date()) return "Data de nascimento inválida.";
+        const ageVal = calculateAge(birthDate);
+        if (ageVal !== null && ageVal < 5) return "Idade mínima de 5 anos.";
+        
+        return null;
+
       case 2: // Contato
-        return phone && address;
+        if (address.trim().length < 5) return "Por favor, insira um endereço mais completo.";
+        if (phone.replace(/\D/g, "").length < 10) return "Telefone inválido (mínimo 10 dígitos com DDD).";
+        return null;
+
       case 3: // Detalhes
-        if (userType === "student") return parentName && school && grade;
-        if (userType === "teacher") return educationLevel && degree && schools.every(s => s.trim());
-        return false;
+        if (userType === "student") {
+          if (!parentName.trim()) return "Nome do responsável é obrigatório.";
+          if (!school.trim()) return "Nome da escola é obrigatório.";
+          if (!grade.trim()) return "Série/Ano é obrigatório.";
+        }
+        if (userType === "teacher") {
+          if (!educationLevel) return "Selecione o grau de escolaridade.";
+          if (!degree.trim()) return "Formação acadêmica é obrigatória.";
+          if (schools.some(s => !s.trim())) return "Preencha todas as escolas ou remova as vazias.";
+        }
+        return null;
+
       case 4: // Credenciais
-        return email && password && repeatPassword;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return "Por favor, insira um e-mail válido.";
+        if (password.length < 6) return "A senha deve ter no mínimo 6 caracteres.";
+        if (password !== repeatPassword) return "As senhas não conferem.";
+        return null;
+
       default:
-        return false;
+        return null;
     }
   };
 
   const handleNext = () => {
-    if (validateStep(step)) {
+    const errorMsg = validateStep(step);
+    if (!errorMsg) {
       setError(null);
       setDirection(1);
       setStep((prev) => prev + 1);
     } else {
-      setError("Por favor, preencha todos os campos obrigatórios.");
+      setError(errorMsg);
     }
   };
 
@@ -120,13 +149,9 @@ export function SignUpForm({
     e.preventDefault();
     setError(null);
 
-    if (password !== repeatPassword) {
-      setError("As senhas não coincidem. Tente novamente.");
-      return;
-    }
-
-    if (!validateStep(4)) {
-      setError("Por favor, preencha todos os campos.");
+    const errorMsg = validateStep(4);
+    if (errorMsg) {
+      setError(errorMsg);
       return;
     }
 
