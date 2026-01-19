@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import Link from "next/link";
 import { 
   User, Mail, Lock, Eye, EyeOff, Phone, MapPin, 
   FileText, Calendar, School, GraduationCap, Users, 
@@ -49,6 +50,8 @@ export function SignUpForm({
   const [schools, setSchools] = useState<string[]>([""]);
   const [educationLevel, setEducationLevel] = useState("");
   const [degree, setDegree] = useState("");
+
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -121,6 +124,7 @@ export function SignUpForm({
         if (!emailRegex.test(email)) return "Por favor, insira um e-mail válido.";
         if (password.length < 6) return "A senha deve ter no mínimo 6 caracteres.";
         if (password !== repeatPassword) return "As senhas não conferem.";
+        if (!agreedToTerms) return "Você deve concordar com os Termos de Uso e Política de Privacidade.";
         return null;
 
       default:
@@ -492,6 +496,27 @@ export function SignUpForm({
                 >
                   {showRepeatPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
+              </div>
+
+              <div className="flex items-start space-x-3 pt-2 px-1">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6A4A98] focus:ring-[#6A4A98] cursor-pointer accent-[#6A4A98]"
+                />
+                <label htmlFor="terms" className="text-sm text-white/90 leading-tight">
+                  Li e concordo com os{" "}
+                  <Link href="/termos" className="underline hover:text-white font-semibold" target="_blank">
+                    Termos de Uso
+                  </Link>{" "}
+                  e{" "}
+                  <Link href="/privacidade" className="underline hover:text-white font-semibold" target="_blank">
+                    Política de Privacidade
+                  </Link>
+                  .
+                </label>
               </div>
            </motion.div>
           )}
