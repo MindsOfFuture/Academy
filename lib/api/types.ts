@@ -2,12 +2,15 @@ export type RoleName = "admin" | "teacher" | "student" | "unknown";
 
 // Tipos para dados brutos do Supabase (DB rows)
 // Nota: Supabase retorna joins como arrays, então thumb pode vir como array ou objeto
+export type CourseAudience = 'student' | 'teacher';
+
 export interface CourseRow {
     id: string;
     title: string;
     description?: string | null;
     level?: string | null;
     status?: string | null;
+    audience?: CourseAudience | null;
     thumb?: { url?: string | null } | { url?: string | null }[] | null;
     modules?: ModuleRow[];
 }
@@ -104,6 +107,7 @@ export interface CourseSummary {
     description: string | null;
     level?: string | null;
     status?: string | null;
+    audience?: CourseAudience | null;
     thumbUrl?: string | null;
 }
 
