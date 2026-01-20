@@ -46,6 +46,7 @@ describe('Courses API', () => {
         description: 'Desc 1',
         level: 'Beginner',
         status: 'published',
+        audience: null,
         thumbUrl: 'http://img.com/1.jpg'
       });
     });
