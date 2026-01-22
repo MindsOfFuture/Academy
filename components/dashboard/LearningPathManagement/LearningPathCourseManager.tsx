@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { type LearningPathSummary, type CourseSummary } from "@/lib/api/types";
-import { ArrowLeft, Plus, X, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, X, Search, GripVertical } from "lucide-react";
+import { Reorder } from "framer-motion";
 
 interface LearningPathCourseManagerProps {
     path: LearningPathSummary;
@@ -21,6 +22,7 @@ export default function LearningPathCourseManager({
     const [showAddCourse, setShowAddCourse] = useState(false);
     const [courses, setCourses] = useState<CourseSummary[]>(path.courses);
     const [pathInfo, setPathInfo] = useState({ title: path.title, description: path.description });
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Atualiza cursos quando o path muda
     useEffect(() => {
@@ -31,6 +33,11 @@ export default function LearningPathCourseManager({
     // Cursos que ainda não estão na trilha
     const coursesNotInPath = availableCourses.filter(
         (c) => !courses.some((pc) => pc.id === c.id)
+    );
+
+    // Filtrar cursos pela pesquisa
+    const filteredCoursesNotInPath = coursesNotInPath.filter((course) =>
+        course.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleAddCourse = async (courseId: string) => {
@@ -84,33 +91,13 @@ export default function LearningPathCourseManager({
         }
     };
 
-    const handleMoveUp = async (index: number) => {
-        if (index === 0 || loading) return;
-
-        setLoading(true);
-        const newCourses = [...courses];
-        [newCourses[index - 1], newCourses[index]] = [newCourses[index], newCourses[index - 1]];
-
-        // Atualiza localmente imediatamente
-        setCourses(newCourses);
-
-        // Salva no servidor
-        await saveOrder(newCourses);
-        setLoading(false);
+    const handleReorder = (newOrder: CourseSummary[]) => {
+        setCourses(newOrder);
     };
 
-    const handleMoveDown = async (index: number) => {
-        if (index === courses.length - 1 || loading) return;
-
+    const handleDragEnd = async () => {
         setLoading(true);
-        const newCourses = [...courses];
-        [newCourses[index], newCourses[index + 1]] = [newCourses[index + 1], newCourses[index]];
-
-        // Atualiza localmente imediatamente
-        setCourses(newCourses);
-
-        // Salva no servidor
-        await saveOrder(newCourses);
+        await saveOrder(courses);
         setLoading(false);
     };
 
@@ -192,24 +179,46 @@ export default function LearningPathCourseManager({
                         <div className="flex justify-between items-center mb-3">
                             <h4 className="font-medium text-sm">Selecione um curso:</h4>
                             <button
-                                onClick={() => setShowAddCourse(false)}
+                                onClick={() => {
+                                    setShowAddCourse(false);
+                                    setSearchTerm("");
+                                }}
                                 className="text-gray-500 hover:text-gray-700"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
+                        {/* Campo de pesquisa */}
+                        <div className="relative mb-3">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Pesquisar cursos..."
+                                className="w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                            />
+                        </div>
+
                         {coursesNotInPath.length === 0 ? (
                             <p className="text-gray-500 text-sm">
                                 Todos os cursos disponíveis já estão na trilha.
                             </p>
+                        ) : filteredCoursesNotInPath.length === 0 ? (
+                            <p className="text-gray-500 text-sm">
+                                Nenhum curso encontrado para "{searchTerm}".
+                            </p>
                         ) : (
                             <div className="space-y-2 max-h-48 overflow-y-auto">
-                                {coursesNotInPath.map((course) => (
+                                {filteredCoursesNotInPath.map((course) => (
                                     <button
                                         key={course.id}
-                                        onClick={() => handleAddCourse(course.id)}
-                                        className="w-full text-left p-2 border rounded hover:bg-purple-50 hover:border-purple-300 transition-colors"
+                                        onClick={() => {
+                                            handleAddCourse(course.id);
+                                            setSearchTerm("");
+                                        }}
+                                        className="w-full text-left p-2 border rounded hover:bg-purple-50 hover:border-purple-300 transition-colors bg-white"
                                         disabled={loading}
                                     >
                                         <span className="font-medium">{course.title}</span>
@@ -226,30 +235,22 @@ export default function LearningPathCourseManager({
                         Nenhum curso adicionado a esta trilha.
                     </p>
                 ) : (
-                    <div className="space-y-2">
+                    <Reorder.Group
+                        axis="y"
+                        values={courses}
+                        onReorder={handleReorder}
+                        className="space-y-2"
+                    >
                         {courses.map((course, index) => (
-                            <div
+                            <Reorder.Item
                                 key={course.id}
-                                className="flex items-center gap-3 p-3 border rounded-lg bg-white hover:bg-gray-50"
+                                value={course}
+                                onDragEnd={handleDragEnd}
+                                className="flex items-center gap-3 p-3 border rounded-lg bg-white hover:bg-gray-50 cursor-grab active:cursor-grabbing"
                             >
-                                {/* Botões de reordenação */}
-                                <div className="flex flex-col">
-                                    <button
-                                        onClick={() => handleMoveUp(index)}
-                                        disabled={index === 0 || loading}
-                                        className={`p-1 rounded ${index === 0 ? 'text-gray-200' : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'}`}
-                                        title="Mover para cima"
-                                    >
-                                        <ChevronUp className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleMoveDown(index)}
-                                        disabled={index === courses.length - 1 || loading}
-                                        className={`p-1 rounded ${index === courses.length - 1 ? 'text-gray-200' : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'}`}
-                                        title="Mover para baixo"
-                                    >
-                                        <ChevronDown className="w-4 h-4" />
-                                    </button>
+                                {/* Ícone de arrastar */}
+                                <div className="text-gray-400 hover:text-gray-600">
+                                    <GripVertical className="w-5 h-5" />
                                 </div>
 
                                 <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-sm">
@@ -270,15 +271,15 @@ export default function LearningPathCourseManager({
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
-                            </div>
+                            </Reorder.Item>
                         ))}
-                    </div>
+                    </Reorder.Group>
                 )}
             </div>
 
             {/* Dica */}
             <p className="text-xs text-gray-500 mt-4">
-                💡 Use as setas para reordenar os cursos. Eles serão exibidos nesta ordem na página de trilhas.
+                💡 Arraste os cursos para reordenar. Eles serão exibidos nesta ordem na página de trilhas.
             </p>
         </div>
     );
