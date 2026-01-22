@@ -207,7 +207,7 @@ export default function LearningPathCourseManager({
                             </p>
                         ) : filteredCoursesNotInPath.length === 0 ? (
                             <p className="text-gray-500 text-sm">
-                                Nenhum curso encontrado para "{searchTerm}".
+                                Nenhum curso encontrado para &quot;{searchTerm}&quot;.
                             </p>
                         ) : (
                             <div className="space-y-2 max-h-48 overflow-y-auto">
