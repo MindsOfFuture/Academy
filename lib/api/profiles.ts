@@ -45,4 +45,48 @@ export async function listUsersClient() {
     });
 }
 
+export async function uploadAvatarClient(userId: string, file: File): Promise<string> {
+    const supabase = createBrowserSupabase();
+    
+    // Validar tipo de arquivo
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        throw new Error('Tipo de arquivo não permitido. Use JPG, PNG, GIF ou WEBP.');
+    }
+    
+    // Validar tamanho (máximo 2MB)
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+        throw new Error('Arquivo muito grande. Máximo permitido: 2MB.');
+    }
+    
+    // Gerar nome único para o arquivo
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    
+    // Upload para o bucket 'avatars'
+    const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+    
+    if (uploadError) throw uploadError;
+    
+    // Obter URL pública
+    const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+    
+    const avatarUrl = urlData.publicUrl;
+    
+    // Atualizar o perfil do usuário com a nova URL do avatar
+    const { error: updateError } = await supabase
+        .from('user_profile')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', userId);
+    
+    if (updateError) throw updateError;
+    
+    return avatarUrl;
+}
+
 export type { UserProfileSummary, RoleName };

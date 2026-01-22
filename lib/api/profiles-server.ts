@@ -67,7 +67,7 @@ export async function getUserTypeServer(): Promise<RoleName> {
     return fetchRoleForUser(user.id, supabase);
 }
 
-export async function getCurrentUserProfile(): Promise<{ id: string; email: string; displayName: string; role: RoleName; } | null> {
+export async function getCurrentUserProfile(): Promise<{ id: string; email: string; displayName: string; role: RoleName; avatarUrl: string | null; } | null> {
     const supabase = await createServerSupabase();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -77,7 +77,7 @@ export async function getCurrentUserProfile(): Promise<{ id: string; email: stri
 
     const { data: profileRow } = await supabase
         .from("user_profile")
-        .select("full_name, email")
+        .select("full_name, email, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -88,6 +88,7 @@ export async function getCurrentUserProfile(): Promise<{ id: string; email: stri
         email: profileRow?.email || user.email || "",
         displayName,
         role,
+        avatarUrl: profileRow?.avatar_url || null,
     };
 }
 
