@@ -8,6 +8,7 @@ function mapCourse(row: CourseRow): CourseSummary {
         description: row.description ?? null,
         level: row.level ?? null,
         status: row.status ?? null,
+        audience: row.audience ?? null,
         thumbUrl: getThumbUrl(row.thumb),
     };
 }
@@ -45,7 +46,7 @@ export async function listCourses(): Promise<CourseSummary[]> {
     return withSupabase(async (supabase) => {
         const { data, error } = await supabase
             .from("course")
-            .select("id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)")
+            .select("id, title, description, level, status, audience, thumb:media_file!course_thumb_id_fkey(url)")
             .order("created_at", { ascending: false });
 
         if (error || !data) return [];
