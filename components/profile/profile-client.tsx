@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { updateUserProfileClient, uploadAvatarClient } from "@/lib/api/profiles";
+import { updateUserProfileClient, uploadAvatarClient, removeAvatarClient } from "@/lib/api/profiles";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, Mail, Save, RefreshCw, Camera } from "lucide-react";
+import { User as UserIcon, Mail, Save, RefreshCw, Camera, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import Image from "next/image";
 
@@ -22,6 +22,7 @@ export function ProfileClient({ userId, initialName, initialEmail, userType, ini
     const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
     const [savingProfile, setSavingProfile] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [removingAvatar, setRemovingAvatar] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     function initials() {
@@ -54,6 +55,25 @@ export function ProfileClient({ userId, initialName, initialEmail, userType, ini
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
+        }
+    };
+
+    const handleRemoveAvatar = async () => {
+        if (!avatarUrl) return;
+        
+        const confirmRemove = window.confirm("Deseja remover sua foto de perfil?");
+        if (!confirmRemove) return;
+
+        setRemovingAvatar(true);
+        try {
+            await removeAvatarClient(userId);
+            setAvatarUrl(null);
+            toast.success("Foto de perfil removida!");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Erro ao remover foto';
+            toast.error(msg);
+        } finally {
+            setRemovingAvatar(false);
         }
     };
 
@@ -119,6 +139,23 @@ export function ProfileClient({ userId, initialName, initialEmail, userType, ini
                         
                         {/* Texto de ajuda */}
                         <p className="text-xs text-gray-500 mt-1 text-center">Clique para alterar</p>
+                        
+                        {/* Botão de remover foto */}
+                        {avatarUrl && (
+                            <button
+                                type="button"
+                                onClick={handleRemoveAvatar}
+                                disabled={removingAvatar || uploadingAvatar}
+                                className="mt-2 flex items-center justify-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {removingAvatar ? (
+                                    <RefreshCw className="animate-spin" size={12} />
+                                ) : (
+                                    <Trash2 size={12} />
+                                )}
+                                {removingAvatar ? 'Removendo...' : 'Remover foto'}
+                            </button>
+                        )}
                     </div>
                     
                     <div className="flex-1">

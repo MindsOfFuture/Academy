@@ -89,4 +89,33 @@ export async function uploadAvatarClient(userId: string, file: File): Promise<st
     return avatarUrl;
 }
 
+export async function removeAvatarClient(userId: string): Promise<void> {
+    const supabase = createBrowserSupabase();
+    
+    // Buscar URL atual do avatar para deletar do storage
+    const { data: profile } = await supabase
+        .from('user_profile')
+        .select('avatar_url')
+        .eq('id', userId)
+        .single();
+    
+    // Se tiver avatar, deletar do storage
+    if (profile?.avatar_url) {
+        // Extrair o path do arquivo da URL
+        const urlParts = profile.avatar_url.split('/avatars/');
+        if (urlParts.length > 1) {
+            const filePath = urlParts[1];
+            await supabase.storage.from('avatars').remove([filePath]);
+        }
+    }
+    
+    // Remover URL do perfil
+    const { error: updateError } = await supabase
+        .from('user_profile')
+        .update({ avatar_url: null })
+        .eq('id', userId);
+    
+    if (updateError) throw updateError;
+}
+
 export type { UserProfileSummary, RoleName };
