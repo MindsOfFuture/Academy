@@ -1,13 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
 import { type ArticleDetail } from "@/lib/api/articles";
-import { ArrowLeft, Calendar, User, Clock, Share2, Users, BookOpen, ExternalLink } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Calendar, Clock, Share2, Users, BookOpen, ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
 
 // Extrai metadados do artigo (Authors, Published in, Link) do conteúdo HTML
 function extractArticleMetadata(htmlContent: string): {
@@ -23,7 +23,7 @@ function extractArticleMetadata(htmlContent: string): {
 
   // O conteúdo vem em formato Markdown com **texto**
   // Formato: **Authors:** texto **Published in:** texto **Link:** url
-  
+
   // Extrai Authors - formato **Authors:** texto
   const authorsMatch = htmlContent.match(/\*\*Authors?:\*\*\s*([^*]+?)(?=\s*\*\*|$)/i);
   if (authorsMatch) {
@@ -72,7 +72,7 @@ function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publi
         <BookOpen size={16} className="text-[#684A97]" />
         Informações da Publicação
       </h3>
-      
+
       <div className="space-y-4">
         {metadata.authors && (
           <div className="flex items-start gap-3">
@@ -105,7 +105,7 @@ function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publi
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Link Original</p>
-              <a 
+              <a
                 href={metadata.link}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -320,7 +320,7 @@ function ArticlePageContent() {
             >
               {article.excerpt && (
                 <div className="text-xl md:text-2xl text-gray-800 font-serif leading-relaxed mb-10 pb-10 border-b border-gray-100 italic">
-                  "{article.excerpt}"
+                  &quot;{article.excerpt}&quot;
                 </div>
               )}
 
