@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
 import { type ArticleDetail } from "@/lib/api/articles";
-import { ArrowLeft, Calendar, User } from "lucide-react";
+import { ArrowLeft, Calendar, User, Clock, Share2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 async function fetchArticle(slug: string): Promise<ArticleDetail | null> {
   const res = await fetch(`/api/articles/${encodeURIComponent(slug)}`);
@@ -16,7 +17,6 @@ async function fetchArticle(slug: string): Promise<ArticleDetail | null> {
 
 function ArticlePageContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const slug = searchParams.get("slug");
 
   const [article, setArticle] = useState<ArticleDetail | null>(null);
@@ -49,126 +49,204 @@ function ArticlePageContent() {
     });
   };
 
+  // Loading Skeleton
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar showTextLogo={true} />
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div className="h-64 bg-gray-200 rounded mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+        <div className="container mx-auto px-4 py-12 max-w-4xl">
+          <div className="animate-pulse space-y-8">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-12 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-96 bg-gray-200 rounded-2xl w-full shadow-lg"></div>
+            <div className="space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // Not Found State
   if (!slug || !article) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar showTextLogo={true} />
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">
-            Artigo não encontrado
-          </h1>
-          <p className="text-gray-600 mb-8">
-            O artigo que você está procurando não existe ou foi removido.
-          </p>
-          <Link
-            href="/#our-articles"
-            className="inline-flex items-center gap-2 text-[#684A97] hover:text-[#5a3f7d] font-semibold"
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-md"
           >
-            <ArrowLeft size={20} />
-            Voltar para artigos
-          </Link>
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">
+              Artigo não encontrado
+            </h1>
+            <p className="text-gray-600 mb-8">
+              O conteúdo que você procura pode ter sido removido ou não está mais disponível.
+            </p>
+            <Link
+              href="/#our-articles"
+              className="inline-flex items-center gap-2 bg-[#684A97] text-white px-6 py-3 rounded-full font-medium hover:bg-[#5a3f7d] transition-transform hover:scale-105 shadow-md"
+            >
+              <ArrowLeft size={18} />
+              Voltar para a biblioteca
+            </Link>
+          </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Navbar showTextLogo={true} />
-      <article className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Botão Voltar */}
-        <Link
-          href="/#our-articles"
-          className="inline-flex items-center gap-2 text-[#684A97] hover:text-[#5a3f7d] font-semibold mb-6"
-        >
-          <ArrowLeft size={20} />
-          Voltar para artigos
-        </Link>
 
-        {/* Imagem de capa */}
-        {article.coverUrl && (
-          <div className="relative w-full h-64 md:h-96 rounded-xl overflow-hidden mb-8">
-            <Image
-              src={article.coverUrl}
-              alt={article.title}
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
-        )}
-
-        {/* Cabeçalho */}
-        <header className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {article.title}
-          </h1>
-
-          <div className="flex flex-wrap items-center gap-4 text-gray-600">
-            {article.authorName && (
-              <div className="flex items-center gap-2">
-                <User size={18} />
-                <span>{article.authorName}</span>
-              </div>
-            )}
-            {article.publishedAt && (
-              <div className="flex items-center gap-2">
-                <Calendar size={18} />
-                <span>{formatDate(article.publishedAt)}</span>
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Resumo */}
-        {article.excerpt && (
-          <p className="text-lg text-gray-700 leading-relaxed mb-8 border-l-4 border-[#684A97] pl-4 italic">
-            {article.excerpt}
-          </p>
-        )}
-
-        {/* Conteúdo */}
-        <div className="prose prose-lg max-w-none">
-          {article.content ? (
-            <div
-              className="text-gray-800 leading-relaxed whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: article.content }}
-            />
-          ) : (
-            <p className="text-gray-600">
-              Este artigo ainda não possui conteúdo completo.
-            </p>
-          )}
-        </div>
-
-        {/* Footer do artigo */}
-        <footer className="mt-12 pt-8 border-t border-gray-200">
+      <main className="relative pb-20">
+        {/* Floating Back Button - Desktop */}
+        <div className="fixed left-8 top-32 z-40 hidden xl:block">
           <Link
             href="/#our-articles"
-            className="inline-flex items-center gap-2 text-[#684A97] hover:text-[#5a3f7d] font-semibold"
+            className="flex items-center justify-center w-12 h-12 bg-white/80 backdrop-blur-md border border-gray-200 text-gray-600 rounded-full shadow-sm hover:text-[#684A97] hover:border-[#684A97] transition-all duration-300 group"
+            title="Voltar"
           >
-            <ArrowLeft size={20} />
-            Ver mais artigos
+            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           </Link>
-        </footer>
-      </article>
+        </div>
+
+        {/* Hero Section */}
+        <div className="relative w-full h-[60vh] min-h-[500px] mb-12">
+          {/* Background Image with Gradient */}
+          <div className="absolute inset-0 z-0">
+            {article.coverUrl ? (
+              <Image
+                src={article.coverUrl}
+                alt={article.title}
+                fill
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#684A97] to-[#2d1b4e]" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10" />
+          </div>
+
+          {/* Hero Content */}
+          <div className="relative z-20 container mx-auto px-4 h-full flex flex-col justify-end pb-16 max-w-4xl">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+            >
+              <Link
+                href="/#our-articles"
+                className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 xl:hidden text-sm font-medium backdrop-blur-sm bg-black/20 px-3 py-1.5 rounded-full w-fit"
+              >
+                <ArrowLeft size={16} />
+                Voltar
+              </Link>
+
+              <div className="flex flex-wrap gap-3 mb-6">
+                <span className="bg-[#684A97] text-white px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase">
+                  Artigo
+                </span>
+                <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                  <Clock size={12} /> 5 min de leitura
+                </span>
+              </div>
+
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                {article.title}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-6 text-white/90">
+                {article.authorName && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#684A97] to-purple-400 flex items-center justify-center text-white font-bold border-2 border-white/20">
+                      {article.authorName.charAt(0)}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-white/60">Escrito por</span>
+                      <span className="font-medium">{article.authorName}</span>
+                    </div>
+                  </div>
+                )}
+
+                {article.publishedAt && (
+                  <div className="flex items-center gap-2 text-sm md:text-base border-l border-white/20 pl-6 h-10">
+                    <Calendar size={18} className="text-purple-300" />
+                    <span>{formatDate(article.publishedAt)}</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Content Wrapper */}
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-12">
+
+            {/* Main Article Content */}
+            <motion.article
+              className="prose prose-lg prose-slate max-w-none
+                prose-headings:text-gray-900 prose-headings:font-bold 
+                prose-p:text-gray-800 prose-p:leading-loose text-lg
+                prose-a:text-[#684A97] prose-a:font-medium hover:prose-a:text-[#5a3f7d]
+                prose-blockquote:border-l-[#684A97] prose-blockquote:bg-gray-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+                prose-img:rounded-xl prose-img:shadow-lg
+                prose-li:text-gray-700"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              {article.excerpt && (
+                <div className="text-xl md:text-2xl text-gray-800 font-serif leading-relaxed mb-10 pb-10 border-b border-gray-100 italic">
+                  "{article.excerpt}"
+                </div>
+              )}
+
+              {article.content ? (
+                <div dangerouslySetInnerHTML={{ __html: article.content }} />
+              ) : (
+                <p className="text-gray-500 italic text-center py-20">
+                  Conteúdo não disponível.
+                </p>
+              )}
+            </motion.article>
+
+            {/* Sidebar / Share (Optional) */}
+            <aside className="hidden md:block w-12 pt-4">
+              <div className="sticky top-32 flex flex-col gap-6 items-center">
+                <button className="text-gray-400 hover:text-[#684A97] transition-colors" title="Compartilhar">
+                  <Share2 size={20} />
+                </button>
+                <div className="w-px h-12 bg-gray-200"></div>
+                {/* Can add more social icons here */}
+              </div>
+            </aside>
+          </div>
+
+          {/* Footer Navigation */}
+          <div className="mt-20 pt-10 border-t border-gray-100 flex justify-between items-center">
+            <Link
+              href="/#our-articles"
+              className="group flex items-center gap-3 text-gray-500 hover:text-[#684A97] transition-colors"
+            >
+              <div className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center group-hover:border-[#684A97] group-hover:bg-[#684A97] group-hover:text-white transition-all">
+                <ArrowLeft size={18} />
+              </div>
+              <div>
+                <div className="text-xs text-gray-400 uppercase tracking-wider">Voltar para</div>
+                <div className="font-semibold">Nossos Artigos</div>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
@@ -177,14 +255,8 @@ export default function ArticlePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50">
-          <Navbar showTextLogo={true} />
-          <div className="container mx-auto px-4 py-8">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-              <div className="h-64 bg-gray-200 rounded mb-4"></div>
-            </div>
-          </div>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-[#684A97] border-t-transparent rounded-full animate-spin"></div>
         </div>
       }
     >
