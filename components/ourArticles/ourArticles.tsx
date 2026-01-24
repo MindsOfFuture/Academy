@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Autoplay, Pagination, Navigation } from "swiper/modules"
 import { motion } from 'framer-motion'
@@ -95,9 +96,13 @@ export default function OurArticles({ articles }: OurArticlesProps) {
                       {article.excerpt || article.content || ""}
                     </p>
 
-                    <button className="mt-4 text-[#684A97] font-semibold hover:text-[#5a3f7d] transition-colors duration-200 self-start">
+                    <Link 
+                      href={`/artigos?slug=${article.slug || article.id}`}
+                      className="mt-4 text-[#684A97] font-semibold hover:text-[#5a3f7d] transition-colors duration-200 self-start relative z-10 cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       Ler mais →
-                    </button>
+                    </Link>
                   </div>
                 </motion.div>
               </SwiperSlide>
