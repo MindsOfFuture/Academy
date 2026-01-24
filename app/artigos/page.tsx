@@ -6,8 +6,123 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
 import { type ArticleDetail } from "@/lib/api/articles";
-import { ArrowLeft, Calendar, User, Clock, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, User, Clock, Share2, Users, BookOpen, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Extrai metadados do artigo (Authors, Published in, Link) do conteúdo HTML
+function extractArticleMetadata(htmlContent: string): {
+  cleanedContent: string;
+  metadata: {
+    authors?: string;
+    publishedIn?: string;
+    link?: string;
+  };
+} {
+  const metadata: { authors?: string; publishedIn?: string; link?: string } = {};
+  let cleanedContent = htmlContent;
+
+  // O conteúdo vem em formato Markdown com **texto**
+  // Formato: **Authors:** texto **Published in:** texto **Link:** url
+  
+  // Extrai Authors - formato **Authors:** texto
+  const authorsMatch = htmlContent.match(/\*\*Authors?:\*\*\s*([^*]+?)(?=\s*\*\*|$)/i);
+  if (authorsMatch) {
+    metadata.authors = authorsMatch[1].trim();
+  }
+
+  // Extrai Published in - formato **Published in:** texto
+  const publishedMatch = htmlContent.match(/\*\*Published\s*in:\*\*\s*([^*]+?)(?=\s*\*\*|$)/i);
+  if (publishedMatch) {
+    metadata.publishedIn = publishedMatch[1].trim();
+  }
+
+  // Extrai Link - formato **Link:** url
+  const linkMatch = htmlContent.match(/\*\*Link:\*\*\s*(https?:\/\/[^\s<"*]+)/i);
+  if (linkMatch) {
+    metadata.link = linkMatch[1].trim();
+  }
+
+  // Remove a linha/parágrafo que contém os metadados do conteúdo principal
+  // Procura pelo padrão completo e remove
+  if (metadata.authors || metadata.publishedIn || metadata.link) {
+    // Remove o trecho que contém **Authors:** ... **Published in:** ... **Link:** ...
+    cleanedContent = cleanedContent.replace(
+      /\*\*Authors?:\*\*\s*[^*]+?\s*\*\*Published\s*in:\*\*\s*[^*]+?\s*\*\*Link:\*\*\s*https?:\/\/[^\s<"]+/gi,
+      ''
+    );
+  }
+
+  return { cleanedContent, metadata };
+}
+
+// Componente para exibir metadados do artigo de forma elegante
+function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publishedIn?: string; link?: string } }) {
+  if (!metadata.authors && !metadata.publishedIn && !metadata.link) {
+    return null;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.5 }}
+      className="my-10 p-6 bg-gradient-to-br from-gray-50 to-purple-50/30 border border-gray-200 rounded-2xl shadow-sm"
+    >
+      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5 flex items-center gap-2">
+        <BookOpen size={16} className="text-[#684A97]" />
+        Informações da Publicação
+      </h3>
+      
+      <div className="space-y-4">
+        {metadata.authors && (
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
+              <Users size={18} className="text-[#684A97]" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Autores</p>
+              <p className="text-gray-800 font-medium">{metadata.authors}</p>
+            </div>
+          </div>
+        )}
+
+        {metadata.publishedIn && (
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
+              <BookOpen size={18} className="text-[#684A97]" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Publicado em</p>
+              <p className="text-gray-800">{metadata.publishedIn}</p>
+            </div>
+          </div>
+        )}
+
+        {metadata.link && (
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
+              <ExternalLink size={18} className="text-[#684A97]" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Link Original</p>
+              <a 
+                href={metadata.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-[#684A97] hover:text-[#5a3f7d] font-medium transition-colors group"
+              >
+                <span className="underline underline-offset-2 decoration-[#684A97]/30 group-hover:decoration-[#684A97]">
+                  Acessar publicação
+                </span>
+                <ExternalLink size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 async function fetchArticle(slug: string): Promise<ArticleDetail | null> {
   const res = await fetch(`/api/articles/${encodeURIComponent(slug)}`);
@@ -210,7 +325,15 @@ function ArticlePageContent() {
               )}
 
               {article.content ? (
-                <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                (() => {
+                  const { cleanedContent, metadata } = extractArticleMetadata(article.content);
+                  return (
+                    <>
+                      <div dangerouslySetInnerHTML={{ __html: cleanedContent }} />
+                      <ArticleMetadataCard metadata={metadata} />
+                    </>
+                  );
+                })()
               ) : (
                 <p className="text-gray-500 italic text-center py-20">
                   Conteúdo não disponível.
