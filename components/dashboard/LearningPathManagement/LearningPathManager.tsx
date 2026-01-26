@@ -36,13 +36,13 @@ export default function LearningPathManager({
         }
     }, []);
 
-    const handleCreate = async (title: string, description: string) => {
+    const handleCreate = async (title: string, description: string, audience: string) => {
         setLoading(true);
         try {
             const res = await fetch("/api/learning-paths", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, description }),
+                body: JSON.stringify({ title, description, audience }),
             });
             if (res.ok) {
                 await refreshPaths();
@@ -58,13 +58,13 @@ export default function LearningPathManager({
         }
     };
 
-    const handleUpdate = async (pathId: string, title: string, description: string) => {
+    const handleUpdate = async (pathId: string, title: string, description: string, audience: string) => {
         setLoading(true);
         try {
             const res = await fetch(`/api/learning-paths/${pathId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, description }),
+                body: JSON.stringify({ title, description, audience }),
             });
             if (res.ok) {
                 await refreshPaths();
@@ -156,8 +156,9 @@ export default function LearningPathManager({
                     <LearningPathEditor
                         initialTitle={editingPath.title}
                         initialDescription={editingPath.description ?? ""}
-                        onSave={(title: string, description: string) =>
-                            handleUpdate(editingPath.id, title, description)
+                        initialAudience={editingPath.audience ?? "student"}
+                        onSave={(title: string, description: string, audience: string) =>
+                            handleUpdate(editingPath.id, title, description, audience)
                         }
                         onCancel={() => setEditingPath(null)}
                         loading={loading}

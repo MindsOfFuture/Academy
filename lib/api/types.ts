@@ -75,6 +75,7 @@ export interface LearningPathRow {
     id: string;
     title: string;
     description?: string | null;
+    audience?: CourseAudience | null;
     cover?: { url?: string | null } | { url?: string | null }[] | null;
     courses?: Array<{ order?: number; course?: CourseRow }>;
 }
@@ -167,6 +168,7 @@ export interface LearningPathSummary {
     id: string;
     title: string;
     description: string | null;
+    audience?: CourseAudience | null;
     coverUrl?: string | null;
     courses: CourseSummary[];
 }

@@ -20,6 +20,8 @@ export default function CoursesSection() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [isPublished, setIsPublished] = useState(false);
+  const [isTeacherOnly, setIsTeacherOnly] = useState(false);
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [paths, setPaths] = useState<LearningPathSummary[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
@@ -52,6 +54,8 @@ export default function CoursesSection() {
     setTitle("");
     setDescription("");
     setImageUrl("");
+    setIsPublished(false);
+    setIsTeacherOnly(false);
     setEditingCourse(null);
   };
 
@@ -73,11 +77,19 @@ export default function CoursesSection() {
         title,
         description,
         imageUrl,
+        status: isPublished ? "active" : "draft",
+        audience: isTeacherOnly ? "teacher" : "student",
       });
       if (updated) handleCourseUpdated(updated);
       else alert("Erro ao atualizar curso.");
     } else {
-      const newCourse = await createCourse({ title, description, imageUrl });
+      const newCourse = await createCourse({ 
+        title, 
+        description, 
+        imageUrl, 
+        status: isPublished ? "active" : "draft",
+        audience: isTeacherOnly ? "teacher" : "student",
+      });
       if (newCourse) setCourses((prev) => [...prev, newCourse]);
       else alert("Erro ao criar curso.");
     }
@@ -92,6 +104,8 @@ export default function CoursesSection() {
     setTitle(course.title);
     setDescription(course.description ?? "");
     setImageUrl(course.thumbUrl ?? "");
+    setIsPublished(course.status === "active");
+    setIsTeacherOnly(course.audience === "teacher");
     setIsOpen(true);
   };
 
@@ -223,6 +237,56 @@ export default function CoursesSection() {
                     onChange={(e) => setImageUrl(e.target.value)}
                     className="border p-2 rounded w-full"
                   />
+
+                  {/* Switch de Status */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="font-medium text-gray-700">Publicar curso</label>
+                      <p className="text-sm text-gray-500">
+                        {isPublished 
+                          ? "O curso está visível para todos os usuários" 
+                          : "O curso está em rascunho (visível apenas para você)"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsPublished(!isPublished)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        isPublished ? "bg-green-500" : "bg-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          isPublished ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Switch de Público-alvo */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="font-medium text-gray-700">Apenas para professores</label>
+                      <p className="text-sm text-gray-500">
+                        {isTeacherOnly 
+                          ? "Este curso é visível apenas para professores e administradores" 
+                          : "Este curso é visível para todos os usuários"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsTeacherOnly(!isTeacherOnly)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          isTeacherOnly ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6">
