@@ -14,13 +14,13 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { title, description, coverMediaId } = body;
+        const { title, description, audience, coverMediaId } = body;
 
         if (!title) {
             return NextResponse.json({ error: "Título é obrigatório" }, { status: 400 });
         }
 
-        const path = await createLearningPath({ title, description, coverMediaId });
+        const path = await createLearningPath({ title, description, audience, coverMediaId });
 
         if (!path) {
             return NextResponse.json({ error: "Erro ao criar trilha" }, { status: 500 });

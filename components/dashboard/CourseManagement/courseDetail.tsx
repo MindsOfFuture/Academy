@@ -19,7 +19,7 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
   const { alunos, alunosDisponiveis, loading: loadingAlunos, addAluno, removeAluno } =
     useStudents(courseId);
 
-  const [form, setForm] = useState({ title: "", description: "", imageUrl: "" });
+  const [form, setForm] = useState({ title: "", description: "", imageUrl: "", status: "", audience: "" });
 
   // Preenche formulário com dados atuais do curso
   useEffect(() => {
@@ -28,6 +28,8 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
         title: course.title || "",
         description: course.description || "",
         imageUrl: course.thumbUrl || "",
+        status: course.status || "draft",
+        audience: course.audience || "student",
       });
     }
   }, [course]);
@@ -54,9 +56,11 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
   return (
     <div>
       <CourseEditor
-        title={course.title}
-        description={course.description}
-        imageUrl={course.thumbUrl || ""}
+        title={form.title}
+        description={form.description}
+        imageUrl={form.imageUrl}
+        status={form.status}
+        audience={form.audience}
         onChange={(f, v) => setForm((p) => ({ ...p, [f]: v }))}
         onSave={handleSave}
         onDelete={handleDelete}

@@ -5,7 +5,8 @@ import { useState } from "react";
 interface LearningPathEditorProps {
     initialTitle?: string;
     initialDescription?: string;
-    onSave: (title: string, description: string) => void;
+    initialAudience?: string;
+    onSave: (title: string, description: string, audience: string) => void;
     onCancel: () => void;
     loading?: boolean;
 }
@@ -13,12 +14,16 @@ interface LearningPathEditorProps {
 export default function LearningPathEditor({
     initialTitle = "",
     initialDescription = "",
+    initialAudience = "student",
     onSave,
     onCancel,
     loading = false,
 }: LearningPathEditorProps) {
     const [title, setTitle] = useState(initialTitle);
     const [description, setDescription] = useState(initialDescription);
+    const [audience, setAudience] = useState(initialAudience);
+
+    const isTeacherOnly = audience === "teacher";
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,7 +31,7 @@ export default function LearningPathEditor({
             alert("Título é obrigatório");
             return;
         }
-        onSave(title.trim(), description.trim());
+        onSave(title.trim(), description.trim(), audience);
     };
 
     return (
@@ -57,6 +62,30 @@ export default function LearningPathEditor({
                     rows={3}
                     disabled={loading}
                 />
+            </div>
+
+            {/* Switch de Público-alvo */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                    <label className="font-medium text-gray-700">Apenas para professores</label>
+                    <p className="text-sm text-gray-500">
+                        {isTeacherOnly
+                            ? "Esta trilha é visível apenas para professores e administradores"
+                            : "Esta trilha é visível para todos os usuários"}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setAudience(isTeacherOnly ? "student" : "teacher")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+                        }`}
+                    disabled={loading}
+                >
+                    <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isTeacherOnly ? "translate-x-6" : "translate-x-1"
+                            }`}
+                    />
+                </button>
             </div>
 
             <div className="flex gap-3">

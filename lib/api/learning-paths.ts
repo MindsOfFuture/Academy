@@ -37,6 +37,7 @@ export async function getLearningPaths(): Promise<LearningPathSummary[]> {
       id,
       title,
       description,
+      audience,
       cover:media_file!learning_path_cover_media_id_fkey(url),
       courses:learning_path_course(order, course:course_id (id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)))
     `)
@@ -50,6 +51,7 @@ export async function getLearningPaths(): Promise<LearningPathSummary[]> {
             id: lpRow.id,
             title: lpRow.title,
             description: lpRow.description ?? null,
+            audience: (lpRow.audience as "student" | "teacher") ?? "student",
             coverUrl: getCoverUrl(lpRow.cover),
             courses: ((lpRow.courses || []) as LearningPathCourseJoin[])
                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -67,6 +69,7 @@ export async function getLearningPathDetail(pathId: string): Promise<LearningPat
             id,
             title,
             description,
+            audience,
             cover:media_file!learning_path_cover_media_id_fkey(url),
             courses:learning_path_course(order, course:course_id (id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)))
         `)
@@ -80,6 +83,7 @@ export async function getLearningPathDetail(pathId: string): Promise<LearningPat
         id: lpRow.id,
         title: lpRow.title,
         description: lpRow.description ?? null,
+        audience: (lpRow.audience as "student" | "teacher") ?? "student",
         coverUrl: getCoverUrl(lpRow.cover),
         courses: ((lpRow.courses || []) as LearningPathCourseJoin[])
             .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -91,6 +95,7 @@ export async function getLearningPathDetail(pathId: string): Promise<LearningPat
 export async function createLearningPath(params: {
     title: string;
     description?: string;
+    audience?: string;
     coverMediaId?: string;
 }): Promise<LearningPathSummary | null> {
     const supabase = await createServerSupabase();
@@ -102,9 +107,10 @@ export async function createLearningPath(params: {
             title: params.title,
             slug,
             description: params.description ?? null,
+            audience: params.audience ?? "student",
             cover_media_id: params.coverMediaId ?? null,
         })
-        .select("id, title, description")
+        .select("id, title, description, audience")
         .single();
 
     if (error || !data) return null;
@@ -113,6 +119,7 @@ export async function createLearningPath(params: {
         id: data.id,
         title: data.title,
         description: data.description ?? null,
+        audience: (data.audience as "student" | "teacher") ?? "student",
         coverUrl: null,
         courses: [],
     };
@@ -124,6 +131,7 @@ export async function updateLearningPath(
     params: {
         title?: string;
         description?: string | null;
+        audience?: string | null;
         coverMediaId?: string | null;
     }
 ): Promise<LearningPathSummary | null> {
@@ -135,6 +143,7 @@ export async function updateLearningPath(
         updateData.slug = generateSlug(params.title);
     }
     if (params.description !== undefined) updateData.description = params.description;
+    if (params.audience !== undefined) updateData.audience = params.audience;
     if (params.coverMediaId !== undefined) updateData.cover_media_id = params.coverMediaId;
 
     const { error } = await supabase

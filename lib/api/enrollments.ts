@@ -1,5 +1,20 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { type CourseSummary, type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonRow, type LessonProgressRow, getThumbUrl } from "./types";
+import { type CourseSummary, type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonProgressRow, getThumbUrl } from "./types";
+
+interface EnrollmentWithCountsRow {
+    id: string;
+    status: string | null;
+    course: {
+        id: string;
+        title: string;
+        description: string | null;
+        level: string | null;
+        status: string | null;
+        thumb: { url?: string | null } | { url?: string | null }[] | null;
+        lessons: { count: number }[];
+    } | null;
+    completed_lessons: { count: number }[];
+}
 
 function mapCourse(row: CourseRow): CourseSummary {
     return {
@@ -59,40 +74,32 @@ export async function getUserCourses(): Promise<EnrollmentSummary[]> {
 
     const { data: enrollments, error } = await supabase
         .from("enrollment")
-        .select(
-            "id, status, course:course_id (id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url))"
-        )
-        .eq("user_id", user.id);
+        .select(`
+            id,
+            status,
+            course:course_id (
+                id, title, description, level, status,
+                thumb:media_file!course_thumb_id_fkey(url),
+                lessons:lesson(count)
+            ),
+            completed_lessons:lesson_progress(count)
+        `)
+        .eq("user_id", user.id)
+        .eq("completed_lessons.is_completed", true);
 
     if (error || !enrollments) return [];
 
-    const enrollmentIds = enrollments.map((e) => (e as unknown as EnrollmentRow).id);
-    const courseIds = enrollments.map((e) => (e as unknown as EnrollmentRow).course?.id).filter(Boolean);
-
-    const { data: lessons } = await supabase
-        .from("lesson")
-        .select("id, course_id")
-        .in("course_id", courseIds);
-
-    const { data: progresses } = enrollmentIds.length
-        ? await supabase
-            .from("lesson_progress")
-            .select("enrollment_id, lesson_id, is_completed")
-            .in("enrollment_id", enrollmentIds)
-        : { data: [] as LessonProgressRow[] };
-
     return enrollments.map<EnrollmentSummary>((row) => {
-        const enrollmentRow = row as unknown as EnrollmentRow;
-        const totalLessons = (lessons || []).filter((l) => (l as LessonRow).course_id === enrollmentRow.course?.id).length;
-        const completed = (progresses || []).filter(
-            (p) => (p as LessonProgressRow).enrollment_id === enrollmentRow.id && ((p as LessonProgressRow).is_completed ?? true)
-        ).length;
+        const enrollmentRow = row as unknown as EnrollmentWithCountsRow;
+        const course = enrollmentRow.course;
+        const totalLessons = course?.lessons?.[0]?.count ?? 0;
+        const completed = enrollmentRow.completed_lessons?.[0]?.count ?? 0;
         const progressPercent = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
 
         return {
             enrollmentId: enrollmentRow.id,
             status: enrollmentRow.status ?? null,
-            course: mapCourse((enrollmentRow.course || {}) as CourseRow),
+            course: mapCourse(course as CourseRow),
             progressPercent,
             completedLessons: completed,
             totalLessons,

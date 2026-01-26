@@ -104,7 +104,7 @@ async function ensureThumbId(url: string | null | undefined, supabase: SupabaseC
     return data?.id ?? null;
 }
 
-export async function createCourse(payload: { title: string; description: string; imageUrl?: string; level?: string; status?: string; }) {
+export async function createCourse(payload: { title: string; description: string; imageUrl?: string; level?: string; status?: string; audience?: string; }) {
     const supabase = createBrowserSupabase();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -119,11 +119,12 @@ export async function createCourse(payload: { title: string; description: string
             description: payload.description,
             level: payload.level ?? "básico",
             status: payload.status ?? "draft",
+            audience: payload.audience ?? "student",
             owner_id: user.id,
             thumb_id: thumbId,
         })
         .select(
-            "id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)"
+            "id, title, description, level, status, audience, thumb:media_file!course_thumb_id_fkey(url)"
         )
         .maybeSingle();
 
@@ -131,7 +132,7 @@ export async function createCourse(payload: { title: string; description: string
     return mapCourse(data as CourseRow);
 }
 
-export async function updateCourse(courseId: string, payload: { title?: string; description?: string; imageUrl?: string; level?: string; status?: string; }) {
+export async function updateCourse(courseId: string, payload: { title?: string; description?: string; imageUrl?: string; level?: string; status?: string; audience?: string; }) {
     const supabase = createBrowserSupabase();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -146,12 +147,13 @@ export async function updateCourse(courseId: string, payload: { title?: string; 
             ...(payload.description ? { description: payload.description } : {}),
             ...(payload.level ? { level: payload.level } : {}),
             ...(payload.status ? { status: payload.status } : {}),
+            ...(payload.audience ? { audience: payload.audience } : {}),
             ...(thumbId ? { thumb_id: thumbId } : {}),
             updated_at: new Date().toISOString(),
         })
         .eq("id", courseId)
         .select(
-            "id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)"
+            "id, title, description, level, status, audience, thumb:media_file!course_thumb_id_fkey(url)"
         )
         .maybeSingle();
 

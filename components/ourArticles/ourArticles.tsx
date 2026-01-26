@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Autoplay, Pagination, Navigation } from "swiper/modules"
 import { motion } from 'framer-motion'
@@ -74,6 +75,7 @@ export default function OurArticles({ articles }: OurArticlesProps) {
                       src={article.coverUrl || "/logo_navbar.svg"}
                       alt={article.title}
                       fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover"
                     />
                   </div>
@@ -92,12 +94,16 @@ export default function OurArticles({ articles }: OurArticlesProps) {
                     </h3>
 
                     <p className="text-gray-600 text-sm leading-relaxed flex-1 overflow-hidden text-ellipsis line-clamp-3">
-                      {article.excerpt || article.content || ""}
+                      {article.excerpt || ""}
                     </p>
 
-                    <button className="mt-4 text-[#684A97] font-semibold hover:text-[#5a3f7d] transition-colors duration-200 self-start">
+                    <Link
+                      href={`/artigos?slug=${article.slug || article.id}`}
+                      className="mt-4 text-[#684A97] font-semibold hover:text-[#5a3f7d] transition-colors duration-200 self-start relative z-10 cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       Ler mais →
-                    </button>
+                    </Link>
                   </div>
                 </motion.div>
               </SwiperSlide>

@@ -8,6 +8,7 @@ import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us/about-us";
 import OurArticles from "@/components/ourArticles/ourArticles";
 import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
+import Aurora from "@/components/aurora/aurora";
 import { type CourseSummary, type ArticleSummary } from "@/lib/api/types";
 import { type HeroData, type AboutUsSlide, type FooterLink } from "@/lib/api/content";
 
@@ -50,6 +51,12 @@ export default function HomeClient({ heroData, courses, aboutUsSlides, socialLin
                 alunos_impactados={heroData?.n_alunos ?? 0}
                 subtitulo={heroData?.subtitulo ?? ""}
                 logoRef={heroLogoRef}
+            />
+            <Aurora
+                colorStops={["#684A97", "#FFD300", "#684A97"]}
+                blend={1.0}
+                amplitude={0.3}
+                speed={1}
             />
             <BlurryBackground
                 color2="rgba(104, 74, 151, 0.6)"

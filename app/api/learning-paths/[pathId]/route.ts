@@ -27,11 +27,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     try {
         const { pathId } = await params;
         const body = await request.json();
-        const { title, description, coverMediaId } = body;
+        const { title, description, audience, coverMediaId } = body;
 
         const updated = await updateLearningPath(pathId, {
             title,
             description,
+            audience,
             coverMediaId
         });
 
