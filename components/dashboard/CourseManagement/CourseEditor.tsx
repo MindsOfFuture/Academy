@@ -57,22 +57,20 @@ export default function CourseEditor({
         <div>
           <label className="font-medium text-gray-700">Publicar curso</label>
           <p className="text-sm text-gray-500">
-            {isPublished 
-              ? "O curso está visível para todos os usuários" 
+            {isPublished
+              ? "O curso está visível para todos os usuários"
               : "O curso está em rascunho (visível apenas para você)"}
           </p>
         </div>
         <button
           type="button"
           onClick={() => onChange("status", isPublished ? "draft" : "active")}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            isPublished ? "bg-green-500" : "bg-gray-300"
-          }`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPublished ? "bg-green-500" : "bg-gray-300"
+            }`}
         >
           <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              isPublished ? "translate-x-6" : "translate-x-1"
-            }`}
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPublished ? "translate-x-6" : "translate-x-1"
+              }`}
           />
         </button>
       </div>
@@ -82,22 +80,20 @@ export default function CourseEditor({
         <div>
           <label className="font-medium text-gray-700">Apenas para professores</label>
           <p className="text-sm text-gray-500">
-            {isTeacherOnly 
-              ? "Este curso é visível apenas para professores e administradores" 
+            {isTeacherOnly
+              ? "Este curso é visível apenas para professores e administradores"
               : "Este curso é visível para todos os usuários"}
           </p>
         </div>
         <button
           type="button"
           onClick={() => onChange("audience", isTeacherOnly ? "student" : "teacher")}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
-          }`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+            }`}
         >
           <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              isTeacherOnly ? "translate-x-6" : "translate-x-1"
-            }`}
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isTeacherOnly ? "translate-x-6" : "translate-x-1"
+              }`}
           />
         </button>
       </div>

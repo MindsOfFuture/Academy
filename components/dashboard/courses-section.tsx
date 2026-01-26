@@ -83,10 +83,10 @@ export default function CoursesSection() {
       if (updated) handleCourseUpdated(updated);
       else alert("Erro ao atualizar curso.");
     } else {
-      const newCourse = await createCourse({ 
-        title, 
-        description, 
-        imageUrl, 
+      const newCourse = await createCourse({
+        title,
+        description,
+        imageUrl,
         status: isPublished ? "active" : "draft",
         audience: isTeacherOnly ? "teacher" : "student",
       });
@@ -116,8 +116,8 @@ export default function CoursesSection() {
         <button
           onClick={() => setActiveTab("courses")}
           className={`px-4 py-2 font-medium transition-colors ${activeTab === "courses"
-              ? "text-purple-600 border-b-2 border-purple-600"
-              : "text-gray-500 hover:text-gray-700"
+            ? "text-purple-600 border-b-2 border-purple-600"
+            : "text-gray-500 hover:text-gray-700"
             }`}
         >
           Cursos
@@ -125,8 +125,8 @@ export default function CoursesSection() {
         <button
           onClick={() => setActiveTab("paths")}
           className={`px-4 py-2 font-medium transition-colors ${activeTab === "paths"
-              ? "text-purple-600 border-b-2 border-purple-600"
-              : "text-gray-500 hover:text-gray-700"
+            ? "text-purple-600 border-b-2 border-purple-600"
+            : "text-gray-500 hover:text-gray-700"
             }`}
         >
           Trilhas de Aprendizagem
@@ -243,22 +243,20 @@ export default function CoursesSection() {
                     <div>
                       <label className="font-medium text-gray-700">Publicar curso</label>
                       <p className="text-sm text-gray-500">
-                        {isPublished 
-                          ? "O curso está visível para todos os usuários" 
+                        {isPublished
+                          ? "O curso está visível para todos os usuários"
                           : "O curso está em rascunho (visível apenas para você)"}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setIsPublished(!isPublished)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        isPublished ? "bg-green-500" : "bg-gray-300"
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPublished ? "bg-green-500" : "bg-gray-300"
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          isPublished ? "translate-x-6" : "translate-x-1"
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPublished ? "translate-x-6" : "translate-x-1"
+                          }`}
                       />
                     </button>
                   </div>
@@ -268,22 +266,20 @@ export default function CoursesSection() {
                     <div>
                       <label className="font-medium text-gray-700">Apenas para professores</label>
                       <p className="text-sm text-gray-500">
-                        {isTeacherOnly 
-                          ? "Este curso é visível apenas para professores e administradores" 
+                        {isTeacherOnly
+                          ? "Este curso é visível apenas para professores e administradores"
                           : "Este curso é visível para todos os usuários"}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setIsTeacherOnly(!isTeacherOnly)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          isTeacherOnly ? "translate-x-6" : "translate-x-1"
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isTeacherOnly ? "translate-x-6" : "translate-x-1"
+                          }`}
                       />
                     </button>
                   </div>

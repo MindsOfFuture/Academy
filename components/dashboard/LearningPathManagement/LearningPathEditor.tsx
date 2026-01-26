@@ -69,23 +69,21 @@ export default function LearningPathEditor({
                 <div>
                     <label className="font-medium text-gray-700">Apenas para professores</label>
                     <p className="text-sm text-gray-500">
-                        {isTeacherOnly 
-                            ? "Esta trilha é visível apenas para professores e administradores" 
+                        {isTeacherOnly
+                            ? "Esta trilha é visível apenas para professores e administradores"
                             : "Esta trilha é visível para todos os usuários"}
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={() => setAudience(isTeacherOnly ? "student" : "teacher")}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
-                    }`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+                        }`}
                     disabled={loading}
                 >
                     <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            isTeacherOnly ? "translate-x-6" : "translate-x-1"
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isTeacherOnly ? "translate-x-6" : "translate-x-1"
+                            }`}
                     />
                 </button>
             </div>
