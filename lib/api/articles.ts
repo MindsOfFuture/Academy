@@ -63,7 +63,7 @@ export async function getArticles(limit: number = 6): Promise<ArticleSummary[]> 
     const { data, error } = await supabase
         .from("article")
         .select(
-            `id, title, slug, excerpt, content, published_at, author:author_id(full_name), cover:media_file!article_cover_media_id_fkey(url)`
+            `id, title, slug, excerpt, published_at, author:author_id(full_name), cover:media_file!article_cover_media_id_fkey(url)`
         )
         .order("published_at", { ascending: false })
         .limit(limit);
@@ -77,7 +77,7 @@ export async function getArticles(limit: number = 6): Promise<ArticleSummary[]> 
             title: articleRow.title,
             slug: articleRow.slug ?? null,
             excerpt: articleRow.excerpt ?? null,
-            content: articleRow.content ?? null,
+
             coverUrl: getCoverUrl(articleRow.cover),
             authorId: articleRow.author_id ?? null,
             publishedAt: articleRow.published_at ?? null,

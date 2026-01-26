@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Comfortaa } from "next/font/google";
 import "./globals.css";
-import Aurora from "@/components/aurora/aurora";
 import { Toaster } from "react-hot-toast";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -78,14 +77,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-br" suppressHydrationWarning>
+    <html lang="pt-br">
       <body className={`${comfortaa.className} antialiased tracking-[0px]`}>
-        <Aurora
-          colorStops={["#684A97", "#FFD300", "#684A97"]}
-          blend={1.0}
-          amplitude={0.3}
-          speed={1}
-        />
         {children}
         <Toaster
           position="top-center"

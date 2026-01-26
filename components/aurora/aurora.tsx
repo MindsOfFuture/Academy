@@ -1,6 +1,5 @@
 'use client';
-import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, memo } from "react";
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 
 // Shaders remain the same...
@@ -118,7 +117,7 @@ interface AuroraProps {
     speed?: number;
 }
 
-export default function Aurora(props: AuroraProps) {
+export function Aurora(props: AuroraProps) {
     const {
         colorStops = ["#5227FF", "#7cff67", "#5227FF"],
         amplitude = 1.0,
@@ -128,7 +127,6 @@ export default function Aurora(props: AuroraProps) {
     propsRef.current = props;
 
     const ctnDom = useRef<HTMLDivElement>(null);
-    const pathname = usePathname(); // Hook para detectar mudanças de rota
 
     useEffect(() => {
         const ctn = ctnDom.current;
@@ -206,8 +204,10 @@ export default function Aurora(props: AuroraProps) {
             }
             gl.getExtension("WEBGL_lose_context")?.loseContext();
         };
-        // ✅ FIX 2: Add 'blend', 'colorStops' and 'pathname' to dependency array.
-    }, [amplitude, blend, colorStops, pathname]);
+        // ✅ FIX 2: Add 'blend', 'colorStops' dependency array.
+    }, [amplitude, blend, colorStops]);
 
     return <div ref={ctnDom} className="w-full max-w-[100vw] h-full absolute inset-0 -z-40 overflow-hidden" />;
 }
+
+export default memo(Aurora);
