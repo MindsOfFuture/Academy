@@ -28,6 +28,8 @@ export interface MockSupabaseClient {
     updateUser: ReturnType<typeof vi.fn>;
   };
   chain: MockChain;
+  /** Fila de respostas para queries - use mockQueryResponse para adicionar */
+  queryResponses: Array<{ data: unknown; error: unknown }>;
 }
 
 export function createMockSupabaseClient(): MockSupabaseClient {
@@ -44,65 +46,57 @@ export function createMockSupabaseClient(): MockSupabaseClient {
     single: vi.fn(),
   };
 
+  // Fila de respostas para as queries
+  const queryResponses: Array<{ data: unknown; error: unknown }> = [];
+
+  // Cria um objeto thenable que retorna a próxima resposta da fila
+  const createChainableResult = () => {
+    const chainableResult: Record<string, unknown> = {
+      select: chain.select,
+      insert: chain.insert,
+      update: chain.update,
+      delete: chain.delete,
+      eq: chain.eq,
+      in: chain.in,
+      order: chain.order,
+      limit: chain.limit,
+      maybeSingle: chain.maybeSingle,
+      single: chain.single,
+    };
+
+    // Adiciona then para tornar o objeto awaitable
+    chainableResult.then = (resolve: (value: { data: unknown; error: unknown }) => void) => {
+      const response = queryResponses.shift() || { data: null, error: null };
+      resolve(response);
+    };
+
+    return chainableResult;
+  };
+
   // Configura chain padrão para cada método
   const setupDefaultChain = () => {
-    chain.select.mockReturnValue({
-      eq: chain.eq,
-      in: chain.in,
-      order: chain.order,
-      limit: chain.limit,
-      maybeSingle: chain.maybeSingle,
-      single: chain.single,
+    chain.select.mockImplementation(() => createChainableResult());
+    chain.insert.mockImplementation(() => createChainableResult());
+    chain.update.mockImplementation(() => createChainableResult());
+    chain.delete.mockImplementation(() => createChainableResult());
+    chain.eq.mockImplementation(() => createChainableResult());
+    chain.in.mockImplementation(() => createChainableResult());
+    chain.order.mockImplementation(() => createChainableResult());
+    chain.limit.mockImplementation(() => createChainableResult());
+    chain.maybeSingle.mockImplementation(() => {
+      const response = queryResponses.shift() || { data: null, error: null };
+      return Promise.resolve(response);
     });
-
-    chain.insert.mockReturnValue({
-      select: chain.select,
-      single: chain.single,
-      maybeSingle: chain.maybeSingle,
-    });
-
-    chain.update.mockReturnValue({
-      eq: chain.eq,
-      select: chain.select,
-    });
-
-    chain.delete.mockReturnValue({
-      eq: chain.eq,
-    });
-
-    chain.eq.mockReturnValue({
-      eq: chain.eq,
-      maybeSingle: chain.maybeSingle,
-      single: chain.single,
-      in: chain.in,
-      order: chain.order,
-    });
-
-    chain.in.mockReturnValue({
-      eq: chain.eq,
-      maybeSingle: chain.maybeSingle,
-    });
-
-    chain.order.mockReturnValue({
-      limit: chain.limit,
-      eq: chain.eq,
-      maybeSingle: chain.maybeSingle,
-    });
-
-    chain.limit.mockReturnValue({
-      maybeSingle: chain.maybeSingle,
+    chain.single.mockImplementation(() => {
+      const response = queryResponses.shift() || { data: null, error: null };
+      return Promise.resolve(response);
     });
   };
 
   setupDefaultChain();
 
   const mockClient: MockSupabaseClient = {
-    from: vi.fn().mockReturnValue({
-      select: chain.select,
-      insert: chain.insert,
-      update: chain.update,
-      delete: chain.delete,
-    }),
+    from: vi.fn().mockImplementation(() => createChainableResult()),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } } }),
       signInWithPassword: vi.fn(),
@@ -111,26 +105,17 @@ export function createMockSupabaseClient(): MockSupabaseClient {
       updateUser: vi.fn(),
     },
     chain,
+    queryResponses,
   };
 
   return mockClient;
 }
 
 /**
- * Helper para configurar resposta de sucesso em uma query
+ * Helper para adicionar uma resposta na fila de queries
  */
-export function mockQuerySuccess<T>(chain: MockChain, method: keyof MockChain, data: T) {
-  (chain[method] as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data, error: null });
-}
-
-/**
- * Helper para configurar resposta de erro em uma query
- */
-export function mockQueryError(chain: MockChain, method: keyof MockChain, message: string) {
-  (chain[method] as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ 
-    data: null, 
-    error: { message } 
-  });
+export function mockQueryResponse<T>(client: MockSupabaseClient, data: T, error: unknown = null) {
+  client.queryResponses.push({ data, error });
 }
 
 /**

@@ -3,6 +3,7 @@ import {
   createMockSupabaseClient,
   mockAuthenticatedUser,
   mockUnauthenticatedUser,
+  mockQueryResponse,
   type MockSupabaseClient 
 } from '@/tests/mocks/supabase';
 
@@ -26,7 +27,7 @@ describe('Enrollments API', () => {
 
   describe('verifyEnrollment', () => {
     it('should return enrollment data if exists', async () => {
-      mockClient.chain.maybeSingle.mockResolvedValueOnce({ data: { id: 'enr_1' } });
+      mockQueryResponse(mockClient, { id: 'enr_1' });
       
       const result = await verifyEnrollment('course_1');
       
@@ -42,7 +43,7 @@ describe('Enrollments API', () => {
     });
 
     it('should return null if no enrollment found', async () => {
-      mockClient.chain.maybeSingle.mockResolvedValueOnce({ data: null });
+      mockQueryResponse(mockClient, null);
       
       const result = await verifyEnrollment('course_1');
       expect(result).toBeNull();
@@ -52,9 +53,8 @@ describe('Enrollments API', () => {
   describe('enrollInCourse', () => {
     it('should insert new enrollment if not exists', async () => {
       // First verify checks - not enrolled
-      mockClient.chain.maybeSingle
-        .mockResolvedValueOnce({ data: null }) // verifyEnrollment returns null
-        .mockResolvedValueOnce({ data: { id: 'new_enr' }, error: null }); // insert result
+      mockQueryResponse(mockClient, null); // verifyEnrollment returns null
+      mockQueryResponse(mockClient, { id: 'new_enr' }); // insert result
 
       const result = await enrollInCourse('course_1');
 
@@ -67,7 +67,7 @@ describe('Enrollments API', () => {
     });
 
     it('should return existing if already enrolled', async () => {
-      mockClient.chain.maybeSingle.mockResolvedValueOnce({ data: { id: 'existing_enr' } });
+      mockQueryResponse(mockClient, { id: 'existing_enr' });
       
       const result = await enrollInCourse('course_1');
       
@@ -82,9 +82,8 @@ describe('Enrollments API', () => {
     });
 
     it('should throw error if insert fails', async () => {
-      mockClient.chain.maybeSingle
-        .mockResolvedValueOnce({ data: null }) // not enrolled
-        .mockResolvedValueOnce({ data: null, error: { message: 'Insert failed' } });
+      mockQueryResponse(mockClient, null); // not enrolled
+      mockQueryResponse(mockClient, null, { message: 'Insert failed' }); // error on insert
 
       await expect(enrollInCourse('course_1')).rejects.toEqual({ message: 'Insert failed' });
     });
@@ -100,31 +99,19 @@ describe('Enrollments API', () => {
 
     it('should calc progress and return summaries', async () => {
       // Enrollment query
-      mockClient.chain.eq.mockResolvedValueOnce({ 
-        data: [
-          { 
-            id: 'enr_1', 
-            status: 'active', 
-            course: { id: 'c1', title: 'C1', description: 'Desc' } 
-          }
-        ], 
-        error: null 
-      });
-
-      // Lessons query (in)
-      mockClient.chain.in.mockResolvedValueOnce({
-        data: [
-          { id: 'l1', course_id: 'c1' },
-          { id: 'l2', course_id: 'c1' }
-        ]
-      });
-
-      // Progress query (in)
-      mockClient.chain.in.mockResolvedValueOnce({
-        data: [
-          { enrollment_id: 'enr_1', lesson_id: 'l1', is_completed: true }
-        ]
-      });
+      mockQueryResponse(mockClient, [
+        { 
+          id: 'enr_1', 
+          status: 'active', 
+          course: { 
+            id: 'c1', 
+            title: 'C1', 
+            description: 'Desc',
+            lessons: [{ count: 2 }]
+          },
+          completed_lessons: [{ count: 1 }]
+        }
+      ]);
 
       const result = await getUserCourses();
 
@@ -137,15 +124,14 @@ describe('Enrollments API', () => {
     });
 
     it('should return 0 progress when no lessons', async () => {
-      mockClient.chain.eq.mockResolvedValueOnce({ 
-        data: [
-          { id: 'enr_1', status: 'active', course: { id: 'c1', title: 'C1' } }
-        ], 
-        error: null 
-      });
-
-      mockClient.chain.in.mockResolvedValueOnce({ data: [] }); // no lessons
-      mockClient.chain.in.mockResolvedValueOnce({ data: [] }); // no progress
+      mockQueryResponse(mockClient, [
+        { 
+          id: 'enr_1', 
+          status: 'active', 
+          course: { id: 'c1', title: 'C1', lessons: [{ count: 0 }] },
+          completed_lessons: [{ count: 0 }]
+        }
+      ]);
 
       const result = await getUserCourses();
 
@@ -154,28 +140,21 @@ describe('Enrollments API', () => {
     });
 
     it('should return empty array on error', async () => {
-      mockClient.chain.eq.mockResolvedValueOnce({ 
-        data: null, 
-        error: { message: 'Error' } 
-      });
+      mockQueryResponse(mockClient, null, { message: 'Error' });
 
       const result = await getUserCourses();
       expect(result).toEqual([]);
     });
 
     it('should handle 100% progress correctly', async () => {
-      mockClient.chain.eq.mockResolvedValueOnce({ 
-        data: [{ id: 'enr_1', status: 'active', course: { id: 'c1', title: 'C1' } }], 
-        error: null 
-      });
-
-      mockClient.chain.in.mockResolvedValueOnce({
-        data: [{ id: 'l1', course_id: 'c1' }]
-      });
-
-      mockClient.chain.in.mockResolvedValueOnce({
-        data: [{ enrollment_id: 'enr_1', lesson_id: 'l1', is_completed: true }]
-      });
+      mockQueryResponse(mockClient, [
+        { 
+          id: 'enr_1', 
+          status: 'active', 
+          course: { id: 'c1', title: 'C1', lessons: [{ count: 1 }] },
+          completed_lessons: [{ count: 1 }]
+        }
+      ]);
 
       const result = await getUserCourses();
 

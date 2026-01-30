@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockSupabaseClient, mockQuerySuccess, resetMockClient, type MockSupabaseClient } from '../../mocks/supabase';
+import { createMockSupabaseClient, mockQueryResponse, resetMockClient, type MockSupabaseClient } from '../../mocks/supabase';
 
 // Mock do módulo de cliente Supabase
 vi.mock('@/lib/supabase/client', () => ({
@@ -216,7 +216,7 @@ describe('Course Audience & Role-Based Access', () => {
         { id: '1', title: 'Test', description: null, level: 'básico', status: 'active', audience: 'student', thumb: null },
       ];
 
-      mockQuerySuccess(mockClient.chain, 'order', mockCourses);
+      mockQueryResponse(mockClient, mockCourses);
 
       // Simular a estrutura da query esperada
       const expectedSelectFields = 'id, title, description, level, status, audience, thumb:media_file!course_thumb_id_fkey(url)';
