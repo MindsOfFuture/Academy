@@ -122,8 +122,8 @@ export function mockQueryResponse<T>(client: MockSupabaseClient, data: T, error:
  * Helper para configurar usuário autenticado
  */
 export function mockAuthenticatedUser(client: MockSupabaseClient, userId: string = 'test-user-id') {
-  client.auth.getUser.mockResolvedValue({ 
-    data: { user: { id: userId } } 
+  client.auth.getUser.mockResolvedValue({
+    data: { user: { id: userId } }
   });
 }
 
@@ -131,8 +131,8 @@ export function mockAuthenticatedUser(client: MockSupabaseClient, userId: string
  * Helper para configurar usuário não autenticado
  */
 export function mockUnauthenticatedUser(client: MockSupabaseClient) {
-  client.auth.getUser.mockResolvedValue({ 
-    data: { user: null } 
+  client.auth.getUser.mockResolvedValue({
+    data: { user: null }
   });
 }
 

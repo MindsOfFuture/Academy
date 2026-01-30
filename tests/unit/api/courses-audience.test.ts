@@ -21,7 +21,7 @@ describe('Course Audience & Role-Based Access', () => {
   describe('CourseAudience Type', () => {
     it('should accept valid audience values', async () => {
       const validAudiences = ['student', 'teacher'] as const;
-      
+
       validAudiences.forEach((audience) => {
         expect(['student', 'teacher']).toContain(audience);
       });
@@ -67,7 +67,7 @@ describe('Course Audience & Role-Based Access', () => {
     it('student should see courses with audience="student"', () => {
       const allCourses = [studentCourse, teacherCourse];
       const studentVisibleCourses = allCourses.filter(c => c.audience === 'student');
-      
+
       expect(studentVisibleCourses).toHaveLength(1);
       expect(studentVisibleCourses[0].id).toBe('student-course-1');
     });
@@ -75,7 +75,7 @@ describe('Course Audience & Role-Based Access', () => {
     it('student should NOT see courses with audience="teacher"', () => {
       const allCourses = [studentCourse, teacherCourse];
       const studentVisibleCourses = allCourses.filter(c => c.audience === 'student');
-      
+
       const teacherCoursesVisible = studentVisibleCourses.filter(c => c.audience === 'teacher');
       expect(teacherCoursesVisible).toHaveLength(0);
     });
@@ -107,7 +107,7 @@ describe('Course Audience & Role-Based Access', () => {
       const teacherVisibleCourses = allCourses.filter(
         c => c.audience === 'student' || c.audience === 'teacher'
       );
-      
+
       const studentCoursesVisible = teacherVisibleCourses.filter(c => c.audience === 'student');
       expect(studentCoursesVisible).toHaveLength(1);
     });
@@ -117,7 +117,7 @@ describe('Course Audience & Role-Based Access', () => {
       const teacherVisibleCourses = allCourses.filter(
         c => c.audience === 'student' || c.audience === 'teacher'
       );
-      
+
       const teacherCoursesVisible = teacherVisibleCourses.filter(c => c.audience === 'teacher');
       expect(teacherCoursesVisible).toHaveLength(1);
       expect(teacherCoursesVisible[0].id).toBe('teacher-course-1');
@@ -128,7 +128,7 @@ describe('Course Audience & Role-Based Access', () => {
       const teacherVisibleCourses = allCourses.filter(
         c => c.audience === 'student' || c.audience === 'teacher'
       );
-      
+
       expect(teacherVisibleCourses).toHaveLength(2);
     });
   });
@@ -144,7 +144,7 @@ describe('Course Audience & Role-Based Access', () => {
       const adminVisibleCourses = courses.filter(
         c => c.status === 'active' && (c.audience === 'student' || c.audience === 'teacher')
       );
-      
+
       expect(adminVisibleCourses).toHaveLength(2);
     });
 
@@ -165,7 +165,7 @@ describe('Course Audience & Role-Based Access', () => {
       userRole: 'student' | 'teacher' | 'admin'
     ) {
       const isTeacherOrAdmin = userRole === 'teacher' || userRole === 'admin';
-      
+
       return courses.filter(course => {
         if (course.status !== 'active') return false;
         if (course.audience === 'student') return true;
@@ -204,7 +204,7 @@ describe('Course Audience & Role-Based Access', () => {
     it('RLS: draft courses are NOT visible via public policy', () => {
       const visibleToStudent = simulateRLSFilter(testCourses, 'student');
       const visibleToTeacher = simulateRLSFilter(testCourses, 'teacher');
-      
+
       expect(visibleToStudent.filter(c => c.status === 'draft')).toHaveLength(0);
       expect(visibleToTeacher.filter(c => c.status === 'draft')).toHaveLength(0);
     });
@@ -220,7 +220,7 @@ describe('Course Audience & Role-Based Access', () => {
 
       // Simular a estrutura da query esperada
       const expectedSelectFields = 'id, title, description, level, status, audience, thumb:media_file!course_thumb_id_fkey(url)';
-      
+
       // Verificar que a query inclui audience
       expect(expectedSelectFields).toContain('audience');
     });
@@ -315,7 +315,7 @@ describe('Course Audience Edge Cases', () => {
   it('should reject invalid audience values at type level', () => {
     type ValidAudience = 'student' | 'teacher';
     const validAudiences: ValidAudience[] = ['student', 'teacher'];
-    
+
     // TypeScript would catch invalid values at compile time
     expect(validAudiences).not.toContain('invalid');
     expect(validAudiences).not.toContain('admin'); // admin is a role, not an audience

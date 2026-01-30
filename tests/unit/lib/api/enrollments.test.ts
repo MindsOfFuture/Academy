@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
+import {
   createMockSupabaseClient,
   mockAuthenticatedUser,
   mockUnauthenticatedUser,
   mockQueryResponse,
-  type MockSupabaseClient 
+  type MockSupabaseClient
 } from '@/tests/mocks/supabase';
 
 // Mock do cliente Supabase usando factory
@@ -28,9 +28,9 @@ describe('Enrollments API', () => {
   describe('verifyEnrollment', () => {
     it('should return enrollment data if exists', async () => {
       mockQueryResponse(mockClient, { id: 'enr_1' });
-      
+
       const result = await verifyEnrollment('course_1');
-      
+
       expect(mockClient.from).toHaveBeenCalledWith('enrollment');
       expect(mockClient.chain.eq).toHaveBeenCalledWith('course_id', 'course_1');
       expect(result).toEqual({ id: 'enr_1' });
@@ -44,7 +44,7 @@ describe('Enrollments API', () => {
 
     it('should return null if no enrollment found', async () => {
       mockQueryResponse(mockClient, null);
-      
+
       const result = await verifyEnrollment('course_1');
       expect(result).toBeNull();
     });
@@ -68,16 +68,16 @@ describe('Enrollments API', () => {
 
     it('should return existing if already enrolled', async () => {
       mockQueryResponse(mockClient, { id: 'existing_enr' });
-      
+
       const result = await enrollInCourse('course_1');
-      
+
       expect(mockClient.chain.insert).not.toHaveBeenCalled();
       expect(result).toEqual({ id: 'existing_enr' });
     });
 
     it('should throw error if user not authenticated', async () => {
       mockUnauthenticatedUser(mockClient);
-      
+
       await expect(enrollInCourse('course_1')).rejects.toThrow('Usuário não autenticado.');
     });
 
@@ -92,7 +92,7 @@ describe('Enrollments API', () => {
   describe('getUserCourses', () => {
     it('should return empty array if user not authenticated', async () => {
       mockUnauthenticatedUser(mockClient);
-      
+
       const result = await getUserCourses();
       expect(result).toEqual([]);
     });
@@ -100,12 +100,12 @@ describe('Enrollments API', () => {
     it('should calc progress and return summaries', async () => {
       // Enrollment query
       mockQueryResponse(mockClient, [
-        { 
-          id: 'enr_1', 
-          status: 'active', 
-          course: { 
-            id: 'c1', 
-            title: 'C1', 
+        {
+          id: 'enr_1',
+          status: 'active',
+          course: {
+            id: 'c1',
+            title: 'C1',
             description: 'Desc',
             lessons: [{ count: 2 }]
           },
@@ -125,9 +125,9 @@ describe('Enrollments API', () => {
 
     it('should return 0 progress when no lessons', async () => {
       mockQueryResponse(mockClient, [
-        { 
-          id: 'enr_1', 
-          status: 'active', 
+        {
+          id: 'enr_1',
+          status: 'active',
           course: { id: 'c1', title: 'C1', lessons: [{ count: 0 }] },
           completed_lessons: [{ count: 0 }]
         }
@@ -148,9 +148,9 @@ describe('Enrollments API', () => {
 
     it('should handle 100% progress correctly', async () => {
       mockQueryResponse(mockClient, [
-        { 
-          id: 'enr_1', 
-          status: 'active', 
+        {
+          id: 'enr_1',
+          status: 'active',
           course: { id: 'c1', title: 'C1', lessons: [{ count: 1 }] },
           completed_lessons: [{ count: 1 }]
         }
