@@ -111,6 +111,9 @@ function CoursePageContent() {
       await enrollInCourse(course.id);
       setIsMatriculado(true);
       toast.success("Matrícula realizada com sucesso!");
+      // Sinalizar atualização para outras páginas via localStorage
+      localStorage.setItem("courses-updated", Date.now().toString());
+      window.dispatchEvent(new CustomEvent("enrollment-changed"));
     } catch (error) {
       console.error("Erro ao matricular:", error);
       toast.error("Falha ao realizar matrícula.");
@@ -128,6 +131,9 @@ function CoursePageContent() {
         setProgresso((prev) => prev.filter((id) => id !== lessonId));
         toast.success("Progresso desmarcado.");
       }
+      // Sinalizar atualização para outras páginas via localStorage
+      localStorage.setItem("courses-updated", Date.now().toString());
+      window.dispatchEvent(new CustomEvent("lesson-progress-changed"));
     } catch (error) {
       console.error("Erro ao atualizar progresso:", error);
       toast.error("Não foi possível atualizar o progresso.");

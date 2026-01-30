@@ -42,13 +42,23 @@ export default function useStudents(courseId: string) {
   const addAluno = async (aluno: UserInfo) => {
     if (!aluno.id) return null;
     const novo = await addStudentToCourse(courseId, aluno.id);
-    if (novo) setAlunos((prev) => [...prev, novo as Aluno]);
+    if (novo) {
+      setAlunos((prev) => [...prev, novo as Aluno]);
+      // Sinalizar atualização para outras páginas via localStorage
+      localStorage.setItem("courses-updated", Date.now().toString());
+      window.dispatchEvent(new CustomEvent("enrollment-changed"));
+    }
     return novo;
   };
 
   const removeAluno = async (matriculaId: string) => {
     const ok = await removeStudentFromCourse(matriculaId);
-    if (ok) setAlunos((prev) => prev.filter((a) => a.id !== matriculaId));
+    if (ok) {
+      setAlunos((prev) => prev.filter((a) => a.id !== matriculaId));
+      // Sinalizar atualização para outras páginas via localStorage
+      localStorage.setItem("courses-updated", Date.now().toString());
+      window.dispatchEvent(new CustomEvent("enrollment-changed"));
+    }
     return ok;
   };
 

@@ -30,13 +30,13 @@ export default async function ProtectedPage() {
           </div>
 
           <div className="w-full max-w-7xl mx-auto space-y-8">
-            <h2 className="text-3xl font-bold">Nossos Cursos</h2>
+            <h2 className="text-3xl font-bold">Cursos Matriculados</h2>
             <p className="max-w-[480px]">
-              Explore abaixo a suas opções de cursos e descubra o ideal para sua jornada!
+              Acompanhe seu progresso e continue sua jornada de aprendizagem!
             </p>
           </div>
 
-          <YourCourses cursos={courses} />
+          <YourCourses initialCursos={courses} />
 
           {userType === "admin" && (
             <div className="space-y-8">
