@@ -12,7 +12,7 @@ export interface FooterLink { href: string; iconSrc: string; alt: string; nome: 
 
 export async function getHero(): Promise<HeroData | null> {
     const supabase = await createServerSupabase();
-    const keys = ["hero_n_alunos", "hero_n_escolas", "hero_subtitulo"];
+    const keys = ["alunos_atendidos", "escolas_atendidas", "hero1"];
     const { data } = await supabase
         .from("system_config")
         .select("key, value")
@@ -28,9 +28,9 @@ export async function getHero(): Promise<HeroData | null> {
 
     const lookup = Object.fromEntries(data.map((row) => [(row as { key: string; value: string }).key, (row as { key: string; value: string }).value]));
     return {
-        n_alunos: Number(lookup.hero_n_alunos || 0),
-        n_escolas: Number(lookup.hero_n_escolas || 0),
-        subtitulo: lookup.hero_subtitulo || "",
+        n_alunos: Number(lookup.alunos_atendidos || 0),
+        n_escolas: Number(lookup.escolas_atendidas || 0),
+        subtitulo: lookup.hero1 || "",
     };
 }
 
