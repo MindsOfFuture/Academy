@@ -71,7 +71,7 @@ export function YourCourses({ initialCursos = [] }: YourCoursesProps) {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    
+
     // Também verificar no mount
     const lastUpdate = localStorage.getItem("courses-updated");
     if (lastUpdate) {
