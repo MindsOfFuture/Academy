@@ -209,3 +209,18 @@ export interface SubmissionSummary {
     feedback: string | null;
     gradedAt: string | null;
 }
+
+// Submissão com dados do aluno (para professores)
+export interface SubmissionWithStudent extends SubmissionSummary {
+    studentName: string;
+    studentEmail: string | null;
+}
+
+// Submissão pendente de correção (para lista geral do professor)
+export interface PendingSubmission extends SubmissionWithStudent {
+    assignmentTitle: string;
+    assignmentMaxScore: number | null;
+    courseName: string;
+    courseId: string;
+    lessonTitle: string;
+}

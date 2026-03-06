@@ -7,7 +7,8 @@ import {
     updateAssignment,
     deleteAssignment
 } from "@/lib/api/assignments";
-import { Plus, Trash2, Edit2, Save, X, FileText } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, FileText, Users } from "lucide-react";
+import SubmissionsList from "./SubmissionsList";
 
 interface AssignmentManagerProps {
     lessonId: string;
@@ -25,6 +26,7 @@ export default function AssignmentManager({
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [viewingSubmissions, setViewingSubmissions] = useState<AssignmentSummary | null>(null);
 
     // Form states
     const [title, setTitle] = useState("");
@@ -208,6 +210,13 @@ export default function AssignmentManager({
                                     </div>
                                     <div className="flex gap-1">
                                         <button
+                                            onClick={() => setViewingSubmissions(assignment)}
+                                            className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+                                            title="Ver Entregas"
+                                        >
+                                            <Users className="w-4 h-4" />
+                                        </button>
+                                        <button
                                             onClick={() => startEdit(assignment)}
                                             className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                                             title="Editar"
@@ -289,6 +298,14 @@ export default function AssignmentManager({
                     <Plus className="w-4 h-4" />
                     Adicionar atividade
                 </button>
+            )}
+
+            {/* Modal de Entregas */}
+            {viewingSubmissions && (
+                <SubmissionsList
+                    assignment={viewingSubmissions}
+                    onClose={() => setViewingSubmissions(null)}
+                />
             )}
         </div>
     );
