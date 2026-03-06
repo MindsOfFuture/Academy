@@ -10,8 +10,9 @@ import {
 import { type CourseSummary, type LearningPathSummary } from "@/lib/api/types";
 import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
 import LearningPathManager from "@/components/dashboard/LearningPathManagement/LearningPathManager";
+import ChatsPanel from "@/components/dashboard/ChatsPanel";
 
-type TabType = "courses" | "paths";
+type TabType = "courses" | "paths" | "chats";
 
 export default function CoursesSection() {
   const [activeTab, setActiveTab] = useState<TabType>("courses");
@@ -131,6 +132,15 @@ export default function CoursesSection() {
         >
           Trilhas de Aprendizagem
         </button>
+        <button
+          onClick={() => setActiveTab("chats")}
+          className={`px-4 py-2 font-medium transition-colors ${activeTab === "chats"
+            ? "text-purple-600 border-b-2 border-purple-600"
+            : "text-gray-500 hover:text-gray-700"
+            }`}
+        >
+          Chats
+        </button>
       </div>
 
       {/* Conteúdo da Tab de Trilhas */}
@@ -140,6 +150,9 @@ export default function CoursesSection() {
           availableCourses={courses}
         />
       )}
+
+      {/* Conteúdo da Tab de Chats */}
+      {activeTab === "chats" && <ChatsPanel />}
 
       {/* Conteúdo da Tab de Cursos */}
       {activeTab === "courses" && (

@@ -209,3 +209,38 @@ export interface SubmissionSummary {
     feedback: string | null;
     gradedAt: string | null;
 }
+
+// Tipos para Chat de Atividade (mensagens 1-a-1 aluno ↔ professor/admin)
+export interface ActivityChatMessageRow {
+    id: string;
+    assignment_id: string;
+    student_id: string;
+    sender_id: string;
+    content: string;
+    created_at: string;
+    sender?: {
+        full_name?: string | null;
+        avatar_url?: string | null;
+    } | {
+        full_name?: string | null;
+        avatar_url?: string | null;
+    }[];
+}
+
+export interface ActivityChatMessage {
+    id: string;
+    assignmentId: string;
+    studentId: string;
+    senderId: string;
+    content: string;
+    createdAt: string;
+    senderName: string;
+    senderAvatar: string | null;
+}
+
+export interface ChatUser {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+    role: RoleName;
+}
