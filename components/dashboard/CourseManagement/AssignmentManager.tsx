@@ -226,8 +226,8 @@ export default function AssignmentManager({
                                                     )
                                                 }
                                                 className={`p-1 rounded transition ${chatOpenId === assignment.id
-                                                        ? "bg-purple-100 text-purple-700"
-                                                        : "text-purple-500 hover:bg-purple-50"
+                                                    ? "bg-purple-100 text-purple-700"
+                                                    : "text-purple-500 hover:bg-purple-50"
                                                     }`}
                                                 title="Conversas com alunos"
                                             >
