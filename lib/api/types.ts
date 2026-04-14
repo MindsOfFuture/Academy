@@ -244,3 +244,18 @@ export interface ChatUser {
     avatarUrl: string | null;
     role: RoleName;
 }
+
+// Submissão com dados do aluno (para professores)
+export interface SubmissionWithStudent extends SubmissionSummary {
+    studentName: string;
+    studentEmail: string | null;
+}
+
+// Submissão pendente de correção (para lista geral do professor)
+export interface PendingSubmission extends SubmissionWithStudent {
+    assignmentTitle: string;
+    assignmentMaxScore: number | null;
+    courseName: string;
+    courseId: string;
+    lessonTitle: string;
+}

@@ -51,6 +51,16 @@ export function AuthButtonClient() {
         redirect("/");
     };
 
+    // Valida se a string é uma URL válida
+    function isValidUrl(str: string) {
+        try {
+            new URL(str);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     // Função para gerar iniciais do nome
     function getInitials() {
         const name = profile?.full_name || user?.user_metadata?.full_name || user?.email;
@@ -68,7 +78,7 @@ export function AuthButtonClient() {
                 <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                     {/* Avatar do usuário */}
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD300] to-[#FFA500] text-[#684A97] flex items-center justify-center text-sm font-bold shadow-md overflow-hidden">
-                        {profile?.avatar_url ? (
+                        {profile?.avatar_url && isValidUrl(profile.avatar_url) ? (
                             <Image
                                 src={profile.avatar_url}
                                 alt="Avatar"

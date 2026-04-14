@@ -11,8 +11,9 @@ import { type CourseSummary, type LearningPathSummary } from "@/lib/api/types";
 import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
 import LearningPathManager from "@/components/dashboard/LearningPathManagement/LearningPathManager";
 import ChatsPanel from "@/components/dashboard/ChatsPanel";
+import PendingCorrections from "@/components/dashboard/PendingCorrections";
 
-type TabType = "courses" | "paths" | "chats";
+type TabType = "courses" | "paths" | "chats" | "corrections";
 
 export default function CoursesSection() {
   const [activeTab, setActiveTab] = useState<TabType>("courses");
@@ -141,6 +142,15 @@ export default function CoursesSection() {
         >
           Chats
         </button>
+        <button
+          onClick={() => setActiveTab("corrections")}
+          className={`px-4 py-2 font-medium transition-colors ${activeTab === "corrections"
+            ? "text-purple-600 border-b-2 border-purple-600"
+            : "text-gray-500 hover:text-gray-700"
+            }`}
+        >
+          Correções Pendentes
+        </button>
       </div>
 
       {/* Conteúdo da Tab de Trilhas */}
@@ -153,6 +163,11 @@ export default function CoursesSection() {
 
       {/* Conteúdo da Tab de Chats */}
       {activeTab === "chats" && <ChatsPanel />}
+
+      {/* Conteúdo da Tab de Correções Pendentes */}
+      {activeTab === "corrections" && (
+        <PendingCorrections />
+      )}
 
       {/* Conteúdo da Tab de Cursos */}
       {activeTab === "courses" && (

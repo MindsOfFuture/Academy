@@ -70,6 +70,20 @@ function ActivitiePageContent() {
             setSubmission(existingSubmission);
             setAnswerUrl(existingSubmission.answerUrl || existingSubmission.contentUrl || "");
             setComments(existingSubmission.comments || "");
+            
+            // Notificar se a atividade foi corrigida recentemente (últimos 7 dias)
+            if (existingSubmission.gradedAt) {
+              const gradedDate = new Date(existingSubmission.gradedAt);
+              const sevenDaysAgo = new Date();
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              
+              if (gradedDate > sevenDaysAgo) {
+                toast.success("Sua atividade foi corrigida! Confira sua nota e feedback.", {
+                  duration: 5000,
+                  icon: "🎉",
+                });
+              }
+            }
           }
 
           // Buscar informações adicionais
@@ -177,13 +191,14 @@ function ActivitiePageContent() {
       return;
     }
 
+    const normalizedUrl = answerUrl.trim().startsWith("http") ? answerUrl.trim() : `https://${answerUrl.trim()}`;
     setSubmitting(true);
     try {
       if (submission) {
         // Atualizar submissão existente
         const updated = await updateSubmission(submission.id, {
-          answerUrl: answerUrl.trim(),
-          contentUrl: answerUrl.trim(),
+          answerUrl: normalizedUrl,
+          contentUrl: normalizedUrl,
           comments: comments.trim() || undefined,
         });
         if (updated) {
@@ -194,8 +209,8 @@ function ActivitiePageContent() {
         // Nova submissão
         const newSubmission = await submitAssignment({
           assignmentId,
-          answerUrl: answerUrl.trim(),
-          contentUrl: answerUrl.trim(),
+          answerUrl: normalizedUrl,
+          contentUrl: normalizedUrl,
           comments: comments.trim() || undefined,
         });
         if (newSubmission) {

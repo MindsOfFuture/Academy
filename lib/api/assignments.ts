@@ -1,5 +1,5 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { type AssignmentSummary, type AssignmentRow, type SubmissionSummary } from "./types";
+import { type AssignmentSummary, type AssignmentRow, type SubmissionSummary, type SubmissionWithStudent, type PendingSubmission } from "./types";
 
 function mapAssignment(row: AssignmentRow): AssignmentSummary {
     return {
@@ -322,4 +322,210 @@ export async function deleteSubmission(submissionId: string): Promise<boolean> {
         .delete()
         .eq("id", submissionId);
     return !error;
+}
+
+// Lista todas as submissões de uma atividade (para professores)
+export async function listAssignmentSubmissions(assignmentId: string): Promise<SubmissionWithStudent[]> {
+    const supabase = createBrowserSupabase();
+    
+    const { data, error } = await supabase
+        .from("assignment_submission")
+        .select(`
+            *,
+            enrollment:enrollment_id(
+                user_profile:user_id(full_name, email)
+            )
+        `)
+        .eq("assignment_id", assignmentId)
+        .order("submitted_at", { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((sub) => {
+        const profile = sub.enrollment?.user_profile;
+        return {
+            id: sub.id,
+            assignmentId: sub.assignment_id,
+            enrollmentId: sub.enrollment_id ?? null,
+            userId: sub.user_id ?? null,
+            submittedAt: sub.submitted_at ?? null,
+            answerUrl: sub.answer_url ?? null,
+            contentUrl: sub.content_url ?? null,
+            comments: sub.comments ?? null,
+            score: sub.score ?? null,
+            feedback: sub.feedback ?? null,
+            gradedAt: sub.graded_at ?? null,
+            studentName: profile?.full_name ?? "Aluno",
+            studentEmail: profile?.email ?? null,
+        };
+    });
+}
+
+// Corrige uma submissão (para professores)
+export async function gradeSubmission(
+    submissionId: string,
+    params: {
+        score: number;
+        feedback: string;
+    }
+): Promise<SubmissionSummary | null> {
+    const supabase = createBrowserSupabase();
+
+    const { data, error } = await supabase
+        .from("assignment_submission")
+        .update({
+            score: params.score,
+            feedback: params.feedback,
+            graded_at: new Date().toISOString(),
+        })
+        .eq("id", submissionId)
+        .select("*")
+        .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return {
+        id: data.id,
+        assignmentId: data.assignment_id,
+        enrollmentId: data.enrollment_id ?? null,
+        userId: data.user_id ?? null,
+        submittedAt: data.submitted_at ?? null,
+        answerUrl: data.answer_url ?? null,
+        contentUrl: data.content_url ?? null,
+        comments: data.comments ?? null,
+        score: data.score ?? null,
+        feedback: data.feedback ?? null,
+        gradedAt: data.graded_at ?? null,
+    };
+}
+
+// Lista todas as submissões pendentes de correção (para professores)
+export async function listPendingSubmissions(): Promise<PendingSubmission[]> {
+    const supabase = createBrowserSupabase();
+    
+    const { data, error } = await supabase
+        .from("assignment_submission")
+        .select(`
+            *,
+            enrollment:enrollment_id(
+                user_profile:user_id(full_name, email)
+            ),
+            assignment:assignment_id(
+                id,
+                title,
+                max_score,
+                lesson:lesson_id(
+                    id,
+                    title,
+                    course:course_id(id, title)
+                )
+            )
+        `)
+        .is("graded_at", null)
+        .order("submitted_at", { ascending: true });
+
+    if (error || !data) return [];
+
+    return data.map((sub) => {
+        const profile = sub.enrollment?.user_profile;
+        const assignment = sub.assignment;
+        const lesson = assignment?.lesson;
+        const course = lesson?.course;
+        
+        return {
+            id: sub.id,
+            assignmentId: sub.assignment_id,
+            enrollmentId: sub.enrollment_id ?? null,
+            userId: sub.user_id ?? null,
+            submittedAt: sub.submitted_at ?? null,
+            answerUrl: sub.answer_url ?? null,
+            contentUrl: sub.content_url ?? null,
+            comments: sub.comments ?? null,
+            score: sub.score ?? null,
+            feedback: sub.feedback ?? null,
+            gradedAt: sub.graded_at ?? null,
+            studentName: profile?.full_name ?? "Aluno",
+            studentEmail: profile?.email ?? null,
+            assignmentTitle: assignment?.title ?? "Atividade",
+            assignmentMaxScore: assignment?.max_score ?? null,
+            courseName: course?.title ?? "Curso",
+            courseId: course?.id ?? "",
+            lessonTitle: lesson?.title ?? "Aula",
+        };
+    });
+}
+
+// Lista todas as submissões já corrigidas (para professores)
+export async function listGradedSubmissions(): Promise<PendingSubmission[]> {
+    const supabase = createBrowserSupabase();
+    
+    const { data, error } = await supabase
+        .from("assignment_submission")
+        .select(`
+            *,
+            enrollment:enrollment_id(
+                user_profile:user_id(full_name, email)
+            ),
+            assignment:assignment_id(
+                id,
+                title,
+                max_score,
+                lesson:lesson_id(
+                    id,
+                    title,
+                    course:course_id(id, title)
+                )
+            )
+        `)
+        .not("graded_at", "is", null)
+        .order("graded_at", { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((sub) => {
+        const profile = sub.enrollment?.user_profile;
+        const assignment = sub.assignment;
+        const lesson = assignment?.lesson;
+        const course = lesson?.course;
+        
+        return {
+            id: sub.id,
+            assignmentId: sub.assignment_id,
+            enrollmentId: sub.enrollment_id ?? null,
+            userId: sub.user_id ?? null,
+            submittedAt: sub.submitted_at ?? null,
+            answerUrl: sub.answer_url ?? null,
+            contentUrl: sub.content_url ?? null,
+            comments: sub.comments ?? null,
+            score: sub.score ?? null,
+            feedback: sub.feedback ?? null,
+            gradedAt: sub.graded_at ?? null,
+            studentName: profile?.full_name ?? "Aluno",
+            studentEmail: profile?.email ?? null,
+            assignmentTitle: assignment?.title ?? "Atividade",
+            assignmentMaxScore: assignment?.max_score ?? null,
+            courseName: course?.title ?? "Curso",
+            courseId: course?.id ?? "",
+            lessonTitle: lesson?.title ?? "Aula",
+        };
+    });
+}
+
+// Remove a correção de uma submissão (volta para pendente)
+export async function deleteGrade(submissionId: string): Promise<boolean> {
+    const supabase = createBrowserSupabase();
+    
+    const { error } = await supabase
+        .from("assignment_submission")
+        .update({
+            score: null,
+            feedback: null,
+            graded_at: null,
+            graded_by: null,
+        })
+        .eq("id", submissionId);
+
+    if (error) throw error;
+    return true;
 }

@@ -7,7 +7,8 @@ import {
     updateAssignment,
     deleteAssignment
 } from "@/lib/api/assignments";
-import { Plus, Trash2, Edit2, Save, X, FileText, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, FileText, Users, MessageSquare } from "lucide-react";
+import SubmissionsList from "./SubmissionsList";
 import StudentChatList from "@/components/activities/student-chat-list";
 
 interface AssignmentManagerProps {
@@ -27,6 +28,7 @@ export default function AssignmentManager({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [chatOpenId, setChatOpenId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [viewingSubmissions, setViewingSubmissions] = useState<AssignmentSummary | null>(null);
 
     // Form states
     const [title, setTitle] = useState("");
@@ -211,6 +213,13 @@ export default function AssignmentManager({
                                         </div>
                                         <div className="flex gap-1">
                                             <button
+                                                onClick={() => setViewingSubmissions(assignment)}
+                                                className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+                                                title="Ver Entregas"
+                                            >
+                                                <Users className="w-4 h-4" />
+                                            </button>
+                                            <button
                                                 onClick={() =>
                                                     setChatOpenId(
                                                         chatOpenId === assignment.id ? null : assignment.id
@@ -316,6 +325,14 @@ export default function AssignmentManager({
                     <Plus className="w-4 h-4" />
                     Adicionar atividade
                 </button>
+            )}
+
+            {/* Modal de Entregas */}
+            {viewingSubmissions && (
+                <SubmissionsList
+                    assignment={viewingSubmissions}
+                    onClose={() => setViewingSubmissions(null)}
+                />
             )}
         </div>
     );
