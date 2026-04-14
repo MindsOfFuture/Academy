@@ -25,11 +25,15 @@ import {
   MessageSquare,
   User
 } from "lucide-react";
+import ActivityChat from "@/components/activities/activity-chat";
+import { getCurrentChatUser } from "@/lib/api/activity-chat";
+import type { ChatUser } from "@/lib/api/types";
 
 function ActivitiePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const assignmentId = searchParams.get("id");
+  const studentIdParam = searchParams.get("studentId");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [assignment, setAssignment] = useState<AssignmentSummary | null>(null);
@@ -39,6 +43,9 @@ function ActivitiePageContent() {
   const [teacherName, setTeacherName] = useState("Professor");
   const [lessonTitle, setLessonTitle] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
+
+  // Chat user
+  const [chatUser, setChatUser] = useState<ChatUser | null>(null);
 
   // Form states
   const [answerUrl, setAnswerUrl] = useState("");
@@ -99,6 +106,12 @@ function ActivitiePageContent() {
                 : lessonData.course;
               setCourseTitle(course?.title || "");
             }
+          }
+
+          // Buscar perfil e role do usuário logado para o chat
+          const chatUserData = await getCurrentChatUser();
+          if (chatUserData) {
+            setChatUser(chatUserData);
           }
         }
       } catch (error) {
@@ -399,6 +412,19 @@ function ActivitiePageContent() {
                 accept=".pdf,.doc,.docx,.zip,.rar"
               />
             </div>
+
+            {/* Chat da Atividade */}
+            {chatUser && assignmentId && (
+              <ActivityChat
+                assignmentId={assignmentId}
+                studentId={
+                  chatUser.role === "student"
+                    ? chatUser.id
+                    : studentIdParam ?? chatUser.id
+                }
+                currentUser={chatUser}
+              />
+            )}
           </div>
 
           {/* Sidebar */}

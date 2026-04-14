@@ -7,7 +7,8 @@ import {
     updateAssignment,
     deleteAssignment
 } from "@/lib/api/assignments";
-import { Plus, Trash2, Edit2, Save, X, FileText } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, FileText, MessageSquare } from "lucide-react";
+import StudentChatList from "@/components/activities/student-chat-list";
 
 interface AssignmentManagerProps {
     lessonId: string;
@@ -24,6 +25,7 @@ export default function AssignmentManager({
 }: AssignmentManagerProps) {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [chatOpenId, setChatOpenId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
     // Form states
@@ -193,36 +195,61 @@ export default function AssignmentManager({
                                 </div>
                             ) : (
                                 // Visualização
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm">{assignment.title}</p>
-                                        {assignment.description && (
-                                            <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{assignment.description}</p>
-                                        )}
-                                        <div className="flex gap-4 mt-1 text-xs text-gray-500">
-                                            <span>Prazo: {formatDate(assignment.dueDate)}</span>
-                                            {assignment.maxScore && (
-                                                <span>Pontos: {assignment.maxScore}</span>
+                                <>
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <p className="font-medium text-sm">{assignment.title}</p>
+                                            {assignment.description && (
+                                                <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{assignment.description}</p>
                                             )}
+                                            <div className="flex gap-4 mt-1 text-xs text-gray-500">
+                                                <span>Prazo: {formatDate(assignment.dueDate)}</span>
+                                                {assignment.maxScore && (
+                                                    <span>Pontos: {assignment.maxScore}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() =>
+                                                    setChatOpenId(
+                                                        chatOpenId === assignment.id ? null : assignment.id
+                                                    )
+                                                }
+                                                className={`p-1 rounded transition ${chatOpenId === assignment.id
+                                                        ? "bg-purple-100 text-purple-700"
+                                                        : "text-purple-500 hover:bg-purple-50"
+                                                    }`}
+                                                title="Conversas com alunos"
+                                            >
+                                                <MessageSquare className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => startEdit(assignment)}
+                                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                                title="Editar"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(assignment.id)}
+                                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                title="Excluir"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => startEdit(assignment)}
-                                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                            title="Editar"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(assignment.id)}
-                                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                            title="Excluir"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
+
+                                    {/* Painel de conversas com alunos */}
+                                    {chatOpenId === assignment.id && (
+                                        <StudentChatList
+                                            assignmentId={assignment.id}
+                                            assignmentTitle={assignment.title}
+                                            onClose={() => setChatOpenId(null)}
+                                        />
+                                    )}
+                                </>
                             )}
                         </li>
                     ))}
