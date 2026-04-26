@@ -110,7 +110,7 @@ export function ProfileClient({
 
     const handleRemoveAvatar = async () => {
         if (!avatarUrl) return;
-        
+
         const confirmRemove = window.confirm("Deseja remover sua foto de perfil?");
         if (!confirmRemove) return;
 
@@ -189,7 +189,7 @@ export function ProfileClient({
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     {/* Avatar com suporte a foto */}
                     <div className="relative group">
-                        <div 
+                        <div
                             onClick={handleAvatarClick}
                             className="w-20 h-20 rounded-full bg-gradient-to-br from-[#684A97] to-[#8e6bc9] text-white flex items-center justify-center text-2xl font-semibold shadow-md select-none cursor-pointer overflow-hidden relative"
                         >
@@ -203,7 +203,7 @@ export function ProfileClient({
                             ) : (
                                 initials()
                             )}
-                            
+
                             {/* Overlay de hover */}
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 {uploadingAvatar ? (
@@ -213,7 +213,7 @@ export function ProfileClient({
                                 )}
                             </div>
                         </div>
-                        
+
                         {/* Input de arquivo oculto */}
                         <input
                             ref={fileInputRef}
@@ -223,10 +223,10 @@ export function ProfileClient({
                             className="hidden"
                             disabled={uploadingAvatar}
                         />
-                        
+
                         {/* Texto de ajuda */}
                         <p className="text-xs text-gray-500 mt-1 text-center">Clique para alterar</p>
-                        
+
                         {/* Botão de remover foto */}
                         {avatarUrl && (
                             <button
@@ -244,7 +244,7 @@ export function ProfileClient({
                             </button>
                         )}
                     </div>
-                    
+
                     <div className="flex-1">
                         <h2 className="text-2xl font-bold">Meu Perfil</h2>
                         <p className="text-sm text-gray-600">Gerencie suas informações pessoais e segurança da conta.</p>
