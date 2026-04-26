@@ -40,6 +40,11 @@ describe("SignUpForm Integration", () => {
       },
       writable: true,
     });
+    // Mock fetch for teacher qualification upload
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: "https://example.com/qualification.pdf" }),
+    });
   });
 
   const defaultProps = {
@@ -184,6 +189,12 @@ describe("SignUpForm Integration", () => {
     fireEvent.change(select, { target: { value: "graduacao" } });
 
     await userEvent.type(screen.getByPlaceholderText("Formação (ex: Matemática)"), "Matemática");
+
+    // Attach qualification file (required to advance past step 3)
+    const qualificationFileInput = document.querySelector('input[type="file"][accept*="application/pdf"]') as HTMLInputElement;
+    const mockFile = new File(["dummy"], "diploma.pdf", { type: "application/pdf" });
+    fireEvent.change(qualificationFileInput, { target: { files: [mockFile] } });
+
     fireEvent.click(screen.getByText("Próximo"));
 
     // STEP 4
