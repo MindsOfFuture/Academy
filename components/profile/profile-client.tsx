@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { updateUserProfileClient, uploadAvatarClient, removeAvatarClient } from "@/lib/api/profiles";
+import { updateTeacherProfileClient, updateUserProfileClient, uploadAvatarClient, removeAvatarClient } from "@/lib/api/profiles";
+import { type TeacherVerificationStatus } from "@/lib/api/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, Mail, Save, RefreshCw, Camera, Trash2 } from "lucide-react";
+import { User as UserIcon, Mail, Save, RefreshCw, Camera, Trash2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import Image from "next/image";
 
@@ -14,12 +15,61 @@ interface ProfileClientProps {
     initialEmail: string;
     userType: string;
     initialAvatarUrl?: string | null;
+    initialBio?: string | null;
+    initialSpecialties?: string[];
+    initialCertifications?: string[];
+    verificationStatus?: TeacherVerificationStatus;
+    verificationReason?: string | null;
+    initialVerificationDocumentUrl?: string | null;
 }
 
-export function ProfileClient({ userId, initialName, initialEmail, userType, initialAvatarUrl }: ProfileClientProps) {
+function toCsv(items: string[] = []) {
+    return items.join(", ");
+}
+
+function fromCsv(value: string) {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function verificationStatusText(status: TeacherVerificationStatus) {
+    if (status === "approved") return "Aprovado";
+    if (status === "rejected") return "Reprovado";
+    if (status === "pending") return "Pendente";
+    return "Não enviado";
+}
+
+function verificationStatusStyle(status: TeacherVerificationStatus) {
+    if (status === "approved") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (status === "rejected") return "bg-red-100 text-red-700 border-red-200";
+    if (status === "pending") return "bg-amber-100 text-amber-700 border-amber-200";
+    return "bg-gray-100 text-gray-700 border-gray-200";
+}
+
+export function ProfileClient({
+    userId,
+    initialName,
+    initialEmail,
+    userType,
+    initialAvatarUrl,
+    initialBio,
+    initialSpecialties,
+    initialCertifications,
+    verificationStatus,
+    verificationReason,
+    initialVerificationDocumentUrl,
+}: ProfileClientProps) {
     const [name, setName] = useState(initialName);
     const [email, setEmail] = useState(initialEmail);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
+    const [bio, setBio] = useState(initialBio || "");
+    const [specialtiesCsv, setSpecialtiesCsv] = useState(toCsv(initialSpecialties || []));
+    const [certificationsCsv, setCertificationsCsv] = useState(toCsv(initialCertifications || []));
+    const [qualificationDocumentUrl, setQualificationDocumentUrl] = useState<string | null>(initialVerificationDocumentUrl || null);
+    const [qualificationFile, setQualificationFile] = useState<File | null>(null);
+    const [uploadingQualification, setUploadingQualification] = useState(false);
+    const [verificationStatusState, setVerificationStatusState] = useState<TeacherVerificationStatus>(verificationStatus || null);
+    const [verificationReasonState, setVerificationReasonState] = useState<string | null>(verificationReason || null);
+    const [reverificationNotice, setReverificationNotice] = useState<string | null>(null);
     const [savingProfile, setSavingProfile] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [removingAvatar, setRemovingAvatar] = useState(false);
@@ -86,12 +136,49 @@ export function ProfileClient({ userId, initialName, initialEmail, userType, ini
         setSavingProfile(true);
         try {
             const { message } = await updateUserProfileClient({ userId, name, email, originalEmail: initialEmail });
+            if (userType === "teacher") {
+                let nextDocumentUrl = qualificationDocumentUrl;
+                if (qualificationFile) {
+                    setUploadingQualification(true);
+                    const uploadForm = new FormData();
+                    uploadForm.append("file", qualificationFile);
+
+                    const uploadResponse = await fetch("/api/auth/teacher-qualification-upload", {
+                        method: "POST",
+                        body: uploadForm,
+                    });
+                    const uploadPayload = await uploadResponse.json().catch(() => null);
+                    if (!uploadResponse.ok || !uploadPayload?.url) {
+                        throw new Error(uploadPayload?.error || "Falha ao enviar comprovante de qualificação.");
+                    }
+                    nextDocumentUrl = uploadPayload.url;
+                    setQualificationDocumentUrl(uploadPayload.url);
+                }
+
+                const teacherResult = await updateTeacherProfileClient({
+                    userId,
+                    bio,
+                    specialties: fromCsv(specialtiesCsv),
+                    certifications: fromCsv(certificationsCsv),
+                    qualificationDocumentUrl: nextDocumentUrl,
+                });
+                setVerificationStatusState(teacherResult.verificationStatus || verificationStatusState);
+                if (teacherResult.reverificationRequested) {
+                    setVerificationReasonState(null);
+                    setReverificationNotice("Seu perfil foi reenviado e está em verificação pendente para reavaliação.");
+                    toast.success(teacherResult.message);
+                } else {
+                    setReverificationNotice(null);
+                }
+            }
             toast.success(message);
+            setQualificationFile(null);
 
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Erro ao salvar';
             toast.error(msg);
         } finally {
+            setUploadingQualification(false);
             setSavingProfile(false);
         }
     };
@@ -164,6 +251,25 @@ export function ProfileClient({ userId, initialName, initialEmail, userType, ini
                         <div className="mt-2 inline-flex items-center text-xs px-3 py-1 rounded-full bg-[#684A97]/10 text-[#684A97] font-medium uppercase tracking-wide">
                             {userType === 'admin' ? 'Administrador' : userType === 'teacher' ? 'Professor' : 'Usuário'}
                         </div>
+                        {userType === "teacher" && (
+                            <div className="mt-3 space-y-2">
+                                <div className={`inline-flex items-center text-xs px-3 py-1 rounded-full border font-semibold ${verificationStatusStyle(verificationStatusState || null)}`}>
+                                    Verificação: {verificationStatusText(verificationStatusState || null)}
+                                </div>
+                                {verificationStatusState === "rejected" && verificationReasonState && (
+                                    <>
+                                        <p className="text-xs text-red-700">Motivo: {verificationReasonState}</p>
+                                        <p className="text-xs text-red-700">Resolva os pontos informados e salve o perfil para ser reavaliado.</p>
+                                    </>
+                                )}
+                                {verificationStatusState !== "approved" && (
+                                    <p className="text-xs text-gray-600">Enquanto sua conta estiver pendente/reprovada, você não poderá publicar artigos nem criar cursos/trilhas.</p>
+                                )}
+                                {reverificationNotice && (
+                                    <p className="text-xs text-amber-700">{reverificationNotice}</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
                 <form onSubmit={handleSaveProfile} className="space-y-5 max-w-lg">
@@ -182,9 +288,72 @@ export function ProfileClient({ userId, initialName, initialEmail, userType, ini
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Alterar e-mail pode exigir confirmação.</p>
                     </div>
+                    {userType === "teacher" && (
+                        <>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-1 block">Bio profissional</label>
+                                <textarea
+                                    value={bio}
+                                    onChange={(e) => setBio(e.target.value)}
+                                    rows={4}
+                                    placeholder="Descreva sua experiência, áreas de atuação e metodologia."
+                                    className="w-full rounded-2xl border border-gray-200 bg-[#F9F7FC] p-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-1 block">Especialidades</label>
+                                <Input
+                                    value={specialtiesCsv}
+                                    onChange={(e) => setSpecialtiesCsv(e.target.value)}
+                                    placeholder="Ex: Matemática, Geometria, ENEM"
+                                    className="w-full rounded-full border-none bg-[#F3F0F9] py-6 px-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#6A4A98]"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Separe cada especialidade com vírgula.</p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-1 block">Certificações</label>
+                                <Input
+                                    value={certificationsCsv}
+                                    onChange={(e) => setCertificationsCsv(e.target.value)}
+                                    placeholder="Ex: Pós-graduação em Educação, Certificação XYZ"
+                                    className="w-full rounded-full border-none bg-[#F3F0F9] py-6 px-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#6A4A98]"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Separe cada certificação com vírgula.</p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-1 block">Comprovante de qualificação</label>
+                                {qualificationDocumentUrl ? (
+                                    <a
+                                        href={qualificationDocumentUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+                                    >
+                                        Abrir anexo atual
+                                    </a>
+                                ) : (
+                                    <p className="text-xs text-amber-700">Nenhum anexo enviado.</p>
+                                )}
+
+                                <label className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#F3F0F9] px-4 py-2 text-sm font-medium text-[#6A4A98] cursor-pointer hover:bg-[#ece5f8]">
+                                    <Upload size={14} />
+                                    {qualificationFile ? "Trocar anexo" : "Selecionar novo anexo"}
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="application/pdf,image/jpeg,image/png,image/webp"
+                                        onChange={(e) => setQualificationFile(e.target.files?.[0] || null)}
+                                    />
+                                </label>
+                                {qualificationFile && (
+                                    <p className="text-xs text-gray-600 mt-1 truncate">Arquivo selecionado: {qualificationFile.name}</p>
+                                )}
+                            </div>
+                        </>
+                    )}
                     <div className="flex gap-3">
-                        <Button type="submit" disabled={savingProfile} className="rounded-full bg-[#6A4A98] hover:bg-[#5a3e85]">
-                            {savingProfile ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+                        <Button type="submit" disabled={savingProfile || uploadingQualification} className="rounded-full bg-[#6A4A98] hover:bg-[#5a3e85]">
+                            {(savingProfile || uploadingQualification) ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
                             {savingProfile ? 'Salvando...' : 'Salvar perfil'}
                         </Button>
                     </div>

@@ -1,4 +1,5 @@
 export type RoleName = "admin" | "teacher" | "student" | "unknown";
+export type TeacherVerificationStatus = "pending" | "approved" | "rejected" | null;
 
 // Tipos para dados brutos do Supabase (DB rows)
 // Nota: Supabase retorna joins como arrays, então thumb pode vir como array ou objeto
@@ -93,6 +94,9 @@ export interface UserProfileRow {
     email?: string | null;
     avatar_url?: string | null;
     bio?: string | null;
+    specialties?: string[] | null;
+    certifications?: string[] | null;
+    verification_status?: TeacherVerificationStatus;
     is_active?: boolean | null;
 }
 
@@ -140,6 +144,11 @@ export interface UserProfileSummary {
     fullName: string | null;
     avatarUrl?: string | null;
     bio?: string | null;
+    specialties?: string[] | null;
+    certifications?: string[] | null;
+    verificationStatus?: TeacherVerificationStatus;
+    verificationReason?: string | null;
+    verificationDocumentUrl?: string | null;
     isActive?: boolean | null;
     role: RoleName;
 }

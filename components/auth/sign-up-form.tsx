@@ -9,7 +9,7 @@ import Link from "next/link";
 import { 
   User, Mail, Lock, Eye, EyeOff, Phone, MapPin, 
   FileText, Calendar, School, GraduationCap, Users, 
-  Plus, X, ChevronRight, ChevronLeft, Check, ArrowLeft
+  Plus, X, ChevronRight, ChevronLeft, Check, ArrowLeft, Upload
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -50,6 +50,7 @@ export function SignUpForm({
   const [schools, setSchools] = useState<string[]>([""]);
   const [educationLevel, setEducationLevel] = useState("");
   const [degree, setDegree] = useState("");
+  const [qualificationFile, setQualificationFile] = useState<File | null>(null);
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -116,6 +117,7 @@ export function SignUpForm({
           if (!educationLevel) return "Selecione o grau de escolaridade.";
           if (!degree.trim()) return "Formação acadêmica é obrigatória.";
           if (schools.some(s => !s.trim())) return "Preencha todas as escolas ou remova as vazias.";
+          if (!qualificationFile) return "Anexe um comprovante de qualificação (diploma ou comprovante de cargo).";
         }
         return null;
 
@@ -163,6 +165,29 @@ export function SignUpForm({
 
     const supabase = createClient();
     try {
+      let qualificationDocumentUrl: string | null = null;
+
+      if (userType === "teacher") {
+        if (!qualificationFile) {
+          throw new Error("Anexo obrigatório para cadastro de professor.");
+        }
+
+        const uploadForm = new FormData();
+        uploadForm.append("file", qualificationFile);
+
+        const uploadResponse = await fetch("/api/auth/teacher-qualification-upload", {
+          method: "POST",
+          body: uploadForm,
+        });
+
+        const uploadPayload = await uploadResponse.json().catch(() => null);
+        if (!uploadResponse.ok || !uploadPayload?.url) {
+          throw new Error(uploadPayload?.error || "Não foi possível enviar o comprovante de qualificação.");
+        }
+
+        qualificationDocumentUrl = uploadPayload.url;
+      }
+
       const metadata: Record<string, unknown> = {
         full_name: name,
         user_type: userType,
@@ -180,6 +205,7 @@ export function SignUpForm({
         metadata.schools = schools.filter(s => s.trim());
         metadata.education_level = educationLevel;
         metadata.degree = degree;
+        metadata.qualification_document_url = qualificationDocumentUrl;
       }
 
       const { error } = await supabase.auth.signUp({
@@ -438,6 +464,28 @@ export function SignUpForm({
                 <div className="relative flex items-center">
                   <FileText className="absolute left-4 text-[#6A4A98] z-10" size={20} />
                   <Input type="text" placeholder="Formação (ex: Matemática)" value={degree} onChange={(e) => setDegree(e.target.value)} className={inputClass} />
+                </div>
+
+                <div className="rounded-2xl bg-white/10 border border-white/20 p-4">
+                  <label className="text-sm font-semibold text-white mb-2 block">Anexo obrigatório de qualificação</label>
+                  <p className="text-xs text-white/80 mb-3">
+                    Envie diploma ou comprovante de vínculo/cargo de trabalho. Formatos: PDF, JPG, PNG ou WEBP (máx. 10MB).
+                  </p>
+                  <label className="flex items-center justify-center gap-2 rounded-full bg-white text-[#6A4A98] font-semibold px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors">
+                    <Upload size={16} />
+                    {qualificationFile ? "Trocar anexo" : "Selecionar anexo"}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="application/pdf,image/jpeg,image/png,image/webp"
+                      onChange={(e) => setQualificationFile(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                  {qualificationFile ? (
+                    <p className="text-xs text-emerald-100 mt-2 truncate">Arquivo selecionado: {qualificationFile.name}</p>
+                  ) : (
+                    <p className="text-xs text-amber-100 mt-2">Nenhum arquivo selecionado.</p>
+                  )}
                 </div>
               </>
             )}

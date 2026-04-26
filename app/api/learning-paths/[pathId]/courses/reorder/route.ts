@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { reorderCoursesInPath } from "@/lib/api/learning-paths";
+import { ensureCurrentTeacherVerifiedForPublishing } from "@/lib/api/profiles-server";
 
 export async function PATCH(
     request: Request,
     { params }: { params: Promise<{ pathId: string }> }
 ) {
     try {
+        await ensureCurrentTeacherVerifiedForPublishing();
+
         const { pathId } = await params;
         const body = await request.json();
         const { courseOrders } = body;
@@ -29,9 +32,11 @@ export async function PATCH(
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Erro ao reordenar cursos:", error);
+        const message = error instanceof Error ? error.message : "Erro interno";
+        const status = message.toLowerCase().includes("não verificado") || message.toLowerCase().includes("apenas professores") ? 403 : 500;
         return NextResponse.json(
-            { error: "Erro interno" },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

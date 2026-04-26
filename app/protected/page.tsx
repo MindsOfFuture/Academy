@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/navbar/navbar";
 import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
-import { getUserTypeServer } from "@/lib/api/profiles-server";
+import { getCurrentUserProfile, getUserTypeServer } from "@/lib/api/profiles-server";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
 import { getUserCoursesServer } from "@/lib/api/enrollments-server";
 
@@ -14,6 +14,7 @@ export default async function ProtectedPage() {
     redirect("/auth");
   }
   const userType = await getUserTypeServer();
+  const profile = await getCurrentUserProfile();
   const userName = data.user.user_metadata.full_name || "Fulano";
 
   const courses = await getUserCoursesServer();
@@ -27,6 +28,11 @@ export default async function ProtectedPage() {
             <h1 className="text-3xl font-bold mb-2">
               Olá, {userName}
             </h1>
+            {userType === "teacher" && profile?.verificationStatus !== "approved" && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 inline-block">
+                Seu perfil de professor está {profile?.verificationStatus === "rejected" ? "reprovado" : "pendente"}. Até aprovação do admin, publicar artigos e criar cursos/trilhas ficará bloqueado.
+              </p>
+            )}
           </div>
 
           <div className="w-full max-w-7xl mx-auto space-y-8">

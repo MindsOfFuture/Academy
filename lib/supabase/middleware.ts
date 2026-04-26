@@ -52,7 +52,8 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith("/termos") &&
     !request.nextUrl.pathname.startsWith("/privacidade") &&
     !request.nextUrl.pathname.startsWith("/artigos") &&
-    !request.nextUrl.pathname.startsWith("/api/articles")
+    !request.nextUrl.pathname.startsWith("/api/articles") &&
+    !request.nextUrl.pathname.startsWith("/api/auth/teacher-qualification-upload")
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();

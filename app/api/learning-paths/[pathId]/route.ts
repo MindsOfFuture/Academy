@@ -4,6 +4,7 @@ import {
     updateLearningPath,
     deleteLearningPath
 } from "@/lib/api/learning-paths";
+import { ensureCurrentTeacherVerifiedForPublishing } from "@/lib/api/profiles-server";
 
 type RouteParams = { params: Promise<{ pathId: string }> };
 
@@ -25,6 +26,8 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
     try {
+        await ensureCurrentTeacherVerifiedForPublishing();
+
         const { pathId } = await params;
         const body = await request.json();
         const { title, description, audience, coverMediaId } = body;
@@ -43,12 +46,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         return NextResponse.json(updated);
     } catch (error) {
         console.error("Erro ao atualizar trilha:", error);
-        return NextResponse.json({ error: "Erro ao atualizar trilha" }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Erro ao atualizar trilha";
+        const status = message.toLowerCase().includes("não verificado") || message.toLowerCase().includes("apenas professores") ? 403 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
     try {
+        await ensureCurrentTeacherVerifiedForPublishing();
+
         const { pathId } = await params;
         const success = await deleteLearningPath(pathId);
 
@@ -59,6 +66,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Erro ao excluir trilha:", error);
-        return NextResponse.json({ error: "Erro ao excluir trilha" }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Erro ao excluir trilha";
+        const status = message.toLowerCase().includes("não verificado") || message.toLowerCase().includes("apenas professores") ? 403 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

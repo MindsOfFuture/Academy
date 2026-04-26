@@ -28,6 +28,39 @@ export async function updateUserProfileClient(params: { userId: string; name: st
     };
 }
 
+export async function updateTeacherProfileClient(params: {
+    userId: string;
+    bio?: string;
+    specialties?: string[];
+    certifications?: string[];
+    qualificationDocumentUrl?: string | null;
+}): Promise<{ reverificationRequested: boolean; message: string; verificationStatus?: "pending" | "approved" | "rejected" | null; qualificationDocumentUrl?: string | null; }> {
+    const normalize = (items?: string[]) => (items || []).map((item) => item.trim()).filter(Boolean);
+
+    const response = await fetch("/api/teacher/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            bio: params.bio?.trim() || null,
+            specialties: normalize(params.specialties),
+            certifications: normalize(params.certifications),
+            qualificationDocumentUrl: params.qualificationDocumentUrl || null,
+        }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new Error(payload?.error || "Erro ao atualizar perfil de professor.");
+    }
+
+    return {
+        reverificationRequested: !!payload?.reverificationRequested,
+        message: payload?.message || "Perfil de professor atualizado com sucesso.",
+        verificationStatus: payload?.verificationStatus,
+        qualificationDocumentUrl: payload?.qualificationDocumentUrl,
+    };
+}
+
 export async function listUsersClient() {
     const supabase = createBrowserSupabase();
     const { data, error } = await supabase

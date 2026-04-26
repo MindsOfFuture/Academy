@@ -74,26 +74,32 @@ export default function CoursesSection() {
       return;
     }
 
-    if (editingCourse) {
-      const updated = await updateCourse(editingCourse.id, {
-        title,
-        description,
-        imageUrl,
-        status: isPublished ? "active" : "draft",
-        audience: isTeacherOnly ? "teacher" : "student",
-      });
-      if (updated) handleCourseUpdated(updated);
-      else alert("Erro ao atualizar curso.");
-    } else {
-      const newCourse = await createCourse({
-        title,
-        description,
-        imageUrl,
-        status: isPublished ? "active" : "draft",
-        audience: isTeacherOnly ? "teacher" : "student",
-      });
-      if (newCourse) setCourses((prev) => [...prev, newCourse]);
-      else alert("Erro ao criar curso.");
+    try {
+      if (editingCourse) {
+        const updated = await updateCourse(editingCourse.id, {
+          title,
+          description,
+          imageUrl,
+          status: isPublished ? "active" : "draft",
+          audience: isTeacherOnly ? "teacher" : "student",
+        });
+        if (updated) handleCourseUpdated(updated);
+        else alert("Erro ao atualizar curso.");
+      } else {
+        const newCourse = await createCourse({
+          title,
+          description,
+          imageUrl,
+          status: isPublished ? "active" : "draft",
+          audience: isTeacherOnly ? "teacher" : "student",
+        });
+        if (newCourse) setCourses((prev) => [...prev, newCourse]);
+        else alert("Erro ao criar curso.");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao salvar curso.";
+      alert(message);
+      return;
     }
 
     resetForm();

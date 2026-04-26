@@ -8,7 +8,19 @@ export default async function ProtectedProfilePage() {
   if (!profile) {
     redirect("/auth");
   }
-  const { id, displayName, email, role, avatarUrl } = profile;
+  const {
+    id,
+    displayName,
+    email,
+    role,
+    avatarUrl,
+    bio,
+    specialties,
+    certifications,
+    verificationStatus,
+    verificationReason,
+    verificationDocumentUrl,
+  } = profile;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -25,6 +37,12 @@ export default async function ProtectedProfilePage() {
             initialEmail={email}
             userType={role}
             initialAvatarUrl={avatarUrl}
+            initialBio={bio}
+            initialSpecialties={specialties}
+            initialCertifications={certifications}
+            verificationStatus={verificationStatus}
+            verificationReason={verificationReason}
+            initialVerificationDocumentUrl={verificationDocumentUrl}
           />
         </div>
       </div>

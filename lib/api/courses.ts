@@ -110,6 +110,16 @@ export async function createCourse(payload: { title: string; description: string
     const user = authData?.user;
     if (!user) throw new Error("Usuário não autenticado.");
 
+    const { data: profile } = await supabase
+        .from("user_profile")
+        .select("verification_status")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (profile?.verification_status !== "approved") {
+        throw new Error("Professor não verificado. Aguarde aprovação do administrador para criar cursos.");
+    }
+
     const thumbId = await ensureThumbId(payload.imageUrl, supabase, user.id);
 
     const { data, error } = await supabase
@@ -137,6 +147,16 @@ export async function updateCourse(courseId: string, payload: { title?: string; 
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) throw new Error("Usuário não autenticado.");
+
+    const { data: profile } = await supabase
+        .from("user_profile")
+        .select("verification_status")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (profile?.verification_status !== "approved") {
+        throw new Error("Professor não verificado. Aguarde aprovação do administrador para editar cursos.");
+    }
 
     const thumbId = await ensureThumbId(payload.imageUrl, supabase, user.id);
 

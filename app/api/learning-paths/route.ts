@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLearningPaths, createLearningPath } from "@/lib/api/learning-paths";
+import { ensureCurrentTeacherVerifiedForPublishing } from "@/lib/api/profiles-server";
 
 export async function GET() {
     try {
@@ -13,6 +14,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        await ensureCurrentTeacherVerifiedForPublishing();
+
         const body = await request.json();
         const { title, description, audience, coverMediaId } = body;
 
@@ -29,6 +32,8 @@ export async function POST(request: Request) {
         return NextResponse.json(path, { status: 201 });
     } catch (error) {
         console.error("Erro ao criar trilha:", error);
-        return NextResponse.json({ error: "Erro ao criar trilha" }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Erro ao criar trilha";
+        const status = message.toLowerCase().includes("não verificado") || message.toLowerCase().includes("apenas professores") ? 403 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }
