@@ -1,8 +1,8 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { type UserProfileSummary, type RoleName } from "./types";
 
-export async function updateUserProfileClient(params: { userId: string; name: string; email: string; originalEmail: string; }): Promise<{ emailChanged: boolean; message: string; }> {
-    const { userId, name, email, originalEmail } = params;
+export async function updateUserProfileClient(params: { userId: string; name: string; email: string; originalEmail: string; phone?: string; address?: string; }): Promise<{ emailChanged: boolean; message: string; }> {
+    const { userId, name, email, originalEmail, phone, address } = params;
     const supabase = createBrowserSupabase();
     const trimmedName = name.trim();
     if (!trimmedName) throw new Error("Nome inválido");
@@ -16,7 +16,12 @@ export async function updateUserProfileClient(params: { userId: string; name: st
 
     const { error: tableError } = await supabase
         .from("user_profile")
-        .update({ full_name: trimmedName, email })
+        .update({
+            full_name: trimmedName,
+            email,
+            ...(phone !== undefined ? { phone: phone.trim() } : {}),
+            ...(address !== undefined ? { address: address.trim() } : {}),
+        })
         .eq("id", userId);
     if (tableError) throw tableError;
 
@@ -34,6 +39,9 @@ export async function updateTeacherProfileClient(params: {
     specialties?: string[];
     certifications?: string[];
     qualificationDocumentUrl?: string | null;
+    schools?: string[];
+    educationLevel?: string;
+    degree?: string;
 }): Promise<{ reverificationRequested: boolean; message: string; verificationStatus?: "pending" | "approved" | "rejected" | null; qualificationDocumentUrl?: string | null; }> {
     const normalize = (items?: string[]) => (items || []).map((item) => item.trim()).filter(Boolean);
 
@@ -45,6 +53,9 @@ export async function updateTeacherProfileClient(params: {
             specialties: normalize(params.specialties),
             certifications: normalize(params.certifications),
             qualificationDocumentUrl: params.qualificationDocumentUrl || null,
+            schools: normalize(params.schools),
+            educationLevel: params.educationLevel?.trim() || null,
+            degree: params.degree?.trim() || null,
         }),
     });
 

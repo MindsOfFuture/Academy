@@ -10,12 +10,18 @@ export async function PATCH(request: Request) {
         const qualificationDocumentUrl = typeof body.qualificationDocumentUrl === "string"
             ? body.qualificationDocumentUrl
             : undefined;
+        const schools = Array.isArray(body.schools) ? body.schools : undefined;
+        const educationLevel = typeof body.educationLevel === "string" ? body.educationLevel : undefined;
+        const degree = typeof body.degree === "string" ? body.degree : undefined;
 
         const result = await updateCurrentTeacherProfileWithReverification({
             bio,
             specialties,
             certifications,
             qualificationDocumentUrl,
+            schools,
+            educationLevel,
+            degree,
         });
 
         return NextResponse.json(result);

@@ -144,6 +144,8 @@ export interface UserProfileSummary {
     fullName: string | null;
     avatarUrl?: string | null;
     bio?: string | null;
+    phone?: string | null;
+    address?: string | null;
     specialties?: string[] | null;
     certifications?: string[] | null;
     verificationStatus?: TeacherVerificationStatus;
@@ -151,6 +153,10 @@ export interface UserProfileSummary {
     verificationDocumentUrl?: string | null;
     isActive?: boolean | null;
     role: RoleName;
+    // Teacher-specific fields from teacher_details table
+    schools?: string[] | null;
+    educationLevel?: string | null;
+    degree?: string | null;
 }
 
 export interface EnrollmentSummary {

@@ -95,11 +95,17 @@ export async function getCurrentUserProfile(): Promise<{
     role: RoleName;
     avatarUrl: string | null;
     bio: string | null;
+    phone: string | null;
+    address: string | null;
     specialties: string[];
     certifications: string[];
     verificationStatus: TeacherVerificationStatus;
     verificationReason: string | null;
     verificationDocumentUrl: string | null;
+    // Teacher-specific
+    schools: string[];
+    educationLevel: string | null;
+    degree: string | null;
 } | null> {
     const supabase = await createServerSupabase();
     const { data: authData } = await supabase.auth.getUser();
@@ -110,9 +116,22 @@ export async function getCurrentUserProfile(): Promise<{
 
     const { data: profileRow } = await supabase
         .from("user_profile")
-        .select("full_name, email, avatar_url, bio, specialties, certifications, verification_status")
+        .select("full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status")
         .eq("id", user.id)
         .maybeSingle();
+
+    // Fetch teacher-specific details if applicable
+    let teacherDetails: { schools: string[]; education_level: string | null; degree: string | null } | null = null;
+    if (role === "teacher") {
+        const { data: tdRow } = await supabase
+            .from("teacher_details")
+            .select("schools, education_level, degree")
+            .eq("user_id", user.id)
+            .maybeSingle();
+        if (tdRow) {
+            teacherDetails = tdRow as { schools: string[]; education_level: string | null; degree: string | null };
+        }
+    }
 
     const { data: teacherRequest } = await supabase
         .from("teacher_request")
@@ -140,6 +159,8 @@ export async function getCurrentUserProfile(): Promise<{
         role,
         avatarUrl: profileRow?.avatar_url || null,
         bio: profileRow?.bio || null,
+        phone: profileRow?.phone || null,
+        address: profileRow?.address || null,
         specialties: profileRow?.specialties || [],
         certifications: profileRow?.certifications || [],
         verificationStatus: (profileRow?.verification_status || null) as TeacherVerificationStatus,
@@ -148,6 +169,10 @@ export async function getCurrentUserProfile(): Promise<{
             teacherRequest?.qualification_document_url ||
             teacherRequestWithDocument?.qualification_document_url ||
             ((user.user_metadata?.qualification_document_url as string | undefined) || null),
+        // Teacher-specific
+        schools: teacherDetails?.schools || [],
+        educationLevel: teacherDetails?.education_level || null,
+        degree: teacherDetails?.degree || null,
     };
 }
 
@@ -155,7 +180,7 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
         .from("user_profile")
-        .select("id, full_name, email, avatar_url, bio, specialties, certifications, verification_status, is_active, created_at")
+        .select("id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active, created_at")
         .order("created_at", { ascending: false });
 
     if (error || !data) {
@@ -183,6 +208,8 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
             fullName: row.full_name,
             avatarUrl: row.avatar_url,
             bio: row.bio,
+            phone: row.phone,
+            address: row.address,
             specialties: row.specialties || [],
             certifications: row.certifications || [],
             verificationStatus: (row.verification_status || null) as TeacherVerificationStatus,
@@ -207,7 +234,7 @@ export async function getUsersPage(
 
     let query = supabase
         .from("user_profile")
-        .select("id, full_name, email, avatar_url, bio, specialties, certifications, verification_status, is_active, created_at", { count: "exact" })
+        .select("id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active, created_at", { count: "exact" })
         .order("created_at", { ascending: false });
 
     const term = search.trim();
@@ -242,6 +269,8 @@ export async function getUsersPage(
             fullName: row.full_name,
             avatarUrl: row.avatar_url,
             bio: row.bio,
+            phone: row.phone,
+            address: row.address,
             specialties: row.specialties || [],
             certifications: row.certifications || [],
             verificationStatus: (row.verification_status || null) as TeacherVerificationStatus,
@@ -429,6 +458,9 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
     specialties?: string[];
     certifications?: string[];
     qualificationDocumentUrl?: string | null;
+    schools?: string[];
+    educationLevel?: string;
+    degree?: string;
 }): Promise<{ reverificationRequested: boolean; message: string; verificationStatus: TeacherVerificationStatus; qualificationDocumentUrl: string | null; }> {
     const supabase = await createServerSupabase();
     const { data: authData } = await supabase.auth.getUser();
@@ -486,6 +518,40 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
 
     if (profileError) {
         throw profileError;
+    }
+
+    // Update teacher_details (schools, education_level, degree)
+    const sanitizeSchools = sanitize(params.schools);
+    const teacherDetailsUpdate: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+    };
+    if (sanitizeSchools.length > 0) teacherDetailsUpdate.schools = sanitizeSchools;
+    if (params.educationLevel?.trim()) teacherDetailsUpdate.education_level = params.educationLevel.trim();
+    if (params.degree?.trim()) teacherDetailsUpdate.degree = params.degree.trim();
+
+    if (Object.keys(teacherDetailsUpdate).length > 1) {
+        // Check if teacher_details row exists
+        const { data: existingTd } = await serviceRoleClient
+            .from("teacher_details")
+            .select("user_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (existingTd) {
+            await serviceRoleClient
+                .from("teacher_details")
+                .update(teacherDetailsUpdate)
+                .eq("user_id", user.id);
+        } else {
+            await serviceRoleClient
+                .from("teacher_details")
+                .insert({
+                    user_id: user.id,
+                    schools: sanitizeSchools,
+                    education_level: params.educationLevel?.trim() || '',
+                    degree: params.degree?.trim() || '',
+                });
+        }
     }
 
     if (currentStatus === "rejected") {

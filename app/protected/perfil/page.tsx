@@ -15,11 +15,16 @@ export default async function ProtectedProfilePage() {
     role,
     avatarUrl,
     bio,
+    phone,
+    address,
     specialties,
     certifications,
     verificationStatus,
     verificationReason,
     verificationDocumentUrl,
+    schools,
+    educationLevel,
+    degree,
   } = profile;
 
   return (
@@ -38,11 +43,16 @@ export default async function ProtectedProfilePage() {
             userType={role}
             initialAvatarUrl={avatarUrl}
             initialBio={bio}
+            initialPhone={phone}
+            initialAddress={address}
             initialSpecialties={specialties}
             initialCertifications={certifications}
             verificationStatus={verificationStatus}
             verificationReason={verificationReason}
             initialVerificationDocumentUrl={verificationDocumentUrl}
+            initialSchools={schools}
+            initialEducationLevel={educationLevel}
+            initialDegree={degree}
           />
         </div>
       </div>
