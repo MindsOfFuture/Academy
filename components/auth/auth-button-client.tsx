@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
+
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
@@ -48,7 +48,7 @@ export function AuthButtonClient() {
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
-        redirect("/");
+        window.location.href = "/";
     };
 
     // Valida se a string é uma URL válida
