@@ -29,8 +29,12 @@ export async function getUserCoursesServer(): Promise<EnrollmentSummary[]> {
 
     if (error || !enrollments) return [];
 
-    const enrollmentIds = enrollments.map((e) => (e as unknown as EnrollmentRow).id);
-    const courseIds = enrollments.map((e) => (e as unknown as EnrollmentRow).course?.id).filter(Boolean);
+    const validEnrollments = enrollments
+        .map((e) => e as unknown as EnrollmentRow)
+        .filter((e): e is EnrollmentRow & { course: CourseRow } => Boolean(e?.id && e.course?.id));
+
+    const enrollmentIds = validEnrollments.map((e) => e.id);
+    const courseIds = validEnrollments.map((e) => e.course.id);
 
     if (courseIds.length === 0) return [];
 
@@ -61,8 +65,7 @@ export async function getUserCoursesServer(): Promise<EnrollmentSummary[]> {
         if (progress.is_completed) completedByEnrollment[progress.enrollment_id].add(progress.lesson_id);
     });
 
-    return enrollments.map((e) => {
-        const enrollmentRow = e as unknown as EnrollmentRow;
+    return validEnrollments.map((enrollmentRow) => {
         const courseId = enrollmentRow.course?.id;
         const totalLessons = courseId ? lessonsByCourse[courseId]?.length || 0 : 0;
         const completedLessons = completedByEnrollment[enrollmentRow.id]?.size || 0;
@@ -71,7 +74,7 @@ export async function getUserCoursesServer(): Promise<EnrollmentSummary[]> {
         return {
             enrollmentId: enrollmentRow.id,
             status: enrollmentRow.status ?? null,
-            course: mapCourse(enrollmentRow.course as CourseRow),
+            course: mapCourse(enrollmentRow.course),
             progressPercent,
             completedLessons,
             totalLessons,
