@@ -117,7 +117,7 @@ export async function createNotification(params: {
                 : undefined,
         );
         // Fire-and-forget — email failure must not block
-        sendNotificationEmail(profile.email, subject, html).catch(() => {});
+        sendNotificationEmail(profile.email, subject, html).catch(() => { });
     } else {
         console.warn("[createNotification] Usuário sem e-mail para envio:", {
             userId: params.userId,
@@ -222,14 +222,14 @@ export async function notifyAdmins(params: {
     payload: NotificationPayload;
 }): Promise<void> {
     const serviceRole = await createServiceRoleClient();
-    
+
     // Get the admin role ID
     const { data: roleData } = await serviceRole
         .from("role")
         .select("id")
         .eq("name", "admin")
         .maybeSingle();
-        
+
     if (!roleData) {
         console.warn("[notifyAdmins] Papel 'admin' não encontrado na tabela role.");
         return;
@@ -259,7 +259,7 @@ export async function notifyAdmins(params: {
                 userId: admin.user_profile_id,
                 type: params.type,
                 payload: params.payload,
-            }).catch(() => {}) // Silently fail individually to not break others
+            }).catch(() => { }) // Silently fail individually to not break others
         )
     );
 }

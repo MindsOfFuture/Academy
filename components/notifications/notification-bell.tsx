@@ -220,9 +220,8 @@ export function NotificationBell() {
                                 <button
                                     key={n.id}
                                     onClick={() => handleClick(n)}
-                                    className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors ${
-                                        !n.readAt ? "bg-purple-50/60" : ""
-                                    }`}
+                                    className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors ${!n.readAt ? "bg-purple-50/60" : ""
+                                        }`}
                                 >
                                     <div className="mt-0.5">{typeIcon(n.type)}</div>
                                     <div className="flex-1 min-w-0">

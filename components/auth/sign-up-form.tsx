@@ -219,7 +219,7 @@ export function SignUpForm({
       });
 
       if (error) throw error;
-      
+
       // Notify admins if it's a teacher
       if (userType === "teacher") {
         try {
