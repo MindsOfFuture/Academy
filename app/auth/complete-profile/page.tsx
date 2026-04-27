@@ -1,20 +1,18 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ArrowLeft, User, Phone, MapPin, Calendar, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
-export default function CompleteProfilePage() {
+function CompleteProfileContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
     const isFromOAuth = searchParams.get("from") === "oauth";
-    const initialEmail = searchParams.get("email") || "";
     const initialName = searchParams.get("name") || "";
 
     const [fullName, setFullName] = useState(initialName);
@@ -280,5 +278,13 @@ export default function CompleteProfilePage() {
                 </form>
             </div>
         </div>
+    );
+}
+
+export default function CompleteProfilePage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-[#6A4A98] to-[#8e6bc9]" />}>
+            <CompleteProfileContent />
+        </Suspense>
     );
 }

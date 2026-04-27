@@ -1,14 +1,14 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, X, ArrowLeft, School, GraduationCap, Upload } from "lucide-react";
+import { Plus, X, ArrowLeft, School, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
-export default function CompleteTeacherProfilePage() {
+function CompleteTeacherProfileContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -71,7 +71,7 @@ export default function CompleteTeacherProfilePage() {
             let qualificationDocumentUrl: string | null = null;
             if (qualificationFile) {
                 const fileName = `${authData.user.id}-${Date.now()}-${qualificationFile.name}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from("teacher-qualification-documents")
                     .upload(fileName, qualificationFile);
 
@@ -294,5 +294,13 @@ export default function CompleteTeacherProfilePage() {
                 </form>
             </div>
         </div>
+    );
+}
+
+export default function CompleteTeacherProfilePage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-[#6A4A98] to-[#8e6bc9]" />}>
+            <CompleteTeacherProfileContent />
+        </Suspense>
     );
 }

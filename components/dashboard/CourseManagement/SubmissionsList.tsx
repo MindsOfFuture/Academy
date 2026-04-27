@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { type AssignmentSummary, type SubmissionWithStudent } from "@/lib/api/types";
 import { listAssignmentSubmissions } from "@/lib/api/assignments";
 import GradingModal from "./GradingModal";
@@ -31,7 +31,7 @@ export default function SubmissionsList({
     const [filter, setFilter] = useState<FilterType>("all");
     const [gradingSubmission, setGradingSubmission] = useState<SubmissionWithStudent | null>(null);
 
-    const loadSubmissions = async () => {
+    const loadSubmissions = useCallback(async () => {
         setLoading(true);
         try {
             const data = await listAssignmentSubmissions(assignment.id);
@@ -41,11 +41,11 @@ export default function SubmissionsList({
         } finally {
             setLoading(false);
         }
-    };
+    }, [assignment.id]);
 
     useEffect(() => {
         loadSubmissions();
-    }, [assignment.id]);
+    }, [loadSubmissions]);
 
     const formatDate = (dateStr: string | null) => {
         if (!dateStr) return "-";

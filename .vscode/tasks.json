@@ -18,6 +18,16 @@
 				"tests/tmp/resend-audit.mjs"
 			],
 			"isBackground": false
+		},
+		{
+			"label": "build-next",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false
 		}
 	]
 }
