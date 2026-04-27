@@ -2,7 +2,6 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Phone, MapPin, Calendar, FileText } from "lucide-react";
 import toast from "react-hot-toast";
@@ -71,44 +70,22 @@ function CompleteProfileContent() {
         setIsLoading(true);
 
         try {
-            const supabase = createClient();
-            const { data: authData } = await supabase.auth.getUser();
-
-            if (!authData.user) {
-                throw new Error("Usuário não autenticado");
-            }
-
-            // Update user profile with collected data
-            const { error: updateError } = await supabase
-                .from("user_profile")
-                .update({
-                    full_name: fullName,
+            const response = await fetch("/api/auth/oauth-complete-profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName,
                     phone,
                     address,
                     document,
-                    birth_date: birthDate,
-                })
-                .eq("id", authData.user.id);
+                    birthDate,
+                    userType,
+                }),
+            });
 
-            if (updateError) throw updateError;
-
-            // Assign role based on user type
-            const { data: roleData } = await supabase
-                .from("role")
-                .select("id")
-                .eq("name", userType)
-                .maybeSingle();
-
-            if (roleData) {
-                await supabase
-                    .from("user_role")
-                    .delete()
-                    .eq("user_profile_id", authData.user.id);
-
-                await supabase.from("user_role").insert({
-                    user_profile_id: authData.user.id,
-                    role_id: roleData.id,
-                });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(payload?.error || "Erro ao completar perfil");
             }
 
             toast.success("Perfil completado com sucesso!");

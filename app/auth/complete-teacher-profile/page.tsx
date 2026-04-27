@@ -67,6 +67,14 @@ function CompleteTeacherProfileContent() {
                 throw new Error("Usuário não autenticado");
             }
 
+            const ensureRoleResponse = await fetch("/api/auth/oauth-ensure-teacher-role", {
+                method: "POST",
+            });
+            const ensureRolePayload = await ensureRoleResponse.json().catch(() => null);
+            if (!ensureRoleResponse.ok) {
+                throw new Error(ensureRolePayload?.error || "Não foi possível definir papel de professor.");
+            }
+
             // Upload qualification document
             let qualificationDocumentUrl: string | null = null;
             if (qualificationFile) {

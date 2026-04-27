@@ -39,24 +39,23 @@ async function ensureRoleId(roleName: RoleName, supabase: Awaited<ReturnType<typ
 }
 
 async function fetchRoleForUser(userId: string, supabase: Awaited<ReturnType<typeof createServerSupabase>>): Promise<RoleName> {
-    const { data: roleLink } = await supabase
+    const { data: roleLinks } = await supabase
         .from("user_role")
         .select("role_id")
-        .eq("user_profile_id", userId)
-        .maybeSingle();
+        .eq("user_profile_id", userId);
 
-    if (!roleLink?.role_id) return "student";
+    const roleIds = (roleLinks || []).map((item) => item.role_id).filter((value): value is number => typeof value === "number");
+    if (roleIds.length === 0) return "student";
 
-    const { data: roleRow } = await supabase
+    const { data: roleRows } = await supabase
         .from("role")
         .select("name")
-        .eq("id", roleLink.role_id)
-        .maybeSingle();
+        .in("id", roleIds);
 
-    const roleName = roleRow?.name;
-    if (roleName === "admin" || roleName === "teacher" || roleName === "student") {
-        return roleName;
-    }
+    const roleNames = new Set((roleRows || []).map((row) => row.name));
+    if (roleNames.has("admin")) return "admin";
+    if (roleNames.has("teacher")) return "teacher";
+    if (roleNames.has("student")) return "student";
     return "unknown";
 }
 
