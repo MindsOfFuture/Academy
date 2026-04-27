@@ -583,7 +583,7 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
         if (requestError) {
             throw requestError;
         }
-        
+
         // Notify admins that the teacher resubmitted their profile
         await notifyAdmins({
             type: "teacher_pending_approval",
