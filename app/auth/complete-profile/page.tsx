@@ -159,8 +159,8 @@ function CompleteProfileContent() {
                                 type="button"
                                 onClick={() => setUserType("student")}
                                 className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all ${userType === "student"
-                                        ? "border-[#6A4A98] bg-purple-50 text-[#6A4A98]"
-                                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                                    ? "border-[#6A4A98] bg-purple-50 text-[#6A4A98]"
+                                    : "border-gray-200 text-gray-700 hover:border-gray-300"
                                     }`}
                             >
                                 Aluno
@@ -169,8 +169,8 @@ function CompleteProfileContent() {
                                 type="button"
                                 onClick={() => setUserType("teacher")}
                                 className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all ${userType === "teacher"
-                                        ? "border-[#6A4A98] bg-purple-50 text-[#6A4A98]"
-                                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                                    ? "border-[#6A4A98] bg-purple-50 text-[#6A4A98]"
+                                    : "border-gray-200 text-gray-700 hover:border-gray-300"
                                     }`}
                             >
                                 Professor

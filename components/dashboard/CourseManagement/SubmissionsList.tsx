@@ -123,31 +123,28 @@ export default function SubmissionsList({
                                 <Filter className="w-4 h-4 text-gray-400 ml-2" />
                                 <button
                                     onClick={() => setFilter("all")}
-                                    className={`px-3 py-1 rounded text-sm transition ${
-                                        filter === "all"
+                                    className={`px-3 py-1 rounded text-sm transition ${filter === "all"
                                             ? "bg-purple-100 text-purple-700"
                                             : "text-gray-600 hover:bg-gray-100"
-                                    }`}
+                                        }`}
                                 >
                                     Todas
                                 </button>
                                 <button
                                     onClick={() => setFilter("pending")}
-                                    className={`px-3 py-1 rounded text-sm transition ${
-                                        filter === "pending"
+                                    className={`px-3 py-1 rounded text-sm transition ${filter === "pending"
                                             ? "bg-yellow-100 text-yellow-700"
                                             : "text-gray-600 hover:bg-gray-100"
-                                    }`}
+                                        }`}
                                 >
                                     Pendentes
                                 </button>
                                 <button
                                     onClick={() => setFilter("graded")}
-                                    className={`px-3 py-1 rounded text-sm transition ${
-                                        filter === "graded"
+                                    className={`px-3 py-1 rounded text-sm transition ${filter === "graded"
                                             ? "bg-green-100 text-green-700"
                                             : "text-gray-600 hover:bg-gray-100"
-                                    }`}
+                                        }`}
                                 >
                                     Corrigidas
                                 </button>
@@ -170,8 +167,8 @@ export default function SubmissionsList({
                                     {filter === "all"
                                         ? "Nenhuma entrega ainda"
                                         : filter === "pending"
-                                        ? "Nenhuma entrega pendente"
-                                        : "Nenhuma entrega corrigida"}
+                                            ? "Nenhuma entrega pendente"
+                                            : "Nenhuma entrega corrigida"}
                                 </p>
                             </div>
                         ) : (
@@ -179,11 +176,10 @@ export default function SubmissionsList({
                                 {filteredSubmissions.map((sub) => (
                                     <div
                                         key={sub.id}
-                                        className={`border rounded-lg p-4 transition ${
-                                            sub.gradedAt
+                                        className={`border rounded-lg p-4 transition ${sub.gradedAt
                                                 ? "bg-green-50 border-green-200"
                                                 : "bg-white border-gray-200 hover:border-purple-300"
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1 min-w-0">
