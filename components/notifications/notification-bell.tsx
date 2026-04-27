@@ -89,13 +89,12 @@ export function NotificationBell() {
     const fetchNotifications = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/notifications?limit=30");
+            const res = await fetch("/api/notifications?unreadOnly=true&limit=30");
             if (res.ok) {
                 const data = await res.json();
-                setNotifications(data.notifications ?? []);
-                setUnreadCount(
-                    (data.notifications ?? []).filter((n: Notification) => !n.readAt).length,
-                );
+                const unreadNotifications = data.notifications ?? [];
+                setNotifications(unreadNotifications);
+                setUnreadCount(unreadNotifications.length);
             }
         } catch {
             // Silently fail
@@ -138,11 +137,7 @@ export function NotificationBell() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ notificationId }),
             });
-            setNotifications((prev) =>
-                prev.map((n) =>
-                    n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n,
-                ),
-            );
+            setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
             setUnreadCount((c) => Math.max(0, c - 1));
         } catch {
             // Silently fail
@@ -156,9 +151,7 @@ export function NotificationBell() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ all: true }),
             });
-            setNotifications((prev) =>
-                prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })),
-            );
+            setNotifications([]);
             setUnreadCount(0);
         } catch {
             // Silently fail

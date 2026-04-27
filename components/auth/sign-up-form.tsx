@@ -222,19 +222,28 @@ export function SignUpForm({
       
       // Notify admins if it's a teacher
       if (userType === "teacher") {
-        fetch("/api/notifications", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "notify_admins",
-            type: "teacher_pending_approval",
-            payload: {
-              title: name,
-              message: `O professor ${name} criou uma conta e aguarda aprovação.`,
-              href: "/protected", // Admin dashboard
-            },
-          }),
-        }).catch(() => {});
+        try {
+          const notifyResponse = await fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "notify_admins",
+              type: "teacher_pending_approval",
+              payload: {
+                title: name,
+                message: `O professor ${name} criou uma conta e aguarda aprovação.`,
+                href: "/protected", // Admin dashboard
+              },
+            }),
+          });
+
+          if (!notifyResponse.ok) {
+            const errorPayload = await notifyResponse.text().catch(() => "");
+            console.error("[sign-up] Falha ao notificar admins:", notifyResponse.status, errorPayload);
+          }
+        } catch (notifyError) {
+          console.error("[sign-up] Erro ao chamar /api/notifications:", notifyError);
+        }
       }
 
       setSignUpComplete(true);

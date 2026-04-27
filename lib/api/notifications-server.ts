@@ -118,6 +118,11 @@ export async function createNotification(params: {
         );
         // Fire-and-forget — email failure must not block
         sendNotificationEmail(profile.email, subject, html).catch(() => {});
+    } else {
+        console.warn("[createNotification] Usuário sem e-mail para envio:", {
+            userId: params.userId,
+            type: params.type,
+        });
     }
 }
 
@@ -225,7 +230,10 @@ export async function notifyAdmins(params: {
         .eq("name", "admin")
         .maybeSingle();
         
-    if (!roleData) return;
+    if (!roleData) {
+        console.warn("[notifyAdmins] Papel 'admin' não encontrado na tabela role.");
+        return;
+    }
 
     // Get all admin user IDs
     const { data: adminUsers } = await serviceRole
@@ -233,7 +241,16 @@ export async function notifyAdmins(params: {
         .select("user_profile_id")
         .eq("role_id", roleData.id);
 
-    if (!adminUsers || adminUsers.length === 0) return;
+    if (!adminUsers || adminUsers.length === 0) {
+        console.warn("[notifyAdmins] Nenhum usuário admin encontrado para notificação.");
+        return;
+    }
+
+    console.info("[notifyAdmins] Notificando administradores:", {
+        adminCount: adminUsers.length,
+        type: params.type,
+        title: params.payload.title,
+    });
 
     // Create notifications in parallel
     await Promise.all(
