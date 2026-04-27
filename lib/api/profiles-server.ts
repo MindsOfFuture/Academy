@@ -182,6 +182,7 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
     const { data, error } = await supabase
         .from("user_profile")
         .select("id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active, created_at")
+        .eq("is_active", true)
         .order("created_at", { ascending: false });
 
     if (error || !data) {
@@ -236,6 +237,7 @@ export async function getUsersPage(
     let query = supabase
         .from("user_profile")
         .select("id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active, created_at", { count: "exact" })
+        .eq("is_active", true)
         .order("created_at", { ascending: false });
 
     const term = search.trim();
@@ -299,9 +301,23 @@ export async function deleteUserAction(formData: FormData) {
     if (role !== "admin") throw new Error("Acesso negado. Permissões de administrador necessárias.");
 
     const adminClient = await createAdminClient();
+
+    // 1. Delete auth user — triggers scrub_deleted_user_personal_data()
+    //    which anonymizes user_profile and deletes personal data tables.
     await adminClient.auth.admin.deleteUser(id);
+
+    // 2. Clean up remaining personal-data tables (safety net if trigger missed any)
     await adminClient.from("user_role").delete().eq("user_profile_id", id);
+    await adminClient.from("student_details").delete().eq("user_id", id);
+    await adminClient.from("teacher_details").delete().eq("user_id", id);
+    await adminClient.from("teacher_request").delete().eq("user_id", id);
+    await adminClient.from("notification").delete().eq("user_id", id);
+
+    // 3. Delete the anonymized profile itself.
+    //    Content FKs (course, article, etc.) are SET NULL so content is preserved.
+    //    This frees the email UNIQUE constraint for potential re-registration.
     await adminClient.from("user_profile").delete().eq("id", id);
+
     revalidatePath("/protected");
 }
 

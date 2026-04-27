@@ -79,6 +79,7 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
             let query = supabase
                 .from('user_profile')
                 .select('id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active', { count: 'exact' })
+                .eq('is_active', true)
                 .order('created_at', { ascending: false });
 
             if (term) {
