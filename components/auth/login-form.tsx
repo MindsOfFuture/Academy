@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
@@ -22,6 +23,13 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const nextParam = searchParams.get("next");
+  const nextPath =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/protected";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +40,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success("Login realizado com sucesso!");
-      router.push("/protected");
+      router.push(nextPath);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro.";
       setError(errorMessage);
@@ -89,6 +97,17 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
         <Button type="submit" className="w-full rounded-full bg-[#6A4A98] py-6 text-base font-semibold text-white hover:bg-[#5a3e85]" disabled={isLoading}>
           {isLoading ? "Entrando..." : "Entrar"}
         </Button>
+
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-white px-2 text-gray-500">ou</span>
+          </div>
+        </div>
+
+        <GoogleAuthButton nextPath={nextPath} />
       </form>
       <p className="mt-4 text-center text-sm text-gray-600 md:hidden">
         Não tem uma conta?{" "}
