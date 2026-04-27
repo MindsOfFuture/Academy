@@ -42,13 +42,6 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
     try {
-        // Verify sender is authenticated
-        const supabase = await createServerSupabase();
-        const { data: authData } = await supabase.auth.getUser();
-        if (!authData?.user) {
-            return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-        }
-
         const body = await request.json();
         const { action, userId, type, payload } = body as {
             action?: "notify_admins";
@@ -56,6 +49,16 @@ export async function POST(request: Request) {
             type: NotificationType;
             payload: NotificationPayload;
         };
+
+        // Some actions (like new teacher sign up) happen before the user is fully authenticated
+        const isPublicAction = action === "notify_admins" && type === "teacher_pending_approval";
+
+        // Verify sender is authenticated unless it's a public action
+        const supabase = await createServerSupabase();
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData?.user && !isPublicAction) {
+            return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+        }
 
         if (action === "notify_admins") {
             if (!type || !payload?.title) {

@@ -607,7 +607,7 @@ export function SignUpForm({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-4 w-full max-w-md mt-auto"
+          className="flex flex-col items-center gap-4 w-full max-w-md mt-4"
         >
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-400/20 border-2 border-emerald-400">
             <Mail className="w-8 h-8 text-emerald-300" />
