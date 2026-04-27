@@ -70,18 +70,20 @@ function CompleteTeacherProfileContent() {
             // Upload qualification document
             let qualificationDocumentUrl: string | null = null;
             if (qualificationFile) {
-                const fileName = `${authData.user.id}-${Date.now()}-${qualificationFile.name}`;
-                const { error: uploadError } = await supabase.storage
-                    .from("teacher-qualification-documents")
-                    .upload(fileName, qualificationFile);
+                const uploadForm = new FormData();
+                uploadForm.append("file", qualificationFile);
 
-                if (uploadError) throw uploadError;
+                const uploadResponse = await fetch("/api/auth/teacher-qualification-upload", {
+                    method: "POST",
+                    body: uploadForm,
+                });
 
-                const { data: publicUrl } = supabase.storage
-                    .from("teacher-qualification-documents")
-                    .getPublicUrl(fileName);
+                const uploadPayload = await uploadResponse.json().catch(() => null);
+                if (!uploadResponse.ok || !uploadPayload?.url) {
+                    throw new Error(uploadPayload?.error || "Não foi possível enviar o comprovante de qualificação.");
+                }
 
-                qualificationDocumentUrl = publicUrl.publicUrl;
+                qualificationDocumentUrl = uploadPayload.url;
             }
 
             // Create teacher_details record
