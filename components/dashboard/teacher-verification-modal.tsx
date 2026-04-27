@@ -53,7 +53,24 @@ export default function TeacherVerificationModal({ user, onClose, onSubmit }: Te
                     Professor: <span className="font-medium">{user.fullName || user.email}</span>
                 </p>
                 <p className="text-sm text-gray-600">Email: {user.email}</p>
-
+                {user.phone && <p className="text-sm text-gray-600">Telefone: {user.phone}</p>}
+                {user.address && <p className="text-sm text-gray-600">Endereço: {user.address}</p>}
+                
+                {(user.educationLevel || user.degree || (user.schools && user.schools.length > 0)) && (
+                    <div className="mt-4 rounded-md border border-gray-200 p-3">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Informações Acadêmicas</p>
+                        {user.educationLevel && <p className="text-sm text-gray-600">Nível de Ensino: {user.educationLevel}</p>}
+                        {user.degree && <p className="text-sm text-gray-600">Formação: {user.degree}</p>}
+                        {user.schools && user.schools.length > 0 && (
+                            <div className="text-sm text-gray-600 mt-1">
+                                <p>Escolas de Atuação:</p>
+                                <ul className="list-disc list-inside ml-2">
+                                    {user.schools.map((s, i) => <li key={i}>{s}</li>)}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
                 <div className="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3">
                     <p className="text-sm font-medium text-gray-700">Comprovante de qualificação</p>
                     {user.verificationDocumentUrl ? (

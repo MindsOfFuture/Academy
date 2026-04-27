@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { AuthButtonClient } from "../auth/auth-button-client";
+import { NotificationBell } from "../notifications/notification-bell";
 
 export default function Navbar({ showTextLogo }: { showTextLogo: boolean }) {
     return (
@@ -19,7 +21,12 @@ export default function Navbar({ showTextLogo }: { showTextLogo: boolean }) {
                     </Link>
                 )}
             </div>
-            <AuthButtonClient />
+            <div className="flex items-center gap-2">
+                <Suspense fallback={null}>
+                    <NotificationBell />
+                </Suspense>
+                <AuthButtonClient />
+            </div>
         </nav>
     );
-}
+}

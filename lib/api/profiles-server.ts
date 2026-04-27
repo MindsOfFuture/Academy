@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient as createServerSupabase, createAdminClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { type RoleName, type TeacherVerificationStatus, type UserProfileSummary } from "./types";
+import { notifyAdmins, createNotification } from "./notifications-server";
 
 type TeacherRequestRow = {
     user_id: string;
@@ -480,7 +481,7 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
 
     const { data: profileRow } = await supabase
         .from("user_profile")
-        .select("verification_status")
+        .select("verification_status, full_name")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -567,6 +568,16 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
         if (requestError) {
             throw requestError;
         }
+        
+        // Notify admins that the teacher resubmitted their profile
+        await notifyAdmins({
+            type: "teacher_pending_approval",
+            payload: {
+                title: profileRow?.full_name || "Professor",
+                message: `O professor ${profileRow?.full_name || "Professor"} atualizou o perfil e aguarda reavaliação.`,
+                href: "/protected",
+            }
+        });
     } else if (params.qualificationDocumentUrl?.trim()) {
         const { data: requestRow } = await serviceRoleClient
             .from("teacher_request")
@@ -711,6 +722,19 @@ export async function setTeacherVerificationStatusByAdmin(params: {
     if (requestError) {
         throw requestError;
     }
+
+    // Notify the teacher about their new status
+    await createNotification({
+        userId: params.teacherId,
+        type: params.status === "approved" ? "teacher_approved" : "teacher_rejected",
+        payload: {
+            title: params.status === "approved" ? "Aprovado" : "Reprovado",
+            message: params.status === "approved"
+                ? "Seu perfil de professor foi aprovado! Agora você pode criar cursos e turmas."
+                : `Seu perfil de professor foi reprovado. Motivo: ${params.reason || "Não informado"}`,
+            href: "/protected/perfil",
+        }
+    });
 
     revalidatePath("/protected");
     revalidatePath("/protected/perfil");

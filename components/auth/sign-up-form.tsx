@@ -58,6 +58,7 @@ export function SignUpForm({
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  const [signUpComplete, setSignUpComplete] = useState(false);
 
   // Calculate age from birth date
   const calculateAge = (birthDateStr: string): number | null => {
@@ -218,7 +219,26 @@ export function SignUpForm({
       });
 
       if (error) throw error;
-      toast.success("Conta criada com sucesso! Por favor verifique seu e-mail.");
+      
+      // Notify admins if it's a teacher
+      if (userType === "teacher") {
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "notify_admins",
+            type: "teacher_pending_approval",
+            payload: {
+              title: name,
+              message: `O professor ${name} criou uma conta e aguarda aprovação.`,
+              href: "/protected", // Admin dashboard
+            },
+          }),
+        }).catch(() => {});
+      }
+
+      setSignUpComplete(true);
+      toast.success("Conta criada com sucesso! Verifique seu e-mail.");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Ocorreu um erro ao criar a conta.");
     } finally {
@@ -582,44 +602,67 @@ export function SignUpForm({
         </motion.p>
       )}
 
-      {/* Navigation Buttons */}
-      <div className="flex w-full max-w-md gap-4 mt-auto">
-        {step > 1 ? (
-          <Button
-            type="button"
-            onClick={handlePrev}
-            className="flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            onClick={onToggleView}
-            className="flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" /> Já tenho conta
-          </Button>
-        )}
+      {/* Navigation Buttons or Success Message */}
+      {signUpComplete ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center gap-4 w-full max-w-md mt-auto"
+        >
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-400/20 border-2 border-emerald-400">
+            <Mail className="w-8 h-8 text-emerald-300" />
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-bold text-white">Cadastro realizado!</h3>
+            <p className="text-sm text-white/80 leading-relaxed">
+              Enviamos um link de confirmação para o seu e-mail.
+              <br />
+              <span className="font-semibold text-white">{email}</span>
+            </p>
+            <p className="text-xs text-white/60 mt-2">
+              Verifique também a pasta de spam. Clique no link recebido para ativar sua conta.
+            </p>
+          </div>
+        </motion.div>
+      ) : (
+        <div className="flex w-full max-w-md gap-4 mt-auto">
+          {step > 1 ? (
+            <Button
+              type="button"
+              onClick={handlePrev}
+              className="flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={onToggleView}
+              className="flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Já tenho conta
+            </Button>
+          )}
 
-        {step < totalSteps ? (
-          <Button
-            type="button"
-            onClick={handleNext}
-            className="flex-[2] rounded-full bg-white text-[#6A4A98] hover:bg-gray-100 font-bold h-12"
-          >
-            Próximo <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSignUp}
-            disabled={isLoading}
-            className="flex-[2] rounded-full bg-emerald-400 text-emerald-950 hover:bg-emerald-300 font-bold h-12"
-          >
-            {isLoading ? "Criando..." : "Concluir Cadastro"} <Check className="ml-2 h-4 w-4" />
-          </Button>
-        )}
-      </div>
+          {step < totalSteps ? (
+            <Button
+              type="button"
+              onClick={handleNext}
+              className="flex-[2] rounded-full bg-white text-[#6A4A98] hover:bg-gray-100 font-bold h-12"
+            >
+              Próximo <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSignUp}
+              disabled={isLoading}
+              className="flex-[2] rounded-full bg-emerald-400 text-emerald-950 hover:bg-emerald-300 font-bold h-12"
+            >
+              {isLoading ? "Criando..." : "Concluir Cadastro"} <Check className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

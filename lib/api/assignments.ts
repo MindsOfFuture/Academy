@@ -258,6 +258,39 @@ export async function submitAssignment(params: {
     if (error) throw error;
     if (!data) return null;
 
+    // --- Notify the teacher about the new submission ---
+    try {
+        const { data: assignment } = await supabase
+            .from("assignment")
+            .select("created_by, title")
+            .eq("id", params.assignmentId)
+            .maybeSingle();
+
+        if (assignment?.created_by) {
+            const { data: profile } = await supabase
+                .from("user_profile")
+                .select("full_name")
+                .eq("id", user.id)
+                .maybeSingle();
+
+            fetch("/api/notifications", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: assignment.created_by,
+                    type: "assignment_submitted",
+                    payload: {
+                        title: `Nova entrega: ${assignment.title || "Atividade"}`,
+                        message: `O aluno ${profile?.full_name || "Estudante"} entregou a atividade "${assignment.title || "Atividade"}".`,
+                        href: "/protected", // Idealmente um link para a página de correção
+                    },
+                }),
+            }).catch(() => {});
+        }
+    } catch {
+        // Notification failure should not block submission
+    }
+
     return {
         id: data.id,
         assignmentId: data.assignment_id,
@@ -384,6 +417,38 @@ export async function gradeSubmission(
 
     if (error) throw error;
     if (!data) return null;
+
+    // --- Notify student about the grading ---
+    if (data.user_id && data.assignment_id) {
+        try {
+            const { data: assignment } = await supabase
+                .from("assignment")
+                .select("title")
+                .eq("id", data.assignment_id)
+                .maybeSingle();
+
+            const assignmentTitle = assignment?.title || "Atividade";
+
+            fetch("/api/notifications", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: data.user_id,
+                    type: "assignment_graded",
+                    payload: {
+                        title: `Atividade corrigida: ${assignmentTitle}`,
+                        message: `Sua atividade "${assignmentTitle}" foi corrigida. Nota: ${params.score}. Feedback: ${params.feedback}`,
+                        href: "/protected",
+                        assignmentId: data.assignment_id,
+                        submissionId: data.id,
+                        score: params.score,
+                    },
+                }),
+            }).catch(() => {}); // fire-and-forget
+        } catch {
+            // Notification failure must not block grading
+        }
+    }
 
     return {
         id: data.id,

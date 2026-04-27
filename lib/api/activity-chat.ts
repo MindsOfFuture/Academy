@@ -98,7 +98,66 @@ export async function sendMessage(
         throw error;
     }
 
-    return mapMessage(data as unknown as ActivityChatMessageRow);
+    const mapped = mapMessage(data as unknown as ActivityChatMessageRow);
+
+    // --- Notify the other party about the new chat message ---
+    try {
+        const senderId = user.id;
+        // Determine the recipient: if I'm the student, notify the teacher; else notify the student
+        if (senderId === studentId) {
+            // Sender is the student → find the teacher (assignment.created_by)
+            const { data: assignment } = await supabase
+                .from("assignment")
+                .select("created_by, title")
+                .eq("id", assignmentId)
+                .maybeSingle();
+
+            if (assignment?.created_by && assignment.created_by !== senderId) {
+                fetch("/api/notifications", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userId: assignment.created_by,
+                        type: "chat_message",
+                        payload: {
+                            title: `Nova mensagem no chat`,
+                            message: `O aluno enviou uma mensagem na atividade "${assignment.title || "Atividade"}".`,
+                            href: "/protected",
+                            assignmentId,
+                            studentId,
+                        },
+                    }),
+                }).catch(() => {});
+            }
+        } else {
+            // Sender is the teacher → notify the student
+            const { data: assignment } = await supabase
+                .from("assignment")
+                .select("title")
+                .eq("id", assignmentId)
+                .maybeSingle();
+
+            fetch("/api/notifications", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: studentId,
+                    type: "chat_message",
+                    payload: {
+                        title: `Nova mensagem do professor`,
+                        message: `O professor enviou uma mensagem na atividade "${assignment?.title || "Atividade"}".`,
+                        href: "/protected",
+                        assignmentId,
+                        studentId,
+                    },
+                }),
+            }).catch(() => {});
+        }
+    } catch {
+        // Notification failure must not block chat
+    }
+
+    return mapped;
 }
 
 /**

@@ -63,6 +63,25 @@ export async function enrollInCourse(courseId: string) {
         .maybeSingle();
 
     if (error) throw error;
+
+    // Fetch course title for notification
+    const { data: courseData } = await supabase.from("course").select("title").eq("id", courseId).maybeSingle();
+    
+    // Notify the user about their new enrollment
+    fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            userId: user.id,
+            type: "new_enrollment",
+            payload: {
+                title: courseData?.title || "Novo Curso",
+                message: `Você foi matriculado no curso: ${courseData?.title || "Novo Curso"}.`,
+                href: `/course/${courseId}`,
+            },
+        }),
+    }).catch(() => {});
+
     return data;
 }
 
@@ -219,6 +238,25 @@ export async function addStudentToCourse(courseId: string, userId: string) {
     // user pode vir como array (join) - pegar o primeiro elemento
     const userData = data.user;
     const user = Array.isArray(userData) ? userData[0] : userData;
+
+    // Fetch course title for notification
+    const { data: courseData } = await supabase.from("course").select("title").eq("id", courseId).maybeSingle();
+
+    // Notify the added student
+    fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            userId: userId,
+            type: "new_enrollment",
+            payload: {
+                title: courseData?.title || "Novo Curso",
+                message: `Você foi matriculado no curso: ${courseData?.title || "Novo Curso"}.`,
+                href: `/course/${courseId}`,
+            },
+        }),
+    }).catch(() => {});
+
     return { id: data.id, status: data.status, user };
 }
 

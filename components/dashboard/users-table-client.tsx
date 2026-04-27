@@ -78,7 +78,7 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
             const selectedStatus = overrideStatus ?? statusFilter;
             let query = supabase
                 .from('user_profile')
-                .select('id, full_name, email, avatar_url, bio, specialties, certifications, verification_status, is_active', { count: 'exact' })
+                .select('id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active', { count: 'exact' })
                 .order('created_at', { ascending: false });
 
             if (term) {
@@ -105,6 +105,21 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                 .select("user_id, status, observations, qualification_document_url, created_at")
                 .in("user_id", ids);
 
+            const { data: teacherDetails } = await supabase
+                .from("teacher_details")
+                .select("user_id, schools, education_level, degree")
+                .in("user_id", ids);
+
+            const teacherDetailsByUser = new Map<string, {
+                schools?: string[] | null;
+                education_level?: string | null;
+                degree?: string | null;
+            }>();
+
+            (teacherDetails || []).forEach((row) => {
+                teacherDetailsByUser.set(row.user_id, row);
+            });
+
             const latestTeacherRequestByUser = new Map<string, {
                 status?: string | null;
                 observations?: string | null;
@@ -123,12 +138,15 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
 
             const mapped = (data || []).map((row) => {
                 const latestTeacherRequest = latestTeacherRequestByUser.get(row.id);
+                const td = teacherDetailsByUser.get(row.id);
                 return {
                     id: row.id,
                     email: row.email,
                     fullName: row.full_name,
                     avatarUrl: row.avatar_url,
                     bio: row.bio,
+                    phone: row.phone,
+                    address: row.address,
                     specialties: row.specialties || [],
                     certifications: row.certifications || [],
                     verificationStatus: row.verification_status || null,
@@ -136,6 +154,9 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                     verificationDocumentUrl: latestTeacherRequest?.qualification_document_url || null,
                     isActive: row.is_active,
                     role: mapRole(row.id, roleLinks || []),
+                    schools: td?.schools || [],
+                    educationLevel: td?.education_level || null,
+                    degree: td?.degree || null,
                 };
             });
 
