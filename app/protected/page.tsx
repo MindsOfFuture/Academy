@@ -16,6 +16,9 @@ export default async function ProtectedPage() {
   const userType = await getUserTypeServer();
   const profile = await getCurrentUserProfile();
   const userName = data.user.user_metadata.full_name || "Fulano";
+  const isAdmin = userType === "admin";
+  const isTeacher = userType === "teacher";
+  const isTeacherApproved = isTeacher && profile?.verificationStatus === "approved";
 
   const courses = await getUserCoursesServer();
   console.log(courses);
@@ -28,7 +31,7 @@ export default async function ProtectedPage() {
             <h1 className="text-3xl font-bold mb-2">
               Olá, {userName}
             </h1>
-            {userType === "teacher" && profile?.verificationStatus !== "approved" && (
+            {isTeacher && profile?.verificationStatus !== "approved" && (
               <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 inline-block">
                 Seu perfil de professor está {profile?.verificationStatus === "rejected" ? "reprovado" : "pendente"}. Até aprovação do admin, publicar artigos e criar cursos/trilhas ficará bloqueado.
               </p>
@@ -44,10 +47,10 @@ export default async function ProtectedPage() {
 
           <YourCourses initialCursos={courses} />
 
-          {userType === "admin" && (
+          {(isAdmin || isTeacherApproved) && (
             <div className="space-y-8">
               <CoursesSection />
-              <UsersTable />
+              {isAdmin && <UsersTable />}
             </div>
           )}
 
