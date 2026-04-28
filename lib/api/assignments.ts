@@ -371,7 +371,7 @@ export async function submitAssignment(params: {
                     payload: {
                         title: `Nova entrega: ${assignment.title || "Atividade"}`,
                         message: `O aluno ${profile?.full_name || "Estudante"} entregou a atividade "${assignment.title || "Atividade"}".`,
-                        href: "/protected", // Idealmente um link para a página de correção
+                        href: `/protected/activitie?id=${params.assignmentId}`,
                     },
                 }),
             }).catch(() => { });
@@ -531,7 +531,7 @@ export async function gradeSubmission(
                     payload: {
                         title: `Atividade corrigida: ${assignmentTitle}`,
                         message: `Sua atividade "${assignmentTitle}" foi corrigida. Nota: ${params.score}. Feedback: ${params.feedback}`,
-                        href: "/protected",
+                        href: `/protected/activitie?id=${data.assignment_id}`,
                         assignmentId: data.assignment_id,
                         submissionId: data.id,
                         score: params.score,

@@ -141,7 +141,7 @@ export async function sendMessage(
                         payload: {
                             title: `Nova mensagem no chat`,
                             message: `O aluno enviou uma mensagem na atividade "${assignment.title || "Atividade"}".`,
-                            href: "/protected",
+                            href: `/protected/activitie?id=${assignmentId}`,
                             assignmentId,
                             studentId,
                         },
@@ -165,7 +165,7 @@ export async function sendMessage(
                     payload: {
                         title: `Nova mensagem do professor`,
                         message: `O professor enviou uma mensagem na atividade "${assignment?.title || "Atividade"}".`,
-                        href: "/protected",
+                        href: `/protected/activitie?id=${assignmentId}`,
                         assignmentId,
                         studentId,
                     },

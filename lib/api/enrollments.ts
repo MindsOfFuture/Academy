@@ -77,7 +77,7 @@ export async function enrollInCourse(courseId: string) {
             payload: {
                 title: courseData?.title || "Novo Curso",
                 message: `Você foi matriculado no curso: ${courseData?.title || "Novo Curso"}.`,
-                href: `/course/${courseId}`,
+                href: `/course?id=${courseId}`,
             },
         }),
     }).catch(() => {});
@@ -209,7 +209,7 @@ export async function listCourseStudents(courseId: string) {
     const supabase = createBrowserSupabase();
     const { data, error } = await supabase
         .from("enrollment")
-        .select("id, status, user:user_id (id, full_name, email)")
+        .select("id, status, user:user_profile (id, full_name, email)")
         .eq("course_id", courseId)
         .order("enrolled_at", { ascending: true });
 
@@ -232,7 +232,7 @@ export async function addStudentToCourse(courseId: string, userId: string) {
     const { data, error } = await supabase
         .from("enrollment")
         .insert({ course_id: courseId, user_id: userId, status: "active" })
-        .select("id, status, user:user_id (id, full_name, email)")
+        .select("id, status, user:user_profile (id, full_name, email)")
         .maybeSingle();
     if (error || !data) return null;
     // user pode vir como array (join) - pegar o primeiro elemento
@@ -252,7 +252,7 @@ export async function addStudentToCourse(courseId: string, userId: string) {
             payload: {
                 title: courseData?.title || "Novo Curso",
                 message: `Você foi matriculado no curso: ${courseData?.title || "Novo Curso"}.`,
-                href: `/course/${courseId}`,
+                href: `/course?id=${courseId}`,
             },
         }),
     }).catch(() => {});
