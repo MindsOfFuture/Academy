@@ -26,7 +26,12 @@ export async function POST(request: Request, { params }: RouteParams) {
     } catch (error) {
         console.error("Erro ao adicionar curso à trilha:", error);
         const message = error instanceof Error ? error.message : "Erro ao adicionar curso";
-        const status = message.toLowerCase().includes("não verificado") || message.toLowerCase().includes("apenas professores") ? 403 : 500;
+        const status = message.toLowerCase().includes("não verificado")
+            || message.toLowerCase().includes("apenas professores")
+            || message.toLowerCase().includes("acesso negado")
+            || message.toLowerCase().includes("não autenticado")
+            ? 403
+            : 500;
         return NextResponse.json({ error: message }, { status });
     }
 }

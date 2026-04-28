@@ -11,6 +11,7 @@ export interface CourseRow {
     description?: string | null;
     level?: string | null;
     status?: string | null;
+    owner_id?: string | null;
     audience?: CourseAudience | null;
     thumb?: { url?: string | null } | { url?: string | null }[] | null;
     modules?: ModuleRow[];
@@ -77,6 +78,7 @@ export interface LearningPathRow {
     title: string;
     description?: string | null;
     audience?: CourseAudience | null;
+    owner_id?: string | null;
     cover?: { url?: string | null } | { url?: string | null }[] | null;
     courses?: Array<{ order?: number; course?: CourseRow }>;
 }

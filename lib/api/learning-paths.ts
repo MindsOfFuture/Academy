@@ -1,10 +1,72 @@
 import "server-only";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
-import { type LearningPathSummary, type CourseSummary, type CourseRow, type LearningPathRow, getThumbUrl, getCoverUrl } from "./types";
+import { fetchRoleForUser } from "@/lib/api/profiles-server";
+import { type LearningPathSummary, type CourseSummary, type CourseRow, type LearningPathRow, type RoleName, getThumbUrl, getCoverUrl } from "./types";
 
 interface LearningPathCourseJoin {
     order?: number | null;
     course?: CourseRow;
+}
+
+type ServerSupabase = Awaited<ReturnType<typeof createServerSupabase>>;
+
+async function getCurrentUserAndRole(requireUser: boolean): Promise<{ supabase: ServerSupabase; userId: string | null; role: RoleName; }> {
+    const supabase = await createServerSupabase();
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData?.user?.id ?? null;
+    if (!userId) {
+        if (requireUser) {
+            throw new Error("Usuário não autenticado.");
+        }
+        return { supabase, userId: null, role: "unknown" };
+    }
+
+    const role = await fetchRoleForUser(userId, supabase);
+    if (requireUser && role !== "admin" && role !== "teacher") {
+        throw new Error("Acesso negado.");
+    }
+
+    return { supabase, userId, role };
+}
+
+async function ensureLearningPathOwnership(
+    supabase: ServerSupabase,
+    pathId: string,
+    userId: string | null,
+    role: RoleName,
+): Promise<void> {
+    if (role !== "teacher") return;
+    if (!userId) throw new Error("Usuário não autenticado.");
+
+    const { data, error } = await supabase
+        .from("learning_path")
+        .select("owner_id")
+        .eq("id", pathId)
+        .maybeSingle();
+
+    if (error || !data || data.owner_id !== userId) {
+        throw new Error("Acesso negado.");
+    }
+}
+
+async function ensureCourseOwnership(
+    supabase: ServerSupabase,
+    courseId: string,
+    userId: string | null,
+    role: RoleName,
+): Promise<void> {
+    if (role !== "teacher") return;
+    if (!userId) throw new Error("Usuário não autenticado.");
+
+    const { data, error } = await supabase
+        .from("course")
+        .select("owner_id")
+        .eq("id", courseId)
+        .maybeSingle();
+
+    if (error || !data || data.owner_id !== userId) {
+        throw new Error("Acesso negado.");
+    }
 }
 
 function mapCourse(row: CourseRow): CourseSummary {
@@ -29,19 +91,30 @@ function generateSlug(title: string): string {
         + "-" + Date.now();
 }
 
-export async function getLearningPaths(): Promise<LearningPathSummary[]> {
-    const supabase = await createServerSupabase();
-    const { data, error } = await supabase
+export async function getLearningPaths(options?: { scope?: "public" | "manage" }): Promise<LearningPathSummary[]> {
+        const isManageScope = options?.scope === "manage";
+        const { supabase, userId, role } = await getCurrentUserAndRole(isManageScope);
+
+        if (isManageScope && !userId) return [];
+
+        let query = supabase
         .from("learning_path")
         .select(`
       id,
       title,
       description,
+            owner_id,
       audience,
       cover:media_file!learning_path_cover_media_id_fkey(url),
       courses:learning_path_course(order, course:course_id (id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)))
     `)
-        .order("created_at", { ascending: false });
+                .order("created_at", { ascending: false });
+
+        if (isManageScope && role === "teacher" && userId) {
+                query = query.eq("owner_id", userId);
+        }
+
+        const { data, error } = await query;
 
     if (error || !data) return [];
 
@@ -61,20 +134,30 @@ export async function getLearningPaths(): Promise<LearningPathSummary[]> {
 }
 
 // Busca uma trilha por ID com detalhes completos
-export async function getLearningPathDetail(pathId: string): Promise<LearningPathSummary | null> {
-    const supabase = await createServerSupabase();
-    const { data, error } = await supabase
+export async function getLearningPathDetail(pathId: string, options?: { scope?: "public" | "manage" }): Promise<LearningPathSummary | null> {
+    const isManageScope = options?.scope === "manage";
+    const { supabase, userId, role } = await getCurrentUserAndRole(isManageScope);
+
+    if (isManageScope && !userId) return null;
+
+    let query = supabase
         .from("learning_path")
         .select(`
             id,
             title,
             description,
+            owner_id,
             audience,
             cover:media_file!learning_path_cover_media_id_fkey(url),
             courses:learning_path_course(order, course:course_id (id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)))
         `)
-        .eq("id", pathId)
-        .single();
+        .eq("id", pathId);
+
+    if (isManageScope && role === "teacher" && userId) {
+        query = query.eq("owner_id", userId);
+    }
+
+    const { data, error } = await query.single();
 
     if (error || !data) return null;
 
@@ -97,6 +180,7 @@ export async function createLearningPath(params: {
     description?: string;
     audience?: string;
     coverMediaId?: string;
+    ownerId?: string | null;
 }): Promise<LearningPathSummary | null> {
     const supabase = await createServerSupabase();
     const slug = generateSlug(params.title);
@@ -109,6 +193,7 @@ export async function createLearningPath(params: {
             description: params.description ?? null,
             audience: params.audience ?? "student",
             cover_media_id: params.coverMediaId ?? null,
+            owner_id: params.ownerId ?? null,
         })
         .select("id, title, description, audience")
         .single();
@@ -135,7 +220,8 @@ export async function updateLearningPath(
         coverMediaId?: string | null;
     }
 ): Promise<LearningPathSummary | null> {
-    const supabase = await createServerSupabase();
+    const { supabase, userId, role } = await getCurrentUserAndRole(true);
+    await ensureLearningPathOwnership(supabase, pathId, userId, role);
 
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (params.title !== undefined) {
@@ -153,12 +239,13 @@ export async function updateLearningPath(
 
     if (error) return null;
 
-    return getLearningPathDetail(pathId);
+    return getLearningPathDetail(pathId, { scope: "manage" });
 }
 
 // Deleta uma trilha
 export async function deleteLearningPath(pathId: string): Promise<boolean> {
-    const supabase = await createServerSupabase();
+    const { supabase, userId, role } = await getCurrentUserAndRole(true);
+    await ensureLearningPathOwnership(supabase, pathId, userId, role);
 
     // Primeiro remove as associações de cursos
     await supabase
@@ -181,7 +268,9 @@ export async function addCourseToPath(
     courseId: string,
     order?: number
 ): Promise<boolean> {
-    const supabase = await createServerSupabase();
+    const { supabase, userId, role } = await getCurrentUserAndRole(true);
+    await ensureLearningPathOwnership(supabase, pathId, userId, role);
+    await ensureCourseOwnership(supabase, courseId, userId, role);
 
     // Se não passou order, pega o próximo disponível
     let nextOrder = order ?? 1;
@@ -214,7 +303,9 @@ export async function removeCourseFromPath(
     pathId: string,
     courseId: string
 ): Promise<boolean> {
-    const supabase = await createServerSupabase();
+    const { supabase, userId, role } = await getCurrentUserAndRole(true);
+    await ensureLearningPathOwnership(supabase, pathId, userId, role);
+    await ensureCourseOwnership(supabase, courseId, userId, role);
 
     const { error } = await supabase
         .from("learning_path_course")
@@ -230,7 +321,22 @@ export async function reorderCoursesInPath(
     pathId: string,
     courseOrders: { courseId: string; order: number }[]
 ): Promise<boolean> {
-    const supabase = await createServerSupabase();
+    const { supabase, userId, role } = await getCurrentUserAndRole(true);
+    await ensureLearningPathOwnership(supabase, pathId, userId, role);
+
+    if (role === "teacher" && userId) {
+        const courseIds = courseOrders.map((item) => item.courseId);
+        if (courseIds.length > 0) {
+            const { data } = await supabase
+                .from("course")
+                .select("id, owner_id")
+                .in("id", courseIds);
+            const allOwned = (data || []).every((row) => row.owner_id === userId);
+            if (!allOwned) {
+                throw new Error("Acesso negado.");
+            }
+        }
+    }
 
     // Atualiza cada curso individualmente
     for (const { courseId, order } of courseOrders) {

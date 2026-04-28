@@ -1,5 +1,5 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { type AssignmentSummary, type AssignmentRow, type SubmissionSummary, type SubmissionWithStudent, type PendingSubmission } from "./types";
+import { type AssignmentSummary, type AssignmentRow, type SubmissionSummary, type SubmissionWithStudent, type PendingSubmission, type RoleName } from "./types";
 
 function mapAssignment(row: AssignmentRow): AssignmentSummary {
     return {
@@ -11,6 +11,80 @@ function mapAssignment(row: AssignmentRow): AssignmentSummary {
         maxScore: row.max_score ?? null,
         createdAt: row.created_at ?? null,
     };
+}
+
+async function getCurrentUserAndRole(supabase: ReturnType<typeof createBrowserSupabase>): Promise<{ userId: string | null; role: RoleName; }> {
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData?.user?.id ?? null;
+    if (!userId) return { userId: null, role: "unknown" };
+
+    const { data: roleData } = await supabase
+        .from("user_role")
+        .select("role(name)")
+        .eq("user_profile_id", userId)
+        .maybeSingle();
+
+    const rawRole = Array.isArray(roleData?.role) ? roleData?.role[0] : roleData?.role;
+    const role: RoleName = rawRole?.name === "admin" || rawRole?.name === "teacher" || rawRole?.name === "student"
+        ? (rawRole.name as RoleName)
+        : "student";
+
+    return { userId, role };
+}
+
+async function getCourseOwnerByAssignmentId(
+    supabase: ReturnType<typeof createBrowserSupabase>,
+    assignmentId: string,
+): Promise<string | null> {
+    const { data } = await supabase
+        .from("assignment")
+        .select("lesson:lesson_id(course:course_id(owner_id))")
+        .eq("id", assignmentId)
+        .maybeSingle();
+
+    const lesson = Array.isArray(data?.lesson) ? data?.lesson?.[0] : data?.lesson;
+    const course = Array.isArray(lesson?.course) ? lesson?.course?.[0] : lesson?.course;
+    return (course?.owner_id as string | undefined) ?? null;
+}
+
+async function getCourseOwnerBySubmissionId(
+    supabase: ReturnType<typeof createBrowserSupabase>,
+    submissionId: string,
+): Promise<string | null> {
+    const { data } = await supabase
+        .from("assignment_submission")
+        .select("assignment:assignment_id(lesson:lesson_id(course:course_id(owner_id)))")
+        .eq("id", submissionId)
+        .maybeSingle();
+
+    const assignment = Array.isArray(data?.assignment) ? data?.assignment?.[0] : data?.assignment;
+    const lesson = Array.isArray(assignment?.lesson) ? assignment?.lesson?.[0] : assignment?.lesson;
+    const course = Array.isArray(lesson?.course) ? lesson?.course?.[0] : lesson?.course;
+    return (course?.owner_id as string | undefined) ?? null;
+}
+
+async function ensureAssignmentOwnerOrAdmin(
+    supabase: ReturnType<typeof createBrowserSupabase>,
+    assignmentId: string,
+    userId: string | null,
+    role: RoleName,
+): Promise<void> {
+    if (role !== "teacher") return;
+    if (!userId) throw new Error("Usuário não autenticado.");
+    const ownerId = await getCourseOwnerByAssignmentId(supabase, assignmentId);
+    if (!ownerId || ownerId !== userId) throw new Error("Acesso negado.");
+}
+
+async function ensureSubmissionOwnerOrAdmin(
+    supabase: ReturnType<typeof createBrowserSupabase>,
+    submissionId: string,
+    userId: string | null,
+    role: RoleName,
+): Promise<void> {
+    if (role !== "teacher") return;
+    if (!userId) throw new Error("Usuário não autenticado.");
+    const ownerId = await getCourseOwnerBySubmissionId(supabase, submissionId);
+    if (!ownerId || ownerId !== userId) throw new Error("Acesso negado.");
 }
 
 // Lista atividades de uma lição específica
@@ -57,9 +131,20 @@ export async function createAssignment(params: {
     maxScore?: number;
 }): Promise<AssignmentSummary | null> {
     const supabase = createBrowserSupabase();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) throw new Error("Usuário não autenticado.");
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    if (!userId) throw new Error("Usuário não autenticado.");
+
+    if (role === "teacher") {
+        const { data: lessonRow } = await supabase
+            .from("lesson")
+            .select("course:course_id(owner_id)")
+            .eq("id", params.lessonId)
+            .maybeSingle();
+        const course = Array.isArray(lessonRow?.course) ? lessonRow?.course?.[0] : lessonRow?.course;
+        if (!course?.owner_id || course.owner_id !== userId) {
+            throw new Error("Acesso negado.");
+        }
+    }
 
     const { data, error } = await supabase
         .from("assignment")
@@ -69,7 +154,7 @@ export async function createAssignment(params: {
             description: params.description || null,
             due_date: params.dueDate || null,
             max_score: params.maxScore || null,
-            created_by: user.id,
+            created_by: userId,
         })
         .select("id, lesson_id, title, description, due_date, max_score, created_at")
         .maybeSingle();
@@ -90,6 +175,8 @@ export async function updateAssignment(
     }
 ): Promise<AssignmentSummary | null> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    await ensureAssignmentOwnerOrAdmin(supabase, assignmentId, userId, role);
 
     const updateData: Record<string, unknown> = {};
     if (params.title !== undefined) updateData.title = params.title;
@@ -112,6 +199,8 @@ export async function updateAssignment(
 // Remove uma atividade
 export async function deleteAssignment(assignmentId: string): Promise<boolean> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    await ensureAssignmentOwnerOrAdmin(supabase, assignmentId, userId, role);
 
     // Primeiro remove todas as submissões relacionadas
     await supabase.from("assignment_submission").delete().eq("assignment_id", assignmentId);
@@ -360,6 +449,8 @@ export async function deleteSubmission(submissionId: string): Promise<boolean> {
 // Lista todas as submissões de uma atividade (para professores)
 export async function listAssignmentSubmissions(assignmentId: string): Promise<SubmissionWithStudent[]> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    await ensureAssignmentOwnerOrAdmin(supabase, assignmentId, userId, role);
     
     const { data, error } = await supabase
         .from("assignment_submission")
@@ -403,6 +494,8 @@ export async function gradeSubmission(
     }
 ): Promise<SubmissionSummary | null> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    await ensureSubmissionOwnerOrAdmin(supabase, submissionId, userId, role);
 
     const { data, error } = await supabase
         .from("assignment_submission")
@@ -468,27 +561,34 @@ export async function gradeSubmission(
 // Lista todas as submissões pendentes de correção (para professores)
 export async function listPendingSubmissions(): Promise<PendingSubmission[]> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    if (!userId) return [];
     
-    const { data, error } = await supabase
+    let query = supabase
         .from("assignment_submission")
         .select(`
             *,
             enrollment:enrollment_id(
                 user_profile:user_id(full_name, email)
             ),
-            assignment:assignment_id(
+            assignment:assignment_id!inner(
                 id,
                 title,
                 max_score,
-                lesson:lesson_id(
+                lesson:lesson_id!inner(
                     id,
                     title,
-                    course:course_id(id, title)
+                    course:course_id!inner(id, title, owner_id)
                 )
             )
         `)
-        .is("graded_at", null)
-        .order("submitted_at", { ascending: true });
+        .is("graded_at", null);
+
+    if (role === "teacher") {
+        query = query.eq("assignment.lesson.course.owner_id", userId);
+    }
+
+    const { data, error } = await query.order("submitted_at", { ascending: true });
 
     if (error || !data) return [];
 
@@ -524,27 +624,34 @@ export async function listPendingSubmissions(): Promise<PendingSubmission[]> {
 // Lista todas as submissões já corrigidas (para professores)
 export async function listGradedSubmissions(): Promise<PendingSubmission[]> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    if (!userId) return [];
     
-    const { data, error } = await supabase
+    let query = supabase
         .from("assignment_submission")
         .select(`
             *,
             enrollment:enrollment_id(
                 user_profile:user_id(full_name, email)
             ),
-            assignment:assignment_id(
+            assignment:assignment_id!inner(
                 id,
                 title,
                 max_score,
-                lesson:lesson_id(
+                lesson:lesson_id!inner(
                     id,
                     title,
-                    course:course_id(id, title)
+                    course:course_id!inner(id, title, owner_id)
                 )
             )
         `)
-        .not("graded_at", "is", null)
-        .order("graded_at", { ascending: false });
+        .not("graded_at", "is", null);
+
+    if (role === "teacher") {
+        query = query.eq("assignment.lesson.course.owner_id", userId);
+    }
+
+    const { data, error } = await query.order("graded_at", { ascending: false });
 
     if (error || !data) return [];
 
@@ -580,6 +687,8 @@ export async function listGradedSubmissions(): Promise<PendingSubmission[]> {
 // Remove a correção de uma submissão (volta para pendente)
 export async function deleteGrade(submissionId: string): Promise<boolean> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    await ensureSubmissionOwnerOrAdmin(supabase, submissionId, userId, role);
     
     const { error } = await supabase
         .from("assignment_submission")

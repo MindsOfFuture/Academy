@@ -24,6 +24,25 @@ function mapMessage(row: ActivityChatMessageRow): ActivityChatMessage {
     };
 }
 
+async function getCurrentUserAndRole(supabase: ReturnType<typeof createBrowserSupabase>): Promise<{ userId: string | null; role: RoleName; }> {
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData?.user?.id ?? null;
+    if (!userId) return { userId: null, role: "unknown" };
+
+    const { data: roleData } = await supabase
+        .from("user_role")
+        .select("role(name)")
+        .eq("user_profile_id", userId)
+        .maybeSingle();
+
+    const rawRole = Array.isArray(roleData?.role) ? roleData?.role[0] : roleData?.role;
+    const role: RoleName = rawRole?.name === "admin" || rawRole?.name === "teacher" || rawRole?.name === "student"
+        ? (rawRole.name as RoleName)
+        : "student";
+
+    return { userId, role };
+}
+
 // --- Queries ---
 
 /**
@@ -223,6 +242,25 @@ export async function fetchChatStudents(
     assignmentId: string,
 ): Promise<{ studentId: string; fullName: string; avatarUrl: string | null }[]> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+
+    if (!userId) return [];
+    if (role === "teacher") {
+        const { data: assignmentRow } = await supabase
+            .from("assignment")
+            .select("lesson:lesson_id(course:course_id(owner_id))")
+            .eq("id", assignmentId)
+            .maybeSingle();
+        const lesson = Array.isArray(assignmentRow?.lesson)
+            ? assignmentRow?.lesson?.[0]
+            : assignmentRow?.lesson;
+        const course = Array.isArray(lesson?.course)
+            ? lesson?.course?.[0]
+            : lesson?.course;
+        if (!course?.owner_id || course.owner_id !== userId) {
+            return [];
+        }
+    }
 
     const { data, error } = await supabase
         .from("assignment_submission")
@@ -262,6 +300,8 @@ export async function fetchChatStudents(
  */
 export async function fetchAllActiveChats(): Promise<ActiveChatGroup[]> {
     const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    if (!userId) return [];
 
     // Buscar todas as mensagens agrupando por assignment_id + student_id
     const { data: chatPairs, error } = await supabase
@@ -287,10 +327,16 @@ export async function fetchAllActiveChats(): Promise<ActiveChatGroup[]> {
     const studentIds = [...new Set(uniquePairs.map((p) => p.student_id))];
 
     // Buscar dados de assignments com lesson → course
-    const { data: assignments } = await supabase
+    let assignmentQuery = supabase
         .from("assignment")
-        .select("id, title, lesson_id, lesson!inner(title, course_id, course!inner(id, title))")
+        .select("id, title, lesson_id, lesson!inner(title, course_id, course!inner(id, title, owner_id))")
         .in("id", assignmentIds);
+
+    if (role === "teacher") {
+        assignmentQuery = assignmentQuery.eq("lesson.course.owner_id", userId);
+    }
+
+    const { data: assignments } = await assignmentQuery;
 
     // Buscar dados dos alunos
     const { data: students } = await supabase
