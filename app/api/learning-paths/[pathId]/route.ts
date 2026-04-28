@@ -21,10 +21,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     } catch (error) {
         console.error("Erro ao buscar trilha:", error);
         const message = error instanceof Error ? error.message : "Erro ao buscar trilha";
-            const status = message.toLowerCase().includes("acesso negado")
-                || message.toLowerCase().includes("não autenticado")
-                ? 403
-                : 500;
+        const status = message.toLowerCase().includes("acesso negado")
+            || message.toLowerCase().includes("não autenticado")
+            ? 403
+            : 500;
         return NextResponse.json({ error: message }, { status });
     }
 }
@@ -52,12 +52,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     } catch (error) {
         console.error("Erro ao atualizar trilha:", error);
         const message = error instanceof Error ? error.message : "Erro ao atualizar trilha";
-            const status = message.toLowerCase().includes("não verificado")
-                || message.toLowerCase().includes("apenas professores")
-                || message.toLowerCase().includes("acesso negado")
-                || message.toLowerCase().includes("não autenticado")
-                ? 403
-                : 500;
+        const status = message.toLowerCase().includes("não verificado")
+            || message.toLowerCase().includes("apenas professores")
+            || message.toLowerCase().includes("acesso negado")
+            || message.toLowerCase().includes("não autenticado")
+            ? 403
+            : 500;
         return NextResponse.json({ error: message }, { status });
     }
 }
@@ -77,12 +77,12 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     } catch (error) {
         console.error("Erro ao excluir trilha:", error);
         const message = error instanceof Error ? error.message : "Erro ao excluir trilha";
-            const status = message.toLowerCase().includes("não verificado")
-                || message.toLowerCase().includes("apenas professores")
-                || message.toLowerCase().includes("acesso negado")
-                || message.toLowerCase().includes("não autenticado")
-                ? 403
-                : 500;
+        const status = message.toLowerCase().includes("não verificado")
+            || message.toLowerCase().includes("apenas professores")
+            || message.toLowerCase().includes("acesso negado")
+            || message.toLowerCase().includes("não autenticado")
+            ? 403
+            : 500;
         return NextResponse.json({ error: message }, { status });
     }
 }

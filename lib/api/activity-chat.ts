@@ -146,7 +146,7 @@ export async function sendMessage(
                             studentId,
                         },
                     }),
-                }).catch(() => {});
+                }).catch(() => { });
             }
         } else {
             // Sender is the teacher → notify the student
@@ -170,7 +170,7 @@ export async function sendMessage(
                         studentId,
                     },
                 }),
-            }).catch(() => {});
+            }).catch(() => { });
         }
     } catch {
         // Notification failure must not block chat

@@ -92,12 +92,12 @@ function generateSlug(title: string): string {
 }
 
 export async function getLearningPaths(options?: { scope?: "public" | "manage" }): Promise<LearningPathSummary[]> {
-        const isManageScope = options?.scope === "manage";
-        const { supabase, userId, role } = await getCurrentUserAndRole(isManageScope);
+    const isManageScope = options?.scope === "manage";
+    const { supabase, userId, role } = await getCurrentUserAndRole(isManageScope);
 
-        if (isManageScope && !userId) return [];
+    if (isManageScope && !userId) return [];
 
-        let query = supabase
+    let query = supabase
         .from("learning_path")
         .select(`
       id,
@@ -108,13 +108,13 @@ export async function getLearningPaths(options?: { scope?: "public" | "manage" }
       cover:media_file!learning_path_cover_media_id_fkey(url),
       courses:learning_path_course(order, course:course_id (id, title, description, level, status, thumb:media_file!course_thumb_id_fkey(url)))
     `)
-                .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
-        if (isManageScope && role === "teacher" && userId) {
-                query = query.eq("owner_id", userId);
-        }
+    if (isManageScope && role === "teacher" && userId) {
+        query = query.eq("owner_id", userId);
+    }
 
-        const { data, error } = await query;
+    const { data, error } = await query;
 
     if (error || !data) return [];
 

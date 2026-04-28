@@ -374,7 +374,7 @@ export async function submitAssignment(params: {
                         href: "/protected", // Idealmente um link para a página de correção
                     },
                 }),
-            }).catch(() => {});
+            }).catch(() => { });
         }
     } catch {
         // Notification failure should not block submission
@@ -451,7 +451,7 @@ export async function listAssignmentSubmissions(assignmentId: string): Promise<S
     const supabase = createBrowserSupabase();
     const { userId, role } = await getCurrentUserAndRole(supabase);
     await ensureAssignmentOwnerOrAdmin(supabase, assignmentId, userId, role);
-    
+
     const { data, error } = await supabase
         .from("assignment_submission")
         .select(`
@@ -537,7 +537,7 @@ export async function gradeSubmission(
                         score: params.score,
                     },
                 }),
-            }).catch(() => {}); // fire-and-forget
+            }).catch(() => { }); // fire-and-forget
         } catch {
             // Notification failure must not block grading
         }
@@ -563,7 +563,7 @@ export async function listPendingSubmissions(): Promise<PendingSubmission[]> {
     const supabase = createBrowserSupabase();
     const { userId, role } = await getCurrentUserAndRole(supabase);
     if (!userId) return [];
-    
+
     let query = supabase
         .from("assignment_submission")
         .select(`
@@ -597,7 +597,7 @@ export async function listPendingSubmissions(): Promise<PendingSubmission[]> {
         const assignment = sub.assignment;
         const lesson = assignment?.lesson;
         const course = lesson?.course;
-        
+
         return {
             id: sub.id,
             assignmentId: sub.assignment_id,
@@ -626,7 +626,7 @@ export async function listGradedSubmissions(): Promise<PendingSubmission[]> {
     const supabase = createBrowserSupabase();
     const { userId, role } = await getCurrentUserAndRole(supabase);
     if (!userId) return [];
-    
+
     let query = supabase
         .from("assignment_submission")
         .select(`
@@ -660,7 +660,7 @@ export async function listGradedSubmissions(): Promise<PendingSubmission[]> {
         const assignment = sub.assignment;
         const lesson = assignment?.lesson;
         const course = lesson?.course;
-        
+
         return {
             id: sub.id,
             assignmentId: sub.assignment_id,
@@ -689,7 +689,7 @@ export async function deleteGrade(submissionId: string): Promise<boolean> {
     const supabase = createBrowserSupabase();
     const { userId, role } = await getCurrentUserAndRole(supabase);
     await ensureSubmissionOwnerOrAdmin(supabase, submissionId, userId, role);
-    
+
     const { error } = await supabase
         .from("assignment_submission")
         .update({
