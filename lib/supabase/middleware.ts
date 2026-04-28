@@ -9,6 +9,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/privacidade",
   "/artigos",
   "/api/articles",
+  "/api/auth/oauth-complete-profile",
+  "/api/auth/oauth-ensure-teacher-role",
   "/api/auth/teacher-qualification-upload",
   "/api/notifications",
 ] as const;
@@ -57,9 +59,13 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: DO NOT REMOVE auth.getUser()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user ?? null;
+  } catch (error) {
+    console.error("[supabase/middleware] getUser failed", error);
+  }
 
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
     // no user, potentially respond by redirecting the user to the login page
