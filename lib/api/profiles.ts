@@ -75,16 +75,19 @@ export async function updateTeacherProfileClient(params: {
 export async function listUsersClient() {
     const supabase = createBrowserSupabase();
     const { data, error } = await supabase
-        .from("user_profile")
-        .select("id, full_name, email")
-        .order("full_name", { ascending: true });
+        .rpc("get_students_list");
     if (error || !data) return [];
-    return data.map((row) => {
-        const userRow = row as { id: string; full_name: string; email: string };
+    
+    // Sort locally by name to mimic previous behavior
+    const sortedData = [...data].sort((a, b) => 
+        (a.full_name || "").localeCompare(b.full_name || "")
+    );
+    
+    return sortedData.map((row) => {
         return {
-            id: userRow.id,
-            full_name: userRow.full_name,
-            email: userRow.email,
+            id: row.id,
+            full_name: row.full_name,
+            email: undefined, // Email is intentionally not exposed by the RPC
         };
     });
 }
