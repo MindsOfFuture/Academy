@@ -7,7 +7,7 @@ function normalizeConfirmation(value: unknown): string {
 }
 
 async function runOrThrow<T extends { error?: { message?: string } | null }>(
-  promise: Promise<T>,
+  promise: PromiseLike<T>,
   context: string,
 ) {
   const result = await promise;
