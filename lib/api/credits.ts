@@ -15,6 +15,7 @@ export interface CreditEntry {
   area: string | null;
   description: string | null;
   link: string | null;
+  image_url: string | null;
   sort_order: number | null;
 }
 
@@ -30,7 +31,7 @@ export async function getCredits(): Promise<CreditEntry[]> {
   const supabase = await createServerSupabase();
   const { data, error } = await supabase
     .from("credits_entries")
-    .select("id, category, name, area, description, link, sort_order");
+    .select("id, category, name, area, description, link, image_url, sort_order");
 
   if (error || !data) {
     return [];

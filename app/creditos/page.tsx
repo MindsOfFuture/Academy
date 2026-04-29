@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Navbar from "@/components/navbar/navbar";
 import Footer from "@/components/footer/footer";
 import { getFooter } from "@/lib/api/content";
@@ -69,8 +70,21 @@ export default async function CreditosPage() {
                 <ul className="grid gap-4 md:grid-cols-2">
                   {section.items.map((item) => (
                     <li key={item.id} className="rounded-xl bg-white p-5 shadow-sm">
-                      <p className="text-lg font-semibold text-gray-900">{item.name}</p>
-                      {item.area && <p className="text-sm text-gray-600">{item.area}</p>}
+                      <div className="flex items-start gap-4">
+                        {item.image_url && (
+                          <Image
+                            src={item.image_url}
+                            alt={item.name}
+                            width={64}
+                            height={64}
+                            className="h-16 w-16 rounded-full object-cover"
+                          />
+                        )}
+                        <div className="space-y-1">
+                          <p className="text-lg font-semibold text-gray-900">{item.name}</p>
+                          {item.area && <p className="text-sm text-gray-600">{item.area}</p>}
+                        </div>
+                      </div>
                       {item.description && (
                         <p className="mt-3 text-sm leading-relaxed text-gray-700">
                           {item.description}
