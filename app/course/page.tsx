@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,8 +13,10 @@ import {
   toggleLessonProgress,
 } from "@/lib/api/enrollments";
 import { listCourseAssignments, getUserCourseSubmissions } from "@/lib/api/assignments";
+import { checkCourseCompletion, getExistingCertificate, issueCertificate, type CourseCompletionStatus, type CertificateInfo } from "@/lib/api/certificates";
+import { generateAndDownloadCertificate } from "@/lib/utils/pdfGenerator";
 import toast from "react-hot-toast";
-import { CheckCircle, FileText, Clock, CheckCheck } from "lucide-react";
+import { CheckCircle, FileText, Clock, CheckCheck, Award, Download, ShieldCheck } from "lucide-react";
 import { type CourseDetail, type AssignmentSummary, type SubmissionSummary } from "@/lib/api/types";
 
 function CoursePageContent() {
@@ -28,6 +30,9 @@ function CoursePageContent() {
   const [progresso, setProgresso] = useState<string[]>([]);
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
   const [submissions, setSubmissions] = useState<Record<string, SubmissionSummary>>({});
+  const [completionStatus, setCompletionStatus] = useState<CourseCompletionStatus | null>(null);
+  const [certificate, setCertificate] = useState<CertificateInfo | null>(null);
+  const [issuingCert, setIssuingCert] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -84,6 +89,25 @@ function CoursePageContent() {
     }
   }, [course, isMatriculado]);
 
+  // Verificar status de conclusão e certificado existente
+  const refreshCompletion = useCallback(async () => {
+    if (!course?.id || !isMatriculado) return;
+    try {
+      const [status, existingCert] = await Promise.all([
+        checkCourseCompletion(course.id),
+        getExistingCertificate(course.id),
+      ]);
+      setCompletionStatus(status);
+      setCertificate(existingCert);
+    } catch (e) {
+      console.error("Erro ao verificar conclusão:", e);
+    }
+  }, [course?.id, isMatriculado]);
+
+  useEffect(() => {
+    refreshCompletion();
+  }, [refreshCompletion]);
+
   // Helper para formatar data
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "Sem prazo";
@@ -138,6 +162,39 @@ function CoursePageContent() {
       console.error("Erro ao atualizar progresso:", error);
       toast.error("Não foi possível atualizar o progresso.");
     }
+  }
+
+  async function handleIssueCertificate() {
+    if (!course?.id) return;
+    setIssuingCert(true);
+    try {
+      const cert = await issueCertificate(course.id);
+      setCertificate(cert);
+      generateAndDownloadCertificate({
+        studentName: cert.studentName,
+        studentCpf: cert.studentCpf,
+        courseName: cert.courseTitle,
+        completionDate: new Date(cert.issuedAt).toLocaleDateString("pt-BR"),
+        verificationCode: cert.verificationCode,
+      });
+      toast.success("Certificado emitido com sucesso!");
+    } catch (error) {
+      console.error("Erro ao emitir certificado:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao emitir certificado.");
+    } finally {
+      setIssuingCert(false);
+    }
+  }
+
+  function handleDownloadCertificate() {
+    if (!certificate) return;
+    generateAndDownloadCertificate({
+      studentName: certificate.studentName,
+      studentCpf: certificate.studentCpf,
+      courseName: certificate.courseTitle,
+      completionDate: new Date(certificate.issuedAt).toLocaleDateString("pt-BR"),
+      verificationCode: certificate.verificationCode,
+    });
   }
 
   return (
@@ -340,6 +397,87 @@ function CoursePageContent() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {/* Certificado */}
+              {isMatriculado && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="w-5 h-5 text-purple-600" />
+                    <h3 className="font-semibold">Certificado</h3>
+                  </div>
+
+                  {certificate ? (
+                    <div className="space-y-3">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <ShieldCheck className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-700">Certificado Emitido</span>
+                        </div>
+                        <p className="text-xs text-green-600 font-mono">
+                          Código: {certificate.verificationCode}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleDownloadCertificate}
+                        className="w-full py-2 rounded-lg font-semibold bg-[#684A97] text-white hover:bg-[#553d7a] transition flex items-center justify-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Baixar Certificado
+                      </button>
+                    </div>
+                  ) : completionStatus?.isCompleted ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-green-600">
+                        🎉 Parabéns! Você concluiu todas as aulas e atividades com aprovação. Emita seu certificado!
+                      </p>
+                      <button
+                        onClick={handleIssueCertificate}
+                        disabled={issuingCert}
+                        className="w-full py-2 rounded-lg font-semibold bg-[#684A97] text-white hover:bg-[#553d7a] transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        <Award className="w-4 h-4" />
+                        {issuingCert ? "Emitindo..." : "Emitir Certificado"}
+                      </button>
+                    </div>
+                  ) : completionStatus ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600 mb-2">
+                        Para emitir o certificado, você precisa:
+                      </p>
+                      <ul className="text-xs space-y-1">
+                        <li className={`flex items-center gap-2 ${completionStatus.allLessonsCompleted ? "text-green-600" : "text-gray-500"}`}>
+                          <span>{completionStatus.allLessonsCompleted ? "✅" : "⬜"}</span>
+                          Concluir todas as aulas ({completionStatus.completedLessons}/{completionStatus.totalLessons})
+                        </li>
+                        <li className={`flex items-center gap-2 ${completionStatus.allAssignmentsSubmitted ? "text-green-600" : "text-gray-500"}`}>
+                          <span>{completionStatus.allAssignmentsSubmitted ? "✅" : "⬜"}</span>
+                          Enviar todas as atividades ({completionStatus.submittedAssignments}/{completionStatus.totalAssignments})
+                        </li>
+                        <li className={`flex items-center gap-2 ${completionStatus.allAssignmentsGraded ? "text-green-600" : "text-gray-500"}`}>
+                          <span>{completionStatus.allAssignmentsGraded ? "✅" : "⬜"}</span>
+                          Todas corrigidas ({completionStatus.gradedAssignments}/{completionStatus.totalAssignments})
+                        </li>
+                        <li className={`flex items-center gap-2 ${completionStatus.allAssignmentsPassed ? "text-green-600" : "text-gray-500"}`}>
+                          <span>{completionStatus.allAssignmentsPassed ? "✅" : "⬜"}</span>
+                          Nota ≥ 60% em todas ({completionStatus.passedAssignments}/{completionStatus.totalAssignments})
+                        </li>
+                      </ul>
+                      {completionStatus.failedAssignments.length > 0 && (
+                        <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-2">
+                          <p className="text-xs font-medium text-red-700 mb-1">Atividades abaixo de 60%:</p>
+                          {completionStatus.failedAssignments.map((a, i) => (
+                            <p key={i} className="text-xs text-red-600">
+                              • {a.title}: {a.score}/{a.maxScore} ({Math.round((a.score / a.maxScore) * 100)}%)
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">Verificando status...</p>
+                  )}
                 </div>
               )}
             </div>
