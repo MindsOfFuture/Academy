@@ -1,4 +1,5 @@
-import Image from 'next/image';
+import Image from "next/image";
+import Link from "next/link";
 
 interface SocialLink {
   href: string;
@@ -48,9 +49,17 @@ export default function Footer({ socials }: { socials: SocialLink[] }) {
             <p className='text-base md:text-lg'>{social.nome}</p>
           </a>
         ))}
-        <a href="/termos-de-uso" className="text-sm text-gray-500 hover:underline mt-4">
-          Termos de Uso
-        </a>
+        <div className="flex flex-col items-center gap-2 text-sm text-gray-500 mt-4">
+          <Link href="/creditos" className="hover:underline">
+            Créditos
+          </Link>
+          <Link href="/termos" className="hover:underline">
+            Termos de Uso
+          </Link>
+          <Link href="/privacidade" className="hover:underline">
+            Política de Privacidade
+          </Link>
+        </div>
       </div>
 
     </footer>
