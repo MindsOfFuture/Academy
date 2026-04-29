@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { updateTeacherProfileClient, updateUserProfileClient, uploadAvatarClient, removeAvatarClient } from "@/lib/api/profiles";
 import { type TeacherVerificationStatus } from "@/lib/api/types";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { User as UserIcon, Mail, Save, RefreshCw, Camera, Trash2, Upload, Phone, MapPin, School, GraduationCap, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import Image from "next/image";
+import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
+import { DeleteAccountModal } from "@/components/profile/delete-account-modal";
 
 interface ProfileClientProps {
     userId: string;
@@ -84,6 +87,7 @@ export function ProfileClient({
     initialEducationLevel,
     initialDegree,
 }: ProfileClientProps) {
+    const router = useRouter();
     const [name, setName] = useState(initialName);
     const [email, setEmail] = useState(initialEmail);
     const [phone, setPhone] = useState(initialPhone || "");
@@ -101,6 +105,8 @@ export function ProfileClient({
     const [savingProfile, setSavingProfile] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [removingAvatar, setRemovingAvatar] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Teacher-specific fields
@@ -217,6 +223,33 @@ export function ProfileClient({
         } finally {
             setUploadingQualification(false);
             setSavingProfile(false);
+        }
+    };
+
+    const handleDeleteAccount = async (confirmation: string) => {
+        setDeletingAccount(true);
+        try {
+            const response = await fetch("/api/profile/delete-account", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ confirmation }),
+            });
+
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(payload?.error || "Falha ao excluir conta");
+            }
+
+            const supabase = createBrowserSupabase();
+            await supabase.auth.signOut();
+            toast.success("Conta excluída com sucesso.");
+            router.push("/");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Erro ao excluir conta";
+            toast.error(msg);
+        } finally {
+            setDeletingAccount(false);
+            setDeleteModalOpen(false);
         }
     };
 
@@ -457,6 +490,30 @@ export function ProfileClient({
                     </div>
                 </form>
             </section>
+            {userType !== "admin" && (
+                <section className="rounded-xl bg-white p-6 shadow-sm border">
+                    <div className="space-y-2">
+                        <h3 className="text-lg font-semibold text-gray-900">Excluir conta</h3>
+                        <p className="text-sm text-gray-600">
+                            A exclusão é permanente e remove seus dados pessoais. Seus conteúdos permanecerão publicados
+                            de forma anônima.
+                        </p>
+                    </div>
+                    <div className="mt-4">
+                        <Button type="button" variant="destructive" onClick={() => setDeleteModalOpen(true)}>
+                            Excluir conta
+                        </Button>
+                    </div>
+                </section>
+            )}
+            {deleteModalOpen && (
+                <DeleteAccountModal
+                    isTeacher={userType === "teacher"}
+                    onClose={() => setDeleteModalOpen(false)}
+                    onConfirm={handleDeleteAccount}
+                    loading={deletingAccount}
+                />
+            )}
         </div>
     );
 }
