@@ -34,7 +34,6 @@ test.describe('Página de Trilhas Desktop', () => {
     const hasEmptyMessage = await emptyMessage.isVisible().catch(() => false);
     
     expect(hasTrilhas || hasEmptyMessage).toBeTruthy();
-    console.log(`Has trilhas: ${hasTrilhas}, Has empty message: ${hasEmptyMessage}`);
   });
 
   test('cards de curso devem ter link para página de curso', async ({ page }) => {
@@ -46,7 +45,6 @@ test.describe('Página de Trilhas Desktop', () => {
       const href = await firstLink.getAttribute('href');
       
       expect(href).toContain('/course');
-      console.log(`Found ${count} course links`);
     }
   });
 
@@ -64,7 +62,6 @@ test.describe('Página de Trilhas Desktop', () => {
         
         if (card1 && card2) {
           // Em desktop, podem estar na mesma linha (y similar)
-          console.log(`Card 1 Y: ${card1.y}, Card 2 Y: ${card2.y}`);
         }
       }
     }

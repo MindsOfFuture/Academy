@@ -63,7 +63,6 @@ test.describe('Home Page Mobile - Cursos Section', () => {
       });
       
       // Pode ter scroll horizontal OU ser grid (ambos são válidos)
-      console.log(`Courses section has horizontal scroll: ${hasHorizontalScroll}`);
     }
   });
 
@@ -153,7 +152,6 @@ test.describe('Home Page Mobile - Performance', () => {
     
     // Página deve carregar DOM em menos de 10 segundos (ambiente de dev pode ser mais lento)
     expect(loadTime).toBeLessThan(10000);
-    console.log(`Page load time: ${loadTime}ms`);
   });
 
   test('imagens devem ter lazy loading', async ({ page }) => {
@@ -173,7 +171,6 @@ test.describe('Home Page Mobile - Performance', () => {
     }
     
     // Next.js Image component geralmente adiciona lazy loading automaticamente
-    console.log(`Images with lazy loading: ${lazyCount}/${count}`);
   });
 
   test('não deve haver erros de JavaScript críticos', async ({ page }) => {
@@ -227,7 +224,6 @@ test.describe('Home Page Mobile - Interações Touch', () => {
       });
       
       // É uma boa prática, mas não obrigatório
-      console.log(`Link has transition effect: ${hasTransition}`);
     }
   });
 

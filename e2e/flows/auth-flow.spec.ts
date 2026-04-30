@@ -199,7 +199,6 @@ test.describe('Funcionalidades Admin', () => {
     const usersTable = page.locator('table, [class*="table"]');
     const hasTable = await usersTable.first().isVisible().catch(() => false);
 
-    console.log(`Admin users table visible: ${hasTable}`);
   });
 });
 

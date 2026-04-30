@@ -17,7 +17,6 @@ setup('verificar ambiente de teste', async ({ page }) => {
   // Verificar que a página principal carrega
   await expect(page.locator('body')).toBeVisible();
   
-  console.log('✓ Ambiente de teste verificado');
 });
 
 setup('verificar rotas principais existem', async ({ page }) => {
@@ -31,6 +30,5 @@ setup('verificar rotas principais existem', async ({ page }) => {
     // Rotas protegidas podem redirecionar (302/307)
     expect(status).toBeLessThan(500);
     
-    console.log(`✓ ${route} - Status: ${status}`);
   }
 });

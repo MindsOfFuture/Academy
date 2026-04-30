@@ -15,6 +15,7 @@ export interface CourseRow {
     audience?: CourseAudience | null;
     thumb?: { url?: string | null } | { url?: string | null }[] | null;
     modules?: ModuleRow[];
+    enrollments?: { count: number }[];
 }
 
 // Helper para extrair URL de thumb (pode ser array ou objeto)
@@ -116,6 +117,7 @@ export interface CourseSummary {
     status?: string | null;
     audience?: CourseAudience | null;
     thumbUrl?: string | null;
+    enrollmentCount?: number;
 }
 
 export interface LessonSummary {

@@ -68,7 +68,6 @@ test.describe('Fluxo de Descoberta de Cursos', () => {
         const hasModules = await modules.first().isVisible().catch(() => false);
         const hasLessons = await lessons.first().isVisible().catch(() => false);
 
-        console.log(`Has modules: ${hasModules}, Has lessons: ${hasLessons}`);
       }
     }
   });
@@ -115,7 +114,6 @@ test.describe('Fluxo de Matrícula', () => {
           const successToast = page.locator('text=/sucesso|matriculado/i');
           const isMatriculado = await successToast.isVisible().catch(() => false);
 
-          console.log(`Matrícula success: ${isMatriculado}`);
         }
       }
     }
@@ -149,7 +147,6 @@ test.describe('Fluxo de Matrícula', () => {
         const checkIcon = page.locator('[class*="check"], [class*="Check"]');
         const hasCheck = await checkIcon.first().isVisible().catch(() => false);
 
-        console.log(`Lesson marked complete: ${hasCheck}`);
       }
     }
   });
@@ -174,7 +171,6 @@ test.describe('Fluxo de Progresso', () => {
     const progressIndicator = page.locator('[class*="progress"], text=/%/');
     const hasProgress = await progressIndicator.first().isVisible().catch(() => false);
 
-    console.log(`Progress indicator visible: ${hasProgress}`);
   });
 
   test('card de curso deve mostrar porcentagem concluída', async ({ page }) => {
@@ -190,7 +186,6 @@ test.describe('Fluxo de Progresso', () => {
     const percentage = page.locator('text=/%/');
     const hasPercentage = await percentage.first().isVisible().catch(() => false);
 
-    console.log(`Course percentage visible: ${hasPercentage}`);
   });
 });
 

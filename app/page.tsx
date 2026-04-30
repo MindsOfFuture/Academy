@@ -12,10 +12,12 @@ export default async function Home() {
     getArticles(),
   ]);
 
+  const limitedCourses = cursos.slice(0, 5);
+
   return (
     <HomeClient
       heroData={heroData}
-      courses={cursos}
+      courses={limitedCourses}
       aboutUsSlides={aboutus?.aboutUsSlides ?? []}
       socialLinks={footer}
       articlesData={articles}

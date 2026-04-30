@@ -40,7 +40,6 @@ test.describe('Visual Regression - Auth', () => {
     const toggleButton = page.locator('button:has-text("Criar conta"), button:has-text("Entrar")');
     const hasToggle = await toggleButton.isVisible().catch(() => false);
 
-    console.log(`Mobile auth toggle visible: ${hasToggle}`);
   });
 
   test('auth page em desktop deve mostrar ambos os formulários', async ({ page }) => {
@@ -54,7 +53,6 @@ test.describe('Visual Regression - Auth', () => {
     const forms = await page.locator('form').count();
     const inputGroups = await page.locator('input[type="email"]').count();
 
-    console.log(`Desktop forms: ${forms}, Email inputs: ${inputGroups}`);
     // Pode ter 2 formulários (login e signup) visíveis
   });
 });
@@ -93,7 +91,6 @@ test.describe('Visual Regression - Trilhas', () => {
 
       if (card1 && card2) {
         // Em desktop, podem estar lado a lado (mesmo Y) ou em linha vertical
-        console.log(`Desktop cards Y: ${card1.y} vs ${card2.y}`);
       }
     }
   });
@@ -119,7 +116,6 @@ test.describe('Touch Targets - WCAG', () => {
         if (box) {
           // WCAG recomenda 44x44 mínimo
           expect(box.height).toBeGreaterThanOrEqual(40);
-          console.log(`Button ${i}: ${box.width}x${box.height}`);
         }
       }
     }
@@ -205,7 +201,6 @@ test.describe('Dark Mode (se implementado)', () => {
     const themeToggle = page.locator('button[aria-label*="theme"], button[aria-label*="modo"]');
     const hasThemeToggle = await themeToggle.isVisible().catch(() => false);
 
-    console.log(`Theme toggle exists: ${hasThemeToggle}`);
   });
 });
 
@@ -228,7 +223,6 @@ test.describe('Animações e Transições', () => {
       });
 
       // Pode ou não mudar - apenas log
-      console.log(`Link color before: ${beforeHover}, after hover: ${afterHover}`);
     }
   });
 
@@ -246,7 +240,6 @@ test.describe('Animações e Transições', () => {
         return style.transition !== 'none' && style.transition !== '';
       });
 
-      console.log(`Button has transition: ${hasTransition}`);
     }
   });
 });

@@ -51,7 +51,6 @@ test.describe('Página de Curso Mobile', () => {
     if (await modules.first().isVisible().catch(() => false)) {
       await modules.first().click();
       await page.waitForTimeout(300);
-      console.log('Module interaction successful');
     }
   });
 });

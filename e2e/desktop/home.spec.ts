@@ -106,7 +106,6 @@ test.describe('Home Page Desktop - Performance', () => {
     
     // DOM deve carregar em tempo razoável
     expect(domContentLoaded).toBeLessThan(5000);
-    console.log(`DOM Content Loaded: ${domContentLoaded}ms`);
   });
 
   test('não deve haver erros de JavaScript críticos', async ({ page }) => {
@@ -127,9 +126,6 @@ test.describe('Home Page Desktop - Performance', () => {
       !e.includes('Warning')
     );
     
-    if (criticalErrors.length > 0) {
-      console.log('JS Errors:', criticalErrors);
-    }
     
     expect(criticalErrors).toHaveLength(0);
   });
@@ -151,7 +147,6 @@ test.describe('Home Page Desktop - Performance', () => {
         // Todas imagens devem ter alt
         expect(alt).toBeTruthy();
         
-        console.log(`Image ${i}: src=${src?.substring(0, 50)}... loading=${loading}`);
       }
     }
   });
@@ -163,7 +158,6 @@ test.describe('Home Page Desktop - SEO Básico', () => {
     
     const title = await page.title();
     expect(title.length).toBeGreaterThan(0);
-    console.log(`Page title: ${title}`);
   });
 
   test('página deve ter meta description', async ({ page }) => {
@@ -175,7 +169,6 @@ test.describe('Home Page Desktop - SEO Básico', () => {
     if (description) {
       expect(description.length).toBeGreaterThan(10);
     }
-    console.log(`Meta description: ${description || 'Not found'}`);
   });
 
   test('página deve ter meta viewport', async ({ page }) => {
@@ -239,7 +232,6 @@ test.describe('Home Page Desktop - Componentes', () => {
     const hasTermos = await footer.getByText(/termos/i).isVisible().catch(() => false);
     const hasPrivacidade = await footer.getByText(/privacidade/i).isVisible().catch(() => false);
     
-    console.log(`Footer has Termos: ${hasTermos}, Privacidade: ${hasPrivacidade}`);
   });
 
   test('imagens do footer devem carregar', async ({ page }) => {

@@ -59,7 +59,6 @@ test.describe('Fluxo de Cadastro Mobile', () => {
     
     // Verificar se existe (pode não aparecer em viewports maiores)
     const isVisible = await signupToggle.isVisible().catch(() => false);
-    console.log(`Signup toggle visible: ${isVisible}`);
     
     // Não falhar se não existir - pode ser viewport grande
     expect(true).toBeTruthy();

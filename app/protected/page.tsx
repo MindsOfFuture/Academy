@@ -21,7 +21,6 @@ export default async function ProtectedPage() {
   const isTeacherApproved = isTeacher && profile?.verificationStatus === "approved";
 
   const courses = await getUserCoursesServer();
-  console.log(courses);
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar showTextLogo={true} />

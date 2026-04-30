@@ -85,7 +85,6 @@ test.describe('Página de Curso com ID', () => {
         const modules = page.locator('text=/módulo|module/i');
         const hasModules = await modules.first().isVisible().catch(() => false);
         
-        console.log(`Course has modules: ${hasModules}`);
       }
     }
   });
@@ -110,7 +109,6 @@ test.describe('Matrícula em Curso', () => {
         const hasMatricula = await matriculaButton.isVisible().catch(() => false);
         
         // Pode não aparecer se não estiver logado
-        console.log(`Matricula button visible: ${hasMatricula}`);
       }
     }
   });
@@ -133,7 +131,6 @@ test.describe('Matrícula em Curso', () => {
         const progress = page.locator('[class*="progress"], [class*="check"], text=/concluíd/i');
         const hasProgress = await progress.first().isVisible().catch(() => false);
         
-        console.log(`Progress indicators visible: ${hasProgress}`);
       }
     }
   });

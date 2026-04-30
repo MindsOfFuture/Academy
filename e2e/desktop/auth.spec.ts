@@ -137,7 +137,6 @@ test.describe('Fluxo de Cadastro Desktop', () => {
       const hasTeacher = await teacherOption.isVisible().catch(() => false);
       
       // Pelo menos uma opção de tipo de usuário deve existir
-      console.log(`Student option visible: ${hasStudent}, Teacher option visible: ${hasTeacher}`);
     }
   });
 
@@ -154,7 +153,6 @@ test.describe('Fluxo de Cadastro Desktop', () => {
       const hasNextButton = await nextButton.isVisible().catch(() => false);
       const hasStepIndicator = await stepIndicator.first().isVisible().catch(() => false);
       
-      console.log(`Next button: ${hasNextButton}, Step indicator: ${hasStepIndicator}`);
     }
   });
 });
@@ -237,7 +235,6 @@ test.describe('Acessibilidade Auth Desktop', () => {
     });
     
     // Focus deve ser visível (a menos que use focus-visible)
-    console.log(`Email input has visible focus style: ${hasFocusStyle}`);
   });
 
   test('contraste de texto deve ser adequado', async ({ page }) => {
