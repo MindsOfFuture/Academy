@@ -120,10 +120,10 @@ export default function CoursesSection() {
   return (
     <div>
       {/* Tabs */}
-      <div className="flex border-b mb-6">
+      <div className="flex gap-2 border-b mb-6 overflow-x-auto whitespace-nowrap">
         <button
           onClick={() => setActiveTab("courses")}
-          className={`px-4 py-2 font-medium transition-colors ${activeTab === "courses"
+          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "courses"
             ? "text-purple-600 border-b-2 border-purple-600"
             : "text-gray-500 hover:text-gray-700"
             }`}
@@ -132,7 +132,7 @@ export default function CoursesSection() {
         </button>
         <button
           onClick={() => setActiveTab("paths")}
-          className={`px-4 py-2 font-medium transition-colors ${activeTab === "paths"
+          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "paths"
             ? "text-purple-600 border-b-2 border-purple-600"
             : "text-gray-500 hover:text-gray-700"
             }`}
@@ -141,7 +141,7 @@ export default function CoursesSection() {
         </button>
         <button
           onClick={() => setActiveTab("chats")}
-          className={`px-4 py-2 font-medium transition-colors ${activeTab === "chats"
+          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "chats"
             ? "text-purple-600 border-b-2 border-purple-600"
             : "text-gray-500 hover:text-gray-700"
             }`}
@@ -150,7 +150,7 @@ export default function CoursesSection() {
         </button>
         <button
           onClick={() => setActiveTab("corrections")}
-          className={`px-4 py-2 font-medium transition-colors ${activeTab === "corrections"
+          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "corrections"
             ? "text-purple-600 border-b-2 border-purple-600"
             : "text-gray-500 hover:text-gray-700"
             }`}
