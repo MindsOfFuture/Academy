@@ -33,9 +33,9 @@ export default function OurArticles({ articles }: OurArticlesProps) {
           </p>
         </div>
 
-        <div className="w-full max-w-[1400px] px-16 relative">
+        <div className="w-full max-w-[1400px] px-4 sm:px-8 lg:px-16 relative">
           <Swiper
-            spaceBetween={30}
+            spaceBetween={20}
             slidesPerView={1}
             breakpoints={{
               640: {
@@ -59,7 +59,7 @@ export default function OurArticles({ articles }: OurArticlesProps) {
           >
             {articles.map((article, index) => (
               <SwiperSlide key={article.id}>
-                <div className="p-5">
+                <div className="p-2 sm:p-4">
                   <motion.div
                     className="bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] rounded-xl overflow-hidden h-[450px] flex flex-col"
                     initial={{ opacity: 0, y: 50 }}
@@ -120,6 +120,12 @@ export default function OurArticles({ articles }: OurArticlesProps) {
               box-shadow: none !important;
               transition: all 0.2s;
             }
+            @media (max-width: 1024px) {
+              #our-articles .swiper-button-next,
+              #our-articles .swiper-button-prev {
+                display: none !important;
+              }
+            }
             #our-articles .swiper-button-next:after,
             #our-articles .swiper-button-prev:after {
               font-size: 32px !important;
@@ -146,7 +152,7 @@ export default function OurArticles({ articles }: OurArticlesProps) {
               border-radius: 4px;
             }
             #our-articles .swiper-pagination {
-              bottom: -15px !important;
+              bottom: -25px !important;
               left: 0 !important;
               width: 100% !important;
               text-align: center !important;
