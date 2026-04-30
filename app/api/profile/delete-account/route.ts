@@ -41,12 +41,14 @@ export async function POST(request: Request) {
     const userId = authData.user.id;
 
     // Anonimizar dados pessoais do perfil
+    const anonymizedEmail = `deleted+${userId}@anon.local`;
+
     await runOrThrow(
       serviceRole
         .from("user_profile")
         .update({
           full_name: "Usuário excluído",
-          email: null,
+          email: anonymizedEmail,
           avatar_url: null,
           bio: null,
           phone: null,
