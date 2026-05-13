@@ -135,6 +135,7 @@ export async function getCourseDetail(courseId: string): Promise<CourseDetail | 
         description,
         level,
         status,
+        audience,
         thumb:media_file!course_thumb_id_fkey(url),
         modules:course_module (
           id,
@@ -266,18 +267,9 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
     if (!userId) throw new Error("Usuário não autenticado.");
     await ensureCourseOwnerOrAdmin(supabase, courseId, userId, role);
 
-    const { data: modules } = await supabase
-        .from("course_module")
-        .select("id")
-        .eq("course_id", courseId);
-
-    const moduleIds = (modules || []).map((m: { id: string }) => m.id);
-    if (moduleIds.length) {
-        await supabase.from("lesson").delete().in("module_id", moduleIds);
-    }
-
-    await supabase.from("course_module").delete().eq("course_id", courseId);
-    await supabase.from("enrollment").delete().eq("course_id", courseId);
+    // All dependent tables (modules, lessons, enrollments, certificates,
+    // submissions, comments, class_groups) are now ON DELETE CASCADE,
+    // so deleting the course row cleans up everything automatically.
     let query = supabase.from("course").delete().eq("id", courseId);
     if (role === "teacher") {
         query = query.eq("owner_id", userId);

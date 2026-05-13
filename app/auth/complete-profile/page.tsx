@@ -13,6 +13,7 @@ function CompleteProfileContent() {
 
     const isFromOAuth = searchParams.get("from") === "oauth";
     const initialName = searchParams.get("name") || "";
+    const nextParam = searchParams.get("next");
 
     const [fullName, setFullName] = useState(initialName);
     const [phone, setPhone] = useState("");
@@ -92,10 +93,13 @@ function CompleteProfileContent() {
 
             if (userType === "teacher") {
                 // Redirect to complete teacher profile
-                router.push("/auth/complete-teacher-profile?from=oauth");
+                const queryStr = nextParam ? `&next=${encodeURIComponent(nextParam)}` : '';
+                router.push(`/auth/complete-teacher-profile?from=oauth${queryStr}`);
             } else {
                 // Redirect to protected area
-                router.push("/protected");
+                const nextPath = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/protected";
+                router.push(nextPath);
+                router.refresh();
             }
         } catch (err: unknown) {
             const errorMessage =

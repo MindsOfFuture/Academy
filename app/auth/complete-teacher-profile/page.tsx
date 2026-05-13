@@ -13,6 +13,7 @@ function CompleteTeacherProfileContent() {
     const router = useRouter();
 
     const isFromOAuth = searchParams.get("from") === "oauth";
+    const nextParam = searchParams.get("next");
 
     const [schools, setSchools] = useState<string[]>(["", ""]);
     const [educationLevel, setEducationLevel] = useState("");
@@ -153,7 +154,10 @@ function CompleteTeacherProfileContent() {
             }
 
             toast.success("Perfil de professor enviado para verificação!");
-            router.push("/protected");
+            
+            const nextPath = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/protected";
+            router.push(nextPath);
+            router.refresh();
         } catch (err: unknown) {
             const errorMessage =
                 err instanceof Error ? err.message : "Erro ao completar perfil";

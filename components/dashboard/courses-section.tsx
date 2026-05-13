@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   createCourse,
@@ -14,8 +15,10 @@ import ChatsPanel from "@/components/dashboard/ChatsPanel";
 import PendingCorrections from "@/components/dashboard/PendingCorrections";
 
 type TabType = "courses" | "paths" | "chats" | "corrections";
+const validTabs: TabType[] = ["courses", "paths", "chats", "corrections"];
 
 export default function CoursesSection() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>("courses");
   const [isOpen, setIsOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseSummary | null>(null);
@@ -27,6 +30,19 @@ export default function CoursesSection() {
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [paths, setPaths] = useState<LearningPathSummary[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Lê o parâmetro ?tab= da URL para permitir deep-linking via notificações
+  useEffect(() => {
+    const tabParam = searchParams.get("tab") as TabType | null;
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam);
+      // Aguarda o render e scrolla até a seção
+      setTimeout(() => {
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [searchParams]);
 
   // 🔄 Atualiza lista de cursos
   const refreshCourses = async () => {
@@ -118,7 +134,7 @@ export default function CoursesSection() {
   };
 
   return (
-    <div>
+    <div ref={sectionRef}>
       {/* Tabs */}
       <div className="flex gap-2 border-b mb-6 overflow-x-auto whitespace-nowrap">
         <button

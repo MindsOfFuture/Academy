@@ -158,6 +158,8 @@ function CoursePageContent() {
       // Sinalizar atualização para outras páginas via localStorage
       localStorage.setItem("courses-updated", Date.now().toString());
       window.dispatchEvent(new CustomEvent("lesson-progress-changed"));
+      // Atualizar status de conclusão/certificado imediatamente
+      refreshCompletion();
     } catch (error) {
       console.error("Erro ao atualizar progresso:", error);
       toast.error("Não foi possível atualizar o progresso.");

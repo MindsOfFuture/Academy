@@ -371,7 +371,7 @@ export async function submitAssignment(params: {
                     payload: {
                         title: `Nova entrega: ${assignment.title || "Atividade"}`,
                         message: `O aluno ${profile?.full_name || "Estudante"} entregou a atividade "${assignment.title || "Atividade"}".`,
-                        href: `/protected/activitie?id=${params.assignmentId}`,
+                        href: `/protected?tab=corrections`,
                     },
                 }),
             }).catch(() => { });

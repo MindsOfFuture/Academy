@@ -86,7 +86,6 @@ export default function PendingCorrections() {
         setGradingSubmission(null);
         loadSubmissions();
         if (activeSubTab === "history") loadHistory();
-        toast.success("Correção salva com sucesso!");
     };
 
     const handleDeleteGrade = async (sub: PendingSubmission) => {

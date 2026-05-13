@@ -16,7 +16,7 @@ type Props = {
 export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Props) {
   const { course, loading, refreshCourse, updateCurso, deleteCurso, insertModule, insertLesson, deleteModule, deleteLesson } =
     useCourse(courseId);
-  const { alunos, alunosDisponiveis, loading: loadingAlunos, addAluno, removeAluno } =
+  const { alunos, alunosDisponiveis, loading: loadingAlunos, certificates, progress, addAluno, removeAluno, emitCertificate } =
     useStudents(courseId);
 
   const [form, setForm] = useState({ title: "", description: "", imageUrl: "", status: "", audience: "" });
@@ -92,6 +92,9 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
         loading={loadingAlunos}
         onAdd={addAluno}
         onRemove={removeAluno}
+        certificates={certificates}
+        progress={progress}
+        onIssueCertificate={emitCertificate}
       />
     </div>
   );

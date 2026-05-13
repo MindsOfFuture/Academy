@@ -41,6 +41,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       if (error) throw error;
       toast.success("Login realizado com sucesso!");
       router.push(nextPath);
+      router.refresh();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro.";
       setError(errorMessage);

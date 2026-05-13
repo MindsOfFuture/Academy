@@ -92,6 +92,22 @@ export async function listUsersClient() {
     });
 }
 
+/**
+ * Lista todos os usuários que podem ser matriculados em um curso (alunos, professores e admins).
+ */
+export async function listEnrollableUsersClient() {
+    const supabase = createBrowserSupabase();
+    const { data, error } = await supabase
+        .rpc("get_enrollable_users");
+    if (error || !data) return [];
+
+    return data.map((row: any) => ({
+        id: row.id as string,
+        full_name: row.full_name as string,
+        role_name: row.role_name as string,
+    }));
+}
+
 export async function uploadAvatarClient(userId: string, file: File): Promise<string> {
     const supabase = createBrowserSupabase();
 

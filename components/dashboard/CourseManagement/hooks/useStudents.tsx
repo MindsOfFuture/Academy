@@ -5,12 +5,20 @@ import {
   addStudentToCourse,
   removeStudentFromCourse,
 } from "@/lib/api/enrollments";
-import { listUsersClient } from "@/lib/api/profiles";
+import { listEnrollableUsersClient } from "@/lib/api/profiles";
+import {
+  getCourseCertificates,
+  getStudentsProgress,
+  issueCertificateForStudent,
+  type CertificateInfo,
+  type StudentProgress,
+} from "@/lib/api/certificates";
 
 interface UserInfo {
   id?: string;
   full_name?: string;
   email?: string;
+  role_name?: string;
 }
 
 interface Aluno {
@@ -23,14 +31,20 @@ export default function useStudents(courseId: string) {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [alunosDisponiveis, setAlunosDisponiveis] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [certificates, setCertificates] = useState<Record<string, CertificateInfo>>({});
+  const [progress, setProgress] = useState<Record<string, StudentProgress>>({});
 
   const fetchAlunos = useCallback(async () => {
     setLoading(true);
-    const [lista, listaUsers] = await Promise.all([
+    const [lista, listaUsers, certs, prog] = await Promise.all([
       listCourseStudents(courseId),
-      listUsersClient(),
+      listEnrollableUsersClient(),
+      getCourseCertificates(courseId),
+      getStudentsProgress(courseId),
     ]);
     setAlunos(lista);
+    setCertificates(certs);
+    setProgress(prog);
     
     const enrolledIds = new Set(lista.map(a => a.user?.id));
     const available = listaUsers.filter(u => u.id && !enrolledIds.has(u.id));
@@ -66,6 +80,17 @@ export default function useStudents(courseId: string) {
       if (removedAluno?.user) {
         setAlunosDisponiveis((prev) => [...prev, removedAluno.user!]);
       }
+      // Remover certificado e progresso do mapa local
+      setCertificates((prev) => {
+        const next = { ...prev };
+        delete next[matriculaId];
+        return next;
+      });
+      setProgress((prev) => {
+        const next = { ...prev };
+        delete next[matriculaId];
+        return next;
+      });
       // Sinalizar atualização para outras páginas via localStorage
       localStorage.setItem("courses-updated", Date.now().toString());
       window.dispatchEvent(new CustomEvent("enrollment-changed"));
@@ -73,12 +98,21 @@ export default function useStudents(courseId: string) {
     return ok;
   };
 
+  const emitCertificate = async (enrollmentId: string, userId: string) => {
+    const cert = await issueCertificateForStudent(courseId, enrollmentId, userId);
+    setCertificates((prev) => ({ ...prev, [enrollmentId]: cert }));
+    return cert;
+  };
+
   return {
     alunos,
     alunosDisponiveis,
     loading,
+    certificates,
+    progress,
     fetchAlunos,
     addAluno,
     removeAluno,
+    emitCertificate,
   };
 }
