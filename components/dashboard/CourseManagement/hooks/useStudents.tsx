@@ -47,7 +47,7 @@ export default function useStudents(courseId: string) {
     setProgress(prog);
     
     const enrolledIds = new Set(lista.map(a => a.user?.id));
-    const available = listaUsers.filter(u => u.id && !enrolledIds.has(u.id));
+    const available = listaUsers.filter((u: UserInfo) => u.id && !enrolledIds.has(u.id));
     setAlunosDisponiveis(available);
     
     setLoading(false);

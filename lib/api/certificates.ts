@@ -277,10 +277,11 @@ export async function issueCertificate(courseId: string): Promise<CertificateInf
 export async function validateCertificate(verificationCode: string): Promise<CertificateInfo | null> {
     const supabase = createBrowserSupabase();
 
-    const { data: cert } = await supabase
+    const { data } = await supabase
         .rpc("validate_certificate", { p_code: verificationCode })
         .maybeSingle();
 
+    const cert = data as any;
 
     if (!cert) return null;
 
