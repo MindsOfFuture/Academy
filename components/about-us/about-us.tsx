@@ -21,13 +21,17 @@ export default function AboutUs({ slides }: { slides: Slide[] }) {
         </div>
 
         <div className="bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] max-w-6xl p-8 rounded-xl flex flex-col lg:flex-row items-center justify-center gap-8">
-          <div className="lg:w-1/2 w-full text-justify text-gray-800 font-medium leading-relaxed">
+          <div className="lg:w-1/2 w-full text-justify text-gray-800 font-medium leading-relaxed text-sm">
+            <p className="mb-4">
+              O <strong>Minds of the Future</strong> é um projeto da <strong>Universidade Federal de Juiz de Fora (UFJF)</strong> em parceria com o <strong>Governo do Estado de Minas Gerais</strong>. Nosso objetivo principal é complementar a formação de professores e alunos da rede pública de ensino de Juiz de Fora, atuando do 9º ano do ensino fundamental ao 3º ano do ensino médio.
+            </p>
+
+            <p className="mb-4">
+              Para democratizar o acesso à inovação e fomentar o protagonismo juvenil, contamos com a instalação de <strong>espaços co-criativos (salas maker)</strong> distribuídos em três Unidades Acadêmicas da UFJF. Nesses ambientes, promovemos encontros voltados à formação tecnológica, utilizando a <strong>abordagem STEAM</strong> e os <strong>Kits Lego® Education</strong>.
+            </p>
+
             <p>
-              Somos um projeto da Universidade Federal de Juiz de Fora (UFJF)
-              em parceria com o Governo de Minas Gerais. 
-              Atuamos na formação tecnológica de jovens da rede pública, utilizando robótica educacional e programação.
-              Nosso objetivo é democratizar o acesso à inovação, desenvolver competências digitais e fomentar o protagonismo
-              juvenil em território mineiro.
+              Nosso foco vai além da tecnologia: o projeto visa desenvolver e aperfeiçoar as práticas de ensino, estimulando ativamente o <strong>comportamento empreendedor e inovador</strong>. Trabalhamos para desenvolver o <strong>pensamento crítico e computacional</strong> dos participantes, capacitando-os não apenas com competências digitais, mas também com habilidades práticas na busca por <strong>soluções reais de problemas</strong> em nosso território mineiro.
             </p>
           </div>
           <div className="lg:w-1/2 w-full flex justify-center">
