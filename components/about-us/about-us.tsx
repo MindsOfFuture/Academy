@@ -35,35 +35,45 @@ export default function AboutUs({ slides }: { slides: Slide[] }) {
             </p>
           </div>
           <div className="lg:w-1/2 w-full flex justify-center">
-            <Swiper
-              loop={true}
-              grabCursor={true}
-              centeredSlides={true}
-              slidesPerView={'auto'}
-              pagination={{
-                clickable: true,
-                renderBullet: (index, className) =>
-                  `<span class="${className}" style="background-color: white; border: 1px solid white; width: 14px; height: 14px; border-radius: 50%; display: inline-block; margin: 0 4px;"></span>`,
-              }}
-              autoplay={{
-                delay: 3000,
-                disableOnInteraction: false,
-              }}
-              modules={[Autoplay, Pagination]}
-              className="w-full max-w-[422px] h-[406px] rounded-md"
-            >
-              {slides.map((slide, index) => (
-                <SwiperSlide key={index} className="w-full h-full">
-                  <Image
-                    src={slide.src}
-                    alt={slide.alt}
-                    width={422}
-                    height={406}
-                    className="w-full h-full object-cover rounded-md"
-                  />
-                </SwiperSlide>
-              ))}
-            </Swiper>
+            {slides.length > 0 ? (
+              <Swiper
+                loop={true}
+                grabCursor={true}
+                centeredSlides={true}
+                slidesPerView={'auto'}
+                pagination={{
+                  clickable: true,
+                  renderBullet: (index, className) =>
+                    `<span class="${className}" style="background-color: white; border: 1px solid white; width: 14px; height: 14px; border-radius: 50%; display: inline-block; margin: 0 4px;"></span>`,
+                }}
+                autoplay={{
+                  delay: 3000,
+                  disableOnInteraction: false,
+                }}
+                modules={[Autoplay, Pagination]}
+                className="w-full max-w-[422px] h-[406px] rounded-md"
+              >
+                {slides.map((slide, index) => (
+                  <SwiperSlide key={index} className="w-full h-full">
+                    <Image
+                      src={slide.src}
+                      alt={slide.alt}
+                      width={422}
+                      height={406}
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            ) : (
+              <Image
+                src="/fotominds.jpeg"
+                alt="Equipe Minds of the Future"
+                width={422}
+                height={406}
+                className="w-full max-w-[422px] h-[406px] object-cover rounded-md"
+              />
+            )}
           </div>
         </div>
       </div>
