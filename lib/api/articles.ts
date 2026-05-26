@@ -58,15 +58,14 @@ export async function getArticleById(id: string): Promise<ArticleDetail | null> 
     };
 }
 
-export async function getArticles(limit: number = 6): Promise<ArticleSummary[]> {
+export async function getArticles(): Promise<ArticleSummary[]> {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
         .from("article")
         .select(
             `id, title, slug, excerpt, published_at, author:author_id(full_name), cover:media_file!article_cover_media_id_fkey(url)`
         )
-        .order("published_at", { ascending: false })
-        .limit(limit);
+        .order("published_at", { ascending: false });
 
     if (error || !data) return [];
 
