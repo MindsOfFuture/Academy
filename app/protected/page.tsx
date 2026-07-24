@@ -48,7 +48,7 @@ export default async function ProtectedPage() {
 
           {(isAdmin || isTeacherApproved) && (
             <div className="space-y-8">
-              <CoursesSection />
+              <CoursesSection isAdmin={isAdmin} />
               {isAdmin && <UsersTable />}
             </div>
           )}

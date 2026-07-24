@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Telemetry Payload Examples",
+  "description": "Exemplos de payloads JSON para cada evento de telemetria da plataforma Academy. Escopo estritamente educacional (sem dados financeiros).",
+  "examples": {
+    "video_interaction__play": {
+      "description": "Aluno inicia um vídeo — captura device_info por ser evento inicial",
+      "event": "video_interaction",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "lessonId": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "action": "play",
+        "videoTimestampSeconds": 0,
+        "videoDurationSeconds": 1845,
+        "watchedPercent": 0
+      },
+      "stored_row": {
+        "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        "user_id": "99887766-5544-3322-1100-ffeeddccbbaa",
+        "course_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "lesson_id": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+        "enrollment_id": "11223344-5566-7788-99aa-bbccddeeff00",
+        "action": "play",
+        "video_timestamp_seconds": 0,
+        "video_duration_seconds": 1845,
+        "watched_percent": 0,
+        "session_id": "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+        "device_info": {
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "viewportWidth": 1920,
+          "viewportHeight": 1080,
+          "platform": "Win32",
+          "browserLanguage": "pt-BR"
+        },
+        "created_at": "2026-07-23T21:30:00.000Z"
+      }
+    },
+
+    "video_interaction__pause": {
+      "description": "Aluno pausa o vídeo em 12:35 — NÃO captura device_info (não é evento inicial)",
+      "event": "video_interaction",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "lessonId": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "action": "pause",
+        "videoTimestampSeconds": 755,
+        "videoDurationSeconds": 1845,
+        "watchedPercent": 40.92
+      },
+      "stored_row": {
+        "id": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+        "user_id": "99887766-5544-3322-1100-ffeeddccbbaa",
+        "course_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "lesson_id": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+        "enrollment_id": "11223344-5566-7788-99aa-bbccddeeff00",
+        "action": "pause",
+        "video_timestamp_seconds": 755,
+        "video_duration_seconds": 1845,
+        "watched_percent": 40.92,
+        "session_id": "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+        "device_info": null,
+        "created_at": "2026-07-23T21:42:35.000Z"
+      }
+    },
+
+    "video_interaction__complete": {
+      "description": "Aluno finaliza o vídeo inteiro",
+      "event": "video_interaction",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "lessonId": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "action": "complete",
+        "videoTimestampSeconds": 1845,
+        "videoDurationSeconds": 1845,
+        "watchedPercent": 100
+      }
+    },
+
+    "assessment_interaction__first_attempt": {
+      "description": "Primeira tentativa de quiz — captura device_info",
+      "event": "assessment_interaction",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "assignmentId": "55443322-1100-eeff-ddcc-bbaa99887766",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "score": 7,
+        "maxScore": 10,
+        "accuracyRate": 70,
+        "attemptNumber": 1,
+        "timeSpentSeconds": 480
+      },
+      "stored_row": {
+        "id": "cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa",
+        "user_id": "99887766-5544-3322-1100-ffeeddccbbaa",
+        "course_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "assignment_id": "55443322-1100-eeff-ddcc-bbaa99887766",
+        "enrollment_id": "11223344-5566-7788-99aa-bbccddeeff00",
+        "score": 7,
+        "max_score": 10,
+        "accuracy_rate": 70,
+        "attempt_number": 1,
+        "time_spent_seconds": 480,
+        "session_id": "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+        "device_info": {
+          "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+          "viewportWidth": 390,
+          "viewportHeight": 844,
+          "platform": "iPhone",
+          "browserLanguage": "pt-BR"
+        },
+        "created_at": "2026-07-23T22:00:00.000Z"
+      }
+    },
+
+    "assessment_interaction__retry": {
+      "description": "Segunda tentativa de quiz — SEM device_info",
+      "event": "assessment_interaction",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "assignmentId": "55443322-1100-eeff-ddcc-bbaa99887766",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "score": 9,
+        "maxScore": 10,
+        "accuracyRate": 90,
+        "attemptNumber": 2,
+        "timeSpentSeconds": 320
+      }
+    },
+
+    "course_milestone_reached__50_percent": {
+      "description": "Aluno alcança 50% de conclusão do curso (gerado pelo trigger ou client)",
+      "event": "course_milestone_reached",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "milestonePercent": 50,
+        "totalLessons": 20,
+        "completedLessons": 10
+      },
+      "stored_row": {
+        "id": "dddddddd-eeee-ffff-aaaa-bbbbbbbbbbbb",
+        "user_id": "99887766-5544-3322-1100-ffeeddccbbaa",
+        "course_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "enrollment_id": "11223344-5566-7788-99aa-bbccddeeff00",
+        "milestone_percent": 50,
+        "total_lessons": 20,
+        "completed_lessons": 10,
+        "created_at": "2026-07-23T22:15:00.000Z"
+      }
+    },
+
+    "course_milestone_reached__100_percent": {
+      "description": "Aluno completa 100% do curso",
+      "event": "course_milestone_reached",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "milestonePercent": 100,
+        "totalLessons": 20,
+        "completedLessons": 20
+      }
+    },
+
+    "content_reviewed__lesson": {
+      "description": "Aluno avalia uma aula específica com 4 estrelas, tendo 65% do curso concluído",
+      "event": "content_reviewed",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "lessonId": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "rating": 4,
+        "comment": "Aula muito didática, a explicação sobre recursão foi excelente!",
+        "reviewScope": "lesson",
+        "courseCompletionPercent": 65.0
+      },
+      "stored_row": {
+        "id": "eeeeeeee-ffff-aaaa-bbbb-cccccccccccc",
+        "user_id": "99887766-5544-3322-1100-ffeeddccbbaa",
+        "course_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "lesson_id": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+        "enrollment_id": "11223344-5566-7788-99aa-bbccddeeff00",
+        "rating": 4,
+        "comment": "Aula muito didática, a explicação sobre recursão foi excelente!",
+        "review_scope": "lesson",
+        "course_completion_percent": 65.0,
+        "session_id": "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+        "device_info": {
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "viewportWidth": 1440,
+          "viewportHeight": 900,
+          "platform": "Win32",
+          "browserLanguage": "pt-BR"
+        },
+        "created_at": "2026-07-23T22:30:00.000Z"
+      }
+    },
+
+    "content_reviewed__course": {
+      "description": "Aluno avalia o curso inteiro após completar 100%",
+      "event": "content_reviewed",
+      "payload": {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "enrollmentId": "11223344-5566-7788-99aa-bbccddeeff00",
+        "rating": 5,
+        "comment": "Curso completo e muito bem estruturado. Recomendo!",
+        "reviewScope": "course",
+        "courseCompletionPercent": 100
+      }
+    }
+  }
+}

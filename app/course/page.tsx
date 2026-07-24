@@ -18,6 +18,7 @@ import { generateAndDownloadCertificate } from "@/lib/utils/pdfGenerator";
 import toast from "react-hot-toast";
 import { CheckCircle, FileText, Clock, CheckCheck, Award, Download, ShieldCheck } from "lucide-react";
 import { type CourseDetail, type AssignmentSummary, type SubmissionSummary } from "@/lib/api/types";
+import ContentReview from "@/components/content-review/ContentReview";
 
 function CoursePageContent() {
   const searchParams = useSearchParams();
@@ -33,6 +34,7 @@ function CoursePageContent() {
   const [completionStatus, setCompletionStatus] = useState<CourseCompletionStatus | null>(null);
   const [certificate, setCertificate] = useState<CertificateInfo | null>(null);
   const [issuingCert, setIssuingCert] = useState(false);
+  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -51,7 +53,10 @@ function CoursePageContent() {
   useEffect(() => {
     if (course?.id) {
       verifyEnrollment(course.id)
-        .then((matricula) => setIsMatriculado(!!matricula))
+        .then((matricula) => {
+          setIsMatriculado(!!matricula);
+          setEnrollmentId(matricula?.id ?? null);
+        })
         .catch((error) => {
           console.error("Erro ao verificar matrícula:", error);
           setIsMatriculado(false);
@@ -247,6 +252,8 @@ function CoursePageContent() {
                       const isCompleted = progresso.includes(lesson.id);
                       // Filtrar atividades desta lição
                       const lessonAssignments = assignments.filter(a => a.lessonId === lesson.id);
+                      const allLessons = course.modules.flatMap(m => m.lessons);
+                      const progressPercent = allLessons.length > 0 ? Math.round((progresso.length / allLessons.length) * 100) : 0;
 
                       return (
                         <div key={lesson.id} className="space-y-2">
@@ -292,6 +299,20 @@ function CoursePageContent() {
                               {isCompleted ? "Concluída" : "Marcar como concluída"}
                             </button>
                           </div>
+
+                          {/* Avaliação da Aula */}
+                          {isMatriculado && isCompleted && (
+                            <div className="ml-4">
+                              <ContentReview
+                                courseId={course.id}
+                                lessonId={lesson.id}
+                                enrollmentId={enrollmentId ?? undefined}
+                                scope="lesson"
+                                courseCompletionPercent={progressPercent}
+                                variant="compact"
+                              />
+                            </div>
+                          )}
 
                           {/* Atividades da Lição */}
                           {isMatriculado && lessonAssignments.length > 0 && (
@@ -399,6 +420,23 @@ function CoursePageContent() {
                       );
                     })}
                   </div>
+
+                  {/* Avaliação do Curso */}
+                  {isMatriculado && (() => {
+                    const allLessons = course.modules.flatMap(m => m.lessons);
+                    const pct = allLessons.length > 0 ? Math.round((progresso.length / allLessons.length) * 100) : 0;
+                    return pct >= 50 ? (
+                      <div className="pt-4 border-t">
+                        <ContentReview
+                          courseId={course.id}
+                          enrollmentId={enrollmentId ?? undefined}
+                          scope="course"
+                          courseCompletionPercent={pct}
+                          variant="compact"
+                        />
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               )}
 

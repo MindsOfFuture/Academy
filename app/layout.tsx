@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Comfortaa } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import TrackingProvider from "@/components/tracking/TrackingProvider";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -79,6 +80,7 @@ export default function RootLayout({
   return (
     <html lang="pt-br">
       <body className={`${comfortaa.className} antialiased tracking-[0px]`}>
+        <TrackingProvider />
         {children}
         <Toaster
           position="top-center"

@@ -13,11 +13,13 @@ import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
 import LearningPathManager from "@/components/dashboard/LearningPathManagement/LearningPathManager";
 import ChatsPanel from "@/components/dashboard/ChatsPanel";
 import PendingCorrections from "@/components/dashboard/PendingCorrections";
+import AnalyticsTab from "@/components/dashboard/Analytics/AnalyticsTab";
+import { listUsersClient } from "@/lib/api/profiles";
 
-type TabType = "courses" | "paths" | "chats" | "corrections";
-const validTabs: TabType[] = ["courses", "paths", "chats", "corrections"];
+type TabType = "courses" | "paths" | "chats" | "corrections" | "analytics";
+const validTabs: TabType[] = ["courses", "paths", "chats", "corrections", "analytics"];
 
-export default function CoursesSection() {
+export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean }) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>("courses");
   const [isOpen, setIsOpen] = useState(false);
@@ -29,6 +31,7 @@ export default function CoursesSection() {
   const [isTeacherOnly, setIsTeacherOnly] = useState(false);
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [paths, setPaths] = useState<LearningPathSummary[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -63,10 +66,20 @@ export default function CoursesSection() {
     }
   };
 
+  // 🔄 Efeito inicial para carregar dados
   useEffect(() => {
     refreshCourses();
     refreshPaths();
-  }, []);
+    
+    // Fetch users for Analytics
+    async function fetchAdminData() {
+      if (isAdmin) {
+        const usersList = await listUsersClient();
+        setUsers(usersList.map(u => ({ id: u.id, name: u.full_name || "Desconhecido", email: "" })));
+      }
+    }
+    fetchAdminData();
+  }, [isAdmin]);
 
   const resetForm = () => {
     setTitle("");
@@ -173,6 +186,17 @@ export default function CoursesSection() {
         >
           Correções Pendentes
         </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`flex-shrink-0 px-4 py-2 font-medium transition-colors flex items-center gap-2 ${activeTab === "analytics"
+              ? "text-purple-600 border-b-2 border-purple-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
+          >
+            Analytics
+          </button>
+        )}
       </div>
 
       {/* Conteúdo da Tab de Trilhas */}
@@ -189,6 +213,11 @@ export default function CoursesSection() {
       {/* Conteúdo da Tab de Correções Pendentes */}
       {activeTab === "corrections" && (
         <PendingCorrections />
+      )}
+
+      {/* Conteúdo da Tab de Analytics */}
+      {activeTab === "analytics" && isAdmin && (
+        <AnalyticsTab isAdmin={isAdmin} courses={courses} paths={paths} users={users} />
       )}
 
       {/* Conteúdo da Tab de Cursos */}
