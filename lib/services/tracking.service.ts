@@ -104,18 +104,22 @@ class TrackingService {
 
     const isInitialEvent = payload.action === "play";
 
-    this.enqueue("telemetry_video_interaction", {
-      user_id: userId,
-      course_id: payload.courseId,
-      lesson_id: payload.lessonId,
-      enrollment_id: payload.enrollmentId ?? null,
-      action: payload.action,
-      video_timestamp_seconds: payload.videoTimestampSeconds,
-      video_duration_seconds: payload.videoDurationSeconds,
-      watched_percent: payload.watchedPercent,
-      session_id: this.sessionId,
-      device_info: isInitialEvent ? this.collectDeviceInfo() : null,
-    });
+    await this.enqueue(
+      "telemetry_video_interaction",
+      {
+        user_id: userId,
+        course_id: payload.courseId,
+        lesson_id: payload.lessonId,
+        enrollment_id: payload.enrollmentId ?? null,
+        action: payload.action,
+        video_timestamp_seconds: payload.videoTimestampSeconds,
+        video_duration_seconds: payload.videoDurationSeconds,
+        watched_percent: payload.watchedPercent,
+        session_id: this.sessionId,
+        device_info: isInitialEvent ? this.collectDeviceInfo() : null,
+      },
+      true // forceFlush para não perder cliques se o usuário fechar a aba
+    );
   }
 
   /**
@@ -153,18 +157,22 @@ class TrackingService {
     const userId = await this.resolveUserId();
     if (!userId) return;
 
-    this.enqueue("telemetry_content_review", {
-      user_id: userId,
-      course_id: payload.courseId,
-      lesson_id: payload.lessonId ?? null,
-      enrollment_id: payload.enrollmentId ?? null,
-      rating: payload.rating,
-      comment: payload.comment ?? null,
-      review_scope: payload.reviewScope,
-      course_completion_percent: payload.courseCompletionPercent,
-      session_id: this.sessionId,
-      device_info: this.collectDeviceInfo(),
-    });
+    await this.enqueue(
+      "telemetry_content_review",
+      {
+        user_id: userId,
+        course_id: payload.courseId,
+        lesson_id: payload.lessonId ?? null,
+        enrollment_id: payload.enrollmentId ?? null,
+        rating: payload.rating,
+        comment: payload.comment ?? null,
+        review_scope: payload.reviewScope,
+        course_completion_percent: payload.courseCompletionPercent,
+        session_id: this.sessionId,
+        device_info: this.collectDeviceInfo(),
+      },
+      true // forceFlush para eventos acionados ativamente pelo usuário
+    );
   }
 
   // ============================================================
@@ -174,11 +182,11 @@ class TrackingService {
   /**
    * Adiciona evento à fila e agenda flush.
    */
-  private enqueue(table: string, data: Record<string, unknown>): void {
+  private async enqueue(table: string, data: Record<string, unknown>, forceFlush = false): Promise<void> {
     this.queue.push({ table, data });
 
-    if (this.queue.length >= this.BATCH_SIZE) {
-      this.flush();
+    if (forceFlush || this.queue.length >= this.BATCH_SIZE) {
+      await this.flush();
     } else {
       this.scheduleFlush();
     }
@@ -258,15 +266,24 @@ class TrackingService {
   private async resolveUserId(): Promise<string | null> {
     if (this.userId) return this.userId;
 
-    if (!this.userIdPromise) {
-      this.userIdPromise = this.supabase.auth
-        .getUser()
-        .then(({ data }) => {
-          this.userId = data?.user?.id ?? null;
+    if (this.userIdPromise) return this.userIdPromise;
+
+    this.userIdPromise = this.supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (data?.user?.id) {
+          this.userId = data.user.id;
           return this.userId;
-        })
-        .catch(() => null);
-    }
+        }
+        // Não fazer cache de null, tentar novamente na próxima
+        this.userIdPromise = null;
+        return null;
+      })
+      .catch((err) => {
+        console.warn("[TrackingService] Falha ao obter usuário:", err);
+        this.userIdPromise = null;
+        return null;
+      });
 
     return this.userIdPromise;
   }

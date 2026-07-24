@@ -73,7 +73,7 @@ export interface StudentMetadata {
 // === Payloads de Eventos de Telemetria ===
 
 /** Ações possíveis em um vídeo */
-export type VideoAction = "play" | "pause" | "seek" | "complete";
+export type VideoAction = "play" | "pause" | "seek" | "complete" | "open_link" | "uncomplete";
 
 /**
  * Payload do evento `video_interaction`.

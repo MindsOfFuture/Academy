@@ -38,7 +38,7 @@ export function GlobalAnalytics({ filter }: GlobalAnalyticsProps) {
     completion_rate,
     avg_review_rating,
     total_reviews,
-    daily_video_hours,
+    daily_learning_interactions,
     milestone_funnel,
   } = data;
 
@@ -47,7 +47,7 @@ export function GlobalAnalytics({ filter }: GlobalAnalyticsProps) {
     { name: "Inativos", value: Math.max(0, total_enrolled_students - active_students) },
   ];
 
-  const hasVideoData = daily_video_hours && daily_video_hours.length > 0;
+  const hasInteractionsData = daily_learning_interactions && daily_learning_interactions.length > 0;
   const hasFunnelData = milestone_funnel && milestone_funnel.length > 0;
 
   return (
@@ -77,21 +77,21 @@ export function GlobalAnalytics({ filter }: GlobalAnalyticsProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de Linhas: Engajamento de Vídeo */}
+        {/* Gráfico de Linhas: Interações Diárias */}
         <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Horas de Vídeo (Diário)</h3>
-          {hasVideoData ? (
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Interações de Aprendizado (Diário)</h3>
+          {hasInteractionsData ? (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={daily_video_hours}>
+                <LineChart data={daily_learning_interactions}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Line
                     type="monotone"
-                    dataKey="hours"
-                    name="Horas Assistidas"
+                    dataKey="interactions"
+                    name="Interações (Acessos/Conclusões)"
                     stroke="#684A97"
                     strokeWidth={3}
                     dot={{ r: 4 }}

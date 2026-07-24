@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import { CheckCircle, FileText, Clock, CheckCheck, Award, Download, ShieldCheck } from "lucide-react";
 import { type CourseDetail, type AssignmentSummary, type SubmissionSummary } from "@/lib/api/types";
 import ContentReview from "@/components/content-review/ContentReview";
+import { trackingService } from "@/lib/services/tracking.service";
 
 function CoursePageContent() {
   const searchParams = useSearchParams();
@@ -156,9 +157,27 @@ function CoursePageContent() {
       if (isNowCompleted) {
         setProgresso((prev) => Array.from(new Set([...prev, lessonId])));
         toast.success("Aula marcada como concluída!");
+        trackingService.trackVideoInteraction({
+          courseId: course.id,
+          lessonId,
+          enrollmentId: enrollmentId ?? undefined,
+          action: "complete",
+          videoTimestampSeconds: 0,
+          videoDurationSeconds: 0,
+          watchedPercent: 0,
+        });
       } else {
         setProgresso((prev) => prev.filter((id) => id !== lessonId));
         toast.success("Progresso desmarcado.");
+        trackingService.trackVideoInteraction({
+          courseId: course.id,
+          lessonId,
+          enrollmentId: enrollmentId ?? undefined,
+          action: "uncomplete",
+          videoTimestampSeconds: 0,
+          videoDurationSeconds: 0,
+          watchedPercent: 0,
+        });
       }
       // Sinalizar atualização para outras páginas via localStorage
       localStorage.setItem("courses-updated", Date.now().toString());
@@ -284,6 +303,17 @@ function CoursePageContent() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-sm text-purple-600 hover:text-purple-800"
+                                  onClick={() => {
+                                    trackingService.trackVideoInteraction({
+                                      courseId: course.id,
+                                      lessonId: lesson.id,
+                                      enrollmentId: enrollmentId ?? undefined,
+                                      action: "open_link",
+                                      videoTimestampSeconds: 0,
+                                      videoDurationSeconds: 0,
+                                      watchedPercent: 0,
+                                    });
+                                  }}
                                 >
                                   Assistir aula
                                 </a>

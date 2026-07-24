@@ -115,7 +115,14 @@ export function StudentAnalytics({ students }: StudentAnalyticsProps) {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{act.context}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {act.type === "video"
+                          ? (act.detail === "complete" ? "Concluiu a aula"
+                             : act.detail === "uncomplete" ? "Desmarcou conclusão"
+                             : "Acessou a aula")
+                          : "Entregou a atividade"}
+                        : {act.context}
+                      </p>
                       <p className="text-xs text-gray-500 line-clamp-1">{act.course_title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />

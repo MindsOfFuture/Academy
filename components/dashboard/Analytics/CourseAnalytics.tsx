@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCourseAnalytics } from "./hooks/useAnalytics";
 import { EmptyState } from "./charts/EmptyState";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Treemap } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import type { CourseSummary } from "@/lib/api/types";
 
 interface CourseAnalyticsProps {
@@ -81,43 +81,29 @@ export function CourseAnalytics({ courses }: CourseAnalyticsProps) {
             )}
           </div>
 
-          {/* Heatmap (Aulas mais pausadas) */}
+          {/* Drop-off de Aulas */}
           <div className="bg-white rounded-lg shadow-sm border p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Aulas com Mais Pausas (Pontos de Atrito)</h3>
-            {data.pause_heatmap && data.pause_heatmap.length > 0 ? (
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Funil de Aulas (Drop-off)</h3>
+            {data.lesson_dropoff && data.lesson_dropoff.length > 0 ? (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <Treemap
-                    data={data.pause_heatmap.map((h: any) => ({
-                      name: h.lesson_title,
-                      size: h.pause_count,
-                      avgPos: h.avg_pause_position,
-                    }))}
-                    dataKey="size"
-                    aspectRatio={4 / 3}
-                    stroke="#fff"
-                    fill="#8B6BB9"
-                  >
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const p = payload[0].payload;
-                          return (
-                            <div className="bg-white p-2 border shadow-sm text-sm">
-                              <p className="font-semibold">{p.name}</p>
-                              <p>Pausas: {p.size}</p>
-                              <p>Posição média: {Math.round(p.avgPos / 60)} min</p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
+                  <BarChart data={data.lesson_dropoff}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="lesson_title"
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(value) => (value.length > 15 ? `${value.substring(0, 15)}...` : value)}
                     />
-                  </Treemap>
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip cursor={{ fill: "transparent" }} />
+                    <Legend />
+                    <Bar dataKey="opened" name="Iniciaram (Acessos)" fill="#8B6BB9" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="completed" name="Concluíram" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <EmptyState message="Sem pausas frequentes detectadas." />
+              <EmptyState message="Nenhum dado de acesso a aulas registrado." />
             )}
           </div>
         </div>
