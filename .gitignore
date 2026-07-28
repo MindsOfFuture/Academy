@@ -48,3 +48,17 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Markdown files
+*.md
+!README.md
+
+# Logs and reports
+*.log
+lint_*.txt
+
+# OS generated files
+Thumbs.db
+
+# Local tool configs
+.impeccable/
