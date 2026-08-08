@@ -170,7 +170,7 @@ export function generateAndDownloadCertificate(data: CertificateData) {
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
   doc.text(
-    "Valide este certificado em: mindsofthefuture.com/validar",
+    "Valide este certificado em: mindsofthefuture.com.br/validar",
     width / 2,
     height - 20,
     { align: "center" }

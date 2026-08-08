@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const apiKey = process.env.RESEND_API_KEY;
-const from = process.env.RESEND_FROM_EMAIL || "noreply@mindsofthefuture.com";
+const from = process.env.RESEND_FROM_EMAIL || "noreply@mindsofthefuture.com.br";
 
 if (!apiKey) {
     console.error("RESEND_API_KEY não configurada");

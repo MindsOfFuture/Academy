@@ -113,7 +113,7 @@ export async function createNotification(params: {
             params.payload.title,
             params.payload.message,
             params.payload.href
-                ? `${process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : ""}${params.payload.href}`
+                ? `${process.env.NEXT_PUBLIC_APP_URL || "https://mindsofthefuture.com.br"}${params.payload.href}`
                 : undefined,
         );
         // Fire-and-forget — email failure must not block
