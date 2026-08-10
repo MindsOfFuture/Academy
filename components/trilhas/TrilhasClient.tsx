@@ -158,8 +158,9 @@ export default function TrilhasClient({ trilhasData, coursesData }: TrilhasClien
                   )}
 
                   {/* Vertical timeline line (mobile) */}
+                  {/* ponytail: perfectly center using math (px-6 = 24px + half of w-8 = 40px = left-10) instead of guessing. */}
                   {cursosDaTrilha.length > 1 && (
-                    <div className="absolute bottom-10 left-[1.85rem] top-[3.25rem] w-[3px] rounded-full bg-gradient-to-b from-[#6C3BAA] via-[#8B5FC7] to-[#FFD600] md:hidden" />
+                    <div className="absolute bottom-10 left-10 -translate-x-1/2 top-[3.25rem] w-[3px] rounded-full bg-gradient-to-b from-[#6C3BAA] via-[#8B5FC7] to-[#FFD600] md:hidden" />
                   )}
 
                   <div className="flex flex-col gap-10 md:flex-row md:justify-around md:gap-4">

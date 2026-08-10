@@ -79,6 +79,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
+      <head>
+        {/* ponytail: systemwide fallback without wrapping every <Image>. Ceiling: custom fallbacks per image. Upgrade: create <ImageWithFallback /> */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener('error', function(e) {
+              if (e.target && e.target.tagName === 'IMG' && !e.target.src.includes('logo.svg')) {
+                e.target.src = '/logo.svg';
+                e.target.srcset = '';
+              }
+            }, true);
+          `
+        }} />
+      </head>
       <body className={`${comfortaa.className} antialiased tracking-[0px]`}>
         <TrackingProvider />
         {children}

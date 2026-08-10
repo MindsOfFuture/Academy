@@ -277,7 +277,8 @@ function CoursePageContent() {
                       return (
                         <div key={lesson.id} className="space-y-2">
                           {/* Card da Aula */}
-                          <div className="flex items-start justify-between gap-4 bg-gray-50 rounded-lg p-3">
+                          {/* ponytail: inline tailwind over <LessonCard/> abstraction. Ceiling: reuse across pages. Upgrade: extract to components/Course/LessonCard.tsx */}
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-white shadow-md rounded-lg p-5 sm:p-6">
                             <div className="space-y-1 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium text-gray-900">
