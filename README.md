@@ -64,10 +64,9 @@ app/
             layout.tsx
             page.tsx
 components/
-    api/ (indexApi, admApi, courseApi - camadas de compatibilidade)
     auth/ (forms e botões)
     dashboard/ (users table, modals, CourseManagement/*)
-    ui/ (design system local – badge, button, card, input, label)
+    ui/ (design system local – button, input, label)
     navbar/, hero_1/, ourCourses/, ourArticles/, about-us/, footer/
     trilhas/, yourCourses/, activitie_cards/, activities/, profile/
     BlurryBackground/, aurora/, button/, cards/, counting/
@@ -75,7 +74,7 @@ components/
 lib/
     utils.ts (helpers: cn, hasEnvVars)
     api/ (Lógica central de serviços e acesso a dados)
-    supabase/ (client, server, middleware, student_projects)
+    supabase/ (client, server, middleware)
 public/ (logos, imagens)
 config (root arquivos: tailwind.config.ts, next.config.ts, eslint.config.mjs)
 ```
