@@ -57,31 +57,11 @@ export async function createAdminClient() {
     throw new Error("Acesso negado. Permissões de administrador necessárias.");
   }
 
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-          }
-        },
-      },
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
+  // Passar a service role key para createServerClient junto com os cookies do
+  // usuário faz o PostgREST usar o JWT do usuário no header Authorization,
+  // anulando o bypass de RLS. Depois de confirmar o papel admin acima,
+  // devolvemos um client service role puro.
+  return createServiceRoleClient();
 }
 
 export async function createServiceRoleClient() {

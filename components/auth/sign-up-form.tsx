@@ -226,14 +226,12 @@ export function SignUpForm({
           const notifyResponse = await fetch("/api/notifications", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            // O texto da notificação é montado no servidor a partir do banco;
+            // aqui só identificamos quem acabou de se cadastrar.
             body: JSON.stringify({
               action: "notify_admins",
               type: "teacher_pending_approval",
-              payload: {
-                title: name,
-                message: `O professor ${name} criou uma conta e aguarda aprovação.`,
-                href: "/protected", // Admin dashboard
-              },
+              email,
             }),
           });
 

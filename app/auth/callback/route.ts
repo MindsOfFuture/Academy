@@ -1,11 +1,6 @@
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-
-function normalizeNextPath(nextPath: string | null): string | null {
-    if (!nextPath) return null;
-    if (!nextPath.startsWith("/") || nextPath.startsWith("//")) return null;
-    return nextPath;
-}
+import { normalizeNextPath } from "@/lib/utils";
 
 /**
  * OAuth callback route for Google authentication

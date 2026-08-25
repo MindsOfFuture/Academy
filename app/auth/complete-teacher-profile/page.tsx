@@ -127,26 +127,15 @@ function CompleteTeacherProfileContent() {
                 .update({ verification_status: "pending" })
                 .eq("id", authData.user.id);
 
-            // Notify admins
+            // Notify admins. O texto vem do banco no servidor; a sessão atual
+            // já identifica o professor, então não enviamos payload.
             try {
-                const fullName =
-                    (await supabase
-                        .from("user_profile")
-                        .select("full_name")
-                        .eq("id", authData.user.id)
-                        .maybeSingle()).data?.full_name || "Professor";
-
                 await fetch("/api/notifications", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         action: "notify_admins",
                         type: "teacher_pending_approval",
-                        payload: {
-                            title: fullName,
-                            message: `O professor ${fullName} criou uma conta via Google e aguarda aprovação.`,
-                            href: "/protected",
-                        },
                     }),
                 });
             } catch (notifyError) {
