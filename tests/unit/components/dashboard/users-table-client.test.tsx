@@ -5,12 +5,29 @@ import userEvent from "@testing-library/user-event";
 import { type UserProfileSummary } from "@/lib/api/types";
 
 // Mocks
-const mockFrom = vi.fn();
+// Query builder auto-encadeavel: qualquer metodo devolve o proprio builder,
+// que tambem e awaitable. Assim o mock nao quebra quando a query ganha
+// um .eq()/.or() novo no componente.
+const defaultResult = { data: null, count: 0, error: null };
 const mockSelect = vi.fn();
 const mockOrder = vi.fn();
 const mockOr = vi.fn();
 const mockRange = vi.fn();
 const mockIn = vi.fn();
+const mockEq = vi.fn();
+
+const query: Record<string, unknown> = {
+  select: mockSelect,
+  order: mockOrder,
+  or: mockOr,
+  range: mockRange,
+  in: mockIn,
+  eq: mockEq,
+  then: (resolve: (value: typeof defaultResult) => void) => resolve(defaultResult),
+};
+
+const chainMocks = [mockSelect, mockOrder, mockOr, mockRange, mockIn, mockEq];
+const mockFrom = vi.fn(() => query);
 
 const mockSupabase = {
   from: mockFrom,
@@ -72,24 +89,8 @@ describe("UsersTableClient", () => {
     vi.clearAllMocks();
 
     // Supabase Chain Setup
-    mockFrom.mockReturnValue({
-        select: mockSelect,
-    });
-    
-    // For primary user query
-    mockSelect.mockReturnValue({
-        order: mockOrder,
-        in: mockIn // for role query
-    });
-    
-    mockOrder.mockReturnValue({
-        range: mockRange,
-        or: mockOr
-    });
-    
-    mockOr.mockReturnValue({
-        range: mockRange
-    });
+    mockFrom.mockReturnValue(query);
+    chainMocks.forEach((mock) => mock.mockReturnValue(query));
   });
 
   it("renders initial users correctly", () => {
@@ -100,29 +101,24 @@ describe("UsersTableClient", () => {
     expect(elements.length).toBeGreaterThan(0);
   });
 
-  it("triggers search and calls supabase", async () => {
+  it("busca substitui a lista pelos usuarios retornados", async () => {
      render(<UsersTableClient {...actions} initialUsers={initialUsers} initialTotal={1} initialPage={1} initialPageSize={10} />);
      
-     // Mock return for search query
      mockRange.mockResolvedValueOnce({
          data: [{ id: '2', full_name: 'Searched User', email: 's@e.com' }],
          count: 1,
          error: null
      });
-     
-     // Mock return for role query (secondary)
-     mockIn.mockResolvedValueOnce({ data: [] });
 
-     const searchInput = screen.getByTestId('search-input');
-     await userEvent.type(searchInput, 'Searched');
+     await userEvent.type(screen.getByTestId('search-input'), 'Searched');
      
      await waitFor(() => {
-         expect(mockFrom).toHaveBeenCalledWith('user_profile');
-         expect(mockOr).toHaveBeenCalledWith(expect.stringContaining('Searched'));
+         expect(screen.getAllByText('Searched User').length).toBeGreaterThan(0);
      });
+     expect(screen.queryByText('Test User')).toBeNull();
   });
 
-  it("handles pagination and calls supabase", async () => {
+  it("paginacao carrega a proxima pagina com o range correto", async () => {
      render(<UsersTableClient {...actions} initialUsers={initialUsers} initialTotal={20} initialPage={1} initialPageSize={10} />);
      
      // Mock return for page 2
@@ -131,16 +127,13 @@ describe("UsersTableClient", () => {
          count: 20,
          error: null
      });
-     
-     // Mock return for role query
-     mockIn.mockResolvedValueOnce({ data: [] });
 
-     const nextButton = screen.getByText('Next');
-     fireEvent.click(nextButton);
+     fireEvent.click(screen.getByText('Next'));
 
      await waitFor(() => {
-         expect(mockFrom).toHaveBeenCalledWith('user_profile');
-         expect(mockRange).toHaveBeenCalledWith(10, 19); // 1-based page 2 -> skip 10
+         expect(screen.getAllByText('Page 2 User').length).toBeGreaterThan(0);
      });
+     // range e 0-based: pagina 2 com pageSize 10 -> (10, 19)
+     expect(mockRange).toHaveBeenCalledWith(10, 19);
   });
 });

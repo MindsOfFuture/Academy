@@ -112,23 +112,24 @@ describe('Profiles API', () => {
   });
 
   describe('listUsersClient', () => {
-    it('should return list of users on success', async () => {
+    it('should return list of users sorted by name, without email', async () => {
       const mockUsers = [
-        { id: '1', full_name: 'Alice', email: 'alice@example.com' },
-        { id: '2', full_name: 'Bob', email: 'bob@example.com' },
+        { id: '2', full_name: 'Bob' },
+        { id: '1', full_name: 'Alice' },
       ];
 
-      mockClient.chain.order.mockResolvedValueOnce({ data: mockUsers, error: null });
+      mockClient.rpc.mockResolvedValueOnce({ data: mockUsers, error: null });
 
       const result = await listUsersClient();
 
-      expect(mockClient.from).toHaveBeenCalledWith('user_profile');
+      expect(mockClient.rpc).toHaveBeenCalledWith('get_students_list');
       expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({ id: '1', full_name: 'Alice', email: 'alice@example.com' });
+      // O RPC nao expoe email, e a ordenacao por nome e feita localmente
+      expect(result[0]).toEqual({ id: '1', full_name: 'Alice', email: undefined });
     });
 
     it('should return empty array on error', async () => {
-      mockClient.chain.order.mockResolvedValueOnce({ data: null, error: { message: 'Error' } });
+      mockClient.rpc.mockResolvedValueOnce({ data: null, error: { message: 'Error' } });
 
       const result = await listUsersClient();
 
@@ -136,7 +137,7 @@ describe('Profiles API', () => {
     });
 
     it('should return empty array when data is null', async () => {
-      mockClient.chain.order.mockResolvedValueOnce({ data: null, error: null });
+      mockClient.rpc.mockResolvedValueOnce({ data: null, error: null });
 
       const result = await listUsersClient();
 

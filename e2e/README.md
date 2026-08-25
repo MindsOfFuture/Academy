@@ -29,12 +29,11 @@ e2e/
 │   └── course-flow.spec.ts # Descoberta, matrícula, progresso
 │
 ├── visual/            # NOVO - Testes de responsividade
-│   └── responsive.spec.ts # Visual regression, WCAG, dark mode
+│   └── responsive.spec.ts # Visual regression, WCAG
 │
-├── fixtures/          # ATUALIZADO
+├── fixtures/
 │   ├── auth.fixture.ts
-│   ├── mobile.fixture.ts
-│   └── test-utils.fixture.ts # NOVO - Utilitários comuns
+│   └── mobile.fixture.ts
 │
 └── global.setup.ts
 ```
@@ -46,8 +45,7 @@ e2e/
 3. **Navigation timeout** - 30s para navegação
 4. **Projetos segmentados por pasta**:
    - Desktop browsers rodam `desktop/`, `flows/`, `visual/`
-   - Mobile browsers rodam `mobile/`, `visual/`
-   - Tablet roda apenas `visual/`
+   - Mobile browsers rodam `mobile/`
 5. **JSON reporter** para CI/CD
 6. **Documentação** da estrutura de pastas
 
@@ -130,20 +128,6 @@ e2e/
 - Tamanho de links clicáveis
 - Textos não menores que 14px
 - Line-height adequado
-- Verificação de dark mode
-- Hover states
-- Feedback visual em botões
-
-## Novo Fixture: test-utils.fixture.ts
-
-Utilitários reutilizáveis:
-- `measurePerformance()` - Métricas de performance (DOMContentLoaded, FP, FCP)
-- `checkBasicA11y()` - Verificação básica de acessibilidade
-- `setupConsoleErrorCapture()` - Captura erros de console
-- `setupNetworkCapture()` - Monitora requests de rede
-- `scrollFullPage()` - Scroll completo da página
-- `isInViewport()` - Verifica se elemento está visível
-- `throttleNetwork()` - Simula conexão lenta (3G, offline)
 
 ## Comandos para Executar
 

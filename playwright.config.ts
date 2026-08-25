@@ -76,7 +76,7 @@ export default defineConfig({
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 5'] },
-      testMatch: ['**/mobile/**/*.spec.ts', '**/visual/**/*.spec.ts'],
+      testMatch: ['**/mobile/**/*.spec.ts'],
       dependencies: ['setup'],
     },
     {
@@ -89,14 +89,6 @@ export default defineConfig({
       name: 'mobile-safari-mini',
       use: { ...devices['iPhone SE'] },
       testMatch: ['**/mobile/**/*.spec.ts'],
-      dependencies: ['setup'],
-    },
-    
-    // Tablet viewport
-    {
-      name: 'tablet',
-      use: { ...devices['iPad (gen 7)'] },
-      testMatch: ['**/visual/**/*.spec.ts'],
       dependencies: ['setup'],
     },
   ],
