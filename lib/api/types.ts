@@ -5,6 +5,9 @@ export type TeacherVerificationStatus = "pending" | "approved" | "rejected" | nu
 // Nota: Supabase retorna joins como arrays, então thumb pode vir como array ou objeto
 export type CourseAudience = 'student' | 'teacher';
 
+// Join de media_file: Supabase devolve objeto ou array conforme a relação
+export type MediaRef = { url?: string | null } | { url?: string | null }[] | null | undefined;
+
 export interface CourseRow {
     id: string;
     title: string;
@@ -13,16 +16,16 @@ export interface CourseRow {
     status?: string | null;
     owner_id?: string | null;
     audience?: CourseAudience | null;
-    thumb?: { url?: string | null } | { url?: string | null }[] | null;
+    thumb?: MediaRef;
     modules?: ModuleRow[];
     enrollments?: { count: number }[];
 }
 
-// Helper para extrair URL de thumb (pode ser array ou objeto)
-export function getThumbUrl(thumb: CourseRow['thumb']): string | null {
-    if (!thumb) return null;
-    if (Array.isArray(thumb)) return thumb[0]?.url ?? null;
-    return thumb.url ?? null;
+// Helper para extrair URL de mídia (Supabase retorna joins como objeto ou array)
+export function getMediaUrl(ref: MediaRef): string | null {
+    if (!ref) return null;
+    if (Array.isArray(ref)) return ref[0]?.url ?? null;
+    return ref.url ?? null;
 }
 
 export interface LessonRow {
@@ -71,7 +74,7 @@ export interface ArticleRow {
     content?: string | null;
     published_at?: string | null;
     author_id?: string | null;
-    cover?: { url?: string | null } | { url?: string | null }[] | null;
+    cover?: MediaRef;
 }
 
 export interface LearningPathRow {
@@ -80,32 +83,8 @@ export interface LearningPathRow {
     description?: string | null;
     audience?: CourseAudience | null;
     owner_id?: string | null;
-    cover?: { url?: string | null } | { url?: string | null }[] | null;
+    cover?: MediaRef;
     courses?: Array<{ order?: number; course?: CourseRow }>;
-}
-
-// Helper para extrair URL de cover (pode ser array ou objeto)
-export function getCoverUrl(cover: ArticleRow['cover'] | LearningPathRow['cover']): string | null {
-    if (!cover) return null;
-    if (Array.isArray(cover)) return cover[0]?.url ?? null;
-    return cover.url ?? null;
-}
-
-export interface UserProfileRow {
-    id: string;
-    full_name?: string | null;
-    email?: string | null;
-    avatar_url?: string | null;
-    bio?: string | null;
-    specialties?: string[] | null;
-    certifications?: string[] | null;
-    verification_status?: TeacherVerificationStatus;
-    is_active?: boolean | null;
-}
-
-export interface SystemConfigRow {
-    key: string;
-    value: string;
 }
 
 // Tipos de resumo (transformados)
@@ -277,4 +256,39 @@ export interface PendingSubmission extends SubmissionWithStudent {
     courseName: string;
     courseId: string;
     lessonTitle: string;
+}
+
+// Mapeadores compartilhados (DB row -> view model)
+export function mapCourse(row: CourseRow): CourseSummary {
+    return {
+        id: row.id,
+        title: row.title,
+        description: row.description ?? null,
+        level: row.level ?? null,
+        status: row.status ?? null,
+        audience: row.audience ?? null,
+        thumbUrl: getMediaUrl(row.thumb),
+    };
+}
+
+export function mapLesson(row: LessonRow): LessonSummary {
+    return {
+        id: row.id,
+        title: row.title,
+        description: row.description ?? null,
+        durationMinutes: row.duration_minutes ?? null,
+        contentUrl: row.content_url ?? null,
+        contentType: row.content_type ?? null,
+        order: row.order ?? null,
+        isPublic: row.is_public ?? null,
+    };
+}
+
+export function mapModule(row: ModuleRow): ModuleSummary {
+    return {
+        id: row.id,
+        title: row.title,
+        order: row.order ?? null,
+        lessons: (row.lessons || []).map(mapLesson),
+    };
 }

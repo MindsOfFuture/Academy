@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
-import { type ArticleSummary, type ArticleRow, getCoverUrl } from "./types";
+import { type ArticleSummary, type ArticleRow, getMediaUrl } from "./types";
 
 export interface ArticleDetail extends ArticleSummary {
     authorName?: string | null;
@@ -25,7 +25,7 @@ export async function getArticleBySlug(slug: string): Promise<ArticleDetail | nu
         slug: articleRow.slug ?? null,
         excerpt: articleRow.excerpt ?? null,
         content: articleRow.content ?? null,
-        coverUrl: getCoverUrl(articleRow.cover),
+        coverUrl: getMediaUrl(articleRow.cover),
         authorId: articleRow.author_id ?? null,
         authorName: articleRow.author?.full_name ?? null,
         publishedAt: articleRow.published_at ?? null,
@@ -51,7 +51,7 @@ export async function getArticleById(id: string): Promise<ArticleDetail | null> 
         slug: articleRow.slug ?? null,
         excerpt: articleRow.excerpt ?? null,
         content: articleRow.content ?? null,
-        coverUrl: getCoverUrl(articleRow.cover),
+        coverUrl: getMediaUrl(articleRow.cover),
         authorId: articleRow.author_id ?? null,
         authorName: articleRow.author?.full_name ?? null,
         publishedAt: articleRow.published_at ?? null,
@@ -77,7 +77,7 @@ export async function getArticles(): Promise<ArticleSummary[]> {
             slug: articleRow.slug ?? null,
             excerpt: articleRow.excerpt ?? null,
 
-            coverUrl: getCoverUrl(articleRow.cover),
+            coverUrl: getMediaUrl(articleRow.cover),
             authorId: articleRow.author_id ?? null,
             publishedAt: articleRow.published_at ?? null,
         };

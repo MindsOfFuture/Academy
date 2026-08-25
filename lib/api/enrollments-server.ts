@@ -1,18 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { type CourseSummary, type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonRow, type LessonProgressRow, getThumbUrl } from "./types";
-
-function mapCourse(row: CourseRow): CourseSummary {
-    return {
-        id: row.id,
-        title: row.title,
-        description: row.description ?? null,
-        level: row.level ?? null,
-        status: row.status ?? null,
-        thumbUrl: getThumbUrl(row.thumb),
-    };
-}
+import { type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonRow, type LessonProgressRow, mapCourse } from "./types";
 
 export async function getUserCoursesServer(): Promise<EnrollmentSummary[]> {
     const supabase = await createClient();

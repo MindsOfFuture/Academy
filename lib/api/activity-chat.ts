@@ -5,6 +5,7 @@ import {
     type ChatUser,
     type RoleName,
 } from "./types";
+import { getCurrentUserAndRole } from "./profiles";
 
 const PAGE_SIZE = 30;
 
@@ -22,25 +23,6 @@ function mapMessage(row: ActivityChatMessageRow): ActivityChatMessage {
         senderName: sender?.full_name ?? "Usuário",
         senderAvatar: sender?.avatar_url ?? null,
     };
-}
-
-async function getCurrentUserAndRole(supabase: ReturnType<typeof createBrowserSupabase>): Promise<{ userId: string | null; role: RoleName; }> {
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id ?? null;
-    if (!userId) return { userId: null, role: "unknown" };
-
-    const { data: roleData } = await supabase
-        .from("user_role")
-        .select("role(name)")
-        .eq("user_profile_id", userId)
-        .maybeSingle();
-
-    const rawRole = Array.isArray(roleData?.role) ? roleData?.role[0] : roleData?.role;
-    const role: RoleName = rawRole?.name === "admin" || rawRole?.name === "teacher" || rawRole?.name === "student"
-        ? (rawRole.name as RoleName)
-        : "student";
-
-    return { userId, role };
 }
 
 // --- Queries ---

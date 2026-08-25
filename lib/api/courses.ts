@@ -1,60 +1,6 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { type CourseSummary, type CourseDetail, type LessonSummary, type ModuleSummary, type CourseRow, type LessonRow, type ModuleRow, type RoleName, getThumbUrl } from "./types";
-
-function mapCourse(row: CourseRow): CourseSummary {
-    return {
-        id: row.id,
-        title: row.title,
-        description: row.description ?? null,
-        level: row.level ?? null,
-        status: row.status ?? null,
-        audience: row.audience ?? null,
-        thumbUrl: getThumbUrl(row.thumb),
-    };
-}
-
-function mapLesson(row: LessonRow): LessonSummary {
-    return {
-        id: row.id,
-        title: row.title,
-        description: row.description ?? null,
-        durationMinutes: row.duration_minutes ?? null,
-        contentUrl: row.content_url ?? null,
-        contentType: row.content_type ?? null,
-        order: row.order ?? null,
-        isPublic: row.is_public ?? null,
-    };
-}
-
-function mapModule(row: ModuleRow): ModuleSummary {
-    return {
-        id: row.id,
-        title: row.title,
-        order: row.order ?? null,
-        lessons: (row.lessons || []).map(mapLesson),
-    };
-}
-
-async function getCurrentUserAndRole(supabase: SupabaseClient): Promise<{ userId: string | null; role: RoleName; }> {
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData?.user?.id ?? null;
-    if (!userId) {
-        return { userId: null, role: "unknown" };
-    }
-
-    const { data: roleData } = await supabase
-        .from("user_role")
-        .select("role(name)")
-        .eq("user_profile_id", userId)
-        .maybeSingle();
-
-    const rawRole = Array.isArray(roleData?.role) ? roleData?.role[0] : roleData?.role;
-    const role = rawRole?.name === "admin" || rawRole?.name === "teacher" || rawRole?.name === "student"
-        ? (rawRole.name as RoleName)
-        : "student";
-
-    return { userId, role };
-}
+import { type CourseSummary, type CourseDetail, type CourseRow, type LessonRow, type RoleName, mapCourse, mapLesson, mapModule } from "./types";
+import { getCurrentUserAndRole } from "./profiles";
 
 async function ensureCourseOwnerOrAdmin(
     supabase: SupabaseClient,
@@ -102,34 +48,28 @@ async function getCourseIdByLessonId(
 
 type SupabaseClient = ReturnType<typeof createBrowserSupabase>;
 
-async function withSupabase<T>(handler: (supabase: SupabaseClient) => Promise<T>): Promise<T> {
-    const supabase = createBrowserSupabase();
-    return handler(supabase);
-}
-
 export async function listCourses(): Promise<CourseSummary[]> {
-    return withSupabase(async (supabase) => {
-        const { userId, role } = await getCurrentUserAndRole(supabase);
-        let query = supabase
-            .from("course")
-            .select("id, title, description, level, status, audience, thumb:media_file!course_thumb_id_fkey(url)");
+    const supabase = createBrowserSupabase();
+    const { userId, role } = await getCurrentUserAndRole(supabase);
+    let query = supabase
+        .from("course")
+        .select("id, title, description, level, status, audience, thumb:media_file!course_thumb_id_fkey(url)");
 
-        if (role === "teacher" && userId) {
-            query = query.eq("owner_id", userId);
-        }
+    if (role === "teacher" && userId) {
+        query = query.eq("owner_id", userId);
+    }
 
-        const { data, error } = await query.order("created_at", { ascending: false });
+    const { data, error } = await query.order("created_at", { ascending: false });
 
-        if (error || !data) return [];
-        return data.map(mapCourse);
-    });
+    if (error || !data) return [];
+    return data.map(mapCourse);
 }
 
 export async function getCourseDetail(courseId: string): Promise<CourseDetail | null> {
-    return withSupabase(async (supabase) => {
-        const { data, error } = await supabase
-            .from("course")
-            .select(`
+    const supabase = createBrowserSupabase();
+    const { data, error } = await supabase
+        .from("course")
+        .select(`
         id,
         title,
         description,
@@ -153,16 +93,15 @@ export async function getCourseDetail(courseId: string): Promise<CourseDetail | 
           )
         )
       `)
-            .eq("id", courseId)
-            .maybeSingle();
+        .eq("id", courseId)
+        .maybeSingle();
 
-        if (error || !data) return null;
+    if (error || !data) return null;
 
-        return {
-            ...mapCourse(data as CourseRow),
-            modules: ((data as CourseRow).modules || []).map(mapModule),
-        };
-    });
+    return {
+        ...mapCourse(data as CourseRow),
+        modules: ((data as CourseRow).modules || []).map(mapModule),
+    };
 }
 
 async function ensureThumbId(url: string | null | undefined, supabase: SupabaseClient, ownerId: string | null) {
@@ -362,23 +301,3 @@ export async function removeLesson(lessonId: string): Promise<boolean> {
     return !error;
 }
 
-export async function updateLesson(lessonId: string, payload: { title?: string; description?: string | null; durationMinutes?: number | null; }) {
-    const supabase = createBrowserSupabase();
-    const { userId, role } = await getCurrentUserAndRole(supabase);
-    const courseId = await getCourseIdByLessonId(supabase, lessonId);
-    if (courseId) {
-        await ensureCourseOwnerOrAdmin(supabase, courseId, userId, role);
-    }
-    const { data, error } = await supabase
-        .from("lesson")
-        .update({
-            ...(payload.title !== undefined && { title: payload.title }),
-            ...(payload.description !== undefined && { description: payload.description }),
-            ...(payload.durationMinutes !== undefined && { duration_minutes: payload.durationMinutes }),
-        })
-        .eq("id", lessonId)
-        .select("id, title, description, duration_minutes, content_url, content_type, order, is_public")
-        .maybeSingle();
-    if (error || !data) return null;
-    return mapLesson(data as LessonRow);
-}
