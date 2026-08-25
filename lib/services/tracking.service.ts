@@ -6,11 +6,9 @@
 import { createClient } from "@/lib/supabase/client";
 import type {
   VideoInteractionPayload,
-  AssessmentInteractionPayload,
   ContentReviewPayload,
   DeviceInfo,
   QueuedEvent,
-  VideoAction,
 } from "@/lib/api/telemetry-types";
 
 /**
@@ -32,7 +30,6 @@ import type {
  *
  * // Disparar eventos nos componentes
  * trackingService.trackVideoInteraction({ ... });
- * trackingService.trackAssessmentInteraction({ ... });
  * trackingService.trackContentReview({ ... });
  * ```
  */
@@ -120,33 +117,6 @@ class TrackingService {
       },
       true // forceFlush para não perder cliques se o usuário fechar a aba
     );
-  }
-
-  /**
-   * Registra envio de quiz/prova.
-   * Device info é capturado apenas na primeira tentativa (attemptNumber === 1).
-   */
-  async trackAssessmentInteraction(
-    payload: AssessmentInteractionPayload,
-  ): Promise<void> {
-    const userId = await this.resolveUserId();
-    if (!userId) return;
-
-    const isInitialEvent = payload.attemptNumber === 1;
-
-    this.enqueue("telemetry_assessment_interaction", {
-      user_id: userId,
-      course_id: payload.courseId,
-      assignment_id: payload.assignmentId,
-      enrollment_id: payload.enrollmentId ?? null,
-      score: payload.score,
-      max_score: payload.maxScore,
-      accuracy_rate: payload.accuracyRate,
-      attempt_number: payload.attemptNumber,
-      time_spent_seconds: payload.timeSpentSeconds ?? null,
-      session_id: this.sessionId,
-      device_info: isInitialEvent ? this.collectDeviceInfo() : null,
-    });
   }
 
   /**
