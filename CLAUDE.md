@@ -44,6 +44,26 @@ CI (`.github/workflows/`): `tests.yml` runs lint + `npm test -- --run --coverage
 | `NEXT_PUBLIC_APP_URL`, `VERCEL_URL` | absolute-URL construction |
 | `TEST_{STUDENT,TEACHER,ADMIN}_{EMAIL,PASSWORD}` | Playwright auth fixtures; those specs skip without them |
 
+## MCP servers (`.mcp.json`)
+
+`.mcp.json` is committed so the team points at the same services. `supabase` is HTTP
+and needs nothing local. The six `hostinger-*` servers (hosting, domains, dns, reach,
+vps, ecommerce — 244 tools total) are stdio and spawn via `npx.cmd`, so they are
+Windows-shaped; on Linux/macOS change `command` to `npx`.
+
+They read `HOSTINGER_API_TOKEN` from the **OS environment**, referenced in `.mcp.json`
+as `${HOSTINGER_API_TOKEN}` — the literal token must never be written into this file,
+which is git-tracked and would leak VPS/DNS/domain/billing access for the whole
+account. Two traps, both of which surface as `{"message":"Unauthenticated."}` while
+`claude mcp list` still reports every server as connected:
+
+- the `env` block of `.claude/settings.local.json` is **not** injected into an MCP
+  stdio subprocess — setting the token there does nothing;
+- on Windows, `setx HOSTINGER_API_TOKEN <token>` only affects **new** processes, so
+  the terminal or editor must be restarted before the servers can authenticate.
+
+Get a token at hPanel → API. The package also accepts `API_TOKEN`/`APITOKEN`.
+
 ## Architecture
 
 ### Three Supabase clients — pick deliberately
