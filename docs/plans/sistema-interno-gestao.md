@@ -10,6 +10,9 @@ hospedado no mesmo VPS que vai receber o Academy (Hostinger KVM 2).
 Contexto de infra: `docs/deploy-vps.md` · Decisões: `docs/decisions.md` 001, 002,
 005, 008, 013, 014.
 
+Planos dependentes deste (só avançam depois que o schema `gestao` estiver de pé):
+`portal-de-ideias.md` e `repositorio-skills-artifacts.md`.
+
 ---
 
 ## Veredito
