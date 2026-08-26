@@ -1,4 +1,5 @@
--- Auditoria de segurança (2026-08-25), parte 2 — NÃO APLICADA AINDA.
+-- Auditoria de segurança (2026-08-25), parte 2 — APLICADA em 2026-08-26
+-- como migration 20260826021041_security_hardening_analytics_guard.
 --
 -- A migration 20260825_security_hardening.sql já removeu o EXECUTE do papel
 -- `anon` nas RPCs de analytics. Falta a outra metade: `authenticated` precisa
