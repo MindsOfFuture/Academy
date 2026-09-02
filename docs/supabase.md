@@ -50,8 +50,10 @@ em `lib/api/types.ts` + strings de select em `lib/api/`.
 - **Plataforma** — `notification`, `system_config`, `credits_entries`
 - **Telemetria** (append-only) — `telemetry_video_interaction`, `telemetry_assessment_interaction`, `telemetry_content_review`
 
-Nomes que aparecem **só** em `src/services/supabase/*` (`nossos_cursos`, `users_cursos`,
-`progresso_aluno`, `modules`, `lessons`) **não existem no schema vivo** — código morto.
+Nomes de tabela em português (`nossos_cursos`, `users_cursos`, `progresso_aluno`) e os
+plurais `modules`/`lessons` **não existem no schema vivo** — vinham de uma camada de
+acesso já removida do repo (ver ADR 016). Aparecer um desses num select é erro de
+migração de código antigo, não tabela a criar.
 
 ## Storage
 
@@ -97,7 +99,7 @@ sido aplicada pelo dashboard.
 ## Armadilhas
 
 - **Join devolve objeto ou array**, depende da cardinalidade. Nunca ler `.url` direto:
-  usar `getThumbUrl()` / `getCoverUrl()` (`lib/api/types.ts`).
+  usar `getMediaUrl()` (`lib/api/types.ts`).
 - **FK hint obrigatório** quando há mais de um caminho:
   `thumb:media_file!course_thumb_id_fkey(url)`.
 - **`snake_case` só existe em `lib/api/`.** Passou dali, é camelCase.

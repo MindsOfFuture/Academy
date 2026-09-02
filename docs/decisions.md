@@ -88,7 +88,7 @@ Mudança de mapeamento em um lado sem o outro = bug de dado divergente por rota.
 Regra na constituição: alterar os dois no mesmo commit.
 
 ## 007 — `components/api/*` só re-exporta
-Status: aceita, congelada
+Status: aceita, congelada · **Substituída por 016**
 
 Código legado importava nomes em português (`getCursos`, `matricularAluno`).
 Renomear tudo de uma vez era diff grande sem ganho.
@@ -213,3 +213,27 @@ três campos contra o perfil de `auth.uid()`, mas `issueCertificateForStudent()`
 ou admin emite, usando o cliente do browser — o RLS recusa. Emissão pelo próprio
 aluno funciona; emissão por professor/admin está quebrada desde a aplicação da
 migration, e a correção é pendente.
+
+## 016 — 007 concluída: o shim `components/api/*` foi removido
+Status: aceita · substitui 007
+
+Data: 2026-09-02.
+
+007 previa que a camada morreria por atrito, e morreu: `9d25c1c` (2026-08-25) apagou
+`components/api/admApi.tsx`, `courseApi.tsx`, `indexApi.tsx` e `students.tsx` junto com
+`src/services/supabase/*` (7 arquivos) e `components/dashboard/dashboard-content.tsx`.
+Nenhum módulo importa mais `components/api` nem `src/services`, e não existe `src/` no
+repo. 007 fica registrada como cumprida, não revertida — o corpo dela continua válido
+como histórico de por que os aliases em português existiram.
+
+O custo de não registrar isso era concreto: a constituição legislava sobre os três
+caminhos apagados ("shim de compat", "código morto, não estender") e `docs/supabase.md`
+localizava as tabelas fantasma em `src/services/supabase/*`. Regra que aponta para
+caminho inexistente não é só ruído: ela bloqueia merge sem ser verificável. As três
+linhas saíram da constituição e o parágrafo de `docs/supabase.md` passou a descrever os
+nomes fantasma sem ancorar em diretório (`nossos_cursos`, `users_cursos`,
+`progresso_aluno`, `modules`, `lessons` seguem inexistentes no schema vivo).
+
+Consequência: import de `components/api/*` ou `src/services/*` em código novo agora
+quebra o build em vez de violar uma regra — a proibição passou da spec para o
+compilador, e por isso não precisa mais estar escrita.

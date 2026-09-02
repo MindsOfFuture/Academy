@@ -29,8 +29,7 @@ dependência já instalada → linha única → código novo.
   `server.ts#createClient` (SSR, RLS), `createAdminClient()` (verifica role `admin`),
   `createServiceRoleClient()` (**sem checagem** — só fluxo sem caller autenticado).
 - Publicar conteúdo exige role `teacher` **e** `verification_status = 'approved'`:
-  `ensureCurrentTeacherVerifiedForPublishing()` /
-  `ensureTeacherVerifiedForPublishingByUserId()` (`lib/api/profiles-server.ts`).
+  `ensureCurrentTeacherVerifiedForPublishing()` (`lib/api/profiles-server.ts`).
 - Conteúdo de professor é escopado por `owner_id` (`ensureCourseOwnerOrAdmin`, interno a `lib/api/courses.ts`); admin ignora.
 - Rota pública = entrada em `PUBLIC_PATH_PREFIXES` (`lib/supabase/middleware.ts`)
   **e** checagem de auth própria dentro do handler. Uma sem a outra é bug de segurança.
@@ -46,10 +45,7 @@ Componente e rota nunca falam com Supabase direto. `lib/api/*` mapeia
   módulo roda. O sufixo `-server` **não** é confiável — ler a primeira linha antes de importar.
 - `courses.ts`/`courses-server.ts` e `enrollments.ts`/`enrollments-server.ts` são duplicatas.
   Mudou mapeamento em um, muda no outro no mesmo commit.
-- Mídia sempre por `getThumbUrl()`/`getCoverUrl()` — join do Supabase devolve objeto **ou** array.
-- `components/api/*` é shim de compatibilidade. Zero lógica nova ali.
-- `src/services/supabase/*` e `components/dashboard/dashboard-content.tsx` são código morto.
-  Não estender, não citar em spec.
+- Mídia sempre por `getMediaUrl()` (`lib/api/types.ts`) — join do Supabase devolve objeto **ou** array.
 
 ## V. Teste onde falha
 
