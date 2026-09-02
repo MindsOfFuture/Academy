@@ -49,8 +49,7 @@ export interface ContentReviewPayload {
   enrollmentId?: string;
   /** Nota de 1 a 5 estrelas */
   rating: ReviewRating;
-  /** Comentário textual (opcional) */
-  comment?: string;
+
   /** Escopo: avaliação de aula ou do curso inteiro */
   reviewScope: ReviewScope;
   /** Porcentagem de conclusão do curso no momento do feedback (0–100) */
@@ -64,16 +63,59 @@ export interface ContentReviewPayload {
  * Registradas apenas em eventos iniciais (play, primeira tentativa de assessment).
  */
 export interface DeviceInfo {
-  /** User-Agent do navegador */
-  userAgent: string;
   /** Largura do viewport */
   viewportWidth: number;
   /** Altura do viewport */
   viewportHeight: number;
-  /** Plataforma (navigator.platform) */
-  platform: string;
   /** Idioma do navegador (navigator.language) */
   browserLanguage: string;
+}
+
+export const LEARNING_EVENT_NAMES = [
+  "session_started",
+  "page_viewed",
+  "learning_path_opened",
+  "course_opened",
+  "course_enrolled",
+  "lesson_opened",
+  "resource_opened",
+  "lesson_completed",
+  "lesson_uncompleted",
+  "assignment_opened",
+  "assignment_submitted",
+  "chat_message_sent",
+  "certificate_generated",
+] as const;
+
+export type LearningEventName = (typeof LEARNING_EVENT_NAMES)[number];
+
+export const LEARNING_EVENT_LABELS: Record<LearningEventName, string> = {
+  session_started: "Sessão iniciada",
+  page_viewed: "Página acessada",
+  learning_path_opened: "Trilha acessada",
+  course_opened: "Curso acessado",
+  course_enrolled: "Matrícula realizada",
+  lesson_opened: "Aula acessada",
+  resource_opened: "Recurso acessado",
+  lesson_completed: "Aula concluída",
+  lesson_uncompleted: "Conclusão desmarcada",
+  assignment_opened: "Atividade acessada",
+  assignment_submitted: "Atividade entregue",
+  chat_message_sent: "Mensagem enviada",
+  certificate_generated: "Certificado emitido",
+};
+
+export interface LearningEventInput {
+  eventId: string;
+  occurredAt: string;
+  sessionId: string;
+  eventName: LearningEventName;
+  route: string;
+  learningPathId?: string;
+  courseId?: string;
+  lessonId?: string;
+  activityId?: string;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 /**

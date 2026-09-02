@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/activity-chat";
 import type { ActivityChatMessage, ChatUser } from "@/lib/api/types";
 import toast from "react-hot-toast";
+import { trackingService } from "@/lib/services/tracking.service";
 
 interface ActivityChatProps {
     assignmentId: string;
@@ -132,6 +133,13 @@ export default function ActivityChat({
 
         try {
             await sendMessage(assignmentId, studentId, text);
+            const senderRole = currentUser.role === "teacher" || currentUser.role === "admin"
+                ? currentUser.role
+                : "student";
+            void trackingService.trackLearningEvent("chat_message_sent", {
+                activityId: assignmentId,
+                metadata: { senderRole },
+            });
             // A mensagem real chegará via Realtime subscription
             setTimeout(() => scrollToBottom(), 100);
         } catch {

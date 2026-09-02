@@ -28,6 +28,7 @@ import {
 import ActivityChat from "@/components/activities/activity-chat";
 import { getCurrentChatUser } from "@/lib/api/activity-chat";
 import type { ChatUser } from "@/lib/api/types";
+import { trackingService } from "@/lib/services/tracking.service";
 
 function ActivitiePageContent() {
   const searchParams = useSearchParams();
@@ -63,6 +64,10 @@ function ActivitiePageContent() {
         const assignmentData = await getAssignment(assignmentId);
         if (assignmentData) {
           setAssignment(assignmentData);
+          void trackingService.trackLearningEvent("assignment_opened", {
+            activityId: assignmentData.id,
+            lessonId: assignmentData.lessonId,
+          });
 
           // Buscar submissão existente
           const existingSubmission = await getUserSubmission(assignmentId);
@@ -203,6 +208,11 @@ function ActivitiePageContent() {
         });
         if (updated) {
           setSubmission(updated);
+          void trackingService.trackLearningEvent("assignment_submitted", {
+            activityId: assignmentId,
+            lessonId: assignment?.lessonId,
+            metadata: { submissionKind: "atualizacao" },
+          });
           toast.success("Resposta atualizada com sucesso!");
         }
       } else {
@@ -215,6 +225,11 @@ function ActivitiePageContent() {
         });
         if (newSubmission) {
           setSubmission(newSubmission);
+          void trackingService.trackLearningEvent("assignment_submitted", {
+            activityId: assignmentId,
+            lessonId: assignment?.lessonId,
+            metadata: { submissionKind: "nova" },
+          });
           toast.success("Atividade enviada com sucesso!");
         }
       }

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { type LearningPathSummary, type CourseSummary } from "@/lib/api/types";
+import { trackingService } from "@/lib/services/tracking.service";
 
 interface TrilhasClientProps {
   trilhasData: LearningPathSummary[];
@@ -12,10 +13,13 @@ interface TrilhasClientProps {
 }
 
 /* ── Reusable course card with fixed dimensions ── */
-function CourseCard({ course }: { course: CourseSummary }) {
+function CourseCard({ course, learningPathId }: { course: CourseSummary; learningPathId?: string }) {
   return (
     <Link
-      href={`/course?id=${course.id}`}
+      href={`/course?id=${course.id}${learningPathId ? `&pathId=${learningPathId}` : ""}`}
+      onClick={() => {
+        if (learningPathId) void trackingService.trackLearningEvent("learning_path_opened", { learningPathId });
+      }}
       className="group flex w-[200px] flex-col items-center rounded-2xl border border-[#EDE5F7] bg-white px-5 py-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-[#6C3BAA]/30"
     >
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-[#F3EAFB] to-[#E7D9F4] p-2 transition-transform duration-300 group-hover:scale-110">
@@ -178,7 +182,7 @@ export default function TrilhasClient({ trilhasData, coursesData }: TrilhasClien
                         </div>
 
                         {/* Card */}
-                        <CourseCard course={course} />
+                        <CourseCard course={course} learningPathId={trilha.id} />
                       </div>
                     ))}
                   </div>

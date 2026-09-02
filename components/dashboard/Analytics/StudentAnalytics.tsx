@@ -5,6 +5,7 @@ import { useStudentAnalytics } from "./hooks/useAnalytics";
 import { EmptyState } from "./charts/EmptyState";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { PlayCircle, CheckCircle, FileText, Calendar, Building, MapPin } from "lucide-react";
+import { LEARNING_EVENT_LABELS, type LearningEventName } from "@/lib/api/telemetry-types";
 
 
 // Mock prop for students list, you might want to fetch this differently in a real app
@@ -15,7 +16,8 @@ interface StudentAnalyticsProps {
 
 export function StudentAnalytics({ students }: StudentAnalyticsProps) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(students[0]?.id || null);
-  const { data, loading, error } = useStudentAnalytics(selectedUserId);
+  const { data, loading, error, semanticError } = useStudentAnalytics(selectedUserId);
+  const learningEvents = data?.learning_events;
 
   return (
     <div className="space-y-6">
@@ -37,6 +39,45 @@ export function StudentAnalytics({ students }: StudentAnalyticsProps) {
           ))}
         </select>
       </div>
+
+      {!loading && !error && (
+        <section className="rounded-lg border bg-white p-4 shadow-sm" aria-label="Telemetria semântica do aluno">
+          <h3 className="text-lg font-semibold text-gray-900">Interações do aluno</h3>
+          {semanticError ? (
+            <p className="mt-2 text-sm text-red-600">Telemetria semântica indisponível; os dados históricos permanecem abaixo.</p>
+          ) : !learningEvents?.hasData ? (
+            <p className="mt-2 text-sm text-gray-500">Nenhuma interação semântica registrada para este aluno.</p>
+          ) : (
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded bg-purple-50 p-3"><p className="text-xs text-gray-500">Interações</p><strong>{learningEvents.totalInteractions}</strong></div>
+                <div className="rounded bg-purple-50 p-3"><p className="text-xs text-gray-500">Sessões</p><strong>{learningEvents.sessions}</strong></div>
+                <div className="col-span-2 rounded bg-gray-50 p-3 text-sm">
+                  <p className="font-medium text-gray-700">Contagens por ação</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Object.entries(learningEvents.eventCounts).map(([name, count]) => (
+                      <span key={name} className="rounded-full bg-white px-3 py-1 text-xs text-gray-700 shadow-sm">
+                        {LEARNING_EVENT_LABELS[name as LearningEventName]}: {String(count)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Atividade recente</p>
+                <ul className="mt-2 max-h-48 space-y-2 overflow-y-auto">
+                  {learningEvents.recentActivity.map((activity: { eventName: LearningEventName; receivedAt: string }, index: number) => (
+                    <li key={`${activity.receivedAt}-${index}`} className="flex justify-between gap-3 rounded bg-gray-50 px-3 py-2 text-sm">
+                      <span>{LEARNING_EVENT_LABELS[activity.eventName]}</span>
+                      <time className="text-xs text-gray-500">{new Date(activity.receivedAt).toLocaleString("pt-BR")}</time>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {loading && <div className="p-8 text-center text-gray-500">Carregando dados do aluno...</div>}
       {error && <div className="p-8 text-center text-red-500">Erro ao carregar dados.</div>}

@@ -82,7 +82,7 @@ export default function AnalyticsTab({ isAdmin, courses, paths, users }: Analyti
 
       {/* Renderização Condicional do Nível */}
       <div className="animate-in fade-in duration-300">
-        {level === "global" && <GlobalAnalytics filter={dateFilter} />}
+        {level === "global" && <GlobalAnalytics filter={dateFilter} courses={courses} />}
         {level === "path" && <LearningPathAnalytics paths={paths} />}
         {level === "course" && <CourseAnalytics courses={courses} />}
         {level === "student" && <StudentAnalytics students={users} />}

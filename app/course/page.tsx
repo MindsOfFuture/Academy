@@ -25,6 +25,7 @@ function CoursePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const courseId = searchParams.get("id");
+  const learningPathId = searchParams.get("pathId");
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,13 @@ function CoursePageContent() {
     const fetchCourse = async () => {
       try {
         const data = await getCourseDetail(courseId || "");
-        if (data) setCourse(data);
+        if (data) {
+          setCourse(data);
+          void trackingService.trackLearningEvent("course_opened", {
+            courseId: data.id,
+            ...(learningPathId ? { learningPathId } : {}),
+          });
+        }
       } catch (err) {
         console.error("Erro ao buscar curso:", err);
       } finally {
@@ -49,7 +56,7 @@ function CoursePageContent() {
       }
     };
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, learningPathId]);
 
   useEffect(() => {
     if (course?.id) {
@@ -138,8 +145,13 @@ function CoursePageContent() {
   async function handleMatricula() {
     if (!course?.id) return;
     try {
-      await enrollInCourse(course.id);
+      const enrollment = await enrollInCourse(course.id);
       setIsMatriculado(true);
+      setEnrollmentId(enrollment?.id ?? null);
+      void trackingService.trackLearningEvent("course_enrolled", {
+        courseId: course.id,
+        ...(learningPathId ? { learningPathId } : {}),
+      });
       toast.success("Matrícula realizada com sucesso!");
       // Sinalizar atualização para outras páginas via localStorage
       localStorage.setItem("courses-updated", Date.now().toString());
@@ -166,6 +178,11 @@ function CoursePageContent() {
           videoDurationSeconds: 0,
           watchedPercent: 0,
         });
+        void trackingService.trackLearningEvent("lesson_completed", {
+          courseId: course.id,
+          lessonId,
+          ...(learningPathId ? { learningPathId } : {}),
+        });
       } else {
         setProgresso((prev) => prev.filter((id) => id !== lessonId));
         toast.success("Progresso desmarcado.");
@@ -177,6 +194,11 @@ function CoursePageContent() {
           videoTimestampSeconds: 0,
           videoDurationSeconds: 0,
           watchedPercent: 0,
+        });
+        void trackingService.trackLearningEvent("lesson_uncompleted", {
+          courseId: course.id,
+          lessonId,
+          ...(learningPathId ? { learningPathId } : {}),
         });
       }
       // Sinalizar atualização para outras páginas via localStorage
@@ -202,6 +224,11 @@ function CoursePageContent() {
         courseName: cert.courseTitle,
         completionDate: new Date(cert.issuedAt).toLocaleDateString("pt-BR"),
         verificationCode: cert.verificationCode,
+      });
+      void trackingService.trackLearningEvent("certificate_generated", {
+        courseId: course.id,
+        ...(learningPathId ? { learningPathId } : {}),
+        metadata: { source: "emissao" },
       });
       toast.success("Certificado emitido com sucesso!");
     } catch (error) {
@@ -305,6 +332,17 @@ function CoursePageContent() {
                                   rel="noopener noreferrer"
                                   className="text-sm text-purple-600 hover:text-purple-800"
                                   onClick={() => {
+                                    void trackingService.trackLearningEvent("lesson_opened", {
+                                      courseId: course.id,
+                                      lessonId: lesson.id,
+                                      ...(learningPathId ? { learningPathId } : {}),
+                                    });
+                                    void trackingService.trackLearningEvent("resource_opened", {
+                                      courseId: course.id,
+                                      lessonId: lesson.id,
+                                      ...(learningPathId ? { learningPathId } : {}),
+                                      metadata: { resourceType: "link" },
+                                    });
                                     trackingService.trackVideoInteraction({
                                       courseId: course.id,
                                       lessonId: lesson.id,
