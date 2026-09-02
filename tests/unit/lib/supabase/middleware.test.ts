@@ -16,4 +16,16 @@ describe("isPublicPath", () => {
         expect(isPublicPath("/auth")).toBe(true);
         expect(isPublicPath("/api/auth/teacher-qualification-upload")).toBe(true);
     });
+
+    it("só aceita o prefixo público em uma fronteira de segmento", () => {
+        expect(isPublicPath("/auth/callback")).toBe(true);
+        expect(isPublicPath("/authenticacao-interna")).toBe(false);
+        expect(isPublicPath("/api/articles-private")).toBe(false);
+        expect(isPublicPath("/api/notifications-admin")).toBe(false);
+    });
+
+    it("mantém públicas a validação de certificado e os créditos institucionais", () => {
+        expect(isPublicPath("/validar")).toBe(true);
+        expect(isPublicPath("/creditos")).toBe(true);
+    });
 });

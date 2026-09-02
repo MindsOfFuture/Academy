@@ -9,53 +9,51 @@ export interface TestUser {
   role: UserRole;
 }
 
-// Credenciais de teste (definir em .env.local ou usar valores de teste)
+// Credenciais de teste: nunca usa fallback que possa mascarar env ausente.
 export const TEST_USERS: Record<UserRole, TestUser | null> = {
-  student: {
-    email: process.env.TEST_STUDENT_EMAIL || 'student@test.com',
-    password: process.env.TEST_STUDENT_PASSWORD || 'testpassword123',
+  student: process.env.TEST_STUDENT_EMAIL && process.env.TEST_STUDENT_PASSWORD ? {
+    email: process.env.TEST_STUDENT_EMAIL,
+    password: process.env.TEST_STUDENT_PASSWORD,
     role: 'student',
-  },
-  teacher: {
-    email: process.env.TEST_TEACHER_EMAIL || 'teacher@test.com',
-    password: process.env.TEST_TEACHER_PASSWORD || 'testpassword123',
+  } : null,
+  teacher: process.env.TEST_TEACHER_EMAIL && process.env.TEST_TEACHER_PASSWORD ? {
+    email: process.env.TEST_TEACHER_EMAIL,
+    password: process.env.TEST_TEACHER_PASSWORD,
     role: 'teacher',
-  },
-  admin: {
-    email: process.env.TEST_ADMIN_EMAIL || 'admin@test.com',
-    password: process.env.TEST_ADMIN_PASSWORD || 'testpassword123',
+  } : null,
+  admin: process.env.TEST_ADMIN_EMAIL && process.env.TEST_ADMIN_PASSWORD ? {
+    email: process.env.TEST_ADMIN_EMAIL,
+    password: process.env.TEST_ADMIN_PASSWORD,
     role: 'admin',
-  },
+  } : null,
   anonymous: null,
 };
 
 // Helper para fazer login via UI
-export async function loginViaUI(page: Page, user: TestUser) {
-  await page.goto('/auth');
+export async function loginViaUI(page: Page, user: TestUser, nextPath = '/protected') {
+  await page.goto(`/auth?next=${encodeURIComponent(nextPath)}`);
   
   // Preencher formulário de login
-  await page.getByLabel(/e-?mail/i).fill(user.email);
-  await page.getByLabel(/senha/i).fill(user.password);
+  await page.getByPlaceholder('Email').first().fill(user.email);
+  await page.getByPlaceholder('Senha').first().fill(user.password);
   
   // Submeter
   await page.getByRole('button', { name: /entrar|login/i }).click();
   
   // Aguardar redirecionamento para área protegida
-  await page.waitForURL('/protected**', { timeout: 10000 });
+  await page.waitForURL(
+    (url) => `${url.pathname}${url.search}` === nextPath,
+    { timeout: 30000 },
+  );
 }
 
 // Helper para logout
 export async function logout(page: Page) {
-  // Abrir menu (pode variar em mobile vs desktop)
-  const menuButton = page.getByRole('button', { name: /menu/i });
-  
-  if (await menuButton.isVisible()) {
-    await menuButton.click();
-    await page.getByRole('menuitem', { name: /sair/i }).click();
-  }
+  await page.locator('nav button').last().click();
+  await page.getByRole('menuitem', { name: /sair/i }).click();
   
   // Aguardar redirecionamento
-  await page.waitForURL('/');
+  await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
 }
 
 // Extend base test com fixtures de autenticação

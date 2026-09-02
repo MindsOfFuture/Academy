@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
       ...(supabaseHost ? [{ protocol: "https" as const, hostname: supabaseHost }] : []),
       // Avatares do Google (login OAuth)
       { protocol: "https" as const, hostname: "lh3.googleusercontent.com" },
+      // Fotos institucionais já cadastradas na página pública de créditos
+      { protocol: "https" as const, hostname: "images.unsplash.com" },
       { protocol: "https" as const, hostname: "img.youtube.com" },
       { protocol: "https" as const, hostname: "i.ytimg.com" },
     ],

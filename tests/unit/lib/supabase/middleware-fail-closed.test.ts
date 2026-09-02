@@ -28,11 +28,17 @@ const VALID_ANON_KEY = "anon-key-de-teste";
 
 /** Última implementação de `getUser` injetada no mock do createServerClient. */
 let getUserImpl: () => Promise<{ data: { user: unknown | null } }>;
+let sessionCookieToSet: { name: string; value: string } | null;
 
 vi.mock("@supabase/ssr", () => ({
-    createServerClient: vi.fn(() => ({
+    createServerClient: vi.fn((_url, _key, options) => ({
         auth: {
-            getUser: () => getUserImpl(),
+            getUser: async () => {
+                if (sessionCookieToSet) {
+                    options.cookies.setAll([{ ...sessionCookieToSet, options: { httpOnly: true } }]);
+                }
+                return getUserImpl();
+            },
         },
     })),
 }));
@@ -69,6 +75,7 @@ import { updateSession, isExemptPath } from "@/lib/supabase/middleware";
 beforeEach(() => {
     envSnapshot = { ...process.env };
     getUserImpl = async () => ({ data: { user: null } });
+    sessionCookieToSet = null;
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => { });
 });
 
@@ -199,9 +206,32 @@ describe("updateSession — comportamento original preservado com env vars prese
         const response = await updateSession(makeRequest("/protected", "?tab=perfil"));
 
         expect(response.status).toBe(307);
-        const location = new URL(response.headers.get("location") as string);
-        expect(location.pathname).toBe("/auth");
-        expect(location.searchParams.get("next")).toBe("/protected?tab=perfil");
+        expect(response.headers.get("location")).toBe(
+            "https://mindsofthefuture.com.br/auth?next=%2Fprotected%3Ftab%3Dperfil",
+        );
+    });
+
+    it("não deixa a origem interna localhost vazar no redirect atrás do proxy", async () => {
+        const request = new NextRequest("http://localhost:3000/protected/perfil?tab=seguranca", {
+            headers: {
+                host: "mindsofthefuture.com.br",
+                "x-forwarded-proto": "https",
+            },
+        });
+
+        const response = await updateSession(request);
+
+        expect(response.headers.get("location")).toBe(
+            "https://mindsofthefuture.com.br/auth?next=%2Fprotected%2Fperfil%3Ftab%3Dseguranca",
+        );
+    });
+
+    it("preserva cookies renovados ao redirecionar uma sessão inválida", async () => {
+        sessionCookieToSet = { name: "sb-session", value: "renovada" };
+
+        const response = await updateSession(makeRequest("/protected"));
+
+        expect(response.headers.get("set-cookie")).toContain("sb-session=renovada");
     });
 
     it("sem sessão em rota pública: passa sem redirect", async () => {

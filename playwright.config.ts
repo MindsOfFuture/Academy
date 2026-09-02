@@ -4,6 +4,9 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
+const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3000';
+const testBaseUrl = `http://localhost:${testPort}`;
+
 /**
  * Playwright E2E Test Configuration
  * Complementa os testes unitários do Vitest com testes de fluxo completo
@@ -35,7 +38,7 @@ export default defineConfig({
   },
   
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: testBaseUrl,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -95,8 +98,8 @@ export default defineConfig({
 
   /* Dev server automático */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: `npm run dev -- --port ${testPort}`,
+    url: testBaseUrl,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
