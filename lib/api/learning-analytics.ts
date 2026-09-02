@@ -47,6 +47,9 @@ const FUNNEL: { eventName: LearningEventName; label: string }[] = [
   { eventName: "lesson_completed", label: "Concluíram aula" },
   { eventName: "certificate_generated", label: "Emitiram certificado" },
 ];
+const ANALYTICS_PAGE_SIZE = 1000;
+const MAX_ANALYTICS_ROWS = 100_000;
+const ROLE_LOOKUP_BATCH_SIZE = 500;
 
 function rank(ids: (string | null)[]) {
   const counts = new Map<string, number>();
@@ -113,13 +116,17 @@ async function resolveStudentUserIds(
   const userIds = [...new Set(rows.map((row) => row.user_id))];
   if (userIds.length === 0) return new Set();
 
-  const { data: roleLinks, error: linksError } = await admin
-    .from("user_role")
-    .select("user_profile_id, role_id")
-    .in("user_profile_id", userIds);
-  if (linksError) throw new Error(linksError.message);
+  const roleLinks: { user_profile_id: string; role_id: number }[] = [];
+  for (let index = 0; index < userIds.length; index += ROLE_LOOKUP_BATCH_SIZE) {
+    const { data, error } = await admin
+      .from("user_role")
+      .select("user_profile_id, role_id")
+      .in("user_profile_id", userIds.slice(index, index + ROLE_LOOKUP_BATCH_SIZE));
+    if (error) throw new Error(error.message);
+    roleLinks.push(...((data ?? []) as { user_profile_id: string; role_id: number }[]));
+  }
 
-  const roleIds = [...new Set((roleLinks ?? [])
+  const roleIds = [...new Set(roleLinks
     .map((link) => link.role_id)
     .filter((id): id is number => typeof id === "number"))];
   const roleNamesById = new Map<number, string>();
@@ -133,7 +140,7 @@ async function resolveStudentUserIds(
   }
 
   const namesByUser = new Map<string, Set<string>>();
-  for (const link of roleLinks ?? []) {
+  for (const link of roleLinks) {
     const name = roleNamesById.get(link.role_id);
     if (!name) continue;
     const names = namesByUser.get(link.user_profile_id) ?? new Set<string>();
@@ -156,21 +163,38 @@ export async function getLearningAnalytics(params: {
   to?: string;
 }): Promise<LearningAnalyticsResult> {
   const admin = await createAdminClient();
-  // ponytail: agrega no servidor Next; teto é o volume do período. Migrar para RPC SQL quando o volume exigir.
-  let query = admin
-    .from("telemetry_learning_event")
-    .select("event_id, occurred_at, received_at, user_id, session_id, event_name, route, learning_path_id, course_id, lesson_id, activity_id, metadata")
-    .order("received_at", { ascending: false });
+  // ponytail: agrega até 100 mil linhas no Next; migrar para RPC SQL se esse teto for atingido.
+  const buildQuery = () => {
+    let query = admin
+      .from("telemetry_learning_event")
+      .select("event_id, occurred_at, received_at, user_id, session_id, event_name, route, learning_path_id, course_id, lesson_id, activity_id, metadata")
+      .order("received_at", { ascending: false });
 
-  if (params.from) query = query.gte("received_at", params.from);
-  if (params.to) query = query.lte("received_at", params.to);
-  if (params.scope === "path" && params.id) query = query.eq("learning_path_id", params.id);
-  if (params.scope === "course" && params.id) query = query.eq("course_id", params.id);
-  if (params.scope === "student" && params.id) query = query.eq("user_id", params.id);
+    if (params.from) query = query.gte("received_at", params.from);
+    if (params.to) query = query.lte("received_at", params.to);
+    if (params.scope === "path" && params.id) query = query.eq("learning_path_id", params.id);
+    if (params.scope === "course" && params.id) query = query.eq("course_id", params.id);
+    if (params.scope === "student" && params.id) query = query.eq("user_id", params.id);
+    return query;
+  };
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as LearningEventRow[];
+  const rows: LearningEventRow[] = [];
+  for (let offset = 0; ; offset += ANALYTICS_PAGE_SIZE) {
+    const { data, error } = await buildQuery().range(offset, offset + ANALYTICS_PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []) as LearningEventRow[];
+    rows.push(...page);
+    if (page.length < ANALYTICS_PAGE_SIZE) break;
+
+    if (rows.length >= MAX_ANALYTICS_ROWS) {
+      const { data: overflow, error: overflowError } = await buildQuery().range(MAX_ANALYTICS_ROWS, MAX_ANALYTICS_ROWS);
+      if (overflowError) throw new Error(overflowError.message);
+      if ((overflow ?? []).length > 0) {
+        throw new Error("Volume de telemetria excede o limite seguro de 100 mil eventos para agregação.");
+      }
+      break;
+    }
+  }
   const studentUserIds = await resolveStudentUserIds(admin, rows);
   return aggregateLearningEvents(rows, studentUserIds);
 }

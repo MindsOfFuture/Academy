@@ -32,6 +32,10 @@ describe("validateLearningEventBatch", () => {
     ["conteúdo livre", { metadata: { message: "texto do chat" } }],
     ["query string", { route: "/course?id=segredo" }],
     ["hash", { route: "/course#resposta" }],
+    ["email na rota", { route: "/aluno/alice@example.com" }],
+    ["CPF na rota", { route: "/aluno/12345678901" }],
+    ["nome na rota", { route: "/aluno/Maria-Silva" }],
+    ["segmento livre desconhecido", { route: "/course/segredo" }],
   ])("rejeita %s", (_label, overrides) => {
     expect(() => validateLearningEventBatch({ events: [event(overrides)] })).toThrow();
   });

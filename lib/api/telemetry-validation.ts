@@ -9,6 +9,26 @@ export const MAX_TELEMETRY_METADATA_BYTES = 2048;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EVENT_NAMES = new Set<string>(LEARNING_EVENT_NAMES);
+const CANONICAL_ROUTES = new Set([
+  "/",
+  "/artigos",
+  "/auth",
+  "/auth/complete-profile",
+  "/auth/complete-teacher-profile",
+  "/auth/error",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/course",
+  "/creditos",
+  "/oauth/consent",
+  "/privacidade",
+  "/protected",
+  "/protected/activitie",
+  "/protected/perfil",
+  "/termos",
+  "/trilhas",
+  "/validar",
+]);
 const EVENT_KEYS = new Set([
   "eventId", "occurredAt", "sessionId", "eventName", "route",
   "learningPathId", "courseId", "lessonId", "activityId", "metadata",
@@ -59,6 +79,7 @@ export function normalizeTelemetryRoute(value: string): string {
   }
   const normalized = value.replace(/\/{2,}/g, "/").replace(/\/$/, "") || "/";
   if (normalized !== value) fail("a rota deve estar normalizada.");
+  if (!CANONICAL_ROUTES.has(normalized)) fail("a rota não pertence ao catálogo canônico.");
   return normalized;
 }
 

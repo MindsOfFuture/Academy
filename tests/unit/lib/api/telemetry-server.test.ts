@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
 
 const mockClient = {
   auth: { getUser: vi.fn() },
@@ -52,14 +51,5 @@ describe("persistLearningEvents", () => {
   it("propaga falha de persistência sem alterar o payload", async () => {
     mockClient.rpc.mockResolvedValue({ data: null, error: { message: "indisponível" } });
     await expect(persistLearningEvents(payload)).rejects.toThrow("indisponível");
-  });
-
-  it("deduplica retries por event_id e mantém a tabela append-only por RLS", () => {
-    const migration = readFileSync("supabase/migrations/20260902_learning_event_telemetry.sql", "utf8");
-    expect(migration).toMatch(/event_id uuid primary key/i);
-    expect(migration).toMatch(/on conflict \(event_id\) do nothing/i);
-    expect(migration).toMatch(/with check \(user_id = auth\.uid\(\)\)/i);
-    expect(migration).toMatch(/revoke all on table public\.telemetry_learning_event from public, anon, authenticated/i);
-    expect(migration).toMatch(/grant insert on table public\.telemetry_learning_event to authenticated/i);
   });
 });

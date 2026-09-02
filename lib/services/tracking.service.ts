@@ -47,6 +47,9 @@ export class TrackingService {
   private sessionId: string;
   private userId: string | null = null;
   private userIdPromise: Promise<string | null> | null = null;
+  private sessionStartedForUserId: string | null = null;
+  private authVersion = 0;
+  private authSubscription: { unsubscribe: () => void } | null = null;
 
   private queue: QueuedEvent[] = [];
   private learningQueue: PendingLearningEvent[] = [];
@@ -77,8 +80,13 @@ export class TrackingService {
     if (this.initialized || typeof window === "undefined") return;
     this.initialized = true;
 
-    // Resolver autenticação antes de registrar o início da sessão.
-    void this.trackLearningEvent("session_started");
+    const { data: { subscription } } = this.supabase.auth.onAuthStateChange((_event, session) => {
+      this.applyAuthenticatedUser(session?.user?.id ?? null, true);
+    });
+    this.authSubscription = subscription;
+
+    // Cobre a sessão que já existia antes de o listener ser registrado.
+    void this.resolveUserId().then((userId) => this.ensureSessionStarted(userId));
 
     // Flush ao sair ou mudar de aba
     window.addEventListener("visibilitychange", this.handleVisibilityChange);
@@ -98,6 +106,8 @@ export class TrackingService {
 
     window.removeEventListener("visibilitychange", this.handleVisibilityChange);
     window.removeEventListener("beforeunload", this.handleBeforeUnload);
+    this.authSubscription?.unsubscribe();
+    this.authSubscription = null;
 
     this.initialized = false;
   }
@@ -164,6 +174,21 @@ export class TrackingService {
     const userId = await this.resolveUserId();
     if (!userId || typeof window === "undefined") return;
 
+    if (eventName === "session_started") {
+      await this.ensureSessionStarted(userId);
+      return;
+    }
+    await this.ensureSessionStarted(userId);
+    await this.enqueueLearningEvent(eventName, context);
+  }
+
+  private async ensureSessionStarted(userId: string | null): Promise<void> {
+    if (!userId || this.sessionStartedForUserId === userId || typeof window === "undefined") return;
+    this.sessionStartedForUserId = userId;
+    await this.enqueueLearningEvent("session_started", {});
+  }
+
+  private async enqueueLearningEvent(eventName: LearningEventName, context: LearningEventContext): Promise<void> {
     const event: LearningEventInput = {
       eventId: this.generateUuid(),
       occurredAt: new Date().toISOString(),
@@ -321,24 +346,42 @@ export class TrackingService {
 
     if (this.userIdPromise) return this.userIdPromise;
 
+    const version = this.authVersion;
     this.userIdPromise = this.supabase.auth
       .getUser()
       .then(({ data }) => {
-        if (data?.user?.id) {
-          this.userId = data.user.id;
-          return this.userId;
+        if (version === this.authVersion) {
+          this.applyAuthenticatedUser(data?.user?.id ?? null, false);
         }
-        // Não fazer cache de null, tentar novamente na próxima
-        this.userIdPromise = null;
-        return null;
+        return this.userId;
       })
       .catch((err) => {
         console.warn("[TrackingService] Falha ao obter usuário:", err);
-        this.userIdPromise = null;
         return null;
+      })
+      .finally(() => {
+        this.userIdPromise = null;
       });
 
     return this.userIdPromise;
+  }
+
+  private applyAuthenticatedUser(userId: string | null, startSession: boolean): void {
+    if (userId === this.userId) {
+      if (startSession) void this.ensureSessionStarted(userId);
+      return;
+    }
+
+    this.authVersion += 1;
+    this.userId = userId;
+    this.userIdPromise = null;
+    this.sessionId = this.generateSessionId();
+    this.sessionStartedForUserId = null;
+    this.queue = [];
+    this.learningQueue = [];
+    this.clearFlushTimer();
+    this.clearLearningFlushTimer();
+    if (startSession) void this.ensureSessionStarted(userId);
   }
 
   /**

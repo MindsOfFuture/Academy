@@ -92,6 +92,7 @@ describe("aggregateLearningEvents", () => {
       gte: vi.fn(),
       lte: vi.fn(),
       eq: vi.fn(),
+      range: vi.fn().mockResolvedValue({ data: rows, error: null }),
       then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
         Promise.resolve({ data: rows, error: null }).then(resolve),
     };
@@ -142,5 +143,108 @@ describe("aggregateLearningEvents", () => {
     expect(result.totalInteractions).toBe(2);
     expect(result.activeStudents).toBe(1);
     expect(result.funnel[0].students).toBe(1);
+  });
+
+  it("pagina mais de mil eventos sem truncar e reaplica os filtros em cada página", async () => {
+    const rows = Array.from({ length: 1005 }, (_, index) => ({
+      ...row("course_opened", "student-1", index % 60),
+      event_id: `event-${index}`,
+      received_at: new Date(Date.UTC(2026, 8, 2, 12, 0, index)).toISOString(),
+    }));
+    const queries: Array<{
+      gte: ReturnType<typeof vi.fn>;
+      lte: ReturnType<typeof vi.fn>;
+      range: ReturnType<typeof vi.fn>;
+    }> = [];
+    const telemetryQuery = () => {
+      const query = {
+        select: vi.fn(),
+        order: vi.fn(),
+        gte: vi.fn(),
+        lte: vi.fn(),
+        eq: vi.fn(),
+        range: vi.fn((from: number, to: number) => Promise.resolve({
+          data: rows.slice(from, to + 1),
+          error: null,
+        })),
+        then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
+          Promise.resolve({ data: rows.slice(0, 1000), error: null }).then(resolve),
+      };
+      query.select.mockReturnValue(query);
+      query.order.mockReturnValue(query);
+      query.gte.mockReturnValue(query);
+      query.lte.mockReturnValue(query);
+      query.eq.mockReturnValue(query);
+      queries.push(query);
+      return query;
+    };
+    const roleLinksQuery = {
+      select: vi.fn(),
+      in: vi.fn().mockResolvedValue({
+        data: [{ user_profile_id: "student-1", role_id: 1 }],
+        error: null,
+      }),
+    };
+    roleLinksQuery.select.mockReturnValue(roleLinksQuery);
+    const rolesQuery = {
+      select: vi.fn(),
+      in: vi.fn().mockResolvedValue({ data: [{ id: 1, name: "student" }], error: null }),
+    };
+    rolesQuery.select.mockReturnValue(rolesQuery);
+    createAdminClient.mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === "telemetry_learning_event") return telemetryQuery();
+        if (table === "user_role") return roleLinksQuery;
+        return rolesQuery;
+      }),
+    });
+
+    const result = await getLearningAnalytics({
+      scope: "global",
+      from: "2026-09-01T00:00:00.000Z",
+      to: "2026-09-03T00:00:00.000Z",
+    });
+
+    expect(result.totalInteractions).toBe(1005);
+    expect(queries).toHaveLength(2);
+    expect(queries.map((query) => query.range.mock.calls[0])).toEqual([[0, 999], [1000, 1999]]);
+    for (const query of queries) {
+      expect(query.gte).toHaveBeenCalledWith("received_at", "2026-09-01T00:00:00.000Z");
+      expect(query.lte).toHaveBeenCalledWith("received_at", "2026-09-03T00:00:00.000Z");
+    }
+  });
+
+  it("falha explicitamente quando o volume ultrapassa o teto seguro", async () => {
+    const sample = row("course_opened", "student-1", 1);
+    const from = vi.fn();
+    createAdminClient.mockResolvedValue({
+      from: vi.fn(() => {
+        const query = {
+          select: vi.fn(),
+          order: vi.fn(),
+          gte: vi.fn(),
+          lte: vi.fn(),
+          eq: vi.fn(),
+          range: vi.fn((start: number) => {
+            from(start);
+            return Promise.resolve({
+              data: start === 100_000 ? [sample] : Array(1000).fill(sample),
+              error: null,
+            });
+          }),
+          then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
+            Promise.resolve({ data: Array(1000).fill(sample), error: null }).then(resolve),
+        };
+        query.select.mockReturnValue(query);
+        query.order.mockReturnValue(query);
+        query.gte.mockReturnValue(query);
+        query.lte.mockReturnValue(query);
+        query.eq.mockReturnValue(query);
+        return query;
+      }),
+    });
+
+    await expect(getLearningAnalytics({ scope: "global" })).rejects.toThrow(/100 mil eventos/);
+    expect(from).toHaveBeenLastCalledWith(100_000);
   });
 });

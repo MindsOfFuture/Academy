@@ -14,7 +14,7 @@ Administradores não conseguem confirmar, antes da entrada dos alunos, quais aç
 - A coleta é best-effort, deduplicada e não interrompe nenhuma ação educacional quando falha.
 - A coleta aceita somente contexto educacional estritamente necessário e nunca persiste conteúdo livre ou identificadores pessoais no campo de metadados.
 
-**Fora de escopo:** rastreamento de cliques ou seletores do DOM, conteúdo de mensagens/respostas/arquivos/comentários, CPF, nome, email, IP, referrer, query string, hash, user-agent bruto, avaliações inexistentes, nova dependência, aplicação da migration no ambiente hospedado e deploy.
+**Fora de escopo:** rastreamento de cliques ou seletores do DOM, conteúdo de mensagens/respostas/arquivos/comentários, CPF, nome, email, IP, referrer, query string, hash, user-agent bruto, avaliações inexistentes, nova dependência de runtime, aplicação da migration no ambiente hospedado e deploy.
 
 ## Critérios de aceite
 
@@ -30,12 +30,12 @@ Administradores não conseguem confirmar, antes da entrada dos alunos, quais aç
 
 ## Plano
 
-- **Degrau da escada:** reutilizar o singleton de tracking, o provider global, a aba Analytics, o cliente Supabase autenticado, `createAdminClient()` e Vitest; usar Web APIs (`fetch`, `crypto.randomUUID`, `TextEncoder`) e agregação server-side, sem dependência nova.
-- **Arquivos:** `specs/001-telemetria-semantica-analytics.md`; `supabase/migrations/20260902_learning_event_telemetry.sql`; `lib/api/telemetry-types.ts`; `lib/api/telemetry-validation.ts`; `lib/api/telemetry-server.ts`; `lib/api/learning-analytics.ts`; `lib/services/tracking.service.ts`; `components/tracking/TrackingProvider.tsx`; `components/content-review/ContentReview.tsx`; `app/api/telemetry/events/route.ts`; `app/api/analytics/events/route.ts`; `app/course/page.tsx`; `app/protected/activitie/page.tsx`; `components/activities/activity-chat.tsx`; `components/trilhas/TrilhasClient.tsx`; `components/dashboard/Analytics/AnalyticsTab.tsx`; `components/dashboard/Analytics/GlobalAnalytics.tsx`; `components/dashboard/Analytics/LearningPathAnalytics.tsx`; `components/dashboard/Analytics/CourseAnalytics.tsx`; `components/dashboard/Analytics/StudentAnalytics.tsx`; `components/dashboard/Analytics/hooks/useAnalytics.ts`; testes espelhados sob `tests/unit/` somente para esses módulos e fluxos.
+- **Degrau da escada:** reutilizar o singleton de tracking, o provider global, a aba Analytics, o cliente Supabase autenticado, `createAdminClient()` e Vitest; usar Web APIs (`fetch`, `crypto.randomUUID`, `TextEncoder`) e agregação server-side.
+- **Arquivos:** `specs/001-telemetria-semantica-analytics.md`; `package.json`; `package-lock.json`; `supabase/migrations/20260902_learning_event_telemetry.sql`; `lib/api/telemetry-types.ts`; `lib/api/telemetry-validation.ts`; `lib/api/telemetry-server.ts`; `lib/api/learning-analytics.ts`; `lib/services/tracking.service.ts`; `components/tracking/TrackingProvider.tsx`; `components/content-review/ContentReview.tsx`; `app/api/telemetry/events/route.ts`; `app/api/analytics/events/route.ts`; `app/course/page.tsx`; `app/protected/activitie/page.tsx`; `components/activities/activity-chat.tsx`; `components/trilhas/TrilhasClient.tsx`; `components/dashboard/Analytics/AnalyticsTab.tsx`; `components/dashboard/Analytics/GlobalAnalytics.tsx`; `components/dashboard/Analytics/LearningPathAnalytics.tsx`; `components/dashboard/Analytics/CourseAnalytics.tsx`; `components/dashboard/Analytics/StudentAnalytics.tsx`; `components/dashboard/Analytics/hooks/useAnalytics.ts`; testes espelhados sob `tests/unit/` e teste real da migration sob `tests/integration/`.
 - **Dados:** nova tabela append-only `telemetry_learning_event` com PK `event_id`, tempos de ocorrência/recebimento, identidade da sessão, nome, pathname, IDs opcionais de trilha/curso/aula/atividade e `metadata` JSON; índices de período, usuário, evento e contexto; RLS permite somente INSERT da própria identidade autenticada, sem leitura/alteração/remoção direta.
 - **Autorização:** ingestão usa sessão SSR e substitui qualquer identidade do payload; agregação usa `createAdminClient()` em endpoint protegido, com linhas cruas somente no servidor; nenhuma rota é pública nem entra em `PUBLIC_PATH_PREFIXES`.
-- **Dependência nova:** nenhuma.
-- **Atalhos:** agregação server-side em memória sobre o período solicitado; `// ponytail:` deve registrar o teto de volume e a futura migração para RPC SQL agregada caso o volume torne a consulta cara.
+- **Dependência nova:** `@electric-sql/pglite` somente em desenvolvimento, justificada para executar migration, grants, RLS e deduplicação em PostgreSQL real sem credenciais, Docker ou acesso ao Supabase hospedado; não entra no bundle de runtime.
+- **Atalhos:** agregação server-side em memória, paginada, limitada a 100 mil eventos com erro explícito; `// ponytail:` registra o teto e a futura migração para RPC SQL agregada.
 
 ## Tarefas
 

@@ -14,11 +14,13 @@ create table if not exists public.telemetry_learning_event (
     'chat_message_sent', 'certificate_generated'
   )),
   route text not null check (
-    char_length(route) between 1 and 256
-    and route like '/%'
-    and position('?' in route) = 0
-    and position('#' in route) = 0
-    and (route = '/' or (route !~ '/{2,}' and route !~ '/$'))
+    route in (
+      '/', '/artigos', '/auth', '/auth/complete-profile',
+      '/auth/complete-teacher-profile', '/auth/error', '/auth/forgot-password',
+      '/auth/reset-password', '/course', '/creditos', '/oauth/consent',
+      '/privacidade', '/protected', '/protected/activitie', '/protected/perfil',
+      '/termos', '/trilhas', '/validar'
+    )
   ),
   learning_path_id uuid null,
   course_id uuid null,
@@ -86,7 +88,8 @@ security invoker
 set search_path = 'public'
 as $$
 declare
-  inserted_count integer;
+  inserted_count integer := 0;
+  event_row record;
 begin
   if auth.uid() is null then
     raise exception 'Usuário não autenticado.' using errcode = '42501';
@@ -97,15 +100,7 @@ begin
     raise exception 'Lote de telemetria inválido.' using errcode = '22023';
   end if;
 
-  insert into public.telemetry_learning_event (
-    event_id, occurred_at, user_id, session_id, event_name, route,
-    learning_path_id, course_id, lesson_id, activity_id, metadata
-  )
-  select
-    row.event_id, row.occurred_at, auth.uid(), row.session_id, row.event_name, row.route,
-    row.learning_path_id, row.course_id, row.lesson_id, row.activity_id,
-    coalesce(row.metadata, '{}'::jsonb)
-  from jsonb_to_recordset(p_events) as row(
+  for event_row in select * from jsonb_to_recordset(p_events) as row(
     event_id uuid,
     occurred_at timestamptz,
     session_id uuid,
@@ -117,9 +112,24 @@ begin
     activity_id uuid,
     metadata jsonb
   )
-  on conflict (event_id) do nothing;
+  loop
+    begin
+      insert into public.telemetry_learning_event (
+        event_id, occurred_at, user_id, session_id, event_name, route,
+        learning_path_id, course_id, lesson_id, activity_id, metadata
+      ) values (
+        event_row.event_id, event_row.occurred_at, auth.uid(), event_row.session_id,
+        event_row.event_name, event_row.route, event_row.learning_path_id,
+        event_row.course_id, event_row.lesson_id, event_row.activity_id,
+        coalesce(event_row.metadata, '{}'::jsonb)
+      );
+      inserted_count := inserted_count + 1;
+    exception when unique_violation then
+      -- Retry idempotente: o aluno mantém somente INSERT e não ganha leitura da chave.
+      null;
+    end;
+  end loop;
 
-  get diagnostics inserted_count = row_count;
   return inserted_count;
 end;
 $$;

@@ -1,11 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockSupabase } = vi.hoisted(() => ({
-  mockSupabase: {
-    auth: { getUser: vi.fn() },
-    from: vi.fn(() => ({ insert: vi.fn().mockResolvedValue({ error: null }) })),
-  },
-}));
+const { mockSupabase, authState } = vi.hoisted(() => {
+  const authState = {
+    callback: null as null | ((event: string, session: { user: { id: string } } | null) => void),
+    unsubscribe: vi.fn(),
+  };
+  return {
+    authState,
+    mockSupabase: {
+      auth: {
+        getUser: vi.fn(),
+        onAuthStateChange: vi.fn((callback) => {
+          authState.callback = callback;
+          return { data: { subscription: { unsubscribe: authState.unsubscribe } } };
+        }),
+      },
+      from: vi.fn(() => ({ insert: vi.fn().mockResolvedValue({ error: null }) })),
+    },
+  };
+});
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => mockSupabase }));
 
 import { TrackingService } from "@/lib/services/tracking.service";
@@ -20,6 +33,7 @@ describe("TrackingService semântico", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    authState.callback = null;
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
     vi.stubGlobal("fetch", vi.fn(() => response(true)));
   });
@@ -35,6 +49,38 @@ describe("TrackingService semântico", () => {
     await service.trackLearningEvent("course_opened", { courseId: COURSE_ID });
     await vi.advanceTimersByTimeAsync(3000);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("emite uma sessão no login SPA e reinicia identidade no logout e troca de conta", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+    const service = new TrackingService();
+    service.init();
+    await service.trackLearningEvent("page_viewed", { route: "/protected" });
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetch).not.toHaveBeenCalled();
+
+    authState.callback?.("SIGNED_IN", { user: { id: "user-1" } });
+    authState.callback?.("TOKEN_REFRESHED", { user: { id: "user-1" } });
+    await vi.advanceTimersByTimeAsync(2100);
+
+    const firstBody = JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body));
+    expect(firstBody.events.map((item: { eventName: string }) => item.eventName)).toEqual(["session_started"]);
+    const firstSessionId = firstBody.events[0].sessionId;
+
+    await service.trackLearningEvent("page_viewed", { route: "/protected" });
+    await vi.advanceTimersByTimeAsync(2100);
+    const pageBody = JSON.parse(String(vi.mocked(fetch).mock.calls[1][1]?.body));
+    expect(pageBody.events.map((item: { eventName: string }) => item.eventName)).toEqual(["page_viewed"]);
+
+    authState.callback?.("SIGNED_OUT", null);
+    authState.callback?.("SIGNED_IN", { user: { id: "user-2" } });
+    await vi.advanceTimersByTimeAsync(2100);
+
+    const secondBody = JSON.parse(String(vi.mocked(fetch).mock.calls[2][1]?.body));
+    expect(secondBody.events.map((item: { eventName: string }) => item.eventName)).toEqual(["session_started"]);
+    expect(secondBody.events[0].sessionId).not.toBe(firstSessionId);
+    service.destroy();
+    expect(authState.unsubscribe).toHaveBeenCalledOnce();
   });
 
   it("envia em lote e não inclui user_id", async () => {

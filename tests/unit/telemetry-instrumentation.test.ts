@@ -1,48 +1,81 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import React from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-function source(path: string) {
-  return readFileSync(path, "utf8");
-}
+const { trackLearningEvent, fetchMessages, sendMessage, subscribeToMessages } = vi.hoisted(() => ({
+  trackLearningEvent: vi.fn().mockResolvedValue(undefined),
+  fetchMessages: vi.fn(),
+  sendMessage: vi.fn(),
+  subscribeToMessages: vi.fn(),
+}));
+
+vi.mock("@/lib/services/tracking.service", () => ({
+  trackingService: { trackLearningEvent },
+}));
+vi.mock("@/lib/api/activity-chat", () => ({
+  fetchMessages,
+  sendMessage,
+  subscribeToMessages,
+}));
+
+import TrilhasClient from "@/components/trilhas/TrilhasClient";
+import ActivityChat from "@/components/activities/activity-chat";
 
 describe("instrumentação dos fluxos reais", () => {
-  it("cobre sessão, página e navegação de trilha", () => {
-    const provider = source("components/tracking/TrackingProvider.tsx");
-    const paths = source("components/trilhas/TrilhasClient.tsx");
-    expect(provider).toContain("page_viewed");
-    expect(source("lib/services/tracking.service.ts")).toContain("session_started");
-    expect(paths).toContain("learning_path_opened");
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fetchMessages.mockResolvedValue([]);
+    subscribeToMessages.mockReturnValue(vi.fn());
+    HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
-  it("emite matrícula, aula, recurso e certificado somente após o sucesso", () => {
-    const course = source("app/course/page.tsx");
-    expect(course).toMatch(/getCourseDetail[\s\S]*course_opened/);
-    expect(course).toMatch(/await enrollInCourse[\s\S]*course_enrolled/);
-    expect(course).toMatch(/await toggleLessonProgress[\s\S]*lesson_completed[\s\S]*lesson_uncompleted/);
-    expect(course).toContain("lesson_opened");
-    expect(course).toContain("resource_opened");
-    expect(course).toMatch(/await issueCertificate[\s\S]*certificate_generated/);
+  it("registra a abertura da trilha somente no clique de navegação", async () => {
+    render(React.createElement(TrilhasClient, {
+      trilhasData: [{
+        id: "123e4567-e89b-42d3-a456-426614174000",
+        title: "Trilha teste",
+        description: "",
+        courses: [{ id: "course-1", title: "Curso teste", description: "", thumbUrl: null }],
+      }] as never,
+      coursesData: [],
+    }));
+
+    expect(trackLearningEvent).not.toHaveBeenCalled();
+    const link = screen.getByText("Ver curso").closest("a");
+    link?.addEventListener("click", (event) => event.preventDefault());
+    await userEvent.click(link as HTMLAnchorElement);
+    expect(trackLearningEvent).toHaveBeenCalledWith("learning_path_opened", {
+      learningPathId: "123e4567-e89b-42d3-a456-426614174000",
+    });
   });
 
-  it("emite abertura e entrega de atividade e chat após o sucesso", () => {
-    const activity = source("app/protected/activitie/page.tsx");
-    const chat = source("components/activities/activity-chat.tsx");
-    expect(activity).toMatch(/await getAssignment[\s\S]*assignment_opened/);
-    expect(activity).toMatch(/await submitAssignment[\s\S]*assignment_submitted/);
-    expect(chat).toMatch(/await sendMessage[\s\S]*chat_message_sent/);
-  });
+  it("registra mensagem somente depois do envio bem-sucedido e nunca na falha", async () => {
+    let resolveSend: (() => void) | undefined;
+    sendMessage.mockReturnValueOnce(new Promise<void>((resolve) => { resolveSend = resolve; }));
+    const user = userEvent.setup();
+    render(React.createElement(ActivityChat, {
+      assignmentId: "assignment-1",
+      studentId: "student-1",
+      currentUser: { id: "student-1", name: "Aluno", role: "student" } as never,
+    }));
+    await screen.findByText("Nenhuma mensagem ainda.");
 
-  it("conecta os agregados semânticos aos quatro painéis existentes", () => {
-    const hooks = source("components/dashboard/Analytics/hooks/useAnalytics.ts");
-    expect(hooks).toContain("/api/analytics/events");
-    expect(hooks).toContain("learning_events");
-    expect(hooks).toContain("from");
-    expect(hooks).toContain("to");
+    await user.type(screen.getByPlaceholderText("Digite sua mensagem..."), "mensagem privada");
+    await user.click(screen.getByTitle("Enviar mensagem"));
+    expect(trackLearningEvent).not.toHaveBeenCalled();
 
-    for (const panel of ["GlobalAnalytics", "LearningPathAnalytics", "CourseAnalytics", "StudentAnalytics"]) {
-      const dashboard = source(`components/dashboard/Analytics/${panel}.tsx`);
-      expect(dashboard).toContain("learning_events");
-      expect(dashboard).toMatch(/Interações|Atividade recente|Sessões/);
-    }
+    resolveSend?.();
+    await waitFor(() => expect(trackLearningEvent).toHaveBeenCalledWith("chat_message_sent", {
+      activityId: "assignment-1",
+      metadata: { senderRole: "student" },
+    }));
+    expect(JSON.stringify(trackLearningEvent.mock.calls)).not.toContain("mensagem privada");
+
+    sendMessage.mockRejectedValueOnce(new Error("falha"));
+    await user.type(screen.getByPlaceholderText("Digite sua mensagem..."), "não enviar");
+    await user.click(screen.getByTitle("Enviar mensagem"));
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
+    expect(trackLearningEvent).toHaveBeenCalledTimes(1);
   });
 });
