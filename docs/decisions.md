@@ -177,3 +177,39 @@ autocontido. Procedimento em `docs/deploy-vps.md`.
 Sem Docker, sem IaC: um systemd + nginx. Os dois alvos convivem enquanto a decisão
 de infra não fecha. Recursos de Vercel não usados hoje (cron, edge) continuam fora
 de escopo de propósito.
+
+## 015 — Auditoria de segurança de 2026-08-25: `revoke` e policy, não reescrita
+Status: aceita
+
+Data: 2026-09-02 (decisão tomada em 2026-08-25, registrada aqui depois).
+
+A auditoria do projeto hospedado achou quatro classes de falha, todas alcançáveis
+com a anon key — que vai no bundle do browser. RPCs `security definer` com EXECUTE
+para `public`/`anon`: a pior, `scrub_deleted_user_personal_data`, apagava os dados
+pessoais e os papéis de qualquer usuário por `/rest/v1/rpc/`. Policies de RLS
+amplas demais: `Teachers view all profiles` liberava SELECT em toda a
+`user_profile` (CPF, telefone, endereço e data de nascimento de menores) para
+qualquer portador do papel `teacher`; `Author manage articles` era `for all` sem
+`with check`, então o USING valia como check no INSERT e qualquer autenticado
+publicava na `/artigos` pública; a policy de INSERT em `certificate` aceitava
+nome, CPF e título do curso vindos do cliente. `search_path` mutável nas funções
+`security definer`. E o CPF completo trafegando na resposta de
+`validate_certificate`, que é rota pública.
+
+Correção por `revoke` e reescrita de policy, sem tocar nos corpos das funções.
+`supabase/migrations/20260825_security_hardening.sql` fecha as quatro classes;
+`..._analytics_guard.sql` fecha a metade que sobrava nas RPCs de analytics, onde
+`authenticated` precisa continuar chamando (a aba roda no browser) — a guarda
+entra por fora, `*_impl` sem EXECUTE mais um wrapper que chama
+`assert_teacher_or_admin()`. `search_path` fixo em `'public'` e não `''`: os
+corpos existentes usam nomes não qualificados em alguns pontos, e `''` os
+quebraria em runtime. A máscara de CPF passa a ser feita no banco.
+
+As duas migrations foram aplicadas direto no projeto hospedado (ver 008), então o
+RLS de produção já está estrito — aqui o repo documenta, não provisiona. Efeito
+colateral conhecido e ainda aberto: a policy de INSERT em `certificate` valida os
+três campos contra o perfil de `auth.uid()`, mas `issueCertificateForStudent()`
+(`lib/api/certificates.ts`) insere os dados de **outro** usuário quando professor
+ou admin emite, usando o cliente do browser — o RLS recusa. Emissão pelo próprio
+aluno funciona; emissão por professor/admin está quebrada desde a aplicação da
+migration, e a correção é pendente.
