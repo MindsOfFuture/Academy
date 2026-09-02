@@ -9,7 +9,7 @@ import {
     SESSOES_STORAGE_KEY,
     type GameState,
 } from "@/components/modules/financity/data";
-import { calcExtrato, diagnosticar, lookupSalario } from "@/components/modules/financity/calculations";
+import { brl, calcExtrato, diagnosticar, lookupSalario } from "@/components/modules/financity/calculations";
 
 function estado(patch: Partial<GameState>): GameState {
     return {
@@ -126,6 +126,29 @@ describe("Financity — invariantes de conteúdo", () => {
         expect(extrato.totalDespesas).toBe(4619);
         expect(extrato.saldo).toBe(3391);
     });
+
+    it("cobra cada pet repetido e preserva o diagnóstico oficial", () => {
+        const game = estado({
+            salarioBruto: 3500,
+            regime: "CLT",
+            estadoCivil: "solteiro",
+            filhos: "0",
+            pets: ["cachorro", "cachorro"],
+            imovel: "apartamento",
+            aquisicao: "alugada",
+            transporte: "moto",
+            streaming: [],
+            alimentacao: "delivery",
+            poupanca: "5%",
+            lazer: [],
+            imprevisto: "reserva",
+        });
+        const extrato = calcExtrato(game);
+
+        expect(extrato.despesasPets).toBe(300);
+        expect(extrato.saldo).toBeCloseTo(-141.719, 3);
+        expect(diagnosticar(game, extrato).id).toBe("superendividado");
+    });
 });
 
 describe("Financity — smoke de interação até o diagnóstico", () => {
@@ -210,5 +233,104 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
         render(<FinancityGame userId="user-a" />);
         expect(screen.getByText("Ana")).toBeInTheDocument();
         expect(screen.queryByText("Legado")).not.toBeInTheDocument();
+    }, 30000);
+
+    it("permite adicionar dois cachorros e cobra ambos no diagnóstico", async () => {
+        const user = userEvent.setup();
+        render(<FinancityGame userId="user-pets" />);
+
+        await user.click(screen.getByRole("button", { name: /Iniciar Nova Sessão/i }));
+        await user.type(screen.getByLabelText("Nome"), "Ana");
+        await user.type(screen.getByLabelText("Profissão"), "Vendedor");
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^CLT/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: "Solteiro(a)" }));
+        await user.click(screen.getByRole("button", { name: "0" }));
+        await user.click(screen.getByRole("button", { name: "Adicionar cachorro" }));
+        await user.click(screen.getByRole("button", { name: "Adicionar cachorro" }));
+        expect(screen.getByText("2 cachorros")).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^Apartamento/ }));
+        await user.click(screen.getByRole("button", { name: /^Alugada/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^Moto/ }));
+        await user.click(screen.getByRole("button", { name: /Peço delivery/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^5%/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /Confiar na reserva/ }));
+        await user.click(screen.getByRole("button", { name: /Ver diagnóstico/ }));
+        await user.click(screen.getByRole("button", { name: /Finalizar e ver extrato completo/ }));
+
+        expect(screen.getByTestId("financity-perfil")).toHaveTextContent("Superendividado");
+        expect(screen.getByText("Família e pets").parentElement).toHaveTextContent("R$ 300,00");
+        expect(screen.getByText("Saldo mensal").parentElement).toHaveTextContent("-R$ 141,72");
+    }, 30000);
+
+    it("exibe o seguro e reconcilia as despesas do extrato completo", async () => {
+        const user = userEvent.setup();
+        render(<FinancityGame userId="user-seguro" />);
+
+        await user.click(screen.getByRole("button", { name: /Iniciar Nova Sessão/i }));
+        await user.type(screen.getByLabelText("Nome"), "Bia");
+        await user.type(screen.getByLabelText("Profissão"), "Analista de Sistemas");
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^CLT/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: "Casado(a)" }));
+        await user.click(screen.getByRole("button", { name: "2" }));
+        await user.click(screen.getByRole("button", { name: "Adicionar cachorro" }));
+        await user.click(screen.getByRole("button", { name: "Adicionar gato" }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^Apartamento/ }));
+        await user.click(screen.getByRole("button", { name: /^Alugada/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^Carro/ }));
+        await user.click(screen.getByRole("button", { name: /^Netflix/ }));
+        await user.click(screen.getByRole("button", { name: /^Spotify/ }));
+        await user.click(screen.getByRole("button", { name: /Peço delivery/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^10%/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /^Cinema/ }));
+        await user.click(screen.getByRole("button", { name: "Continuar" }));
+        await user.click(screen.getByRole("button", { name: /Contratar seguro/ }));
+        await user.click(screen.getByRole("button", { name: /Ver diagnóstico/ }));
+        await user.click(screen.getByRole("button", { name: /Finalizar e ver extrato completo/ }));
+
+        const game = estado({
+            salarioBruto: 6500,
+            regime: "CLT",
+            estadoCivil: "casado",
+            filhos: "2",
+            pets: ["cachorro", "gato"],
+            imovel: "apartamento",
+            aquisicao: "alugada",
+            transporte: "carro",
+            streaming: ["netflix", "spotify"],
+            alimentacao: "delivery",
+            poupanca: "10%",
+            lazer: ["cinema"],
+            imprevisto: "seguro",
+        });
+        const extrato = calcExtrato(game);
+        const despesas = [
+            ["Família e pets", extrato.despesasFamilia],
+            ["Moradia", extrato.despesasMoradia],
+            ["Transporte", extrato.despesasTransporte],
+            ["Assinaturas", extrato.despesasStreaming],
+            ["Alimentação", extrato.despesasAlimentacao],
+            ["Lazer", extrato.despesasLazer],
+            ["Seguro", extrato.despesasSeguro],
+        ] as const;
+
+        expect(despesas.reduce((total, [, valor]) => total + valor, 0)).toBeCloseTo(extrato.totalDespesas, 2);
+        expect(extrato.totalDespesas).toBeCloseTo(8302.5, 2);
+        for (const [label, valor] of despesas) {
+            expect(screen.getByText(label).parentElement).toHaveTextContent(brl(valor).replace(/\u00a0/g, " "));
+        }
+        expect(screen.getByText("Despesas de consumo").parentElement).toHaveTextContent("R$ 8.302,50");
     }, 30000);
 });
