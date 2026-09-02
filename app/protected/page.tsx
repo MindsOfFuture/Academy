@@ -6,6 +6,7 @@ import UsersTable from "@/components/dashboard/users-table";
 import { getCurrentUserProfile, getUserTypeServer } from "@/lib/api/profiles-server";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
 import { getUserCoursesServer } from "@/lib/api/enrollments-server";
+import ModulesSection from "@/components/modules/ModulesSection";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -45,6 +46,8 @@ export default async function ProtectedPage() {
           </div>
 
           <YourCourses initialCursos={courses} />
+
+          <ModulesSection />
 
           {(isAdmin || isTeacherApproved) && (
             <div className="space-y-8">
