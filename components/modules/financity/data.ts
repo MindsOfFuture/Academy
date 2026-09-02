@@ -7,6 +7,7 @@ export type Transporte = "carro" | "moto" | "bicicleta" | "publico";
 export type Alimentacao = "masterchef" | "delivery" | "gourmet";
 export type Poupanca = "nao" | "5%" | "10%" | "20%";
 export type Imprevisto = "seguro" | "reserva" | "nenhum";
+export type PetKey = "cachorro" | "gato" | "outros";
 export type StreamingKey = "netflix" | "disney" | "spotify" | "prime" | "academia";
 export type LazerKey = "cinema" | "restaurantes" | "shopping" | "viagens";
 
@@ -18,7 +19,7 @@ export type GameState = {
   regime: Regime | null;
   estadoCivil: EstadoCivil | null;
   filhos: Filhos | null;
-  pets: string[];
+  pets: PetKey[];
   imovel: Imovel | null;
   aquisicao: Aquisicao | null;
   transporte: Transporte | null;

@@ -74,6 +74,58 @@ describe("Financity — invariantes de conteúdo", () => {
     it("estima salário para profissão no feminino como no masculino", () => {
         expect(lookupSalario("medica").salario).toBe(lookupSalario("medico").salario);
     });
+
+    it("mantém paridade financeira CLT com IRRF, família, serviços e vale-refeição", () => {
+        const extrato = calcExtrato(estado({
+            salarioBruto: 6500,
+            regime: "CLT",
+            estadoCivil: "casado",
+            filhos: "2",
+            pets: ["cachorro", "gato"],
+            imovel: "apartamento",
+            aquisicao: "alugada",
+            transporte: "carro",
+            streaming: ["netflix", "spotify"],
+            alimentacao: "delivery",
+            poupanca: "10%",
+            lazer: ["cinema"],
+            imprevisto: "seguro",
+        }));
+
+        expect(extrato.inss).toBeCloseTo(728.82, 2);
+        expect(extrato.impostoRendaMensal).toBeCloseTo(531.8, 2);
+        expect(extrato.despesasFamilia).toBe(1350);
+        expect(extrato.despesasStreaming).toBe(70);
+        expect(extrato.despesasAlimentacao).toBeCloseTo(3722.5, 2);
+        expect(extrato.totalDespesas).toBeCloseTo(8302.5, 2);
+        expect(extrato.saldo).toBeCloseTo(-2140.238, 3);
+    });
+
+    it("mantém paridade financeira PJ com DAS deduzido do saldo", () => {
+        const extrato = calcExtrato(estado({
+            salarioBruto: 9000,
+            regime: "PJ",
+            estadoCivil: "solteiro",
+            filhos: "1",
+            pets: ["outros"],
+            imovel: "casa",
+            aquisicao: "propria",
+            transporte: "publico",
+            streaming: ["disney", "prime", "academia"],
+            alimentacao: "masterchef",
+            poupanca: "5%",
+            lazer: ["shopping"],
+            imprevisto: "nenhum",
+        }));
+
+        expect(extrato.inss).toBe(0);
+        expect(extrato.impostoRendaMensal).toBe(540);
+        expect(extrato.despesasFamilia).toBe(680);
+        expect(extrato.despesasStreaming).toBe(164);
+        expect(extrato.despesasAlimentacao).toBe(2925);
+        expect(extrato.totalDespesas).toBe(4619);
+        expect(extrato.saldo).toBe(3391);
+    });
 });
 
 describe("Financity — smoke de interação até o diagnóstico", () => {
@@ -83,9 +135,19 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
 
     it("percorre as etapas e mostra um dos quatro perfis", async () => {
         const user = userEvent.setup();
-        render(<FinancityGame />);
+        window.localStorage.setItem(
+            `${SESSOES_STORAGE_KEY}:user-b`,
+            JSON.stringify([{ nome: "Bia", profissao: "Professora", perfil: "Equilibrado", saldo: 100, data: "2026-09-01T00:00:00.000Z" }]),
+        );
+        window.localStorage.setItem(
+            SESSOES_STORAGE_KEY,
+            JSON.stringify([{ nome: "Legado", profissao: "—", perfil: "—", saldo: 0, data: "2026-09-01T00:00:00.000Z" }]),
+        );
+        const { unmount } = render(<FinancityGame userId="user-a" />);
 
         await user.click(screen.getByRole("button", { name: /Iniciar Nova Sessão/i }));
+        expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuemin", "0");
+        expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "14");
 
         // Etapa 1 — nome e profissão
         await user.type(screen.getByLabelText("Nome"), "Ana");
@@ -94,6 +156,7 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
 
         // Etapa 2 — regime
         await user.click(screen.getByRole("button", { name: /^CLT/ }));
+        expect(screen.getByRole("button", { name: /^CLT/ })).toHaveAttribute("aria-pressed", "true");
         await user.click(screen.getByRole("button", { name: "Continuar" }));
 
         // Etapa 3 — família
@@ -133,8 +196,19 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
         expect(titulos).toContain(heading);
         expect(screen.getByText(/Extrato completo/)).toBeInTheDocument();
 
-        const salvas = JSON.parse(window.localStorage.getItem(SESSOES_STORAGE_KEY) ?? "[]");
+        const salvas = JSON.parse(window.localStorage.getItem(`${SESSOES_STORAGE_KEY}:user-a`) ?? "[]");
         expect(salvas).toHaveLength(1);
         expect(salvas[0].nome).toBe("Ana");
+        expect(JSON.parse(window.localStorage.getItem(`${SESSOES_STORAGE_KEY}:user-b`) ?? "[]")[0].nome).toBe("Bia");
+
+        unmount();
+        render(<FinancityGame userId="user-b" />);
+        expect(screen.getByText("Bia")).toBeInTheDocument();
+        expect(screen.queryByText("Ana")).not.toBeInTheDocument();
+
+        unmount();
+        render(<FinancityGame userId="user-a" />);
+        expect(screen.getByText("Ana")).toBeInTheDocument();
+        expect(screen.queryByText("Legado")).not.toBeInTheDocument();
     }, 30000);
 });

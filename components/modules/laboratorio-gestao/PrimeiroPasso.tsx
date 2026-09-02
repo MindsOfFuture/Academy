@@ -7,10 +7,10 @@ type AnswerData = Record<string, string | string[] | number | boolean> & { __ok?
 type Answers = Record<string, AnswerData>;
 type View = "cover" | "journey" | "stage" | "result" | "plan";
 
-function loadAnswers(): Answers {
+function loadAnswers(userId: string): Answers {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}") ?? {};
+    return JSON.parse(window.localStorage.getItem(`${STORAGE_KEY}:${userId}`) ?? "{}") ?? {};
   } catch {
     return {};
   }
@@ -25,12 +25,12 @@ function brl(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export default function PrimeiroPasso() {
+export default function PrimeiroPasso({ userId }: { userId: string }) {
   const [answers, setAnswers] = useState<Answers>({});
   const [view, setView] = useState<View>("cover");
   const [activeId, setActiveId] = useState(1);
 
-  useEffect(() => setAnswers(loadAnswers()), []);
+  useEffect(() => setAnswers(loadAnswers(userId)), [userId]);
 
   const completed = useMemo(
     () => ETAPAS.filter((stage) => Boolean(answers[String(stage.id)]?.__ok)).length,
@@ -41,7 +41,7 @@ export default function PrimeiroPasso() {
   function save(next: Answers) {
     setAnswers(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.localStorage.setItem(`${STORAGE_KEY}:${userId}`, JSON.stringify(next));
     } catch {
       // A jornada continua sem persistência quando o navegador a bloqueia.
     }
@@ -74,7 +74,7 @@ export default function PrimeiroPasso() {
     if (!window.confirm("Apagar suas respostas e recomeçar?")) return;
     setAnswers({});
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(`${STORAGE_KEY}:${userId}`);
     } catch {
       // Sem ação adicional quando o armazenamento não está disponível.
     }

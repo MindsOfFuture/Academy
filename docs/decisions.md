@@ -237,3 +237,20 @@ nomes fantasma sem ancorar em diretório (`nossos_cursos`, `users_cursos`,
 Consequência: import de `components/api/*` ou `src/services/*` em código novo agora
 quebra o build em vez de violar uma regra — a proibição passou da spec para o
 compilador, e por isso não precisa mais estar escrita.
+
+## 017 — Cidadania Financeira determinística e orientada por pontuação
+Status: aceita
+
+O jogo fonte embaralha opções com uma semente e mantém três métricas dinâmicas por
+papel. A integração no Academy precisa ser reproduzível em aulas, avaliações e
+tecnologia assistiva; nela, as métricas não eram exibidas nem atualizadas, enquanto
+a pontuação, os tipos de resposta e os quatro diagnósticos já cobrem o retorno ao aluno.
+
+As quatro opções ficam na ordem autoral A–D e o resultado continua baseado em pontos,
+acertos, parciais e erros. As declarações mortas de métricas saem dos dados. Permanecem
+os quatro papéis, os 100 cenários, os feedbacks e a progressão completa.
+
+Consequência: duas tentativas mostram as opções na mesma ordem e não simulam efeitos
+separados em saúde fiscal, popularidade ou estabilidade. Se o objetivo pedagógico
+passar a exigir comparação dessas dimensões, a evolução deve restaurar estado,
+visualização e testes das três métricas juntos — não apenas seus nomes.

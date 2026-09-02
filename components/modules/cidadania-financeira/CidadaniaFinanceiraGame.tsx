@@ -8,16 +8,16 @@ const STORAGE_KEY = "academy-cidadania-financeira-v1";
 type Answer = { scenarioId: number; type: OpcaoCenario["type"]; points: number };
 type SavedState = { completedBlocks: number[] };
 
-function readSaved(): SavedState {
+function readSaved(userId: string): SavedState {
   if (typeof window === "undefined") return { completedBlocks: [] };
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null") ?? { completedBlocks: [] };
+    return JSON.parse(window.localStorage.getItem(`${STORAGE_KEY}:${userId}`) ?? "null") ?? { completedBlocks: [] };
   } catch {
     return { completedBlocks: [] };
   }
 }
 
-export default function CidadaniaFinanceiraGame() {
+export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) {
   const [completedBlocks, setCompletedBlocks] = useState<number[]>([]);
   const [blockId, setBlockId] = useState<number | null>(null);
   const [scenarioIndex, setScenarioIndex] = useState(0);
@@ -25,7 +25,7 @@ export default function CidadaniaFinanceiraGame() {
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState(false);
 
-  useEffect(() => setCompletedBlocks(readSaved().completedBlocks), []);
+  useEffect(() => setCompletedBlocks(readSaved(userId).completedBlocks), [userId]);
 
   const block = BLOCOS.find((item) => item.id === blockId);
   const scenarios = useMemo(
@@ -38,7 +38,7 @@ export default function CidadaniaFinanceiraGame() {
   function persist(next: number[]) {
     setCompletedBlocks(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ completedBlocks: next }));
+      window.localStorage.setItem(`${STORAGE_KEY}:${userId}`, JSON.stringify({ completedBlocks: next }));
     } catch {
       // O progresso local é opcional quando o navegador bloqueia armazenamento.
     }

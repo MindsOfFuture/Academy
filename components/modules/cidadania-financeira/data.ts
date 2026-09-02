@@ -11,7 +11,6 @@ export type Bloco = {
   color: string;
   role: "cidadao" | "prefeito" | "ministro" | "presidente";
   subtitle: string;
-  metrics: string[];
 };
 export type OpcaoCenario = {
   origLabel: string;
@@ -38,12 +37,7 @@ export const BLOCOS: Bloco[] = [
     "emoji": "👤",
     "color": "#e8473a",
     "role": "cidadao",
-    "subtitle": "Finanças Pessoais & Consumo",
-    "metrics": [
-      "Saúde Financeira",
-      "Reserva",
-      "Score"
-    ]
+    "subtitle": "Finanças Pessoais & Consumo"
   },
   {
     "id": 2,
@@ -51,12 +45,7 @@ export const BLOCOS: Bloco[] = [
     "emoji": "🏛️",
     "color": "#22c55e",
     "role": "prefeito",
-    "subtitle": "Gestão Municipal & Serviços",
-    "metrics": [
-      "Caixa Municipal",
-      "Serviços Públicos",
-      "Popularidade"
-    ]
+    "subtitle": "Gestão Municipal & Serviços"
   },
   {
     "id": 3,
@@ -64,12 +53,7 @@ export const BLOCOS: Bloco[] = [
     "emoji": "📈",
     "color": "#ffd300",
     "role": "ministro",
-    "subtitle": "Macroeconomia & Política Monetária",
-    "metrics": [
-      "Controle da Inflação",
-      "Saúde Fiscal",
-      "Estabilidade"
-    ]
+    "subtitle": "Macroeconomia & Política Monetária"
   },
   {
     "id": 4,
@@ -77,12 +61,7 @@ export const BLOCOS: Bloco[] = [
     "emoji": "👑",
     "color": "#684a97",
     "role": "presidente",
-    "subtitle": "Liderança de Estado & Projetos",
-    "metrics": [
-      "Estabilidade do País",
-      "Emprego",
-      "Aprovação"
-    ]
+    "subtitle": "Liderança de Estado & Projetos"
   }
 ];
 

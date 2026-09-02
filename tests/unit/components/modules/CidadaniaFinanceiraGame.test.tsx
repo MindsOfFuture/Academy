@@ -15,9 +15,15 @@ describe("Cidadania Financeira — invariantes de conteúdo", () => {
         ]);
     });
 
-    it("cada papel declara 3 métricas", () => {
+    it("não declara métricas dinâmicas que o fluxo simplificado não atualiza", () => {
         for (const bloco of BLOCOS) {
-            expect(bloco.metrics).toHaveLength(3);
+            expect(bloco).not.toHaveProperty("metrics");
+        }
+    });
+
+    it("mantém a ordem autoral determinística das quatro opções", () => {
+        for (const cenario of CENARIOS) {
+            expect(cenario.options.map((opcao) => opcao.origLabel)).toEqual(["A", "B", "C", "D"]);
         }
     });
 
@@ -59,7 +65,7 @@ describe("Cidadania Financeira — smoke de interação", () => {
 
     it("abre um papel, responde um cenário e mostra o resultado da decisão", async () => {
         const user = userEvent.setup();
-        render(<CidadaniaFinanceiraGame />);
+        render(<CidadaniaFinanceiraGame userId="user-a" />);
 
         expect(screen.getByText("100")).toBeInTheDocument();
         for (const bloco of BLOCOS) {
@@ -81,6 +87,21 @@ describe("Cidadania Financeira — smoke de interação", () => {
         expect(screen.getByTestId("cidadania-score")).toHaveTextContent("10");
         expect(screen.getByRole("button", { name: /Próxima Questão/ })).toBeInTheDocument();
     }, 30000);
+
+    it("isola progresso por usuário e ignora a chave legada sem escopo", () => {
+        window.localStorage.setItem("academy-cidadania-financeira-v1", JSON.stringify({ completedBlocks: [3] }));
+        window.localStorage.setItem("academy-cidadania-financeira-v1:user-a", JSON.stringify({ completedBlocks: [1] }));
+        window.localStorage.setItem("academy-cidadania-financeira-v1:user-b", JSON.stringify({ completedBlocks: [2] }));
+
+        const { unmount } = render(<CidadaniaFinanceiraGame userId="user-a" />);
+        expect(screen.getByRole("button", { name: /O Cidadão: 25 questões, concluído/ })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /O Ministro da Economia: 25 questões$/ })).toBeInTheDocument();
+
+        unmount();
+        render(<CidadaniaFinanceiraGame userId="user-b" />);
+        expect(screen.getByRole("button", { name: /O Prefeito: 25 questões, concluído/ })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /O Cidadão: 25 questões$/ })).toBeInTheDocument();
+    });
 });
 
 function escapeRegExp(value: string): string {

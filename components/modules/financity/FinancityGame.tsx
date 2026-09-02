@@ -1,22 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { brl, calcExtrato, diagnosticar, lookupSalario } from "./calculations";
 import {
   ESTADO_INICIAL,
   SESSOES_STORAGE_KEY,
   type GameState,
+  type PetKey,
   type StreamingKey,
   type LazerKey,
 } from "./data";
 
 const STAGE_DECISIONS = [2, 1, 3, 2, 3, 1, 1, 1, 0];
 
-export default function FinancityGame() {
+type SavedSession = {
+  nome: string;
+  profissao: string;
+  perfil: string;
+  saldo: number;
+  data: string;
+};
+
+function loadSessions(userId: string): SavedSession[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const value = JSON.parse(window.localStorage.getItem(`${SESSOES_STORAGE_KEY}:${userId}`) ?? "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+export default function FinancityGame({ userId }: { userId: string }) {
   const [started, setStarted] = useState(false);
   const [stage, setStage] = useState(0);
   const [game, setGame] = useState<GameState>({ ...ESTADO_INICIAL });
   const [finished, setFinished] = useState(false);
+  const [sessions, setSessions] = useState<SavedSession[]>([]);
+
+  useEffect(() => setSessions(loadSessions(userId)), [userId]);
 
   const update = (patch: Partial<GameState>) => setGame((current) => ({ ...current, ...patch }));
   const answered = STAGE_DECISIONS.slice(0, stage).reduce((sum, value) => sum + value, 0);
@@ -28,13 +50,16 @@ export default function FinancityGame() {
   function finish() {
     const extrato = calcExtrato(game);
     const perfil = diagnosticar(game, extrato);
+    const nextSessions = [
+      ...loadSessions(userId),
+      { nome: game.nome, profissao: game.profissao, perfil: perfil.titulo, saldo: extrato.saldo, data: new Date().toISOString() },
+    ];
     try {
-      const current = JSON.parse(window.localStorage.getItem(SESSOES_STORAGE_KEY) ?? "[]");
-      const list = Array.isArray(current) ? current : [];
       window.localStorage.setItem(
-        SESSOES_STORAGE_KEY,
-        JSON.stringify([...list, { nome: game.nome, profissao: game.profissao, perfil: perfil.titulo, saldo: extrato.saldo, data: new Date().toISOString() }]),
+        `${SESSOES_STORAGE_KEY}:${userId}`,
+        JSON.stringify(nextSessions),
       );
+      setSessions(nextSessions);
     } catch {
       // A partida continua mesmo quando o armazenamento do navegador está bloqueado.
     }
@@ -64,6 +89,19 @@ export default function FinancityGame() {
         <button type="button" onClick={() => setStarted(true)} className="mt-8 rounded-xl bg-purple-700 px-6 py-3 font-bold text-white hover:bg-purple-800">
           Iniciar Nova Sessão
         </button>
+        {sessions.length > 0 && (
+          <div className="mt-8 max-w-xl rounded-2xl border border-purple-100 p-4">
+            <h3 className="font-bold text-purple-900">Sessões recentes</h3>
+            <ul className="mt-3 space-y-2 text-sm text-gray-700">
+              {sessions.slice(-3).reverse().map((session) => (
+                <li key={`${session.data}-${session.nome}`} className="flex flex-wrap justify-between gap-2">
+                  <span><strong>{session.nome}</strong> · {session.profissao}</span>
+                  <span>{session.perfil} · {brl(session.saldo)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
     );
   }
@@ -78,7 +116,7 @@ export default function FinancityGame() {
         <p className="mt-3 max-w-2xl text-gray-700">{perfil.descricao}</p>
         <div className="mt-7 grid gap-3 sm:grid-cols-3">
           <MoneyStat label="Salário líquido" value={extrato.salarioLiquido} />
-          <MoneyStat label="Despesas mensais" value={extrato.totalDespesas} />
+          <MoneyStat label="Despesas de consumo" value={extrato.totalDespesas} />
           <MoneyStat label="Saldo mensal" value={extrato.saldo} />
         </div>
         <div className="mt-7 overflow-x-auto rounded-2xl border border-gray-200 p-5">
@@ -87,6 +125,16 @@ export default function FinancityGame() {
             <Row label="Profissão" value={game.profissao} />
             <Row label="Regime" value={game.regime ?? "—"} />
             <Row label="Salário bruto" value={brl(extrato.salarioBruto)} />
+            {extrato.inss > 0 && <Row label="INSS" value={`− ${brl(extrato.inss)}`} />}
+            <Row label={game.regime === "PJ" ? "DAS mensal" : "IRRF mensal"} value={`− ${brl(extrato.impostoRendaMensal)}`} />
+            {extrato.rendaExtra > 0 && <Row label="Renda do cônjuge" value={brl(extrato.rendaExtra)} />}
+            {extrato.valeRefeicao > 0 && <Row label="Vale-refeição" value={brl(extrato.valeRefeicao)} />}
+            <Row label="Família e pets" value={`− ${brl(extrato.despesasFamilia)}`} />
+            <Row label="Moradia" value={`− ${brl(extrato.despesasMoradia)}`} />
+            <Row label="Transporte" value={`− ${brl(extrato.despesasTransporte)}`} />
+            <Row label="Assinaturas" value={`− ${brl(extrato.despesasStreaming)}`} />
+            <Row label="Alimentação" value={`− ${brl(extrato.despesasAlimentacao)}`} />
+            <Row label="Lazer" value={`− ${brl(extrato.despesasLazer)}`} />
             <Row label="Reserva mensal" value={brl(extrato.reservaMensal)} />
           </dl>
         </div>
@@ -105,7 +153,15 @@ export default function FinancityGame() {
           <span>{Math.min(answered + 1, 14)} de 14 decisões</span>
           <span>{Math.round((answered / 14) * 100)}%</span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/20">
+        <div
+          className="mt-2 h-2 overflow-hidden rounded-full bg-white/20"
+          role="progressbar"
+          aria-label="Progresso das decisões"
+          aria-valuenow={answered}
+          aria-valuemin={0}
+          aria-valuemax={14}
+          aria-valuetext={`${answered} de 14 decisões concluídas`}
+        >
           <div className="h-full bg-amber-300" style={{ width: `${(answered / 14) * 100}%` }} />
         </div>
       </div>
@@ -130,7 +186,7 @@ function renderStage(
     </Stage>;
   }
   if (stage === 1) return <Stage title="Forma de trabalho"><Options options={[{ label: "CLT — carteira assinada", value: "CLT" }, { label: "PJ — pessoa jurídica", value: "PJ" }]} selected={game.regime} onSelect={(regime) => update({ regime: regime as GameState["regime"] })} /><Continue onClick={next} disabled={!game.regime} /></Stage>;
-  if (stage === 2) return <Stage title="Família"><Options options={[{ label: "Solteiro(a)", value: "solteiro" }, { label: "Casado(a)", value: "casado" }]} selected={game.estadoCivil} onSelect={(estadoCivil) => update({ estadoCivil: estadoCivil as GameState["estadoCivil"] })} /><h3 className="mt-6 font-bold">Filhos</h3><Options options={["0", "1", "2", "3+"].map((v) => ({ label: v, value: v }))} selected={game.filhos} onSelect={(filhos) => update({ filhos: filhos as GameState["filhos"] })} /><h3 className="mt-6 font-bold">Pets</h3><Options options={[{ label: "Nenhum pet", value: "nenhum" }, { label: "Um pet", value: "pet" }]} selected={game.pets.length ? "pet" : "nenhum"} onSelect={(value) => update({ pets: value === "pet" ? ["pet"] : [] })} /><Continue onClick={next} disabled={!game.estadoCivil || !game.filhos} /></Stage>;
+  if (stage === 2) return <Stage title="Família"><Options options={[{ label: "Solteiro(a)", value: "solteiro" }, { label: "Casado(a)", value: "casado" }]} selected={game.estadoCivil} onSelect={(estadoCivil) => update({ estadoCivil: estadoCivil as GameState["estadoCivil"] })} /><h3 className="mt-6 font-bold">Filhos</h3><Options options={["0", "1", "2", "3+"].map((v) => ({ label: v, value: v }))} selected={game.filhos} onSelect={(filhos) => update({ filhos: filhos as GameState["filhos"] })} /><h3 className="mt-6 font-bold">Pets (selecione os tipos)</h3><MultiOptions options={[{ label: "Cachorro", value: "cachorro" }, { label: "Gato", value: "gato" }, { label: "Outro animal", value: "outros" }]} selected={game.pets} onChange={(pets) => update({ pets: pets as PetKey[] })} /><Continue onClick={next} disabled={!game.estadoCivil || !game.filhos} /></Stage>;
   if (stage === 3) return <Stage title="Moradia"><Options options={[{ label: "Apartamento", value: "apartamento" }, { label: "Casa", value: "casa" }, { label: "Mansão", value: "mansao" }, { label: "Sítio", value: "sitio" }]} selected={game.imovel} onSelect={(imovel) => update({ imovel: imovel as GameState["imovel"] })} /><h3 className="mt-6 font-bold">Como será o imóvel?</h3><Options options={[{ label: "Alugada", value: "alugada" }, { label: "Financiada", value: "financiada" }, { label: "Própria (quitada)", value: "propria" }]} selected={game.aquisicao} onSelect={(aquisicao) => update({ aquisicao: aquisicao as GameState["aquisicao"] })} /><Continue onClick={next} disabled={!game.imovel || !game.aquisicao} /></Stage>;
   if (stage === 4) return <Stage title="Estilo de vida"><h3 className="font-bold">Transporte</h3><Options options={[{ label: "Carro", value: "carro" }, { label: "Moto", value: "moto" }, { label: "Bicicleta", value: "bicicleta" }, { label: "Transporte público", value: "publico" }]} selected={game.transporte} onSelect={(transporte) => update({ transporte: transporte as GameState["transporte"] })} /><h3 className="mt-6 font-bold">Assinaturas</h3><MultiOptions options={[{ label: "Netflix", value: "netflix" }, { label: "Disney+", value: "disney" }, { label: "Spotify", value: "spotify" }, { label: "Prime", value: "prime" }, { label: "Academia", value: "academia" }]} selected={game.streaming} onChange={(streaming) => update({ streaming: streaming as StreamingKey[] })} /><h3 className="mt-6 font-bold">Alimentação</h3><Options options={[{ label: "Cozinho em casa", value: "masterchef" }, { label: "Peço delivery", value: "delivery" }, { label: "Restaurantes gourmet", value: "gourmet" }]} selected={game.alimentacao} onSelect={(alimentacao) => update({ alimentacao: alimentacao as GameState["alimentacao"] })} /><Continue onClick={next} disabled={!game.transporte || !game.alimentacao} /></Stage>;
   if (stage === 5) return <Stage title="Reserva mensal"><Options options={[{ label: "Não guardar agora", value: "nao" }, { label: "5% da renda", value: "5%" }, { label: "10% da renda", value: "10%" }, { label: "20% da renda", value: "20%" }]} selected={game.poupanca} onSelect={(poupanca) => update({ poupanca: poupanca as GameState["poupanca"] })} /><Continue onClick={next} disabled={!game.poupanca} /></Stage>;
@@ -140,7 +196,7 @@ function renderStage(
 }
 
 function Stage({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) { return <div><h2 className="text-2xl font-bold text-purple-900 sm:text-3xl">{title}</h2>{subtitle && <p className="mt-2 text-gray-600">{subtitle}</p>}<div className="mt-6">{children}</div></div>; }
-function Options({ options, selected, onSelect }: { options: { label: string; value: string }[]; selected: string | null; onSelect: (value: string) => void }) { return <div className="mt-3 grid gap-3 sm:grid-cols-2">{options.map((option) => <button key={option.value} type="button" onClick={() => onSelect(option.value)} className={`rounded-xl border-2 p-4 text-left font-semibold ${selected === option.value ? "border-purple-600 bg-purple-50" : "border-gray-200"}`}>{option.label}</button>)}</div>; }
+function Options({ options, selected, onSelect }: { options: { label: string; value: string }[]; selected: string | null; onSelect: (value: string) => void }) { return <div className="mt-3 grid gap-3 sm:grid-cols-2">{options.map((option) => { const active = selected === option.value; return <button key={option.value} type="button" aria-pressed={active} onClick={() => onSelect(option.value)} className={`rounded-xl border-2 p-4 text-left font-semibold ${active ? "border-purple-600 bg-purple-50" : "border-gray-200"}`}>{option.label}</button>; })}</div>; }
 function MultiOptions({ options, selected, onChange }: { options: { label: string; value: string }[]; selected: readonly string[]; onChange: (values: string[]) => void }) { return <div className="mt-3 grid gap-3 sm:grid-cols-2">{options.map((option) => { const active = selected.includes(option.value); return <button key={option.value} type="button" aria-pressed={active} onClick={() => onChange(active ? selected.filter((value) => value !== option.value) : [...selected, option.value])} className={`rounded-xl border-2 p-4 text-left font-semibold ${active ? "border-purple-600 bg-purple-50" : "border-gray-200"}`}>{option.label}</button>; })}</div>; }
 function Continue({ onClick, disabled, label = "Continuar" }: { onClick: () => void; disabled?: boolean; label?: string }) { return <div className="mt-8 flex justify-end"><button type="button" onClick={onClick} disabled={disabled} className="rounded-xl bg-purple-700 px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{label}</button></div>; }
 function Stat({ value, label }: { value: string; label: string }) { return <div className="rounded-xl bg-purple-50 p-3"><strong className="block text-2xl text-purple-800">{value}</strong><span className="text-sm text-gray-600">{label}</span></div>; }

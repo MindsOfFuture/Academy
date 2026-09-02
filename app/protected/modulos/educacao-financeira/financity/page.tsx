@@ -5,14 +5,14 @@ import { requireModuleUser } from "../../require-user";
 const PATH = "/protected/modulos/educacao-financeira/financity";
 
 export default async function FinancityPage() {
-  await requireModuleUser(PATH);
+  const user = await requireModuleUser(PATH);
   return (
     <ModulePageShell
       title="Orçamento Familiar do Futuro"
       description="Simule uma vida financeira em 14 decisões e receba um diagnóstico personalizado."
       backHref="/protected/modulos/educacao-financeira"
     >
-      <FinancityGame />
+      <FinancityGame userId={user.id} />
     </ModulePageShell>
   );
 }

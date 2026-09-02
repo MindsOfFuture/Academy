@@ -5,13 +5,13 @@ import { requireModuleUser } from "../require-user";
 const PATH = "/protected/modulos/laboratorio-de-gestao";
 
 export default async function LaboratorioDeGestaoPage() {
-  await requireModuleUser(PATH);
+  const user = await requireModuleUser(PATH);
   return (
     <ModulePageShell
       title="Laboratório de Gestão — Primeiro Passo"
       description="Uma jornada de 10 etapas para organizar sua ideia de pequeno negócio e montar o seu plano."
     >
-      <PrimeiroPasso />
+      <PrimeiroPasso userId={user.id} />
     </ModulePageShell>
   );
 }
