@@ -38,14 +38,6 @@ export default function ValidarPage() {
     });
   }
 
-  function formatCpfPartial(cpf: string) {
-    const cleaned = cpf.replace(/\D/g, "");
-    if (cleaned.length === 11) {
-      return `***.${cleaned.substring(3, 6)}.${cleaned.substring(6, 9)}-**`;
-    }
-    return "***.***.***-**";
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar showTextLogo={true} />
@@ -115,9 +107,7 @@ export default function ValidarPage() {
                     <div>
                       <span className="text-sm text-gray-500 block">CPF</span>
                       <span className="font-semibold text-gray-900">
-                        {result.studentCpf
-                          ? formatCpfPartial(result.studentCpf)
-                          : "Não informado"}
+                        {result.studentCpf || "Não informado"}
                       </span>
                     </div>
                     <div>
