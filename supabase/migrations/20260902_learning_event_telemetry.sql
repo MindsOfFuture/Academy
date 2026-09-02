@@ -136,3 +136,106 @@ $$;
 
 revoke execute on function public.ingest_learning_events(jsonb) from public, anon;
 grant execute on function public.ingest_learning_events(jsonb) to authenticated;
+
+-- Snapshot transacional para o Analytics administrativo.
+-- Uma única chamada lê o conjunto limitado de eventos e a classificação de
+-- papéis sob o mesmo snapshot de statement, então inserção concorrente entra
+-- inteira ou fica inteira de fora — nunca pela metade, como acontecia com a
+-- travessia paginada em várias requisições.
+-- ponytail: devolve até 100001 linhas num envelope jsonb; agregar dentro do
+-- Postgres se esse teto for atingido.
+create or replace function public.collect_learning_analytics_snapshot(
+  p_scope text,
+  p_id uuid default null,
+  p_from timestamptz default null,
+  p_to timestamptz default null,
+  p_limit integer default 100000
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Usuário não autenticado.' using errcode = '42501';
+  end if;
+  if not exists (
+    select 1
+    from public.user_role link
+    join public.role role_row on role_row.id = link.role_id
+    where link.user_profile_id = auth.uid() and role_row.name = 'admin'
+  ) then
+    raise exception 'Acesso negado. Permissões de administrador necessárias.' using errcode = '42501';
+  end if;
+  if p_scope is null or p_scope not in ('global', 'path', 'course', 'student') then
+    raise exception 'Escopo de Analytics inválido.' using errcode = '22023';
+  end if;
+  if (p_scope = 'global') <> (p_id is null) then
+    raise exception 'Identificador de Analytics inválido.' using errcode = '22023';
+  end if;
+  if p_limit is null or p_limit < 1 or p_limit > 100000 then
+    raise exception 'Limite de Analytics inválido.' using errcode = '22023';
+  end if;
+
+  return (
+    with bounded as (
+      select event_row.*
+      from public.telemetry_learning_event event_row
+      where (p_from is null or event_row.received_at >= p_from)
+        and (p_to is null or event_row.received_at <= p_to)
+        and (p_scope <> 'path' or event_row.learning_path_id = p_id)
+        and (p_scope <> 'course' or event_row.course_id = p_id)
+        and (p_scope <> 'student' or event_row.user_id = p_id)
+      order by event_row.received_at desc, event_row.event_id desc
+      limit p_limit + 1
+    ),
+    -- Precedência de papéis: admin ou professor nunca é aluno; ausência de
+    -- vínculo vale como aluno, igual a fetchRoleForUser.
+    students as (
+      select distinct bounded.user_id
+      from bounded
+      where not exists (
+        select 1
+        from public.user_role link
+        join public.role role_row on role_row.id = link.role_id
+        where link.user_profile_id = bounded.user_id
+          and role_row.name in ('admin', 'teacher')
+      )
+      and (
+        not exists (
+          select 1
+          from public.user_role link
+          join public.role role_row on role_row.id = link.role_id
+          where link.user_profile_id = bounded.user_id
+        )
+        or exists (
+          select 1
+          from public.user_role link
+          join public.role role_row on role_row.id = link.role_id
+          where link.user_profile_id = bounded.user_id
+            and role_row.name = 'student'
+        )
+      )
+    ),
+    measured as (select count(*)::integer as total from bounded)
+    select jsonb_build_object(
+      'overflow', measured.total > p_limit,
+      'events', case when measured.total > p_limit then '[]'::jsonb else coalesce((
+        select jsonb_agg(to_jsonb(page) order by page.received_at desc, page.event_id desc)
+        from bounded page
+      ), '[]'::jsonb) end,
+      'student_user_ids', case when measured.total > p_limit then '[]'::jsonb else coalesce((
+        select jsonb_agg(student.user_id) from students student
+      ), '[]'::jsonb) end
+    )
+    from measured
+  );
+end;
+$$;
+
+revoke execute on function public.collect_learning_analytics_snapshot(text, uuid, timestamptz, timestamptz, integer)
+  from public, anon;
+grant execute on function public.collect_learning_analytics_snapshot(text, uuid, timestamptz, timestamptz, integer)
+  to authenticated;

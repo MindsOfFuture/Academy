@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createAdminClient } = vi.hoisted(() => ({ createAdminClient: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createAdminClient }));
+const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient }));
 
 import {
   aggregateLearningEvents,
   getLearningAnalytics,
   type LearningEventRow,
+  type LearningEventSnapshotEnvelope,
 } from "@/lib/api/learning-analytics";
 
 const COURSE = "123e4567-e89b-42d3-a456-426614174000";
@@ -28,6 +29,12 @@ function row(eventName: LearningEventRow["event_name"], user: string, minute: nu
     metadata: {},
     ...extra,
   };
+}
+
+function mockRpc(result: { data: LearningEventSnapshotEnvelope | null; error: { message: string } | null }) {
+  const rpc = vi.fn().mockResolvedValue(result);
+  createClient.mockResolvedValue({ rpc });
+  return rpc;
 }
 
 describe("aggregateLearningEvents", () => {
@@ -81,56 +88,15 @@ describe("aggregateLearningEvents", () => {
     expect(result.funnel[0].students).toBe(1);
   });
 
-  it("consulta o período no servidor e resolve alunos pela precedência de papéis", async () => {
-    const rows = [
-      row("course_opened", "student-1", 1),
-      row("course_opened", "admin-1", 2),
-    ];
-    const telemetryQuery = {
-      select: vi.fn(),
-      order: vi.fn(),
-      gte: vi.fn(),
-      lte: vi.fn(),
-      eq: vi.fn(),
-      or: vi.fn(),
-      limit: vi.fn().mockResolvedValue({ data: rows, error: null }),
-      then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
-        Promise.resolve({ data: rows, error: null }).then(resolve),
-    };
-    telemetryQuery.select.mockReturnValue(telemetryQuery);
-    telemetryQuery.order.mockReturnValue(telemetryQuery);
-    telemetryQuery.gte.mockReturnValue(telemetryQuery);
-    telemetryQuery.lte.mockReturnValue(telemetryQuery);
-    telemetryQuery.eq.mockReturnValue(telemetryQuery);
-    telemetryQuery.or.mockReturnValue(telemetryQuery);
-
-    const roleLinksQuery = {
-      select: vi.fn(),
-      in: vi.fn().mockResolvedValue({
-        data: [
-          { user_profile_id: "student-1", role_id: 1 },
-          { user_profile_id: "admin-1", role_id: 2 },
-        ],
-        error: null,
-      }),
-    };
-    roleLinksQuery.select.mockReturnValue(roleLinksQuery);
-    const rolesQuery = {
-      select: vi.fn(),
-      in: vi.fn().mockResolvedValue({
-        data: [{ id: 1, name: "student" }, { id: 2, name: "admin" }],
-        error: null,
-      }),
-    };
-    rolesQuery.select.mockReturnValue(rolesQuery);
-    const admin = {
-      from: vi.fn((table: string) => {
-        if (table === "telemetry_learning_event") return telemetryQuery;
-        if (table === "user_role") return roleLinksQuery;
-        return rolesQuery;
-      }),
-    };
-    createAdminClient.mockResolvedValue(admin);
+  it("coleta o snapshot com uma única RPC autenticada e agrega o envelope exato", async () => {
+    const rpc = mockRpc({
+      data: {
+        overflow: false,
+        events: [row("course_opened", "student-1", 1), row("course_opened", "admin-1", 2)],
+        student_user_ids: ["student-1"],
+      },
+      error: null,
+    });
 
     const result = await getLearningAnalytics({
       scope: "course",
@@ -139,126 +105,58 @@ describe("aggregateLearningEvents", () => {
       to: "2026-09-03T00:00:00.000Z",
     });
 
-    expect(telemetryQuery.gte).toHaveBeenCalledWith("received_at", "2026-09-01T00:00:00.000Z");
-    expect(telemetryQuery.lte).toHaveBeenCalledWith("received_at", "2026-09-03T00:00:00.000Z");
-    expect(telemetryQuery.eq).toHaveBeenCalledWith("course_id", COURSE);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("collect_learning_analytics_snapshot", {
+      p_scope: "course",
+      p_id: COURSE,
+      p_from: "2026-09-01T00:00:00.000Z",
+      p_to: "2026-09-03T00:00:00.000Z",
+      p_limit: 100_000,
+    });
     expect(result.totalInteractions).toBe(2);
     expect(result.activeStudents).toBe(1);
     expect(result.funnel[0].students).toBe(1);
   });
 
-  it("pagina mais de mil eventos por keyset e reaplica os filtros em cada página", async () => {
-    const rows = Array.from({ length: 1005 }, (_, index) => ({
-      ...row("course_opened", "student-1", index % 60),
-      event_id: `event-${index}`,
-      received_at: new Date(Date.UTC(2026, 8, 2, 12, 0, index)).toISOString(),
-    })).reverse();
-    const queries: Array<{
-      order: ReturnType<typeof vi.fn>;
-      gte: ReturnType<typeof vi.fn>;
-      lte: ReturnType<typeof vi.fn>;
-      or: ReturnType<typeof vi.fn>;
-      limit: ReturnType<typeof vi.fn>;
-    }> = [];
-    const pages = [[rows[0]], rows.slice(0, 1000), rows.slice(1000)];
-    const telemetryQuery = () => {
-      const page = pages[queries.length];
-      const query = {
-        select: vi.fn(),
-        order: vi.fn(),
-        gte: vi.fn(),
-        lte: vi.fn(),
-        eq: vi.fn(),
-        or: vi.fn(),
-        limit: vi.fn().mockResolvedValue({ data: page, error: null }),
-        then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
-          Promise.resolve({ data: rows.slice(0, 1000), error: null }).then(resolve),
-      };
-      query.select.mockReturnValue(query);
-      query.order.mockReturnValue(query);
-      query.gte.mockReturnValue(query);
-      query.lte.mockReturnValue(query);
-      query.eq.mockReturnValue(query);
-      query.or.mockReturnValue(query);
-      queries.push(query);
-      return query;
-    };
-    const roleLinksQuery = {
-      select: vi.fn(),
-      in: vi.fn().mockResolvedValue({
-        data: [{ user_profile_id: "student-1", role_id: 1 }],
-        error: null,
-      }),
-    };
-    roleLinksQuery.select.mockReturnValue(roleLinksQuery);
-    const rolesQuery = {
-      select: vi.fn(),
-      in: vi.fn().mockResolvedValue({ data: [{ id: 1, name: "student" }], error: null }),
-    };
-    rolesQuery.select.mockReturnValue(rolesQuery);
-    createAdminClient.mockResolvedValue({
-      from: vi.fn((table: string) => {
-        if (table === "telemetry_learning_event") return telemetryQuery();
-        if (table === "user_role") return roleLinksQuery;
-        return rolesQuery;
-      }),
+  it("envia nulo para escopo global sem id e sem período", async () => {
+    const rpc = mockRpc({
+      data: { overflow: false, events: [], student_user_ids: [] },
+      error: null,
     });
 
-    const result = await getLearningAnalytics({
-      scope: "global",
-      from: "2026-09-01T00:00:00.000Z",
-      to: "2026-09-03T00:00:00.000Z",
-    });
+    const result = await getLearningAnalytics({ scope: "global" });
 
-    expect(result.totalInteractions).toBe(1005);
-    expect(queries).toHaveLength(3);
-    expect(queries.map((query) => query.limit.mock.calls[0])).toEqual([[1], [1000], [1000]]);
-    expect(queries.map((query) => query.or.mock.calls.length)).toEqual([0, 1, 1]);
-    expect(queries[1].or).toHaveBeenCalledWith(expect.stringContaining("event_id.lte."));
-    expect(queries[2].or).toHaveBeenCalledWith(expect.stringContaining("event_id.lt."));
-    for (const query of queries) {
-      expect(query.gte).toHaveBeenCalledWith("received_at", "2026-09-01T00:00:00.000Z");
-      expect(query.lte).toHaveBeenCalledWith("received_at", "2026-09-03T00:00:00.000Z");
-      expect(query.order.mock.calls).toEqual([
-        ["received_at", { ascending: false }],
-        ["event_id", { ascending: false }],
-      ]);
-    }
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("collect_learning_analytics_snapshot", {
+      p_scope: "global",
+      p_id: null,
+      p_from: null,
+      p_to: null,
+      p_limit: 100_000,
+    });
+    expect(result.hasData).toBe(false);
   });
 
   it("falha explicitamente quando o volume ultrapassa o teto seguro", async () => {
-    const sample = row("course_opened", "student-1", 1);
-    let requestCount = 0;
-    createAdminClient.mockResolvedValue({
-      from: vi.fn(() => {
-        const query = {
-          select: vi.fn(),
-          order: vi.fn(),
-          gte: vi.fn(),
-          lte: vi.fn(),
-          eq: vi.fn(),
-          or: vi.fn(),
-          limit: vi.fn((limit: number) => {
-            requestCount += 1;
-            return Promise.resolve({
-              data: limit === 1 ? [sample] : Array(1000).fill(sample),
-              error: null,
-            });
-          }),
-          then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
-            Promise.resolve({ data: Array(1000).fill(sample), error: null }).then(resolve),
-        };
-        query.select.mockReturnValue(query);
-        query.order.mockReturnValue(query);
-        query.gte.mockReturnValue(query);
-        query.lte.mockReturnValue(query);
-        query.eq.mockReturnValue(query);
-        query.or.mockReturnValue(query);
-        return query;
-      }),
+    const rpc = mockRpc({
+      data: { overflow: true, events: [], student_user_ids: [] },
+      error: null,
     });
 
     await expect(getLearningAnalytics({ scope: "global" })).rejects.toThrow(/100 mil eventos/);
-    expect(requestCount).toBe(102);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("propaga a negação vinda do banco sem expor linhas cruas", async () => {
+    mockRpc({ data: null, error: { message: "Acesso negado. Permissões de administrador necessárias." } });
+
+    await expect(getLearningAnalytics({ scope: "global" }))
+      .rejects.toThrow("Acesso negado. Permissões de administrador necessárias.");
+  });
+
+  it("falha quando a RPC devolve envelope vazio", async () => {
+    mockRpc({ data: null, error: null });
+
+    await expect(getLearningAnalytics({ scope: "global" })).rejects.toThrow(/Snapshot de telemetria indisponível/);
   });
 });

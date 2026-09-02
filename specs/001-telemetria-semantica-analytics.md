@@ -30,12 +30,29 @@ Administradores não conseguem confirmar, antes da entrada dos alunos, quais aç
 
 ## Plano
 
-- **Degrau da escada:** reutilizar o singleton de tracking, o provider global, a aba Analytics, o cliente Supabase autenticado, `createAdminClient()` e Vitest; usar Web APIs (`fetch`, `crypto.randomUUID`, `TextEncoder`) e agregação server-side.
+- **Degrau da escada:** reutilizar o singleton de tracking, o provider global, a aba Analytics, o cliente Supabase autenticado (`server.ts#createClient`), a autorização nativa do Postgres (`security definer` + `grant execute`) e Vitest; usar Web APIs (`fetch`, `crypto.randomUUID`, `TextEncoder`) e agregação server-side.
 - **Arquivos:** `specs/001-telemetria-semantica-analytics.md`; `package.json`; `package-lock.json`; `supabase/migrations/20260902_learning_event_telemetry.sql`; `lib/api/telemetry-types.ts`; `lib/api/telemetry-validation.ts`; `lib/api/telemetry-server.ts`; `lib/api/learning-analytics.ts`; `lib/services/tracking.service.ts`; `components/tracking/TrackingProvider.tsx`; `components/content-review/ContentReview.tsx`; `app/api/telemetry/events/route.ts`; `app/api/analytics/events/route.ts`; `app/course/page.tsx`; `app/protected/activitie/page.tsx`; `components/activities/activity-chat.tsx`; `components/trilhas/TrilhasClient.tsx`; `components/dashboard/Analytics/AnalyticsTab.tsx`; `components/dashboard/Analytics/GlobalAnalytics.tsx`; `components/dashboard/Analytics/LearningPathAnalytics.tsx`; `components/dashboard/Analytics/CourseAnalytics.tsx`; `components/dashboard/Analytics/StudentAnalytics.tsx`; `components/dashboard/Analytics/hooks/useAnalytics.ts`; testes espelhados sob `tests/unit/` e teste real da migration sob `tests/integration/`.
-- **Dados:** nova tabela append-only `telemetry_learning_event` com PK `event_id`, tempos de ocorrência/recebimento, identidade da sessão, nome, pathname, IDs opcionais de trilha/curso/aula/atividade e `metadata` JSON; índices de período, usuário, evento e contexto; RLS permite somente INSERT da própria identidade autenticada, sem leitura/alteração/remoção direta.
-- **Autorização:** ingestão usa sessão SSR e substitui qualquer identidade do payload; agregação usa `createAdminClient()` em endpoint protegido, com linhas cruas somente no servidor; nenhuma rota é pública nem entra em `PUBLIC_PATH_PREFIXES`.
+- **Dados:** nova tabela append-only `telemetry_learning_event` com PK `event_id`, tempos de ocorrência/recebimento, identidade da sessão, nome, pathname, IDs opcionais de trilha/curso/aula/atividade e `metadata` JSON; índices de período, usuário, evento e contexto; RLS permite somente INSERT da própria identidade autenticada, sem leitura/alteração/remoção direta. A leitura do Analytics sai por uma função `collect_learning_analytics_snapshot`, que devolve um envelope `jsonb` com os eventos do recorte e os IDs classificados como aluno.
+- **Autorização:** ingestão usa sessão SSR e substitui qualquer identidade do payload; agregação usa o cliente SSR autenticado sobre uma função `security definer` que confere o papel `admin` por `auth.uid()`, nega anônimo e não-admin, valida escopo/id/teto e só concede `execute` a `authenticated`; a tabela continua sem `select` para `anon`/`authenticated` e as linhas cruas ficam somente no servidor. A service role sai desse caminho: a checagem de papel passa a viver no banco, junto do próprio snapshot. Nenhuma rota é pública nem entra em `PUBLIC_PATH_PREFIXES`.
 - **Dependência nova:** `@electric-sql/pglite` somente em desenvolvimento, justificada para executar migration, grants, RLS e deduplicação em PostgreSQL real sem credenciais, Docker ou acesso ao Supabase hospedado; não entra no bundle de runtime.
-- **Atalhos:** agregação server-side em memória, paginada por keyset em ordem total `(received_at, event_id)` e com limite superior fixado antes da primeira página; limitada a 100 mil eventos com erro explícito. `// ponytail:` registra o teto e a futura migração para RPC SQL agregada.
+- **Atalhos:** agregação server-side em memória a partir de **uma única RPC**; o Postgres lê o conjunto limitado de eventos e a classificação de papéis sob o mesmo snapshot de statement e devolve no máximo 100001 linhas mais o campo `overflow`, então o limite de linhas do PostgREST não omite dado em silêncio. Continua limitada a 100 mil eventos com erro explícito. `// ponytail:` registra o teto do envelope e a futura agregação dentro do Postgres.
+
+### Decisão — snapshot transacional em vez de keyset paginado
+
+A coleta anterior percorria o mesmo recorte em várias requisições, com âncora
+`(received_at, event_id)` fixada antes da primeira página. Cada página era um
+statement próprio, com snapshot próprio: uma inserção feita depois da âncora,
+mas **abaixo** dela na ordem total, entrava no agregado se caísse numa faixa
+ainda não percorrida e ficava de fora se caísse numa faixa já percorrida — o
+mesmo lote entrava pela metade. `tests/integration/telemetry-migration.test.ts`
+fixa esse ponto de inserção e mede a corrupção: a travessia paginada devolve
+1011 linhas com 10 das 20 concorrentes.
+
+A remediação troca as N requisições por uma chamada a
+`collect_learning_analytics_snapshot`. Sendo `stable`, todas as leituras
+internas — eventos e papéis — usam o snapshot do statement que a chamou, então
+o lote concorrente entra inteiro ou fica inteiro de fora. O mesmo teste prova
+0 de 20 antes e 20 de 20 depois, com contagem total e IDs únicos conferidos.
 
 ## Tarefas
 
@@ -46,7 +63,7 @@ Administradores não conseguem confirmar, antes da entrada dos alunos, quais aç
 - [ ] Instrumentar os fluxos reais apenas após sucesso — arquivos de fluxo listados no plano
 - [ ] Remover captura de comentário livre e user-agent bruto da telemetria legada — `components/content-review/ContentReview.tsx`, `lib/api/telemetry-types.ts`, `lib/services/tracking.service.ts`
 - [ ] RED/GREEN: agregados globais e por contexto com fixture não vazia — `tests/unit/lib/api/learning-analytics.test.ts`
-- [ ] RED/GREEN: snapshot concorrente sem duplicatas ou omissões, incluindo empate na fronteira da página — `tests/integration/telemetry-migration.test.ts`
+- [ ] RED/GREEN: snapshot transacional sem duplicatas, omissões nem entrada parcial, com ponto de inserção numa faixa já percorrida pela travessia paginada — `tests/integration/telemetry-migration.test.ts`
 - [ ] RED/GREEN: endpoint aceita admin e nega aluno — `tests/unit/app/api/analytics/events/route.test.ts`
 - [ ] Integrar agregados aos quatro painéis sem remover dados legados — arquivos de Analytics listados no plano
 - [ ] Verificar lint, unit/coverage, typecheck e build; registrar inventário evento→ponto de disparo.
