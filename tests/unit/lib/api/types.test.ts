@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getMediaUrl, getMediaUrl, type CourseRow, type ArticleRow } from '@/lib/api/types';
+import { getMediaUrl, type CourseRow, type ArticleRow } from '@/lib/api/types';
 
-describe('getMediaUrl', () => {
+describe('getMediaUrl (CourseRow.thumb)', () => {
   it('should return null when thumb is null or undefined', () => {
     expect(getMediaUrl(null)).toBeNull();
     expect(getMediaUrl(undefined)).toBeNull();
@@ -40,7 +40,7 @@ describe('getMediaUrl', () => {
   });
 });
 
-describe('getMediaUrl', () => {
+describe('getMediaUrl (ArticleRow.cover)', () => {
   it('should return null when cover is null or undefined', () => {
     expect(getMediaUrl(null)).toBeNull();
     expect(getMediaUrl(undefined)).toBeNull();
