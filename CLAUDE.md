@@ -37,7 +37,7 @@ CI (`.github/workflows/`): `tests.yml` runs lint + `npm test -- --run --coverage
 
 | Var | Notes |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | required; `hasEnvVars` in `lib/utils.ts` gates middleware |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | required; if either is missing/blank the middleware fails **closed** — 503 on every non-exempt route (`missingSupabaseEnv()` in `lib/utils.ts`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | server only, never `NEXT_PUBLIC_*` |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | email dispatch |
 | `RESEND_TEST_RECIPIENT` | if set, **all** outbound email is redirected to it (`lib/email/resend.ts`) |

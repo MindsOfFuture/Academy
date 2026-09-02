@@ -30,12 +30,14 @@ novo sem guarda visível no mesmo arquivo é bloqueio de merge.
 
 | Var | Escopo | Notas |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | público | `hasEnvVars` (`lib/utils.ts`) desliga o middleware se faltar |
+| `NEXT_PUBLIC_SUPABASE_URL` | público | faltando, `missingSupabaseEnv()` (`lib/utils.ts`) faz o middleware responder 503 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | público | RLS é a proteção, não o segredo |
 | `SUPABASE_SERVICE_ROLE_KEY` | **servidor** | nunca `NEXT_PUBLIC_*`; vaza = banco inteiro aberto |
 
-Faltando URL/anon key, `hasEnvVars` vira `false` e o middleware **libera todas as
-rotas**. Em produção isso é falha aberta, não erro — conferir env antes do primeiro boot.
+Faltando URL/anon key, `missingSupabaseEnv()` devolve os nomes ausentes e o middleware
+**responde 503 em todas as rotas não isentas** (fail-closed) — nunca libera. Só assets
+(`/_next/static`, `/_next/image`, `/favicon.ico`, imagens) passam. Os nomes das variáveis
+vão para o log do servidor; a resposta HTTP é genérica. Conferir env antes do primeiro boot.
 
 ## Tabelas em uso
 

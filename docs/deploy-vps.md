@@ -45,8 +45,9 @@ Campos em `.env.example`. No VPS, atenção a:
 - `SUPABASE_SERVICE_ROLE_KEY` — só neste arquivo, modo `600`. Nunca em `/opt/academy`,
   que é sobrescrito a cada deploy.
 - `NEXT_PUBLIC_*` são embutidas **no build**. Mudou uma? Rebuild, restart não basta.
-- Supabase URL/anon key faltando = `hasEnvVars` falso = **middleware libera todas as
-  rotas**. Conferir antes de apontar o DNS.
+- Supabase URL/anon key faltando = **middleware responde 503 em todas as rotas não
+  isentas** (fail-closed, só assets passam). App inteiro fora do ar, não aberto.
+  Conferir antes de apontar o DNS.
 
 ## systemd
 
@@ -112,7 +113,8 @@ Supabase (`Secure`) é descartado — login entra em loop.
 - [ ] `curl -I localhost:3000` responde 200
 - [ ] Login, upload de submissão e chat de atividade funcionam pelo domínio com https
 - [ ] Email chega com link do domínio novo (`RESEND_TEST_RECIPIENT` vazia)
-- [ ] Rota protegida sem sessão redireciona para `/auth` (prova que `hasEnvVars` é true)
+- [ ] Rota protegida sem sessão redireciona para `/auth`, e não 503 (prova que as env
+      vars do Supabase estão presentes)
 - [ ] `docs/supabase.md#backup` — dump feito
 
 ## Não feito de propósito

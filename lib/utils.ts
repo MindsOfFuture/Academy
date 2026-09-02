@@ -15,8 +15,3 @@ export function normalizeNextPath(nextPath?: string | null): string | null {
   if (nextPath.startsWith("//") || nextPath.startsWith("/\\")) return null;
   return nextPath;
 }
-
-// This check can be removed, it is just for tutorial purposes
-export const hasEnvVars =
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

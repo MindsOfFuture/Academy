@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import { assertSupabaseEnv } from "./lib/env";
+
+// `next.config.ts` é carregado antes de build/dev/start. Assim uma configuração
+// inválida falha antes de qualquer página ou client do Supabase ser avaliado.
+assertSupabaseEnv();
 
 const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
