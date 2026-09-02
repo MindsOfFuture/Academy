@@ -92,7 +92,8 @@ describe("aggregateLearningEvents", () => {
       gte: vi.fn(),
       lte: vi.fn(),
       eq: vi.fn(),
-      range: vi.fn().mockResolvedValue({ data: rows, error: null }),
+      or: vi.fn(),
+      limit: vi.fn().mockResolvedValue({ data: rows, error: null }),
       then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
         Promise.resolve({ data: rows, error: null }).then(resolve),
     };
@@ -101,6 +102,7 @@ describe("aggregateLearningEvents", () => {
     telemetryQuery.gte.mockReturnValue(telemetryQuery);
     telemetryQuery.lte.mockReturnValue(telemetryQuery);
     telemetryQuery.eq.mockReturnValue(telemetryQuery);
+    telemetryQuery.or.mockReturnValue(telemetryQuery);
 
     const roleLinksQuery = {
       select: vi.fn(),
@@ -145,28 +147,30 @@ describe("aggregateLearningEvents", () => {
     expect(result.funnel[0].students).toBe(1);
   });
 
-  it("pagina mais de mil eventos sem truncar e reaplica os filtros em cada página", async () => {
+  it("pagina mais de mil eventos por keyset e reaplica os filtros em cada página", async () => {
     const rows = Array.from({ length: 1005 }, (_, index) => ({
       ...row("course_opened", "student-1", index % 60),
       event_id: `event-${index}`,
       received_at: new Date(Date.UTC(2026, 8, 2, 12, 0, index)).toISOString(),
-    }));
+    })).reverse();
     const queries: Array<{
+      order: ReturnType<typeof vi.fn>;
       gte: ReturnType<typeof vi.fn>;
       lte: ReturnType<typeof vi.fn>;
-      range: ReturnType<typeof vi.fn>;
+      or: ReturnType<typeof vi.fn>;
+      limit: ReturnType<typeof vi.fn>;
     }> = [];
+    const pages = [[rows[0]], rows.slice(0, 1000), rows.slice(1000)];
     const telemetryQuery = () => {
+      const page = pages[queries.length];
       const query = {
         select: vi.fn(),
         order: vi.fn(),
         gte: vi.fn(),
         lte: vi.fn(),
         eq: vi.fn(),
-        range: vi.fn((from: number, to: number) => Promise.resolve({
-          data: rows.slice(from, to + 1),
-          error: null,
-        })),
+        or: vi.fn(),
+        limit: vi.fn().mockResolvedValue({ data: page, error: null }),
         then: (resolve: (value: { data: LearningEventRow[]; error: null }) => unknown) =>
           Promise.resolve({ data: rows.slice(0, 1000), error: null }).then(resolve),
       };
@@ -175,6 +179,7 @@ describe("aggregateLearningEvents", () => {
       query.gte.mockReturnValue(query);
       query.lte.mockReturnValue(query);
       query.eq.mockReturnValue(query);
+      query.or.mockReturnValue(query);
       queries.push(query);
       return query;
     };
@@ -206,17 +211,24 @@ describe("aggregateLearningEvents", () => {
     });
 
     expect(result.totalInteractions).toBe(1005);
-    expect(queries).toHaveLength(2);
-    expect(queries.map((query) => query.range.mock.calls[0])).toEqual([[0, 999], [1000, 1999]]);
+    expect(queries).toHaveLength(3);
+    expect(queries.map((query) => query.limit.mock.calls[0])).toEqual([[1], [1000], [1000]]);
+    expect(queries.map((query) => query.or.mock.calls.length)).toEqual([0, 1, 1]);
+    expect(queries[1].or).toHaveBeenCalledWith(expect.stringContaining("event_id.lte."));
+    expect(queries[2].or).toHaveBeenCalledWith(expect.stringContaining("event_id.lt."));
     for (const query of queries) {
       expect(query.gte).toHaveBeenCalledWith("received_at", "2026-09-01T00:00:00.000Z");
       expect(query.lte).toHaveBeenCalledWith("received_at", "2026-09-03T00:00:00.000Z");
+      expect(query.order.mock.calls).toEqual([
+        ["received_at", { ascending: false }],
+        ["event_id", { ascending: false }],
+      ]);
     }
   });
 
   it("falha explicitamente quando o volume ultrapassa o teto seguro", async () => {
     const sample = row("course_opened", "student-1", 1);
-    const from = vi.fn();
+    let requestCount = 0;
     createAdminClient.mockResolvedValue({
       from: vi.fn(() => {
         const query = {
@@ -225,10 +237,11 @@ describe("aggregateLearningEvents", () => {
           gte: vi.fn(),
           lte: vi.fn(),
           eq: vi.fn(),
-          range: vi.fn((start: number) => {
-            from(start);
+          or: vi.fn(),
+          limit: vi.fn((limit: number) => {
+            requestCount += 1;
             return Promise.resolve({
-              data: start === 100_000 ? [sample] : Array(1000).fill(sample),
+              data: limit === 1 ? [sample] : Array(1000).fill(sample),
               error: null,
             });
           }),
@@ -240,11 +253,12 @@ describe("aggregateLearningEvents", () => {
         query.gte.mockReturnValue(query);
         query.lte.mockReturnValue(query);
         query.eq.mockReturnValue(query);
+        query.or.mockReturnValue(query);
         return query;
       }),
     });
 
     await expect(getLearningAnalytics({ scope: "global" })).rejects.toThrow(/100 mil eventos/);
-    expect(from).toHaveBeenLastCalledWith(100_000);
+    expect(requestCount).toBe(102);
   });
 });

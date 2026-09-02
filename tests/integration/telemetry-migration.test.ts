@@ -3,6 +3,12 @@
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import {
+  aggregateLearningEvents,
+  collectLearningEventSnapshot,
+  type LearningEventRow,
+  type LearningEventSnapshotPage,
+} from "@/lib/api/learning-analytics";
 
 const USER_ID = "123e4567-e89b-42d3-a456-426614174000";
 const OTHER_USER_ID = "223e4567-e89b-42d3-a456-426614174000";
@@ -104,5 +110,130 @@ describe("migration de telemetria em PostgreSQL real", () => {
       [JSON.stringify(event())],
     )).rejects.toThrow(/permission denied/i);
     await db.exec("reset role");
+  });
+});
+
+describe("snapshot paginado da telemetria em PostgreSQL real", () => {
+  const db = new PGlite();
+  const COURSE_A = "923e4567-e89b-42d3-a456-426614174000";
+  const COURSE_B = "a23e4567-e89b-42d3-a456-426614174000";
+
+  beforeAll(async () => {
+    await db.exec(`
+      create table telemetry_snapshot_fixture (
+        event_id uuid primary key,
+        occurred_at timestamptz not null,
+        received_at timestamptz not null,
+        user_id uuid not null,
+        session_id uuid not null,
+        event_name text not null,
+        route text not null,
+        learning_path_id uuid,
+        course_id uuid,
+        lesson_id uuid,
+        activity_id uuid,
+        metadata jsonb not null default '{}'::jsonb
+      );
+
+      insert into telemetry_snapshot_fixture (
+        event_id, occurred_at, received_at, user_id, session_id,
+        event_name, route, course_id
+      )
+      select
+        ('00000000-0000-4000-8000-' || lpad(value::text, 12, '0'))::uuid,
+        '2026-09-02T12:00:00.000Z'::timestamptz,
+        '2026-09-02T12:00:01.000Z'::timestamptz,
+        '${USER_ID}'::uuid,
+        '${SESSION_ID}'::uuid,
+        case when value <= 600 then 'course_opened' else 'lesson_opened' end,
+        '/course',
+        '${COURSE_A}'::uuid
+      from generate_series(1, 1001) as value;
+    `);
+  }, 30_000);
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  it("mantém um snapshot único com empates e inserções entre páginas", async () => {
+    let insertedConcurrentRows = false;
+
+    const fetchPage = async ({ limit, upperBound, after }: LearningEventSnapshotPage) => {
+      const conditions: string[] = [];
+      const params: unknown[] = [];
+      const cursor = after ?? upperBound;
+      if (cursor) {
+        params.push(cursor.receivedAt, cursor.eventId);
+        conditions.push(`(received_at, event_id) ${after ? "<" : "<="} ($${params.length - 1}::timestamptz, $${params.length}::uuid)`);
+      }
+      params.push(limit);
+
+      const result = await db.query<LearningEventRow>(`
+        select
+          event_id::text,
+          occurred_at::text,
+          received_at::text,
+          user_id::text,
+          session_id::text,
+          event_name,
+          route,
+          learning_path_id::text,
+          course_id::text,
+          lesson_id::text,
+          activity_id::text,
+          metadata
+        from telemetry_snapshot_fixture
+        ${conditions.length > 0 ? `where ${conditions.join(" and ")}` : ""}
+        order by received_at desc, event_id desc
+        limit $${params.length}
+      `, params);
+
+      if (upperBound && !after && !insertedConcurrentRows) {
+        insertedConcurrentRows = true;
+        await db.exec(`
+          insert into telemetry_snapshot_fixture (
+            event_id, occurred_at, received_at, user_id, session_id,
+            event_name, route, course_id
+          )
+          select
+            ('10000000-0000-4000-8000-' || lpad(value::text, 12, '0'))::uuid,
+            '2026-09-02T13:00:00.000Z'::timestamptz,
+            '2026-09-02T13:00:01.000Z'::timestamptz,
+            '${OTHER_USER_ID}'::uuid,
+            '${SESSION_ID}'::uuid,
+            'course_opened',
+            '/course',
+            '${COURSE_B}'::uuid
+          from generate_series(1, 20) as value;
+        `);
+      }
+
+      return result.rows;
+    };
+
+    const rows = await collectLearningEventSnapshot(fetchPage);
+    const analytics = aggregateLearningEvents(rows);
+    const uniqueEventIds = new Set(rows.map((row) => row.event_id));
+    const rowsByCourse = rows.reduce<Record<string, number>>((counts, row) => {
+      if (row.course_id) counts[row.course_id] = (counts[row.course_id] ?? 0) + 1;
+      return counts;
+    }, {});
+    const databaseCounts = await db.query<{ course_id: string; total: number }>(`
+      select course_id::text, count(*)::int as total
+      from telemetry_snapshot_fixture
+      group by course_id
+      order by course_id
+    `);
+
+    expect(rows).toHaveLength(1001);
+    expect(uniqueEventIds.size).toBe(1001);
+    expect(rowsByCourse).toEqual({ [COURSE_A]: 1001 });
+    expect(analytics.eventCounts).toMatchObject({ course_opened: 600, lesson_opened: 401 });
+    expect(analytics.topCourses).toEqual([{ id: COURSE_A, accesses: 600 }]);
+    expect(databaseCounts.rows).toEqual([
+      { course_id: COURSE_A, total: 1001 },
+      { course_id: COURSE_B, total: 20 },
+    ]);
   });
 });

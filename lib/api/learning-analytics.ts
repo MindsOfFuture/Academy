@@ -16,6 +16,17 @@ export interface LearningEventRow {
   metadata: Record<string, string | number | boolean>;
 }
 
+export interface LearningEventSnapshotCursor {
+  receivedAt: string;
+  eventId: string;
+}
+
+export interface LearningEventSnapshotPage {
+  limit: number;
+  upperBound?: LearningEventSnapshotCursor;
+  after?: LearningEventSnapshotCursor;
+}
+
 export interface LearningAnalyticsResult {
   hasData: boolean;
   totalInteractions: number;
@@ -51,6 +62,37 @@ const ANALYTICS_PAGE_SIZE = 1000;
 const MAX_ANALYTICS_ROWS = 100_000;
 const ROLE_LOOKUP_BATCH_SIZE = 500;
 
+type FetchLearningEventPage = (page: LearningEventSnapshotPage) => Promise<LearningEventRow[]>;
+
+function cursorFor(row: LearningEventRow): LearningEventSnapshotCursor {
+  return { receivedAt: row.received_at, eventId: row.event_id };
+}
+
+export async function collectLearningEventSnapshot(
+  fetchPage: FetchLearningEventPage,
+): Promise<LearningEventRow[]> {
+  const [latest] = await fetchPage({ limit: 1 });
+  if (!latest) return [];
+
+  const upperBound = cursorFor(latest);
+  const rows: LearningEventRow[] = [];
+  let after: LearningEventSnapshotCursor | undefined;
+
+  while (rows.length < MAX_ANALYTICS_ROWS) {
+    const limit = Math.min(ANALYTICS_PAGE_SIZE, MAX_ANALYTICS_ROWS - rows.length);
+    const page = await fetchPage({ limit, upperBound, after });
+    rows.push(...page);
+    if (page.length < limit) return rows;
+    after = cursorFor(page[page.length - 1]);
+  }
+
+  const overflow = await fetchPage({ limit: 1, upperBound, after });
+  if (overflow.length > 0) {
+    throw new Error("Volume de telemetria excede o limite seguro de 100 mil eventos para agregação.");
+  }
+  return rows;
+}
+
 function rank(ids: (string | null)[]) {
   const counts = new Map<string, number>();
   for (const id of ids) if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
@@ -64,7 +106,8 @@ export function aggregateLearningEvents(
   rows: LearningEventRow[],
   studentUserIds?: ReadonlySet<string>,
 ): LearningAnalyticsResult {
-  const sorted = [...rows].sort((a, b) => b.received_at.localeCompare(a.received_at));
+  const sorted = [...rows].sort((a, b) =>
+    b.received_at.localeCompare(a.received_at) || b.event_id.localeCompare(a.event_id));
   const studentRows = studentUserIds
     ? rows.filter((row) => studentUserIds.has(row.user_id))
     : rows;
@@ -168,7 +211,8 @@ export async function getLearningAnalytics(params: {
     let query = admin
       .from("telemetry_learning_event")
       .select("event_id, occurred_at, received_at, user_id, session_id, event_name, route, learning_path_id, course_id, lesson_id, activity_id, metadata")
-      .order("received_at", { ascending: false });
+      .order("received_at", { ascending: false })
+      .order("event_id", { ascending: false });
 
     if (params.from) query = query.gte("received_at", params.from);
     if (params.to) query = query.lte("received_at", params.to);
@@ -178,23 +222,20 @@ export async function getLearningAnalytics(params: {
     return query;
   };
 
-  const rows: LearningEventRow[] = [];
-  for (let offset = 0; ; offset += ANALYTICS_PAGE_SIZE) {
-    const { data, error } = await buildQuery().range(offset, offset + ANALYTICS_PAGE_SIZE - 1);
-    if (error) throw new Error(error.message);
-    const page = (data ?? []) as LearningEventRow[];
-    rows.push(...page);
-    if (page.length < ANALYTICS_PAGE_SIZE) break;
-
-    if (rows.length >= MAX_ANALYTICS_ROWS) {
-      const { data: overflow, error: overflowError } = await buildQuery().range(MAX_ANALYTICS_ROWS, MAX_ANALYTICS_ROWS);
-      if (overflowError) throw new Error(overflowError.message);
-      if ((overflow ?? []).length > 0) {
-        throw new Error("Volume de telemetria excede o limite seguro de 100 mil eventos para agregação.");
-      }
-      break;
+  const rows = await collectLearningEventSnapshot(async ({ limit, upperBound, after }) => {
+    let query = buildQuery();
+    const cursor = after ?? upperBound;
+    if (cursor) {
+      const eventIdOperator = after ? "lt" : "lte";
+      query = query.or(
+        `received_at.lt.${cursor.receivedAt},and(received_at.eq.${cursor.receivedAt},event_id.${eventIdOperator}.${cursor.eventId})`,
+      );
     }
-  }
+
+    const { data, error } = await query.limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as LearningEventRow[];
+  });
   const studentUserIds = await resolveStudentUserIds(admin, rows);
   return aggregateLearningEvents(rows, studentUserIds);
 }

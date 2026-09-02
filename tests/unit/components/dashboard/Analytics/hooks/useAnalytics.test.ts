@@ -4,7 +4,13 @@ import { renderHook, waitFor } from "@testing-library/react";
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
 
-import { useGlobalAnalytics, type DateFilter } from "@/components/dashboard/Analytics/hooks/useAnalytics";
+import {
+  useCourseAnalytics,
+  useGlobalAnalytics,
+  useLearningPathAnalytics,
+  useStudentAnalytics,
+  type DateFilter,
+} from "@/components/dashboard/Analytics/hooks/useAnalytics";
 
 describe("filtros temporais da telemetria global", () => {
   beforeEach(() => {
@@ -39,5 +45,19 @@ describe("filtros temporais da telemetria global", () => {
     const requestUrl = new URL(String(vi.mocked(fetch).mock.calls[0][0]), "http://local");
     expect(requestUrl.searchParams.get("from")).toBe(legacyRange.p_date_from);
     expect(requestUrl.searchParams.get("to")).toBe(legacyRange.p_date_to);
+  });
+
+  it.each([
+    ["course", () => useCourseAnalytics("course-1"), "get_analytics_by_course", { p_course_id: "course-1" }],
+    ["path", () => useLearningPathAnalytics("path-1"), "get_analytics_by_learning_path", { p_path_id: "path-1" }],
+    ["student", () => useStudentAnalytics("student-1"), "get_analytics_by_student", { p_user_id: "student-1" }],
+  ])("preserva o escopo %s nos KPIs legados e semânticos", async (scope, hook, rpcName, rpcParams) => {
+    const { result } = renderHook(hook as () => ReturnType<typeof useCourseAnalytics>);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(rpc).toHaveBeenCalledWith(rpcName, rpcParams);
+    const requestUrl = new URL(String(vi.mocked(fetch).mock.calls[0][0]), "http://local");
+    expect(requestUrl.searchParams.get("scope")).toBe(scope);
+    expect(requestUrl.searchParams.get("id")).toBe(Object.values(rpcParams as Record<string, string>)[0]);
   });
 });

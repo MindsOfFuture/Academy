@@ -35,7 +35,7 @@ Administradores não conseguem confirmar, antes da entrada dos alunos, quais aç
 - **Dados:** nova tabela append-only `telemetry_learning_event` com PK `event_id`, tempos de ocorrência/recebimento, identidade da sessão, nome, pathname, IDs opcionais de trilha/curso/aula/atividade e `metadata` JSON; índices de período, usuário, evento e contexto; RLS permite somente INSERT da própria identidade autenticada, sem leitura/alteração/remoção direta.
 - **Autorização:** ingestão usa sessão SSR e substitui qualquer identidade do payload; agregação usa `createAdminClient()` em endpoint protegido, com linhas cruas somente no servidor; nenhuma rota é pública nem entra em `PUBLIC_PATH_PREFIXES`.
 - **Dependência nova:** `@electric-sql/pglite` somente em desenvolvimento, justificada para executar migration, grants, RLS e deduplicação em PostgreSQL real sem credenciais, Docker ou acesso ao Supabase hospedado; não entra no bundle de runtime.
-- **Atalhos:** agregação server-side em memória, paginada, limitada a 100 mil eventos com erro explícito; `// ponytail:` registra o teto e a futura migração para RPC SQL agregada.
+- **Atalhos:** agregação server-side em memória, paginada por keyset em ordem total `(received_at, event_id)` e com limite superior fixado antes da primeira página; limitada a 100 mil eventos com erro explícito. `// ponytail:` registra o teto e a futura migração para RPC SQL agregada.
 
 ## Tarefas
 
@@ -46,6 +46,7 @@ Administradores não conseguem confirmar, antes da entrada dos alunos, quais aç
 - [ ] Instrumentar os fluxos reais apenas após sucesso — arquivos de fluxo listados no plano
 - [ ] Remover captura de comentário livre e user-agent bruto da telemetria legada — `components/content-review/ContentReview.tsx`, `lib/api/telemetry-types.ts`, `lib/services/tracking.service.ts`
 - [ ] RED/GREEN: agregados globais e por contexto com fixture não vazia — `tests/unit/lib/api/learning-analytics.test.ts`
+- [ ] RED/GREEN: snapshot concorrente sem duplicatas ou omissões, incluindo empate na fronteira da página — `tests/integration/telemetry-migration.test.ts`
 - [ ] RED/GREEN: endpoint aceita admin e nega aluno — `tests/unit/app/api/analytics/events/route.test.ts`
 - [ ] Integrar agregados aos quatro painéis sem remover dados legados — arquivos de Analytics listados no plano
 - [ ] Verificar lint, unit/coverage, typecheck e build; registrar inventário evento→ponto de disparo.

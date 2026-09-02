@@ -142,7 +142,7 @@ export function GlobalAnalytics({ filter, courses }: GlobalAnalyticsProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={<Users className="w-5 h-5" />}
-          label="Alunos Ativos (30d)"
+          label="Alunos ativos no período"
           value={`${active_students} / ${total_enrolled_students}`}
         />
         <KpiCard
