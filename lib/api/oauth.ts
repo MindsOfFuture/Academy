@@ -10,14 +10,13 @@ export async function signInWithGoogle(nextPath?: string) {
         callbackUrl.searchParams.set("next", safeNextPath);
     }
 
+    // Sem access_type/prompt: pedir consentimento offline devolve os tokens do Google,
+    // que incham o cookie de sessão e derrubam o /auth/callback no proxy (502).
+    // Nada no app lê provider_token/provider_refresh_token — não reintroduzir.
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
             redirectTo: callbackUrl.toString(),
-            queryParams: {
-                access_type: "offline",
-                prompt: "consent",
-            },
         },
     });
 
