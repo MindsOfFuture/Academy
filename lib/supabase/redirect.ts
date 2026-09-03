@@ -2,6 +2,48 @@ import { normalizeNextPath } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
 const DEFAULT_APP_ORIGIN = "https://mindsofthefuture.com.br";
+const DEFAULT_PUBLIC_ORIGINS = [
+  DEFAULT_APP_ORIGIN,
+  "https://www.mindsofthefuture.com.br",
+] as const;
+
+function configuredPublicOrigins(): URL[] {
+  const origins = DEFAULT_PUBLIC_ORIGINS.map((origin) => new URL(origin));
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  if (configuredOrigin) {
+    try {
+      const configuredUrl = new URL(configuredOrigin);
+      const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(
+        configuredUrl.hostname,
+      );
+      if (
+        !isLoopback &&
+        configuredUrl.protocol === "https:" &&
+        !configuredUrl.username &&
+        !configuredUrl.password
+      ) {
+        origins.unshift(new URL(configuredUrl.origin));
+      }
+    } catch {
+      // Configuração inválida não entra na allowlist.
+    }
+  }
+
+  const vercelHost = process.env.VERCEL_URL?.trim();
+  if (vercelHost) {
+    try {
+      const vercelUrl = new URL(`https://${vercelHost}`);
+      if (!vercelUrl.username && !vercelUrl.password) {
+        origins.push(new URL(vercelUrl.origin));
+      }
+    } catch {
+      // Configuração inválida não entra na allowlist.
+    }
+  }
+
+  return origins;
+}
 
 function redirectOrigin(request: Request): string {
   const requestUrl = new URL(request.url);
@@ -22,37 +64,16 @@ function redirectOrigin(request: Request): string {
     return requestUrl.origin;
   }
 
-  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (configuredOrigin) {
-    try {
-      const configuredUrl = new URL(configuredOrigin);
-      const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(
-        configuredUrl.hostname,
-      );
-      if (
-        !isLoopback &&
-        configuredUrl.protocol === "https:"
-      ) {
-        return configuredUrl.origin;
-      }
-    } catch {
-      // Tenta o host efêmero da Vercel antes do domínio público conhecido.
-    }
+  const trustedOrigins = configuredPublicOrigins();
+  const requestedHosts = [requestHost, forwardedHost, requestUrl.host.toLowerCase()];
+  for (const requestedHost of requestedHosts) {
+    const matchingOrigin = trustedOrigins.find(
+      (origin) => origin.host.toLowerCase() === requestedHost,
+    );
+    if (matchingOrigin) return matchingOrigin.origin;
   }
 
-  const vercelHost = process.env.VERCEL_URL?.trim();
-  if (vercelHost) {
-    try {
-      const vercelUrl = new URL(`https://${vercelHost}`);
-      if (!vercelUrl.username && !vercelUrl.password) {
-        return vercelUrl.origin;
-      }
-    } catch {
-      // Configuração inválida cai no domínio público conhecido do Academy.
-    }
-  }
-
-  return DEFAULT_APP_ORIGIN;
+  return trustedOrigins[0]?.origin ?? DEFAULT_APP_ORIGIN;
 }
 
 /**

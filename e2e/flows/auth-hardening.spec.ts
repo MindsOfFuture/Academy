@@ -104,17 +104,25 @@ test('admin mantém controles exclusivos sem elevação de outros papéis', asyn
   await expect(page.locator('table').first()).toBeVisible();
 });
 
-test('next externo ou com barra invertida cai no destino seguro', async ({ page }) => {
-  const student = TEST_USERS.student;
-  test.skip(!student, 'Credenciais de student não configuradas');
-  if (!student) return;
+for (const [name, payload] of [
+  ['barra invertida', '/%5Cevil.example'],
+  ['barra dupla', '//evil.example'],
+  ['TAB', '/%09/evil.example'],
+  ['LF', '/%0A/evil.example'],
+  ['CR', '/%0D/evil.example'],
+] as const) {
+  test(`next malicioso com ${name} cai no destino seguro`, async ({ page }) => {
+    const student = TEST_USERS.student;
+    test.skip(!student, 'Credenciais de student não configuradas');
+    if (!student) return;
 
-  await page.goto('/auth?next=/%5Cevil.example');
-  await page.getByPlaceholder('Email').first().fill(student.email);
-  await page.getByPlaceholder('Senha').first().fill(student.password);
-  await page.getByRole('button', { name: /entrar/i }).click();
-  await expect(page).toHaveURL(/\/protected$/, { timeout: 30000 });
-});
+    await page.goto(`/auth?next=${payload}`);
+    await page.getByPlaceholder('Email').first().fill(student.email);
+    await page.getByPlaceholder('Senha').first().fill(student.password);
+    await page.getByRole('button', { name: /entrar/i }).click();
+    await expect(page).toHaveURL(/\/protected$/, { timeout: 30000 });
+  });
+}
 
 test('recuperação de senha aceita a conta de teste sem erro de servidor', async ({ page }) => {
   const student = TEST_USERS.student;

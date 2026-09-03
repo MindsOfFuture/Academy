@@ -46,6 +46,20 @@ describe("normalizeNextPath", () => {
         expect(normalizeNextPath("")).toBeNull();
         expect(normalizeNextPath(null)).toBeNull();
     });
+
+    it.each([
+        "/\t/evil.example",
+        "/\n/evil.example",
+        "/" + String.fromCharCode(13) + "/evil.example",
+        "/%09/evil.example",
+        "/%0A/evil.example",
+        "/%0D/evil.example",
+        "/%5Cevil.example",
+        "/%255Cevil.example",
+        "/%252F%252Fevil.example",
+    ])("rejeita controles, barras e variações codificadas: %s", (path) => {
+        expect(normalizeNextPath(path)).toBeNull();
+    });
 });
 
 describe("rateLimit", () => {
