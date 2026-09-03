@@ -125,6 +125,10 @@ export async function getLearningAnalytics(params: {
   // Cliente SSR autenticado: a RPC é SECURITY DEFINER e confere o papel admin
   // pelo auth.uid() do chamador, então a service role fica fora deste caminho.
   const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) {
+    throw new Error("Usuário não autenticado.");
+  }
   // Uma requisição só: o Postgres lê o conjunto limitado de eventos e a
   // classificação de papéis sob o mesmo snapshot, então inserção concorrente
   // nunca entra pela metade no agregado.

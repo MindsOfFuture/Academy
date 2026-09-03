@@ -18,8 +18,22 @@ const PUBLIC_PATH_PREFIXES = [
   "/api/notifications",
 ] as const;
 
+/**
+ * Públicos por path EXATO — descendente nenhum entra. Ingestão de telemetria e
+ * leitura de Analytics chegam ao guard da própria rota: o handler responde
+ * 401/403 em JSON em vez de redirecionar o fetch para /auth. Como só o path
+ * exato casa, sub-rotas futuras (`/api/telemetry/events/batch`), nomes parecidos
+ * (`/api/telemetry/events-admin`) e os prefixos-pai (`/api/telemetry`) nascem
+ * protegidos por padrão.
+ */
+const PUBLIC_EXACT_PATHS = [
+  "/api/telemetry/events",
+  "/api/analytics/events",
+] as const;
+
 export function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
+  if (PUBLIC_EXACT_PATHS.some((path) => pathname === path)) return true;
   return PUBLIC_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

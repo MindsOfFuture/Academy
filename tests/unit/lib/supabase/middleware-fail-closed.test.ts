@@ -145,6 +145,18 @@ describe("updateSession — fail-closed sem env vars do Supabase", () => {
         expect(response.status).toBe(503);
     });
 
+    it.each(["/api/telemetry/events", "/api/analytics/events"])(
+        "nega %s com 503 sem env vars (rota pública não é rota isenta)",
+        async (pathname) => {
+            setEnv(undefined, undefined);
+
+            const response = await updateSession(makeRequest(pathname));
+
+            expect(isPermissiveNext(response)).toBe(false);
+            expect(response.status).toBe(503);
+        },
+    );
+
     it("não vaza nome de variável nem detalhe de config no corpo da resposta", async () => {
         setEnv(undefined, undefined);
 
@@ -251,6 +263,50 @@ describe("updateSession — comportamento original preservado com env vars prese
         expect(response.status).toBe(200);
         expect(isPermissiveNext(response)).toBe(true);
     });
+
+    it.each(["/api/telemetry/events", "/api/analytics/events"])(
+        "sem sessão em %s: passa sem redirect para o guard da rota responder",
+        async (pathname) => {
+            getUserImpl = async () => ({ data: { user: null } });
+
+            const response = await updateSession(makeRequest(pathname));
+
+            expect(response.status).toBe(200);
+            expect(isPermissiveNext(response)).toBe(true);
+            expect(response.headers.get("location")).toBeNull();
+        },
+    );
+
+    it.each(["/api/telemetry/events", "/api/analytics/events"])(
+        "query string não entra no pathname: %s?… segue público",
+        async (pathname) => {
+            getUserImpl = async () => ({ data: { user: null } });
+
+            const response = await updateSession(makeRequest(pathname, "?sessionId=abc&v=2"));
+
+            expect(response.status).toBe(200);
+            expect(isPermissiveNext(response)).toBe(true);
+        },
+    );
+
+    it.each([
+        "/api/telemetry/events/batch",
+        "/api/analytics/events/export",
+        "/api/telemetry/events-admin",
+        "/api/analytics/events-admin",
+        "/api/telemetry",
+        "/api/analytics",
+    ])(
+        "sem sessão em %s (descendente, nome parecido ou prefixo-pai): continua redirecionando",
+        async (pathname) => {
+            getUserImpl = async () => ({ data: { user: null } });
+
+            const response = await updateSession(makeRequest(pathname));
+
+            expect(response.status).toBe(307);
+            expect(isPermissiveNext(response)).toBe(false);
+        },
+    );
 
     it("getUser lançando erro em rota protegida: trata como sem sessão e redireciona", async () => {
         getUserImpl = async () => {

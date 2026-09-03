@@ -33,8 +33,9 @@ function row(eventName: LearningEventRow["event_name"], user: string, minute: nu
 
 function mockRpc(result: { data: LearningEventSnapshotEnvelope | null; error: { message: string } | null }) {
   const rpc = vi.fn().mockResolvedValue(result);
-  createClient.mockResolvedValue({ rpc });
-  return rpc;
+  const getUser = vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null });
+  createClient.mockResolvedValue({ auth: { getUser }, rpc });
+  return { getUser, rpc };
 }
 
 describe("aggregateLearningEvents", () => {
@@ -89,7 +90,7 @@ describe("aggregateLearningEvents", () => {
   });
 
   it("coleta o snapshot com uma única RPC autenticada e agrega o envelope exato", async () => {
-    const rpc = mockRpc({
+    const { rpc } = mockRpc({
       data: {
         overflow: false,
         events: [row("course_opened", "student-1", 1), row("course_opened", "admin-1", 2)],
@@ -119,7 +120,7 @@ describe("aggregateLearningEvents", () => {
   });
 
   it("envia nulo para escopo global sem id e sem período", async () => {
-    const rpc = mockRpc({
+    const { rpc } = mockRpc({
       data: { overflow: false, events: [], student_user_ids: [] },
       error: null,
     });
@@ -138,13 +139,25 @@ describe("aggregateLearningEvents", () => {
   });
 
   it("falha explicitamente quando o volume ultrapassa o teto seguro", async () => {
-    const rpc = mockRpc({
+    const { rpc } = mockRpc({
       data: { overflow: true, events: [], student_user_ids: [] },
       error: null,
     });
 
     await expect(getLearningAnalytics({ scope: "global" })).rejects.toThrow(/100 mil eventos/);
     expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("nega usuário sem sessão antes de chamar a RPC administrativa", async () => {
+    const { getUser, rpc } = mockRpc({
+      data: { overflow: false, events: [], student_user_ids: [] },
+      error: null,
+    });
+    getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    await expect(getLearningAnalytics({ scope: "global" }))
+      .rejects.toThrow("Usuário não autenticado.");
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it("propaga a negação vinda do banco sem expor linhas cruas", async () => {

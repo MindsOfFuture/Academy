@@ -25,6 +25,17 @@ describe("GET /api/analytics/events", () => {
     expect(await response.json()).toEqual({ error: "Acesso negado. Permissões de administrador necessárias." });
   });
 
+  it("responde 401 em JSON quando a requisição não está autenticada", async () => {
+    // O middleware libera esta rota; o guard próprio é quem nega.
+    getLearningAnalytics.mockRejectedValue(new Error("Usuário não autenticado."));
+
+    const response = await GET(new Request("http://local/api/analytics/events?scope=global"));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual({ error: "Usuário não autenticado." });
+  });
+
   it("rejeita escopo ou período inválido", async () => {
     const response = await GET(new Request("http://local/api/analytics/events?scope=teacher&from=ontem"));
     expect(response.status).toBe(400);
