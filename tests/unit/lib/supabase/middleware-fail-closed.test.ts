@@ -319,3 +319,57 @@ describe("updateSession — comportamento original preservado com env vars prese
         expect(isPermissiveNext(response)).toBe(false);
     });
 });
+
+/**
+ * Módulos especiais logados: as quatro rotas canônicas não são públicas e
+ * dependem exclusivamente da sessão — nada de matrícula, papel ou linha no
+ * Supabase. Deep link anônimo precisa cair em /auth com o `next` intacto.
+ */
+import { isPublicPath } from "@/lib/supabase/middleware";
+
+const MODULE_PATHS = [
+    "/protected/modulos/educacao-financeira",
+    "/protected/modulos/educacao-financeira/financity",
+    "/protected/modulos/educacao-financeira/cidadania-financeira",
+    "/protected/modulos/laboratorio-de-gestao",
+];
+
+describe("updateSession — deep links dos módulos especiais", () => {
+    it.each(MODULE_PATHS)("%s não é rota pública", (pathname) => {
+        expect(isPublicPath(pathname)).toBe(false);
+    });
+
+    it.each(MODULE_PATHS)(
+        "anônimo em %s redireciona para /auth com o next exato",
+        async (pathname) => {
+            setEnv(VALID_URL, VALID_ANON_KEY);
+            getUserImpl = async () => ({ data: { user: null } });
+
+            const response = await updateSession(makeRequest(pathname));
+
+            expect(response.status).toBe(307);
+            const location = new URL(response.headers.get("location") as string);
+            expect(location.pathname).toBe("/auth");
+            expect(location.searchParams.get("next")).toBe(pathname);
+        },
+    );
+
+    it.each(MODULE_PATHS)("usuário autenticado passa em %s", async (pathname) => {
+        setEnv(VALID_URL, VALID_ANON_KEY);
+        getUserImpl = async () => ({ data: { user: { id: "user-1" } } });
+
+        const response = await updateSession(makeRequest(pathname));
+
+        expect(response.status).toBe(200);
+        expect(isPermissiveNext(response)).toBe(true);
+    });
+
+    it.each(MODULE_PATHS)("sem env vars, %s responde 503 (fail-closed)", async (pathname) => {
+        setEnv(undefined, undefined);
+
+        const response = await updateSession(makeRequest(pathname));
+
+        expect(isPermissiveNext(response)).toBe(false);
+        expect(response.status).toBe(503);
+    });
+});
