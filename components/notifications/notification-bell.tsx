@@ -61,6 +61,8 @@ export function NotificationBell() {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    // Sessão recusada pelo servidor (401): não reabre o polling até a próxima montagem
+    const sessionInvalidRef = useRef(false);
     const router = useRouter();
     const supabase = createClient();
 
@@ -68,47 +70,59 @@ export function NotificationBell() {
     useEffect(() => {
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((event, session) => {
+            // Login novo revalida a sessão e libera o polling de volta
+            if (event === "SIGNED_IN") {
+                sessionInvalidRef.current = false;
+            }
             setIsLoggedIn(!!session?.user);
         });
         return () => subscription.unsubscribe();
     }, [supabase.auth]);
 
-    const fetchCount = useCallback(async () => {
+    // Toda leitura da API passa por aqui: um 401 (deslogado ou sessão expirada)
+    // marca a sessão como inválida e esconde o sino, em vez de repetir a chamada
+    // a cada 30s — era isso que enchia o log de produção de 401.
+    const fetchJson = useCallback(async (url: string) => {
         try {
-            const res = await fetch("/api/notifications?countOnly=true");
-            if (res.ok) {
-                const data = await res.json();
-                setUnreadCount(data.count ?? 0);
+            const res = await fetch(url);
+            if (res.status === 401) {
+                sessionInvalidRef.current = true;
+                setIsLoggedIn(false);
+                return null;
             }
+            return res.ok ? await res.json() : null;
         } catch {
             // Silently fail
+            return null;
         }
     }, []);
+
+    const fetchCount = useCallback(async () => {
+        const data = await fetchJson("/api/notifications?countOnly=true");
+        if (data) {
+            setUnreadCount(data.count ?? 0);
+        }
+    }, [fetchJson]);
 
     const fetchNotifications = useCallback(async () => {
         setLoading(true);
-        try {
-            const res = await fetch("/api/notifications?unreadOnly=true&limit=30");
-            if (res.ok) {
-                const data = await res.json();
-                const unreadNotifications = data.notifications ?? [];
-                setNotifications(unreadNotifications);
-                setUnreadCount(unreadNotifications.length);
-            }
-        } catch {
-            // Silently fail
-        } finally {
-            setLoading(false);
+        const data = await fetchJson("/api/notifications?unreadOnly=true&limit=30");
+        if (data) {
+            const unreadNotifications = data.notifications ?? [];
+            setNotifications(unreadNotifications);
+            setUnreadCount(unreadNotifications.length);
         }
-    }, []);
+        setLoading(false);
+    }, [fetchJson]);
 
-    // Poll for unread count every 30s
+    // Poll for unread count every 30s — só com usuário logado e sessão válida
     useEffect(() => {
+        if (!isLoggedIn || sessionInvalidRef.current) return;
         fetchCount();
         const interval = setInterval(fetchCount, 30_000);
         return () => clearInterval(interval);
-    }, [fetchCount]);
+    }, [isLoggedIn, fetchCount]);
 
     // When dropdown opens, fetch full list
     useEffect(() => {
