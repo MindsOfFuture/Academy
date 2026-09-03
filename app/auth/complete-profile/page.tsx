@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Phone, MapPin, Calendar, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { normalizeNextPath } from "@/lib/utils";
 
 function CompleteProfileContent() {
     const searchParams = useSearchParams();
@@ -93,13 +94,13 @@ function CompleteProfileContent() {
 
             if (userType === "teacher") {
                 // Redirect to complete teacher profile
-                const queryStr = nextParam ? `&next=${encodeURIComponent(nextParam)}` : '';
+                const safeNextPath = normalizeNextPath(nextParam);
+                const queryStr = safeNextPath ? `&next=${encodeURIComponent(safeNextPath)}` : '';
                 router.push(`/auth/complete-teacher-profile?from=oauth${queryStr}`);
             } else {
                 // Redirect to protected area
-                const nextPath = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/protected";
+                const nextPath = normalizeNextPath(nextParam) ?? "/protected";
                 router.push(nextPath);
-                router.refresh();
             }
         } catch (err: unknown) {
             const errorMessage =

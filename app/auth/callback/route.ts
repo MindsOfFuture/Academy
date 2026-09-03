@@ -1,6 +1,11 @@
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
 import { normalizeNextPath } from "@/lib/utils";
+import { redirectToInternalPath } from "@/lib/supabase/redirect";
+
+function redirectToAuth(request: Request, error: string) {
+    const search = new URLSearchParams({ error });
+    return redirectToInternalPath(`/auth?${search.toString()}`, request);
+}
 
 /**
  * OAuth callback route for Google authentication
@@ -18,12 +23,7 @@ export async function GET(request: Request) {
 
     if (error) {
         console.error("[oauth/callback] OAuth error:", { error, errorDescription });
-        return NextResponse.redirect(
-            new URL(
-                `/auth?error=${encodeURIComponent(errorDescription || error)}`,
-                requestUrl.origin
-            )
-        );
+        return redirectToAuth(request, errorDescription || error);
     }
 
     if (code) {
@@ -33,18 +33,13 @@ export async function GET(request: Request) {
 
         if (exchangeError) {
             console.error("[oauth/callback] Session exchange error:", exchangeError);
-            return NextResponse.redirect(
-                new URL(
-                    `/auth?error=${encodeURIComponent(exchangeError.message)}`,
-                    requestUrl.origin
-                )
-            );
+            return redirectToAuth(request, exchangeError.message);
         }
 
         // Get current user after successful session
         const { data: authData } = await supabase.auth.getUser();
         if (!authData.user) {
-            return NextResponse.redirect(new URL("/auth?error=User not found", requestUrl.origin));
+            return redirectToAuth(request, "User not found");
         }
 
         const user = authData.user;
@@ -64,24 +59,25 @@ export async function GET(request: Request) {
             existingProfile?.document &&
             existingProfile?.birth_date
         ) {
-            return NextResponse.redirect(new URL(nextPath || "/protected", requestUrl.origin));
+            return redirectToInternalPath(nextPath || "/protected", request);
         }
 
         // Otherwise, redirect to onboarding to collect missing data
-        return NextResponse.redirect(
-            new URL(
-                `/auth/complete-profile?from=oauth&email=${encodeURIComponent(
-                    user.email || ""
-                )}&name=${encodeURIComponent(
-                    user.user_metadata?.full_name ||
-                    user.user_metadata?.name ||
-                    ""
-                )}${nextPath ? `&next=${encodeURIComponent(nextPath)}` : ""}`,
-                requestUrl.origin
-            )
+        const onboardingParams = new URLSearchParams({
+            from: "oauth",
+            email: user.email || "",
+            name:
+                user.user_metadata?.full_name ||
+                user.user_metadata?.name ||
+                "",
+        });
+        if (nextPath) onboardingParams.set("next", nextPath);
+        return redirectToInternalPath(
+            `/auth/complete-profile?${onboardingParams.toString()}`,
+            request,
         );
     }
 
     // No code provided
-    return NextResponse.redirect(new URL("/auth?error=Invalid callback", requestUrl.origin));
+    return redirectToAuth(request, "Invalid callback");
 }

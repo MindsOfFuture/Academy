@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X, ArrowLeft, School, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { normalizeNextPath } from "@/lib/utils";
 
 function CompleteTeacherProfileContent() {
     const searchParams = useSearchParams();
@@ -144,9 +145,8 @@ function CompleteTeacherProfileContent() {
 
             toast.success("Perfil de professor enviado para verificação!");
             
-            const nextPath = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/protected";
+            const nextPath = normalizeNextPath(nextParam) ?? "/protected";
             router.push(nextPath);
-            router.refresh();
         } catch (err: unknown) {
             const errorMessage =
                 err instanceof Error ? err.message : "Erro ao completar perfil";

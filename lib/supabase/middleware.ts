@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { missingSupabaseEnv } from "../env";
+import { redirectToInternalPath } from "./redirect";
 
 const PUBLIC_PATH_PREFIXES = [
   "/auth",
@@ -8,6 +9,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/termos",
   "/privacidade",
   "/artigos",
+  "/validar",
+  "/creditos",
   "/api/articles",
   "/api/auth/oauth-complete-profile",
   "/api/auth/oauth-ensure-teacher-role",
@@ -17,7 +20,9 @@ const PUBLIC_PATH_PREFIXES = [
 
 export function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
-  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 const EXEMPT_PATH_PREFIXES = ["/_next/static", "/_next/image"] as const;
@@ -100,13 +105,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone();
     const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-    url.pathname = "/auth";
-    url.search = "";
-    url.searchParams.set("next", nextPath);
-    return NextResponse.redirect(url);
+    const search = new URLSearchParams({ next: nextPath });
+    return redirectToInternalPath(
+      `/auth?${search.toString()}`,
+      request,
+      supabaseResponse,
+    );
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

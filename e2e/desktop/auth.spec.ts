@@ -40,7 +40,7 @@ test.describe('Fluxo de Login Desktop', () => {
   test('deve mostrar/ocultar senha ao clicar no ícone', async ({ page }) => {
     await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
     
-    const passwordInput = page.locator('input[type="password"]').first();
+    const passwordInput = page.getByPlaceholder('Senha', { exact: true }).first();
     await passwordInput.fill('senha123');
     
     // Clicar no botão de mostrar senha
@@ -48,11 +48,8 @@ test.describe('Fluxo de Login Desktop', () => {
     
     if (await toggleButton.isVisible()) {
       await toggleButton.click();
-      
-      // Agora o input deve ser type="text"
-      const inputType = await page.locator('input').filter({ hasText: '' }).first().getAttribute('type');
-      // Verificar que mudou
-      expect(['text', 'password']).toContain(inputType);
+
+      await expect(passwordInput).toHaveAttribute('type', 'text');
     }
   });
 

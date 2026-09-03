@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, normalizeNextPath } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,11 +25,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const nextParam = searchParams.get("next");
-  const nextPath =
-    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
-      ? nextParam
-      : "/protected";
+  const nextPath = normalizeNextPath(searchParams.get("next")) ?? "/protected";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +37,6 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       if (error) throw error;
       toast.success("Login realizado com sucesso!");
       router.push(nextPath);
-      router.refresh();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro.";
       setError(errorMessage);
