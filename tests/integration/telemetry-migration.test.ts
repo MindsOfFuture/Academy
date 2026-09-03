@@ -469,6 +469,17 @@ describe.skipIf(!TEST_DATABASE_URL)("concorrência real da telemetria em Postgre
   let sessionAPid = 0;
   let serverVersionNum = 0;
   let createdRoles: string[] = [];
+  // query() e end() em Client que nunca conectou ficam enfileirados e não
+  // resolvem: só entra aqui quem completou connect(), e o teardown toca apenas
+  // nesses. Sem isso, um connect() recusado levava o afterAll ao timeout.
+  const connected = new Set<Client>();
+
+  async function openClient(): Promise<Client> {
+    const client = new Client({ connectionString: TEST_DATABASE_URL });
+    await client.connect();
+    connected.add(client);
+    return client;
+  }
 
   async function snapshotOn(client: Client, params: {
     scope: string;
@@ -515,12 +526,9 @@ describe.skipIf(!TEST_DATABASE_URL)("concorrência real da telemetria em Postgre
     const problema = guardLocalTestDatabase(TEST_DATABASE_URL);
     if (problema) throw new Error(problema);
 
-    observer = new Client({ connectionString: TEST_DATABASE_URL });
-    sessionA = new Client({ connectionString: TEST_DATABASE_URL });
-    sessionB = new Client({ connectionString: TEST_DATABASE_URL });
-    await observer.connect();
-    await sessionA.connect();
-    await sessionB.connect();
+    observer = await openClient();
+    sessionA = await openClient();
+    sessionB = await openClient();
 
     const version = await observer.query<{ num: string }>(
       "select current_setting('server_version_num') as num",
@@ -561,18 +569,19 @@ describe.skipIf(!TEST_DATABASE_URL)("concorrência real da telemetria em Postgre
 
   afterAll(async () => {
     for (const client of [sessionA, sessionB]) {
-      await client?.query("rollback").catch(() => undefined);
+      if (connected.has(client)) await client.query("rollback").catch(() => undefined);
     }
-    if (observer) {
+    if (connected.has(observer)) {
       await observer.query(DROP_STATE_SQL).catch(() => undefined);
       for (const role of createdRoles) {
         await observer.query(`drop owned by ${role}`).catch(() => undefined);
         await observer.query(`drop role if exists ${role}`).catch(() => undefined);
       }
     }
-    for (const client of [sessionA, sessionB, observer]) {
-      await client?.end().catch(() => undefined);
+    for (const client of connected) {
+      await client.end().catch(() => undefined);
     }
+    connected.clear();
   }, 60_000);
 
   it("mantém o snapshot de A intacto enquanto B insere e faz COMMIT do lote concorrente", async () => {
