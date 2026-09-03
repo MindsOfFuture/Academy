@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
-import { setOnboardingRole } from "@/lib/api/profiles-server";
+import { fetchRoleForUser, setOnboardingRole } from "@/lib/api/profiles-server";
 
 type OAuthCompleteProfilePayload = {
     fullName?: unknown;
@@ -108,6 +108,15 @@ export async function POST(request: Request) {
             if (insertProfileError) {
                 return NextResponse.json({ error: insertProfileError.message }, { status: 500 });
             }
+        }
+
+        // Admin que entra por OAuth precisa completar o perfil, mas não escolhe
+        // papel: `setOnboardingRole` recusa admin de propósito, para não rebaixar
+        // a conta. O perfil já foi gravado acima, então basta não chamar.
+        const currentRole = await fetchRoleForUser(user.id, serviceRole);
+
+        if (currentRole === "admin") {
+            return NextResponse.json({ ok: true, userType: "admin" });
         }
 
         await setOnboardingRole(user.id, payload.userType);

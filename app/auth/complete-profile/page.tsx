@@ -92,7 +92,11 @@ function CompleteProfileContent() {
 
             toast.success("Perfil completado com sucesso!");
 
-            if (userType === "teacher") {
+            // A rota pode responder "admin": nesse caso o papel já existe e não
+            // passa pelo onboarding, então segue direto igual ao aluno.
+            const resolvedUserType = payload?.userType ?? userType;
+
+            if (resolvedUserType === "teacher") {
                 // Redirect to complete teacher profile
                 const safeNextPath = normalizeNextPath(nextParam);
                 const queryStr = safeNextPath ? `&next=${encodeURIComponent(safeNextPath)}` : '';
