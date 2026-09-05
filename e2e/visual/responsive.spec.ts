@@ -192,3 +192,24 @@ test.describe('Texto Legível', () => {
     }
   });
 });
+
+test.describe('Nossos Artigos - setas do carrossel', () => {
+  test('setas em desktop devem ter ícone de 24px', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    // As setas ficam ocultas abaixo de 1024px, então basta estarem no DOM em desktop
+    await page.locator('#our-articles .swiper-button-prev').waitFor({ state: 'attached', timeout: 15000 });
+    await page.locator('#our-articles .swiper-button-next').waitFor({ state: 'attached', timeout: 15000 });
+
+    const fontSizes = await page.evaluate(() =>
+      ['#our-articles .swiper-button-prev', '#our-articles .swiper-button-next'].map((selector) => {
+        const el = document.querySelector(selector);
+        return el ? window.getComputedStyle(el, '::after').fontSize : null;
+      })
+    );
+
+    expect(fontSizes).toEqual(['24px', '24px']);
+  });
+});

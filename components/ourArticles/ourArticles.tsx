@@ -128,7 +128,7 @@ export default function OurArticles({ articles }: OurArticlesProps) {
             }
             #our-articles .swiper-button-next:after,
             #our-articles .swiper-button-prev:after {
-              font-size: 32px !important;
+              font-size: 24px !important;
               font-weight: bold;
             }
             #our-articles .swiper-button-next:hover,
