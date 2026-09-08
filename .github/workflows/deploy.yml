@@ -1,7 +1,9 @@
 name: Deploy (VPS)
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Tests", "Playwright Tests"]
+    types: [completed]
     branches: [main]
   workflow_dispatch: {}
 
@@ -14,6 +16,79 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Validar gate de CI no mesmo SHA
+        id: gate
+        env:
+          CHECK_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+
+          sha = os.environ["CHECK_SHA"]
+          base = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}"
+
+          def blocked(name, state):
+              print(f"BLOQUEADO: check {name} para {sha} = {state}", flush=True)
+              sys.exit(1)
+
+          def pages(path, key):
+              items = []
+              page = 1
+              while True:
+                  separator = "&" if "?" in path else "?"
+                  response = subprocess.run(
+                      ["curl", "--fail-with-body", "-sS", "--max-time", "30",
+                       "-H", "Accept: application/vnd.github+json",
+                       f"{base}/{path}{separator}per_page=100&page={page}"],
+                      check=True, capture_output=True, text=True,
+                  )
+                  batch = json.loads(response.stdout)[key]
+                  items.extend(batch)
+                  if len(batch) < 100:
+                      return items
+                  page += 1
+
+          try:
+              checks = pages(f"commits/{sha}/check-runs?filter=all", "check_runs")
+              for workflow, filename in (
+                  ("Tests", "tests.yml"),
+                  ("Playwright Tests", "playwright.yml"),
+              ):
+                  label = f"{workflow} / test"
+                  # Os dois jobs se chamam test: identificar a suite pela workflow.
+                  runs = pages(
+                      f"actions/workflows/{filename}/runs?head_sha={sha}&branch=main&event=push",
+                      "workflow_runs",
+                  )
+                  runs = [r for r in runs if r["head_sha"] == sha
+                          and r["head_branch"] == "main" and r["event"] == "push"]
+                  if not runs:
+                      blocked(label, "execução ausente")
+                  run = max(runs, key=lambda r: r["id"])
+                  if run["status"] != "completed" or run["conclusion"] != "success":
+                      blocked(label, f"workflow {run['status']}/{run['conclusion']}")
+                  matches = [c for c in checks if c["name"] == "test"
+                             and c["head_sha"] == sha
+                             and c["app"]["slug"] == "github-actions"
+                             and c["check_suite"]["id"] == run["check_suite_id"]]
+                  if not matches:
+                      blocked(label, "check-run ausente")
+                  # Um sucesso antigo não pode encobrir uma reexecução com falha.
+                  check = max(matches, key=lambda c: c["id"])
+                  if check["status"] != "completed" or check["conclusion"] != "success":
+                      blocked(label, f"{check['status']}/{check['conclusion']}")
+                  print(f"APROVADO: check {label} para {sha} = success", flush=True)
+          except (subprocess.SubprocessError, ValueError, KeyError, TypeError) as error:
+              blocked("API de CI", str(error))
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"sha={sha}\n")
+          PY
+
       - name: Configurar SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -28,11 +103,12 @@ jobs:
 
       - name: Rodar release no servidor
         env:
+          DEPLOY_COMMIT: ${{ steps.gate.outputs.sha }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
           set -euo pipefail
-          COMMIT="${GITHUB_SHA}"
+          COMMIT="${DEPLOY_COMMIT}"
           ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "sudo -n /root/deploy-release.sh '${COMMIT}'"

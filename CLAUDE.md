@@ -29,7 +29,7 @@ npx playwright test e2e/flows/           # single directory
 
 There is no `typecheck` script; `tsc --noEmit` works but note `tsconfig.json` **excludes** `tests/` and all `*.test.*`/`*.spec.*` files, so test files are not type-checked by it (Vitest transpiles them).
 
-CI (`.github/workflows/`): `tests.yml` runs lint + `npm test -- --run --coverage` on push to `main`/`develop` and PRs to `main`. `playwright.yml` runs the full E2E suite.
+CI (`.github/workflows/`): `tests.yml` runs lint + `npm test -- --run --coverage` on push to `main`/`develop` and PRs to `main`. `playwright.yml` runs the full E2E suite. `deploy.yml` uses a `workflow_run` gate: completion of `Tests` or `Playwright Tests` triggers validation, and release proceeds only after both workflows and their `test` checks succeed on the same commit (also required for manual dispatch), instead of deploying on every direct push to `main`. Currently, `main` is behind `development`.
 
 ## Environment
 

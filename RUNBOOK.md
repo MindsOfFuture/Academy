@@ -282,7 +282,13 @@ hospedado. Antes de migration destrutiva: `docs/supabase.md#Backup`
 - **Docker/compose** — um systemd resolve um processo.
 - **PM2** — não é usado (unit de `academy.service` ativa; PM2 não instalado).
 - **Zero-downtime** — `Restart=always` dá alguns segundos de 502.
-- **CI de deploy** — release é disparado manualmente via script.
+- **Proteção remota de branch** — não está configurada (`rules/branches/main`
+  e `rulesets` vazios, verificados via API pública em 08/09/2026). Existe
+  deploy automático via SSH, gatilhado por `workflow_run`, que só libera o
+  release após Tests + Playwright passarem no mesmo commit. O gate atua só
+  no workflow: não impede push direto/force-push em `main` pelo GitHub.
+  Configurar proteção remota é follow-up separado, com autenticação de admin
+  do repositório.
 - **Backup automatizado do banco** no VPS — manual, no Supabase.
 - `remotePatterns` segue liberado (`hostname: "**"`) — ver
   `docs/decisions.md` 013 (restrição pendente).
@@ -300,3 +306,47 @@ hospedado. Antes de migration destrutiva: `docs/supabase.md#Backup`
 
 > Última verificação do estado em produção: 04/09/2026, commit
 > `4e66865` (matches `cat /opt/academy/RELEASE_COMMIT`).
+
+---
+
+## 9. CI/CD — gate de deploy
+
+O workflow `.github/workflows/deploy.yml` recebe `workflow_run` quando
+`Tests` ou `Playwright Tests` termina em `main`. Antes de configurar SSH,
+exige que as execuções mais recentes de ambas as workflows para push em
+`main` e seus checks `test` estejam `completed`/`success` no mesmo SHA.
+Os checks são identificados pela suite de cada workflow, pois têm o mesmo
+nome. O disparo manual (`workflow_dispatch`) passa pelo mesmo gate para
+o SHA selecionado. O script de release recebe exatamente o SHA aprovado.
+
+Check ausente, pendente, ignorado, cancelado ou com qualquer conclusão
+diferente de `success` bloqueia o release: o deploy falha visivelmente com
+`BLOQUEADO`, nada é publicado e é necessário investigar o check indicado.
+O primeiro evento pode bloquear enquanto a outra workflow ainda roda;
+a conclusão da outra workflow dispara uma nova avaliação. Falha na consulta
+à API também bloqueia. O rollback existente no VPS permanece inalterado.
+
+No estado verificado, `main` = `2e3deea` e está atrás de `development`,
+onde acontece o trabalho corrente. Sincronizar `main` normalmente é feito
+por PR/merge autorizado e está fora do escopo desta mudança. O gate não
+substitui proteção remota de branch; essa configuração segue pendente (§7).
+
+**Recibo da verificação (08/09/2026), commit `2e3deea52d16d85df13d27e903c98370456ad887`:**
+
+- Tests: https://github.com/MindsOfFuture/Academy/actions/runs/34175494868
+  (`conclusion=failure`, mock `useSearchParams` ausente e paginação/busca de
+  `UsersTableClient`).
+- Playwright Tests: https://github.com/MindsOfFuture/Academy/actions/runs/34175494891
+  (`conclusion=failure`).
+- Deploy: https://github.com/MindsOfFuture/Academy/actions/runs/34175494870
+  (`conclusion=failure`, passo "Rodar release no servidor").
+- Proteção de branch consultada via API pública, sem auth:
+  `GET /repos/MindsOfFuture/Academy/rules/branches/main` → `[]` e
+  `GET /repos/MindsOfFuture/Academy/rulesets` → `[]` (nenhuma proteção remota
+  configurada, confirma o achado do §7).
+
+Replay confirmado: consultando `actions/workflows/tests.yml/runs` e
+`actions/workflows/playwright.yml/runs` filtrando por
+`head_sha=2e3deea52d16d85df13d27e903c98370456ad887&branch=main&event=push`,
+ambas retornam `conclusion=failure` — ou seja, o gate acima teria bloqueado
+esse SHA exatamente como descrito, sem exercitar um push real.
