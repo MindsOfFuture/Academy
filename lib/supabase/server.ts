@@ -35,6 +35,7 @@ export async function createAdminClient() {
   }
 
   const { data: roleLinks } = await supabase
+    .schema('public')
     .from('user_role')
     .select('role_id')
     .eq('user_profile_id', user.id);
@@ -48,6 +49,7 @@ export async function createAdminClient() {
   }
 
   const { data: roleRows } = await supabase
+    .schema('public')
     .from('role')
     .select('name')
     .in('id', roleIds);
