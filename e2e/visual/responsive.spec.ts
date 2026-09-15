@@ -193,53 +193,23 @@ test.describe('Texto Legível', () => {
   });
 });
 
-test.describe('Dark Mode (se implementado)', () => {
-  test('verificar se dark mode existe', async ({ page }) => {
+test.describe('Nossos Artigos - setas do carrossel', () => {
+  test('setas em desktop devem ter ícone de 24px', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/');
-
-    // Verificar se há toggle de tema
-    const themeToggle = page.locator('button[aria-label*="theme"], button[aria-label*="modo"]');
-    const hasThemeToggle = await themeToggle.isVisible().catch(() => false);
-
-  });
-});
-
-test.describe('Animações e Transições', () => {
-  test('links devem ter hover state', async ({ page }) => {
-    await page.goto('/');
-
-    const link = page.locator('nav a').first();
-
-    if (await link.isVisible()) {
-      const beforeHover = await link.evaluate(el => {
-        return window.getComputedStyle(el).color;
-      });
-
-      await link.hover();
-      await page.waitForTimeout(300);
-
-      const afterHover = await link.evaluate(el => {
-        return window.getComputedStyle(el).color;
-      });
-
-      // Pode ou não mudar - apenas log
-    }
-  });
-
-  test('botões devem ter feedback visual', async ({ page }) => {
-    await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
 
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    // As setas ficam ocultas abaixo de 1024px, então basta estarem no DOM em desktop
+    await page.locator('#our-articles .swiper-button-prev').waitFor({ state: 'attached', timeout: 15000 });
+    await page.locator('#our-articles .swiper-button-next').waitFor({ state: 'attached', timeout: 15000 });
 
-    const button = page.getByRole('button', { name: /entrar/i });
+    const fontSizes = await page.evaluate(() =>
+      ['#our-articles .swiper-button-prev', '#our-articles .swiper-button-next'].map((selector) => {
+        const el = document.querySelector(selector);
+        return el ? window.getComputedStyle(el, '::after').fontSize : null;
+      })
+    );
 
-    if (await button.isVisible()) {
-      const hasTransition = await button.evaluate(el => {
-        const style = window.getComputedStyle(el);
-        return style.transition !== 'none' && style.transition !== '';
-      });
-
-    }
+    expect(fontSizes).toEqual(['24px', '24px']);
   });
 });

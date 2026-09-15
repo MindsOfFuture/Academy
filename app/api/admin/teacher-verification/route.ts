@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAllUsers, setTeacherVerificationStatusByAdmin } from "@/lib/api/profiles-server";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export async function GET() {
     try {
+        // getAllUsers() dependia só da RLS. Checagem explícita: lança
+        // "Acesso negado" para quem não é admin.
+        await createAdminClient();
         const users = await getAllUsers();
         const pendingTeachers = users.filter((user) => user.role === "teacher" && user.verificationStatus === "pending");
         return NextResponse.json(pendingTeachers);

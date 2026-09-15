@@ -14,10 +14,11 @@ import LearningPathManager from "@/components/dashboard/LearningPathManagement/L
 import ChatsPanel from "@/components/dashboard/ChatsPanel";
 import PendingCorrections from "@/components/dashboard/PendingCorrections";
 import AnalyticsTab from "@/components/dashboard/Analytics/AnalyticsTab";
+import GameResearchPanel from "@/components/dashboard/GameResearch/GameResearchPanel";
 import { listUsersClient } from "@/lib/api/profiles";
 
-type TabType = "courses" | "paths" | "chats" | "corrections" | "analytics";
-const validTabs: TabType[] = ["courses", "paths", "chats", "corrections", "analytics"];
+type TabType = "courses" | "paths" | "chats" | "corrections" | "analytics" | "jogos";
+const validTabs: TabType[] = ["courses", "paths", "chats", "corrections", "analytics", "jogos"];
 
 export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean }) {
   const searchParams = useSearchParams();
@@ -197,6 +198,17 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
             Analytics
           </button>
         )}
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab("jogos")}
+            className={`flex-shrink-0 px-4 py-2 font-medium transition-colors flex items-center gap-2 ${activeTab === "jogos"
+              ? "text-purple-600 border-b-2 border-purple-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
+          >
+            Respostas dos jogos
+          </button>
+        )}
       </div>
 
       {/* Conteúdo da Tab de Trilhas */}
@@ -219,6 +231,9 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
       {activeTab === "analytics" && isAdmin && (
         <AnalyticsTab isAdmin={isAdmin} courses={courses} paths={paths} users={users} />
       )}
+
+      {/* Conteúdo da Tab de Respostas dos jogos */}
+      {activeTab === "jogos" && isAdmin && <GameResearchPanel />}
 
       {/* Conteúdo da Tab de Cursos */}
       {activeTab === "courses" && (

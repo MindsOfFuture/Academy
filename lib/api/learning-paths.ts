@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { fetchRoleForUser } from "@/lib/api/profiles-server";
-import { type LearningPathSummary, type CourseSummary, type CourseRow, type LearningPathRow, type RoleName, getThumbUrl, getCoverUrl } from "./types";
+import { type LearningPathSummary, type CourseRow, type LearningPathRow, type RoleName, getMediaUrl, mapCourse } from "./types";
 
 interface LearningPathCourseJoin {
     order?: number | null;
@@ -69,17 +69,6 @@ async function ensureCourseOwnership(
     }
 }
 
-function mapCourse(row: CourseRow): CourseSummary {
-    return {
-        id: row.id,
-        title: row.title,
-        description: row.description ?? null,
-        level: row.level ?? null,
-        status: row.status ?? null,
-        thumbUrl: getThumbUrl(row.thumb),
-    };
-}
-
 // Gera slug a partir do título
 function generateSlug(title: string): string {
     return title
@@ -125,7 +114,7 @@ export async function getLearningPaths(options?: { scope?: "public" | "manage" }
             title: lpRow.title,
             description: lpRow.description ?? null,
             audience: (lpRow.audience as "student" | "teacher") ?? "student",
-            coverUrl: getCoverUrl(lpRow.cover),
+            coverUrl: getMediaUrl(lpRow.cover),
             courses: ((lpRow.courses || []) as LearningPathCourseJoin[])
                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                 .map((item) => mapCourse((item.course || {}) as CourseRow)),
@@ -167,7 +156,7 @@ export async function getLearningPathDetail(pathId: string, options?: { scope?: 
         title: lpRow.title,
         description: lpRow.description ?? null,
         audience: (lpRow.audience as "student" | "teacher") ?? "student",
-        coverUrl: getCoverUrl(lpRow.cover),
+        coverUrl: getMediaUrl(lpRow.cover),
         courses: ((lpRow.courses || []) as LearningPathCourseJoin[])
             .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
             .map((item) => mapCourse((item.course || {}) as CourseRow)),

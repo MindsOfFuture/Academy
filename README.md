@@ -34,7 +34,8 @@ O **Academy** é uma aplicação web full-stack construída sobre **Next.js** e 
 - Middleware (`lib/supabase/middleware.ts`) garante sessão válida e redireciona usuários não autenticados.
 - Clientes separados: `client.ts` (browser), `server.ts` (SSR) e `createAdminClient()` com validação de perfil.
 - Chave de serviço (`SUPABASE_SERVICE_ROLE_KEY`) usada somente no servidor (NUNCA exponha em `NEXT_PUBLIC_*`).
-- Checagem de variáveis de ambiente via utilitário `hasEnvVars`.
+- Sem as variáveis do Supabase, o middleware responde 503 em todas as rotas não isentas
+  (fail-closed via `missingSupabaseEnv()`); nunca libera acesso sem autenticação.
 
 ### Variáveis de Ambiente Necessárias
 
@@ -64,18 +65,18 @@ app/
             layout.tsx
             page.tsx
 components/
-    api/ (indexApi, admApi, courseApi - camadas de compatibilidade)
     auth/ (forms e botões)
     dashboard/ (users table, modals, CourseManagement/*)
-    ui/ (design system local – badge, button, card, input, label)
+    ui/ (design system local – button, input, label)
     navbar/, hero_1/, ourCourses/, ourArticles/, about-us/, footer/
     trilhas/, yourCourses/, activitie_cards/, activities/, profile/
     BlurryBackground/, aurora/, button/, cards/, counting/
     HomeClient/ (Lógica da Landing Page)
 lib/
-    utils.ts (helpers: cn, hasEnvVars)
+    utils.ts (helpers gerais: cn, normalizeNextPath)
+    env.ts (validação central e fail-fast das variáveis do Supabase)
     api/ (Lógica central de serviços e acesso a dados)
-    supabase/ (client, server, middleware, student_projects)
+    supabase/ (client, server, middleware)
 public/ (logos, imagens)
 config (root arquivos: tailwind.config.ts, next.config.ts, eslint.config.mjs)
 ```

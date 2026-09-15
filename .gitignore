@@ -49,10 +49,6 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 
-# Markdown files
-*.md
-!README.md
-
 # Logs and reports
 *.log
 lint_*.txt
@@ -62,3 +58,18 @@ Thumbs.db
 
 # Local tool configs
 .impeccable/
+
+# Configuração local de editor/agente: costuma receber token literal
+# (ver docs/decisions.md 014 e o corpo de ddad918). Servidor MCP compartilhado
+# pelo time vai em `.mcp.json`, com o valor referenciado como ${VAR}.
+.vscode/mcp.json
+.claude/settings.local.json
+
+# Worktrees de agente criados dentro do próprio repo (git não os ignora sozinho)
+/.worktrees/
+
+# Chave privada de deploy: nunca versionada (a pública vive nos secrets do CI)
+/_chaves-deploy/
+
+# Capturas de tela descartáveis geradas em teste (precisam de SNAP_OUT)
+tests/**/_snap.test.tsx

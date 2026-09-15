@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, MessageSquare, Send, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Star, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { trackingService } from "@/lib/services/tracking.service";
 import type { ReviewScope, ReviewRating } from "@/lib/api/telemetry-types";
 import toast from "react-hot-toast";
@@ -41,7 +41,6 @@ export default function ContentReview({
   const [isExpanded, setIsExpanded] = useState(variant === "inline");
   const [rating, setRating] = useState<ReviewRating | 0>(0);
   const [hoveredStar, setHoveredStar] = useState(0);
-  const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
@@ -64,7 +63,6 @@ export default function ContentReview({
         lessonId: scope === "lesson" ? lessonId : undefined,
         enrollmentId,
         rating: rating as ReviewRating,
-        comment: comment.trim() || undefined,
         reviewScope: scope,
         courseCompletionPercent,
       });
@@ -83,7 +81,6 @@ export default function ContentReview({
     setHasSubmitted(false);
     setRating(0);
     setHoveredStar(0);
-    setComment("");
   }
 
   // Estado pós-envio: mensagem de agradecimento
@@ -202,34 +199,6 @@ export default function ContentReview({
           )}
         </div>
 
-        {/* Comentário (só aparece após selecionar estrelas) */}
-        {rating > 0 && (
-          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-              <label className="text-xs text-gray-500 font-medium">
-                Comentário (opcional)
-              </label>
-            </div>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={
-                scope === "lesson"
-                  ? "O que você achou desta aula?"
-                  : "Como foi sua experiência com o curso?"
-              }
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300 placeholder:text-gray-400 transition-all"
-              rows={3}
-              maxLength={500}
-            />
-            {comment.length > 0 && (
-              <p className="text-xs text-gray-400 text-right">
-                {comment.length}/500
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Botão enviar */}
         {rating > 0 && (
@@ -237,7 +206,6 @@ export default function ContentReview({
             <button
               onClick={() => {
                 setRating(0);
-                setComment("");
                 setHoveredStar(0);
               }}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"

@@ -9,7 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: './vitest.setup.ts',
     alias: {
-      '@': resolve(__dirname, './')
+      '@': resolve(__dirname, './'),
+      'server-only': resolve(__dirname, './tests/mocks/server-only.ts'),
     },
     coverage: {
       provider: 'v8',

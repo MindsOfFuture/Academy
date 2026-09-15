@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
+import { TEST_USERS, loginViaUI, logout } from '../fixtures/auth.fixture';
+
+test.beforeEach(async ({ page }) => {
+  page.on('pageerror', (error) => console.error('[pageerror]', error.stack));
+});
 
 /**
  * Testes de fluxo completo de autenticação
@@ -66,7 +70,7 @@ test.describe('Fluxo de Login Real', () => {
     await loginViaUI(page, user);
 
     // Verificar seção de cursos
-    const coursesSection = page.locator('text=/nossos cursos|seus cursos|meus cursos/i');
+    const coursesSection = page.getByRole('heading', { name: 'Cursos Matriculados' });
     await expect(coursesSection).toBeVisible({ timeout: 10000 });
   });
 });
@@ -85,26 +89,7 @@ test.describe('Fluxo de Logout', () => {
     }
 
     await loginViaUI(page, user);
-
-    // Procurar botão de logout
-    const logoutButton = page.getByRole('button', { name: /sair|logout/i });
-    const logoutLink = page.getByRole('link', { name: /sair|logout/i });
-
-    if (await logoutButton.isVisible()) {
-      await logoutButton.click();
-    } else if (await logoutLink.isVisible()) {
-      await logoutLink.click();
-    } else {
-      // Pode estar em menu dropdown
-      const menuButton = page.getByRole('button', { name: /menu|perfil/i });
-      if (await menuButton.isVisible()) {
-        await menuButton.click();
-        await page.getByText(/sair/i).click();
-      }
-    }
-
-    // Aguardar redirecionamento
-    await page.waitForURL(/\/(auth)?$/);
+    await logout(page);
   });
 });
 
@@ -182,7 +167,7 @@ test.describe('Funcionalidades Admin', () => {
     await loginViaUI(page, admin);
 
     // Verificar seção de admin
-    const adminSection = page.locator('text=/gerenciar|administração|usuários/i');
+    const adminSection = page.getByRole('heading', { name: 'Usuários', exact: true });
     await expect(adminSection).toBeVisible({ timeout: 10000 });
   });
 
@@ -197,7 +182,7 @@ test.describe('Funcionalidades Admin', () => {
 
     // Verificar tabela de usuários
     const usersTable = page.locator('table, [class*="table"]');
-    const hasTable = await usersTable.first().isVisible().catch(() => false);
+    await expect(usersTable.first()).toBeVisible();
 
   });
 });
@@ -206,21 +191,21 @@ test.describe('Proteção de Rotas', () => {
   test('acessar /protected sem auth deve redirecionar para /auth', async ({ page }) => {
     await page.goto('/protected');
 
-    await page.waitForURL('/auth', { timeout: 10000 });
-    expect(page.url()).toContain('/auth');
+    expect(new URL(page.url()).pathname).toBe('/auth');
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/protected');
   });
 
   test('acessar /protected/perfil sem auth deve redirecionar para /auth', async ({ page }) => {
     await page.goto('/protected/perfil');
 
-    await page.waitForURL('/auth', { timeout: 10000 });
-    expect(page.url()).toContain('/auth');
+    expect(new URL(page.url()).pathname).toBe('/auth');
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/protected/perfil');
   });
 
   test('acessar /protected/activitie sem auth deve redirecionar para /auth', async ({ page }) => {
     await page.goto('/protected/activitie');
 
-    await page.waitForURL('/auth', { timeout: 10000 });
-    expect(page.url()).toContain('/auth');
+    expect(new URL(page.url()).pathname).toBe('/auth');
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/protected/activitie');
   });
 });

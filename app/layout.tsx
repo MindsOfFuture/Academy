@@ -4,9 +4,11 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import TrackingProvider from "@/components/tracking/TrackingProvider";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
+const defaultUrl =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),

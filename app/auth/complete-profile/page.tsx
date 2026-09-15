@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Phone, MapPin, Calendar, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { normalizeNextPath } from "@/lib/utils";
 
 function CompleteProfileContent() {
     const searchParams = useSearchParams();
@@ -91,15 +92,19 @@ function CompleteProfileContent() {
 
             toast.success("Perfil completado com sucesso!");
 
-            if (userType === "teacher") {
+            // A rota pode responder "admin": nesse caso o papel já existe e não
+            // passa pelo onboarding, então segue direto igual ao aluno.
+            const resolvedUserType = payload?.userType ?? userType;
+
+            if (resolvedUserType === "teacher") {
                 // Redirect to complete teacher profile
-                const queryStr = nextParam ? `&next=${encodeURIComponent(nextParam)}` : '';
+                const safeNextPath = normalizeNextPath(nextParam);
+                const queryStr = safeNextPath ? `&next=${encodeURIComponent(safeNextPath)}` : '';
                 router.push(`/auth/complete-teacher-profile?from=oauth${queryStr}`);
             } else {
                 // Redirect to protected area
-                const nextPath = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/protected";
+                const nextPath = normalizeNextPath(nextParam) ?? "/protected";
                 router.push(nextPath);
-                router.refresh();
             }
         } catch (err: unknown) {
             const errorMessage =

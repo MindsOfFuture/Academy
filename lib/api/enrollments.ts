@@ -1,5 +1,5 @@
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { type CourseSummary, type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonProgressRow, getThumbUrl } from "./types";
+import { type EnrollmentSummary, type CourseRow, type EnrollmentRow, type LessonProgressRow, mapCourse } from "./types";
 
 interface EnrollmentWithCountsRow {
     id: string;
@@ -16,23 +16,8 @@ interface EnrollmentWithCountsRow {
     completed_lessons: { count: number }[];
 }
 
-function mapCourse(row: CourseRow): CourseSummary {
-    return {
-        id: row.id,
-        title: row.title,
-        description: row.description ?? null,
-        level: row.level ?? null,
-        status: row.status ?? null,
-        thumbUrl: getThumbUrl(row.thumb),
-    };
-}
-
-function getSupabase() {
-    return createBrowserSupabase();
-}
-
 export async function verifyEnrollment(courseId: string) {
-    const supabase = getSupabase();
+    const supabase = createBrowserSupabase();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) return null;
@@ -86,7 +71,7 @@ export async function enrollInCourse(courseId: string) {
 }
 
 export async function getUserCourses(): Promise<EnrollmentSummary[]> {
-    const supabase = getSupabase();
+    const supabase = createBrowserSupabase();
     const { data: authData } = await supabase.auth.getUser();
     const user = authData?.user;
     if (!user) return [];

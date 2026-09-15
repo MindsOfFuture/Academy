@@ -20,6 +20,7 @@ export interface MockChain {
 
 export interface MockSupabaseClient {
   from: ReturnType<typeof vi.fn>;
+  rpc: ReturnType<typeof vi.fn>;
   auth: {
     getUser: ReturnType<typeof vi.fn>;
     signInWithPassword: ReturnType<typeof vi.fn>;
@@ -97,6 +98,7 @@ export function createMockSupabaseClient(): MockSupabaseClient {
 
   const mockClient: MockSupabaseClient = {
     from: vi.fn().mockImplementation(() => createChainableResult()),
+    rpc: vi.fn().mockImplementation(() => createChainableResult()),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } } }),
       signInWithPassword: vi.fn(),
@@ -142,6 +144,7 @@ export function mockUnauthenticatedUser(client: MockSupabaseClient) {
 export function resetMockClient(client: MockSupabaseClient) {
   vi.clearAllMocks();
   client.from.mockClear();
+  client.rpc.mockClear();
   client.auth.getUser.mockClear();
   Object.values(client.chain).forEach(mock => mock.mockClear());
 }

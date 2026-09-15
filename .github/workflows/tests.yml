@@ -2,13 +2,40 @@ name: Tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, development]
   pull_request:
-    branches: [main]
+    branches: [main, development]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # Configuração fictícia: lint/build carregam next.config.ts, sem acesso à produção.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:9
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
+      # O SDK é construído ao importar rotas durante o build; nunca usar chave real no CI.
+      RESEND_API_KEY: re_ci_placeholder_not_a_real_key
+      # Instalar peers do lockfile mesmo em runners com configuração npm legada.
+      NPM_CONFIG_LEGACY_PEER_DEPS: 'false'
+      NEXT_TELEMETRY_DISABLED: '1'
+
+    # PostgreSQL 16 descartável para a prova de concorrência real da telemetria
+    # (tests/integration/telemetry-migration.test.ts). Sem ele o bloco de duas
+    # sessões é ignorado, porque PGlite é single-connection.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: academy_telemetry_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -27,7 +54,13 @@ jobs:
         run: npm run lint
 
       - name: Run tests with coverage
+        env:
+          TELEMETRY_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/academy_telemetry_test
         run: npm test -- --run --coverage
+
+      # next build também executa a verificação de tipos do aplicativo.
+      - name: Build application and check types
+        run: npm run build
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4

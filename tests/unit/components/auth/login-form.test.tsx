@@ -7,11 +7,14 @@ import toast from "react-hot-toast";
 
 // Mocks
 const pushMock = vi.fn();
+let searchParamsMock = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: pushMock,
+    refresh: vi.fn(),
   }),
+  useSearchParams: () => searchParamsMock,
 }));
 
 vi.mock("next/link", () => ({
@@ -38,6 +41,7 @@ vi.mock("@/lib/supabase/client", () => ({
 describe("LoginForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    searchParamsMock = new URLSearchParams();
   });
 
   const defaultProps = {
@@ -85,6 +89,23 @@ describe("LoginForm", () => {
         password: "password123",
       });
       expect(toast.success).toHaveBeenCalledWith("Login realizado com sucesso!");
+      expect(pushMock).toHaveBeenCalledWith("/protected");
+    });
+  });
+
+  it("recusa next com barra invertida para não permitir redirect externo", async () => {
+    searchParamsMock = new URLSearchParams("next=/%5Cevil.example");
+    signInWithPasswordMock.mockResolvedValueOnce({
+      data: { user: { id: "123" } },
+      error: null,
+    });
+
+    render(<LoginForm {...defaultProps} />);
+    await userEvent.type(screen.getByPlaceholderText(/Email/i), "test@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Senha/i), "password123");
+    fireEvent.click(screen.getByRole("button", { name: /entrar/i }));
+
+    await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith("/protected");
     });
   });

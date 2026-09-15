@@ -1,6 +1,5 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient as createServerSupabase, createAdminClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { type RoleName, type TeacherVerificationStatus, type UserProfileSummary } from "./types";
 import { notifyAdmins, createNotification } from "./notifications-server";
@@ -36,6 +35,72 @@ async function ensureRoleId(roleName: RoleName, supabase: Awaited<ReturnType<typ
 
     if (insertError || !inserted?.id) return null;
     return inserted.id as number;
+}
+
+/**
+ * Define o papel escolhido no onboarding OAuth (student ou teacher).
+ *
+ * As rotas de onboarding rodam com service role, logo passam por cima das
+ * policies de `user_role` (INSERT só para admin). Dois guardas obrigatórios:
+ *
+ * 1. Nunca remover o papel `admin` — o fluxo original apagava TODOS os papéis
+ *    antes de inserir, então um admin que passasse pelo onboarding se rebaixava.
+ * 2. `teacher` sempre entra como `pending`. O papel sozinho não libera nada:
+ *    publicar exige `ensureCurrentTeacherVerifiedForPublishing`.
+ */
+export async function setOnboardingRole(userId: string, roleName: "student" | "teacher") {
+    const serviceRole = await createServiceRoleClient();
+
+    const { data: currentLinks, error: currentError } = await serviceRole
+        .from("user_role")
+        .select("role_id, role:role_id(name)")
+        .eq("user_profile_id", userId);
+
+    if (currentError) throw new Error(currentError.message);
+
+    const currentNames = (currentLinks ?? []).map((link) => {
+        const role = (link as { role?: { name?: string } | { name?: string }[] }).role;
+        return (Array.isArray(role) ? role[0]?.name : role?.name) ?? "";
+    });
+
+    if (currentNames.includes("admin")) {
+        throw new Error("Acesso negado. Administradores não passam pelo onboarding de papel.");
+    }
+
+    if (currentNames.includes(roleName) && currentNames.length === 1) {
+        // Já está no papel pedido: idempotente, nada a fazer.
+        return;
+    }
+
+    const { data: roleRow, error: roleError } = await serviceRole
+        .from("role")
+        .select("id")
+        .eq("name", roleName)
+        .maybeSingle();
+
+    if (roleError || !roleRow?.id) {
+        throw new Error(roleError?.message || "Papel de usuário inválido.");
+    }
+
+    const { error: deleteError } = await serviceRole
+        .from("user_role")
+        .delete()
+        .eq("user_profile_id", userId);
+
+    if (deleteError) throw new Error(deleteError.message);
+
+    const { error: insertError } = await serviceRole
+        .from("user_role")
+        .insert({ user_profile_id: userId, role_id: roleRow.id, granted_by: userId });
+
+    if (insertError) throw new Error(insertError.message);
+
+    if (roleName === "teacher") {
+        await serviceRole
+            .from("user_profile")
+            .update({ verification_status: "pending", updated_at: new Date().toISOString() })
+            .eq("id", userId);
+    }
 }
 
 async function fetchRoleForUser(userId: string, supabase: Awaited<ReturnType<typeof createServerSupabase>>): Promise<RoleName> {
@@ -389,85 +454,7 @@ export async function updateUserAction(formData: FormData) {
     revalidatePath("/protected");
 }
 
-export async function updateCurrentUserProfileAction(formData: FormData) {
-    "use server";
-    const supabase = await createServerSupabase();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) {
-        redirect("/auth");
-    }
-
-    const targetId = formData.get("id");
-    const name = (formData.get("display_name") || "").toString().trim();
-    const email = (formData.get("email") || "").toString().trim();
-
-    if (!targetId || targetId !== user.id) {
-        redirect("/protected/perfil?error=unauthorized");
-    }
-    if (!name) {
-        redirect("/protected/perfil?error=invalid_name");
-    }
-
-    const emailChanged = !!email && email !== user.email;
-    const { error: authError } = await supabase.auth.updateUser({
-        ...(emailChanged ? { email } : {}),
-        data: { full_name: name, display_name: name },
-    });
-    if (authError) {
-        redirect(`/protected/perfil?error=auth_${encodeURIComponent(authError.message)}`);
-    }
-
-    const { error: tableError } = await supabase
-        .from("user_profile")
-        .update({ full_name: name, email, updated_at: new Date().toISOString() })
-        .eq("id", user.id);
-    if (tableError) {
-        redirect(`/protected/perfil?error=db_${encodeURIComponent(tableError.message)}`);
-    }
-    revalidatePath("/protected/perfil");
-    redirect(`/protected/perfil?updated=1${emailChanged ? "&email_changed=1" : ""}`);
-}
-
 export { fetchRoleForUser, mapRoleFromLinks };
-
-export async function updateCurrentTeacherProfileAction(params: {
-    bio?: string;
-    specialties?: string[];
-    certifications?: string[];
-}) {
-    const supabase = await createServerSupabase();
-    const { data: authData } = await supabase.auth.getUser();
-    const user = authData?.user;
-    if (!user) {
-        throw new Error("Usuário não autenticado.");
-    }
-
-    const role = await fetchRoleForUser(user.id, supabase);
-    if (role !== "teacher") {
-        throw new Error("Apenas professores podem atualizar este perfil.");
-    }
-
-    const sanitize = (items?: string[]) => (items || []).map((item) => item.trim()).filter(Boolean);
-    const specialties = sanitize(params.specialties);
-    const certifications = sanitize(params.certifications);
-
-    const { error } = await supabase
-        .from("user_profile")
-        .update({
-            bio: params.bio?.trim() || null,
-            specialties,
-            certifications,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-    if (error) {
-        throw error;
-    }
-
-    revalidatePath("/protected/perfil");
-}
 
 export async function updateCurrentTeacherProfileWithReverification(params: {
     bio?: string;
@@ -639,34 +626,6 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
     };
 }
 
-export async function getTeacherVerificationStatus(userId: string): Promise<TeacherVerificationStatus> {
-    const supabase = await createServerSupabase();
-    const { data } = await supabase
-        .from("user_profile")
-        .select("verification_status")
-        .eq("id", userId)
-        .maybeSingle();
-
-    return (data?.verification_status || null) as TeacherVerificationStatus;
-}
-
-export async function ensureTeacherVerifiedForPublishingByUserId(userId: string): Promise<void> {
-    const supabase = await createServerSupabase();
-    const role = await fetchRoleForUser(userId, supabase);
-    if (role === "admin") {
-        return;
-    }
-
-    if (role !== "teacher") {
-        throw new Error("Apenas professores aprovados podem executar esta ação.");
-    }
-
-    const status = await getTeacherVerificationStatus(userId);
-    if (status !== "approved") {
-        throw new Error("Professor não verificado. Aguarde aprovação do administrador.");
-    }
-}
-
 export async function ensureCurrentTeacherVerifiedForPublishing(): Promise<void> {
     const supabase = await createServerSupabase();
     const { data: authData } = await supabase.auth.getUser();
@@ -674,7 +633,22 @@ export async function ensureCurrentTeacherVerifiedForPublishing(): Promise<void>
     if (!user) {
         throw new Error("Usuário não autenticado.");
     }
-    await ensureTeacherVerifiedForPublishingByUserId(user.id);
+
+    const role = await fetchRoleForUser(user.id, supabase);
+    if (role === "admin") return;
+    if (role !== "teacher") {
+        throw new Error("Apenas professores aprovados podem executar esta ação.");
+    }
+
+    const { data } = await supabase
+        .from("user_profile")
+        .select("verification_status")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (data?.verification_status !== "approved") {
+        throw new Error("Professor não verificado. Aguarde aprovação do administrador.");
+    }
 }
 
 export async function setTeacherVerificationStatusByAdmin(params: {

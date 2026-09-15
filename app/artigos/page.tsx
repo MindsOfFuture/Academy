@@ -8,6 +8,7 @@ import Navbar from "@/components/navbar/navbar";
 import { type ArticleDetail } from "@/lib/api/articles";
 import { ArrowLeft, Calendar, Clock, Share2, Users, BookOpen, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
+import { sanitizeRichText } from "@/lib/sanitize";
 
 // Extrai metadados do artigo (Authors, Published in, Link) do conteúdo HTML
 function extractArticleMetadata(htmlContent: string): {
@@ -329,7 +330,10 @@ function ArticlePageContent() {
                   const { cleanedContent, metadata } = extractArticleMetadata(article.content);
                   return (
                     <>
-                      <div dangerouslySetInnerHTML={{ __html: cleanedContent }} />
+                      {/* /artigos é rota pública: o HTML do artigo precisa ser
+                          sanitizado antes de virar innerHTML, senão vira XSS
+                          armazenado para todo visitante. */}
+                      <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(cleanedContent) }} />
                       <ArticleMetadataCard metadata={metadata} />
                     </>
                   );

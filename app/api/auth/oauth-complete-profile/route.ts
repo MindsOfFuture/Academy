@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
+import { fetchRoleForUser, setOnboardingRole } from "@/lib/api/profiles-server";
 
 type OAuthCompleteProfilePayload = {
     fullName?: unknown;
@@ -22,7 +23,7 @@ function parsePayload(body: OAuthCompleteProfilePayload) {
     const birthDate = normalizeString(body.birthDate);
     const userType = body.userType === "teacher" ? "teacher" : "student";
 
-    return { fullName, phone, address, document, birthDate, userType };
+    return { fullName, phone, address, document, birthDate, userType } as const;
 }
 
 export async function POST(request: Request) {
@@ -48,12 +49,27 @@ export async function POST(request: Request) {
 
         const { data: profileRow, error: profileFetchError } = await serviceRole
             .from("user_profile")
-            .select("id")
+            .select("id, full_name, phone, address, document, birth_date")
             .eq("id", user.id)
             .maybeSingle();
 
         if (profileFetchError) {
             return NextResponse.json({ error: profileFetchError.message }, { status: 500 });
+        }
+
+        // Onboarding acontece uma vez só. Sem esta checagem qualquer usuário já
+        // cadastrado poderia rechamar a rota com userType "teacher" e reescrever
+        // o próprio papel (a rota roda com service role e ignora as policies).
+        const alreadyOnboarded = Boolean(
+            profileRow?.full_name &&
+            profileRow?.phone &&
+            profileRow?.address &&
+            profileRow?.document &&
+            profileRow?.birth_date,
+        );
+
+        if (alreadyOnboarded) {
+            return NextResponse.json({ error: "Perfil já foi completado." }, { status: 409 });
         }
 
         if (profileRow?.id) {
@@ -94,40 +110,21 @@ export async function POST(request: Request) {
             }
         }
 
-        const { data: roleRow, error: roleError } = await serviceRole
-            .from("role")
-            .select("id")
-            .eq("name", payload.userType)
-            .maybeSingle();
+        // Admin que entra por OAuth precisa completar o perfil, mas não escolhe
+        // papel: `setOnboardingRole` recusa admin de propósito, para não rebaixar
+        // a conta. O perfil já foi gravado acima, então basta não chamar.
+        const currentRole = await fetchRoleForUser(user.id, serviceRole);
 
-        if (roleError || !roleRow?.id) {
-            return NextResponse.json({ error: roleError?.message || "Papel de usuário inválido." }, { status: 500 });
+        if (currentRole === "admin") {
+            return NextResponse.json({ ok: true, userType: "admin" });
         }
 
-        const { error: deleteRoleError } = await serviceRole
-            .from("user_role")
-            .delete()
-            .eq("user_profile_id", user.id);
-
-        if (deleteRoleError) {
-            return NextResponse.json({ error: deleteRoleError.message }, { status: 500 });
-        }
-
-        const { error: insertRoleError } = await serviceRole
-            .from("user_role")
-            .insert({
-                user_profile_id: user.id,
-                role_id: roleRow.id,
-                granted_by: user.id,
-            });
-
-        if (insertRoleError) {
-            return NextResponse.json({ error: insertRoleError.message }, { status: 500 });
-        }
+        await setOnboardingRole(user.id, payload.userType);
 
         return NextResponse.json({ ok: true, userType: payload.userType });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Erro ao completar perfil OAuth";
-        return NextResponse.json({ error: message }, { status: 500 });
+        const status = message.toLowerCase().includes("acesso negado") ? 403 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

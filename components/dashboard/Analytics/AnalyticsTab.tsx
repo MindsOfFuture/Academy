@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
 import type { DateFilter } from "./hooks/useAnalytics";
 import { GlobalAnalytics } from "./GlobalAnalytics";
 import { LearningPathAnalytics } from "./LearningPathAnalytics";
@@ -30,19 +29,6 @@ export default function AnalyticsTab({ isAdmin, courses, paths, users }: Analyti
       </div>
     );
   }
-
-  // Exportador de CSV Simples (dummy para MVP, mas funcional estruturalmente)
-  const handleExportCSV = () => {
-    // Para MVP: exporta um CSV simples com as configurações atuais
-    const csvContent = `data:text/csv;charset=utf-8,Level,DateFilter\n${level},${dateFilter}`;
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `analytics_${level}_${dateFilter}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   return (
     <div className="space-y-6">
@@ -91,21 +77,12 @@ export default function AnalyticsTab({ isAdmin, courses, paths, users }: Analyti
               <option value="all">Todo o período</option>
             </select>
           )}
-
-          {/* Exportar */}
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200 w-full sm:w-auto whitespace-nowrap"
-          >
-            <Download className="w-4 h-4" />
-            Exportar CSV
-          </button>
         </div>
       </div>
 
       {/* Renderização Condicional do Nível */}
       <div className="animate-in fade-in duration-300">
-        {level === "global" && <GlobalAnalytics filter={dateFilter} />}
+        {level === "global" && <GlobalAnalytics filter={dateFilter} courses={courses} />}
         {level === "path" && <LearningPathAnalytics paths={paths} />}
         {level === "course" && <CourseAnalytics courses={courses} />}
         {level === "student" && <StudentAnalytics students={users} />}

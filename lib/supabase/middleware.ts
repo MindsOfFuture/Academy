@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { hasEnvVars } from "../utils";
+import { missingSupabaseEnv } from "../env";
+import { redirectToInternalPath } from "./redirect";
 
 const PUBLIC_PATH_PREFIXES = [
   "/auth",
@@ -8,6 +9,8 @@ const PUBLIC_PATH_PREFIXES = [
   "/termos",
   "/privacidade",
   "/artigos",
+  "/validar",
+  "/creditos",
   "/api/articles",
   "/api/auth/oauth-complete-profile",
   "/api/auth/oauth-ensure-teacher-role",
@@ -15,9 +18,43 @@ const PUBLIC_PATH_PREFIXES = [
   "/api/notifications",
 ] as const;
 
+/**
+ * Públicos por path EXATO — descendente nenhum entra. Ingestão de telemetria e
+ * leitura de Analytics chegam ao guard da própria rota: o handler responde
+ * 401/403 em JSON em vez de redirecionar o fetch para /auth. Como só o path
+ * exato casa, sub-rotas futuras (`/api/telemetry/events/batch`), nomes parecidos
+ * (`/api/telemetry/events-admin`) e os prefixos-pai (`/api/telemetry`) nascem
+ * protegidos por padrão.
+ */
+const PUBLIC_EXACT_PATHS = [
+  "/api/telemetry/events",
+  "/api/analytics/events",
+  "/api/games/events",
+  "/api/games/export",
+] as const;
+
 export function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
-  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  if (PUBLIC_EXACT_PATHS.some((path) => pathname === path)) return true;
+  return PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+const EXEMPT_PATH_PREFIXES = ["/_next/static", "/_next/image"] as const;
+const EXEMPT_ASSET_EXTENSIONS = /\.(?:svg|png|jpg|jpeg|gif|webp)$/i;
+
+/**
+ * Caminhos que o guard de env não bloqueia: assets, favicon e health check.
+ * Espelha o matcher de `middleware.ts` para assets; o health check precisa chegar
+ * à rota mesmo quando a configuração do Supabase está indisponível.
+ */
+export function isExemptPath(pathname: string): boolean {
+  if (pathname === "/favicon.ico" || pathname === "/api/health") return true;
+  if (EXEMPT_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return true;
+  }
+  return EXEMPT_ASSET_EXTENSIONS.test(pathname);
 }
 
 export async function updateSession(request: NextRequest) {
@@ -25,9 +62,25 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // If the env vars are not set, skip middleware check. You can remove this once you setup the project.
-  if (!hasEnvVars) {
-    return supabaseResponse;
+  // Fail-closed: sem as env vars do Supabase não há como autenticar ninguém, então
+  // nega em vez de liberar. Assets e health check seguem passando para preservar
+  // a página de erro e a observabilidade operacional.
+  const missingEnv = missingSupabaseEnv();
+  if (missingEnv.length > 0) {
+    if (isExemptPath(request.nextUrl.pathname)) {
+      return supabaseResponse;
+    }
+    console.error(
+      `[supabase/middleware] variáveis de ambiente obrigatórias ausentes: ${missingEnv.join(", ")} — respondendo 503 em todas as rotas não isentas`,
+    );
+    // Corpo genérico de propósito: nada de nome de variável ou detalhe de config.
+    return new NextResponse("Service Unavailable", {
+      status: 503,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
   }
 
   const supabase = createServerClient(
@@ -68,13 +121,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user && !isPublicPath(request.nextUrl.pathname)) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone();
     const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-    url.pathname = "/auth";
-    url.search = "";
-    url.searchParams.set("next", nextPath);
-    return NextResponse.redirect(url);
+    const search = new URLSearchParams({ next: nextPath });
+    return redirectToInternalPath(
+      `/auth?${search.toString()}`,
+      request,
+      supabaseResponse,
+    );
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
