@@ -64,7 +64,7 @@ create table if not exists gestao.escola (
   cidade text not null,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
-  criado_por uuid not null references auth.users (id) on delete set null
+  criado_por uuid references auth.users (id) on delete set null
 );
 
 create table if not exists gestao.aluno (
@@ -79,7 +79,7 @@ create table if not exists gestao.aluno (
   cidade text not null,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
-  criado_por uuid not null references auth.users (id) on delete set null
+  criado_por uuid references auth.users (id) on delete set null
 );
 
 -- Visita/reserva de uma escola: ônibus, dias, horários, modalidade, nº de alunos,
@@ -96,7 +96,7 @@ create table if not exists gestao.reserva (
   status text not null check (status in ('planejada', 'confirmada', 'realizada', 'cancelada')),
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
-  criado_por uuid not null references auth.users (id) on delete set null
+  criado_por uuid references auth.users (id) on delete set null
 );
 
 -- Termo por aluno dentro de uma reserva: só status, sem imagem/CPF (minimização LGPD).
@@ -120,7 +120,7 @@ create table if not exists gestao.agenda (
   horario text not null,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
-  criado_por uuid not null references auth.users (id) on delete set null
+  criado_por uuid references auth.users (id) on delete set null
 );
 
 -- Vínculo agenda <-> bolsista com a carga/horas da alocação.
@@ -164,7 +164,7 @@ create table if not exists gestao.lista_enviada (
   reserva_id uuid references gestao.reserva (id) on delete set null,
   nomes text[] not null check (array_length(nomes, 1) between 1 and 30),
   criado_em timestamptz not null default now(),
-  criado_por uuid not null references auth.users (id) on delete set null
+  criado_por uuid references auth.users (id) on delete set null
 );
 
 -- Auditoria append-only das escritas no schema (rastreabilidade sem log externo).
@@ -216,8 +216,11 @@ create policy "coordenacao_gerencia_papel"
 
 -- Registro operacional: coordenação lê e escreve; bolsista lê e escreve o que
 -- produz (presença, aula); ambos leem escolas/alunos para trabalhar.
+-- `search_path` fixo como nas demais: sem isso o caminho de resolução fica a
+-- cargo de quem chama, e `usuario_com_papel` pode cair em outro objeto.
 create or replace function gestao.e_membro()
 returns boolean language sql stable security invoker
+set search_path = 'gestao'
 as $$ select gestao.usuario_com_papel('coordenacao') or gestao.usuario_com_papel('bolsista') $$;
 revoke execute on function gestao.e_membro() from public, anon;
 grant execute on function gestao.e_membro() to authenticated;
