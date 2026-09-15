@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { APP, ETAPAS, FECHAMENTO, STORAGE_KEY, type Etapa, type Pergunta } from "./data";
+import { GAME_CONTENT_VERSIONS } from "@/lib/api/game-telemetry-types";
+import { startGameRun, type GameRun } from "@/lib/services/game-tracking.service";
+
+const GAME_KEY = "primeiro-passo" as const;
+const CONTENT_VERSION = GAME_CONTENT_VERSIONS[GAME_KEY];
 
 type AnswerData = Record<string, string | string[] | number | boolean> & { __ok?: boolean };
 type Answers = Record<string, AnswerData>;
@@ -29,8 +34,21 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
   const [answers, setAnswers] = useState<Answers>({});
   const [view, setView] = useState<View>("cover");
   const [activeId, setActiveId] = useState(1);
+  const run = useRef<GameRun | null>(null);
 
   useEffect(() => setAnswers(loadAnswers(userId)), [userId]);
+
+  // A jornada é longa e feita em várias visitas: cada visita abre uma partida,
+  // e sair da página a encerra sem perder o que já foi respondido.
+  useEffect(() => () => {
+    run.current?.abandon();
+    run.current = null;
+  }, []);
+
+  function ensureRun(): GameRun {
+    if (!run.current) run.current = startGameRun(GAME_KEY, CONTENT_VERSION);
+    return run.current;
+  }
 
   const completed = useMemo(
     () => ETAPAS.filter((stage) => Boolean(answers[String(stage.id)]?.__ok)).length,
@@ -66,12 +84,76 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
       window.alert(`Preencha: ${missing.p}`);
       return;
     }
+    recordStage(stage, data);
     save({ ...answers, [String(stage.id)]: { ...data, __ok: true } });
     setView("result");
   }
 
+  /** Registra o que a etapa recolheu, um campo por resposta. */
+  function recordStage(stage: Etapa, data: AnswerData) {
+    const tracker = ensureRun();
+    const scopeKey = `etapa-${stage.id}`;
+    for (const question of stage.perguntas) {
+      const value = data[question.id];
+      if (value === undefined || value === null || value === "") continue;
+
+      if (question.tipo === "multi") {
+        const list = Array.isArray(value) ? value.map(String) : [String(value)];
+        if (list.length === 0) continue;
+        tracker.record({ questionKey: question.id, answerKind: "multipla", answerKeys: list, scopeKey });
+        continue;
+      }
+      if (question.tipo === "escala") {
+        const score = Number(value);
+        if (!Number.isFinite(score)) continue;
+        tracker.record({ questionKey: question.id, answerKind: "escala", answerNumber: score, scopeKey });
+        continue;
+      }
+      if (question.tipo === "numero") {
+        const parsed = parseNumber(value);
+        if (parsed === null) continue;
+        tracker.record({ questionKey: question.id, answerKind: "numero", answerNumber: parsed, scopeKey });
+        continue;
+      }
+      if (question.tipo === "texto") {
+        tracker.record({ questionKey: question.id, answerKind: "texto", answerText: String(value), scopeKey });
+        continue;
+      }
+      tracker.record({ questionKey: question.id, answerKind: "escolha", answerKey: String(value), scopeKey });
+    }
+
+    // A estimativa calculada pela etapa é resultado, não resposta — mas é o que
+    // a pesquisa vai querer comparar entre turmas.
+    if (stage.calculo === "preco") {
+      const cost = parseNumber(data.custo);
+      const margin = parseNumber(data.margem);
+      if (cost !== null && margin !== null) {
+        tracker.record({
+          questionKey: "preco_estimado",
+          answerKind: "numero",
+          answerNumber: Math.round(cost * (1 + margin / 100) * 100) / 100,
+          scopeKey,
+        });
+      }
+    }
+    if (stage.calculo === "caixa") {
+      const investment = parseNumber(data.investimento);
+      const monthly = parseNumber(data.gasto_mes);
+      if (investment !== null && monthly !== null) {
+        tracker.record({
+          questionKey: "caixa_necessario",
+          answerKind: "numero",
+          answerNumber: Math.round((investment + monthly * 3) * 100) / 100,
+          scopeKey,
+        });
+      }
+    }
+  }
+
   function reset() {
     if (!window.confirm("Apagar suas respostas e recomeçar?")) return;
+    run.current?.abandon();
+    run.current = null;
     setAnswers({});
     try {
       window.localStorage.removeItem(`${STORAGE_KEY}:${userId}`);
@@ -79,6 +161,19 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
       // Sem ação adicional quando o armazenamento não está disponível.
     }
     setView("cover");
+  }
+
+  /** As dez etapas concluídas fecham a jornada: é o desfecho da partida. */
+  function openPlan() {
+    const done = ETAPAS.filter((stage) => Boolean(answers[String(stage.id)]?.__ok)).length;
+    if (done === ETAPAS.length && run.current) {
+      run.current.finish({
+        outcomeKey: "jornada-completa",
+        summary: { etapas_concluidas: done },
+      });
+      run.current = null;
+    }
+    setView("plan");
   }
 
   return (
@@ -105,7 +200,7 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
         <div>
           <JourneyHeader completed={completed} onBack={() => setView("cover")} />
           <div className="p-5 sm:p-8">
-            {completed === 10 && <button type="button" onClick={() => setView("plan")} className="mb-5 w-full rounded-xl bg-purple-700 px-5 py-3 font-bold text-white">Ver meu plano ✨</button>}
+            {completed === 10 && <button type="button" onClick={openPlan} className="mb-5 w-full rounded-xl bg-purple-700 px-5 py-3 font-bold text-white">Ver meu plano ✨</button>}
             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Todas as etapas</h3>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {ETAPAS.map((stage) => {
@@ -118,7 +213,7 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
                 );
               })}
             </div>
-            {completed > 0 && completed < 10 && <button type="button" onClick={() => setView("plan")} className="mt-6 rounded-xl border border-purple-300 px-5 py-3 font-bold text-purple-800">Ver meu plano parcial</button>}
+            {completed > 0 && completed < 10 && <button type="button" onClick={openPlan} className="mt-6 rounded-xl border border-purple-300 px-5 py-3 font-bold text-purple-800">Ver meu plano parcial</button>}
             <p className="mt-7 rounded-xl bg-amber-50 p-4 text-sm text-gray-700">{APP.aviso}</p>
           </div>
         </div>
@@ -142,7 +237,7 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
       )}
 
       {view === "result" && (
-        <StageResult stage={active} data={answers[String(active.id)] ?? {}} onJourney={() => setView("journey")} onNext={() => { const next = ETAPAS.find((stage) => stage.id > active.id); if (next) openStage(next.id); else setView("plan"); }} />
+        <StageResult stage={active} data={answers[String(active.id)] ?? {}} onJourney={() => setView("journey")} onNext={() => { const next = ETAPAS.find((stage) => stage.id > active.id); if (next) openStage(next.id); else openPlan(); }} />
       )}
 
       {view === "plan" && (

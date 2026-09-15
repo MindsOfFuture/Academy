@@ -1,12 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BLOCOS, CENARIOS, type OpcaoCenario } from "./data";
+import { GAME_CONTENT_VERSIONS } from "@/lib/api/game-telemetry-types";
+import { startGameRun, type GameRun } from "@/lib/services/game-tracking.service";
 
 const STORAGE_KEY = "academy-cidadania-financeira-v1";
+const GAME_KEY = "cidadania-financeira" as const;
+const CONTENT_VERSION = GAME_CONTENT_VERSIONS[GAME_KEY];
 
 type Answer = { scenarioId: number; type: OpcaoCenario["type"]; points: number };
 type SavedState = { completedBlocks: number[] };
+
+/** Faixas de desempenho: o nome exibido ao aluno e a marca guardada no acervo. */
+const RANKS = [
+  { min: 90, label: "Mestre", key: "mestre" },
+  { min: 70, label: "Especialista", key: "especialista" },
+  { min: 50, label: "Praticante", key: "praticante" },
+  { min: 0, label: "Em aprendizado", key: "em-aprendizado" },
+] as const;
+
+function rankFor(score: number, scenarioCount: number) {
+  const pct = scenarioCount === 0 ? 0 : Math.round((score / (scenarioCount * 10)) * 100);
+  return RANKS.find((item) => pct >= item.min) ?? RANKS[RANKS.length - 1];
+}
 
 function readSaved(userId: string): SavedState {
   if (typeof window === "undefined") return { completedBlocks: [] };
@@ -24,8 +41,16 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState(false);
+  const run = useRef<GameRun | null>(null);
 
   useEffect(() => setCompletedBlocks(readSaved(userId).completedBlocks), [userId]);
+
+  // Partida aberta e abandonada continua sendo informação: o registro é fechado
+  // ao sair da página para que a pesquisa saiba onde o aluno parou.
+  useEffect(() => () => {
+    run.current?.abandon();
+    run.current = null;
+  }, []);
 
   const block = BLOCOS.find((item) => item.id === blockId);
   const scenarios = useMemo(
@@ -45,6 +70,9 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
   }
 
   function start(nextBlockId: number) {
+    run.current?.abandon();
+    const role = BLOCOS.find((item) => item.id === nextBlockId)?.role;
+    run.current = startGameRun(GAME_KEY, CONTENT_VERSION, role);
     setBlockId(nextBlockId);
     setScenarioIndex(0);
     setAnswers([]);
@@ -60,11 +88,31 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
       ...current,
       { scenarioId: scenario.id, type: option.type, points: option.points },
     ]);
+    run.current?.record({
+      questionKey: `cenario-${scenario.id}`,
+      answerKind: "escolha",
+      answerKey: option.origLabel,
+      outcome: option.type,
+      points: option.points,
+    });
   }
 
   function next() {
     if (scenarioIndex + 1 >= scenarios.length) {
       setResult(true);
+      const finalScore = answers.reduce((sum, answer) => sum + answer.points, 0);
+      const correct = answers.filter((answer) => answer.type === "correct").length;
+      run.current?.finish({
+        score: finalScore,
+        maxScore: scenarios.length * 10,
+        outcomeKey: rankFor(finalScore, scenarios.length).key,
+        summary: {
+          corretas: correct,
+          parciais: answers.filter((answer) => answer.type === "partial").length,
+          erradas: answers.filter((answer) => answer.type === "wrong").length,
+        },
+      });
+      run.current = null;
       if (blockId !== null && !completedBlocks.includes(blockId)) {
         persist([...completedBlocks, blockId]);
       }
@@ -75,6 +123,8 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
   }
 
   function menu() {
+    run.current?.abandon();
+    run.current = null;
     setBlockId(null);
     setResult(false);
     setSelected(null);
@@ -122,8 +172,7 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
 
   if (result) {
     const correct = answers.filter((answer) => answer.type === "correct").length;
-    const pct = Math.round((score / (scenarios.length * 10)) * 100);
-    const rank = pct >= 90 ? "Mestre" : pct >= 70 ? "Especialista" : pct >= 50 ? "Praticante" : "Em aprendizado";
+    const rank = rankFor(score, scenarios.length).label;
     return (
       <section className="rounded-3xl border border-purple-100 bg-white p-6 text-center shadow-sm sm:p-10">
         <span className="text-5xl" aria-hidden="true">🏆</span>

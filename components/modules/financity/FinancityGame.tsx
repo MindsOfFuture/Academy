@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { brl, calcExtrato, diagnosticar, lookupSalario } from "./calculations";
 import {
   ESTADO_INICIAL,
@@ -10,8 +10,41 @@ import {
   type StreamingKey,
   type LazerKey,
 } from "./data";
+import { GAME_CONTENT_VERSIONS } from "@/lib/api/game-telemetry-types";
+import { startGameRun, type GameRun } from "@/lib/services/game-tracking.service";
 
 const STAGE_DECISIONS = [2, 1, 3, 2, 3, 1, 1, 1, 0];
+const GAME_KEY = "orcamento-familiar" as const;
+const CONTENT_VERSION = GAME_CONTENT_VERSIONS[GAME_KEY];
+
+/**
+ * O que é registrado de cada etapa. O nome digitado pelo aluno fica de fora do
+ * acervo: identifica a pessoa e não diz nada sobre a decisão financeira. Da
+ * profissão guardamos só o que o jogo usa para calcular — se foi reconhecida na
+ * tabela de salários e qual a faixa resultante.
+ */
+const STAGE_FIELDS: Record<number, (keyof GameState)[]> = {
+  0: ["profissao"],
+  1: ["regime"],
+  2: ["estadoCivil", "filhos", "pets"],
+  3: ["imovel", "aquisicao"],
+  4: ["transporte", "streaming", "alimentacao"],
+  5: ["poupanca"],
+  6: ["lazer"],
+  7: ["imprevisto"],
+};
+
+const PERFIL_KEYS: Record<string, string> = {
+  "Superendividado": "superendividado",
+  "Poupador Extremo": "poupador",
+  "Equilibrado": "equilibrado",
+  "Gastador Livre": "gastador",
+};
+
+function perfilKey(titulo: string): string {
+  return PERFIL_KEYS[titulo]
+    ?? titulo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+}
 
 type SavedSession = {
   nome: string;
@@ -37,19 +70,75 @@ export default function FinancityGame({ userId }: { userId: string }) {
   const [game, setGame] = useState<GameState>({ ...ESTADO_INICIAL });
   const [finished, setFinished] = useState(false);
   const [sessions, setSessions] = useState<SavedSession[]>([]);
+  const run = useRef<GameRun | null>(null);
 
   useEffect(() => setSessions(loadSessions(userId)), [userId]);
+
+  // Quem sai no meio também informa: a partida é encerrada como abandonada.
+  useEffect(() => () => {
+    run.current?.abandon();
+    run.current = null;
+  }, []);
 
   const update = (patch: Partial<GameState>) => setGame((current) => ({ ...current, ...patch }));
   const answered = STAGE_DECISIONS.slice(0, stage).reduce((sum, value) => sum + value, 0);
 
+  /** Registra o que foi decidido na etapa que está sendo deixada para trás. */
+  function recordStage(index: number, state: GameState) {
+    const fields = STAGE_FIELDS[index];
+    if (!fields || !run.current) return;
+    for (const field of fields) {
+      const value = state[field];
+      if (field === "profissao") {
+        // A profissão escrita à mão vira faixa salarial e um sinal de que o
+        // jogo a reconheceu: é disso que o orçamento depende.
+        run.current.record({
+          questionKey: "profissao_reconhecida",
+          answerKind: "escolha",
+          answerKey: state.profissaoReconhecida ? "reconhecida" : "nao-reconhecida",
+        });
+        run.current.record({
+          questionKey: "salario_bruto",
+          answerKind: "numero",
+          answerNumber: state.salarioBruto,
+        });
+        continue;
+      }
+      if (Array.isArray(value)) {
+        run.current.record({
+          questionKey: field,
+          answerKind: "multipla",
+          answerKeys: value.length > 0 ? [...value] : ["nenhum"],
+        });
+        continue;
+      }
+      if (value === null || value === undefined || value === "") continue;
+      run.current.record({
+        questionKey: field,
+        answerKind: "escolha",
+        answerKey: String(value),
+      });
+    }
+  }
+
   function next() {
+    recordStage(stage, game);
     setStage((current) => current + 1);
   }
 
   function finish() {
     const extrato = calcExtrato(game);
     const perfil = diagnosticar(game, extrato);
+    run.current?.finish({
+      outcomeKey: perfilKey(perfil.titulo),
+      summary: {
+        salario_liquido: Math.round(extrato.salarioLiquido),
+        total_despesas: Math.round(extrato.totalDespesas),
+        saldo_mensal: Math.round(extrato.saldo),
+        reserva_mensal: Math.round(extrato.reservaMensal),
+      },
+    });
+    run.current = null;
     const nextSessions = [
       ...loadSessions(userId),
       { nome: game.nome, profissao: game.profissao, perfil: perfil.titulo, saldo: extrato.saldo, data: new Date().toISOString() },
@@ -66,7 +155,15 @@ export default function FinancityGame({ userId }: { userId: string }) {
     setFinished(true);
   }
 
+  function begin() {
+    run.current?.abandon();
+    run.current = startGameRun(GAME_KEY, CONTENT_VERSION);
+    setStarted(true);
+  }
+
   function restart() {
+    run.current?.abandon();
+    run.current = startGameRun(GAME_KEY, CONTENT_VERSION);
     setGame({ ...ESTADO_INICIAL });
     setStage(0);
     setFinished(false);
@@ -86,7 +183,7 @@ export default function FinancityGame({ userId }: { userId: string }) {
           <Stat value="6" label="temas" />
           <Stat value="4" label="perfis" />
         </div>
-        <button type="button" onClick={() => setStarted(true)} className="mt-8 rounded-xl bg-purple-700 px-6 py-3 font-bold text-white hover:bg-purple-800">
+        <button type="button" onClick={begin} className="mt-8 rounded-xl bg-purple-700 px-6 py-3 font-bold text-white hover:bg-purple-800">
           Iniciar Nova Sessão
         </button>
         {sessions.length > 0 && (

@@ -36,6 +36,23 @@ describe("isPublicPath", () => {
         expect(isPublicPath("/api/analytics/events")).toBe(true);
     });
 
+    it("deixa as respostas de jogo chegarem ao guard da própria rota", () => {
+        // Redirecionar para /auth devolveria HTML com status 200 ao fetch do jogo,
+        // e o aluno seguiria jogando achando que as respostas foram registradas.
+        expect(isPublicPath("/api/games/events")).toBe(true);
+        expect(isPublicPath("/api/games/export")).toBe(true);
+    });
+
+    it("não libera descendentes nem nomes parecidos das rotas de jogo", () => {
+        expect(isPublicPath("/api/games")).toBe(false);
+        expect(isPublicPath("/api/games/events/batch")).toBe(false);
+        expect(isPublicPath("/api/games/events/")).toBe(false);
+        expect(isPublicPath("/api/games/export/tudo")).toBe(false);
+        expect(isPublicPath("/api/games/events-admin")).toBe(false);
+        expect(isPublicPath("/api/games/exportar")).toBe(false);
+        expect(isPublicPath("/api/games-events")).toBe(false);
+    });
+
     it("não libera descendentes dessas duas APIs — só o path exato é público", () => {
         // Regressão de segurança: como prefixo, qualquer sub-rota futura nasceria
         // pública sem ninguém perceber. Só os dois handlers auditados são públicos.

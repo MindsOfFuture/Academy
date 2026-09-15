@@ -29,6 +29,8 @@ const PUBLIC_PATH_PREFIXES = [
 const PUBLIC_EXACT_PATHS = [
   "/api/telemetry/events",
   "/api/analytics/events",
+  "/api/games/events",
+  "/api/games/export",
 ] as const;
 
 export function isPublicPath(pathname: string): boolean {

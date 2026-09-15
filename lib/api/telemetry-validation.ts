@@ -28,6 +28,10 @@ const CANONICAL_ROUTES = new Set([
   "/termos",
   "/trilhas",
   "/validar",
+  "/protected/modulos/educacao-financeira",
+  "/protected/modulos/educacao-financeira/financity",
+  "/protected/modulos/educacao-financeira/cidadania-financeira",
+  "/protected/modulos/laboratorio-de-gestao",
 ]);
 const EVENT_KEYS = new Set([
   "eventId", "occurredAt", "sessionId", "eventName", "route",
