@@ -271,25 +271,110 @@ ssh root@179.199.131.19 '
 '
 ```
 
-Backup do banco: não há rotina automatizada no VPS; banco é Supabase
-hospedado. Antes de migration destrutiva: `docs/supabase.md#Backup`
-(`supabase db dump --data-only`).
+Backup e restore do **banco** não estão aqui: §7. O que `/var/backups/academy`
+guarda é app + config (§3), nunca dados do Supabase.
 
 ---
 
-## 7. O que NÃO existe de propósito
+## 7. Backup e restore do banco (Supabase)
+
+O banco não roda no VPS. Não há systemd timer, não há cron nosso, e
+`/var/backups/academy` **não contém uma única linha do banco** — quem gera e
+retém o backup do banco é o Supabase.
+
+### 7.1 O que está ativo
+
+Backup diário automático gerenciado pelo Supabase, agendado para **10:45**,
+na página de backups agendados do projeto `jrfehrhiyilxhbuwjmat`:
+
+```
+https://supabase.com/dashboard/project/jrfehrhiyilxhbuwjmat/database/backups/scheduled
+```
+
+Retenção e lista de snapshots disponíveis: ler na própria página. Não assumir
+número de dias de cabeça — o que o plano guarda é o que aparece ali.
+
+### 7.2 Restaurar o backup mais recente
+
+> ⚠️ **O restore do dashboard sobrescreve o banco de produção.** Não é restore
+> para uma cópia: é restauração *in place* no projeto `jrfehrhiyilxhbuwjmat`,
+> o mesmo que atende o app em produção. Tudo que foi gravado depois do snapshot
+> escolhido é perdido — matrícula, progresso de aula, submissão, mensagem de
+> chat. Só execute em recuperação de desastre real, com a decisão consciente de
+> perder o delta desde o snapshot.
+
+1. Abrir a página de backups agendados (URL acima).
+2. Identificar o snapshot mais recente e **conferir data/hora** (o agendamento
+   é 10:45; se o snapshot esperado não está lá, pare e investigue antes de
+   restaurar um mais antigo sem querer).
+3. Acionar o restore desse snapshot e confirmar.
+4. Aguardar a conclusão. Durante o restore o banco fica indisponível: o app
+   devolve erro nas páginas que consultam dados. Não é o 503 de env faltando
+   (`missingSupabaseEnv()`, §4.3) — esse tem outra causa; aqui o middleware
+   passa e as queries falham.
+5. Verificação pós-restore (nenhuma é opcional):
+   - login real pelo domínio: `https://mindsofthefuture.com.br/auth`;
+   - contagem de linhas nas tabelas principais, no SQL editor do dashboard:
+
+     ```sql
+     select 'user_profile' as tabela, count(*) from user_profile
+     union all select 'course', count(*) from course
+     union all select 'enrollment', count(*) from enrollment
+     union all select 'lesson_progress', count(*) from lesson_progress
+     union all select 'assignment_submission', count(*) from assignment_submission;
+     ```
+
+   - `systemctl restart academy.service` se as conexões ficarem penduradas
+     depois do banco voltar.
+
+### 7.3 Dado de aluno — restrição de destino
+
+O banco tem dado de menor de idade de escola pública. Enquanto o backup fica
+dentro do Supabase, o controle de acesso é o do próprio projeto. Qualquer dump
+que saia dali (§7.4) passa a exigir destino com controle de acesso equivalente:
+**não** vai para drive pessoal, pasta compartilhada de equipe, anexo de email
+ou máquina de quem gerou.
+
+### 7.4 Dump manual (cópia fora do Supabase)
+
+O backup agendado vive na infra do Supabase. Para ter arquivo fora dela — antes
+de uma migration destrutiva, ou porque o critério exige cópia externa:
+
+```bash
+supabase db dump -f backup-$(date +%F).sql --data-only
+```
+
+Conferir tamanho do arquivo e contagem de tabelas contra o banco vivo antes de
+considerar o dump válido (ver `docs/supabase.md#backup`). Arquivo truncado
+passa despercebido se ninguém abrir.
+
+### 7.5 O que este procedimento não cobre
+
+Explícito para não virar aceite falso:
+
+- **Restore testado em projeto descartável.** Clicar restore em produção não é
+  teste, é incidente. Validar restauração de verdade exige subir um projeto
+  Supabase separado e restaurar o dump lá, conferindo as contagens de §7.2.
+- **Alerta de falha do backup.** Hoje ninguém é avisado se o snapshot das 10:45
+  não sair. Descobre-se olhando a página.
+- **Retenção registrada.** Está no dashboard, não versionada aqui.
+
+---
+
+## 8. O que NÃO existe de propósito
 
 - **Docker/compose** — um systemd resolve um processo.
 - **PM2** — não é usado (unit de `academy.service` ativa; PM2 não instalado).
 - **Zero-downtime** — `Restart=always` dá alguns segundos de 502.
 - **CI de deploy** — release é disparado manualmente via script.
-- **Backup automatizado do banco** no VPS — manual, no Supabase.
+- **Backup do banco no VPS** — não existe e não deve existir: é gerenciado pelo
+  Supabase (§7). Falta restore testado e alerta de falha (§7.5).
 - `remotePatterns` segue liberado (`hostname: "**"`) — ver
   `docs/decisions.md` 013 (restrição pendente).
 
 ---
 
-## 8. Referências
+## 9. Referências
 
 - `docs/deploy-vps.md` — procedimento de build/nginx original (referência).
 - `docs/supabase.md` — banco, clientes, RLS, backup.

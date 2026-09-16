@@ -114,12 +114,39 @@ sido aplicada pelo dashboard.
 
 ## Backup
 
-Não existe rotina automatizada no repo. Antes de qualquer migration destrutiva e
-antes de migrar para VPS (`docs/deploy-vps.md`):
+Backup diário automático **ativo** no dashboard do Supabase (Project Settings →
+Database → Backups), agendado para rodar todo dia às 10:45. Isso substitui a
+dependência de alguém lembrar de rodar um dump manual antes de cada mudança de
+infra — é a rede de segurança do checklist "antes de apontar o DNS"
+(`docs/deploy-vps.md#antes-de-apontar-o-dns`).
+
+O que essa automação cobre:
+
+- Snapshot diário gerado pelo próprio Supabase, sem intervenção manual.
+- Horário fixo (10:45) — uma mudança de infra feita bem antes desse horário só
+  tem cobertura garantida a partir do snapshot do dia seguinte.
+
+O que ela **não** cobre (fora do escopo deste backup, não inventar que resolve):
+
+- **Restore testado.** A automação com restore validado é item separado (ver card
+  de automação com restore testado). Backup que nunca foi restaurado é uma
+  suposição, não uma garantia.
+- **Retenção.** Quantos dias de histórico o plano guarda é uma configuração do
+  dashboard — conferir lá antes de contar com um snapshot antigo para um
+  incidente que não é do dia anterior.
+- **Cópia fora do Supabase.** O snapshot vive dentro da própria infraestrutura do
+  Supabase. Se o critério de aceite exigir um arquivo fora do Supabase também
+  (não só fora do VPS e fora da máquina de quem gerou), isso ainda depende do
+  dump manual abaixo.
+
+Dump manual continua existindo para os casos que o backup automático não cobre:
+antes de uma migration destrutiva específica, ou quando é preciso um arquivo
+local para guardar fora da infra do Supabase.
 
 ```bash
 supabase db dump -f backup-$(date +%F).sql --data-only
 ```
 
-O plano free do Supabase não garante PITR. Se o convênio exige retenção, isso vira
-cron no VPS — hoje é manual e depende de alguém lembrar.
+Depois de gerar, conferir tamanho do arquivo e contagem de tabelas contra o banco
+vivo antes de considerar o dump válido — arquivo vazio ou truncado passa
+despercebido se ninguém olhar o conteúdo.

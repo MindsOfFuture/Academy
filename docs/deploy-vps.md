@@ -115,7 +115,8 @@ Supabase (`Secure`) é descartado — login entra em loop.
 - [ ] Email chega com link do domínio novo (`RESEND_TEST_RECIPIENT` vazia)
 - [ ] Rota protegida sem sessão redireciona para `/auth`, e não 503 (prova que as env
       vars do Supabase estão presentes)
-- [ ] `docs/supabase.md#backup` — dump feito
+- [ ] `docs/supabase.md#backup` — backup diário automático confirmado ativo (ou
+      dump manual feito, se a mudança exigir cópia fora do Supabase)
 
 ## Não feito de propósito
 
@@ -127,4 +128,5 @@ Supabase (`Secure`) é descartado — login entra em loop.
   para o uso escolar. Se não for: segunda instância na 3001 + `upstream` no nginx.
 - **`remotePatterns` liberado** — no VPS, otimização de imagem de host arbitrário consome
   CPU e banda do servidor. Restringir ao host do Supabase (`docs/decisions.md` 013).
-- **Backup automatizado** — hoje é manual, ver `docs/supabase.md#backup`.
+- **Restore testado** — backup diário automático já ativo (10:45, ver
+  `docs/supabase.md#backup`), mas restore validado é item separado.
