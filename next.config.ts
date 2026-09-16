@@ -22,7 +22,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Deploy autocontido em .next/standalone (VPS). Vercel ignora.
+  // Deploy autocontido em .next/standalone — único alvo é o VPS (ADR 018).
   output: "standalone",
   images: {
     remotePatterns: [

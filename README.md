@@ -44,7 +44,7 @@ Crie um arquivo `.env.local` na raiz com:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=xxxxxxxxxxxxxxxx
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxxxxxxxxxxxxxx
-# Apenas no servidor / Vercel (não expor ao cliente):
+# Apenas no servidor (não expor ao cliente):
 SUPABASE_SERVICE_ROLE_KEY=xxxxxxxxxxxxxxxx
 ```
 
@@ -171,7 +171,9 @@ Depois acesse: `http://localhost:3000`.
 
 ## 🌐 Deploy
 
-- **Vercel**: Deploy rápido (importar repositório, adicionar variáveis de ambiente).
+- **VPS (único alvo)**: produção roda em VPS próprio, por systemd + nginx. Procedimento
+  de release, rollback e diagnóstico em `RUNBOOK.md`; build manual em `docs/deploy-vps.md`.
+  Deploy pela Vercel foi encerrado (`docs/decisions.md` 018).
 - **Supabase**: Criar projeto, copiar URL e ANON KEY, gerar Service Role Key para uso apenas no backend.
 - **Boas práticas**: Jamais expor `SUPABASE_SERVICE_ROLE_KEY` em público ou no cliente.
 

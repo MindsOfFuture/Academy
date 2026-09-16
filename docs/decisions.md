@@ -254,3 +254,27 @@ Consequência: duas tentativas mostram as opções na mesma ordem e não simulam
 separados em saúde fiscal, popularidade ou estabilidade. Se o objetivo pedagógico
 passar a exigir comparação dessas dimensões, a evolução deve restaurar estado,
 visualização e testes das três métricas juntos — não apenas seus nomes.
+
+## 018 — 014 fechada: VPS é o único alvo de deploy, Vercel desativada
+Status: aceita · fecha 014
+
+O 014 deixou os dois alvos convivendo enquanto a decisão de infra não fechava. Ela
+fechou: o VPS Hostinger atende `mindsofthefuture.com.br` em produção (estado
+verificado em `RUNBOOK.md`), com tráfego real confirmado por vários dias antes de
+mexer na Vercel. Dois alvos vivos é como alguém publica no lugar errado e depois
+não entende por que a correção não subiu.
+
+O alvo Vercel foi encerrado: deploy automático desligado e domínios customizados
+removidos do projeto. Deploy passa a ter um caminho só — o script de release no
+VPS (`RUNBOOK.md` §2). `output: "standalone"` no `next.config.ts`, que o 014
+introduziu para o VPS enquanto a Vercel ignorava, agora é a única razão pela qual
+o build existe daquele jeito. README e docs não descrevem mais deploy pela Vercel.
+
+Consequência: não há mais preview deploy por PR nem rollback por dashboard — o
+rollback é o script de `/var/backups/academy` (`RUNBOOK.md` §3), e validar mudança
+antes do merge é local ou no próprio VPS. O código ainda lê `VERCEL_URL` como
+fallback de origem (`app/layout.tsx`, `lib/supabase/redirect.ts`, mais o teste em
+`tests/unit/app/auth/callback/route.test.ts`): é ramo morto em produção, onde
+`NEXT_PUBLIC_APP_URL` é obrigatória, e a remoção não entrou no escopo deste
+fechamento. Voltar para a Vercel deixou de ser troca de configuração e passa a
+ser decisão nova, com ADR próprio.
