@@ -26,6 +26,7 @@ Produto e código em português por convenção do projeto.
 | Live app | `/opt/academy` (layout standalone) |
 | Config/env | `/etc/academy.env` (modo `640`, `root:academy`) |
 | Backups | `/var/backups/academy/<ts>-<buildid>/` (tar.gz + config + script de rollback) |
+| Monitoramento | UptimeRobot (externo, não roda no VPS), alerta por email na queda — §5.4 |
 
 Tudo é um processo por trás do nginx: sem Docker, sem orquestrador, sem PM2.
 `systemctl is-active academy.service` deve responder `active`.
@@ -242,6 +243,33 @@ Resend (`RESEND_API_KEY`), com remetente `RESEND_FROM_EMAIL`.
   `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`.
   Se o certbot falhar/persistir sem cert, o navegador que já visitou trava em
   HTTPS. Emitir o cert **antes** de expor a 443 ao público.
+
+### 5.4 Monitoramento externo (UptimeRobot)
+
+Monitor do **UptimeRobot** configurado para `https://mindsofthefuture.com.br`.
+Quando o site cai, **envia email** de alerta para
+`mindsofthefuture.ufjf@gmail.com`. Roda fora do VPS, então
+continua alertando mesmo com a máquina inteira fora do ar.
+
+**Verificado em 23/09/2026** com queda controlada: `academy.service` parado de
+03:18:27 a ~03:23:30 UTC, com nginx no ar respondendo `502`. O UptimeRobot
+detectou a queda e disparou o email.
+
+- O monitor precisa checar o **código HTTP**, não só a porta. Com o app parado
+  o nginx segue aceitando conexão na 443 e responde `502`; um check só de porta
+  não veria a queda.
+- O `502` de alguns segundos durante deploy (§6) pode gerar alerta falso se o
+  intervalo do monitor coincidir com o restart.
+- Para repetir o teste sem risco de esquecer o site fora do ar, agendar o
+  religamento no próprio VPS **antes** de parar:
+
+  ```bash
+  sudo systemd-run --unit=academy-religar --on-active=5m \
+    /usr/bin/systemctl start academy.service
+  sudo systemctl stop academy.service
+  # religar antes da hora:
+  sudo systemctl start academy.service && sudo systemctl stop academy-religar.timer
+  ```
 
 ---
 

@@ -136,7 +136,7 @@ saída do autor.
 - [ ] `RUNBOOK.md` em português: deployar, reverter, ler log, o que fazer se cair
 - [ ] deploy por CI (`rsync` + `restart` já mapeado em `docs/deploy-vps.md`), não manual
 - [ ] backup do Postgres em cron **com restore testado uma vez** — backup não testado não é backup
-- [ ] monitor de uptime externo
+- [x] monitor de uptime externo (UptimeRobot, alerta por email; testado em 23/09/2026 — `RUNBOOK.md` §5.4)
 - [ ] renovação de TLS conferida (certbot já resolve; confirmar o timer)
 
 Custo estimado: 4–6 h. É o item de maior retorno da lista inteira.
