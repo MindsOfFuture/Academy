@@ -3,6 +3,11 @@ import { abasDoPapel } from "./abas";
 import { exigirMembro } from "./guard";
 import { NavGestao } from "./nav";
 
+// Sem isto o build pré-renderiza /gestao com a flag desligada e congela um 404
+// estático: a flag deixaria de ligar "sem deploy" e a sessão do usuário não
+// seria lida por requisição. Toda tela da gestão depende do cookie de sessão.
+export const dynamic = "force-dynamic";
+
 export default async function GestaoLayout({ children }: { children: React.ReactNode }) {
   const papel = await exigirMembro("/gestao");
 
