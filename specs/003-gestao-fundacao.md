@@ -68,7 +68,9 @@ API de produção e aplicar a migration, que dependem de aprovação do Rafael (
   - `lib/api/gestao/equipe.ts`, `lib/api/gestao/pendencias.ts`, `lib/api/gestao/validacao.ts`
   - `lib/api/gestao/types.ts`, `lib/api/gestao/index.ts`, `lib/api/gestao/auth.ts`
     (papel inclui "desligado" = sem acesso)
-  - `app/gestao/layout.tsx`, `app/gestao/page.tsx`, `app/gestao/nav.tsx`
+  - `app/gestao/layout.tsx` (renderização por requisição), `app/gestao/page.tsx`,
+    `app/gestao/nav.tsx`, `app/gestao/abas.ts`, `app/gestao/guard.ts` (guard único
+    chamado pelo layout e por cada página)
   - `app/gestao/equipe/page.tsx`, `app/gestao/equipe/actions.ts`,
     `app/gestao/equipe/forms.tsx`
   - `tests/unit/lib/api/gestao/equipe.test.ts`, `tests/unit/lib/api/gestao/validacao.test.ts`,
