@@ -12,6 +12,7 @@ sem decisão é dívida de contexto — quem lê o repo não sabe se é roadmap 
 | [portal-de-ideias.md](portal-de-ideias.md) | Captura e triagem de ideias da equipe interna e bolsistas | proposta |
 | [repositorio-skills-artifacts.md](repositorio-skills-artifacts.md) | Catálogo interno de Claude Skills e Artifacts do time | proposta |
 | [indicador-como-dado-contrato.md](indicador-como-dado-contrato.md) | Esboço de contrato "indicador como dado" (sem migration), base para `gestao.*` | esboço |
+| [gestao-dia-a-dia.md](gestao-dia-a-dia.md) | Gestão do dia a dia sem planilha: turmas, chamada, termos, alocação, carga, relatório automático, bolsas e compras, histórico de módulos, diário de bordo, avaliação NPS | proposta |
 
 Formato esperado: veredito no topo, riscos com severidade, estimativa em faixa,
 bloqueadores antes da primeira linha de código, e uma seção do que foi deixado
