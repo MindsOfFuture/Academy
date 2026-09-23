@@ -12,3 +12,6 @@ export * from "./entities";
 export * from "./indicators";
 export * from "./auth";
 export * from "./feature-flags";
+export * from "./equipe";
+export * from "./pendencias";
+export * from "./validacao";
