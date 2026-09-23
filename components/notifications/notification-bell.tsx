@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Bell, CheckCheck, MessageSquare, GraduationCap, UserCheck, UserX, BookOpen, ClipboardList } from "lucide-react";
+import { Bell, CheckCheck, MessageSquare, GraduationCap, UserCheck, UserX, BookOpen, ClipboardList, Lightbulb } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -37,6 +37,9 @@ function typeIcon(type: string) {
             return <ClipboardList size={16} className="text-orange-400 shrink-0" />;
         case "new_enrollment":
             return <BookOpen size={16} className="text-purple-400 shrink-0" />;
+        case "melhoria_nova":
+        case "melhoria_atualizada":
+            return <Lightbulb size={16} className="text-yellow-500 shrink-0" />;
         default:
             return <Bell size={16} className="text-gray-400 shrink-0" />;
     }

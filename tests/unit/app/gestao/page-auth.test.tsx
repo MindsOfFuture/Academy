@@ -122,8 +122,8 @@ describe("rota /gestao", () => {
     await expect(EquipePage()).rejects.toThrow(/NEXT_NOT_FOUND/);
   });
 
-  it("dá a aba Equipe só à coordenação", () => {
-    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Equipe"]);
-    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje"]);
+  it("dá a aba Equipe só à coordenação e Melhorias aos dois", () => {
+    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Equipe", "Melhorias"]);
+    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Melhorias"]);
   });
 });

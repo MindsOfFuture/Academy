@@ -10,7 +10,9 @@ export type NotificationType =
     | "teacher_rejected"
     | "teacher_pending_approval"
     | "new_enrollment"
-    | "assignment_submitted";
+    | "assignment_submitted"
+    | "melhoria_nova"
+    | "melhoria_atualizada";
 
 export interface NotificationPayload {
     /** Short title shown in the bell dropdown */

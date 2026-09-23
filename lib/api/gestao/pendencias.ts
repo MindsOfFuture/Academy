@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { listarEquipe } from "./equipe";
+import { listarMelhorias, pendenciasDeMelhoria } from "./melhorias";
 import type { GestaoPapel, MembroEquipe, Pendencia } from "./types";
 
 /**
@@ -97,14 +98,20 @@ export async function listarPendencias(papel: GestaoPapel): Promise<Pendencia[]>
   const hoje = hojeEmSaoPaulo();
   const inicio = new Date(Date.now() - DIAS_PASSADOS * 86_400_000).toISOString().slice(0, 10);
 
-  const { data, error } = await supabase
-    .schema("gestao")
-    .from("agenda")
-    .select("id, data, horario, modalidade, escola(nome), aula(id)")
-    .gte("data", inicio)
-    .order("data");
+  const [{ data, error }, { data: auth }, melhorias] = await Promise.all([
+    supabase
+      .schema("gestao")
+      .from("agenda")
+      .select("id, data, horario, modalidade, escola(nome), aula(id)")
+      .gte("data", inicio)
+      .order("data"),
+    supabase.auth.getUser(),
+    listarMelhorias(),
+  ]);
   if (error) throw new Error(error.message);
 
   const equipe = papel === "coordenacao" ? await listarEquipe() : [];
-  return montarPendencias({ papel, hoje, agendas: (data ?? []) as AgendaPendenciaRow[], equipe });
+  const base = montarPendencias({ papel, hoje, agendas: (data ?? []) as AgendaPendenciaRow[], equipe });
+  const deMelhoria = pendenciasDeMelhoria(papel, auth.user?.id ?? "", melhorias, new Date());
+  return [...deMelhoria, ...base];
 }
