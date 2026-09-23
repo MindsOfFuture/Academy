@@ -73,11 +73,12 @@ e-mail (o aviso é só no sino).
   - `lib/api/gestao/melhorias.ts`, `lib/api/gestao/types.ts`, `lib/api/gestao/index.ts`,
     `lib/api/gestao/pendencias.ts` (contagens na tela Hoje), `lib/api/gestao/validacao.ts`
   - `app/gestao/melhorias/page.tsx`, `app/gestao/melhorias/[id]/page.tsx`,
-    `app/gestao/melhorias/actions.ts`, `app/gestao/melhorias/forms.tsx`
-  - `app/gestao/nav.tsx` (aba Melhorias), `app/gestao/page.tsx` (cartão na tela Hoje)
+    `app/gestao/melhorias/actions.ts`, `app/gestao/melhorias/forms.tsx`,
+    `app/gestao/melhorias/estilo.ts`
+  - `app/gestao/abas.ts` (aba Melhorias), cartões na tela Hoje via `lib/api/gestao/pendencias.ts`
   - `lib/api/notifications-server.ts` e `components/notifications/notification-bell.tsx`
     — só o tipo `melhoria_atualizada`/`melhoria_nova` e o ícone
-  - `tests/unit/lib/api/gestao/melhorias.test.ts`
+  - `tests/unit/lib/api/gestao/melhorias.test.ts`, `tests/unit/app/gestao/page-auth.test.tsx`
 - **Dados:** `gestao.melhoria` e `gestao.melhoria_apoio` como no plano. Triggers:
   - `before insert`: `autor := auth.uid()`, `status := 'nova'`, zera resposta/respondida.
   - `before update`: quem não é coordenação ativa só altera título/área/problema/proposta/
@@ -93,6 +94,9 @@ e-mail (o aviso é só no sino).
     ou ao autor em `nova`; `delete` só ao autor em `nova`. `melhoria_apoio`: `select` a
     membro ativo; `insert`/`delete` só da própria linha, nunca no próprio pedido.
   - "Atrasada" é derivada: `status = 'nova' and criado_em < now() - interval '14 days'`.
+  - Leitura por `gestao.listar_melhorias(p_id)` (`security definer`, só membro ativo):
+    traz o nome de quem pediu, que a RLS de `user_profile` esconderia, a contagem de
+    apoios e "atrasada".
 - **Autorização:** cliente SSR contra RLS; actions chamam `ensureGestaoMember()`.
   Nenhum `createServiceRoleClient()`, nenhuma rota pública.
 - **Dependência nova:** nenhuma.
