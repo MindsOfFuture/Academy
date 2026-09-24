@@ -1,7 +1,10 @@
 # Portal de ideias interno — estudo de viabilidade
 
-Status: **proposta, não aprovada**. Nada implementado. Documento para discussão
-com a coordenação e decisão posterior.
+Status: **absorvido** em 23/09/2026 pelo Módulo 8 de `gestao-dia-a-dia.md` ("Solicitar
+melhoria", spec 011). As duas perguntas de bloqueio deste estudo foram respondidas lá:
+GitHub Discussions descartado (bolsista não tem conta) e dono/prazo de triagem viraram
+dado e tela, com o nome do dono como decisão D9. O texto abaixo fica como registro do
+raciocínio.
 
 Escopo avaliado: canal único para a equipe interna e os bolsistas do Minds of the
 Future registrarem ideias de melhoria do projeto e do produto, com **triagem pela

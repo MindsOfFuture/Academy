@@ -1,11 +1,12 @@
 /**
- * Guard da rota /gestao — feature flag + autenticação + autorização.
+ * Guard e conteúdo da rota /gestao — feature flag + autenticação + papel.
  *
  * Ordem de defesa em profundidade:
  *   1. flag desligada  -> notFound (404)
  *   2. anônimo         -> redirect /auth?next=/gestao
  *   3. sem papel       -> notFound (404, não vaza existência)
- *   4. membro          -> renderiza indicadores vindos da fronteira lib/api/gestao
+ *   4. membro          -> tela "Hoje"; indicadores do convênio só para a coordenação
+ *   5. tela restrita   -> bolsista recebe 404 na equipe
  */
 import { render, screen, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -46,9 +47,22 @@ vi.mock("@/lib/api/gestao/indicators", () => ({
     cargaBolsistas: { items: [], totalAlocacoes: 2 },
   }),
 }));
-vi.mock("@/components/navbar/navbar", () => ({ default: () => <nav /> }));
+vi.mock("@/lib/api/gestao/pendencias", () => ({
+  listarPendencias: async () => [
+    { tipo: "aula_sem_registro", titulo: "Aula de 01/10 sem registro", detalhe: "Escola A", href: "/gestao", urgente: true },
+    { tipo: "proxima_aula", titulo: "05/10 · Escola A", detalhe: "lego · 08h", href: "/gestao" },
+  ],
+}));
+vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
+vi.mock("@/app/gestao/equipe/forms", () => ({
+  FormConcederPapel: () => <div />,
+  FormBolsa: () => <div />,
+  AcoesMembro: () => <div />,
+}));
 
 import GestaoPage from "@/app/gestao/page";
+import EquipePage from "@/app/gestao/equipe/page";
+import { abasDoPapel } from "@/app/gestao/abas";
 
 beforeEach(() => {
   flagLigada = false;
@@ -56,7 +70,6 @@ beforeEach(() => {
   autenticado = true;
   redirectMock.mockClear();
   notFoundMock.mockClear();
-  window.localStorage.clear();
 });
 
 afterEach(() => {
@@ -78,31 +91,39 @@ describe("rota /gestao", () => {
     expect(redirectMock).toHaveBeenCalledWith("/auth?next=%2Fgestao");
   });
 
-  it("nega 404 a usuário autenticado sem papel de membro", async () => {
+  it("nega 404 a usuário autenticado sem papel de membro (ou desligado)", async () => {
     flagLigada = true;
-    autenticado = true;
     papelMembro = null;
     await expect(GestaoPage()).rejects.toThrow(/NEXT_NOT_FOUND/);
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it.each(["coordenacao", "bolsista"])(
-    "renderiza os indicadores para o membro %s",
-    async (papel) => {
-      flagLigada = true;
-      autenticado = true;
-      papelMembro = papel as "coordenacao" | "bolsista";
+  it("mostra pendências e indicadores do convênio à coordenação", async () => {
+    flagLigada = true;
+    papelMembro = "coordenacao";
+    render(await GestaoPage());
+    expect(screen.getByText("Aula de 01/10 sem registro")).toBeInTheDocument();
+    expect(screen.getByText("05/10 · Escola A")).toBeInTheDocument();
+    expect(screen.getByText("Alunos participantes")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+  });
 
-      render(await GestaoPage());
+  it("mostra ao bolsista só as pendências, sem os indicadores do convênio", async () => {
+    flagLigada = true;
+    papelMembro = "bolsista";
+    render(await GestaoPage());
+    expect(screen.getByText("Aula de 01/10 sem registro")).toBeInTheDocument();
+    expect(screen.queryByText("Alunos participantes")).not.toBeInTheDocument();
+  });
 
-      expect(screen.getByRole("heading", { name: "Gestão do projeto" })).toBeInTheDocument();
-      expect(screen.getByText("Alunos participantes")).toBeInTheDocument();
-      expect(screen.getByText("12")).toBeInTheDocument();
-      expect(screen.getByText("Reservas de ônibus")).toBeInTheDocument();
-      expect(screen.getByText("3")).toBeInTheDocument();
-      expect(screen.getByText("Aulas realizadas")).toBeInTheDocument();
-      expect(redirectMock).not.toHaveBeenCalled();
-      expect(notFoundMock).not.toHaveBeenCalled();
-    },
-  );
+  it("devolve 404 ao bolsista na tela de equipe", async () => {
+    flagLigada = true;
+    papelMembro = "bolsista";
+    await expect(EquipePage()).rejects.toThrow(/NEXT_NOT_FOUND/);
+  });
+
+  it("dá a aba Equipe só à coordenação e Melhorias aos dois", () => {
+    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Equipe", "Melhorias"]);
+    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Melhorias"]);
+  });
 });

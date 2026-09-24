@@ -238,3 +238,143 @@ export interface IndicadoresGestao {
     aulas: IndicadorAulas;
     cargaBolsistas: IndicadorCargaBolsistas;
 }
+
+// ---------------------------------------------------------------------------
+// Equipe e bolsa (spec 003)
+// ---------------------------------------------------------------------------
+
+export type ModalidadeBolsa = "graduacao" | "mestrado" | "bdcti" | "critt" | "outra";
+
+/** Linha devolvida pela função `gestao.equipe()` (só coordenação). */
+export interface EquipeRow {
+    user_profile_id: string;
+    nome: string | null;
+    email: string | null;
+    papel: GestaoPapel;
+    desligado_em: string | null;
+    membro_desde: string;
+    bolsa_id: string | null;
+    modalidade: ModalidadeBolsa | null;
+    carga_semanal_horas: number | string | null;
+    valor_mensal: number | string | null;
+    bolsa_inicio: string | null;
+    bolsa_fim: string | null;
+    tem_alocacao: boolean;
+}
+
+export interface BolsaVigente {
+    id: string;
+    modalidade: ModalidadeBolsa;
+    cargaSemanalHoras: number;
+    valorMensal: number;
+    inicio: string;
+    fim: string;
+}
+
+export interface MembroEquipe {
+    userProfileId: string;
+    nome: string;
+    email: string;
+    papel: GestaoPapel;
+    desligadoEm: string | null;
+    membroDesde: string;
+    bolsaVigente: BolsaVigente | null;
+    temAlocacao: boolean;
+}
+
+/** Linha devolvida por `gestao.buscar_usuario_por_email()`. */
+export interface UsuarioBuscadoRow {
+    id: string;
+    nome: string | null;
+    email: string;
+    papel: GestaoPapel | null;
+    desligado_em: string | null;
+}
+
+export interface NovaBolsa {
+    bolsistaId: string;
+    modalidade: ModalidadeBolsa;
+    cargaSemanalHoras: number;
+    valorMensal: number;
+    inicio: string;
+    fim: string;
+}
+
+/** Item da tela “Hoje”: o que a pessoa tem a fazer, sempre com link. */
+export interface Pendencia {
+    tipo: "proxima_aula" | "aula_sem_registro" | "bolsista_sem_bolsa" | "melhoria_sem_resposta" | "melhoria_respondida";
+    titulo: string;
+    detalhe: string;
+    href: string;
+    urgente?: boolean;
+}
+
+/** Resultado de uma Server Action de formulário (`useActionState`). */
+export interface EstadoAcao {
+    ok: boolean;
+    mensagem: string;
+}
+
+// ---------------------------------------------------------------------------
+// Pedido de melhoria (spec 011)
+// ---------------------------------------------------------------------------
+
+export type AreaMelhoria = "plataforma" | "gestao" | "aulas_material" | "processo" | "outra";
+export type StatusMelhoria = "nova" | "em_analise" | "aceita" | "recusada" | "duplicada" | "entregue";
+
+/** Linha devolvida por `gestao.listar_melhorias()`. */
+export interface MelhoriaRow {
+    id: string;
+    autor: string;
+    autor_nome: string;
+    titulo: string;
+    area: AreaMelhoria;
+    problema: string;
+    proposta: string;
+    quem_sofre: string | null;
+    status: StatusMelhoria;
+    resposta: string | null;
+    duplicada_de: string | null;
+    link_execucao: string | null;
+    respondida_em: string | null;
+    criado_em: string;
+    atualizado_em: string;
+    apoios: number;
+    apoiei: boolean;
+    atrasada: boolean;
+}
+
+export interface Melhoria {
+    id: string;
+    autorId: string;
+    autorNome: string;
+    titulo: string;
+    area: AreaMelhoria;
+    problema: string;
+    proposta: string;
+    quemSofre: string | null;
+    status: StatusMelhoria;
+    resposta: string | null;
+    duplicadaDe: string | null;
+    linkExecucao: string | null;
+    respondidaEm: string | null;
+    criadoEm: string;
+    apoios: number;
+    apoiei: boolean;
+    atrasada: boolean;
+}
+
+export interface NovaMelhoria {
+    titulo: string;
+    area: AreaMelhoria;
+    problema: string;
+    proposta: string;
+    quemSofre: string | null;
+}
+
+export interface RespostaMelhoria {
+    status: StatusMelhoria;
+    resposta: string | null;
+    duplicadaDe: string | null;
+    linkExecucao: string | null;
+}

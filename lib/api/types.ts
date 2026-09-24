@@ -292,3 +292,34 @@ export function mapModule(row: ModuleRow): ModuleSummary {
         lessons: (row.lessons || []).map(mapLesson),
     };
 }
+
+export type ContentHistoryTable = "course" | "course_module" | "lesson";
+export type ContentHistoryAction = "insert" | "update" | "delete";
+export type ContentHistoryData = Record<string, unknown>;
+
+export interface ContentHistoryRow {
+    id: number;
+    tabela: ContentHistoryTable;
+    registro_id: string;
+    curso_id: string | null;
+    acao: ContentHistoryAction;
+    autor: string | null;
+    ocorrido_em: string;
+    antes: ContentHistoryData | null;
+    depois: ContentHistoryData | null;
+    campos_alterados: string[] | null;
+}
+
+export interface ContentHistoryEntry {
+    id: number;
+    table: ContentHistoryTable;
+    recordId: string;
+    courseId: string | null;
+    action: ContentHistoryAction;
+    authorId: string | null;
+    authorName: string;
+    occurredAt: string;
+    before: ContentHistoryData | null;
+    after: ContentHistoryData | null;
+    changedFields: string[];
+}
