@@ -314,3 +314,67 @@ export interface EstadoAcao {
     ok: boolean;
     mensagem: string;
 }
+
+// ---------------------------------------------------------------------------
+// Pedido de melhoria (spec 011)
+// ---------------------------------------------------------------------------
+
+export type AreaMelhoria = "plataforma" | "gestao" | "aulas_material" | "processo" | "outra";
+export type StatusMelhoria = "nova" | "em_analise" | "aceita" | "recusada" | "duplicada" | "entregue";
+
+/** Linha devolvida por `gestao.listar_melhorias()`. */
+export interface MelhoriaRow {
+    id: string;
+    autor: string;
+    autor_nome: string;
+    titulo: string;
+    area: AreaMelhoria;
+    problema: string;
+    proposta: string;
+    quem_sofre: string | null;
+    status: StatusMelhoria;
+    resposta: string | null;
+    duplicada_de: string | null;
+    link_execucao: string | null;
+    respondida_em: string | null;
+    criado_em: string;
+    atualizado_em: string;
+    apoios: number;
+    apoiei: boolean;
+    atrasada: boolean;
+}
+
+export interface Melhoria {
+    id: string;
+    autorId: string;
+    autorNome: string;
+    titulo: string;
+    area: AreaMelhoria;
+    problema: string;
+    proposta: string;
+    quemSofre: string | null;
+    status: StatusMelhoria;
+    resposta: string | null;
+    duplicadaDe: string | null;
+    linkExecucao: string | null;
+    respondidaEm: string | null;
+    criadoEm: string;
+    apoios: number;
+    apoiei: boolean;
+    atrasada: boolean;
+}
+
+export interface NovaMelhoria {
+    titulo: string;
+    area: AreaMelhoria;
+    problema: string;
+    proposta: string;
+    quemSofre: string | null;
+}
+
+export interface RespostaMelhoria {
+    status: StatusMelhoria;
+    resposta: string | null;
+    duplicadaDe: string | null;
+    linkExecucao: string | null;
+}

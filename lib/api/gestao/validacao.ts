@@ -1,4 +1,12 @@
-import type { EstadoAcao, ModalidadeBolsa, NovaBolsa } from "./types";
+import type {
+  AreaMelhoria,
+  EstadoAcao,
+  ModalidadeBolsa,
+  NovaBolsa,
+  NovaMelhoria,
+  RespostaMelhoria,
+  StatusMelhoria,
+} from "./types";
 
 /**
  * Validadores pequenos dos formulários da gestão (sem biblioteca de validação,
@@ -56,6 +64,60 @@ export function validarBolsa(form: FormData): Validado<NovaBolsa> {
   };
 }
 
+const AREAS: readonly AreaMelhoria[] = ["plataforma", "gestao", "aulas_material", "processo", "outra"];
+const STATUS: readonly StatusMelhoria[] = ["nova", "em_analise", "aceita", "recusada", "duplicada", "entregue"];
+
+/** Pedido de melhoria: mesmos limites dos checks da tabela `gestao.melhoria`. */
+export function validarMelhoria(form: FormData): Validado<NovaMelhoria> {
+  const titulo = texto(form, "titulo");
+  const area = texto(form, "area") as AreaMelhoria;
+  const problema = texto(form, "problema");
+  const proposta = texto(form, "proposta");
+  const quemSofre = texto(form, "quemSofre");
+
+  if (titulo.length < 3 || titulo.length > 120) {
+    return { ok: false, mensagem: "Dê um título curto ao pedido (de 3 a 120 caracteres)." };
+  }
+  if (!AREAS.includes(area)) return { ok: false, mensagem: "Escolha sobre o que é o pedido." };
+  if (problema.length < 10 || problema.length > 2000) {
+    return { ok: false, mensagem: "Conte qual é o problema em pelo menos uma frase." };
+  }
+  if (proposta.length < 3 || proposta.length > 2000) return { ok: false, mensagem: "Conte o que você propõe." };
+  if (quemSofre.length > 500) return { ok: false, mensagem: "Resuma quem sofre com isso em até 500 caracteres." };
+
+  return { ok: true, valor: { titulo, area, problema, proposta, quemSofre: quemSofre || null } };
+}
+
+/** Resposta da coordenação: recusa e repetido exigem motivo; repetido aponta o original. */
+export function validarRespostaMelhoria(form: FormData): Validado<RespostaMelhoria> {
+  const status = texto(form, "status") as StatusMelhoria;
+  const resposta = texto(form, "resposta");
+  const duplicadaDe = texto(form, "duplicadaDe");
+  const linkExecucao = texto(form, "linkExecucao");
+
+  if (!STATUS.includes(status)) return { ok: false, mensagem: "Escolha a resposta." };
+  if ((status === "recusada" || status === "duplicada") && resposta.length < 10) {
+    return { ok: false, mensagem: "Recusar ou marcar como repetido exige um motivo de pelo menos 10 caracteres." };
+  }
+  if (status === "duplicada" && !duplicadaDe) {
+    return { ok: false, mensagem: "Aponte qual é o pedido original." };
+  }
+  if (linkExecucao && !/^https?:\/\//.test(linkExecucao)) {
+    return { ok: false, mensagem: "O link precisa começar com http:// ou https://." };
+  }
+  if (resposta.length > 2000) return { ok: false, mensagem: "A resposta passou de 2000 caracteres." };
+
+  return {
+    ok: true,
+    valor: {
+      status,
+      resposta: resposta || null,
+      duplicadaDe: status === "duplicada" ? duplicadaDe : null,
+      linkExecucao: linkExecucao || null,
+    },
+  };
+}
+
 /**
  * Traduz o erro do banco para uma frase que a coordenação entenda. Mensagens
  * que o próprio schema levanta em português (`gestao: ...`) passam limpas.
@@ -72,6 +134,10 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
   if (texto.includes("papel_membro_pkey") || texto.includes("duplicate key")) {
     return "Esta pessoa já faz parte da equipe.";
   }
+  if (texto.includes("melhoria_motivo_obrigatorio")) {
+    return "Recusar ou marcar como repetido exige um motivo de pelo menos 10 caracteres.";
+  }
+  if (texto.includes("melhoria_duplicada_aponta_original")) return "Aponte qual é o pedido original.";
   if (texto.includes("row-level security") || texto.includes("42501")) {
     return "Você não tem permissão para fazer isso.";
   }

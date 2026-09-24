@@ -15,3 +15,4 @@ export * from "./feature-flags";
 export * from "./equipe";
 export * from "./pendencias";
 export * from "./validacao";
+export * from "./melhorias";
