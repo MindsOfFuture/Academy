@@ -1,7 +1,9 @@
 # Gestão interna do dia a dia — plano de construção
 
-Status: **proposta, não aprovada**. Nada implementado. Cada módulo abaixo vira uma
-spec própria (`specs/003` a `specs/010`), aprovada antes do primeiro commit de código
+Status: **validada em 23/09/2026** (ver "Validação"). Rafael pediu o desenvolvimento
+em 23/09/2026; M0, M6 e M8 estão em desenvolvimento, cada um na sua branch e com sua
+spec no primeiro commit. Os demais módulos seguem como proposta. Cada módulo vira uma
+spec própria (`specs/003` a `specs/011`), aprovada antes do primeiro commit de código
 (Constituição § I).
 
 Plano-pai: `sistema-interno-gestao.md` · Base já entregue: `specs/002-gestao-modelo-operacional.md`
@@ -36,6 +38,26 @@ Três ajustes no que já existe são pré-requisito, não melhoria:
 3. **Carga é texto livre** (`agenda_bolsista.carga text`, `agenda.horario text`). Carga
    horária não soma com texto. Horário passa a ser `inicio`/`fim` do tipo `time`.
 
+## Validação (23/09/2026)
+
+Conferido contra a migration de `origin/development` (c6e1473) em PGlite e, somente em
+leitura, contra o banco de produção (`jrfehrhiyilxhbuwjmat`, conferido com o
+`project_ref` do `.mcp.json`). Nenhuma escrita em produção.
+
+| # | Afirmação ou lacuna | Resultado | Evidência | Efeito no plano |
+|---|---|---|---|---|
+| V1 | Os blocos SQL do plano aplicam sobre a migration atual | **confirmado**, 8/8 (agora 9/9 com o M8) | `validate_plan_sql.mjs` em PGlite | nenhum |
+| V2 | Os blocos são idempotentes | **não** — `create table` sem `if not exists` e `add constraint` solto falham no segundo passe | cada bloco rodado duas vezes | blocos são ilustração; a migration de cada módulo usa `if not exists` e bloco `do $$` para constraint |
+| V3 | Bolsista apaga escola com a RLS atual | **confirmado** | autenticado como bolsista, `delete from gestao.escola returning nome` devolveu a escola | M0 mantém a correção como primeira tarefa |
+| V4 | Coordenação encontra usuário por e-mail em `user_profile` para conceder papel | **falso** — a RLS de produção de `user_profile` só deixa ler o próprio perfil (ou tudo, se for `admin` do produto) | policies de `user_profile` lidas em produção; em PGlite com as mesmas policies, a busca devolveu 0 linhas e a lista de membros saiu sem nome | M0 ganha duas funções `security definer` restritas à coordenação: busca por e-mail exato e lista da equipe com nome |
+| V5 | "Revogar o papel de quem tem alocação é recusado" basta | **incompleto** — a recusa vem da FK `restrict`; quem sai do projeto depois de trabalhar nunca perde o acesso | em PGlite: revogação recusada e o ex-bolsista continuou lendo as escolas | M0 ganha `papel_membro.desligado_em`: desligar corta o acesso e preserva o histórico; remover o vínculo só vale para quem nunca trabalhou |
+| V6 | O `/gestao` lê o banco pelo schema `gestao` | **bloqueado em produção** — a API do Supabase só expõe `public` e `graphql_public` | `Accept-Profile: gestao` → `PGRST106 Invalid schema: gestao` | novo bloqueador B4: expor `gestao` nas configurações da API antes de ligar a flag. Grants e RLS já estão prontos para isso |
+| V7 | Estado do `gestao.*` em produção | **vazio**: 0 linhas em todas as tabelas, nenhum membro | contagem em produção | bloqueador 2 resolvido: `horario`/`carga` convertem direto. O primeiro membro da coordenação entra por SQL uma única vez (ver M0) |
+| V8 | pg_cron para os lembretes do M5 | **disponível, não habilitado**; o papel `postgres` tem `bypassrls` | `pg_available_extensions`, `pg_extension`, `pg_roles` | a dúvida sobre RLS forçada está respondida: job como `postgres` atravessa. Habilitar a extensão é mudança em produção e exige aprovação |
+| V9 | Avisar outra pessoa pelo sino | **a RLS de `notification` só aceita linha do próprio usuário** (`user_id = auth.uid()`) | policy lida em produção | aviso a terceiros (M5, M8) sai de trigger `security definer` no banco, nunca de `createServiceRoleClient()` |
+| V10 | Colunas de `course`, `course_module`, `lesson` para o histórico (M6) | conferidas em produção | `information_schema.columns` | trigger continua genérico (`to_jsonb`), sem lista de colunas |
+| V11 | Sobreposição com o quadro do Trello | os cards antigos SP12–SP15 (de `sistema-interno-gestao.md`) pedem `systemd timer` e relatório em `.docx`; este plano usa pg_cron e PDF impresso (D6) | leitura do quadro MindsAcademy | os cards novos citam o antigo que substituem; arquivar os antigos fica com quem os tem atribuídos |
+
 ## O que muda para quem usa
 
 | Hoje | Depois |
@@ -48,6 +70,7 @@ Três ajustes no que já existe são pré-requisito, não melhoria:
 | Alteração de conteúdo dos cursos sem rastro | Histórico detalhado por curso: quem mudou o quê, de quê para quê, quando |
 | Relato da aula por mensagem ou nenhum | Diário de bordo com perguntas prontas, preenchido no celular ao fim da aula |
 | Retorno das escolas informal | Pesquisa de avaliação final (NPS) por link para o professor da escola |
+| Sugestão de melhoria some no WhatsApp, sem resposta | Bolsista pede melhoria dentro do sistema e acompanha a resposta; a coordenação responde toda solicitação, e recusa sempre tem motivo |
 
 ## Arquitetura (vale para todos os módulos)
 
@@ -87,10 +110,44 @@ membro. Ele responde a avaliação por link com token (módulo 7).
 | Compra, cotação | tudo | abre e lê as próprias | nada |
 | Categoria, orçamento, auditoria | tudo | nada | nada |
 | Resposta da avaliação final | lê | lê as das próprias turmas | responde só com token válido, via função |
+| Solicitação de melhoria (M8) | lê todas e responde | abre, lê as próprias e as aceitas/entregues de todos, edita a própria enquanto nova | nada |
 
 Função nova: `gestao.bolsista_na_turma(p_turma uuid) returns boolean` (`security
 definer`, `stable`, `search_path` fixo) → existe `agenda_bolsista` do chamador em
 algum encontro da turma.
+
+Enquanto a turma não existe (M0 vem antes do M1), o escopo do bolsista é o encontro:
+`gestao.bolsista_na_agenda(p_agenda)` e `gestao.bolsista_na_escola(p_escola)`, no mesmo
+molde. O M1 troca o escopo por escola pelo escopo por turma. Reserva, termo da reserva e
+lista enviada ficam só com a coordenação.
+
+Quem sai do projeto é **desligado**, não apagado: `papel_membro.desligado_em` preenchido
+tira o acesso na hora (`usuario_com_papel` e `gestao_membro_papel` passam a ignorar o
+vínculo desligado) e preserva alocação, carga e autoria. Apagar o vínculo só é possível
+para quem nunca foi alocado. O banco recusa desligar ou apagar a última pessoa ativa da
+coordenação, para ninguém trancar a equipe fora do sistema.
+
+### Duas áreas: coordenação e bolsista
+
+Uma rota só, `/gestao`, com o que cada um vê decidido pelo papel. "Coordenação" aqui é o
+papel do projeto em `gestao.papel_membro`, **não** o `admin` do produto (decisão da
+spec 002): quem administra a plataforma pública não ganha acesso à gestão por isso, e
+vice-versa.
+
+| Aba | Coordenação | Bolsista | Entra no módulo |
+|---|---|---|---|
+| Hoje | pendências da equipe inteira + indicadores do convênio | as próprias pendências e as próximas aulas | M0 |
+| Equipe | membros, papéis, desligamento, bolsas | — | M0 |
+| Melhorias | fila de triagem com prazo de resposta | pedir melhoria, acompanhar as próprias, ver o que foi aceito | M8 |
+| Turmas | todas | só as turmas em que está alocado | M1 |
+| Agenda | todos os encontros, alocação | a própria agenda e a disponibilidade | M2 |
+| Atividades | de todos | lançar as próprias | M2 |
+| Relatórios | aprovar ou devolver | o próprio relatório do mês | M5 |
+| Financeiro | tudo | os próprios pagamentos; abrir pedido de compra | M4 |
+| Avaliações | todas | as das próprias turmas | M7 |
+
+A aba só aparece quando o módulo existe. Nada de aba "em breve": aba vazia ensina a
+equipe a não clicar.
 
 ---
 
@@ -119,18 +176,31 @@ create table gestao.bolsa (
   atualizado_em timestamptz not null default now(),
   criado_por uuid references auth.users (id) on delete set null
 );
+
+alter table gestao.papel_membro add column if not exists desligado_em timestamptz;
 ```
+
+`user_profile` não é legível pela coordenação (V4), então a tela de equipe usa duas
+funções `security definer` que recusam quem não é coordenação ativa:
+`gestao.buscar_usuario_por_email(p_email text)` (igualdade exata, sem prefixo, para não
+virar enumeração de contas) e `gestao.equipe()` (membros com nome, e-mail, papel,
+desligamento e bolsa vigente).
 
 Telas:
 
-- `/gestao/equipe`: coordenação lista os membros, concede ou revoga papel (busca por
-  e-mail em `user_profile`) e cadastra a bolsa de cada bolsista. Hoje o vínculo só
+- `/gestao/equipe`: coordenação lista os membros, concede papel (busca por e-mail
+  exato), desliga ou reativa, e cadastra a bolsa de cada bolsista. Hoje o vínculo só
   entra por SQL.
-- `app/gestao/layout.tsx`: navegação por abas (Hoje · Turmas · Agenda · Equipe ·
-  Financeiro · Relatórios · Avaliações), com as abas escondidas conforme o papel.
-- `/gestao` (Hoje): passa de seis cartões de indicador para "o que tenho que fazer":
-  próximas aulas, diários pendentes, chamadas não lançadas, termos pendentes,
-  relatório do mês, pagamentos em atraso, compras aguardando ação. Cada item é um link.
+- `app/gestao/layout.tsx`: navegação por abas conforme a tabela "Duas áreas", só com as
+  abas dos módulos que existem.
+- `/gestao` (Hoje): passa de seis cartões de indicador para "o que tenho que fazer".
+  No M0 entram o que já é derivável: próximas aulas, encontros passados sem aula
+  lançada, bolsistas sem bolsa vigente (coordenação) e melhorias esperando resposta
+  (M8). Diários, termos, relatório, pagamentos e compras entram com seus módulos. Os
+  seis indicadores continuam, só para a coordenação. Cada item é um link.
+
+O primeiro membro da coordenação entra por SQL, uma vez, com aprovação do Rafael; a
+partir dele, tudo pela tela.
 
 Aceite:
 
@@ -141,6 +211,10 @@ Aceite:
       pela tela, sem SQL.
 - [ ] Revogar o papel de quem tem alocação registrada é recusado com mensagem clara
       (`on delete restrict` já existente).
+- [ ] Bolsista desligado perde o acesso na hora, e a alocação e a autoria dele
+      continuam no histórico.
+- [ ] Desligar ou apagar a última pessoa ativa da coordenação é recusado pelo banco.
+- [ ] Bolsista não encontra ninguém pela busca por e-mail nem lê a lista da equipe.
 
 ### Módulo 1 — Turmas: a pasta vira página (spec 004)
 
@@ -687,6 +761,101 @@ Aceite:
       PGlite).
 - [ ] NPS por turma e geral bate com o cálculo manual sobre a fixture.
 
+### Módulo 8 — Solicitar melhoria (spec 011)
+
+Pedido do Rafael em 23/09/2026: um lugar dentro da área do bolsista para pedir melhoria
+— no sistema, nas aulas e no material, no processo do projeto — e ver o que aconteceu
+com o pedido. Aproveita o estudo `portal-de-ideias.md` e as duas perguntas que ele deixou
+como bloqueio:
+
+- **GitHub Discussions (opção B) foi descartado:** bolsista não tem, nem precisa ter,
+  conta no GitHub, e o pedido pertence à área do bolsista. Registrado aqui como decisão.
+- **Dono da triagem e prazo de resposta** viram dado e tela, não promessa: toda
+  solicitação tem prazo de 14 dias para a primeira resposta, e a fila da coordenação
+  mostra as atrasadas no topo. O nome de quem tria é a decisão D9; ela não bloqueia o
+  código, bloqueia ligar a aba para a equipe.
+
+Modelo (duas tabelas; comentário ficou de fora de propósito):
+
+```sql
+create table gestao.melhoria (
+  id uuid primary key default gen_random_uuid(),
+  autor uuid not null references gestao.papel_membro (user_profile_id) on delete restrict,
+  titulo text not null check (char_length(titulo) between 3 and 120),
+  area text not null check (area in ('plataforma','gestao','aulas_material','processo','outra')),
+  problema text not null check (char_length(problema) between 10 and 2000),
+  proposta text not null check (char_length(proposta) between 3 and 2000),
+  quem_sofre text check (char_length(quem_sofre) <= 500),
+  status text not null default 'nova'
+    check (status in ('nova','em_analise','aceita','recusada','duplicada','entregue')),
+  resposta text check (char_length(resposta) <= 2000),
+  duplicada_de uuid references gestao.melhoria (id) on delete set null,
+  link_execucao text check (link_execucao ~ '^https?://'),
+  respondida_em timestamptz,          -- primeira resposta; o prazo de 14 dias mede até aqui
+  respondida_por uuid references auth.users (id) on delete set null,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  check (status not in ('recusada','duplicada') or char_length(btrim(resposta)) >= 10),
+  check (status <> 'duplicada' or duplicada_de is not null),
+  check (duplicada_de is null or duplicada_de <> id)
+);
+
+create table gestao.melhoria_apoio (
+  melhoria_id uuid not null references gestao.melhoria (id) on delete cascade,
+  user_profile_id uuid not null references gestao.papel_membro (user_profile_id) on delete cascade,
+  criado_em timestamptz not null default now(),
+  primary key (melhoria_id, user_profile_id)
+);
+```
+
+Regras (no banco, não na tela):
+
+- Autor vem de `auth.uid()` e nasce `nova`; o cliente não escolhe autor nem status.
+- O autor edita ou retira o próprio pedido enquanto ele está `nova`. Depois disso o
+  texto fica como foi escrito.
+- Só a coordenação muda status e resposta. Transições: `nova` → `em_analise` | `aceita`
+  | `recusada` | `duplicada`; `em_analise` → `aceita` | `recusada` | `duplicada`;
+  `aceita` → `entregue`. Qualquer outra é recusada pelo banco.
+- **Recusada e duplicada exigem motivo escrito.** É a regra que separa isto de uma
+  caixa de sugestão.
+- Pedido aceito guarda o link de onde a execução acontece (card do Trello, issue).
+  Este módulo registra a decisão; não vira um segundo quadro de tarefas.
+- "Atrasada" não é coluna: é `nova` com `criado_em` há mais de 14 dias.
+- Apoio ("preciso disso também") é sinal, não voto que decide. Ninguém apoia o próprio
+  pedido.
+- Aviso no sino, gravado por trigger `security definer` (a RLS de `notification` não
+  deixa um usuário escrever para outro, V9): pedido novo avisa a coordenação ativa;
+  mudança de status avisa o autor, com o motivo.
+
+Quem lê: todo membro ativo lê todos os pedidos e os apoios — ver o que já foi pedido
+evita duplicata e mostra que o canal responde. Texto fixo no formulário: **o espaço é
+para melhoria do projeto e do sistema; questão de conduta ou sobre uma pessoa vai
+direto à coordenação, fora daqui.**
+
+Telas:
+
+- `/gestao/melhorias`: formulário curto no topo (título, sobre o quê, qual o problema,
+  o que você propõe, quem sofre com isso hoje) e a lista com filtro por status e área.
+  Para a coordenação a lista abre ordenada pela fila: atrasadas, depois novas mais
+  antigas.
+- `/gestao/melhorias/[id]`: o pedido, os apoios, a resposta. O autor edita enquanto
+  `nova`; a coordenação responde (status, motivo, pedido original quando duplicada,
+  link da execução quando aceita).
+- Tela Hoje: coordenação vê quantas esperam resposta e quantas estão atrasadas; o
+  bolsista vê os próprios pedidos respondidos nos últimos 7 dias.
+
+Aceite:
+
+- [ ] Bolsista abre um pedido em menos de um minuto e acompanha o status sem perguntar
+      a ninguém.
+- [ ] Recusar ou marcar como duplicada sem motivo é recusado pelo banco.
+- [ ] Bolsista não muda status nem resposta, nem o texto de pedido alheio.
+- [ ] Autor não edita o pedido depois que a coordenação o analisou.
+- [ ] Mudança de status gera aviso no sino do autor; pedido novo gera aviso para a
+      coordenação ativa.
+- [ ] Pedido parado há mais de 14 dias aparece como atrasado, derivado por data.
+- [ ] Usuário sem papel no projeto e membro desligado não leem nem criam pedidos.
+
 ---
 
 ## Ordem e dependências
@@ -694,14 +863,17 @@ Aceite:
 ```
 M0 Fundação ──┬─► M1 Turmas ──┬─► M3 Diário ──► M7 Avaliação NPS
               │               └─► M2 Alocação/carga ──► M5 Relatório mensal
-              └─► M4 Financeiro (usa a bolsa do M0; mostra o relatório do M5 quando existir)
+              ├─► M4 Financeiro (usa a bolsa do M0; mostra o relatório do M5 quando existir)
+              └─► M8 Solicitar melhoria (só precisa da equipe e das abas do M0)
 M6 Histórico de módulos: independente, em paralelo desde o início
 ```
 
 Ordem proposta pelo tamanho da dor, que é diária ou por turma antes da mensal:
-**M0 → M1 → M3 → M2 → M4 → M5 → M7**, com M6 em paralelo. O `/gestao` só é ligado em
-produção para bolsistas depois de M0 + M1 + M3 (primeira entrega utilizável:
-turma, chamada e diário). Até lá só a coordenação usa.
+**M0 → M8 → M1 → M3 → M2 → M4 → M5 → M7**, com M6 em paralelo. O M8 sobe para logo
+depois do M0 porque é pequeno, não depende de planilha nenhuma e é o primeiro motivo
+para o bolsista entrar no sistema. O `/gestao` só é ligado em produção para bolsistas
+depois de M0 + M8 + M1 + M3 (primeira entrega utilizável: pedido de melhoria, turma,
+chamada e diário). Até lá só a coordenação usa.
 
 Cada módulo, na ordem:
 
@@ -732,6 +904,7 @@ Cada módulo, na ordem:
 | M5 | `*_gestao_relatorio_mensal.sql` | `relatorio.ts` | `relatorios/**` | `gestao-relatorio-migration.test.ts`, `relatorio.test.ts` |
 | M6 | `*_historico_conteudo.sql` | — (`lib/api/content-history.ts`, cliente do navegador como `courses.ts`) | — (`components/dashboard/CourseManagement/HistoryTab.tsx`, `courseDetail.tsx`) | `historico-conteudo-migration.test.ts`, `content-history.test.ts` |
 | M7 | `*_gestao_avaliacao.sql` | `avaliacao.ts` | `avaliacoes/**`; pública em `app/avaliacao/[token]/**` | `gestao-avaliacao-migration.test.ts`, `avaliacao.test.ts`, `lib/supabase/middleware` (novo prefixo) |
+| M8 | `*_gestao_melhorias.sql` | `melhorias.ts` | `melhorias/**` | `gestao-melhorias-migration.test.ts`, `melhorias.test.ts` |
 
 Também mudam: `lib/api/gestao/indicators.ts` (termos passam a ler `turma_aluno`),
 `lib/api/gestao/types.ts`, `lib/supabase/middleware.ts` (só `/avaliacao`),
@@ -752,6 +925,8 @@ Nenhuma bloqueia M0. Cada uma bloqueia só a spec indicada.
 | D6 | O relatório mensal precisa sair em `.docx` ou o PDF impresso serve à coordenação e à Fadepe? | PDF impresso. `.docx` só se a Fadepe exigir arquivo editável | M5 |
 | D7 | Perguntas do diário e da avaliação final | Validar os rascunhos acima com a coordenação antes da spec | M3, M7 |
 | D8 | Formulário oficial de prestação de contas (bloqueador nº 1 do plano-pai, ainda pendente) | Não bloqueia estes módulos; define a exportação final do M4 | exportação do M4 |
+| D9 | Quem tria os pedidos de melhoria e se o prazo de 14 dias serve | Uma pessoa nomeada da coordenação, olhando a fila uma vez por semana. Sem nome, a aba não é mostrada à equipe: canal sem resposta perde a credibilidade em dois meses | ligar o M8 para os bolsistas |
+| D10 | Expor o schema `gestao` na API do Supabase (V6) | Adicionar `gestao` em "Exposed schemas" nas configurações da API. É mudança em produção: só com aprovação do Rafael, junto com a primeira migration aplicada | ligar a flag em produção |
 
 ## Riscos
 
@@ -765,14 +940,19 @@ Nenhuma bloqueia M0. Cada uma bloqueia só a spec indicada.
 | Duas fontes durante a transição (planilha e sistema) | média | Data de virada por planilha, registrada no card do módulo |
 | Migration em banco de produção compartilhado | média | Aplicação manual com aprovação explícita; conferência de RLS no banco real depois |
 | Schema do `public` diferente do que o código supõe (ADR 008) | média | Trigger do histórico usa `to_jsonb`, sem depender de colunas |
-| Volume: 165–227 h com bolsista de 20 h/semana | média | Entregar por módulo; primeira entrega útil (M0+M1+M3) em ~65–85 h |
+| Volume: 182–251 h com bolsista de 20 h/semana | média | Entregar por módulo; primeira entrega útil (M0+M8+M1+M3) em ~82–109 h |
 | Sucessão: autor sai e ninguém opera | média | Itens de sucessão do plano-pai continuam valendo; RUNBOOK ganha seção do `/gestao` |
+| Pedido de melhoria sem resposta vira cemitério e o canal perde a credibilidade | **alta** | Dono nomeado (D9), prazo de 14 dias visível na fila, atrasadas no topo, aviso no sino a cada mudança |
+| Pedido de melhoria usado para falar de pessoa ou conduta | média | Texto fixo no formulário; o canal é de projeto e sistema; conduta vai direto à coordenação |
+| Ex-bolsista continua com acesso porque a revogação é recusada (V5) | **alta** | Desligamento com `desligado_em` no M0; acesso cai na hora, histórico fica |
+| Flag ligada com o schema `gestao` fora da API (V6) | média | D10 antes de ligar; sem isso a tela quebra, mas não vaza nada |
 
 ## Estimativa
 
 | Frente | Horas |
 |---|---|
-| M0 Fundação (equipe, bolsa, RLS, navegação, tela Hoje) | 15–20 |
+| M0 Fundação (equipe, bolsa, RLS, desligamento, navegação, tela Hoje) | 18–24 |
+| M8 Solicitar melhoria (pedido, triagem, apoio, aviso no sino) | 14–20 |
 | M1 Turmas (cadastro, matrícula, chamada, termos, lista impressa, encerramento, KPI, importação) | 30–40 |
 | M3 Diário de bordo + motor de questionário | 20–25 |
 | M2 Disponibilidade, alocação e carga horária | 25–35 |
@@ -781,7 +961,7 @@ Nenhuma bloqueia M0. Cada uma bloqueia só a spec indicada.
 | M7 Avaliação final NPS | 12–18 |
 | M6 Histórico de módulos | 8–12 |
 | Importação das planilhas e virada (dividida entre os módulos) | 10–15 |
-| **Total** | **165–227** |
+| **Total** | **182–251** |
 
 Faixa, não compromisso. A importação é a parte mais incerta: depende de quão limpas
 estão as planilhas atuais.
@@ -792,10 +972,11 @@ estão as planilhas atuais.
    pagamentos, compras, disponibilidade), as colunas reais e uma amostra anonimizada. É
    o que define os importadores e confirma os campos acima. Levantar requer acesso ao
    Drive do projeto.
-2. **Estado do `gestao.*` em produção:** a flag está ligada? As tabelas têm dado? Isso
-   decide se `agenda.horario` e `agenda_bolsista.carga` podem ser convertidos direto ou
-   precisam de migração de dado.
+2. ~~**Estado do `gestao.*` em produção**~~ — resolvido na validação (V7): tabelas
+   vazias, flag sem uso real. `agenda.horario` e `agenda_bolsista.carga` convertem direto.
 3. **Aprovação da spec 003 (M0)**, que inclui a nova divisão da RLS.
+4. **Schema `gestao` exposto na API do Supabase** (V6, D10) antes de ligar a flag em
+   produção. Não bloqueia código nem teste; bloqueia o uso.
 
 ## Não feito de propósito
 
@@ -820,3 +1001,13 @@ estão as planilhas atuais.
   Fora de escopo, pelos mesmos motivos do plano-pai.
 - **Fotos das turmas.** São material de divulgação e continuam no acervo de marketing;
   não são dado de gestão.
+- **Comentários e discussão nos pedidos de melhoria.** A resposta da coordenação e o
+  apoio bastam; conversa longa volta para a reunião. Reabrir se mais de um terço dos
+  pedidos precisar de ida e volta para ser entendido.
+- **Anexo em pedido de melhoria.** O upload que existe devolve URL pública
+  (`docs/supabase.md#storage`); link colado no texto resolve.
+- **Pedido anônimo e ranking por apoio.** Em equipe deste tamanho o anonimato é ilusão
+  e tira de cena quem precisa detalhar a ideia; apoio é sinal, a decisão é humana e
+  escrita.
+- **Pedido de melhoria por aluno ou professor da escola.** O canal é interno; abrir
+  para menor de idade traz moderação e LGPD, outra categoria de problema.

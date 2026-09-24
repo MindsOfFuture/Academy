@@ -1,52 +1,64 @@
-import { notFound, redirect } from "next/navigation";
-import { gestaoHabilitada } from "@/lib/api/gestao/feature-flags";
-import { ensureGestaoMember } from "@/lib/api/gestao/auth";
+import Link from "next/link";
 import { getIndicadores } from "@/lib/api/gestao/indicators";
-import Navbar from "@/components/navbar/navbar";
+import { listarPendencias } from "@/lib/api/gestao/pendencias";
+import type { Pendencia } from "@/lib/api/gestao/types";
+import { exigirMembro } from "./guard";
 
 /**
- * Painel do módulo de gestão interna (spec 002).
+ * Tela "Hoje" do módulo de gestão (spec 003).
  *
- * Ordem de guard, defesa em profundidade (specs/constitution.md §III):
- *  1. Feature flag — desligada, a rota responde 404 (módulo some sem deploy).
- *  2. Autenticação — anônimo é redirecionado para /auth?next=/gestao.
- *  3. Autorização — autenticado sem papel de membro recebe 403.
- *  4. Dados — leitura exclusivamente por lib/api/gestao (fronteira de query).
- *
- * A checagem de papel reusa a fronteira (ensureGestaoMember) e a RLS continua
- * autorizando cada query. Nenhum dado sensível é exposto a não-membro.
+ * Guard: `exigirMembro` (flag → login → papel), defesa em profundidade
+ * (specs/constitution.md §III). Dados só por `lib/api/gestao`. O bolsista vê as
+ * próprias pendências (a RLS recorta); a coordenação vê as da equipe e, embaixo,
+ * os seis indicadores do convênio (spec 002).
  */
 export default async function GestaoPage() {
-  if (!gestaoHabilitada()) {
-    notFound();
-  }
+  const papel = await exigirMembro("/gestao");
 
-  let papel: "coordenacao" | "bolsista";
-  try {
-    papel = await ensureGestaoMember();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (message.includes("não autenticado")) {
-      redirect("/auth?next=%2Fgestao");
-    }
-    notFound();
-  }
+  const [pendencias, indicadores] = await Promise.all([
+    listarPendencias(papel),
+    papel === "coordenacao" ? getIndicadores() : Promise.resolve(null),
+  ]);
 
-  const indicadores = await getIndicadores();
+  const aFazer = pendencias.filter((p) => p.tipo !== "proxima_aula");
+  const proximas = pendencias.filter((p) => p.tipo === "proxima_aula");
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar showTextLogo={true} />
-      <div className="flex justify-center p-4 sm:p-6 md:p-8">
-        <div className="w-full max-w-5xl space-y-8">
-          <header>
-            <h1 className="text-3xl font-bold">Gestão do projeto</h1>
-            <p className="text-muted-foreground">
-              Módulo interno — acesso restrito a membros ({papel}).
-            </p>
-          </header>
+    <div className="space-y-8">
+      <section aria-labelledby="a-fazer" className="space-y-3">
+        <h2 id="a-fazer" className="text-xl font-semibold">
+          O que você tem a fazer
+        </h2>
+        {aFazer.length === 0 ? (
+          <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nada pendente agora.</p>
+        ) : (
+          <ul className="space-y-2">
+            {aFazer.map((p, i) => (
+              <ItemPendencia key={`${p.tipo}-${i}`} pendencia={p} />
+            ))}
+          </ul>
+        )}
+      </section>
 
-          <section aria-label="Indicadores do convênio" className="grid grid-cols-2 gap-4 md:grid-cols-3">
+      <section aria-labelledby="proximas-aulas" className="space-y-3">
+        <h2 id="proximas-aulas" className="text-xl font-semibold">
+          Próximas aulas
+        </h2>
+        {proximas.length === 0 ? (
+          <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhuma aula agendada.</p>
+        ) : (
+          <ul className="space-y-2">
+            {proximas.map((p, i) => (
+              <ItemPendencia key={`aula-${i}`} pendencia={p} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {indicadores && (
+        <section aria-label="Indicadores do convênio" className="space-y-3">
+          <h2 className="text-xl font-semibold">Indicadores do convênio</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             <Indicador titulo="Alunos participantes" valor={indicadores.alunos.total} />
             <Indicador titulo="Reservas de ônibus" valor={indicadores.reservasOnibus.total} />
             <Indicador
@@ -59,10 +71,26 @@ export default async function GestaoPage() {
             />
             <Indicador titulo="Aulas realizadas" valor={indicadores.aulas.total} />
             <Indicador titulo="Alocações de bolsistas" valor={indicadores.cargaBolsistas.totalAlocacoes} />
-          </section>
-        </div>
-      </div>
+          </div>
+        </section>
+      )}
     </div>
+  );
+}
+
+function ItemPendencia({ pendencia }: { pendencia: Pendencia }) {
+  return (
+    <li>
+      <Link
+        href={pendencia.href}
+        className={`block rounded-lg border bg-white p-4 shadow-sm transition-colors hover:border-[#684A97] ${
+          pendencia.urgente ? "border-l-4 border-l-[#E8473A]" : ""
+        }`}
+      >
+        <p className="font-medium">{pendencia.titulo}</p>
+        <p className="text-sm text-muted-foreground">{pendencia.detalhe}</p>
+      </Link>
+    </li>
   );
 }
 
