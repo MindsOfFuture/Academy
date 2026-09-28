@@ -43,7 +43,6 @@ export function validarBolsa(form: FormData): Validado<NovaBolsa> {
   const bolsistaId = texto(form, "bolsistaId");
   const modalidade = texto(form, "modalidade") as ModalidadeBolsa;
   const carga = lerNumero(texto(form, "cargaSemanalHoras"));
-  const valor = lerNumero(texto(form, "valorMensal"));
   const inicio = texto(form, "inicio");
   const fim = texto(form, "fim");
 
@@ -52,7 +51,6 @@ export function validarBolsa(form: FormData): Validado<NovaBolsa> {
   if (carga === null || carga <= 0 || carga > 40) {
     return { ok: false, mensagem: "A carga semanal precisa ficar entre 1 e 40 horas." };
   }
-  if (valor === null || valor < 0) return { ok: false, mensagem: "Informe o valor mensal da bolsa." };
   if (!DATA_ISO.test(inicio) || !DATA_ISO.test(fim)) {
     return { ok: false, mensagem: "Informe o início e o fim da vigência." };
   }
@@ -60,7 +58,7 @@ export function validarBolsa(form: FormData): Validado<NovaBolsa> {
 
   return {
     ok: true,
-    valor: { bolsistaId, modalidade, cargaSemanalHoras: carga, valorMensal: valor, inicio, fim },
+    valor: { bolsistaId, modalidade, cargaSemanalHoras: carga, inicio, fim },
   };
 }
 
@@ -130,6 +128,9 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
   }
   if (texto.includes("agenda_bolsista_bolsista_id_papel_membro_fkey") || texto.includes("bolsa_bolsista_id_fkey")) {
     return "Esta pessoa já tem trabalho registrado no projeto. Use “Desligar” para tirar o acesso sem apagar o histórico.";
+  }
+  if (texto.includes("papel_membro_algum_papel")) {
+    return "A pessoa precisa ficar com ao menos um papel. Para tirar o acesso, use “Desligar”.";
   }
   if (texto.includes("papel_membro_pkey") || texto.includes("duplicate key")) {
     return "Esta pessoa já faz parte da equipe.";
