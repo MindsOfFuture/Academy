@@ -13,8 +13,6 @@ const MODALIDADE: Record<ModalidadeBolsa, string> = {
   outra: "Outra",
 };
 
-const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
 function dataBr(iso: string): string {
   const [ano, mes, dia] = iso.slice(0, 10).split("-");
   return `${dia}/${mes}/${ano}`;
@@ -81,9 +79,7 @@ function ListaMembros({ membros }: { membros: MembroEquipe[] }) {
             {m.bolsista && (
               <p className="text-sm">
                 {m.bolsaVigente
-                  ? `${MODALIDADE[m.bolsaVigente.modalidade]} · ${m.bolsaVigente.cargaSemanalHoras} h/semana · ${moeda.format(
-                      m.bolsaVigente.valorMensal,
-                    )} · até ${dataBr(m.bolsaVigente.fim)}`
+                  ? `${MODALIDADE[m.bolsaVigente.modalidade]} · ${m.bolsaVigente.cargaSemanalHoras} h/semana · até ${dataBr(m.bolsaVigente.fim)}`
                   : "Sem bolsa vigente"}
               </p>
             )}

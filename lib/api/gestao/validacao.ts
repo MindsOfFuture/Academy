@@ -43,7 +43,6 @@ export function validarBolsa(form: FormData): Validado<NovaBolsa> {
   const bolsistaId = texto(form, "bolsistaId");
   const modalidade = texto(form, "modalidade") as ModalidadeBolsa;
   const carga = lerNumero(texto(form, "cargaSemanalHoras"));
-  const valor = lerNumero(texto(form, "valorMensal"));
   const inicio = texto(form, "inicio");
   const fim = texto(form, "fim");
 
@@ -52,7 +51,6 @@ export function validarBolsa(form: FormData): Validado<NovaBolsa> {
   if (carga === null || carga <= 0 || carga > 40) {
     return { ok: false, mensagem: "A carga semanal precisa ficar entre 1 e 40 horas." };
   }
-  if (valor === null || valor < 0) return { ok: false, mensagem: "Informe o valor mensal da bolsa." };
   if (!DATA_ISO.test(inicio) || !DATA_ISO.test(fim)) {
     return { ok: false, mensagem: "Informe o início e o fim da vigência." };
   }
@@ -60,7 +58,7 @@ export function validarBolsa(form: FormData): Validado<NovaBolsa> {
 
   return {
     ok: true,
-    valor: { bolsistaId, modalidade, cargaSemanalHoras: carga, valorMensal: valor, inicio, fim },
+    valor: { bolsistaId, modalidade, cargaSemanalHoras: carga, inicio, fim },
   };
 }
 

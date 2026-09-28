@@ -29,7 +29,6 @@ export function mapMembro(row: EquipeRow): MembroEquipe {
           id: row.bolsa_id,
           modalidade: row.modalidade,
           cargaSemanalHoras: numero(row.carga_semanal_horas),
-          valorMensal: numero(row.valor_mensal),
           inicio: row.bolsa_inicio,
           fim: row.bolsa_fim,
         }
@@ -144,7 +143,6 @@ export async function cadastrarBolsa(bolsa: NovaBolsa): Promise<void> {
     bolsista_id: bolsa.bolsistaId,
     modalidade: bolsa.modalidade,
     carga_semanal_horas: bolsa.cargaSemanalHoras,
-    valor_mensal: bolsa.valorMensal,
     inicio: bolsa.inicio,
     fim: bolsa.fim,
   });

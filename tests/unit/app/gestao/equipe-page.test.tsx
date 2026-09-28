@@ -1,7 +1,8 @@
 /**
  * Tela de equipe com papéis acumulados (spec 012): cada pessoa mostra todos os
  * papéis que tem, só aparecem os botões que fazem sentido para ela e quem é
- * bolsista — inclusive da coordenação — entra na lista de bolsa.
+ * bolsista — inclusive da coordenação — entra na lista de bolsa. A bolsa aparece
+ * sem valor em dinheiro (spec 003, alterada em 28/09/2026).
  */
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -42,8 +43,14 @@ function membro(id: string, nome: string, coordenacao: boolean, bolsista: boolea
   };
 }
 
+const COM_BOLSA: MembroEquipe = {
+  ...membro("edu", "Edu Com Bolsa", false, true),
+  bolsaVigente: { id: "b-1", modalidade: "mestrado", cargaSemanalHoras: 20, inicio: "2026-03-01", fim: "2027-02-28" },
+};
+
 const EQUIPE = [
   membro("cris", "Cris Coordenação e Bolsa", true, true),
+  COM_BOLSA,
   membro("dani", "Dani Só Coordenação", true, false),
   membro("bia", "Bia Só Bolsista", false, true),
 ];
@@ -88,7 +95,14 @@ describe("tela de equipe com papéis acumulados", () => {
     const nomes = within(lista)
       .getAllByRole("option")
       .map((o) => o.textContent);
-    expect(nomes).toEqual(["Escolha…", "Cris Coordenação e Bolsa", "Bia Só Bolsista"]);
+    expect(nomes).toEqual(["Escolha…", "Cris Coordenação e Bolsa", "Edu Com Bolsa", "Bia Só Bolsista"]);
+  });
+
+  it("não mostra nem pede valor em dinheiro", async () => {
+    const { container } = render(await EquipePage());
+    expect(within(linhaDe("Edu Com Bolsa")).getByText("Mestrado · 20 h/semana · até 28/02/2027")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/R\$|valor/i);
+    expect(container.querySelector('[name="valorMensal"]')).toBeNull();
   });
 
   it("oferece adicionar alguém com os dois papéis de uma vez", async () => {

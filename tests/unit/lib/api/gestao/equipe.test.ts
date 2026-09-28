@@ -86,7 +86,6 @@ describe("lib/api/gestao/equipe", () => {
           bolsa_id: "b-1",
           modalidade: "graduacao",
           carga_semanal_horas: "20.0",
-          valor_mensal: "700.00",
           bolsa_inicio: "2026-01-01",
           bolsa_fim: "2026-12-31",
           tem_alocacao: true,
@@ -98,7 +97,13 @@ describe("lib/api/gestao/equipe", () => {
     expect(rpc).toHaveBeenCalledWith("equipe");
     expect(membro.nome).toBe("Pessoa sem nome no cadastro");
     expect(membro).toMatchObject({ coordenacao: true, bolsista: true });
-    expect(membro.bolsaVigente).toMatchObject({ cargaSemanalHoras: 20, valorMensal: 700 });
+    expect(membro.bolsaVigente).toEqual({
+      id: "b-1",
+      modalidade: "graduacao",
+      cargaSemanalHoras: 20,
+      inicio: "2026-01-01",
+      fim: "2026-12-31",
+    });
 
     rpc.mockResolvedValueOnce({ data: [], error: null });
     await expect(buscarUsuarioPorEmail("ninguem@x")).resolves.toBeNull();

@@ -17,26 +17,26 @@ function form(campos: Record<string, string>): FormData {
 const BOLSA_OK = {
   bolsistaId: "b-1",
   modalidade: "graduacao",
-  cargaSemanalHoras: "20",
-  valorMensal: "1.200,50",
+  cargaSemanalHoras: "20,5",
   inicio: "2026-03-01",
   fim: "2026-12-31",
 };
 
 describe("validação e montagem da gestão (spec 003)", () => {
-  it("aceita bolsa válida lendo valor em formato brasileiro e recusa carga, valor e vigência inválidos", () => {
-    const ok = validarBolsa(form(BOLSA_OK));
+  it("aceita bolsa válida lendo a carga em formato brasileiro, sem valor em dinheiro, e recusa carga e vigência inválidas", () => {
+    // Um valor enviado por fora do formulário é ignorado: a bolsa não guarda dinheiro.
+    const ok = validarBolsa(form({ ...BOLSA_OK, valorMensal: "700,00" }));
     expect(ok).toEqual({
       ok: true,
-      valor: { ...BOLSA_OK, cargaSemanalHoras: 20, valorMensal: 1200.5 },
+      valor: { ...BOLSA_OK, cargaSemanalHoras: 20.5 },
     });
     expect(validarBolsa(form({ ...BOLSA_OK, cargaSemanalHoras: "41" }))).toMatchObject({ ok: false });
-    expect(validarBolsa(form({ ...BOLSA_OK, valorMensal: "-1" }))).toMatchObject({ ok: false });
     expect(validarBolsa(form({ ...BOLSA_OK, fim: "2026-02-01" }))).toEqual({
       ok: false,
       mensagem: "O fim da vigência não pode ser antes do início.",
     });
     expect(lerNumero("abc")).toBeNull();
+    expect(lerNumero("1.200,50")).toBe(1200.5);
   });
 
   it("traduz o erro do banco para uma frase que a coordenação entende", () => {
@@ -63,7 +63,6 @@ describe("validação e montagem da gestão (spec 003)", () => {
       bolsa_id: null,
       modalidade: null,
       carga_semanal_horas: null,
-      valor_mensal: null,
       bolsa_inicio: null,
       bolsa_fim: null,
       tem_alocacao: false,

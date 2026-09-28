@@ -93,10 +93,6 @@ export function FormBolsa({ bolsistas }: { bolsistas: { id: string; nome: string
           <Input name="cargaSemanalHoras" inputMode="decimal" required placeholder="20" />
         </label>
         <label className="space-y-1">
-          <span className={rotuloCampo}>Valor mensal (R$)</span>
-          <Input name="valorMensal" inputMode="decimal" required placeholder="700,00" />
-        </label>
-        <label className="space-y-1">
           <span className={rotuloCampo}>Início</span>
           <Input name="inicio" type="date" required />
         </label>

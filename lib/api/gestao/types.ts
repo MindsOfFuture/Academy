@@ -261,7 +261,6 @@ export interface EquipeRow extends PapeisMembro {
     bolsa_id: string | null;
     modalidade: ModalidadeBolsa | null;
     carga_semanal_horas: number | string | null;
-    valor_mensal: number | string | null;
     bolsa_inicio: string | null;
     bolsa_fim: string | null;
     tem_alocacao: boolean;
@@ -271,7 +270,6 @@ export interface BolsaVigente {
     id: string;
     modalidade: ModalidadeBolsa;
     cargaSemanalHoras: number;
-    valorMensal: number;
     inicio: string;
     fim: string;
 }
@@ -300,7 +298,6 @@ export interface NovaBolsa {
     bolsistaId: string;
     modalidade: ModalidadeBolsa;
     cargaSemanalHoras: number;
-    valorMensal: number;
     inicio: string;
     fim: string;
 }

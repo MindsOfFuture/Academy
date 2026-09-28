@@ -170,7 +170,6 @@ create table gestao.bolsa (
   bolsista_id uuid not null references gestao.papel_membro (user_profile_id) on delete restrict,
   modalidade text not null check (modalidade in ('graduacao','mestrado','bdcti','critt','outra')),
   carga_semanal_horas numeric(4,1) not null check (carga_semanal_horas > 0 and carga_semanal_horas <= 40),
-  valor_mensal numeric(10,2) not null check (valor_mensal >= 0),
   inicio date not null,
   fim date not null check (fim >= inicio),
   criado_em timestamptz not null default now(),
@@ -180,6 +179,10 @@ create table gestao.bolsa (
 
 alter table gestao.papel_membro add column if not exists desligado_em timestamptz;
 ```
+
+A bolsa não guarda valor em dinheiro, e a tela de equipe não mostra nem pede valor
+(pedido do Rafael em 28/09/2026). Quanto se paga em cada mês fica com
+`gestao.pagamento_bolsa`, no Módulo 4.
 
 `user_profile` não é legível pela coordenação (V4), então a tela de equipe usa duas
 funções `security definer` que recusam quem não é coordenação ativa:
