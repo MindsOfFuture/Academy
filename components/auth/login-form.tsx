@@ -62,6 +62,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
 
         <div className="relative flex items-center">
           <Lock className="absolute left-4 text-[#6A4A98]" size={20} />
+          {/* O Edge desenha um olho próprio em campo de senha; `[&::-ms-reveal]:hidden` o esconde para não duplicar o botão abaixo. */}
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
@@ -69,7 +70,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-12 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
+            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-12 placeholder:text-gray-500 [&::-ms-reveal]:hidden focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
           />
           <button
             type="button"
