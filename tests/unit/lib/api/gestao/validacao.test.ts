@@ -17,26 +17,26 @@ function form(campos: Record<string, string>): FormData {
 const BOLSA_OK = {
   bolsistaId: "b-1",
   modalidade: "graduacao",
-  cargaSemanalHoras: "20",
-  valorMensal: "1.200,50",
+  cargaSemanalHoras: "20,5",
   inicio: "2026-03-01",
   fim: "2026-12-31",
 };
 
 describe("validação e montagem da gestão (spec 003)", () => {
-  it("aceita bolsa válida lendo valor em formato brasileiro e recusa carga, valor e vigência inválidos", () => {
-    const ok = validarBolsa(form(BOLSA_OK));
+  it("aceita bolsa válida lendo a carga em formato brasileiro, sem valor em dinheiro, e recusa carga e vigência inválidas", () => {
+    // Um valor enviado por fora do formulário é ignorado: a bolsa não guarda dinheiro.
+    const ok = validarBolsa(form({ ...BOLSA_OK, valorMensal: "700,00" }));
     expect(ok).toEqual({
       ok: true,
-      valor: { ...BOLSA_OK, cargaSemanalHoras: 20, valorMensal: 1200.5 },
+      valor: { ...BOLSA_OK, cargaSemanalHoras: 20.5 },
     });
     expect(validarBolsa(form({ ...BOLSA_OK, cargaSemanalHoras: "41" }))).toMatchObject({ ok: false });
-    expect(validarBolsa(form({ ...BOLSA_OK, valorMensal: "-1" }))).toMatchObject({ ok: false });
     expect(validarBolsa(form({ ...BOLSA_OK, fim: "2026-02-01" }))).toEqual({
       ok: false,
       mensagem: "O fim da vigência não pode ser antes do início.",
     });
     expect(lerNumero("abc")).toBeNull();
+    expect(lerNumero("1.200,50")).toBe(1200.5);
   });
 
   it("traduz o erro do banco para uma frase que a coordenação entende", () => {
@@ -56,13 +56,13 @@ describe("validação e montagem da gestão (spec 003)", () => {
       user_profile_id: "b-2",
       nome: "Bia",
       email: "bia@x",
-      papel: "bolsista",
+      coordenacao: false,
+      bolsista: true,
       desligado_em: null,
       membro_desde: "2026-01-01T00:00:00Z",
       bolsa_id: null,
       modalidade: null,
       carga_semanal_horas: null,
-      valor_mensal: null,
       bolsa_inicio: null,
       bolsa_fim: null,
       tem_alocacao: false,
@@ -83,5 +83,19 @@ describe("validação e montagem da gestão (spec 003)", () => {
 
     const bolsista = montarPendencias({ papel: "bolsista", hoje: "2026-09-23", agendas, equipe: [semBolsa] });
     expect(bolsista.some((p) => p.tipo === "bolsista_sem_bolsa")).toBe(false);
+
+    // Spec 012: quem é coordenação e bolsista também aparece sem bolsa; só coordenação, não.
+    const coordBolsista = { ...semBolsa, userProfileId: "c-1", nome: "Cris", coordenacao: true };
+    const soCoord = { ...semBolsa, userProfileId: "c-2", nome: "Dani", coordenacao: true, bolsista: false };
+    const titulos = montarPendencias({ papel: "coordenacao", hoje: "2026-09-23", agendas: [], equipe: [coordBolsista, soCoord] })
+      .filter((p) => p.tipo === "bolsista_sem_bolsa")
+      .map((p) => p.titulo);
+    expect(titulos).toEqual(["Cris está sem bolsa vigente"]);
+  });
+
+  it("explica que ninguém fica sem papel", () => {
+    expect(
+      mensagemDeErro(new Error('new row for relation "papel_membro" violates check constraint "papel_membro_algum_papel"')),
+    ).toBe("A pessoa precisa ficar com ao menos um papel. Para tirar o acesso, use “Desligar”.");
   });
 });

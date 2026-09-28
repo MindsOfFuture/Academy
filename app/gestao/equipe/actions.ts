@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
 import {
-  alterarPapel,
   buscarUsuarioPorEmail,
   cadastrarBolsa,
   concederPapel,
   definirDesligamento,
+  definirPapel,
   removerMembro,
 } from "@/lib/api/gestao/equipe";
-import type { EstadoAcao, GestaoPapel } from "@/lib/api/gestao/types";
+import type { EstadoAcao, GestaoPapel, PapeisMembro } from "@/lib/api/gestao/types";
 import { falha, mensagemDeErro, sucesso, validarBolsa, validarEmail } from "@/lib/api/gestao/validacao";
 
 /**
@@ -34,6 +34,20 @@ function papelDoForm(form: FormData): GestaoPapel | null {
   return papel === "coordenacao" || papel === "bolsista" ? papel : null;
 }
 
+/** O formulário de adicionar oferece bolsista, coordenação ou os dois (spec 012). */
+function papeisDoForm(form: FormData): PapeisMembro | null {
+  const papel = form.get("papel");
+  if (papel === "ambos") return { coordenacao: true, bolsista: true };
+  if (papel === "coordenacao") return { coordenacao: true, bolsista: false };
+  if (papel === "bolsista") return { coordenacao: false, bolsista: true };
+  return null;
+}
+
+function descreverPapeis(papeis: PapeisMembro): string {
+  if (papeis.coordenacao && papeis.bolsista) return "coordenação e bolsista";
+  return papeis.coordenacao ? "coordenação" : "bolsista";
+}
+
 function idDoForm(form: FormData): string {
   const id = form.get("userProfileId");
   return typeof id === "string" ? id : "";
@@ -45,18 +59,18 @@ export async function concederPapelAction(_anterior: EstadoAcao | null, form: Fo
 
   const email = validarEmail(typeof form.get("email") === "string" ? (form.get("email") as string) : "");
   if (!email.ok) return falha(email.mensagem);
-  const papel = papelDoForm(form);
-  if (!papel) return falha("Escolha o papel.");
+  const papeis = papeisDoForm(form);
+  if (!papeis) return falha("Escolha o papel.");
 
   try {
     const usuario = await buscarUsuarioPorEmail(email.valor);
     if (!usuario) {
       return falha("Nenhuma conta com este e-mail. A pessoa precisa criar a conta no site antes.");
     }
-    await concederPapel(usuario.id, papel);
+    const final = await concederPapel(usuario.id, papeis);
     revalidatePath(CAMINHO);
-    const rotulo = papel === "coordenacao" ? "coordenação" : "bolsista";
-    return sucesso(`${usuario.nome ?? usuario.email} agora faz parte da equipe como ${rotulo}.`);
+    revalidatePath("/gestao");
+    return sucesso(`${usuario.nome ?? usuario.email} agora faz parte da equipe como ${descreverPapeis(final)}.`);
   } catch (error) {
     return falha(mensagemDeErro(error));
   }
@@ -79,16 +93,18 @@ export async function cadastrarBolsaAction(_anterior: EstadoAcao | null, form: F
   }
 }
 
-export async function alterarPapelAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+export async function definirPapelAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   const negado = await exigirCoordenacao();
   if (negado) return negado;
   const papel = papelDoForm(form);
   const id = idDoForm(form);
-  if (!papel || !id) return falha("Escolha o papel.");
+  const acao = form.get("acao");
+  if (!papel || !id || (acao !== "dar" && acao !== "tirar")) return falha("Escolha o papel.");
 
   try {
-    await alterarPapel(id, papel);
+    await definirPapel(id, papel, acao === "dar");
     revalidatePath(CAMINHO);
+    revalidatePath("/gestao");
     return sucesso("Papel atualizado.");
   } catch (error) {
     return falha(mensagemDeErro(error));

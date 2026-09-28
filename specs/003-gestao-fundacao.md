@@ -2,6 +2,8 @@
 
 Status: aprovada — pedido direto do Rafael em 23/09/2026 para desenvolver o plano
 validado (`docs/plans/gestao-dia-a-dia.md`, Módulo 0). Revisão final no PR.
+Alterada em 28/09/2026, por pedido do Rafael: a tela de equipe não mostra nem pede
+valor em dinheiro, e a bolsa deixa de guardar valor.
 Constituição: `specs/constitution.md`
 
 ## Problema
@@ -13,10 +15,11 @@ qualquer turma; quem sai do projeto depois de trabalhar nunca perde o acesso.
 ## Escopo
 
 - A coordenação vê a equipe do projeto com nome, e-mail, papel, situação e bolsa
-  vigente; concede o papel de bolsista ou de coordenação a quem já tem conta,
+  vigente (modalidade, carga semanal e fim da vigência, sem valor em dinheiro); concede o papel de bolsista ou de coordenação a quem já tem conta,
   encontrando a pessoa pelo e-mail exato.
-- A coordenação cadastra a bolsa de cada bolsista: modalidade, carga semanal, valor
-  mensal e vigência.
+- A coordenação cadastra a bolsa de cada bolsista: modalidade, carga semanal e
+  vigência. Nenhum valor em dinheiro aparece ou é pedido na tela de equipe; o valor de
+  cada pagamento fica com o módulo financeiro (spec 007).
 - A coordenação desliga quem saiu: o acesso cai na hora e o que a pessoa fez (aulas,
   alocação, autoria) continua no histórico. Reativar devolve o acesso. Remover de vez
   só vale para quem nunca foi alocado.
@@ -44,7 +47,9 @@ API de produção e aplicar a migration, que dependem de aprovação do Rafael (
 - [ ] Dada a coordenação, quando procura um e-mail cadastrado e concede o papel, então
       a pessoa passa a entrar na gestão sem SQL; e-mail parcial não encontra ninguém.
 - [ ] Dada a coordenação, quando cadastra a bolsa de um bolsista, então a bolsa aparece
-      na equipe; carga acima de 40 h, valor negativo ou fim antes do início são recusados.
+      na equipe; carga acima de 40 h ou fim antes do início são recusados.
+- [ ] Dada a coordenação na tela de equipe, quando lista a equipe ou cadastra uma bolsa,
+      então nenhum valor em dinheiro aparece nem é pedido.
 - [ ] Dado um bolsista desligado, quando tenta abrir a gestão ou ler qualquer dado
       dela, então não tem acesso; a alocação e a autoria dele continuam registradas.
 - [ ] Dada a última pessoa ativa da coordenação, quando alguém tenta desligá-la,
@@ -65,6 +70,9 @@ API de produção e aplicar a migration, que dependem de aprovação do Rafael (
   - `specs/003-gestao-fundacao.md`
   - `supabase/migrations/20260923_gestao_fundacao.sql`
   - `tests/integration/gestao-fundacao-migration.test.ts`
+  - Alteração de 28/09: `supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql`,
+    `tests/integration/gestao-bolsa-sem-valor-migration.test.ts`,
+    `tests/unit/app/gestao/equipe-page.test.tsx`
   - `lib/api/gestao/equipe.ts`, `lib/api/gestao/pendencias.ts`, `lib/api/gestao/validacao.ts`
   - `lib/api/gestao/types.ts`, `lib/api/gestao/index.ts`, `lib/api/gestao/auth.ts`
     (papel inclui "desligado" = sem acesso)
@@ -78,7 +86,7 @@ API de produção e aplicar a migration, que dependem de aprovação do Rafael (
 - **Dados** (migration idempotente, só `gestao.*` e a função pública já existente):
   - `gestao.papel_membro.desligado_em timestamptz`.
   - `gestao.usuario_com_papel` e `public.gestao_membro_papel` ignoram vínculo desligado.
-  - `gestao.bolsa` como no plano, com `definir_autoria`, `tocar_atualizado_em` e
+  - `gestao.bolsa` como no plano (sem valor em dinheiro desde 28/09), com `definir_autoria`, `tocar_atualizado_em` e
     auditoria; RLS: coordenação tudo, bolsista lê só a própria.
   - Funções `security definer`, `stable`, `search_path` fixo:
     `gestao.bolsista_na_agenda(p_agenda uuid)`, `gestao.bolsista_na_escola(p_escola uuid)`
@@ -93,7 +101,8 @@ API de produção e aplicar a migration, que dependem de aprovação do Rafael (
     papel/desligamento e delete).
   - `gestao.buscar_usuario_por_email(p_email text)` → id, nome, e-mail, papel atual;
     igualdade exata sem diferença de maiúsculas; recusa quem não é coordenação ativa.
-  - `gestao.equipe()` → membros com nome, e-mail, papel, desligado_em, bolsa vigente;
+  - `gestao.equipe()` → membros com nome, e-mail, papel, desligado_em, bolsa vigente
+    (modalidade, carga e vigência);
     recusa quem não é coordenação ativa.
   - `grant execute` só a `authenticated`; `revoke` de `public`/`anon`.
 - **Autorização:** cliente SSR (`server.ts#createClient`) contra RLS; actions chamam

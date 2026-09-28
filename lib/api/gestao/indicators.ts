@@ -29,14 +29,15 @@ import type {
 
 /**
  * Indicador 6 lê a alocação junto do papel do membro: `!inner` descarta a
- * alocação sem vínculo e o filtro deixa passar só `papel = 'bolsista'`. A
- * junção existe no banco pela FK `agenda_bolsista.bolsista_id ->
+ * alocação sem vínculo e o filtro deixa passar só quem tem o papel de
+ * bolsista — inclusive quem também é da coordenação (spec 012). A junção
+ * existe no banco pela FK `agenda_bolsista.bolsista_id ->
  * papel_membro.user_profile_id` criada na migration do modelo operacional.
  */
-const SELECT_CARGA = "bolsista_id, carga, papel_membro!inner(papel)";
+const SELECT_CARGA = "bolsista_id, carga, papel_membro!inner(bolsista)";
 
 /** Embed do PostgREST: objeto quando é 1:1, array quando a relação é 1:N. */
-type VinculoPapel = { papel: string } | { papel: string }[] | null;
+type VinculoPapel = { bolsista: boolean } | { bolsista: boolean }[] | null;
 
 interface CargaRow {
   bolsista_id: string;
@@ -52,9 +53,9 @@ function erroNaoAutenticado(): never {
   throw new Error("Usuário não autenticado.");
 }
 
-function papelDoVinculo(vinculo: VinculoPapel): string | null {
+function ehBolsista(vinculo: VinculoPapel): boolean {
   const alvo = Array.isArray(vinculo) ? vinculo[0] : vinculo;
-  return alvo?.papel ?? null;
+  return alvo?.bolsista === true;
 }
 
 /**
@@ -65,7 +66,7 @@ function papelDoVinculo(vinculo: VinculoPapel): string | null {
  */
 function mapCarga(data: unknown): IndicadorCargaBolsistas {
   const bolsistas = ((data ?? []) as CargaRow[]).filter(
-    (row) => papelDoVinculo(row.papel_membro) === "bolsista",
+    (row) => ehBolsista(row.papel_membro),
   );
   return {
     items: bolsistas.map((row) => ({ bolsistaId: row.bolsista_id, carga: row.carga })),
@@ -164,13 +165,13 @@ export async function getCargaBolsistas(): Promise<IndicadorCargaBolsistas> {
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) erroNaoAutenticado();
 
-  // Junção agenda_bolsista ⊗ papel_membro, filtrando apenas papel = 'bolsista'
-  // (spec 002, indicador 6). A RLS já restringe às linhas visíveis ao chamador.
+  // Junção agenda_bolsista ⊗ papel_membro, filtrando quem tem o papel de
+  // bolsista (spec 002, indicador 6). A RLS já restringe às linhas visíveis.
   const { data, error } = await supabase
     .schema("gestao")
     .from("agenda_bolsista")
     .select(SELECT_CARGA)
-    .eq("papel_membro.papel", "bolsista");
+    .eq("papel_membro.bolsista", true);
   throwOnError(error);
 
   return mapCarga(data);
@@ -195,7 +196,7 @@ export async function getIndicadores(): Promise<IndicadoresGestao> {
     supabase.schema("gestao").from("reserva_termo").select("status"),
     supabase.schema("gestao").from("presenca").select("presente"),
     supabase.schema("gestao").from("aula").select("id", { count: "exact", head: true }).not("realizada_em", "is", null),
-    supabase.schema("gestao").from("agenda_bolsista").select(SELECT_CARGA).eq("papel_membro.papel", "bolsista"),
+    supabase.schema("gestao").from("agenda_bolsista").select(SELECT_CARGA).eq("papel_membro.bolsista", true),
   ]);
 
   for (const res of [alunosRes, onibusRes, termosRes, presencaRes, aulasRes, cargaRes]) {

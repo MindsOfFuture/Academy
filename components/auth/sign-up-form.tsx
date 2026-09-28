@@ -537,12 +537,13 @@ export function SignUpForm({
 
               <div className="relative flex items-center">
                 <Lock className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                {/* O Edge desenha um olho próprio em campo de senha; `[&::-ms-reveal]:hidden` o esconde para não duplicar o botão abaixo. */}
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Senha segura"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={cn(inputClass, "pr-12")}
+                  className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
                 />
                 <button
                   type="button"
@@ -561,7 +562,7 @@ export function SignUpForm({
                   placeholder="Confirme a senha"
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
-                  className={cn(inputClass, "pr-12")}
+                  className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
                 />
                 <button
                   type="button"
