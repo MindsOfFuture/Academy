@@ -132,7 +132,8 @@ coordenação, para ninguém trancar a equipe fora do sistema.
 Uma rota só, `/gestao`, com o que cada um vê decidido pelo papel. "Coordenação" aqui é o
 papel do projeto em `gestao.papel_membro`, **não** o `admin` do produto (decisão da
 spec 002): quem administra a plataforma pública não ganha acesso à gestão por isso, e
-vice-versa.
+vice-versa. A mesma pessoa pode ter os dois papéis (spec 012): usa a gestão com a visão
+da coordenação e, como bolsista, tem bolsa, pendência de bolsa e carga contadas.
 
 | Aba | Coordenação | Bolsista | Entra no módulo |
 |---|---|---|---|

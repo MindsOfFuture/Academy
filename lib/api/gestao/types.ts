@@ -5,7 +5,14 @@
 // são colunas nem linhas armazenadas — são derivados por query de agregação
 // sobre as tabelas normalizadas (spec 002, "indicador como dado").
 
+/** Papel efetivo de quem usa a gestão: quem tem os dois usa como coordenação. */
 export type GestaoPapel = "coordenacao" | "bolsista";
+
+/** Papéis que uma pessoa tem na equipe; ao menos um fica ligado (spec 012). */
+export interface PapeisMembro {
+    coordenacao: boolean;
+    bolsista: boolean;
+}
 
 export type ReservaStatus = "planejada" | "confirmada" | "realizada" | "cancelada";
 export type TermoStatus = "pendente" | "arquivado";
@@ -15,9 +22,8 @@ export type AssinaturaStatus = "pendente" | "assinado";
 // Linhas cruas (snake_case)
 // ---------------------------------------------------------------------------
 
-export interface PapelMembroRow {
+export interface PapelMembroRow extends PapeisMembro {
     user_profile_id: string;
-    papel: GestaoPapel;
     concedido_por: string | null;
     criado_em: string;
     atualizado_em: string;
@@ -246,11 +252,10 @@ export interface IndicadoresGestao {
 export type ModalidadeBolsa = "graduacao" | "mestrado" | "bdcti" | "critt" | "outra";
 
 /** Linha devolvida pela função `gestao.equipe()` (só coordenação). */
-export interface EquipeRow {
+export interface EquipeRow extends PapeisMembro {
     user_profile_id: string;
     nome: string | null;
     email: string | null;
-    papel: GestaoPapel;
     desligado_em: string | null;
     membro_desde: string;
     bolsa_id: string | null;
@@ -271,11 +276,10 @@ export interface BolsaVigente {
     fim: string;
 }
 
-export interface MembroEquipe {
+export interface MembroEquipe extends PapeisMembro {
     userProfileId: string;
     nome: string;
     email: string;
-    papel: GestaoPapel;
     desligadoEm: string | null;
     membroDesde: string;
     bolsaVigente: BolsaVigente | null;
@@ -287,7 +291,8 @@ export interface UsuarioBuscadoRow {
     id: string;
     nome: string | null;
     email: string;
-    papel: GestaoPapel | null;
+    coordenacao: boolean | null;
+    bolsista: boolean | null;
     desligado_em: string | null;
 }
 

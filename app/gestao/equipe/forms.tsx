@@ -3,11 +3,11 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { EstadoAcao, GestaoPapel } from "@/lib/api/gestao/types";
+import type { EstadoAcao, GestaoPapel, PapeisMembro } from "@/lib/api/gestao/types";
 import {
-  alterarPapelAction,
   cadastrarBolsaAction,
   concederPapelAction,
+  definirPapelAction,
   desligamentoAction,
   removerMembroAction,
 } from "./actions";
@@ -33,7 +33,8 @@ export function FormConcederPapel() {
     <form action={acao} className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
       <h3 className="font-semibold">Adicionar pessoa à equipe</h3>
       <p className="text-sm text-muted-foreground">
-        A pessoa precisa ter conta no site. Use o e-mail completo com que ela entra.
+        A pessoa precisa ter conta no site. Use o e-mail completo com que ela entra. Se ela já está na equipe, o
+        papel escolhido é somado ao que ela já tem.
       </p>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
         <label className="space-y-1">
@@ -45,6 +46,7 @@ export function FormConcederPapel() {
           <select name="papel" defaultValue="bolsista" className={campoSelect}>
             <option value="bolsista">Bolsista</option>
             <option value="coordenacao">Coordenação</option>
+            <option value="ambos">Coordenação e bolsista</option>
           </select>
         </label>
         <Button type="submit" disabled={enviando}>
@@ -146,29 +148,59 @@ function BotaoAcao({
   );
 }
 
+const NOME_PAPEL: Record<GestaoPapel, string> = { coordenacao: "coordenação", bolsista: "bolsista" };
+
+/**
+ * Dar o papel que falta ou, para quem tem os dois, tirar um deles (spec 012).
+ * Quem tem um papel só não vê "tirar": para tirar o acesso é "Desligar".
+ */
+function BotoesPapel({ userProfileId, nome, papeis }: { userProfileId: string; nome: string; papeis: PapeisMembro }) {
+  const ambos = papeis.coordenacao && papeis.bolsista;
+  return (
+    <>
+      {(["coordenacao", "bolsista"] as const).map((papel) => {
+        const outro: GestaoPapel = papel === "coordenacao" ? "bolsista" : "coordenacao";
+        if (!papeis[papel]) {
+          return (
+            <BotaoAcao
+              key={papel}
+              acao={definirPapelAction}
+              campos={{ userProfileId, papel, acao: "dar" }}
+              rotulo={`Dar papel de ${NOME_PAPEL[papel]}`}
+            />
+          );
+        }
+        if (!ambos) return null;
+        return (
+          <BotaoAcao
+            key={papel}
+            acao={definirPapelAction}
+            campos={{ userProfileId, papel, acao: "tirar" }}
+            rotulo={`Tirar papel de ${NOME_PAPEL[papel]}`}
+            confirmar={`Tirar o papel de ${NOME_PAPEL[papel]} de ${nome}? A pessoa continua na equipe como ${NOME_PAPEL[outro]}.`}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 export function AcoesMembro({
   userProfileId,
   nome,
-  papel,
+  papeis,
   desligado,
   temAlocacao,
 }: {
   userProfileId: string;
   nome: string;
-  papel: GestaoPapel;
+  papeis: PapeisMembro;
   desligado: boolean;
   temAlocacao: boolean;
 }) {
-  const outroPapel: GestaoPapel = papel === "coordenacao" ? "bolsista" : "coordenacao";
   return (
     <div className="flex flex-wrap gap-2">
-      {!desligado && (
-        <BotaoAcao
-          acao={alterarPapelAction}
-          campos={{ userProfileId, papel: outroPapel }}
-          rotulo={outroPapel === "coordenacao" ? "Tornar coordenação" : "Tornar bolsista"}
-        />
-      )}
+      {!desligado && <BotoesPapel userProfileId={userProfileId} nome={nome} papeis={papeis} />}
       <BotaoAcao
         acao={desligamentoAction}
         campos={{ userProfileId, acao: desligado ? "reativar" : "desligar" }}

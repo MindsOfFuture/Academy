@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 /**
- * `concederPapel` tem a única regra de ramo da camada de equipe: quem já foi
- * membro e está desligado é reativado (update), quem nunca foi é inserido, e
- * quem já está ativo recebe recusa clara em vez de erro de chave duplicada.
+ * `concederPapel` tem a regra de ramo da camada de equipe (spec 012): quem
+ * nunca foi membro é inserido, quem está desligado volta só com os papéis
+ * escolhidos, quem está ativo soma os escolhidos aos que já tem, e quem já tem
+ * o papel pedido recebe recusa clara em vez de erro de chave duplicada.
  * O mock exige `schema("gestao")` para nunca cair no schema `public`.
  */
 
@@ -28,7 +29,11 @@ const schema = vi.fn((nome: string) => {
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ schema })) }));
 
-import { buscarUsuarioPorEmail, concederPapel, listarEquipe } from "@/lib/api/gestao/equipe";
+import { buscarUsuarioPorEmail, concederPapel, definirPapel, listarEquipe } from "@/lib/api/gestao/equipe";
+
+const SO_BOLSISTA = { coordenacao: false, bolsista: true };
+const SO_COORDENACAO = { coordenacao: true, bolsista: false };
+const AMBOS = { coordenacao: true, bolsista: true };
 
 describe("lib/api/gestao/equipe", () => {
   beforeEach(() => {
@@ -37,19 +42,34 @@ describe("lib/api/gestao/equipe", () => {
     updateEq.mockResolvedValue({ error: null });
   });
 
-  it("insere quem nunca foi membro, reativa o desligado e recusa quem já está ativo", async () => {
+  it("insere quem nunca foi membro e reativa o desligado só com os papéis escolhidos", async () => {
     maybeSingle.mockResolvedValueOnce({ data: null, error: null });
-    await concederPapel("u-novo", "bolsista");
-    expect(insert).toHaveBeenCalledWith({ user_profile_id: "u-novo", papel: "bolsista" });
+    await expect(concederPapel("u-novo", AMBOS)).resolves.toEqual(AMBOS);
+    expect(insert).toHaveBeenCalledWith({ user_profile_id: "u-novo", coordenacao: true, bolsista: true });
 
-    maybeSingle.mockResolvedValueOnce({ data: { user_profile_id: "u-antigo", desligado_em: "2026-01-01" }, error: null });
-    await concederPapel("u-antigo", "coordenacao");
-    expect(update).toHaveBeenCalledWith({ papel: "coordenacao", desligado_em: null });
+    maybeSingle.mockResolvedValueOnce({ data: { ...AMBOS, desligado_em: "2026-01-01" }, error: null });
+    await expect(concederPapel("u-antigo", SO_BOLSISTA)).resolves.toEqual(SO_BOLSISTA);
+    expect(update).toHaveBeenCalledWith({ coordenacao: false, bolsista: true, desligado_em: null });
     expect(updateEq).toHaveBeenCalledWith("user_profile_id", "u-antigo");
+  });
 
-    maybeSingle.mockResolvedValueOnce({ data: { user_profile_id: "u-ativo", desligado_em: null }, error: null });
-    await expect(concederPapel("u-ativo", "bolsista")).rejects.toThrow("gestao: esta pessoa já faz parte da equipe");
-    expect(insert).toHaveBeenCalledTimes(1);
+  it("soma o papel a quem já está ativo e recusa o papel que a pessoa já tem", async () => {
+    maybeSingle.mockResolvedValueOnce({ data: { ...SO_COORDENACAO, desligado_em: null }, error: null });
+    await expect(concederPapel("u-coord", SO_BOLSISTA)).resolves.toEqual(AMBOS);
+    expect(update).toHaveBeenCalledWith({ coordenacao: true, bolsista: true, desligado_em: null });
+
+    maybeSingle.mockResolvedValueOnce({ data: { ...AMBOS, desligado_em: null }, error: null });
+    await expect(concederPapel("u-ambos", SO_COORDENACAO)).rejects.toThrow("gestao: esta pessoa já tem esse papel na equipe");
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("dá ou tira um papel só, deixando o outro como está", async () => {
+    await definirPapel("u-1", "bolsista", true);
+    expect(update).toHaveBeenLastCalledWith({ bolsista: true });
+    await definirPapel("u-1", "coordenacao", false);
+    expect(update).toHaveBeenLastCalledWith({ coordenacao: false });
+    expect(updateEq).toHaveBeenCalledWith("user_profile_id", "u-1");
   });
 
   it("lê a equipe e a busca por e-mail pelas funções do schema gestao", async () => {
@@ -59,7 +79,8 @@ describe("lib/api/gestao/equipe", () => {
           user_profile_id: "u-1",
           nome: null,
           email: "a@x",
-          papel: "bolsista",
+          coordenacao: true,
+          bolsista: true,
           desligado_em: null,
           membro_desde: "2026-01-01",
           bolsa_id: "b-1",
@@ -76,6 +97,7 @@ describe("lib/api/gestao/equipe", () => {
     const [membro] = await listarEquipe();
     expect(rpc).toHaveBeenCalledWith("equipe");
     expect(membro.nome).toBe("Pessoa sem nome no cadastro");
+    expect(membro).toMatchObject({ coordenacao: true, bolsista: true });
     expect(membro.bolsaVigente).toMatchObject({ cargaSemanalHoras: 20, valorMensal: 700 });
 
     rpc.mockResolvedValueOnce({ data: [], error: null });

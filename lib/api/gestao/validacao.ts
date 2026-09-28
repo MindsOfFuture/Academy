@@ -131,6 +131,9 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
   if (texto.includes("agenda_bolsista_bolsista_id_papel_membro_fkey") || texto.includes("bolsa_bolsista_id_fkey")) {
     return "Esta pessoa já tem trabalho registrado no projeto. Use “Desligar” para tirar o acesso sem apagar o histórico.";
   }
+  if (texto.includes("papel_membro_algum_papel")) {
+    return "A pessoa precisa ficar com ao menos um papel. Para tirar o acesso, use “Desligar”.";
+  }
   if (texto.includes("papel_membro_pkey") || texto.includes("duplicate key")) {
     return "Esta pessoa já faz parte da equipe.";
   }

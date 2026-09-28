@@ -50,8 +50,8 @@ function chain(resp: Resp) {
   return terminal as Record<string, ReturnType<typeof vi.fn>> & Resp;
 }
 
-/** Vínculo de papel como o PostgREST devolve o embed. */
-const vinculo = (papel: string) => ({ papel });
+/** Vínculo de papel como o PostgREST devolve o embed (spec 012: a marca de bolsista). */
+const vinculo = (papel: "bolsista" | "coordenacao") => ({ bolsista: papel === "bolsista" });
 
 describe("lib/api/gestao/indicators — fronteira de query", () => {
   beforeEach(() => {
@@ -151,7 +151,7 @@ describe("lib/api/gestao/indicators — fronteira de query", () => {
     expect(result.items[0]).toEqual({ bolsistaId: "b1", carga: "4h" });
   });
 
-  it("junta papel_membro e filtra papel=bolsista na própria query", async () => {
+  it("junta papel_membro e filtra quem tem o papel de bolsista na própria query", async () => {
     const corrente = chain({ data: [], error: null });
     from.mockReturnValue(corrente);
 
@@ -160,9 +160,9 @@ describe("lib/api/gestao/indicators — fronteira de query", () => {
     expect(from).toHaveBeenCalledWith("agenda_bolsista");
     // Embed `!inner`: sem ele o PostgREST devolveria alocação de qualquer papel.
     expect(corrente.select).toHaveBeenCalledWith(
-      expect.stringContaining("papel_membro!inner(papel)"),
+      expect.stringContaining("papel_membro!inner(bolsista)"),
     );
-    expect(corrente.eq).toHaveBeenCalledWith("papel_membro.papel", "bolsista");
+    expect(corrente.eq).toHaveBeenCalledWith("papel_membro.bolsista", true);
   });
 
   it("não conta alocação de coordenação nem de papel ausente (contraexemplo)", async () => {

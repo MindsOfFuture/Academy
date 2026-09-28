@@ -56,7 +56,8 @@ describe("validação e montagem da gestão (spec 003)", () => {
       user_profile_id: "b-2",
       nome: "Bia",
       email: "bia@x",
-      papel: "bolsista",
+      coordenacao: false,
+      bolsista: true,
       desligado_em: null,
       membro_desde: "2026-01-01T00:00:00Z",
       bolsa_id: null,
@@ -83,5 +84,19 @@ describe("validação e montagem da gestão (spec 003)", () => {
 
     const bolsista = montarPendencias({ papel: "bolsista", hoje: "2026-09-23", agendas, equipe: [semBolsa] });
     expect(bolsista.some((p) => p.tipo === "bolsista_sem_bolsa")).toBe(false);
+
+    // Spec 012: quem é coordenação e bolsista também aparece sem bolsa; só coordenação, não.
+    const coordBolsista = { ...semBolsa, userProfileId: "c-1", nome: "Cris", coordenacao: true };
+    const soCoord = { ...semBolsa, userProfileId: "c-2", nome: "Dani", coordenacao: true, bolsista: false };
+    const titulos = montarPendencias({ papel: "coordenacao", hoje: "2026-09-23", agendas: [], equipe: [coordBolsista, soCoord] })
+      .filter((p) => p.tipo === "bolsista_sem_bolsa")
+      .map((p) => p.titulo);
+    expect(titulos).toEqual(["Cris está sem bolsa vigente"]);
+  });
+
+  it("explica que ninguém fica sem papel", () => {
+    expect(
+      mensagemDeErro(new Error('new row for relation "papel_membro" violates check constraint "papel_membro_algum_papel"')),
+    ).toBe("A pessoa precisa ficar com ao menos um papel. Para tirar o acesso, use “Desligar”.");
   });
 });

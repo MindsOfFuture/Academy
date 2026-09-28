@@ -26,7 +26,7 @@ export default async function EquipePage() {
 
   const ativos = equipe.filter((m) => !m.desligadoEm);
   const desligados = equipe.filter((m) => m.desligadoEm);
-  const bolsistas = ativos.filter((m) => m.papel === "bolsista").map((m) => ({ id: m.userProfileId, nome: m.nome }));
+  const bolsistas = ativos.filter((m) => m.bolsista).map((m) => ({ id: m.userProfileId, nome: m.nome }));
 
   return (
     <div className="space-y-6">
@@ -57,6 +57,12 @@ export default async function EquipePage() {
   );
 }
 
+function Selo({ children }: { children: string }) {
+  return (
+    <span className="ml-1 rounded-full bg-[#684A97]/10 px-2 py-0.5 text-xs font-medium text-[#684A97]">{children}</span>
+  );
+}
+
 function ListaMembros({ membros }: { membros: MembroEquipe[] }) {
   if (membros.length === 0) {
     return <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Ninguém por aqui ainda.</p>;
@@ -68,12 +74,11 @@ function ListaMembros({ membros }: { membros: MembroEquipe[] }) {
           <div className="space-y-1">
             <p className="font-medium">
               {m.nome}{" "}
-              <span className="ml-1 rounded-full bg-[#684A97]/10 px-2 py-0.5 text-xs font-medium text-[#684A97]">
-                {m.papel === "coordenacao" ? "Coordenação" : "Bolsista"}
-              </span>
+              {m.coordenacao && <Selo>Coordenação</Selo>}
+              {m.bolsista && <Selo>Bolsista</Selo>}
             </p>
             <p className="text-sm text-muted-foreground">{m.email}</p>
-            {m.papel === "bolsista" && (
+            {m.bolsista && (
               <p className="text-sm">
                 {m.bolsaVigente
                   ? `${MODALIDADE[m.bolsaVigente.modalidade]} · ${m.bolsaVigente.cargaSemanalHoras} h/semana · ${moeda.format(
@@ -87,7 +92,7 @@ function ListaMembros({ membros }: { membros: MembroEquipe[] }) {
           <AcoesMembro
             userProfileId={m.userProfileId}
             nome={m.nome}
-            papel={m.papel}
+            papeis={{ coordenacao: m.coordenacao, bolsista: m.bolsista }}
             desligado={Boolean(m.desligadoEm)}
             temAlocacao={m.temAlocacao}
           />

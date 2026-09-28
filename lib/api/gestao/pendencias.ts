@@ -62,7 +62,7 @@ export function montarPendencias(entrada: {
 
   if (papel === "coordenacao") {
     for (const m of equipe) {
-      if (m.papel === "bolsista" && !m.desligadoEm && !m.bolsaVigente) {
+      if (m.bolsista && !m.desligadoEm && !m.bolsaVigente) {
         pendencias.push({
           tipo: "bolsista_sem_bolsa",
           titulo: `${m.nome} está sem bolsa vigente`,
