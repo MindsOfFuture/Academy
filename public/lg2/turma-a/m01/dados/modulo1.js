@@ -1,0 +1,305 @@
+/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao. */
+window.MODULO1 = {
+ "origem": "LG2_M01_planilha_do_grupo.xlsx",
+ "modulo": {
+  "numero": "1",
+  "nome": "Perfil do empreendedor e definição da ideia",
+  "versao": "v0.1",
+  "data": "10/09/2026",
+  "turma": "Turma de 18",
+  "tutora": "Ana Beatriz",
+  "integrantes": [
+   "Laura Halfeld",
+   "João Pedro Sansão",
+   "Maria Eduarda Sales",
+   "Arthur Tavares"
+  ]
+ },
+ "mapa": {
+  "objetivo": "Mapear a motivação, levantar o tempo disponível, os recursos já existentes, as restrições e o limite de investimento e capturar uma descrição clara do produto ou serviço que compõe a ideia inicial do negócio.\n",
+  "usuario": "Pessoas que desejam estruturar um pequeno negócio e que acessarão o aplicativo preferencialmente pelo celular.",
+  "decisoes": "Construção de um retrato inicial do empreendedor e da sua situação atual.\nElaboração de uma síntese da ideia de negócio.\nSeparação clara entre o que são fatos comprovados, o que são hipóteses a serem testadas e quais são as lacunas de informação.\nDefinição de um próximo passo prático para orientar o usuário.\n",
+  "nao_faz": "Não garantir que a ideia dará certo ou atestar viabilidade definitiva.\nNão afirmar ou prometer que haverá lucro, vendas ou rentabilidade específica.\nNão concluir automaticamente que o usuário deve abrir o negócio, contratar pessoas ou tomar crédito.",
+  "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
+  "ter_em_maos": "Uma ideia de produto ou serviço a ser vendido. \nNoção do tempo disponível por semana que pode dedicar ao negócio.\nConhecimento dos recursos e habilidades que já possui.\nUma estimativa do valor financeiro máximo que está disposto a arriscar sem comprometer a sobrevivência (limite de investimento). ",
+  "entrega": "Retrato inicial: Um resumo do perfil, estágio e objetivo de renda do empreendedor.\nSíntese da ideia: Uma descrição da ideia, separando o que são fatos comprovados do que são hipóteses a serem testadas.\nLacunas: Identificação das informações que ainda faltam. \nPróximo passo: Uma ação prática e imediata sugerida ao usuário.",
+  "encaminhamentos": "Se o limite de investimento sugerir a necessidade de empréstimos fora do padrão familiar, um consultor financeiro pode ser indicado para validar o risco e as taxas de juros.\nSe a ideia esbarrar em produtos alimentícios de alto risco ou procedimentos de saúde, deve haver um encaminhamento para checagem com um responsável técnico sobre viabilidade.",
+  "caso_real": "As conversas e o acompanhamento do caso real testarão as opções de resposta e a clareza das perguntas (ex: ver se o tom está amigável ou intimidador).  \nIdentificarão os \"pontos cegos\" habituais dos empreendedores no estágio inicial, fornecendo dúvidas recorrentes para compor as caixas educativas e o roteiro dos vídeos.\nPermitirão a construção dos \"casos de teste\" obrigatórios, ajudando a simular caminhos contraditórios (ex: \"só na cabeça\" vs. \"já é renda\").",
+  "riscos": "Risco 1: Transmitir ao usuário, através das perguntas, que ele deve pedir demissão de seu atual emprego ou tomar crédito imediato baseado apenas em sua motivação.\nComo evitar: Criar um ambiente educacional que reforce limites. A interface usará verbos como \"planejar\", \"estimar\" e \"projetar\", não \"garantir\". A equipe aplicará testes rigorosos sobre a \"lógica condicional\" para garantir que nenhum cenário sugira ao usuário ações imprudentes de vida e carreira.\n\nRisco 2: Afirmar categoricamente que o negócio é \"viável\" ou rentável após ele fornecer as estimativas.\nComo evitar: Limitar as entregas do Módulo 1 a um mapeamento descritivo, sem emitir laudos de viabilidade. O encaminhamento sugerido não deve ser \"abra o negócio\", mas sim a próxima etapa de investigação no aplicativo. As palavras \"bom\" e \"mau\" negócio devem ser evitadas."
+ },
+ "conexoes": [
+  {
+   "modulo": "2.0",
+   "nome": "Clientes, necessidades e comportamento de compra",
+   "recebe": "Nenhum dado (fluxo de entrada)",
+   "envia": "Síntese da ideia e descrição inicial do produto ou serviço.",
+   "combinado": "Não",
+   "obs": "O Grupo 2 usará a ideia base para investigar os possíveis públicos reais."
+  },
+  {
+   "modulo": "4.0",
+   "nome": "Produto, proposta de valor e teste da ideia",
+   "recebe": "Nenhum dado (fluxo de entrada)",
+   "envia": "Separação de fatos e hipóteses da ideia, além do tempo e recursos disponíveis.",
+   "combinado": "Não",
+   "obs": "O Grupo 4 usará esses dados para delimitar a oferta mínima e o teste de baixo custo."
+  },
+  {
+   "modulo": "6.0",
+   "nome": "Investimento, capital de giro e fluxo de caixa",
+   "recebe": "Nenhum dado (fluxo de entrada)",
+   "envia": "Limite de investimento estipulado pelo usuário e recursos que ele já possui.",
+   "combinado": "Não",
+   "obs": "Base fundamental para o Grupo 6 calcular o cenário de investimento inicial seguro."
+  },
+  {
+   "modulo": "10.0",
+   "nome": "Comunicação, vendas, pessoas e plano de ação",
+   "recebe": "Nenhum dado (fluxo de entrada)",
+   "envia": "Retrato inicial do empreendedor (tempo disponível, restrições, motivação e objetivo de renda).",
+   "combinado": "Não",
+   "obs": "O ritmo e as prioridades do plano de ação de 90 dias do Grupo 10 dependerão do tempo e restrições mapeados por vocês."
+  }
+ ],
+ "base": [
+  {
+   "codigo": "M1.BT01",
+   "conceito": "Limite de Investimento (Perda Acessível)",
+   "definicao": "É o valor máximo em dinheiro que você pode investir e perder sem comprometer o sustento básico da sua família.",
+   "porque": "Evita que o usuário contraia dívidas impagáveis ou comprometa recursos vitais antes de validar se o negócio funciona.",
+   "exemplo": "\"Tenho R$ 500 guardados que posso usar para comprar ingredientes. Se eu não vender nada, não passarei fome.\"",
+   "tipo_fonte": "Institucional",
+   "fonte": "Sebrae / Effectuation (Saras Sarasvathy)",
+   "link": "https://d335luupugsy2.cloudfront.net/cms/files/44571/1548696378METODO-EFFECTUATION.pdf",
+   "data": "01/10/2026",
+   "revisado": "João Pedro Sansão",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.BT02",
+   "conceito": "Estágio do Negócio",
+   "definicao": "A fase em que a ideia se encontra: se está apenas na imaginação, se já existe um protótipo, ou se já houve vendas.",
+   "porque": "Ajuda a definir o próximo passo. Quem está \"só na cabeça\" precisa testar; quem \"já vende\" precisa organizar.",
+   "exemplo": "\"Só na cabeça\", \"Fazendo amostras para amigos\", \"Vendendo informalmente no bairro\".",
+   "tipo_fonte": "Institucional",
+   "fonte": "Sebrae",
+   "link": "https://www.sebraestartups.com.br/estagios-startup/",
+   "data": "01/10/2026",
+   "revisado": "João Pedro Sansão",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.BT03",
+   "conceito": "Fato vs. Hipótese",
+   "definicao": "Fato é o que já foi comprovado na prática (ex: vendas reais). Hipótese é uma suposição (ex: \"acho que as pessoas vão gostar\").",
+   "porque": "Impede que o usuário invista muito tempo e dinheiro baseado apenas em \"achismos\" e foca em testes práticos.",
+   "exemplo": "Fato: \"Vendi 5 bolos ontem\". Hipótese: \"Acho que um bolo vegano venderia bem\".",
+   "tipo_fonte": "Acadêmica",
+   "fonte": "Metodologia Lean Startup (Eric Ries)",
+   "link": "https://www.startupsc.com.br/o-que-e-a-lean-startup/",
+   "data": "01/10/2026",
+   "revisado": "João Pedro Sansão",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.BT04",
+   "conceito": "Motivação Empreendedora",
+   "definicao": "O motivo principal de abrir o negócio: pode ser por necessidade (falta de emprego) ou por oportunidade.",
+   "porque": "Define a urgência de retorno financeiro. Quem empreende por necessidade precisa de caixa rápido e menos risco.",
+   "exemplo": "\"Estou desempregado e preciso pagar contas\" (Necessidade) ou \"Vi que não há padarias na minha rua\" (Oportunidade).",
+   "tipo_fonte": "Institucional",
+   "fonte": "GEM (Global Entrepreneurship Monitor)",
+   "link": "https://sebraepr.com.br/impulsiona/gem-2025/",
+   "data": "01/10/2026",
+   "revisado": "João Pedro Sansão",
+   "status": "Revisado"
+  },
+  {
+   "codigo": "M1.BT05",
+   "conceito": "Experiência Profissonal Anterior",
+   "definicao": "Entender quais experiências e trabalhos anteriores a pessoa já realizou e como isso facilita o desenvolvimento do produto/serviço que ela busca oferecer.",
+   "porque": "Negócios criados em áreas onde o empreendedor já tem experiência têm taxas de sobrevivência maiores, pois aproveitam o know-how técnico e a rede de contatos.",
+   "exemplo": "\"Trabalhei como costureira em uma fábrica por 5 anos, por isso decidi abrir meu próprio ateliê de consertos.\"",
+   "tipo_fonte": "Institucional",
+   "fonte": "Sebrae - Conhecimento Prévio",
+   "link": "https://sebrae.com.br/sites/PortalSebrae/artigos/como-a-experiencia-profissional-ajuda-no-seu-negocio",
+   "data": "01/10/2026",
+   "revisado": "João Pedro Sansão",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.BT06",
+   "conceito": "Limitações Gerais",
+   "definicao": "Como as limitações pessoais e/ou profissionais do indivíduo podem atrapalhar seu negócio. (Financeiro, estrutural, mão-de-obra, carga horária, etc).",
+   "porque": "Identificar as restrições antes de abrir o negócio evita a falência precoce por falta de caixa, de tempo ou de estrutura física adequada.",
+   "exemplo": "\"Só posso me dedicar nos finais de semana\" ou \"Não tenho espaço em casa para estocar materiais\".",
+   "tipo_fonte": "Institucional",
+   "fonte": "Sebrae / Effectuation",
+   "link": "https://aliancaempreendedora.org.br/teoria-do-effectuation-no-empreendedorismo/",
+   "data": "01/10/2026",
+   "revisado": "João Pedro Sansão",
+   "status": "Rascunho"
+  }
+ ],
+ "perguntas": [
+  {
+   "codigo": "M1.P01",
+   "modulo": "M1",
+   "pergunta": "Em que estágio sua ideia de negócio está hoje?",
+   "ajuda": "Seja sincero. Isso nos ajuda a sugerir o melhor caminho.",
+   "tipo": "Escolha",
+   "condicao": "sempre",
+   "opcoes": "1. Só na cabeça | 2. Já fiz testes/amostras | 3. Já fiz primeiras vendas | 4. Não sei",
+   "resposta": "Define se precisa focar em validação ou estruturação.",
+   "alerta": "Não gaste dinheiro antes de testar na prática.",
+   "proximo": "Vá para M1.P02",
+   "fonte": "Sebrae, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P02",
+   "modulo": "M1",
+   "pergunta": "Qual é/foi o principal motivo para você começar este negócio?",
+   "ajuda": "Entender sua motivação ajuda a definir o ritmo e os riscos.",
+   "tipo": "Escolha",
+   "condicao": "sempre",
+   "opcoes": "1. Necessidade de renda urgente | 2. Identifiquei uma oportunidade | 3. Renda extra | 4. Não sei",
+   "resposta": "Molda o retrato do empreendedor.",
+   "alerta": "Negócios por urgência exigem mais cautela.",
+   "proximo": "Vá para M1.P03",
+   "fonte": "GEM, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P03",
+   "modulo": "M1",
+   "pergunta": "Descreva, em poucas palavras, o produto ou serviço que quer vender/já vende.",
+   "ajuda": "Pense no que o cliente vai comprar.",
+   "tipo": "Texto",
+   "condicao": "sempre",
+   "opcoes": "[Campo de texto] | Não sei",
+   "resposta": "Salva a descrição na Síntese da ideia.",
+   "alerta": "-",
+   "proximo": "Vá para M1.P04",
+   "fonte": "Sebrae, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P04",
+   "modulo": "M1",
+   "pergunta": "Você já tem experiência profissional ou técnica nessa área de atuação?",
+   "ajuda": "Trabalhos anteriores e hobbies contam.",
+   "tipo": "Escolha",
+   "condicao": "sempre",
+   "opcoes": "1. Sim, bastante experiência | 2. Alguma experiência/teoria | 3. Nenhuma experiência | 4. Não sei",
+   "resposta": "Conecta com a BT05 (Experiência).",
+   "alerta": "-",
+   "proximo": "Se = \"3\", vá para M1.P04.1; Senão, M1.P05",
+   "fonte": "Sebrae, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P04.1",
+   "modulo": "M1",
+   "pergunta": "Como você planeja suprir essa falta de experiência inicial na área?",
+   "ajuda": "Pense na forma mais acessível no momento.",
+   "tipo": "Escolha",
+   "condicao": "M1.P04 = \"3. Nenhuma experiência\"",
+   "opcoes": "1. Farei cursos gratuitos | 2. Terei um parceiro experiente | 3. Vou aprender testando | 4. Não sei",
+   "resposta": "Valida a resiliência do empreendedor iniciante.",
+   "alerta": "Cuidado com investimentos altos sem saber a técnica.",
+   "proximo": "Vá para M1.P05",
+   "fonte": "Equipe, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P05",
+   "modulo": "M1",
+   "pergunta": "Quantas horas por semana você pode se dedicar/já dedica de fato a este negócio?",
+   "ajuda": "Considere seu trabalho atual, família e descanso.",
+   "tipo": "Escolha",
+   "condicao": "sempre",
+   "opcoes": "1. Menos de 10h | 2. Entre 10h e 20h | 3. Mais de 20h | 4. Não sei",
+   "resposta": "Conecta com a BT06 (Limitações de tempo).",
+   "alerta": "A falta de tempo é um grande gargalo.",
+   "proximo": "Se = \"1\", vá para M1.P05.1; Senão, M1.P06",
+   "fonte": "Sebrae, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P05.1",
+   "modulo": "M1",
+   "pergunta": "Com menos de 10h semanais, o crescimento será mais lento. Você tem flexibilidade para ajustar horários se o negócio crescer?",
+   "ajuda": "Responda focando na sua rotina atual.",
+   "tipo": "Escolha",
+   "condicao": "M1.P05 = \"1. Menos de 10h\"",
+   "opcoes": "1. Sim, posso ajustar | 2. Não, meu horário é rígido | 3. Não sei",
+   "resposta": "Verifica rigidez do gargalo de tempo.",
+   "alerta": "Alinhe suas expectativas de retorno ao seu tempo disponível.",
+   "proximo": "Vá para M1.P06",
+   "fonte": "Equipe, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P06",
+   "modulo": "M1",
+   "pergunta": "Você já possui alguma ferramenta, equipamento ou estrutura (mesmo em casa) para começar?",
+   "ajuda": "Avalie os recursos disponíveis (BT06).",
+   "tipo": "Escolha",
+   "condicao": "sempre",
+   "opcoes": "1. Tenho tudo que preciso | 2. Tenho parte | 3. Não tenho nada | 4. Não sei",
+   "resposta": "Conecta com a restrição estrutural.",
+   "alerta": "-",
+   "proximo": "Vá para M1.P07",
+   "fonte": "Sebrae, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P07",
+   "modulo": "M1",
+   "pergunta": "Qual é o valor máximo (em R$) que pode arriscar hoje sem prejudicar seu sustento?",
+   "ajuda": "Sua perda acessível. Se não puder gastar, coloque 0.",
+   "tipo": "Número",
+   "condicao": "sempre",
+   "opcoes": "[Campo numérico] | Não sei",
+   "resposta": "Define teto financeiro (BT01).",
+   "alerta": "Nunca pegue empréstimos para ideias não validadas.",
+   "proximo": "Se = 0 ou M1.P06 = \"3\", vá para M1.P07.1; Senão, Fim",
+   "fonte": "Sebrae, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P07.1",
+   "modulo": "M1",
+   "pergunta": "Sem recursos iniciais ou estrutura, como pretende iniciar a produção ou os testes?",
+   "ajuda": "Tente pensar em caminhos com custo zero.",
+   "tipo": "Escolha",
+   "condicao": "M1.P07 = 0 OU M1.P06 = \"3\"",
+   "opcoes": "1. Empréstimo com amigos/família | 2. Usar prestadores de serviço | 3. Vou tentar juntar dinheiro primeiro | 4. Não sei",
+   "resposta": "Mostra vias alternativas sem assumir dívida bancária.",
+   "alerta": "Evite contrair dívidas bancárias logo no primeiro dia.",
+   "proximo": "Fim do Módulo 1",
+   "fonte": "Equipe, 01/10/2026",
+   "status": "Rascunho"
+  },
+  {
+   "codigo": "M1.P08",
+   "modulo": "M1",
+   "pergunta": "Selecione a dificuldade que mais te preocupa no curto prazo.",
+   "tipo": "Escolha",
+   "condicao": "sempre",
+   "opcoes": "1. Conhecimento técnico/teórico | 2. Falta de infraestrutura | 3. Rede de relacionamento | 4. Tecnologias | 5. Outros | 6. Não sei",
+   "resposta": "Mapeia gargalos adicionais para indicar conteúdos em módulos futuros.",
+   "alerta": "-",
+   "proximo": "Fim do Módulo 1",
+   "fonte": "Equipe, 01/10/2026",
+   "status": "Rascunho"
+  }
+ ],
+ "regras": [],
+ "instrumentos": {
+  "lista": []
+ },
+ "educativo": [],
+ "casos": []
+};

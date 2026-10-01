@@ -1,3 +1,4 @@
+import type React from "react";
 /**
  * Guard de rota das páginas de módulos especiais.
  *
@@ -48,6 +49,8 @@ import CidadaniaPage from "@/app/protected/modulos/educacao-financeira/cidadania
 import LaboratorioPage from "@/app/protected/modulos/laboratorio-de-gestao/page";
 import ProtectedPage from "@/app/protected/page";
 
+const SEM_PARAMS = { searchParams: Promise.resolve({}) };
+
 const PAGINAS = [
     {
         nome: "Educação Financeira",
@@ -71,7 +74,7 @@ const PAGINAS = [
         nome: "Laboratório de Gestão",
         caminho: "/protected/modulos/laboratorio-de-gestao",
         Page: LaboratorioPage,
-        marcador: /Primeiro Passo/,
+        marcador: /Módulos da Turma A/,
     },
 ] as const;
 
@@ -109,7 +112,7 @@ describe("requireModuleUser", () => {
 describe.each(PAGINAS)("página $nome", ({ caminho, Page, marcador }) => {
     it("redireciona anônimo para /auth?next=<caminho canônico>", async () => {
         currentUser = null;
-        await expect(Page()).rejects.toThrow(/NEXT_REDIRECT/);
+        await expect((Page as (p: typeof SEM_PARAMS) => Promise<unknown>)(SEM_PARAMS)).rejects.toThrow(/NEXT_REDIRECT/);
         expect(redirectMock).toHaveBeenCalledWith(
             `/auth?next=${encodeURIComponent(caminho)}`,
         );
@@ -117,13 +120,25 @@ describe.each(PAGINAS)("página $nome", ({ caminho, Page, marcador }) => {
 
     it("renderiza para usuário autenticado, sem depender de matrícula ou papel", async () => {
         currentUser = { id: "user-1", user_metadata: {} };
-        render(await Page());
+        render((await (Page as (p: typeof SEM_PARAMS) => Promise<React.ReactElement>)(SEM_PARAMS)) as React.ReactElement);
         expect(redirectMock).not.toHaveBeenCalled();
         expect(screen.getAllByText(marcador).length).toBeGreaterThan(0);
         expect(screen.getByRole("link", { name: /Voltar para o Academy/ })).toHaveAttribute(
             "href",
             "/protected",
         );
+    });
+});
+
+describe("Laboratório de Gestão — abas por turma", () => {
+    it.each([
+        ["b", /Módulos da Turma B/],
+        ["demo", /Primeiro Passo/],
+        ["qualquer", /Módulos da Turma A/],
+    ])("?aba=%s abre a aba certa", async (aba, marcador) => {
+        currentUser = { id: "user-1", user_metadata: {} };
+        render(await LaboratorioPage({ searchParams: Promise.resolve({ aba }) }));
+        expect(screen.getAllByText(marcador).length).toBeGreaterThan(0);
     });
 });
 
