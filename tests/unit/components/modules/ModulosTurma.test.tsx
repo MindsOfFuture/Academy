@@ -37,5 +37,5 @@ it("cada módulo publicado guarda as respostas numa chave própria da turma", ()
       return app.match(/CHAVE = "([^"]+)"/)?.[1];
     }),
   );
-  expect(chaves).toEqual(["lg2-turma-a-m01", "lg2-turma-a-m02", "lg2-turma-a-m05", "lg2-turma-a-m06", "lg2-turma-b-m08", "lg2-turma-b-m09"]);
+  expect(chaves).toEqual(["lg2-turma-a-m01", "lg2-turma-a-m02", "lg2-turma-a-m05", "lg2-turma-a-m06", "lg2-turma-b-m03", "lg2-turma-b-m04", "lg2-turma-b-m08", "lg2-turma-b-m09"]);
 });
