@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { type EnrollmentSummary } from "@/lib/api/types";
 import { getUserCourses } from "@/lib/api/enrollments";
 import { checkCourseCompletion, getExistingCertificate, issueCertificate, type CertificateInfo } from "@/lib/api/certificates";
-import { generateAndDownloadCertificate } from "@/lib/utils/pdfGenerator";
 import toast from "react-hot-toast";
 import { Award, Download } from "lucide-react";
 
@@ -115,20 +114,25 @@ export function YourCourses({ initialCursos = [] }: YourCoursesProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    const existing = certificates[courseId];
-    if (existing) {
-      generateAndDownloadCertificate({
-        studentName: existing.studentName,
-        studentCpf: existing.studentCpf,
-        courseName: existing.courseTitle,
-        completionDate: new Date(existing.issuedAt).toLocaleDateString("pt-BR"),
-        verificationCode: existing.verificationCode,
-      });
-      return;
-    }
-
     setIssuingMap(prev => ({ ...prev, [courseId]: true }));
     try {
+      // jsPDF é pesado: só carrega quando o aluno pede o certificado.
+      const { generateAndDownloadCertificate } = await import("@/lib/utils/pdfGenerator").catch(() => {
+        throw new Error("Não foi possível carregar o gerador de certificado. Tente novamente.");
+      });
+
+      const existing = certificates[courseId];
+      if (existing) {
+        generateAndDownloadCertificate({
+          studentName: existing.studentName,
+          studentCpf: existing.studentCpf,
+          courseName: existing.courseTitle,
+          completionDate: new Date(existing.issuedAt).toLocaleDateString("pt-BR"),
+          verificationCode: existing.verificationCode,
+        });
+        return;
+      }
+
       const cert = await issueCertificate(courseId);
       setCertificates(prev => ({ ...prev, [courseId]: cert }));
       generateAndDownloadCertificate({

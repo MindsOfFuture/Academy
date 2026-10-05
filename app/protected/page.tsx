@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/navbar/navbar";
 import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
-import { getCurrentUserProfile, getUserTypeServer } from "@/lib/api/profiles-server";
+import { getCurrentUserProfile } from "@/lib/api/profiles-server";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
 import { getUserCoursesServer } from "@/lib/api/enrollments-server";
 import ModulesSection from "@/components/modules/ModulesSection";
@@ -14,14 +14,19 @@ export default async function ProtectedPage() {
   if (error || !data?.user) {
     redirect("/auth");
   }
-  const userType = await getUserTypeServer();
-  const profile = await getCurrentUserProfile();
+  // Perfil já traz o papel canônico; cursos não dependem dele — carregam juntos.
+  const [profile, courses] = await Promise.all([
+    getCurrentUserProfile(),
+    getUserCoursesServer(),
+  ]);
+  if (!profile) {
+    redirect("/auth");
+  }
   const userName = data.user.user_metadata.full_name || "Fulano";
-  const isAdmin = userType === "admin";
-  const isTeacher = userType === "teacher";
-  const isTeacherApproved = isTeacher && profile?.verificationStatus === "approved";
+  const isAdmin = profile.role === "admin";
+  const isTeacher = profile.role === "teacher";
+  const isTeacherApproved = isTeacher && profile.verificationStatus === "approved";
 
-  const courses = await getUserCoursesServer();
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar showTextLogo={true} />

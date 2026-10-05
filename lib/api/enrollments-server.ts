@@ -27,17 +27,19 @@ export async function getUserCoursesServer(): Promise<EnrollmentSummary[]> {
 
     if (courseIds.length === 0) return [];
 
-    const { data: lessons } = await supabase
-        .from("lesson")
-        .select("id, course_id")
-        .in("course_id", courseIds);
-
-    const { data: progresses } = enrollmentIds.length
-        ? await supabase
-            .from("lesson_progress")
-            .select("enrollment_id, lesson_id, is_completed")
-            .in("enrollment_id", enrollmentIds)
-        : { data: [] };
+    // Aulas e progresso são independentes: dispara as duas consultas juntas.
+    const [{ data: lessons }, { data: progresses }] = await Promise.all([
+        supabase
+            .from("lesson")
+            .select("id, course_id")
+            .in("course_id", courseIds),
+        enrollmentIds.length
+            ? supabase
+                .from("lesson_progress")
+                .select("enrollment_id, lesson_id, is_completed")
+                .in("enrollment_id", enrollmentIds)
+            : { data: [] },
+    ]);
 
     const lessonsByCourse: Record<string, string[]> = {};
     (lessons || []).forEach((l) => {
