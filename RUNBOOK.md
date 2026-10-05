@@ -27,6 +27,7 @@ Produto e código em português por convenção do projeto.
 | Config/env | `/etc/academy.env` (modo `640`, `root:academy`) |
 | Backups | `/var/backups/academy/<ts>-<buildid>/` (tar.gz + config + script de rollback) |
 | Monitoramento | UptimeRobot (externo, não roda no VPS), alerta por email na queda — §5.4 |
+| Jobs agendados | systemd timers `academy-*`, falha avisa por email — §8 |
 
 Tudo é um processo por trás do nginx: sem Docker, sem orquestrador, sem PM2.
 `systemctl is-active academy.service` deve responder `active`.
@@ -306,7 +307,7 @@ guarda é app + config (§3), nunca dados do Supabase.
 
 ## 7. Backup e restore do banco (Supabase)
 
-O banco não roda no VPS. Não há systemd timer, não há cron nosso, e
+O banco não roda no VPS. Não há timer nem cron de backup do banco, e
 `/var/backups/academy` **não contém uma única linha do banco** — quem gera e
 retém o backup do banco é o Supabase.
 
@@ -389,10 +390,154 @@ Explícito para não virar aceite falso:
 
 ---
 
-## 8. O que NÃO existe de propósito
+## 8. Tarefas agendadas e processo longo
+
+Infra, não produto: esta seção define **como** um job roda no VPS. Nenhuma
+tabela, nenhuma rota. Quem usar (ex.: relatório mensal do `/gestao`,
+`docs/plans/sistema-interno-gestao.md`) só escreve o comando. Decisão em
+`docs/decisions.md` 019.
+
+### 8.1 Convenção
+
+| Item | Regra |
+|---|---|
+| Mecanismo | systemd timer + service `Type=oneshot`. **Nunca crontab**: cron não tem log por job, `OnFailure=` nem limite de recurso |
+| Nome | `academy-<job>.service` + `academy-<job>.timer` em `/etc/systemd/system/` |
+| Usuário | `academy` (o mesmo do site, sem sudo); env de `/etc/academy.env` via `EnvironmentFile=` |
+| Horário | `OnCalendar=` com fuso explícito `America/Sao_Paulo` (o VPS está em UTC); `Persistent=true` roda o que perdeu com a máquina desligada |
+| Log | journal, `journalctl -u academy-<job>`. Job não loga dado pessoal (dado de aluno menor, §7.3) |
+| Falha | `OnFailure=academy-job-falhou@%n.service` → email para `mindsofthefuture.ufjf@gmail.com` via Resend. Obrigatório em todo job |
+| Teto | `TimeoutStartSec=` explícito. Sem teto, job travado nunca falha e nunca avisa |
+
+### 8.2 Como ler o resultado
+
+```bash
+systemctl list-timers 'academy-*'               # próxima e última execução
+systemctl status academy-<job>.service          # resultado da última (status=0/SUCCESS ou failed)
+systemctl list-units --failed 'academy-*'       # o que está quebrado agora
+journalctl -u academy-<job> --since today       # saída do job
+sudo systemctl start academy-<job>.service      # rodar agora, fora do horário
+```
+
+### 8.3 Aviso de falha (instalado uma vez, serve a todos os jobs)
+
+`/usr/local/bin/academy-job-falhou` (dono `root`, modo `755`):
+
+```sh
+#!/bin/sh
+# Chamado por OnFailure= de uma unidade academy-*. Avisa por email via Resend.
+# Sem log no corpo de propósito: o email sai do VPS, o log pode ter dado pessoal.
+set -eu
+unit="$1"
+curl -fsS --max-time 30 https://api.resend.com/emails \
+  -H "Authorization: Bearer $RESEND_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"from\":\"$RESEND_FROM_EMAIL\",\"to\":[\"mindsofthefuture.ufjf@gmail.com\"],\"subject\":\"[VPS] job falhou: $unit\",\"text\":\"$unit falhou em $(hostname) as $(date -u +%FT%TZ).\nDiagnostico: journalctl -u $unit -n 100\"}"
+```
+
+`/etc/systemd/system/academy-job-falhou@.service`:
+
+```ini
+[Unit]
+Description=Academy: aviso de falha de %i
+
+[Service]
+Type=oneshot
+User=academy
+EnvironmentFile=/etc/academy.env
+ExecStart=/usr/local/bin/academy-job-falhou %i
+```
+
+Limites conhecidos: se o próprio envio falhar (Resend fora, chave revogada), o
+sinal volta a ser só `systemctl list-units --failed`. E um timer **desabilitado**
+não falha, só não roda: conferir `list-timers` quando mexer em job.
+
+### 8.4 Unidade de exemplo: `academy-disco`
+
+Job real e barato que serve de molde: falha se o disco `/` passar de 85%
+(snapshots de `/var/backups/academy` e `/opt/academy.release-*` acumulam).
+
+`/etc/systemd/system/academy-disco.service`:
+
+```ini
+[Unit]
+Description=Academy: checa uso do disco /
+OnFailure=academy-job-falhou@%n.service
+
+[Service]
+Type=oneshot
+User=academy
+TimeoutStartSec=1min
+# $$ e %% são escape do systemd para $ e % literais
+ExecStart=/bin/sh -c 'uso=$$(df --output=pcent / | tail -n1 | tr -dc 0-9); echo "disco / em $${uso}%%"; [ "$$uso" -lt 85 ]'
+```
+
+`/etc/systemd/system/academy-disco.timer`:
+
+```ini
+[Unit]
+Description=Academy: checa uso do disco / (diário)
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 America/Sao_Paulo
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Ativar e testar (incluindo o caminho de falha):
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now academy-disco.timer
+sudo systemctl start academy-disco.service && journalctl -u academy-disco -n 5
+# força uma falha e confere o email:
+sudo systemd-run --unit=academy-teste-falha \
+  -p OnFailure=academy-job-falhou@academy-teste-falha.service /bin/false
+journalctl -u academy-job-falhou@academy-teste-falha -n 5
+```
+
+**Verificado em 05/10/2026**: `academy-disco` instalado e habilitado (06:00 em
+São Paulo = 09:00 UTC no `list-timers`), execução manual com `Result=success`
+(`disco / em 9%`), e falha forçada via `systemd-run ... /bin/false` disparou o
+`academy-job-falhou@` e o email de alerta **chegou** em
+`mindsofthefuture.ufjf@gmail.com` (Resend id `01a10da1-aa40-7827-be88-7920f84fc6e7`,
+após configurar o DNS do Resend no Cloudflare). A chave do VPS é só de envio
+(`restricted_api_key`): status de entrega se lê no dashboard do Resend, não pela API.
+
+### 8.5 Processo longo (geração de `.docx`, pico de CPU 1×/mês)
+
+Roda como **processo separado** (`academy-<job>.service` oneshot), nunca dentro
+do `academy.service` nem disparado por request HTTP ao site: request longo
+esbarra no `proxy_read_timeout 300s` do nginx (§4.2) e, pior, ocupa o mesmo
+event loop que atende os alunos. O VPS tem 2 vCPU; o job pega no máximo uma e
+perde a disputa quando o site precisa de CPU:
+
+```ini
+[Service]
+Nice=10
+CPUWeight=20          # site (academy.service) fica no padrão 100: ganha a disputa
+CPUQuota=100%         # no máximo 1 dos 2 vCPU, a outra é sempre do site
+IOWeight=20
+MemoryMax=2G          # estoura = job morto pelo OOM e aviso de falha, site intacto
+TimeoutStartSec=2h    # teto explícito, ver 8.1
+```
+
+Em aberto para o card do `/gestao`, não daqui: **onde mora o código do job**. O
+build standalone em `/opt/academy` só carrega o que o Next rastreou, então um
+script `node` avulso não tem dependência garantida ali. Resolver com o script
+empacotado junto do release ou com dependências próprias, mas sem mudar este
+padrão.
+
+---
+
+## 9. O que NÃO existe de propósito
 
 - **Docker/compose** — um systemd resolve um processo.
 - **PM2** — não é usado (unit de `academy.service` ativa; PM2 não instalado).
+- **crontab / fila de jobs** — job agendado é systemd timer (§8); fila não se
+  justifica para 1 job/mês.
 - **Zero-downtime** — `Restart=always` dá alguns segundos de 502.
 - **CI de deploy** — release é disparado manualmente via script.
 - **Backup do banco no VPS** — não existe e não deve existir: é gerenciado pelo
@@ -402,11 +547,11 @@ Explícito para não virar aceite falso:
 
 ---
 
-## 9. Referências
+## 10. Referências
 
 - `docs/deploy-vps.md` — procedimento de build/nginx original (referência).
 - `docs/supabase.md` — banco, clientes, RLS, backup.
-- `docs/decisions.md` — ADRs 001–017 (Supabase, roles, VPS, segurança).
+- `docs/decisions.md` — ADRs 001–019 (Supabase, roles, VPS, segurança).
 - `CLAUDE.md` na raiz — convenções de código e arquitetura.
 - Rollback/deploy live: `/srv/Academy` (build source) e
   `/var/backups/academy/` (backup + rollback).
