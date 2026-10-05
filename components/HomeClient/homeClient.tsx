@@ -12,6 +12,9 @@ import Aurora from "@/components/aurora/aurora";
 import { type CourseSummary, type ArticleSummary } from "@/lib/api/types";
 import { type HeroData, type AboutUsSlide, type FooterLink } from "@/lib/api/content";
 
+// Fora do componente para manter a mesma referência entre renders e não reiniciar o Aurora
+const AURORA_COLOR_STOPS = ["#684A97", "#FFD300", "#684A97"];
+
 interface HomeClientProps {
     heroData: HeroData | null;
     courses: CourseSummary[];
@@ -53,7 +56,7 @@ export default function HomeClient({ heroData, courses, aboutUsSlides, socialLin
                 logoRef={heroLogoRef}
             />
             <Aurora
-                colorStops={["#684A97", "#FFD300", "#684A97"]}
+                colorStops={AURORA_COLOR_STOPS}
                 blend={1.0}
                 amplitude={0.3}
                 speed={1}

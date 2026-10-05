@@ -39,7 +39,7 @@ vi.mock("@/components/yourCourses/yourCoursers", () => ({ YourCourses: () => <di
 vi.mock("@/lib/api/enrollments-server", () => ({ getUserCoursesServer: async () => [] }));
 vi.mock("@/lib/api/profiles-server", () => ({
     getUserTypeServer: async () => currentUserType,
-    getCurrentUserProfile: async () => ({ verificationStatus: "approved" }),
+    getCurrentUserProfile: async () => ({ role: currentUserType, verificationStatus: "approved" }),
 }));
 
 import { requireModuleUser } from "@/app/protected/modulos/require-user";
