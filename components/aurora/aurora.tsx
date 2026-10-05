@@ -117,9 +117,20 @@ interface AuroraProps {
     speed?: number;
 }
 
+const DEFAULT_COLOR_STOPS = ["#5227FF", "#7cff67", "#5227FF"];
+// Fundo decorativo: 30fps bastam e economizam GPU/bateria
+const FRAME_INTERVAL = 1000 / 30;
+
+function toRgb(stops: string[]) {
+    return stops.map((hex) => {
+        const c = new Color(hex);
+        return [c.r, c.g, c.b];
+    });
+}
+
 export function Aurora(props: AuroraProps) {
     const {
-        colorStops = ["#5227FF", "#7cff67", "#5227FF"],
+        colorStops = DEFAULT_COLOR_STOPS,
         amplitude = 1.0,
         blend = 0.5,
     } = props;
@@ -127,47 +138,91 @@ export function Aurora(props: AuroraProps) {
     propsRef.current = props;
 
     const ctnDom = useRef<HTMLDivElement>(null);
+    // Preenchido pelo efeito de montagem; usado para atualizar uniforms sem recriar o contexto
+    const sceneRef = useRef<{
+        program: Program;
+        draw: () => void;
+        isLooping: () => boolean;
+    } | null>(null);
 
+    // Cria o contexto WebGL uma única vez por montagem
     useEffect(() => {
         const ctn = ctnDom.current;
         if (!ctn) return;
 
-        const renderer = new Renderer({
-            alpha: true,
-            premultipliedAlpha: true,
-            antialias: true,
-        });
-        const gl = renderer.gl;
-        gl.clearColor(0, 0, 0, 0);
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        gl.canvas.style.backgroundColor = "transparent";
+        let renderer: Renderer;
+        let program: Program;
+        let mesh: Mesh;
+        try {
+            renderer = new Renderer({
+                alpha: true,
+                premultipliedAlpha: true,
+                antialias: true,
+            });
+            const gl = renderer.gl;
+            gl.clearColor(0, 0, 0, 0);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            gl.canvas.style.backgroundColor = "transparent";
 
-        const geometry = new Triangle(gl);
-        if (geometry.attributes.uv) {
-            delete (geometry.attributes).uv;
+            const geometry = new Triangle(gl);
+            if (geometry.attributes.uv) {
+                delete (geometry.attributes).uv;
+            }
+
+            const initial = propsRef.current;
+            program = new Program(gl, {
+                vertex: VERT,
+                fragment: FRAG,
+                uniforms: {
+                    uTime: { value: 0 },
+                    uAmplitude: { value: initial.amplitude ?? 1.0 },
+                    uColorStops: { value: toRgb(initial.colorStops ?? DEFAULT_COLOR_STOPS) },
+                    uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+                    uBlend: { value: initial.blend ?? 0.5 },
+                },
+            });
+            mesh = new Mesh(gl, { geometry, program });
+        } catch {
+            // Sem WebGL o fundo decorativo simplesmente não aparece; a página segue normal
+            return;
         }
-
-        const colorStopsArray = colorStops.map((hex) => {
-            const c = new Color(hex);
-            return [c.r, c.g, c.b];
-        });
-
-        // ✅ FIX 1: Use 'const' for program since it's not reassigned.
-        const program = new Program(gl, {
-            vertex: VERT,
-            fragment: FRAG,
-            uniforms: {
-                uTime: { value: 0 },
-                uAmplitude: { value: amplitude },
-                uColorStops: { value: colorStopsArray },
-                uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
-                uBlend: { value: blend },
-            },
-        });
-
-        const mesh = new Mesh(gl, { geometry, program });
+        const gl = renderer.gl;
         ctn.appendChild(gl.canvas);
+
+        const draw = () => renderer.render({ scene: mesh });
+        const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+        let animateId = 0;
+        let inViewport = true;
+        let lastFrame = -Infinity;
+        const update = (t: number) => {
+            animateId = requestAnimationFrame(update);
+            // Margem de 1ms para não pular quadros por jitter do relógio
+            if (t - lastFrame < FRAME_INTERVAL - 1) return;
+            lastFrame = t;
+            const { time = t * 0.01, speed = 1.0 } = propsRef.current;
+            program.uniforms.uTime.value = time * speed * 0.1;
+            draw();
+        };
+        const start = () => {
+            if (animateId || reducedMotion || document.hidden || !inViewport) return;
+            animateId = requestAnimationFrame(update);
+        };
+        const stop = () => {
+            cancelAnimationFrame(animateId);
+            animateId = 0;
+        };
+        const onVisibility = () => (document.hidden ? stop() : start());
+        document.addEventListener("visibilitychange", onVisibility);
+        const observer = typeof IntersectionObserver !== "undefined"
+            ? new IntersectionObserver(([entry]) => {
+                inViewport = entry.isIntersecting;
+                if (inViewport) start();
+                else stop();
+            })
+            : null;
+        observer?.observe(ctn);
 
         function resize() {
             if (!ctn) return;
@@ -175,37 +230,40 @@ export function Aurora(props: AuroraProps) {
             const height = ctn.offsetHeight;
             renderer.setSize(width, height);
             program.uniforms.uResolution.value = [width, height];
+            // Redimensionar limpa o canvas; sem loop ativo, redesenha o quadro estático
+            if (!animateId) draw();
         }
         window.addEventListener("resize", resize);
 
-        let animateId = 0;
-        const update = (t: number) => {
-            animateId = requestAnimationFrame(update);
-            const { time = t * 0.01, speed = 1.0 } = propsRef.current;
-            program.uniforms.uTime.value = time * speed * 0.1;
-            program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
-            program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-            const stops = propsRef.current.colorStops ?? colorStops;
-            program.uniforms.uColorStops.value = stops.map((hex: string) => {
-                const c = new Color(hex);
-                return [c.r, c.g, c.b];
-            });
-            renderer.render({ scene: mesh });
-        };
-        animateId = requestAnimationFrame(update);
-
-        resize();
+        renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
+        sceneRef.current = { program, draw, isLooping: () => animateId !== 0 };
+        start();
 
         return () => {
-            cancelAnimationFrame(animateId);
+            stop();
+            observer?.disconnect();
+            sceneRef.current = null;
+            document.removeEventListener("visibilitychange", onVisibility);
             window.removeEventListener("resize", resize);
-            if (ctn && gl.canvas.parentNode === ctn) {
+            if (gl.canvas.parentNode === ctn) {
                 ctn.removeChild(gl.canvas);
             }
             gl.getExtension("WEBGL_lose_context")?.loseContext();
         };
-        // ✅ FIX 2: Add 'blend', 'colorStops' dependency array.
-    }, [amplitude, blend, colorStops]);
+    }, []);
+
+    // Atualiza as cores só quando o conteúdo muda, não a cada quadro nem a cada array novo
+    const colorKey = colorStops.join(",");
+    useEffect(() => {
+        const scene = sceneRef.current;
+        if (!scene) return;
+        const { uniforms } = scene.program;
+        uniforms.uColorStops.value = toRgb(colorKey.split(","));
+        uniforms.uAmplitude.value = amplitude;
+        uniforms.uBlend.value = blend;
+        // Sem loop (movimento reduzido ou aba oculta), mantém o quadro estático em dia
+        if (!scene.isLooping()) scene.draw();
+    }, [colorKey, amplitude, blend]);
 
     return <div ref={ctnDom} className="w-full max-w-[100vw] h-full absolute inset-0 -z-40 overflow-hidden" />;
 }

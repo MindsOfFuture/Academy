@@ -9,13 +9,16 @@ import {
   updateCourse,
 } from "@/lib/api/courses";
 import { type CourseSummary, type LearningPathSummary } from "@/lib/api/types";
-import CourseDetail from "@/components/dashboard/CourseManagement/courseDetail";
+import dynamic from "next/dynamic";
 import LearningPathManager from "@/components/dashboard/LearningPathManagement/LearningPathManager";
 import ChatsPanel from "@/components/dashboard/ChatsPanel";
 import PendingCorrections from "@/components/dashboard/PendingCorrections";
-import AnalyticsTab from "@/components/dashboard/Analytics/AnalyticsTab";
 import GameResearchPanel from "@/components/dashboard/GameResearch/GameResearchPanel";
 import { listUsersClient } from "@/lib/api/profiles";
+
+const loadingPanel = () => <p role="status">Carregando painel...</p>;
+const CourseDetail = dynamic(() => import("@/components/dashboard/CourseManagement/courseDetail"), { loading: loadingPanel });
+const AnalyticsTab = dynamic(() => import("@/components/dashboard/Analytics/AnalyticsTab"), { loading: loadingPanel });
 
 type TabType = "courses" | "paths" | "chats" | "corrections" | "analytics" | "jogos";
 const validTabs: TabType[] = ["courses", "paths", "chats", "corrections", "analytics", "jogos"];
