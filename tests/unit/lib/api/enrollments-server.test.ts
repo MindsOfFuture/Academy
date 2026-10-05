@@ -15,7 +15,8 @@ let usuario: { id: string } | null;
 // Builder mínimo: cada tabela só "dispara" quando o await chama then().
 function builder(tabela: string) {
     const b: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "in"]) b[m] = () => b;
+    for (const m of ["select", "in"]) b[m] = () => b;
+    b.eq = (...args: unknown[]) => (eqs.push([tabela, ...args]), b);
     b.then = (resolve: (r: Resposta) => void) => {
         aguardadas.push(tabela);
         const entregar = () => resolve(respostas[tabela] ?? { data: null, error: null });
@@ -26,15 +27,18 @@ function builder(tabela: string) {
 }
 
 const from = vi.fn((tabela: string) => builder(tabela));
+const eqs: unknown[][] = [];
+const getUser = vi.fn(async () => ({ data: { user: usuario } }));
 
 vi.mock("@/lib/supabase/server", () => ({
     createClient: async () => ({
-        auth: { getUser: async () => ({ data: { user: usuario } }) },
+        auth: { getUser },
         from,
     }),
 }));
 
 import { getUserCoursesServer } from "@/lib/api/enrollments-server";
+import { readUserCourses } from "@/lib/api/enrollments-read-server";
 
 const curso = (id: string) => ({ id, title: `Curso ${id}`, description: null, level: null, status: "published", thumb: null });
 
@@ -44,6 +48,8 @@ beforeEach(() => {
     pendentes = {};
     aguardadas = [];
     from.mockClear();
+    getUser.mockClear();
+    eqs.length = 0;
     respostas = {
         enrollment: {
             data: [
@@ -118,5 +124,35 @@ describe("getUserCoursesServer", () => {
         respostas.enrollment = { data: [{ id: "e3", status: "active", course: null }], error: null };
         await expect(getUserCoursesServer()).resolves.toEqual([]);
         expect(aguardadas).toEqual(["enrollment"]);
+    });
+
+    it("Server Action pública autentica e ignora userId/cliente vindos do chamador", async () => {
+        const clienteForjado = { from: vi.fn() };
+        // Argumentos extras simulam um chamador tentando forjar identidade.
+        await (getUserCoursesServer as unknown as (...a: unknown[]) => Promise<unknown>)("vitima", clienteForjado);
+        expect(getUser).toHaveBeenCalledTimes(1);
+        expect(clienteForjado.from).not.toHaveBeenCalled();
+        expect(eqs).toEqual([["enrollment", "user_id", "user-1"]]);
+
+        usuario = null;
+        await expect(
+            (getUserCoursesServer as unknown as (...a: unknown[]) => Promise<unknown>)("vitima", clienteForjado),
+        ).resolves.toEqual([]);
+        expect(clienteForjado.from).not.toHaveBeenCalled();
+    });
+});
+
+describe("readUserCourses", () => {
+    it("usa o cliente e o userId recebidos, sem reautenticar, com o mesmo cálculo", async () => {
+        const cliente = { from, auth: { getUser } };
+        const resultado = await readUserCourses(cliente as never, "user-9");
+        expect(getUser).not.toHaveBeenCalled();
+        expect(eqs).toEqual([["enrollment", "user_id", "user-9"]]);
+        expect(resultado.map((r) => [r.enrollmentId, r.progressPercent])).toEqual([["e1", 33], ["e2", 0]]);
+    });
+
+    it("erro nas matrículas devolve []", async () => {
+        respostas.enrollment = { data: null, error: { message: "falhou" } };
+        await expect(readUserCourses({ from } as never, "user-9")).resolves.toEqual([]);
     });
 });

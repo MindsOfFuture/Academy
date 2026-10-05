@@ -3,9 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/navbar/navbar";
 import CoursesSection from "@/components/dashboard/courses-section";
 import UsersTable from "@/components/dashboard/users-table";
-import { getCurrentUserProfile } from "@/lib/api/profiles-server";
+import { getDashboardAccess } from "@/lib/api/dashboard-server";
 import { YourCourses } from "@/components/yourCourses/yourCoursers";
-import { getUserCoursesServer } from "@/lib/api/enrollments-server";
+import { readUserCourses } from "@/lib/api/enrollments-read-server";
 import ModulesSection from "@/components/modules/ModulesSection";
 
 export default async function ProtectedPage() {
@@ -14,14 +14,12 @@ export default async function ProtectedPage() {
   if (error || !data?.user) {
     redirect("/auth");
   }
-  // Perfil já traz o papel canônico; cursos não dependem dele — carregam juntos.
+  // Mesmo cliente e usuário já verificados: papel/status e cursos carregam juntos,
+  // sem reautenticar nem buscar o perfil completo.
   const [profile, courses] = await Promise.all([
-    getCurrentUserProfile(),
-    getUserCoursesServer(),
+    getDashboardAccess(supabase, data.user),
+    readUserCourses(supabase, data.user.id),
   ]);
-  if (!profile) {
-    redirect("/auth");
-  }
   const userName = data.user.user_metadata.full_name || "Fulano";
   const isAdmin = profile.role === "admin";
   const isTeacher = profile.role === "teacher";
