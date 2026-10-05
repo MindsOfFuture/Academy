@@ -4,7 +4,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { usePathname, useRouter } from "next/navigation";
 
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { ChevronDown } from "lucide-react";
@@ -18,8 +17,6 @@ interface UserProfile {
 export function AuthButtonClient() {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
-    const router = useRouter();
-    const pathname = usePathname();
     const supabase = createClient();
 
     useEffect(() => {
@@ -52,13 +49,6 @@ export function AuthButtonClient() {
     const handleSignOut = async () => {
         await supabase.auth.signOut();
         window.location.href = "/";
-    };
-
-    const goTo = (href: string) => {
-        if (pathname === href) {
-            return;
-        }
-        router.push(href);
     };
 
     // Valida se a string é uma URL válida
@@ -105,8 +95,8 @@ export function AuthButtonClient() {
                 </button>
             </DropdownTrigger>
             <DropdownMenu aria-label="Menu do usuário" className="bg-[#FFD300] p-2 rounded-lg">
-                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Dashboard" onPress={() => goTo("/protected")}>Dashboard</DropdownItem>
-                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" onPress={() => goTo("/protected/perfil")}>Perfil</DropdownItem>
+                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Dashboard" as={Link} href="/protected">Dashboard</DropdownItem>
+                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" as={Link} href="/protected/perfil">Perfil</DropdownItem>
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onPress={handleSignOut} color="danger">
                     Sair
                 </DropdownItem>

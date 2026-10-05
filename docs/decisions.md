@@ -278,3 +278,25 @@ fallback de origem (`app/layout.tsx`, `lib/supabase/redirect.ts`, mais o teste e
 `NEXT_PUBLIC_APP_URL` é obrigatória, e a remoção não entrou no escopo deste
 fechamento. Voltar para a Vercel deixou de ser troca de configuração e passa a
 ser decisão nova, com ADR próprio.
+
+## 019 — Job agendado e processo longo no VPS: systemd timer, processo separado
+Status: aceita
+
+O VPS (ADR 018) habilita o que a Vercel não tinha em escopo (ADR 014): cron de
+sistema, processo sem teto de timeout e dump automatizado do banco. O `/gestao`
+(`docs/plans/sistema-interno-gestao.md`, bloqueador 3) vai precisar dos dois
+primeiros, e decidir depois seria refazer o corte.
+
+Job agendado é systemd timer + service oneshot `academy-<job>`, rodando como o
+usuário `academy`, log no journal, e `OnFailure=` obrigatório disparando email
+via Resend (`RESEND_API_KEY` que já existe). Crontab descartado: sem log por job,
+sem aviso de falha, sem limite de recurso. Processo longo (geração de `.docx`,
+1×/mês) roda como unidade própria, fora do `academy.service`, com
+`CPUQuota=100%`/`CPUWeight=20` para nunca tirar do site mais que 1 dos 2 vCPU.
+Disparar por request HTTP ao site foi descartado: esbarra no
+`proxy_read_timeout 300s` do nginx e divide o event loop com os alunos.
+
+Consequência: padrão, unidade de exemplo e comandos em `RUNBOOK.md` §8. É infra,
+não o módulo: nenhuma tabela, nenhuma rota. Onde mora o código do job (o
+standalone não carrega script avulso) fica para o card do `/gestao`. Fila de
+jobs e Docker continuam fora, como o plano já registra.
