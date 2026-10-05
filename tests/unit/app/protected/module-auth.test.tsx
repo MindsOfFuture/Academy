@@ -41,6 +41,10 @@ vi.mock("@/lib/api/profiles-server", () => ({
     getUserTypeServer: async () => currentUserType,
     getCurrentUserProfile: async () => ({ role: currentUserType, verificationStatus: "approved" }),
 }));
+vi.mock("@/lib/api/enrollments-read-server", () => ({ readUserCourses: async () => [] }));
+vi.mock("@/lib/api/dashboard-server", () => ({
+    getDashboardAccess: async () => ({ role: currentUserType, verificationStatus: "approved" }),
+}));
 
 import { requireModuleUser } from "@/app/protected/modulos/require-user";
 import EducacaoFinanceiraPage from "@/app/protected/modulos/educacao-financeira/page";
