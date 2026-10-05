@@ -5,7 +5,9 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
 const testPort = process.env.PLAYWRIGHT_TEST_PORT || '3000';
-const testBaseUrl = `http://localhost:${testPort}`;
+// PLAYWRIGHT_BASE_URL aponta para um site já publicado (smoke pós-deploy): sem dev server.
+const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
+const testBaseUrl = externalBaseUrl || `http://localhost:${testPort}`;
 
 /**
  * Playwright E2E Test Configuration
@@ -97,7 +99,7 @@ export default defineConfig({
   ],
 
   /* Dev server automático */
-  webServer: {
+  webServer: externalBaseUrl ? undefined : {
     command: `npm run dev -- --port ${testPort}`,
     url: testBaseUrl,
     reuseExistingServer: !process.env.CI,
