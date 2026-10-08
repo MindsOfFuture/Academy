@@ -122,7 +122,7 @@ Each is a `lib/api` module plus components:
 - Foreign-key hints are sometimes required in selects: `thumb:media_file!course_thumb_id_fkey(url)`.
 - UI is a mix of local `components/ui/*` (shadcn-style, CVA variants, `cn()` from `lib/utils.ts`), Radix primitives, and HeroUI. Tailwind theme is CSS-variable driven (`hsl(var(--primary))`), `darkMode: ["class"]`. Brand palette is purple/yellow.
 - ESLint keeps `no-explicit-any`, `no-unused-vars`, `no-img-element`, and `exhaustive-deps` at **warn** — they don't fail CI, so lint output is noisy; don't assume a clean run.
-- `next.config.ts` allows remote images from **any** https host.
+- `next.config.ts` allows remote images from five named hosts only (Supabase, Google avatars, Unsplash, two YouTube thumbnail hosts — ADR 020). Any other host fails image optimization; upload to Storage instead.
 
 ## Testing
 

@@ -126,7 +126,5 @@ Supabase (`Secure`) é descartado — login entra em loop.
   de infra fechar. Hoje é manual.
 - **Zero-downtime** — `Restart=always` dá alguns segundos de 502 no deploy. Aceitável
   para o uso escolar. Se não for: segunda instância na 3001 + `upstream` no nginx.
-- **`remotePatterns` liberado** — no VPS, otimização de imagem de host arbitrário consome
-  CPU e banda do servidor. Restringir ao host do Supabase (`docs/decisions.md` 013).
 - **Restore testado** — backup diário automático já ativo (10:45, ver
   `docs/supabase.md#backup`), mas restore validado é item separado.

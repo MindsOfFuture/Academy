@@ -300,3 +300,35 @@ Consequência: padrão, unidade de exemplo e comandos em `RUNBOOK.md` §8. É in
 não o módulo: nenhuma tabela, nenhuma rota. Onde mora o código do job (o
 standalone não carrega script avulso) fica para o card do `/gestao`. Fila de
 jobs e Docker continuam fora, como o plano já registra.
+
+## 020 — 013 fechada: imagem remota só de cinco origens nomeadas
+Status: aceita · fecha 013
+
+O 013 previa restringir `remotePatterns` ao host do Supabase "quando o conjunto
+de origens estabilizar". O `hostname: "**"` já saiu do `next.config.ts` (commit
+`ba2b00f`), mas a lista ficou com cinco origens, não uma — e a regra escrita não
+acompanhou. O site fazia uma coisa e o ADR dizia outra.
+
+Decisão: as cinco ficam, nomeadas uma a uma no `next.config.ts`:
+
+- host do Supabase, lido de `NEXT_PUBLIC_SUPABASE_URL` — avatar enviado, capa de
+  curso, artigo e trilha, mídia de aula;
+- `lh3.googleusercontent.com` — avatar de quem entra com conta Google (18 perfis
+  em 2026-10-08), servido pelo Google, não copiado para o Storage;
+- `images.unsplash.com` — fotos da página pública de créditos, conteúdo publicado
+  e combinado com a coordenação; trocar exige rehospedar e republicar a página;
+- `img.youtube.com` e `i.ytimg.com` — miniatura de vídeo. Em 2026-10-08 nenhum
+  código nem registro do banco usa esses dois hosts; ficam por decisão, e são os
+  primeiros candidatos a sair se a lista for revisada.
+
+Qualquer outro host é recusado pelo otimizador do Next — erro de otimização, não
+fallback. Varredura de 2026-10-08 no banco (`media_file`, `credits_entries`,
+`user_profile.avatar_url`, `lesson.content_url`, `<img>` em `article.content`):
+12 linhas de `media_file` apontam para hosts de fora (jusbr, wikimedia, gstatic,
+devmedia e outros), mas nenhuma é referenciada por curso, artigo, trilha ou
+material de turma — são órfãs, não há imagem publicada quebrando.
+
+Consequência: o custo do VPS fica limitado a origens conhecidas, e incluir uma
+nova origem é mudança de código com bloco novo aqui, não URL colada no painel.
+Professor que colar URL de fora vê a imagem falhar; o caminho é subir o arquivo
+para o Storage.
