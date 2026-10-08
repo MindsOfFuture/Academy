@@ -12,6 +12,10 @@ uma pasta autocontida com um `server.js` e só as dependências usadas.
 - Node 20+ (mesma major do CI), nginx, certbot.
 - Um usuário sem privilégio para rodar a app: `adduser --system --group academy`.
 - `/opt/academy` (app) e `/etc/academy.env` (env, modo `600`, dono `academy`).
+- Para o deploy por CI, o usuário `academy` precisa de duas coisas a mais:
+  a chave pública em `~academy/.ssh/authorized_keys` (pasta `700`, arquivo `600`)
+  e `sudo` sem senha só para o restart, em `/etc/sudoers.d/academy`:
+  `academy ALL=(root) NOPASSWD: /usr/bin/systemctl restart academy`
 
 ## Build
 
@@ -27,7 +31,8 @@ cp -r .next/static .next/standalone/.next/static
 cp -r public       .next/standalone/public
 ```
 
-Publicar:
+Push na `main` faz isso automaticamente em `.github/workflows/deploy.yml`.
+Manualmente:
 
 ```bash
 rsync -a --delete .next/standalone/ academy@HOST:/opt/academy/
@@ -45,6 +50,9 @@ Campos em `.env.example`. No VPS, atenção a:
 - `SUPABASE_SERVICE_ROLE_KEY` — só neste arquivo, modo `600`. Nunca em `/opt/academy`,
   que é sobrescrito a cada deploy.
 - `NEXT_PUBLIC_*` são embutidas **no build**. Mudou uma? Rebuild, restart não basta.
+- No CI as mesmas `NEXT_PUBLIC_*` vêm de GitHub Secrets, mais `DEPLOY_HOST`,
+  `DEPLOY_SSH_KEY` (chave privada do usuário `academy`) e `DEPLOY_KNOWN_HOSTS`
+  (`ssh-keyscan -H HOST`). A chave de deploy nunca entra no repositório.
 - Supabase URL/anon key faltando = **middleware responde 503 em todas as rotas não
   isentas** (fail-closed, só assets passam). App inteiro fora do ar, não aberto.
   Conferir antes de apontar o DNS.
@@ -122,11 +130,7 @@ Supabase (`Secure`) é descartado — login entra em loop.
 
 - **Docker / compose** — um systemd resolve um processo. Adicionar quando houver
   segundo serviço ou segundo host.
-- **CI de deploy** — `rsync` + `restart` cabe em uma etapa de workflow quando a decisão
-  de infra fechar. Hoje é manual.
 - **Zero-downtime** — `Restart=always` dá alguns segundos de 502 no deploy. Aceitável
   para o uso escolar. Se não for: segunda instância na 3001 + `upstream` no nginx.
-- **`remotePatterns` liberado** — no VPS, otimização de imagem de host arbitrário consome
-  CPU e banda do servidor. Restringir ao host do Supabase (`docs/decisions.md` 013).
 - **Restore testado** — backup diário automático já ativo (10:45, ver
   `docs/supabase.md#backup`), mas restore validado é item separado.

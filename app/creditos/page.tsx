@@ -32,7 +32,34 @@ function sortCredits(items: CreditEntry[]): CreditEntry[] {
   });
 }
 
+// Fora do ar até entrarem as pessoas reais, com consentimento registrado: o
+// cadastro atual tem nomes de exemplo com foto de banco de imagem. Nada do
+// cadastro é lido enquanto isto for true. Voltar para false reabre a lista.
+const EM_CONSTRUCAO = true;
+
 export default async function CreditosPage() {
+  if (EM_CONSTRUCAO) {
+    const footer = await getFooter();
+    return (
+      <div className="min-h-screen bg-[#F5F5F7] text-gray-900">
+        <Navbar showTextLogo={true} />
+        <main className="container mx-auto max-w-5xl px-4 py-10 md:py-14">
+          <header className="mb-10 space-y-3">
+            <h1 className="text-3xl md:text-4xl font-bold text-[#6A4A98]">Créditos</h1>
+          </header>
+          <div className="rounded-2xl bg-white p-6 shadow-sm space-y-2">
+            <p className="text-lg font-semibold text-gray-900">Página em construção</p>
+            <p className="text-gray-700 leading-relaxed">
+              Estamos reunindo as pessoas, instituições e apoios que tornam a plataforma
+              possível. Em breve, todos os créditos estarão aqui.
+            </p>
+          </div>
+        </main>
+        <Footer socials={footer} />
+      </div>
+    );
+  }
+
   const [credits, footer] = await Promise.all([getCredits(), getFooter()]);
   const orderedCredits = sortCredits(credits);
   const sections = CREDIT_CATEGORY_ORDER.map((category) => ({

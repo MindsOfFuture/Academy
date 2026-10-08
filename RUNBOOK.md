@@ -89,6 +89,31 @@ ssh root@179.199.131.19 '
 '
 ```
 
+### 2.4 Smoke pós-deploy (automático)
+
+O job `smoke` de `.github/workflows/deploy.yml` roda depois de todo deploy da
+`main`: `e2e/flows/smoke-producao.spec.ts` contra `https://mindsofthefuture.com.br`
+(home 200 · `/protected` sem sessão vai para `/auth` · login · uma página de
+curso renderiza). Falhou = run vermelho e email para
+`mindsofthefuture.ufjf@gmail.com` com o link do run.
+
+- **Conta dedicada**: secrets `SMOKE_USER_EMAIL`/`SMOKE_USER_PASSWORD`, usuário
+  student criado só para isso. Nunca conta de aluno. Ele gera eventos de
+  telemetria (`course_opened`) a cada deploy: excluir esse `user_profile` de
+  análise de pesquisa.
+- **Rodou de verdade**: o workflow exige 4 testes executados e 0 pulados no
+  JSON do Playwright (ADR 012). Spec movido de diretório ou secret ausente
+  vira vermelho, não verde vazio.
+- **502 do restart**: o script de release já espera 200 (§2.2 passo 8); o job
+  ainda faz `curl --retry` antes e roda com `--retries=1`.
+- **Sem trace nem vídeo**: o repositório é público e o trace grava a senha.
+- Rodar à mão contra produção:
+
+  ```bash
+  PLAYWRIGHT_BASE_URL=https://mindsofthefuture.com.br TEST_STUDENT_EMAIL=... TEST_STUDENT_PASSWORD=... \
+    npx playwright test e2e/flows/smoke-producao.spec.ts --project=chromium --no-deps --trace=off
+  ```
+
 ---
 
 ## 3. Rollback
@@ -539,7 +564,6 @@ padrão.
 - **crontab / fila de jobs** — job agendado é systemd timer (§8); fila não se
   justifica para 1 job/mês.
 - **Zero-downtime** — `Restart=always` dá alguns segundos de 502.
-- **CI de deploy** — release é disparado manualmente via script.
 - **Backup do banco no VPS** — não existe e não deve existir: é gerenciado pelo
   Supabase (§7). Falta restore testado e alerta de falha (§7.5).
 - `remotePatterns` segue liberado (`hostname: "**"`) — ver

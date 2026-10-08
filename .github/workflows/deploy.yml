@@ -40,3 +40,54 @@ jobs:
       - name: Limpar chave privada
         if: always()
         run: rm -f ~/.ssh/deploy_key
+
+  # Smoke pós-deploy (RUNBOOK §2.4). Falha deixa o deploy vermelho e avisa a caixa da equipe.
+  smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PLAYWRIGHT_BASE_URL: https://mindsofthefuture.com.br
+      # Conta dedicada de smoke, sem dado de aluno. Reaproveita os nomes do auth.fixture.ts.
+      TEST_STUDENT_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+      TEST_STUDENT_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências e Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # O restart dá alguns segundos de 502 (deploy-vps.md, "Não feito de propósito").
+      - name: Esperar o site responder
+        run: curl -fsS -o /dev/null --retry 12 --retry-delay 5 --retry-all-errors "$PLAYWRIGHT_BASE_URL/auth"
+
+      # Sem trace/vídeo: o repositório é público e o trace grava a senha digitada.
+      - name: Rodar smoke
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: smoke-results.json
+        run: npx playwright test e2e/flows/smoke-producao.spec.ts --project=chromium --no-deps --retries=1 --trace=off --reporter=list,json
+
+      # ADR 012: verde por não ter rodado nada é o pior caso. Exige os 4 testes executados.
+      - name: Conferir que o smoke rodou de verdade
+        if: ${{ !cancelled() }}
+        run: |
+          jq -e '.stats.expected == 4 and .stats.skipped == 0 and .stats.unexpected == 0' smoke-results.json \
+            || { echo "::error::smoke não executou os 4 testes"; jq .stats smoke-results.json; exit 1; }
+
+      - name: Avisar a equipe
+        if: ${{ failure() }}
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl -fsS --max-time 30 https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" -H "Content-Type: application/json" \
+            -d "{\"from\":\"$RESEND_FROM_EMAIL\",\"to\":[\"mindsofthefuture.ufjf@gmail.com\"],\"subject\":\"[deploy] smoke falhou em ${GITHUB_SHA::7}\",\"text\":\"Smoke pos-deploy falhou contra $PLAYWRIGHT_BASE_URL.\nRun: $RUN_URL\"}"

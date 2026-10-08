@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { gestaoHabilitada } from "./feature-flags";
 import type { GestaoPapel } from "./types";
 
 /**
@@ -37,12 +38,19 @@ export async function getGestaoPapel(): Promise<GestaoPapel | null> {
 }
 
 /**
- * Garante que o chamador é membro do projeto (coordenacao ou bolsista).
+ * Garante que o módulo está ligado e que o chamador é membro do projeto
+ * (coordenacao ou bolsista).
  * Lança erro 403 em português quando autenticado sem papel, e erro de
  * autenticação quando anônimo — as mensagens seguem o contrato de
  * `{ error: message }` com status inferido do texto (specs/constitution.md §VI).
  */
 export async function ensureGestaoMember(): Promise<GestaoPapel> {
+  // Flag aqui, e não só no guard das telas: server actions chamam esta função
+  // direto, e com o módulo desligado nenhuma escrita pode passar (ADR 021).
+  if (!gestaoHabilitada()) {
+    throw new Error("Acesso negado. O módulo de gestão está desligado.");
+  }
+
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) {

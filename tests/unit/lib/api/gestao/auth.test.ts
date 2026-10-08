@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -15,8 +15,11 @@ vi.mock("@/lib/supabase/server", () => ({
 import { ensureGestaoMember, getGestaoPapel } from "@/lib/api/gestao/auth";
 
 describe("lib/api/gestao/auth — autorização de membro", () => {
+  const flagOriginal = process.env.GESTAO_ENABLED;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.GESTAO_ENABLED = "true";
     mockClient.auth.getUser.mockResolvedValue({ data: { user: { id: "u-1" } } });
     mockClient.rpc.mockResolvedValue({ data: null, error: null });
   });
@@ -48,7 +51,19 @@ describe("lib/api/gestao/auth — autorização de membro", () => {
     await expect(getGestaoPapel()).rejects.toThrow("indisponível");
   });
 
+  afterEach(() => {
+    if (flagOriginal === undefined) delete process.env.GESTAO_ENABLED;
+    else process.env.GESTAO_ENABLED = flagOriginal;
+  });
+
   describe("ensureGestaoMember", () => {
+    it("nega até coordenação com o módulo desligado, sem consultar o banco", async () => {
+      delete process.env.GESTAO_ENABLED;
+      mockClient.rpc.mockResolvedValue({ data: "coordenacao", error: null });
+      await expect(ensureGestaoMember()).rejects.toThrow(/módulo de gestão está desligado/);
+      expect(mockClient.rpc).not.toHaveBeenCalled();
+    });
+
     it("nega acesso a usuário autenticado sem papel (403)", async () => {
       mockClient.rpc.mockResolvedValue({ data: null, error: null });
       await expect(ensureGestaoMember()).rejects.toThrow(/Acesso negado/);

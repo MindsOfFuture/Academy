@@ -5,7 +5,16 @@ import { type LearningPathSummary, type CourseRow, type LearningPathRow, type Ro
 
 interface LearningPathCourseJoin {
     order?: number | null;
-    course?: CourseRow;
+    course?: CourseRow | null;
+}
+
+// O join volta `course: null` quando a RLS esconde o curso (ex.: curso de professor numa
+// trilha de aluno). Sem o filtro vira card vazio com link `/course?id=undefined`.
+export function mapPathCourses(courses: unknown) {
+    return ((courses || []) as LearningPathCourseJoin[])
+        .filter((item) => item.course)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((item) => mapCourse(item.course as CourseRow));
 }
 
 type ServerSupabase = Awaited<ReturnType<typeof createServerSupabase>>;
@@ -115,9 +124,7 @@ export async function getLearningPaths(options?: { scope?: "public" | "manage" }
             description: lpRow.description ?? null,
             audience: (lpRow.audience as "student" | "teacher") ?? "student",
             coverUrl: getMediaUrl(lpRow.cover),
-            courses: ((lpRow.courses || []) as LearningPathCourseJoin[])
-                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                .map((item) => mapCourse((item.course || {}) as CourseRow)),
+            courses: mapPathCourses(lpRow.courses),
         };
     });
 }
@@ -157,9 +164,7 @@ export async function getLearningPathDetail(pathId: string, options?: { scope?: 
         description: lpRow.description ?? null,
         audience: (lpRow.audience as "student" | "teacher") ?? "student",
         coverUrl: getMediaUrl(lpRow.cover),
-        courses: ((lpRow.courses || []) as LearningPathCourseJoin[])
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-            .map((item) => mapCourse((item.course || {}) as CourseRow)),
+        courses: mapPathCourses(lpRow.courses),
     };
 }
 

@@ -26,7 +26,8 @@ e2e/
 │
 ├── flows/             # NOVO - Testes de fluxo E2E completo
 │   ├── auth-flow.spec.ts  # Login real, logout, proteção de rotas
-│   └── course-flow.spec.ts # Descoberta, matrícula, progresso
+│   ├── course-flow.spec.ts # Descoberta, matrícula, progresso
+│   └── smoke-producao.spec.ts # Smoke pós-deploy; só roda com PLAYWRIGHT_BASE_URL (RUNBOOK §2.4)
 │
 ├── visual/            # NOVO - Testes de responsividade
 │   └── responsive.spec.ts # Visual regression, WCAG

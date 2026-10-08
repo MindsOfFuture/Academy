@@ -122,7 +122,7 @@ Each is a `lib/api` module plus components:
 - Foreign-key hints are sometimes required in selects: `thumb:media_file!course_thumb_id_fkey(url)`.
 - UI is a mix of local `components/ui/*` (shadcn-style, CVA variants, `cn()` from `lib/utils.ts`), Radix primitives, and HeroUI. Tailwind theme is CSS-variable driven (`hsl(var(--primary))`), `darkMode: ["class"]`. Brand palette is purple/yellow.
 - ESLint keeps `no-explicit-any`, `no-unused-vars`, `no-img-element`, and `exhaustive-deps` at **warn** — they don't fail CI, so lint output is noisy; don't assume a clean run.
-- `next.config.ts` allows remote images from **any** https host.
+- `next.config.ts` allows remote images from five named hosts only (Supabase, Google avatars, Unsplash, two YouTube thumbnail hosts — ADR 020). Any other host fails image optimization; upload to Storage instead.
 
 ## Testing
 
@@ -151,4 +151,4 @@ All projects depend on the `setup` project (`e2e/global.setup.ts`). Shared helpe
 
 ## Database migrations
 
-`supabase/migrations/` holds only three recent SQL files (credits entries, deleted-user data scrubbing) — it is **not** a complete schema history. The live schema is defined in the hosted Supabase project; infer table shapes from the `*Row` interfaces in `lib/api/types.ts` and the select strings in `lib/api/`.
+`supabase/migrations/` is **not** a complete history of `public` (it was built in the dashboard). The `gestao` schema is the exception: fully defined in `*_gestao_*.sql` files with PGlite tests in `tests/integration/` — conventions and guardrails in ADR 021. The live schema is defined in the hosted Supabase project; infer table shapes from the `*Row` interfaces in `lib/api/types.ts` and the select strings in `lib/api/`.
