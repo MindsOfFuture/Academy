@@ -34,8 +34,8 @@ it("cada módulo publicado guarda as respostas numa chave própria da turma", ()
   const chaves = (["a", "b"] as const).flatMap((turma) =>
     PRONTOS[turma].map((numero) => {
       const app = readFileSync(path.join(process.cwd(), "public", caminhoModulo(turma, numero).replace("index.html", "js/app.js")), "utf8");
-      return app.match(/CHAVE = "([^"]+)"/)?.[1];
+      return app.match(/CHAVE\s*=\s*(['"])([^'"]+)\1/)?.[2];
     }),
   );
-  expect(chaves).toEqual(["lg2-turma-a-m01", "lg2-turma-a-m02", "lg2-turma-a-m05", "lg2-turma-a-m06", "lg2-turma-b-m03", "lg2-turma-b-m04", "lg2-turma-b-m08", "lg2-turma-b-m09"]);
+  expect(chaves).toEqual(["lg2-turma-a-m01", "lg2-turma-a-m02", "lg2-turma-a-m05", "lg2-turma-a-m06", "lg2-turma-a-m10", "lg2-turma-b-m03", "lg2-turma-b-m04", "lg2-turma-b-m08", "lg2-turma-b-m09"]);
 });

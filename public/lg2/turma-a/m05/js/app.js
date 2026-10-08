@@ -11,6 +11,15 @@
   function carregar() { try { return JSON.parse(localStorage.getItem(CHAVE)) || novo(); } catch { return novo(); } }
   function novo() { return { R: {}, hist: [] }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
+  function reiniciar() {
+    if (!confirm("Analisar outro produto, serviço ou mercadoria? As respostas atuais serão apagadas. Se já tiver um resultado, salve ou imprima antes de continuar.")) return;
+    S = novo();
+    salvar();
+    ir(telaPergunta, "M5.P01");
+  }
+  function acaoReiniciar() {
+    return `<div class="acoes"><button class="btn btn-claro" id="novo">Analisar outro produto, serviço ou mercadoria</button></div>`;
+  }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const brl = (n) => "R$ " + n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -64,7 +73,7 @@
       else ir(telaPergunta, atual || "M5.P01");
     };
     const z = p.querySelector("#zerar");
-    if (z) z.onclick = () => { if (confirm("Apagar suas respostas e recomeçar?")) { S = novo(); salvar(); ir(telaCapa); } };
+    if (z) z.onclick = reiniciar;
     p.querySelector("#limites").onclick = () => ir(telaLimites);
     return p;
   }
@@ -107,6 +116,7 @@
           <button class="voltar" id="v">‹ ${S.hist.length > 1 ? "voltar" : "início"}</button>
           <div class="passo">${esc(q.secao)}</div>
           <div class="barra"><div class="barra-fill" style="width:${progresso()}%"></div></div>
+          ${acaoReiniciar()}
         </header>
         <main class="corpo">
           <div class="pergunta">
@@ -129,6 +139,7 @@
       if (ant) ir(telaPergunta, ant); else ir(telaCapa);
     };
 
+    p.querySelector("#novo").onclick = reiniciar;
     const ent = p.querySelector("#ent");
     let ler = () => null;           // devolve o valor digitado
     let escolhida = resp && resp.estado === "opcao" ? resp.opcao : null;
@@ -296,6 +307,7 @@
           <button class="voltar" id="v">‹ voltar</button>
           <div class="passo">Resultado</div>
           <h2>${esc(c.nome || "Seu negócio")}</h2>
+          ${acaoReiniciar()}
         </header>
         <main class="corpo">
           ${temCusto && regraFinal ? `
@@ -354,7 +366,6 @@
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
-            <button class="btn btn-linha" id="novo">Analisar outro item</button>
           </div>
           ${rodape()}
         </main>
@@ -362,7 +373,7 @@
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
     p.querySelector("#imp").onclick = () => window.print();
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, "M5.P01"); };
-    p.querySelector("#novo").onclick = () => { if (confirm("Começar uma nova análise? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaPergunta, "M5.P01"); } };
+    p.querySelector("#novo").onclick = reiniciar;
     return p;
   }
 
