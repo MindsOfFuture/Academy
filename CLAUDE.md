@@ -151,4 +151,4 @@ All projects depend on the `setup` project (`e2e/global.setup.ts`). Shared helpe
 
 ## Database migrations
 
-`supabase/migrations/` holds only three recent SQL files (credits entries, deleted-user data scrubbing) — it is **not** a complete schema history. The live schema is defined in the hosted Supabase project; infer table shapes from the `*Row` interfaces in `lib/api/types.ts` and the select strings in `lib/api/`.
+`supabase/migrations/` is **not** a complete history of `public` (it was built in the dashboard). The `gestao` schema is the exception: fully defined in `*_gestao_*.sql` files with PGlite tests in `tests/integration/` — conventions and guardrails in ADR 021. The live schema is defined in the hosted Supabase project; infer table shapes from the `*Row` interfaces in `lib/api/types.ts` and the select strings in `lib/api/`.

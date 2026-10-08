@@ -82,8 +82,9 @@ regras existem só no código do servidor.
 
 ## Migrations
 
-`supabase/migrations/` tem 3 arquivos (créditos, scrub de usuário deletado).
-**Não é histórico completo** — o schema foi feito pelo dashboard.
+`supabase/migrations/` **não é histórico completo do `public`** — o schema foi feito
+pelo dashboard. O schema `gestao` é a exceção: nasce inteiro em arquivo, com
+convenção própria (`docs/decisions.md` 021).
 
 Consequência prática: **não dá para levantar o banco do zero a partir do repo.**
 Ambiente novo sai de clone do projeto hospedado:

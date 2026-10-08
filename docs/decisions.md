@@ -332,3 +332,88 @@ Consequência: o custo do VPS fica limitado a origens conhecidas, e incluir uma
 nova origem é mudança de código com bloco novo aqui, não URL colada no painel.
 Professor que colar URL de fora vê a imagem falhar; o caminho é subir o arquivo
 para o Storage.
+
+## 021 — Gestão interna: cinco guardrails e duas correções da prática
+Status: aceita
+
+O plano `docs/plans/sistema-interno-gestao.md` fixou regras para o módulo interno
+antes da primeira tabela. O schema já está em produção (migrations aplicadas de
+2026-09-15 a 2026-09-28) e este bloco registra o que o banco e o código fazem de
+fato, conferido em 2026-10-08 — não mais proposta. Registro pedido como "018" no
+card; o número já estava ocupado.
+
+**Guardrails — merge que quebre um deles não entra:**
+
+1. **Schema separado.** Tudo em `gestao.*` (14 tabelas hoje). Nenhuma tabela da
+   gestão no `public`. Única exceção deliberada: `public.gestao_membro_papel()`,
+   ponte que o cliente Supabase alcança por `rpc` sem expor o schema.
+2. **RLS própria por papel do projeto.** RLS ligada em todas as tabelas, toda
+   policy passa por `gestao.usuario_com_papel()`. `createServiceRoleClient()` e
+   `createAdminClient()` são proibidos no módulo, sem exceção: o dado é
+   institucional e de pessoa. Hoje não há nenhum uso; a regra é cobrada na
+   revisão de PR, não por ferramenta.
+3. **Toda query por `lib/api/gestao/`** (ADR 005). Componente e página não falam
+   com Supabase. Onde o módulo roda é decidido pela diretiva no topo do arquivo,
+   não pelo nome: os módulos de query começam com `import "server-only"`, as
+   ações com `"use server"`; `types.ts` e `validacao.ts` não têm diretiva porque
+   não tocam no banco. `index.ts` reexporta módulos `server-only` e herda a
+   restrição.
+4. **Rota fechada.** `/gestao` fica fora de `PUBLIC_PATH_PREFIXES`; o middleware
+   exige sessão e `app/gestao/guard.ts#exigirMembro` checa o papel no servidor,
+   chamado pelo layout **e** pela página (renderizam em paralelo). Sem papel
+   responde 404, não 403, para não revelar que a tela existe. A RLS continua
+   sendo a autorização de cada query; o guard é defesa em profundidade.
+5. **Feature flag.** Lida em `lib/api/gestao/feature-flags.ts#gestaoHabilitada`,
+   a cada request (layout com `dynamic = "force-dynamic"`). Fechada por padrão:
+   só liga com `GESTAO_ENABLED` em `1|true|on|yes`. Desligar em produção: tirar a
+   linha (ou deixar vazia) em `/etc/academy.env` e
+   `sudo systemctl restart academy.service` — sem build, porque a variável não
+   é `NEXT_PUBLIC_*`. Desligada, toda tela de `/gestao` responde 404 e toda
+   server action recusa a escrita. A flag é checada em dois pontos: no guard
+   das telas e em `lib/api/gestao/auth.ts#ensureGestaoMember()`, por onde passa
+   toda ação de `app/gestao/*/actions.ts`. Até 2026-10-08 só o guard checava —
+   com o módulo desligado, um membro ainda escrevia chamando a ação direto.
+   Ação nova tem que passar por `ensureGestaoMember()`; o teste em
+   `tests/unit/lib/api/gestao/auth.test.ts` prova que a flag desligada barra até
+   a coordenação antes de consultar o banco.
+
+**Papel do módulo.** `coordenacao` e `bolsista`, em `gestao.papel_membro` (uma
+linha por pessoa, as duas marcas podem estar ligadas ao mesmo tempo, desligamento
+por `desligado_em`). Não reusa `admin` de `public.role`: administrar o produto e
+governar o projeto são eixos diferentes, e misturar os dois repetiria o problema
+do ADR 002. Ser admin do Academy não dá acesso à gestão.
+
+**Convenção de migration** — o schema `gestao` não repete o ADR 008:
+
+- Nome `YYYYMMDD_gestao_<assunto>.sql` em `supabase/migrations/`. A ordem é a do
+  nome; arquivos do mesmo dia dizem no cabeçalho de qual dependem.
+- O schema nasce inteiro em arquivo, com policies, grants e funções. Banco novo
+  sobe aplicando os arquivos `*gestao*` em ordem, sem clone do projeto hospedado.
+- Arquivo idempotente (`if not exists`, `create or replace`, `drop ... if
+  exists`) e dentro de `begin; ... commit;`.
+- Cada migration ganha teste em `tests/integration/` que aplica o SQL em PGlite
+  e prova as policies; roda no `npm test` comum.
+- Aplicar não é automático: produção é compartilhada e depende de aprovação
+  explícita de quem responde pelo banco. Código e migration entram no ar juntos.
+- Reverter é migration nova para a frente, como este log. Não há arquivo `down`.
+  Migration já aplicada não é reescrita: a correção vira arquivo novo.
+
+**Correções que a aplicação trouxe:**
+
+- **Autoria não é obrigatória quando o autor pode ser apagado.** `criado_por`
+  nasceu `not null ... on delete set null` — combinação que faz a exclusão do
+  usuário falhar em vez de soltar a autoria. Virou opcional em todas as tabelas
+  (`1e55a63`). Quem precisa de autoria inviolável guarda o id sem chave
+  estrangeira, como `registro_auditoria.autor`. As referências a
+  `papel_membro` com `on delete restrict` (bolsa, alocação, melhoria) são outra
+  coisa e ficam: membro sai por desligamento, não por exclusão, e a exclusão de
+  conta do Academy anonimiza `user_profile` em vez de apagar.
+- **Toda função que decide permissão tem `search_path` fixo.** `gestao.e_membro()`
+  nasceu sem ele; um `search_path` escolhido pelo chamador poderia resolver
+  `usuario_com_papel` para outro objeto. Em 2026-10-08 todas as funções de
+  `gestao` e a ponte pública fixam o caminho, conferido no banco.
+
+Consequência: a correção de `1e55a63` foi feita reescrevendo o arquivo de
+2026-09-05, e produção recebeu a parte do `e_membro` como migration à parte
+(`gestao_e_membro_search_path`), sem arquivo no repo. O resultado final é o
+mesmo, mas é exatamente o que a convenção acima passa a proibir.
