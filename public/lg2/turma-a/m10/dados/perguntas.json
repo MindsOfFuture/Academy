@@ -1,0 +1,116 @@
+{
+  "nome": "Comunicação, vendas, pessoas e plano de ação",
+  "origem": {
+    "aba": "3 Fluxo de perguntas",
+    "sha256": "bb1220cfd4a08f71ece9ad5497a8fce113d477361f56fc355a9c04b4282f0e84",
+    "turma": "A, confirmada pelo usuário",
+    "modo": "Texto aberto temporário; alternativas ausentes na planilha"
+  },
+  "perguntas": [
+    {
+      "id": "M10.P01",
+      "codigo": "M10.P01",
+      "linha": 5,
+      "pergunta": "Em uma frase, para quem é o seu negócio e o que ele oferece?",
+      "tipoOriginal": "Texto aberto"
+    },
+    {
+      "id": "M10.P02",
+      "codigo": "M10.P02",
+      "linha": 6,
+      "pergunta": "Você já contou o seu negócio a possíveis clientes que não são amigos nem familiares?",
+      "tipoOriginal": "Sim/não"
+    },
+    {
+      "id": "M10.P03",
+      "codigo": "M10.P03",
+      "linha": 7,
+      "pergunta": "Por quais canais os clientes falam com você ou compram hoje?",
+      "tipoOriginal": "Múltipla escolha"
+    },
+    {
+      "id": "M10.P04",
+      "codigo": "M10.P04",
+      "linha": 8,
+      "pergunta": "Em quanto tempo você costuma responder a um cliente?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "M10.P05",
+      "codigo": "M10.P05",
+      "linha": 9,
+      "pergunta": "Quando alguém demonstra interesse, você segue uma sequência até fechar a venda?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "M10.P06",
+      "codigo": "M10.P06",
+      "linha": 10,
+      "pergunta": "Depois da entrega, você volta a falar com o cliente?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "linha-11",
+      "codigo": "",
+      "linha": 11,
+      "pergunta": "Quais tarefas você tem dificuldade para fazer ou não tem tempo de fazer?",
+      "tipoOriginal": "Múltipla escolha"
+    },
+    {
+      "id": "linha-12",
+      "codigo": "",
+      "linha": 12,
+      "pergunta": "Você tem ou pretende ter sócio?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "linha-13",
+      "codigo": "",
+      "linha": 13,
+      "pergunta": "Vocês já combinaram por escrito quem faz o quê, quanto cada um coloca e como dividem o resultado?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "linha-14",
+      "codigo": "",
+      "linha": 14,
+      "pergunta": "Para cada tarefa principal do negócio, há uma pessoa responsável, mesmo que seja você?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "linha-15",
+      "codigo": "",
+      "linha": 15,
+      "pergunta": "Você está pensando em contratar alguém?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "linha-16",
+      "codigo": "",
+      "linha": 16,
+      "pergunta": "Você já considerou outras formas de resolver essa necessidade?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "linha-17",
+      "codigo": "",
+      "linha": 17,
+      "pergunta": "Quais são os 3 problemas ou tarefas mais urgentes do seu negócio hoje?",
+      "tipoOriginal": "Texto aberto"
+    },
+    {
+      "id": "linha-18",
+      "codigo": "",
+      "linha": 18,
+      "pergunta": "Se você esperar 3 meses sem agir, o que tende a acontecer com cada um deles?",
+      "tipoOriginal": "Escolha única"
+    },
+    {
+      "id": "linha-19",
+      "codigo": "",
+      "linha": 19,
+      "pergunta": "Para cada prioridade, que sinal observável mostraria que a ação funcionou?",
+      "tipoOriginal": "Texto aberto"
+    }
+  ]
+}

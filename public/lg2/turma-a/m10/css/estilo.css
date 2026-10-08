@@ -1,0 +1,13 @@
+/* Complemento do estilo institucional reutilizado do M04, sem seu motor ou conteúdo. */
+.topo h1{font-size:22px;line-height:1.2;margin-top:4px;color:var(--m-yellow)}
+.topo .marca{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.topo .logo{width:42px;height:42px}
+.topo a{color:white}
+.pergunta label{display:block}
+textarea.campo{min-height:132px;margin-top:14px}
+.resposta{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0}
+.cartao h2{font-size:18px;line-height:1.35;color:var(--m-purple)}
+.salvamento{font-size:13px;color:var(--m-gray);margin-top:10px}
+button:focus-visible,a:focus-visible{outline:3px solid var(--m-purple);outline-offset:3px}
+.topo a:focus-visible{outline-color:white}
+@media print{.editar,.salvamento,.navegacao{display:none!important}.cartao{break-inside:avoid}.resposta{color:black}}
