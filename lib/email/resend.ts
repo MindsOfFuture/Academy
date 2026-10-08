@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Instanciado no primeiro envio, não no import: o construtor lança sem chave e
+// `next build` importa toda rota de API para coletar metadados.
+let resend: Resend | undefined;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@mindsofthefuture.com.br";
 const TEST_RECIPIENT = process.env.RESEND_TEST_RECIPIENT?.trim() || "";
 
@@ -25,6 +27,7 @@ export async function sendNotificationEmail(
     }
 
     try {
+        resend ??= new Resend(process.env.RESEND_API_KEY);
         const result = await resend.emails.send({
             from: FROM_EMAIL,
             to: effectiveRecipient,
