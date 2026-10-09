@@ -296,13 +296,20 @@ export function FormAlocar({ encontroId, pessoas }: { encontroId: string; pessoa
 // ---------------------------------------------------------------------------
 
 
+/**
+ * `pessoas` alimenta "Quem cobriu" (em geral alguém do próprio encontro);
+ * `substitutos` alimenta "Substituir por" e só traz quem está fora do encontro
+ * (decisão 8 da spec 014).
+ */
 export function FormAlocacao({
   alocacao,
   pessoas,
+  substitutos,
   limites,
 }: {
   alocacao: Alocacao;
   pessoas: Opcao[];
+  substitutos: Opcao[];
   limites: { inicio: string | null; fim: string | null };
 }) {
   const [estado, acao, enviando] = useAcao(atualizarAlocacaoAction);
@@ -358,7 +365,7 @@ export function FormAlocacao({
           <input type="hidden" name="alocacaoId" value={alocacao.id} />
           <label className="flex-1 space-y-1">
             <span className={rotuloCampo}>Substituir por</span>
-            <Escolha name="substitutoId" opcoes={outras} vazio="Escolha…" required />
+            <Escolha name="substitutoId" opcoes={substitutos} vazio="Escolha…" required />
           </label>
           <label className="flex-1 space-y-1">
             <span className={rotuloCampo}>Motivo</span>

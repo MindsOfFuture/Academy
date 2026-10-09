@@ -67,6 +67,8 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
 
   const ativos = equipe.filter((m) => !m.desligadoEm).map((m) => ({ id: m.userProfileId, nome: m.nome }));
   const jaAlocados = new Set(encontro.alocacoes.map((a) => a.bolsistaId));
+  // Quem já está no encontro não aparece para acrescentar nem para substituir.
+  const foraDoEncontro = ativos.filter((p) => !jaAlocados.has(p.id));
   const cancelado = Boolean(encontro.canceladoEm);
 
   return (
@@ -107,13 +109,18 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
             <li key={a.id} className="space-y-3 p-4">
               <Resumo a={a} />
               {!cancelado && (
-                <FormAlocacao alocacao={a} pessoas={ativos} limites={{ inicio: encontro.inicio, fim: encontro.fim }} />
+                <FormAlocacao
+                  alocacao={a}
+                  pessoas={ativos}
+                  substitutos={foraDoEncontro}
+                  limites={{ inicio: encontro.inicio, fim: encontro.fim }}
+                />
               )}
             </li>
           ))}
           {encontro.alocacoes.length === 0 && <li className="p-4 text-sm text-muted-foreground">Ninguém alocado.</li>}
         </ul>
-        {!cancelado && <FormAlocar encontroId={encontro.id} pessoas={ativos.filter((p) => !jaAlocados.has(p.id))} />}
+        {!cancelado && <FormAlocar encontroId={encontro.id} pessoas={foraDoEncontro} />}
       </section>
 
       <section aria-labelledby="historico" className="space-y-3">

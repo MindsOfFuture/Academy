@@ -148,7 +148,10 @@ caso que o WhatsApp acomoda.
    turma fora de uso é encerrada ou marcada como "não abriu". Na turma editam-se nome,
    atividade e período; a escola não muda, porque os encontros já lançados guardam a
    escola da turma. Na escola, nome, rede e cidade.
-8. **Substituir por quem já está no encontro** (relato da coordenação, 09/10/2026): vale.
-   Quem sai fica "substituída" apontando quem cobriu; quem cobre mantém a alocação que
-   já tem, sem horas em dobro, e volta a valer se tinha sido retirado ou substituído.
-   Migration `20261009_gestao_substituir_quem_ja_esta.sql`, aplicada em produção.
+8. **Substituto vem de fora do encontro** (coordenação, 09/10/2026). Quem já está no
+   encontro não aparece em "Substituir por" nem em "Acrescentar pessoa", e o banco
+   recusa com mensagem clara. Cobrir parte do horário de alguém continua sendo o "quem
+   cobriu" da alocação parcial, que lista todo mundo. Uma primeira versão
+   (`20261009_gestao_substituir_quem_ja_esta.sql`) fez o contrário por leitura errada
+   do pedido; `20261009_gestao_substituto_de_fora.sql` a corrige. As duas aplicadas em
+   produção, nessa ordem.

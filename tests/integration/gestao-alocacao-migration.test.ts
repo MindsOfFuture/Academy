@@ -24,6 +24,7 @@ const ALOCACAO = readFileSync("supabase/migrations/20261009_gestao_alocacao.sql"
 const COBERTO_SEM_FK = readFileSync("supabase/migrations/20261009_gestao_alocacao_coberto_sem_fk.sql", "utf8");
 const SEM_ESCOLA = readFileSync("supabase/migrations/20261009_gestao_agenda_sem_escola.sql", "utf8");
 const SUBSTITUIR = readFileSync("supabase/migrations/20261009_gestao_substituir_quem_ja_esta.sql", "utf8");
+const SUBSTITUTO_DE_FORA = readFileSync("supabase/migrations/20261009_gestao_substituto_de_fora.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -137,11 +138,13 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(COBERTO_SEM_FK);
     await db.exec(SEM_ESCOLA);
     await db.exec(SUBSTITUIR);
+    await db.exec(SUBSTITUTO_DE_FORA);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
     await db.exec(SEM_ESCOLA);
     await db.exec(SUBSTITUIR);
+    await db.exec(SUBSTITUTO_DE_FORA);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -288,28 +291,17 @@ describe("migration da alocação (spec 014)", () => {
     expect(substituida).toEqual({ situacao: "substituida", coberto_por: B(8) });
   });
 
-  it("substituir por quem já está no encontro: quem sai aponta quem cobriu, e as horas não dobram", async () => {
+  it("quem já está no encontro não substitui ninguém nele, e nada muda", async () => {
     await como(COORD, async () => {
-      const id = await encontro("2026-09-17", "13:00", "17:00", "Lego", [A(1), A(2), A(3)], null);
-      // A3 foi retirado antes; ao cobrir alguém, volta a valer.
-      await db.exec(`update gestao.agenda_bolsista set situacao = 'retirada', motivo = 'troca' where id = '${await alocacao(id, A(3))}'`);
-
-      await db.query(`select gestao.substituir_alocacao($1, $2, 'faltou')`, [await alocacao(id, A(1)), A(2)]);
-      const sai = await um<{ situacao: string; coberto_por: string }>(
-        `select situacao, coberto_por from gestao.agenda_bolsista where agenda_id = '${id}' and bolsista_id = '${A(1)}'`,
+      const id = await encontro("2026-09-17", "13:00", "17:00", "Lego", [A(1), A(2)], null);
+      await expect(
+        db.query(`select gestao.substituir_alocacao($1, $2)`, [await alocacao(id, A(1)), A(2)]),
+      ).rejects.toThrow(/já está no encontro/);
+      const { situacao } = await um<{ situacao: string }>(
+        `select situacao from gestao.agenda_bolsista where agenda_id = '${id}' and bolsista_id = '${A(1)}'`,
       );
-      expect(sai).toEqual({ situacao: "substituida", coberto_por: A(2) });
-
-      await db.query(`select gestao.substituir_alocacao($1, $2)`, [await alocacao(id, A(2)), A(3)]);
-      const volta = await um<{ situacao: string }>(
-        `select situacao from gestao.agenda_bolsista where agenda_id = '${id}' and bolsista_id = '${A(3)}'`,
-      );
-      expect(volta.situacao).toBe("prevista");
-      const { n } = await um<{ n: number }>(`select count(*)::int as n from gestao.agenda_bolsista where agenda_id = '${id}'`);
-      expect(n).toBe(3);
+      expect(situacao).toBe("prevista");
     });
-    expect(await horas(A(1), "2026-09-17", "2026-09-17")).toBe(0);
-    expect(await horas(A(3), "2026-09-17", "2026-09-17")).toBe(4);
   });
 
   it("turma que não abriu, encontro cancelado e encontro futuro não contam, e continuam visíveis", async () => {
