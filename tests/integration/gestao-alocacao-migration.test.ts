@@ -21,6 +21,7 @@ const MIGRATIONS = [
   "supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql",
 ].map((path) => readFileSync(path, "utf8"));
 const ALOCACAO = readFileSync("supabase/migrations/20261009_gestao_alocacao.sql", "utf8");
+const COBERTO_SEM_FK = readFileSync("supabase/migrations/20261009_gestao_alocacao_coberto_sem_fk.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -131,8 +132,10 @@ describe("migration da alocação (spec 014)", () => {
 
     for (const sql of MIGRATIONS) await db.exec(sql);
     await db.exec(ALOCACAO);
+    await db.exec(COBERTO_SEM_FK);
     // Idempotência.
     await db.exec(ALOCACAO);
+    await db.exec(COBERTO_SEM_FK);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -199,6 +202,26 @@ describe("migration da alocação (spec 014)", () => {
 
     expect(await horas(B(4), "2026-10-05", "2026-10-09")).toBe(7);
     expect(await horas(B(2), "2026-10-05", "2026-10-09")).toBe(6);
+  });
+
+  it("alocação aponta para a equipe por uma relação só, e quem cobriu precisa ser da equipe", async () => {
+    // Duas chaves para `papel_membro` tornam ambíguo o embed do indicador 6 no
+    // PostgREST ("more than one relationship was found") e derrubam a tela "Hoje".
+    const { n } = await um<{ n: number }>(
+      `select count(*)::int as n from pg_constraint
+       where contype = 'f' and conrelid = 'gestao.agenda_bolsista'::regclass
+         and confrelid = 'gestao.papel_membro'::regclass`,
+    );
+    expect(n).toBe(1);
+
+    await como(COORD, async () => {
+      const id = await encontro("2026-10-22", "13:00", "17:00", "Lego", [B(1)], null);
+      await expect(
+        db.exec(
+          `update gestao.agenda_bolsista set coberto_por = '30000000-0000-4000-8000-000000000099' where agenda_id = '${id}'`,
+        ),
+      ).rejects.toThrow(/precisa ser da equipe/);
+    });
   });
 
   it("encontro sem fim e parcial fora do horário são recusados", async () => {

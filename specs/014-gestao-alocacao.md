@@ -91,7 +91,7 @@ caso que o WhatsApp acomoda.
   como texto, agora escritos pelo banco, para a tela "Hoje" e o indicador 6 não mudarem.
   A turma é a do M1 só com o que esta spec usa. Formulários reaproveitam `Aviso` e os
   estilos de `app/gestao/equipe/forms.tsx`. Nenhuma dependência nova.
-- **Dados:** `supabase/migrations/20261009_gestao_alocacao.sql` — `gestao.turma`,
+- **Dados:** `supabase/migrations/20261009_gestao_alocacao.sql` + correção `20261009_gestao_alocacao_coberto_sem_fk.sql` (a chave de `coberto_por` deixava ambíguo o embed do indicador 6) — `gestao.turma`,
   `gestao.afastamento`, colunas novas em `agenda` e `agenda_bolsista`, função
   `substituir_alocacao`, view `v_carga` (`security_invoker`), `antes`/`depois` em
   `registro_auditoria`.
