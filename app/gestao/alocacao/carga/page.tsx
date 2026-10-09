@@ -38,7 +38,8 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
       </div>
       <p className="text-sm text-muted-foreground">
         Conta o que foi cumprido. Encontro que já passou sem marcação conta como cumprido; falta, substituição,
-        encontro cancelado e turma que não abriu não contam.
+        encontro cancelado e turma que não abriu não contam. Quando alguém cobre outra pessoa, as horas cobertas vão
+        para quem cobriu.
       </p>
 
       <ul className="divide-y rounded-lg border bg-white shadow-sm">

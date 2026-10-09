@@ -168,3 +168,9 @@ caso que o WhatsApp acomoda.
     da tela "Hoje". Só depois da hora de início (horário de Brasília), nunca cancelado; concluído não se
     cancela sem "Reabrir encontro" antes. Migration
     `20261009_gestao_concluir_encontro.sql` + `20261009_gestao_concluir_depois_do_inicio.sql`, aplicadas em produção.
+11. **As horas vão para quem cobriu** (coordenação, 09/10/2026). Quem foi coberto conta só
+    o tempo em que esteve: o intervalo parcial, ou nada se foi coberto inteiro ou faltou.
+    Quem cobriu ganha o resto do encontro, menos o que já conta pela própria alocação nele
+    (B2, já no encontro inteiro, cobrindo a chegada atrasada do B4 continua com 4 h). Encontro
+    coberto também sai de "Encontros ainda sem substituto" do afastamento. Migration
+    `20261009_gestao_horas_de_quem_cobriu.sql`, aplicada em produção.

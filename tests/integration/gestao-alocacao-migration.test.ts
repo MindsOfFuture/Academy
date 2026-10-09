@@ -28,6 +28,7 @@ const SUBSTITUTO_DE_FORA = readFileSync("supabase/migrations/20261009_gestao_sub
 const REMOVER = readFileSync("supabase/migrations/20261009_gestao_remover_do_encontro.sql", "utf8");
 const CONCLUIR = readFileSync("supabase/migrations/20261009_gestao_concluir_encontro.sql", "utf8");
 const CONCLUIR_INICIO = readFileSync("supabase/migrations/20261009_gestao_concluir_depois_do_inicio.sql", "utf8");
+const HORAS_COBRIU = readFileSync("supabase/migrations/20261009_gestao_horas_de_quem_cobriu.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -145,6 +146,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(REMOVER);
     await db.exec(CONCLUIR);
     await db.exec(CONCLUIR_INICIO);
+    await db.exec(HORAS_COBRIU);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
@@ -154,6 +156,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(REMOVER);
     await db.exec(CONCLUIR);
     await db.exec(CONCLUIR_INICIO);
+    await db.exec(HORAS_COBRIU);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -257,6 +260,39 @@ describe("migration da alocação (spec 014)", () => {
       expect(escola_id).toBe(ESCOLA2);
     });
     expect(await horas(B(1), "2026-09-03", "2026-09-03")).toBe(1.5);
+  });
+
+  it("horas de quem cobriu: coberto inteiro, falta coberta e parcial coberto por quem não estava", async () => {
+    await como(COORD, async () => {
+      // A1 afastado, coberto inteiro por A9, que não estava no encontro.
+      const inteiro = await encontro("2026-09-25", "13:00", "17:00", "Lego", [A(1)], null);
+      await db.exec(`update gestao.agenda_bolsista set coberto_por = '${A(9)}' where agenda_id = '${inteiro}'`);
+
+      // A2 faltou e A8 cobriu.
+      const falta = await encontro("2026-09-26", "08:00", "12:00", "Lego", [A(2)], null);
+      await db.exec(
+        `update gestao.agenda_bolsista set situacao = 'faltou_avisou', coberto_por = '${A(8)}' where agenda_id = '${falta}'`,
+      );
+
+      // A3 chegou às 10h; A7, que só estava das 11h às 12h, cobriu a primeira hora e meia.
+      const parcial = await encontro("2026-09-27", "08:30", "12:00", "Lego", [A(3), A(7)], null);
+      await db.exec(
+        `update gestao.agenda_bolsista set inicio = '10:00', fim = '12:00', coberto_por = '${A(7)}'
+         where agenda_id = '${parcial}' and bolsista_id = '${A(3)}'`,
+      );
+      await db.exec(
+        `update gestao.agenda_bolsista set inicio = '11:00', fim = '12:00'
+         where agenda_id = '${parcial}' and bolsista_id = '${A(7)}'`,
+      );
+    });
+
+    expect(await horas(A(1), "2026-09-25", "2026-09-25")).toBe(0);
+    expect(await horas(A(9), "2026-09-25", "2026-09-25")).toBe(4);
+    expect(await horas(A(2), "2026-09-26", "2026-09-26")).toBe(0);
+    expect(await horas(A(8), "2026-09-26", "2026-09-26")).toBe(4);
+    expect(await horas(A(3), "2026-09-27", "2026-09-27")).toBe(2);
+    // A7: 1 h própria + 1,5 h cobrindo (8h30–10h); nada dobra.
+    expect(await horas(A(7), "2026-09-27", "2026-09-27")).toBe(2.5);
   });
 
   it("encontro sem fim e parcial fora do horário são recusados", async () => {
