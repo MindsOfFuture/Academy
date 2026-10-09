@@ -52,7 +52,9 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
               <div className="h-2 rounded-full bg-[#684A97]" style={{ width: `${(c.total / maior) * 100}%` }} />
             </div>
             <p className="text-sm text-muted-foreground">
-              {c.porEscola.map((e) => `${e.nome}: ${horasTexto(e.horas)}`).join(" · ")}
+              {c.porEscola.length
+                ? c.porEscola.map((e) => `${e.nome}: ${horasTexto(e.horas)}`).join(" · ")
+                : "Sem horas neste mês."}
             </p>
             {c.porTurma.length > 1 && (
               <p className="text-xs text-muted-foreground">
