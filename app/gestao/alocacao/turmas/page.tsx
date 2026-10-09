@@ -45,11 +45,12 @@ export default async function TurmasPage() {
                   {t.fim && ` até ${dataBr(t.fim)}`}
                 </p>
               </div>
-              <FormSituacaoTurma turma={t} />
+              {/* As chaves remontam os formulários com o que foi salvo (ver a página do encontro). */}
+              <FormSituacaoTurma key={`${t.status}|${t.motivo}`} turma={t} />
               <details className="text-sm">
                 <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
                 <div className="pt-3">
-                  <FormTurma escolas={opcoesEscola} turma={t} />
+                  <FormTurma key={[t.nome, t.modalidade, t.inicio, t.fim].join("|")} escolas={opcoesEscola} turma={t} />
                 </div>
               </details>
             </li>
@@ -71,7 +72,7 @@ export default async function TurmasPage() {
               <details>
                 <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
                 <div className="pt-3">
-                  <FormEscola escola={e} />
+                  <FormEscola key={[e.nome, e.categoria, e.cidade].join("|")} escola={e} />
                 </div>
               </details>
             </li>

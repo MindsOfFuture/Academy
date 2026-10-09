@@ -136,6 +136,9 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
               </div>
               {!cancelado && (
                 <FormAlocacao
+                  // Remonta com o que foi salvo: depois de enviar, o React volta o formulário
+                  // ao valor com que ele nasceu, e o campo mostraria o valor antigo.
+                  key={[a.situacao, a.inicio, a.fim, a.cobertoPor, a.motivo].join("|")}
                   alocacao={a}
                   pessoas={ativos}
                   substitutos={foraDoEncontro}
