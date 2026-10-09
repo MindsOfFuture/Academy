@@ -439,6 +439,8 @@ export async function listarAfastamentos(mes: string): Promise<Afastamento[]> {
         .select("id, agenda!inner(id, data, horario, modalidade, cancelado_em)")
         .eq("bolsista_id", a.bolsista_id)
         .eq("situacao", "prevista")
+        // Coberto por alguém ("Quem cobriu") já está resolvido, como a substituição.
+        .is("coberto_por", null)
         .gte("agenda.data", a.inicio)
         .lte("agenda.data", a.fim)
         .is("agenda.cancelado_em", null);
