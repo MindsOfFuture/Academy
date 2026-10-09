@@ -158,10 +158,10 @@ export function FormConcederPapel() {
         Busque pelo nome ou pelo começo do e-mail; a pessoa precisa ter conta no site. Se ela já está na equipe, o
         papel escolhido é somado ao que ela já tem.
       </p>
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+      <div className="space-y-3">
         {/* Remonta depois de adicionar, para a caixa voltar vazia. */}
         <BuscaPessoa key={estado?.ok ? estado.mensagem : "busca"} />
-        <label className="space-y-1">
+        <label className="block space-y-1">
           <span className={rotuloCampo}>Papel</span>
           <select name="papel" defaultValue="bolsista" className={campoSelect}>
             <option value="bolsista">Bolsista</option>
