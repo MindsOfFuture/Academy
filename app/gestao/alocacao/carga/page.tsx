@@ -61,7 +61,7 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
             )}
           </li>
         ))}
-        {carga.length === 0 && <li className="p-4 text-sm text-muted-foreground">Nenhuma alocação neste mês.</li>}
+        {carga.length === 0 && <li className="p-4 text-sm text-muted-foreground">Nenhum bolsista na equipe.</li>}
       </ul>
 
       <section aria-labelledby="afastamentos" className="space-y-3">

@@ -19,6 +19,9 @@ function form(campos: Record<string, string | string[]>): FormData {
 }
 
 describe("agruparCarga", () => {
+  const escolas = new Map([["e1", "Escola 1"], ["e2", "Escola 2"]]);
+  const turmas = new Map([["t1", "Lego"], ["t2", "IA"]]);
+
   it("bolsista em duas escolas no mês: total e divisão por escola e turma", () => {
     const linhas = [
       { bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: "4.00" },
@@ -27,12 +30,11 @@ describe("agruparCarga", () => {
       { bolsista_id: "bia", data: "2026-10-20", escola_id: "e2", turma_id: null, horas: "0" },
       { bolsista_id: "caio", data: "2026-10-19", escola_id: "e2", turma_id: "t2", horas: 4 },
     ];
-    const carga = agruparCarga(
-      linhas,
-      new Map([["bia", "Bia"], ["caio", "Caio"]]),
-      new Map([["e1", "Escola 1"], ["e2", "Escola 2"]]),
-      new Map([["t1", "Lego"], ["t2", "IA"]]),
-    );
+    const bolsistas = [
+      { id: "bia", nome: "Bia", ativo: true },
+      { id: "caio", nome: "Caio", ativo: true },
+    ];
+    const carga = agruparCarga(linhas, bolsistas, escolas, turmas);
 
     expect(carga.map((c) => [c.nome, c.total])).toEqual([["Bia", 10.5], ["Caio", 4]]);
     expect(carga[0].porEscola).toEqual([
@@ -41,6 +43,22 @@ describe("agruparCarga", () => {
     ]);
     // Linha que não conta (0 h) não aparece como turma.
     expect(carga[0].porTurma.map((t) => t.nome)).toEqual(["Lego", "IA"]);
+  });
+
+  it("todo bolsista ativo aparece, mesmo com 0 h; só coordenação nunca; desligado só com horas", () => {
+    const linhas = [
+      { bolsista_id: "coord", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4 },
+      { bolsista_id: "saiu-com-horas", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 2 },
+    ];
+    const bolsistas = [
+      { id: "zeca", nome: "Zeca", ativo: true },
+      { id: "saiu-com-horas", nome: "Lia", ativo: false },
+      { id: "saiu-sem-horas", nome: "Rui", ativo: false },
+    ];
+    expect(agruparCarga(linhas, bolsistas, escolas, turmas).map((c) => [c.nome, c.total])).toEqual([
+      ["Lia", 2],
+      ["Zeca", 0],
+    ]);
   });
 });
 

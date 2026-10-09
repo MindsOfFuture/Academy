@@ -471,10 +471,17 @@ export async function listarAfastamentos(mes: string): Promise<Afastamento[]> {
 // Carga do mês
 // ---------------------------------------------------------------------------
 
-/** Soma as horas por bolsista, com a divisão por escola e por turma. */
+/**
+ * Soma as horas por bolsista, com a divisão por escola e por turma.
+ *
+ * A lista parte dos bolsistas, não das alocações: todo bolsista ativo aparece,
+ * mesmo com 0 h, e quem é só coordenação nunca aparece, nem se tiver sido
+ * alocado. Bolsista desligado só aparece se teve horas no mês (a prestação de
+ * contas precisa delas).
+ */
 export function agruparCarga(
   linhas: VCargaRow[],
-  nomes: Map<string, string>,
+  bolsistas: { id: string; nome: string; ativo: boolean }[],
   escolas: Map<string, string>,
   turmas: Map<string, string>,
 ): CargaBolsista[] {
@@ -487,10 +494,15 @@ export function agruparCarga(
     acc.turma.set(l.turma_id, (acc.turma.get(l.turma_id) ?? 0) + horas);
     porPessoa.set(l.bolsista_id, acc);
   }
-  return [...porPessoa.entries()]
-    .map(([bolsistaId, acc]) => ({
-      bolsistaId,
-      nome: nomes.get(bolsistaId) ?? "Pessoa fora da equipe",
+  return bolsistas
+    .map((b) => {
+      const acc = porPessoa.get(b.id) ?? { total: 0, escola: new Map(), turma: new Map() };
+      return { b, acc };
+    })
+    .filter(({ b, acc }) => b.ativo || acc.total > 0)
+    .map(({ b, acc }) => ({
+      bolsistaId: b.id,
+      nome: b.nome,
       total: acc.total,
       porEscola: [...acc.escola.entries()]
         .filter(([, h]) => h > 0)
@@ -513,7 +525,7 @@ export function agruparCarga(
 export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
   const supabase = await createClient();
   const { de, ate } = limitesDoMes(mes);
-  const [{ data, error }, escolas, turmas, nomes] = await Promise.all([
+  const [{ data, error }, escolas, turmas, equipe] = await Promise.all([
     supabase
       .schema("gestao")
       .from("v_carga")
@@ -522,11 +534,14 @@ export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
       .lte("data", ate),
     supabase.schema("gestao").from("escola").select("id, nome"),
     supabase.schema("gestao").from("turma").select("id, nome"),
-    nomesDaEquipe(),
+    listarEquipe(),
   ]);
   for (const res of [{ error }, escolas, turmas]) throwOnError(res.error);
   const mapa = (linhas: unknown) => new Map(((linhas ?? []) as { id: string; nome: string }[]).map((l) => [l.id, l.nome]));
-  return agruparCarga((data ?? []) as VCargaRow[], nomes, mapa(escolas.data), mapa(turmas.data));
+  const bolsistas = equipe
+    .filter((m) => m.bolsista)
+    .map((m) => ({ id: m.userProfileId, nome: m.nome, ativo: !m.desligadoEm }));
+  return agruparCarga((data ?? []) as VCargaRow[], bolsistas, mapa(escolas.data), mapa(turmas.data));
 }
 
 // ---------------------------------------------------------------------------
