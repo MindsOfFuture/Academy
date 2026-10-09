@@ -29,7 +29,7 @@ const schema = vi.fn((nome: string) => {
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ schema })) }));
 
-import { buscarUsuarioPorEmail, concederPapel, definirPapel, listarEquipe } from "@/lib/api/gestao/equipe";
+import { buscarUsuarios, concederPapel, definirPapel, listarEquipe } from "@/lib/api/gestao/equipe";
 
 const SO_BOLSISTA = { coordenacao: false, bolsista: true };
 const SO_COORDENACAO = { coordenacao: true, bolsista: false };
@@ -105,9 +105,19 @@ describe("lib/api/gestao/equipe", () => {
       fim: "2026-12-31",
     });
 
-    rpc.mockResolvedValueOnce({ data: [], error: null });
-    await expect(buscarUsuarioPorEmail("ninguem@x")).resolves.toBeNull();
-    expect(rpc).toHaveBeenLastCalledWith("buscar_usuario_por_email", { p_email: "ninguem@x" });
+    // Busca (spec 015): quem está ativo na equipe vem marcado; desligado não.
+    rpc.mockResolvedValueOnce({
+      data: [
+        { id: "u1", nome: " Bia ", email_parcial: "bi***@ufjf.br", coordenacao: false, bolsista: true, desligado_em: null },
+        { id: "u2", nome: null, email_parcial: "ex***@ufjf.br", coordenacao: false, bolsista: true, desligado_em: "2026-01-01" },
+      ],
+      error: null,
+    });
+    await expect(buscarUsuarios("bia")).resolves.toEqual([
+      { id: "u1", nome: "Bia", emailParcial: "bi***@ufjf.br", naEquipe: true },
+      { id: "u2", nome: "Pessoa sem nome no cadastro", emailParcial: "ex***@ufjf.br", naEquipe: false },
+    ]);
+    expect(rpc).toHaveBeenLastCalledWith("buscar_usuarios", { p_termo: "bia" });
 
     rpc.mockResolvedValueOnce({ data: null, error: { message: "gestao: apenas a coordenação vê a equipe" } });
     await expect(listarEquipe()).rejects.toThrow("apenas a coordenação");

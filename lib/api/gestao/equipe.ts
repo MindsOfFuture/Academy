@@ -1,12 +1,21 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { BolsaVigente, EquipeRow, GestaoPapel, MembroEquipe, NovaBolsa, PapeisMembro, UsuarioBuscadoRow } from "./types";
+import type {
+  BolsaVigente,
+  EquipeRow,
+  GestaoPapel,
+  MembroEquipe,
+  NovaBolsa,
+  PapeisMembro,
+  UsuarioEncontrado,
+  UsuarioEncontradoRow,
+} from "./types";
 
 /**
  * Equipe e bolsa do projeto (spec 003).
  *
  * A leitura da equipe passa por `gestao.equipe()` e a busca por
- * `gestao.buscar_usuario_por_email()`: a RLS de `public.user_profile` não deixa
+ * `gestao.buscar_usuarios()` (spec 015): a RLS de `public.user_profile` não deixa
  * a coordenação ler perfis alheios, e as duas funções devolvem só nome e e-mail,
  * só para a coordenação ativa. A escrita vai direto nas tabelas, sob a RLS
  * fatiada da migration `20260923_gestao_fundacao.sql`.
@@ -54,12 +63,21 @@ export async function listarEquipe(): Promise<MembroEquipe[]> {
   return ((data ?? []) as EquipeRow[]).map(mapMembro);
 }
 
-export async function buscarUsuarioPorEmail(email: string): Promise<UsuarioBuscadoRow | null> {
+/**
+ * Busca de pessoa pelo nome ou começo do e-mail (spec 015). As travas contra
+ * listar as contas do site (3 letras, 10 resultados, e-mail parcial) estão na
+ * função do banco; aqui só se mapeia.
+ */
+export async function buscarUsuarios(termo: string): Promise<UsuarioEncontrado[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.schema("gestao").rpc("buscar_usuario_por_email", { p_email: email });
+  const { data, error } = await supabase.schema("gestao").rpc("buscar_usuarios", { p_termo: termo });
   throwOnError(error);
-  const linhas = (data ?? []) as UsuarioBuscadoRow[];
-  return linhas[0] ?? null;
+  return ((data ?? []) as UsuarioEncontradoRow[]).map((row) => ({
+    id: row.id,
+    nome: row.nome?.trim() || "Pessoa sem nome no cadastro",
+    emailParcial: row.email_parcial,
+    naEquipe: Boolean(row.coordenacao || row.bolsista) && !row.desligado_em,
+  }));
 }
 
 /**

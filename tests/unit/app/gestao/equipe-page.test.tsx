@@ -21,6 +21,7 @@ vi.mock("@/lib/api/gestao/auth", () => ({ ensureGestaoMember: async () => "coord
 vi.mock("@/app/gestao/equipe/actions", () => {
   const acao = async () => ({ ok: true, mensagem: "" });
   return {
+    buscarPessoasAction: async () => [],
     cadastrarBolsaAction: acao,
     concederPapelAction: acao,
     definirPapelAction: acao,

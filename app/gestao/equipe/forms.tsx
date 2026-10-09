@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { EstadoAcao, GestaoPapel, PapeisMembro } from "@/lib/api/gestao/types";
+import type { EstadoAcao, GestaoPapel, PapeisMembro, UsuarioEncontrado } from "@/lib/api/gestao/types";
 import {
+  buscarPessoasAction,
   cadastrarBolsaAction,
   concederPapelAction,
   definirPapelAction,
@@ -27,20 +28,139 @@ export const rotuloCampo = "text-sm font-medium text-gray-700";
 export const campoSelect =
   "flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
+/**
+ * Caixa de busca com lista (spec 015): digita parte do nome, escolhe a pessoa.
+ * A lista vem do servidor a cada pausa na digitação; teclado: setas, Enter, Esc.
+ */
+function BuscaPessoa() {
+  const idLista = useId();
+  const [termo, setTermo] = useState("");
+  const [opcoes, setOpcoes] = useState<UsuarioEncontrado[]>([]);
+  const [escolhida, setEscolhida] = useState<UsuarioEncontrado | null>(null);
+  const [aberta, setAberta] = useState(false);
+  const [ativa, setAtiva] = useState(0);
+  const [buscando, setBuscando] = useState(false);
+
+  useEffect(() => {
+    const t = termo.trim();
+    if (escolhida || t.length < 3) {
+      setOpcoes([]);
+      return;
+    }
+    let viva = true;
+    setBuscando(true);
+    const espera = setTimeout(async () => {
+      const achadas = await buscarPessoasAction(t);
+      if (!viva) return;
+      setOpcoes(achadas);
+      setAtiva(0);
+      setAberta(true);
+      setBuscando(false);
+    }, 250);
+    return () => {
+      viva = false;
+      clearTimeout(espera);
+    };
+  }, [termo, escolhida]);
+
+  function escolher(pessoa: UsuarioEncontrado) {
+    setEscolhida(pessoa);
+    setTermo(pessoa.nome);
+    setAberta(false);
+  }
+
+  function teclado(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown" && opcoes.length) {
+      e.preventDefault();
+      setAberta(true);
+      setAtiva((i) => (i + 1) % opcoes.length);
+    } else if (e.key === "ArrowUp" && opcoes.length) {
+      e.preventDefault();
+      setAtiva((i) => (i - 1 + opcoes.length) % opcoes.length);
+    } else if (e.key === "Enter" && aberta && opcoes[ativa]) {
+      e.preventDefault();
+      escolher(opcoes[ativa]);
+    } else if (e.key === "Escape") {
+      setAberta(false);
+    }
+  }
+
+  const curto = termo.trim().length < 3;
+  const mostrarLista = aberta && !escolhida && !curto;
+
+  return (
+    <div className="relative space-y-1">
+      <label htmlFor={`${idLista}-campo`} className={rotuloCampo}>
+        Pessoa
+      </label>
+      <Input
+        id={`${idLista}-campo`}
+        role="combobox"
+        aria-expanded={mostrarLista}
+        aria-controls={idLista}
+        aria-autocomplete="list"
+        aria-activedescendant={mostrarLista && opcoes[ativa] ? `${idLista}-${ativa}` : undefined}
+        autoComplete="off"
+        placeholder="Digite parte do nome"
+        value={termo}
+        onChange={(e) => {
+          setTermo(e.target.value);
+          setEscolhida(null);
+        }}
+        onKeyDown={teclado}
+        onFocus={() => setAberta(true)}
+        onBlur={() => setTimeout(() => setAberta(false), 150)}
+      />
+      <input type="hidden" name="userProfileId" value={escolhida?.id ?? ""} />
+      <input type="hidden" name="nome" value={escolhida?.nome ?? ""} />
+      {mostrarLista && (
+        <ul
+          id={idLista}
+          role="listbox"
+          className="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-white py-1 text-sm shadow-lg"
+        >
+          {opcoes.map((p, i) => (
+            <li
+              key={p.id}
+              id={`${idLista}-${i}`}
+              role="option"
+              aria-selected={i === ativa}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                escolher(p);
+              }}
+              onMouseEnter={() => setAtiva(i)}
+              className={`cursor-pointer px-3 py-2 ${i === ativa ? "bg-[#684A97]/10" : ""}`}
+            >
+              <span className="font-medium">{p.nome}</span>
+              <span className="ml-2 text-muted-foreground">{p.emailParcial}</span>
+              {p.naEquipe && <span className="ml-2 text-xs text-[#684A97]">já na equipe</span>}
+            </li>
+          ))}
+          {!buscando && opcoes.length === 0 && (
+            <li className="px-3 py-2 text-muted-foreground">Ninguém encontrado. A pessoa precisa ter conta no site.</li>
+          )}
+        </ul>
+      )}
+      {!escolhida && curto && termo.length > 0 && (
+        <p className="text-xs text-muted-foreground">Digite pelo menos 3 letras.</p>
+      )}
+    </div>
+  );
+}
+
 export function FormConcederPapel() {
   const [estado, acao, enviando] = useActionState<EstadoAcao | null, FormData>(concederPapelAction, null);
   return (
     <form action={acao} className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
       <h3 className="font-semibold">Adicionar pessoa à equipe</h3>
       <p className="text-sm text-muted-foreground">
-        A pessoa precisa ter conta no site. Use o e-mail completo com que ela entra. Se ela já está na equipe, o
+        Busque pelo nome ou pelo começo do e-mail; a pessoa precisa ter conta no site. Se ela já está na equipe, o
         papel escolhido é somado ao que ela já tem.
       </p>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-        <label className="space-y-1">
-          <span className={rotuloCampo}>E-mail</span>
-          <Input name="email" type="email" required autoComplete="off" placeholder="nome@estudante.ufjf.br" />
-        </label>
+        {/* Remonta depois de adicionar, para a caixa voltar vazia. */}
+        <BuscaPessoa key={estado?.ok ? estado.mensagem : "busca"} />
         <label className="space-y-1">
           <span className={rotuloCampo}>Papel</span>
           <select name="papel" defaultValue="bolsista" className={campoSelect}>

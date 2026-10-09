@@ -284,14 +284,23 @@ export interface MembroEquipe extends PapeisMembro {
     temAlocacao: boolean;
 }
 
-/** Linha devolvida por `gestao.buscar_usuario_por_email()`. */
-export interface UsuarioBuscadoRow {
+/** Linha devolvida por `gestao.buscar_usuarios()` (spec 015). */
+export interface UsuarioEncontradoRow {
     id: string;
     nome: string | null;
-    email: string;
+    email_parcial: string;
     coordenacao: boolean | null;
     bolsista: boolean | null;
     desligado_em: string | null;
+}
+
+/** Pessoa achada na busca da tela de equipe; e-mail só parcial, para separar homônimos. */
+export interface UsuarioEncontrado {
+    id: string;
+    nome: string;
+    emailParcial: string;
+    /** Já está na equipe e ativa: escolher soma o papel ao que ela já tem. */
+    naEquipe: boolean;
 }
 
 export interface NovaBolsa {

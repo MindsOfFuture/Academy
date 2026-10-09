@@ -22,7 +22,6 @@ import type {
 
 const MODALIDADES: readonly ModalidadeBolsa[] = ["graduacao", "mestrado", "bdcti", "critt", "outra"];
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type Validado<T> = { ok: true; valor: T } | { ok: false; mensagem: string };
 
@@ -37,12 +36,6 @@ export function lerNumero(valor: string): number | null {
   const normalizado = valor.includes(",") ? valor.replace(/\./g, "").replace(",", ".") : valor;
   const numero = Number(normalizado);
   return Number.isFinite(numero) ? numero : null;
-}
-
-export function validarEmail(valor: string): Validado<string> {
-  const email = valor.trim().toLowerCase();
-  if (!EMAIL.test(email)) return { ok: false, mensagem: "Informe um e-mail completo, como nome@ufjf.br." };
-  return { ok: true, valor: email };
 }
 
 export function validarBolsa(form: FormData): Validado<NovaBolsa> {
