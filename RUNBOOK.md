@@ -215,7 +215,8 @@ systemd). Chaves presentes (conferidas em produção):
 
 `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_ANON_KEY` ·
 `SUPABASE_SERVICE_ROLE_KEY` · `RESEND_API_KEY` · `RESEND_FROM_EMAIL` ·
-`RESEND_TEST_RECIPIENT` · `NEXT_PUBLIC_APP_URL`.
+`RESEND_TEST_RECIPIENT` · `NEXT_PUBLIC_APP_URL` · `GESTAO_LEMBRETE_DB_URL`
+(só do lembrete de encontro, 8.6).
 
 Regras:
 
@@ -572,7 +573,7 @@ chave de serviço (ADR 021). Ativação, uma vez:
    `gestao_lembrete.<project-ref>`:
    `GESTAO_LEMBRETE_DB_URL=postgresql://gestao_lembrete.jrfehrhiyilxhbuwjmat:<senha>@aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require`
    (o projeto está em `us-west-2`; `aws-1-*` e as outras regiões respondem "tenant/user not found").
-   Senha gerada sem `` no fim: arquivo vindo do Windows quebra a autenticação.
+   Senha gerada sem `\r` no fim: arquivo vindo do Windows quebra a autenticação.
 3. `sudo apt-get install -y postgresql-client` (se `psql` não existir) e
    `sudo install -o root -g root -m 755 scripts/academy-lembrete-encontros.sh /usr/local/bin/academy-lembrete-encontros`.
 4. Unidades:
@@ -620,7 +621,37 @@ lembretes, como no site.
 instalado, timer habilitado (`:05` de cada hora, Brasília). Conferido que o papel
 recebe `permission denied` em `gestao.escola` e `public.user_profile`; execução
 manual com um encontro de teste para o dia seguinte enviou 1 lembrete e marcou;
-a execução seguinte não reenviou.
+a execução seguinte não reenviou. Depois, o lembrete passou a sair no modelo de
+e-mail da plataforma (abaixo) e foi reenviado e conferido na caixa de entrada.
+
+#### Avisos de alocação (saem do site, não do VPS)
+
+Quem é alocado, removido ou substituído num encontro, e toda a equipe de um
+encontro cancelado, recebe e-mail **na hora da ação**, mandado pelo próprio site
+(`lib/api/gestao/avisos.ts`). Não há job: depende só de `RESEND_API_KEY` e
+`RESEND_FROM_EMAIL` no ambiente do site. Sem a chave, a ação vale e o aviso some —
+o log mostra `[sendNotificationEmail] Falha ao enviar e-mail: … Missing API key`.
+Aviso perdido não é reenviado; a pessoa vê a alocação no site.
+
+**Modelo único.** Avisos e lembrete usam o mesmo HTML dos outros e-mails
+(`lib/email/template.ts`). O lembrete, montado no banco, tem uma cópia em
+`gestao.email_html()`; o teste `tests/integration/gestao-alocacao-migration.test.ts`
+falha se as duas divergirem. Mudou o modelo → nova migration com o
+`gestao.email_html()` igual.
+
+**Servidor local apontando para produção.** Com `RESEND_*` no `.env.local`, os
+avisos vão para as pessoas reais da equipe. Para testar, preencher
+`RESEND_TEST_RECIPIENT` com o próprio e-mail ou alocar só a si mesmo.
+Reiniciar o `npm run dev` depois de mexer no `.env.local`.
+
+**Pendências deste módulo:**
+
+- os links dos e-mails (`/gestao/encontro/<id>`) só abrem depois do deploy desta
+  versão;
+- depois do deploy, apagar `gestao.buscar_usuario_por_email` (substituída pela
+  busca por nome, spec 015);
+- dados de teste em produção (nomes com `TESTE`, Escola A/B) apagados quando a
+  coordenação encerrar a validação.
 
 ---
 
