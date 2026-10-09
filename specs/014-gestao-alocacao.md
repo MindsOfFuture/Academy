@@ -116,7 +116,8 @@ caso que o WhatsApp acomoda.
 - [x] Teste: divisão da carga por escola e turma, diferença do histórico, validações —
       `tests/unit/lib/api/gestao/alocacao.test.ts`
 - [x] Telas: calendário, encontro, turmas e escolas, carga e afastamentos
-- [ ] Aplicar a migration em produção (aprovação do Rafael) e lançar outubro pela tela
+- [x] Migration aplicada em produção em 09/10/2026 (`gestao_alocacao`), a pedido da coordenação
+- [ ] Lançar outubro pela tela (validação real do card)
 
 ## Limites conhecidos
 
