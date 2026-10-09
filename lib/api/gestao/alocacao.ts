@@ -6,7 +6,9 @@ import type {
   Alocacao,
   AlocacaoRow,
   CargaBolsista,
+  ConflitoHorario,
   Encontro,
+  EncontroDoDiaRow,
   EncontroRow,
   NovaEscola,
   NovaTurma,
@@ -234,6 +236,62 @@ export async function criarEncontro(novo: NovoEncontro): Promise<string> {
   const id = (data as { id: string }).id;
   if (novo.equipe.length > 0) await alocar(id, novo.equipe);
   return id;
+}
+
+/**
+ * Quem das pessoas escolhidas já está em outro encontro que se sobrepõe a
+ * [inicio, fim). Encostar não é sobrepor: sair às 12h e entrar às 12h passa.
+ * Vale o horário parcial de quem chega depois ou sai antes. Não conta quem foi
+ * substituído ou retirado, nem encontro de turma que não abriu.
+ */
+export function acharSobreposicoes(
+  novo: { inicio: string; fim: string },
+  encontros: EncontroDoDiaRow[],
+  nomes: Map<string, string>,
+): ConflitoHorario[] {
+  const conflitos: ConflitoHorario[] = [];
+  for (const e of encontros) {
+    const turma = primeiro(e.turma);
+    if (!e.inicio || !e.fim || turma?.status === "nao_abriu") continue;
+    for (const a of e.agenda_bolsista ?? []) {
+      if (a.situacao === "substituida" || a.situacao === "retirada") continue;
+      const inicio = hhmm(a.inicio ?? e.inicio)!;
+      const fim = hhmm(a.fim ?? e.fim)!;
+      if (inicio < novo.fim && novo.inicio < fim) {
+        conflitos.push({
+          bolsistaId: a.bolsista_id,
+          bolsistaNome: nomes.get(a.bolsista_id) ?? "Pessoa fora da equipe",
+          encontroId: e.id,
+          horario: e.horario,
+          modalidade: e.modalidade,
+          turmaNome: turma?.nome ?? null,
+        });
+      }
+    }
+  }
+  return conflitos.sort((x, y) => x.bolsistaNome.localeCompare(y.bolsistaNome));
+}
+
+export async function conflitosDeHorario(
+  data: string,
+  inicio: string,
+  fim: string,
+  bolsistas: string[],
+): Promise<ConflitoHorario[]> {
+  if (bolsistas.length === 0) return [];
+  const supabase = await createClient();
+  const [{ data: linhas, error }, nomes] = await Promise.all([
+    supabase
+      .schema("gestao")
+      .from("agenda")
+      .select("id, inicio, fim, horario, modalidade, turma(nome, status), agenda_bolsista!inner(bolsista_id, situacao, inicio, fim)")
+      .eq("data", data)
+      .is("cancelado_em", null)
+      .in("agenda_bolsista.bolsista_id", bolsistas),
+    nomesDaEquipe(),
+  ]);
+  throwOnError(error);
+  return acharSobreposicoes({ inicio, fim }, (linhas ?? []) as unknown as EncontroDoDiaRow[], nomes);
 }
 
 export async function alocar(encontroId: string, bolsistas: string[]): Promise<void> {

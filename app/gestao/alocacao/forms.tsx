@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Alocacao, EstadoAcao, SituacaoAlocacao, StatusTurma, Turma } from "@/lib/api/gestao/types";
+import type { Alocacao, ConflitoHorario, EstadoAcao, SituacaoAlocacao, StatusTurma, Turma } from "@/lib/api/gestao/types";
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
 import { SITUACAO, STATUS_TURMA } from "./rotulos";
 import {
@@ -13,6 +14,7 @@ import {
   cadastrarEscolaAction,
   cadastrarTurmaAction,
   cancelarEncontroAction,
+  conflitosEncontroAction,
   criarEncontroAction,
   situacaoTurmaAction,
   substituirAction,
@@ -52,6 +54,11 @@ function Escolha({ name, opcoes, vazio, defaultValue = "", required }: {
 /**
  * Uma linha da mensagem de hoje. Ao escolher a turma, a equipe do último
  * encontro dela vem marcada (decisão 2 da spec 014) e pode ser trocada.
+ *
+ * Antes de lançar, confere se alguém da equipe já está em outro encontro no
+ * mesmo horário (decisão 6). Havendo, a janela mostra quem e onde; a
+ * coordenação revisa ou lança mesmo assim. A conferência roda no envio, e não
+ * no servidor depois, para o formulário não se apagar enquanto ela decide.
  */
 export function FormEncontro({
   turmas,
@@ -67,6 +74,11 @@ export function FormEncontro({
   dataPadrao: string;
 }) {
   const [estado, acao, enviando] = useAcao(criarEncontroAction);
+  const formRef = useRef<HTMLFormElement>(null);
+  const janelaRef = useRef<HTMLDialogElement>(null);
+  const liberado = useRef(false);
+  const [conflitos, setConflitos] = useState<ConflitoHorario[]>([]);
+  const [conferindo, setConferindo] = useState(false);
   const [turmaId, setTurmaId] = useState("");
   const [modalidade, setModalidade] = useState("");
   const [equipe, setEquipe] = useState<Set<string>>(new Set());
@@ -79,6 +91,30 @@ export function FormEncontro({
     setEquipe(new Set(equipes[id] ?? []));
   }
 
+  async function aoEnviar(e: React.FormEvent<HTMLFormElement>) {
+    if (liberado.current) {
+      liberado.current = false;
+      return;
+    }
+    e.preventDefault();
+    const form = e.currentTarget;
+    setConferindo(true);
+    const achados = await conflitosEncontroAction(new FormData(form));
+    setConferindo(false);
+    if (achados.length === 0) {
+      lancar();
+      return;
+    }
+    setConflitos(achados);
+    janelaRef.current?.showModal();
+  }
+
+  function lancar() {
+    janelaRef.current?.close();
+    liberado.current = true;
+    formRef.current?.requestSubmit();
+  }
+
   function alternar(id: string) {
     setEquipe((atual) => {
       const nova = new Set(atual);
@@ -89,7 +125,7 @@ export function FormEncontro({
   }
 
   return (
-    <form action={acao} className={caixa}>
+    <form ref={formRef} action={acao} onSubmit={aoEnviar} className={caixa}>
       <h3 className="font-semibold">Lançar encontro</h3>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="space-y-1">
@@ -158,10 +194,48 @@ export function FormEncontro({
         </div>
       </fieldset>
 
-      <Button type="submit" disabled={enviando}>
-        {enviando ? "Lançando…" : "Lançar encontro"}
+      <Button type="submit" disabled={enviando || conferindo}>
+        {conferindo ? "Conferindo horários…" : enviando ? "Lançando…" : "Lançar encontro"}
       </Button>
       <Aviso estado={estado} />
+
+      <dialog
+        ref={janelaRef}
+        aria-labelledby="sobreposicao-titulo"
+        className="w-[min(32rem,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-black/40"
+      >
+        <div className="space-y-4 p-5">
+          <h4 id="sobreposicao-titulo" className="text-lg font-semibold">
+            Horário sobreposto
+          </h4>
+          <p className="text-sm text-muted-foreground">
+            {conflitos.length === 1 ? "Esta pessoa já está" : "Estas pessoas já estão"} em outro encontro nesse dia e
+            horário:
+          </p>
+          <ul className="divide-y rounded-md border text-sm">
+            {conflitos.map((c) => (
+              <li key={`${c.bolsistaId}-${c.encontroId}`} className="p-3">
+                <span className="font-medium">{c.bolsistaNome}</span>
+                <span className="block text-muted-foreground">
+                  {c.horario} · {c.modalidade}
+                  {c.turmaNome && ` · ${c.turmaNome}`} ·{" "}
+                  <Link href={`/gestao/alocacao/${c.encontroId}`} target="_blank" className="text-[#684A97] underline">
+                    ver encontro
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => janelaRef.current?.close()}>
+              Revisar
+            </Button>
+            <Button type="button" onClick={lancar}>
+              Lançar mesmo assim
+            </Button>
+          </div>
+        </div>
+      </dialog>
     </form>
   );
 }

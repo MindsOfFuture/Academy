@@ -46,8 +46,8 @@ caso que o WhatsApp acomoda.
 - **Visão de calendário** dos encontros do mês, com os bolsistas de cada um.
 
 **Fora de escopo:**
-- Disponibilidade do bolsista, grade da faculdade, piso de 20 h e aviso de choque de
-  horário — próxima spec. Aqui a coordenação aloca como faz hoje, sem checagem.
+- Disponibilidade do bolsista, grade da faculdade e piso de 20 h — próxima spec. O aviso
+  de choque entre encontros entrou depois (decisão 6).
 - Bolsista ver ou confirmar a própria alocação; nesta spec só a coordenação usa.
 - Alunos, chamada, diário e indicadores por turma (M1 e M3 do plano de gestão).
 - Relatório mensal do bolsista (etapa 4).
@@ -137,3 +137,9 @@ caso que o WhatsApp acomoda.
 5. **Encontro sem turma não exige escola** (pedido da coordenação, 09/10/2026): tarefa,
    reunião ou evento podem ficar "fora de escola". Migration
    `20261009_gestao_agenda_sem_escola.sql`, aplicada em produção no mesmo dia.
+6. **Aviso de horário sobreposto ao lançar** (pedido da coordenação, 09/10/2026): se
+   alguém da equipe já está em outro encontro que se sobrepõe no mesmo dia, uma janela
+   mostra quem e qual encontro, com "Revisar" ou "Lançar mesmo assim". É aviso, não
+   trava. Encostar não conta (sair às 12h e entrar às 12h); vale o horário parcial;
+   substituído, retirado, encontro cancelado e turma que não abriu ficam de fora. Por
+   enquanto só no "Lançar encontro"; alocar alguém num encontro já lançado não avisa.

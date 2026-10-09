@@ -552,3 +552,24 @@ export interface RegistroHistorico {
     /** Campos que mudaram, já com o valor antes e depois. */
     mudancas: { campo: string; antes: unknown; depois: unknown }[];
 }
+
+/** Encontro do mesmo dia que se sobrepõe ao que está sendo lançado (spec 014). */
+export interface ConflitoHorario {
+    bolsistaId: string;
+    bolsistaNome: string;
+    encontroId: string;
+    horario: string;
+    modalidade: string;
+    turmaNome: string | null;
+}
+
+/** Linha da consulta de sobreposição: o encontro e só as alocações das pessoas escolhidas. */
+export interface EncontroDoDiaRow {
+    id: string;
+    inicio: string | null;
+    fim: string | null;
+    horario: string;
+    modalidade: string;
+    turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
+    agenda_bolsista: { bolsista_id: string; situacao: SituacaoAlocacao; inicio: string | null; fim: string | null }[] | null;
+}

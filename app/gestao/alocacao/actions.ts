@@ -8,12 +8,13 @@ import {
   cadastrarEscola,
   cadastrarTurma,
   cancelarEncontro,
+  conflitosDeHorario,
   criarEncontro,
   definirSituacaoTurma,
   registrarAfastamento,
   substituirAlocacao,
 } from "@/lib/api/gestao/alocacao";
-import type { EstadoAcao } from "@/lib/api/gestao/types";
+import type { ConflitoHorario, EstadoAcao } from "@/lib/api/gestao/types";
 import {
   falha,
   mensagemDeErro,
@@ -94,6 +95,24 @@ export async function criarEncontroAction(_anterior: EstadoAcao | null, form: Fo
     () => criarEncontro(encontro.valor),
     `Encontro lançado${pessoas ? ` com ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"}` : ", ainda sem equipe"}.`,
   );
+}
+
+/**
+ * Antes de lançar: quem da equipe escolhida já está em outro encontro no mesmo
+ * horário. É aviso, não trava — a coordenação decide se revisa ou lança mesmo
+ * assim. Formulário incompleto devolve lista vazia; a validação de verdade é a
+ * do lançamento.
+ */
+export async function conflitosEncontroAction(form: FormData): Promise<ConflitoHorario[]> {
+  if (await exigirCoordenacao()) return [];
+  const encontro = validarEncontro(form);
+  if (!encontro.ok) return [];
+  const { data, inicio, fim, equipe } = encontro.valor;
+  try {
+    return await conflitosDeHorario(data, inicio, fim, equipe);
+  } catch {
+    return [];
+  }
 }
 
 export async function cancelarEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {

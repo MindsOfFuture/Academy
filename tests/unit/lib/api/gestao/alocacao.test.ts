@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { agruparCarga, diferencas, limitesDoMes } from "@/lib/api/gestao/alocacao";
+import { acharSobreposicoes, agruparCarga, diferencas, limitesDoMes } from "@/lib/api/gestao/alocacao";
 import { validarEncontro, validarMudancaAlocacao } from "@/lib/api/gestao/validacao";
 
 /**
@@ -41,6 +41,37 @@ describe("agruparCarga", () => {
     ]);
     // Linha que não conta (0 h) não aparece como turma.
     expect(carga[0].porTurma.map((t) => t.nome)).toEqual(["Lego", "IA"]);
+  });
+});
+
+describe("acharSobreposicoes", () => {
+  const nomes = new Map([["bia", "Bia"], ["caio", "Caio"], ["duda", "Duda"]]);
+  const encontro = (id: string, inicio: string, fim: string, alocacoes: object[], status = "em_andamento") => ({
+    id,
+    inicio: `${inicio}:00`,
+    fim: `${fim}:00`,
+    horario: `${inicio} às ${fim}`,
+    modalidade: "Lego",
+    turma: { nome: "Turma", status },
+    agenda_bolsista: alocacoes,
+  });
+  const a = (bolsista_id: string, extra: object = {}) => ({ bolsista_id, situacao: "prevista", inicio: null, fim: null, ...extra });
+
+  it("acha quem já está no horário; encostar, parcial fora, substituído e turma que não abriu não contam", () => {
+    const conflitos = acharSobreposicoes(
+      { inicio: "12:00", fim: "16:00" },
+      [
+        encontro("manha", "08:00", "12:00", [a("caio")]), // termina quando o novo começa
+        encontro("tarde", "13:00", "17:00", [
+          a("bia"),
+          a("duda", { inicio: "16:00:00", fim: "17:00:00" }), // parcial: chega quando o novo acaba
+          a("caio", { situacao: "substituida" }),
+        ]),
+        encontro("fechada", "12:00", "16:00", [a("caio")], "nao_abriu"),
+      ] as never,
+      nomes,
+    );
+    expect(conflitos.map((c) => [c.bolsistaNome, c.encontroId])).toEqual([["Bia", "tarde"]]);
   });
 });
 
