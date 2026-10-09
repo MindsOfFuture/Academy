@@ -26,6 +26,7 @@ import {
   criarEncontroAction,
   editarEscolaAction,
   editarTurmaAction,
+  removerAlocacaoAction,
   situacaoTurmaAction,
   substituirAction,
 } from "./actions";
@@ -269,6 +270,26 @@ export function FormCancelarEncontro({ encontroId }: { encontroId: string }) {
         Cancelar encontro
       </Button>
       <Aviso estado={estado} />
+    </form>
+  );
+}
+
+/** Tira a pessoa do encontro (decisão 9). Quem removeu e como estava ficam no histórico. */
+export function FormRemoverAlocacao({ alocacaoId, nome }: { alocacaoId: string; nome: string }) {
+  const [estado, acao, enviando] = useAcao(removerAlocacaoAction);
+  return (
+    <form
+      action={acao}
+      onSubmit={(e) => {
+        if (!window.confirm(`Remover ${nome} deste encontro? Fica registrado no histórico.`)) e.preventDefault();
+      }}
+      className="inline-flex flex-col items-start gap-1"
+    >
+      <input type="hidden" name="alocacaoId" value={alocacaoId} />
+      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+        Remover do encontro
+      </Button>
+      {estado && !estado.ok && <Aviso estado={estado} />}
     </form>
   );
 }

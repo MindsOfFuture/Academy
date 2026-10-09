@@ -14,6 +14,7 @@ import {
   editarEscola,
   editarTurma,
   registrarAfastamento,
+  removerAlocacao,
   substituirAlocacao,
 } from "@/lib/api/gestao/alocacao";
 import type { ConflitoHorario, EstadoAcao } from "@/lib/api/gestao/types";
@@ -165,6 +166,14 @@ export async function atualizarAlocacaoAction(_anterior: EstadoAcao | null, form
   if (!id) return falha("Alocação não informada.");
   if (!mudanca.ok) return falha(mudanca.mensagem);
   return executar(() => atualizarAlocacao(id, mudanca.valor), "Alocação atualizada.");
+}
+
+export async function removerAlocacaoAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "alocacaoId");
+  if (!id) return falha("Alocação não informada.");
+  return executar(() => removerAlocacao(id), "Pessoa removida do encontro.");
 }
 
 export async function substituirAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {

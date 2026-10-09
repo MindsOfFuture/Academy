@@ -4,7 +4,7 @@ import { historicoDoEncontro, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import type { Alocacao } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../../guard";
-import { FormAlocacao, FormAlocar, FormCancelarEncontro } from "../forms";
+import { FormAlocacao, FormAlocar, FormCancelarEncontro, FormRemoverAlocacao } from "../forms";
 import { SITUACAO, STATUS_TURMA, diaCurto } from "../rotulos";
 
 /** Um encontro (spec 014): equipe, o que aconteceu com cada um e o histórico. */
@@ -107,7 +107,10 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
         <ul className="divide-y rounded-lg border bg-white shadow-sm">
           {encontro.alocacoes.map((a) => (
             <li key={a.id} className="space-y-3 p-4">
-              <Resumo a={a} />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <Resumo a={a} />
+                {!cancelado && <FormRemoverAlocacao alocacaoId={a.id} nome={a.bolsistaNome} />}
+              </div>
               {!cancelado && (
                 <FormAlocacao
                   alocacao={a}
@@ -132,7 +135,13 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
             <li key={i} className="rounded-lg border bg-white p-3 text-sm">
               <p className="text-muted-foreground">
                 {dataHoraBr(h.ocorridoEm)} · {h.autorNome} ·{" "}
-                {h.acao === "insert" ? (h.tabela === "agenda" ? "lançou o encontro" : "alocou") : "alterou"}
+                {h.acao === "insert"
+                  ? h.tabela === "agenda"
+                    ? "lançou o encontro"
+                    : "alocou"
+                  : h.acao === "delete"
+                    ? "removeu do encontro"
+                    : "alterou"}
               </p>
               {h.acao === "update" && (
                 <ul className="mt-1">
@@ -145,6 +154,9 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
               )}
               {h.acao === "insert" && h.tabela === "agenda_bolsista" && (
                 <p>{valorLegivel(h.mudancas.find((m) => m.campo === "bolsista_id")?.depois)}</p>
+              )}
+              {h.acao === "delete" && (
+                <p>{valorLegivel(h.mudancas.find((m) => m.campo === "bolsista_id")?.antes)}</p>
               )}
             </li>
           ))}

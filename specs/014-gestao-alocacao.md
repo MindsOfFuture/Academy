@@ -155,3 +155,10 @@ caso que o WhatsApp acomoda.
    (`20261009_gestao_substituir_quem_ja_esta.sql`) fez o contrário por leitura errada
    do pedido; `20261009_gestao_substituto_de_fora.sql` a corrige. As duas aplicadas em
    produção, nessa ordem.
+9. **Remover alguém do encontro** (coordenação, 09/10/2026). "Remover do encontro" apaga
+   a alocação, com confirmação; a pessoa pode ser acrescentada de novo. O histórico do
+   encontro mostra "removeu do encontro", com quem e quando, porque a auditoria guarda a
+   linha inteira e o histórico passou a buscar pelo encontro, não pelas alocações de
+   hoje. Remover quem entrou como substituto desfaz a substituição: quem tinha saído
+   volta a "prevista". Encontro, turma e afastamento continuam sem apagar. Migration
+   `20261009_gestao_remover_do_encontro.sql`, aplicada em produção.

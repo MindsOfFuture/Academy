@@ -25,6 +25,7 @@ const COBERTO_SEM_FK = readFileSync("supabase/migrations/20261009_gestao_alocaca
 const SEM_ESCOLA = readFileSync("supabase/migrations/20261009_gestao_agenda_sem_escola.sql", "utf8");
 const SUBSTITUIR = readFileSync("supabase/migrations/20261009_gestao_substituir_quem_ja_esta.sql", "utf8");
 const SUBSTITUTO_DE_FORA = readFileSync("supabase/migrations/20261009_gestao_substituto_de_fora.sql", "utf8");
+const REMOVER = readFileSync("supabase/migrations/20261009_gestao_remover_do_encontro.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -139,12 +140,14 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(SEM_ESCOLA);
     await db.exec(SUBSTITUIR);
     await db.exec(SUBSTITUTO_DE_FORA);
+    await db.exec(REMOVER);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
     await db.exec(SEM_ESCOLA);
     await db.exec(SUBSTITUIR);
     await db.exec(SUBSTITUTO_DE_FORA);
+    await db.exec(REMOVER);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -304,6 +307,35 @@ describe("migration da alocação (spec 014)", () => {
     });
   });
 
+  it("remover do encontro: some da equipe, fica no histórico e desfaz a substituição de quem saiu", async () => {
+    await como(COORD, async () => {
+      const id = await encontro("2026-09-18", "08:00", "12:00", "Lego", [A(4), A(5)], null);
+      await db.query(`select gestao.substituir_alocacao($1, $2)`, [await alocacao(id, A(4)), A(6)]);
+      const substituto = await alocacao(id, A(6));
+
+      await db.exec(`delete from gestao.agenda_bolsista where id = '${substituto}'`);
+      expect(await linhas(`select 1 from gestao.agenda_bolsista where id = '${substituto}'`)).toHaveLength(0);
+      const volta = await um<{ situacao: string; coberto_por: string | null }>(
+        `select situacao, coberto_por from gestao.agenda_bolsista where agenda_id = '${id}' and bolsista_id = '${A(4)}'`,
+      );
+      expect(volta).toEqual({ situacao: "prevista", coberto_por: null });
+
+      // Removida, a pessoa pode ser acrescentada de novo.
+      await db.exec(`insert into gestao.agenda_bolsista (agenda_id, bolsista_id) values ('${id}', '${A(6)}')`);
+    });
+    expect(await horas(A(4), "2026-09-18", "2026-09-18")).toBe(4);
+    const { n } = await um<{ n: number }>(
+      `select count(*)::int as n from gestao.registro_auditoria where tabela = 'agenda_bolsista' and acao = 'delete' and antes->>'bolsista_id' = '${A(6)}'`,
+    );
+    expect(n).toBe(1);
+
+    // Bolsista não remove ninguém: a RLS esconde as linhas da remoção.
+    await como(B(1), async () => {
+      await db.exec(`delete from gestao.agenda_bolsista where bolsista_id = '${B(1)}'`);
+    });
+    expect((await um<{ n: number }>(`select count(*)::int as n from gestao.agenda_bolsista where bolsista_id = '${B(1)}'`)).n).toBeGreaterThan(0);
+  });
+
   it("turma que não abriu, encontro cancelado e encontro futuro não contam, e continuam visíveis", async () => {
     await como(COORD, async () => {
       const t = await turma("Não abriu", "Lego", ESCOLA2);
@@ -361,9 +393,9 @@ describe("migration da alocação (spec 014)", () => {
     });
   });
 
-  it("encerrar, nunca apagar: nem a coordenação apaga encontro, alocação ou turma", async () => {
+  it("encerrar, nunca apagar: nem a coordenação apaga encontro, turma ou afastamento", async () => {
     await como(COORD, async () => {
-      for (const tabela of ["agenda", "agenda_bolsista", "turma", "afastamento"]) {
+      for (const tabela of ["agenda", "turma", "afastamento"]) {
         await expect(db.exec(`delete from gestao.${tabela}`), tabela).rejects.toThrow(/permission denied/);
       }
     });

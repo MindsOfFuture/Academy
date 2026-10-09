@@ -364,6 +364,18 @@ export async function atualizarAlocacao(
   throwOnError(error);
 }
 
+/**
+ * Tira a pessoa do encontro (decisão 9 da spec 014). A auditoria guarda a linha
+ * inteira; se ela tinha entrado como substituta, o banco desfaz a substituição.
+ */
+export async function removerAlocacao(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("gestao").from("agenda_bolsista").delete().eq("id", id).select("id");
+  throwOnError(error);
+  // A RLS não dá erro quando esconde a linha: apaga zero e segue.
+  if (!data?.length) throw new Error("gestao: esta pessoa não está mais no encontro");
+}
+
 export async function substituirAlocacao(id: string, substitutoId: string, motivo: string | null): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
@@ -534,14 +546,19 @@ export function diferencas(
 /** Tudo o que aconteceu com o encontro e com cada alocação dele, mais recente primeiro. */
 export async function historicoDoEncontro(encontro: Encontro): Promise<RegistroHistorico[]> {
   const supabase = await createClient();
-  const ids = [encontro.id, ...encontro.alocacoes.map((a) => a.id)];
+  const id = encontro.id;
   const [{ data, error }, nomes] = await Promise.all([
     supabase
       .schema("gestao")
       .from("registro_auditoria")
       .select("tabela, acao, autor, ocorrido_em, antes, depois")
-      .in("tabela", ["agenda", "agenda_bolsista"])
-      .in("registro_id", ids)
+      // Alocação pelo encontro gravado na própria linha, e não pelos ids de
+      // hoje: quem foi removido (decisão 9) continua no histórico.
+      .or(
+        `and(tabela.eq.agenda,registro_id.eq.${id}),` +
+          `and(tabela.eq.agenda_bolsista,depois->>agenda_id.eq.${id}),` +
+          `and(tabela.eq.agenda_bolsista,antes->>agenda_id.eq.${id})`,
+      )
       .order("ocorrido_em", { ascending: false }),
     nomesDaEquipe(),
   ]);
