@@ -555,6 +555,65 @@ script `node` avulso não tem dependência garantida ali. Resolver com o script
 empacotado junto do release ou com dependências próprias, mas sem mudar este
 padrão.
 
+### 8.6 Lembrete de encontro: `academy-lembrete-encontros` (spec 016)
+
+De hora em hora, manda e-mail para quem está alocado num encontro que começa nas
+próximas 24 h, uma vez por alocação. É `sh` + `psql` + `curl`, sem `node`: o
+release standalone não carrega script avulso (8.5), e aqui não precisa. O banco
+escolhe os destinatários e monta o e-mail; o script envia e marca.
+
+Entra no banco com o papel **`gestao_lembrete`**, que só executa
+`gestao.lembretes_pendentes()` e `gestao.marcar_lembrete_enviado()` — nunca com a
+chave de serviço (ADR 021). Ativação, uma vez:
+
+1. Senha do papel (no SQL Editor do Supabase; a senha não vai para o repo):
+   `alter role gestao_lembrete login password '<gerada>';`
+2. Em `/etc/academy.env`, a conexão pelo pooler (modo sessão), com o usuário
+   `gestao_lembrete.<project-ref>`:
+   `GESTAO_LEMBRETE_DB_URL=postgresql://gestao_lembrete.jrfehrhiyilxhbuwjmat:<senha>@<host-do-pooler>:5432/postgres?sslmode=require`
+   (host em Supabase → Connect → Session pooler).
+3. `sudo apt-get install -y postgresql-client` (se `psql` não existir) e
+   `sudo install -o root -g root -m 755 scripts/academy-lembrete-encontros.sh /usr/local/bin/academy-lembrete-encontros`.
+4. Unidades:
+
+`/etc/systemd/system/academy-lembrete-encontros.service`:
+
+```ini
+[Unit]
+Description=Academy: lembrete de encontro (24 h antes)
+OnFailure=academy-job-falhou@%n.service
+
+[Service]
+Type=oneshot
+User=academy
+EnvironmentFile=/etc/academy.env
+TimeoutStartSec=5min
+ExecStart=/usr/local/bin/academy-lembrete-encontros
+```
+
+`/etc/systemd/system/academy-lembrete-encontros.timer`:
+
+```ini
+[Unit]
+Description=Academy: lembrete de encontro (de hora em hora)
+
+[Timer]
+OnCalendar=*-*-* *:05:00 America/Sao_Paulo
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now academy-lembrete-encontros.timer
+sudo systemctl start academy-lembrete-encontros.service && journalctl -u academy-lembrete-encontros -n 5
+```
+
+`RESEND_TEST_RECIPIENT` preenchido no `/etc/academy.env` redireciona também os
+lembretes, como no site.
+
 ---
 
 ## 9. O que NÃO existe de propósito

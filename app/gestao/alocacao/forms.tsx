@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import {
   concluirEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
+  definirGestorAction,
   editarEscolaAction,
   editarTurmaAction,
   removerAlocacaoAction,
@@ -275,30 +276,109 @@ export function FormCancelarEncontro({ encontroId }: { encontroId: string }) {
   );
 }
 
-/** Concluir ou reabrir (decisão 10). Concluído fica verde no calendário. */
-export function FormConcluirEncontro({ encontroId, concluido }: { encontroId: string; concluido: boolean }) {
+/**
+ * Concluir ou reabrir (decisão 10 da spec 014). Concluir abre a janela do
+ * relatório (spec 016), obrigatório; reabrir só confirma e mantém o relatório.
+ * Serve à coordenação e ao gestor do encontro — quem pode, o banco decide.
+ */
+export function FormConcluirEncontro({
+  encontroId,
+  concluido,
+  relatorio,
+}: {
+  encontroId: string;
+  concluido: boolean;
+  relatorio: string | null;
+}) {
   const [estado, acao, enviando] = useAcao(concluirEncontroAction);
-  return (
-    <form
-      action={acao}
-      onSubmit={(e) => {
-        const pergunta = concluido
-          ? "Reabrir este encontro? Ele volta a aparecer como não confirmado."
-          : "Concluir este encontro? Quem está como prevista passa a cumprida.";
-        if (!window.confirm(pergunta)) e.preventDefault();
-      }}
-      className="inline-flex flex-col items-start gap-1"
-    >
-      <input type="hidden" name="encontroId" value={encontroId} />
-      <input type="hidden" name="acao" value={concluido ? "reabrir" : "concluir"} />
-      <Button
-        type="submit"
-        size="sm"
-        variant={concluido ? "outline" : "default"}
-        disabled={enviando}
-        className={concluido ? undefined : "bg-green-700 text-white hover:bg-green-800"}
+  const janelaRef = useRef<HTMLDialogElement>(null);
+  // Controlado: o React limpa o formulário depois do envio, e um relatório
+  // recusado não pode sumir.
+  const [texto, setTexto] = useState(relatorio ?? "");
+
+  useEffect(() => {
+    if (estado?.ok) janelaRef.current?.close();
+  }, [estado]);
+
+  if (concluido) {
+    return (
+      <form
+        action={acao}
+        onSubmit={(e) => {
+          if (!window.confirm("Reabrir este encontro? Ele volta a aparecer como não confirmado.")) e.preventDefault();
+        }}
+        className="inline-flex flex-col items-start gap-1"
       >
-        {concluido ? "Reabrir encontro" : "Concluir encontro"}
+        <input type="hidden" name="encontroId" value={encontroId} />
+        <input type="hidden" name="acao" value="reabrir" />
+        <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+          Reabrir encontro
+        </Button>
+        {estado && !estado.ok && <Aviso estado={estado} />}
+      </form>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        size="sm"
+        className="bg-green-700 text-white hover:bg-green-800"
+        onClick={() => janelaRef.current?.showModal()}
+      >
+        Concluir encontro
+      </Button>
+      <dialog
+        ref={janelaRef}
+        aria-labelledby={`concluir-${encontroId}`}
+        className="w-[min(36rem,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-black/40"
+      >
+        <form action={acao} className="space-y-4 p-5">
+          <input type="hidden" name="encontroId" value={encontroId} />
+          <input type="hidden" name="acao" value="concluir" />
+          <h4 id={`concluir-${encontroId}`} className="text-lg font-semibold">
+            Concluir encontro
+          </h4>
+          <label className="block space-y-1">
+            <span className={rotuloCampo}>Relatório do encontro</span>
+            <textarea
+              name="relatorio"
+              required
+              minLength={10}
+              maxLength={5000}
+              rows={7}
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              placeholder="O que foi feito, como a turma respondeu, o que faltou, o que levar na próxima."
+              className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </label>
+          <p className="text-xs text-muted-foreground">Quem estiver como prevista passa a cumprida.</p>
+          {estado && !estado.ok && <Aviso estado={estado} />}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => janelaRef.current?.close()}>
+              Voltar
+            </Button>
+            <Button type="submit" disabled={enviando} className="bg-green-700 text-white hover:bg-green-800">
+              {enviando ? "Concluindo…" : "Concluir"}
+            </Button>
+          </div>
+        </form>
+      </dialog>
+    </>
+  );
+}
+
+/** Marca ou tira o gestor do encontro (spec 016): quem conclui junto com a coordenação. */
+export function FormGestor({ alocacaoId, gestor }: { alocacaoId: string; gestor: boolean }) {
+  const [estado, acao, enviando] = useAcao(definirGestorAction);
+  return (
+    <form action={acao} className="inline-flex flex-col items-start gap-1">
+      <input type="hidden" name="alocacaoId" value={alocacaoId} />
+      <input type="hidden" name="gestor" value={gestor ? "nao" : "sim"} />
+      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+        {gestor ? "Tirar gestor" : "Tornar gestor"}
       </Button>
       {estado && !estado.ok && <Aviso estado={estado} />}
     </form>

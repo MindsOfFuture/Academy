@@ -2,15 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { historicoDoEncontro, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
-import type { Alocacao } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../../guard";
 import {
   FormAlocacao,
   FormAlocar,
   FormCancelarEncontro,
   FormConcluirEncontro,
+  FormGestor,
   FormRemoverAlocacao,
 } from "../forms";
+import { Relatorio, Resumo, dataHoraBr, jaComecou } from "../resumo";
 import { SITUACAO, STATUS_TURMA, diaCurto } from "../rotulos";
 
 /** Um encontro (spec 014): equipe, o que aconteceu com cada um e o histórico. */
@@ -34,6 +35,9 @@ const CAMPO: Record<string, string> = {
   escola_id: "escola",
   cancelado_em: "cancelado em",
   motivo_cancelamento: "motivo do cancelamento",
+  concluido_em: "concluído em",
+  relatorio: "relatório",
+  gestor: "gestor",
 };
 
 function valorLegivel(v: unknown): string {
@@ -41,25 +45,6 @@ function valorLegivel(v: unknown): string {
   if (typeof v === "string" && v in SITUACAO) return SITUACAO[v as keyof typeof SITUACAO];
   if (typeof v === "string" && /^\d{2}:\d{2}:\d{2}$/.test(v)) return v.slice(0, 5);
   return String(v);
-}
-
-function dataHoraBr(iso: string): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(iso));
-}
-
-function Resumo({ a }: { a: Alocacao }) {
-  return (
-    <p className="text-sm">
-      <span className="font-medium">{a.bolsistaNome}</span> · {SITUACAO[a.situacao]}
-      {a.inicio && ` · das ${a.inicio} às ${a.fim}`}
-      {a.cobertoPorNome && (a.situacao === "substituida" ? ` · substituída por ${a.cobertoPorNome}` : ` · coberta por ${a.cobertoPorNome}`)}
-      {a.motivo && <span className="block text-muted-foreground">{a.motivo}</span>}
-    </p>
-  );
 }
 
 export default async function EncontroPage({ params }: { params: Promise<{ id: string }> }) {
@@ -76,13 +61,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
   // Quem já está no encontro não aparece para acrescentar nem para substituir.
   const foraDoEncontro = ativos.filter((p) => !jaAlocados.has(p.id));
   const cancelado = Boolean(encontro.canceladoEm);
-  // Concluir só depois da hora de início (decisão 10), no horário de Brasília. "2026-10-05 13:00".
-  const agora = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Sao_Paulo",
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date());
-  const comecou = `${encontro.data} ${encontro.inicio ?? "00:00"}` <= agora;
+  const comecou = jaComecou(encontro);
 
   return (
     <div className="space-y-6">
@@ -96,7 +75,11 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
             {diaCurto(encontro.data)} · {encontro.horario} · {encontro.modalidade}
           </h2>
           {!cancelado && (encontro.concluidoEm || comecou) && (
-            <FormConcluirEncontro encontroId={encontro.id} concluido={Boolean(encontro.concluidoEm)} />
+            <FormConcluirEncontro
+              encontroId={encontro.id}
+              concluido={Boolean(encontro.concluidoEm)}
+              relatorio={encontro.relatorio}
+            />
           )}
         </div>
         <p className="text-sm text-muted-foreground">
@@ -109,11 +92,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
             A turma está como “{STATUS_TURMA.nao_abriu}”: este encontro fica visível como previsto e não conta horas.
           </p>
         )}
-        {encontro.concluidoEm && (
-          <p className="rounded-md bg-green-50 p-2 text-sm text-green-900">
-            Concluído em {dataHoraBr(encontro.concluidoEm)}.
-          </p>
-        )}
+        <Relatorio encontro={encontro} />
         {cancelado ? (
           <p className="rounded-md bg-gray-100 p-2 text-sm">
             Cancelado em {dataHoraBr(encontro.canceladoEm!)}: {encontro.motivoCancelamento}. Não conta horas.
@@ -132,7 +111,12 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
             <li key={a.id} className="space-y-3 p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <Resumo a={a} />
-                {!cancelado && <FormRemoverAlocacao alocacaoId={a.id} nome={a.bolsistaNome} />}
+                {!cancelado && (
+                  <div className="flex flex-wrap gap-2">
+                    <FormGestor alocacaoId={a.id} gestor={a.gestor} />
+                    <FormRemoverAlocacao alocacaoId={a.id} nome={a.bolsistaNome} />
+                  </div>
+                )}
               </div>
               {!cancelado && (
                 <FormAlocacao

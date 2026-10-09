@@ -58,7 +58,7 @@ export function montarPendencias(entrada: {
       tipo: "aula_sem_registro",
       titulo: `Aula de ${formatarData(a.data)} sem registro`,
       detalhe: `${nomeEscola(a.escola)} · ${a.modalidade} · ${a.horario}`,
-      href: "/gestao",
+      href: `/gestao/encontro/${a.id}`,
       urgente: true,
     });
   }
@@ -85,7 +85,7 @@ export function montarPendencias(entrada: {
       tipo: "proxima_aula",
       titulo: `${a.data === hoje ? "Hoje" : formatarData(a.data)} · ${nomeEscola(a.escola)}`,
       detalhe: `${a.modalidade} · ${a.horario}`,
-      href: "/gestao",
+      href: `/gestao/encontro/${a.id}`,
     });
   }
 

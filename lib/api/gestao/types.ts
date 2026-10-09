@@ -436,6 +436,7 @@ export interface AlocacaoRow {
     coberto_por: string | null;
     motivo: string | null;
     carga: string;
+    gestor: boolean;
 }
 
 export interface Alocacao {
@@ -450,6 +451,8 @@ export interface Alocacao {
     cobertoPorNome: string | null;
     motivo: string | null;
     carga: string;
+    /** Pode concluir o encontro (spec 016). */
+    gestor: boolean;
 }
 
 export interface EncontroRow {
@@ -465,6 +468,7 @@ export interface EncontroRow {
     cancelado_em: string | null;
     motivo_cancelamento: string | null;
     concluido_em: string | null;
+    relatorio: string | null;
     escola: { nome: string } | { nome: string }[] | null;
     turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
     agenda_bolsista: AlocacaoRow[] | null;
@@ -488,6 +492,8 @@ export interface Encontro {
     motivoCancelamento: string | null;
     /** Confirmado que aconteceu (decisão 10 da spec 014); verde no calendário. */
     concluidoEm: string | null;
+    /** Escrito por quem concluiu (spec 016). */
+    relatorio: string | null;
     alocacoes: Alocacao[];
 }
 

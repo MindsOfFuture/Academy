@@ -36,9 +36,9 @@ import type {
  */
 
 const SELECT_ENCONTRO =
-  "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, " +
+  "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, relatorio, " +
   "escola(nome), turma(nome, status), " +
-  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga)";
+  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, gestor)";
 
 function throwOnError(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
@@ -54,8 +54,12 @@ function hhmm(valor: string | null): string | null {
   return valor ? valor.slice(0, 5) : null;
 }
 
+/** Nomes da equipe para qualquer membro: o bolsista também abre a página do encontro (spec 016). */
 async function nomesDaEquipe(): Promise<Map<string, string>> {
-  return new Map((await listarEquipe()).map((m) => [m.userProfileId, m.nome]));
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("gestao").rpc("nomes_da_equipe");
+  throwOnError(error);
+  return new Map(((data ?? []) as { user_profile_id: string; nome: string }[]).map((m) => [m.user_profile_id, m.nome]));
 }
 
 /** Primeiro e último dia de "AAAA-MM". */
@@ -91,6 +95,7 @@ function mapAlocacao(row: AlocacaoRow, nomes: Map<string, string>): Alocacao {
     cobertoPorNome: row.coberto_por ? (nomes.get(row.coberto_por) ?? "Pessoa fora da equipe") : null,
     motivo: row.motivo,
     carga: row.carga,
+    gestor: row.gestor,
   };
 }
 
@@ -112,6 +117,7 @@ export function mapEncontro(row: EncontroRow, nomes: Map<string, string>): Encon
     canceladoEm: row.cancelado_em,
     motivoCancelamento: row.motivo_cancelamento,
     concluidoEm: row.concluido_em,
+    relatorio: row.relatorio,
     alocacoes: (row.agenda_bolsista ?? [])
       .map((a) => mapAlocacao(a, nomes))
       .sort((a, b) => a.bolsistaNome.localeCompare(b.bolsistaNome)),
@@ -337,16 +343,22 @@ export async function cancelarEncontro(id: string, motivo: string): Promise<void
 }
 
 /**
- * Concluir confirma que o encontro aconteceu; o banco carimba a hora e passa
- * quem estava "prevista" para "cumprida". Reabrir tira o carimbo.
+ * Concluir confirma que o encontro aconteceu e grava o relatório; o banco
+ * carimba a hora, passa quem estava "prevista" para "cumprida" e confere que
+ * quem pede é da coordenação ou gestor do encontro (spec 016). Reabrir tira o
+ * carimbo e mantém o relatório.
  */
-export async function concluirEncontro(id: string, concluir: boolean): Promise<void> {
+export async function concluirEncontro(id: string, concluir: boolean, relatorio: string | null): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
     .schema("gestao")
-    .from("agenda")
-    .update({ concluido_em: concluir ? new Date().toISOString() : null })
-    .eq("id", id);
+    .rpc("concluir_encontro", { p_agenda: id, p_relatorio: relatorio, p_concluir: concluir });
+  throwOnError(error);
+}
+
+export async function definirGestor(alocacaoId: string, gestor: boolean): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("gestao").from("agenda_bolsista").update({ gestor }).eq("id", alocacaoId);
   throwOnError(error);
 }
 
@@ -383,20 +395,42 @@ export async function atualizarAlocacao(
  * Tira a pessoa do encontro (decisão 9 da spec 014). A auditoria guarda a linha
  * inteira; se ela tinha entrado como substituta, o banco desfaz a substituição.
  */
-export async function removerAlocacao(id: string): Promise<void> {
+/** Devolve quem saiu e de qual encontro, para o aviso por e-mail. */
+export async function removerAlocacao(id: string): Promise<{ encontroId: string; bolsistaId: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.schema("gestao").from("agenda_bolsista").delete().eq("id", id).select("id");
+  const { data, error } = await supabase
+    .schema("gestao")
+    .from("agenda_bolsista")
+    .delete()
+    .eq("id", id)
+    .select("agenda_id, bolsista_id");
   throwOnError(error);
   // A RLS não dá erro quando esconde a linha: apaga zero e segue.
-  if (!data?.length) throw new Error("gestao: esta pessoa não está mais no encontro");
+  const linha = (data ?? [])[0] as { agenda_id: string; bolsista_id: string } | undefined;
+  if (!linha) throw new Error("gestao: esta pessoa não está mais no encontro");
+  return { encontroId: linha.agenda_id, bolsistaId: linha.bolsista_id };
 }
 
-export async function substituirAlocacao(id: string, substitutoId: string, motivo: string | null): Promise<void> {
+/** Devolve quem saiu e de qual encontro, para o aviso por e-mail. */
+export async function substituirAlocacao(
+  id: string,
+  substitutoId: string,
+  motivo: string | null,
+): Promise<{ encontroId: string; saiuId: string }> {
   const supabase = await createClient();
+  const { data: antes, error: erroLeitura } = await supabase
+    .schema("gestao")
+    .from("agenda_bolsista")
+    .select("agenda_id, bolsista_id")
+    .eq("id", id)
+    .maybeSingle();
+  throwOnError(erroLeitura);
   const { error } = await supabase
     .schema("gestao")
     .rpc("substituir_alocacao", { p_alocacao: id, p_substituto: substitutoId, p_motivo: motivo });
   throwOnError(error);
+  const linha = antes as { agenda_id: string; bolsista_id: string };
+  return { encontroId: linha.agenda_id, saiuId: linha.bolsista_id };
 }
 
 // ---------------------------------------------------------------------------

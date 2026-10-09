@@ -29,6 +29,7 @@ const REMOVER = readFileSync("supabase/migrations/20261009_gestao_remover_do_enc
 const CONCLUIR = readFileSync("supabase/migrations/20261009_gestao_concluir_encontro.sql", "utf8");
 const CONCLUIR_INICIO = readFileSync("supabase/migrations/20261009_gestao_concluir_depois_do_inicio.sql", "utf8");
 const HORAS_COBRIU = readFileSync("supabase/migrations/20261009_gestao_horas_de_quem_cobriu.sql", "utf8");
+const GESTOR = readFileSync("supabase/migrations/20261009_gestao_gestor_lembrete.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -147,6 +148,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(CONCLUIR);
     await db.exec(CONCLUIR_INICIO);
     await db.exec(HORAS_COBRIU);
+    await db.exec(GESTOR);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
@@ -157,6 +159,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(CONCLUIR);
     await db.exec(CONCLUIR_INICIO);
     await db.exec(HORAS_COBRIU);
+    await db.exec(GESTOR);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -295,6 +298,82 @@ describe("migration da alocação (spec 014)", () => {
     expect(await horas(A(7), "2026-09-27", "2026-09-27")).toBe(2.5);
   });
 
+  it("gestor conclui o próprio encontro com relatório; alocado sem ser gestor não conclui", async () => {
+    const id = await como(COORD, async () => {
+      const t = await turma("Turma do gestor", "Lego");
+      const e = await encontro("2026-09-29", "08:00", "12:00", "Lego", [B(5), B(6)], t);
+      await db.exec(`update gestao.agenda_bolsista set gestor = true where agenda_id = '${e}' and bolsista_id = '${B(5)}'`);
+      return e;
+    });
+
+    await como(B(6), async () => {
+      await expect(db.query(`select gestao.concluir_encontro($1, 'Relatório da Bia sem ser gestora.')`, [id])).rejects.toThrow(
+        /gestores do encontro/,
+      );
+      // Bolsista alocado lê a turma e os nomes da equipe para a página do encontro.
+      expect(await linhas(`select nome from gestao.turma where nome = 'Turma do gestor'`)).toHaveLength(1);
+      expect((await linhas(`select * from gestao.nomes_da_equipe()`)).length).toBeGreaterThan(1);
+    });
+
+    await como(B(5), async () => {
+      await expect(db.query(`select gestao.concluir_encontro($1, 'curto')`, [id])).rejects.toThrow(/relatório/);
+      await db.query(`select gestao.concluir_encontro($1, 'Correu bem; faltou material de Lego.')`, [id]);
+    });
+
+    const feito = await um<{ concluido: boolean; relatorio: string }>(
+      `select concluido_em is not null as concluido, relatorio from gestao.agenda where id = '${id}'`,
+    );
+    expect(feito).toEqual({ concluido: true, relatorio: "Correu bem; faltou material de Lego." });
+    const { autor } = await um<{ autor: string }>(
+      `select autor from gestao.registro_auditoria where tabela = 'agenda' and registro_id = '${id}' order by id desc limit 1`,
+    );
+    expect(autor).toBe(B(5));
+  });
+
+  it("lembrete: só o papel do lembrete lê, só nas 24 h antes, uma vez por alocação", async () => {
+    // Encontro que começa daqui a 2 h e outro daqui a 30 h, no horário de Brasília.
+    const [perto, longe] = await linhas<{ data: string; inicio: string }>(
+      `select to_char(t, 'YYYY-MM-DD') as data, to_char(t, 'HH24:MI') as inicio
+       from (select (now() at time zone 'America/Sao_Paulo') + d as t
+             from unnest(array[interval '2 hours', interval '30 hours']) d) x`,
+    );
+    if (perto.inicio >= "23:00" || longe.inicio >= "23:00") return; // fim cruzaria a meia-noite
+    const fim = (h: string) => `${String(Number(h.slice(0, 2)) + 1).padStart(2, "0")}${h.slice(2)}`;
+    const [idPerto, idLonge] = await como(COORD, async () => [
+      await encontro(perto.data, perto.inicio, fim(perto.inicio), "Lembrete perto", [B(7)], null),
+      await encontro(longe.data, longe.inicio, fim(longe.inicio), "Lembrete longe", [B(7)], null),
+    ]);
+
+    await como(COORD, async () => {
+      await expect(db.query(`select * from gestao.lembretes_pendentes('a@b', 'https://x')`)).rejects.toThrow(/permission denied/);
+    });
+
+    const pendentes = async () => {
+      await db.exec(`set role gestao_lembrete`);
+      try {
+        return (
+          await db.query<{ alocacao_id: string; email: { to: string[]; subject: string; text: string } }>(
+            `select * from gestao.lembretes_pendentes('Academy <a@b>', 'https://academy.test/', '')`,
+          )
+        ).rows;
+      } finally {
+        await db.exec(`reset role`);
+      }
+    };
+
+    const primeira = await pendentes();
+    expect(primeira).toHaveLength(1);
+    expect(primeira[0].email.to).toEqual(["p14@ufjf.br"]); // B(7) é a 15ª pessoa do cadastro
+    expect(primeira[0].email.subject).toContain("Lembrete perto");
+    expect(primeira[0].email.text).toContain(`https://academy.test/gestao/encontro/${idPerto}`);
+    expect(primeira[0].email.text).not.toContain(idLonge);
+
+    await db.exec(`set role gestao_lembrete`);
+    await db.query(`select gestao.marcar_lembrete_enviado($1)`, [primeira[0].alocacao_id]);
+    await db.exec(`reset role`);
+    expect(await pendentes()).toHaveLength(0);
+  });
+
   it("encontro sem fim e parcial fora do horário são recusados", async () => {
     await como(COORD, async () => {
       await expect(
@@ -383,7 +462,12 @@ describe("migration da alocação (spec 014)", () => {
       const id = await encontro("2026-09-19", "08:00", "12:00", "Lego", [A(7), A(8)], null);
       await db.exec(`update gestao.agenda_bolsista set situacao = 'faltou_avisou' where id = '${await alocacao(id, A(8))}'`);
 
-      await db.exec(`update gestao.agenda set concluido_em = '2000-01-01' where id = '${id}'`);
+      await expect(db.exec(`update gestao.agenda set concluido_em = now() where id = '${id}'`)).rejects.toThrow(
+        /relatório/,
+      );
+      await db.exec(
+        `update gestao.agenda set concluido_em = '2000-01-01', relatorio = 'Aula tranquila, 20 alunos.' where id = '${id}'`,
+      );
       const { concluido } = await um<{ concluido: boolean }>(
         `select concluido_em > '2020-01-01' as concluido from gestao.agenda where id = '${id}'`,
       );

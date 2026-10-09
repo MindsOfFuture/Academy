@@ -11,6 +11,7 @@ import {
   concluirEncontro,
   conflitosDeHorario,
   criarEncontro,
+  definirGestor,
   definirSituacaoTurma,
   editarEscola,
   editarTurma,
@@ -18,6 +19,7 @@ import {
   removerAlocacao,
   substituirAlocacao,
 } from "@/lib/api/gestao/alocacao";
+import { avisar } from "@/lib/api/gestao/avisos";
 import type { ConflitoHorario, EstadoAcao } from "@/lib/api/gestao/types";
 import {
   falha,
@@ -36,7 +38,6 @@ import {
  * confere o papel antes de tocar no banco, e a RLS confere de novo.
  */
 
-const CAMINHO = "/gestao/alocacao";
 
 async function exigirCoordenacao(): Promise<EstadoAcao | null> {
   try {
@@ -56,7 +57,8 @@ function campo(form: FormData, nome: string): string {
 async function executar(escrita: () => Promise<unknown>, mensagem: string): Promise<EstadoAcao> {
   try {
     await escrita();
-    revalidatePath(CAMINHO, "layout");
+    // "/gestao" inteiro: a página do encontro do bolsista e a tela "Hoje" também mudam.
+    revalidatePath("/gestao", "layout");
     return sucesso(mensagem);
   } catch (error) {
     return falha(mensagemDeErro(error));
@@ -117,7 +119,7 @@ export async function criarEncontroAction(_anterior: EstadoAcao | null, form: Fo
   if (!encontro.ok) return falha(encontro.mensagem);
   const pessoas = encontro.valor.equipe.length;
   return executar(
-    () => criarEncontro(encontro.valor),
+    async () => avisar("alocado", await criarEncontro(encontro.valor), encontro.valor.equipe),
     `Encontro lançado${pessoas ? ` com ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"}` : ", ainda sem equipe"}.`,
   );
 }
@@ -147,17 +149,32 @@ export async function cancelarEncontroAction(_anterior: EstadoAcao | null, form:
   const motivo = campo(form, "motivo");
   if (!id) return falha("Encontro não informado.");
   if (motivo.length < 3) return falha("Cancelar um encontro exige o motivo.");
-  return executar(() => cancelarEncontro(id, motivo), "Encontro cancelado. Ele continua no histórico.");
+  return executar(async () => {
+    await cancelarEncontro(id, motivo);
+    await avisar("cancelado", id, "equipe");
+  }, "Encontro cancelado. Ele continua no histórico.");
 }
 
+/**
+ * Concluir ou reabrir (spec 016): coordenação ou gestor do encontro. Aqui só se
+ * exige ser da equipe; quem pode de fato é o banco que decide, em
+ * `gestao.concluir_encontro()`.
+ */
 export async function concluirEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
-  const negado = await exigirCoordenacao();
-  if (negado) return negado;
+  try {
+    await ensureGestaoMember();
+  } catch (error) {
+    return falha(error instanceof Error ? error.message : "Acesso negado.");
+  }
   const id = campo(form, "encontroId");
   const concluir = campo(form, "acao") !== "reabrir";
+  const relatorio = campo(form, "relatorio");
   if (!id) return falha("Encontro não informado.");
+  if (concluir && (relatorio.length < 10 || relatorio.length > 5000)) {
+    return falha("Escreva o relatório do encontro (de 10 a 5000 caracteres).");
+  }
   return executar(
-    () => concluirEncontro(id, concluir),
+    () => concluirEncontro(id, concluir, concluir ? relatorio : null),
     concluir ? "Encontro concluído. Quem estava prevista ficou como cumprida." : "Encontro reaberto.",
   );
 }
@@ -168,7 +185,10 @@ export async function alocarAction(_anterior: EstadoAcao | null, form: FormData)
   const id = campo(form, "encontroId");
   const bolsista = campo(form, "bolsistaId");
   if (!id || !bolsista) return falha("Escolha quem entra no encontro.");
-  return executar(() => alocar(id, [bolsista]), "Pessoa alocada.");
+  return executar(async () => {
+    await alocar(id, [bolsista]);
+    await avisar("alocado", id, [bolsista]);
+  }, "Pessoa alocada.");
 }
 
 export async function atualizarAlocacaoAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
@@ -186,7 +206,19 @@ export async function removerAlocacaoAction(_anterior: EstadoAcao | null, form: 
   if (negado) return negado;
   const id = campo(form, "alocacaoId");
   if (!id) return falha("Alocação não informada.");
-  return executar(() => removerAlocacao(id), "Pessoa removida do encontro.");
+  return executar(async () => {
+    const saiu = await removerAlocacao(id);
+    await avisar("removido", saiu.encontroId, [saiu.bolsistaId]);
+  }, "Pessoa removida do encontro.");
+}
+
+export async function definirGestorAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "alocacaoId");
+  const gestor = campo(form, "gestor") === "sim";
+  if (!id) return falha("Alocação não informada.");
+  return executar(() => definirGestor(id, gestor), gestor ? "Agora é gestor do encontro." : "Deixou de ser gestor.");
 }
 
 export async function substituirAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
@@ -196,7 +228,10 @@ export async function substituirAction(_anterior: EstadoAcao | null, form: FormD
   const substituto = campo(form, "substitutoId");
   const motivo = campo(form, "motivo");
   if (!id || !substituto) return falha("Escolha quem substitui.");
-  return executar(() => substituirAlocacao(id, substituto, motivo || null), "Substituição registrada.");
+  return executar(async () => {
+    const { encontroId, saiuId } = await substituirAlocacao(id, substituto, motivo || null);
+    await Promise.all([avisar("substituido", encontroId, [saiuId]), avisar("alocado", encontroId, [substituto])]);
+  }, "Substituição registrada.");
 }
 
 export async function afastamentoAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
