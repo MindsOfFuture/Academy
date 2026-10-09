@@ -162,9 +162,9 @@ caso que o WhatsApp acomoda.
    hoje. Remover quem entrou como substituto desfaz a substituição: quem tinha saído
    volta a "prevista". Encontro, turma e afastamento continuam sem apagar. Migration
    `20261009_gestao_remover_do_encontro.sql`, aplicada em produção.
-10. **Concluir encontro** (coordenação, 09/10/2026). "Concluir encontro" confirma que ele
+10. **Concluir encontro** (coordenação, 09/10/2026). "Concluir encontro", à direita do título do encontro, confirma que ele
     aconteceu: quem está "prevista" passa a "cumprida" (falta, substituição e retirada
     ficam), o encontro fica verde no calendário e sai da pendência "Aula sem registro"
-    da tela "Hoje". Só encontro de hoje ou passado, nunca cancelado; concluído não se
+    da tela "Hoje". Só depois da hora de início (horário de Brasília), nunca cancelado; concluído não se
     cancela sem "Reabrir encontro" antes. Migration
-    `20261009_gestao_concluir_encontro.sql`, aplicada em produção.
+    `20261009_gestao_concluir_encontro.sql` + `20261009_gestao_concluir_depois_do_inicio.sql`, aplicadas em produção.

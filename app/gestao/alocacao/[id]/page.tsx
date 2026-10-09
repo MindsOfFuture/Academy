@@ -76,7 +76,13 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
   // Quem já está no encontro não aparece para acrescentar nem para substituir.
   const foraDoEncontro = ativos.filter((p) => !jaAlocados.has(p.id));
   const cancelado = Boolean(encontro.canceladoEm);
-  const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+  // Concluir só depois da hora de início (decisão 10), no horário de Brasília. "2026-10-05 13:00".
+  const agora = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date());
+  const comecou = `${encontro.data} ${encontro.inicio ?? "00:00"}` <= agora;
 
   return (
     <div className="space-y-6">
@@ -85,9 +91,14 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
       </Link>
 
       <section className="space-y-2 rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold">
-          {diaCurto(encontro.data)} · {encontro.horario} · {encontro.modalidade}
-        </h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <h2 className="text-xl font-semibold">
+            {diaCurto(encontro.data)} · {encontro.horario} · {encontro.modalidade}
+          </h2>
+          {!cancelado && (encontro.concluidoEm || comecou) && (
+            <FormConcluirEncontro encontroId={encontro.id} concluido={Boolean(encontro.concluidoEm)} />
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
           {encontro.turmaNome ?? "Sem turma"}
           {` · ${encontro.escolaNome ?? "Fora de escola"}`}
@@ -102,9 +113,6 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
           <p className="rounded-md bg-green-50 p-2 text-sm text-green-900">
             Concluído em {dataHoraBr(encontro.concluidoEm)}.
           </p>
-        )}
-        {!cancelado && (encontro.concluidoEm || encontro.data <= hoje) && (
-          <FormConcluirEncontro encontroId={encontro.id} concluido={Boolean(encontro.concluidoEm)} />
         )}
         {cancelado ? (
           <p className="rounded-md bg-gray-100 p-2 text-sm">

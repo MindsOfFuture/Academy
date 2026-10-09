@@ -27,6 +27,7 @@ const SUBSTITUIR = readFileSync("supabase/migrations/20261009_gestao_substituir_
 const SUBSTITUTO_DE_FORA = readFileSync("supabase/migrations/20261009_gestao_substituto_de_fora.sql", "utf8");
 const REMOVER = readFileSync("supabase/migrations/20261009_gestao_remover_do_encontro.sql", "utf8");
 const CONCLUIR = readFileSync("supabase/migrations/20261009_gestao_concluir_encontro.sql", "utf8");
+const CONCLUIR_INICIO = readFileSync("supabase/migrations/20261009_gestao_concluir_depois_do_inicio.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -143,6 +144,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(SUBSTITUTO_DE_FORA);
     await db.exec(REMOVER);
     await db.exec(CONCLUIR);
+    await db.exec(CONCLUIR_INICIO);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
@@ -151,6 +153,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(SUBSTITUTO_DE_FORA);
     await db.exec(REMOVER);
     await db.exec(CONCLUIR);
+    await db.exec(CONCLUIR_INICIO);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -361,8 +364,20 @@ describe("migration da alocação (spec 014)", () => {
 
       const futuro = await encontro("2999-02-01", "08:00", "12:00", "Lego", [], null);
       await expect(db.exec(`update gestao.agenda set concluido_em = now() where id = '${futuro}'`)).rejects.toThrow(
-        /já aconteceu/,
+        /hora de início/,
       );
+
+      // Hoje, mas começa daqui a duas horas (horário de Brasília): ainda não conclui.
+      const { data, inicio } = await um<{ data: string; inicio: string }>(
+        `select to_char(t, 'YYYY-MM-DD') as data, to_char(t, 'HH24:MI') as inicio
+         from (select (now() at time zone 'America/Sao_Paulo') + interval '2 hours' as t) x`,
+      );
+      if (inicio < "23:59") {
+        const daqui = await encontro(data, inicio, "23:59", "Lego", [], null);
+        await expect(db.exec(`update gestao.agenda set concluido_em = now() where id = '${daqui}'`)).rejects.toThrow(
+          /hora de início/,
+        );
+      }
       const cancelado = await encontro("2026-09-20", "08:00", "12:00", "Lego", [], null);
       await db.exec(`update gestao.agenda set cancelado_em = now(), motivo_cancelamento = 'chuva' where id = '${cancelado}'`);
       await expect(db.exec(`update gestao.agenda set concluido_em = now() where id = '${cancelado}'`)).rejects.toThrow(
