@@ -148,3 +148,7 @@ caso que o WhatsApp acomoda.
    turma fora de uso é encerrada ou marcada como "não abriu". Na turma editam-se nome,
    atividade e período; a escola não muda, porque os encontros já lançados guardam a
    escola da turma. Na escola, nome, rede e cidade.
+8. **Substituir por quem já está no encontro** (relato da coordenação, 09/10/2026): vale.
+   Quem sai fica "substituída" apontando quem cobriu; quem cobre mantém a alocação que
+   já tem, sem horas em dobro, e volta a valer se tinha sido retirado ou substituído.
+   Migration `20261009_gestao_substituir_quem_ja_esta.sql`, aplicada em produção.
