@@ -4,7 +4,15 @@ import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Alocacao, ConflitoHorario, EstadoAcao, SituacaoAlocacao, StatusTurma, Turma } from "@/lib/api/gestao/types";
+import type {
+  Alocacao,
+  ConflitoHorario,
+  EscolaSummary,
+  EstadoAcao,
+  SituacaoAlocacao,
+  StatusTurma,
+  Turma,
+} from "@/lib/api/gestao/types";
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
 import { SITUACAO, STATUS_TURMA } from "./rotulos";
 import {
@@ -16,6 +24,8 @@ import {
   cancelarEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
+  editarEscolaAction,
+  editarTurmaAction,
   situacaoTurmaAction,
   substituirAction,
 } from "./actions";
@@ -368,19 +378,24 @@ export function FormAlocacao({
 // Escola e turma
 // ---------------------------------------------------------------------------
 
-export function FormEscola() {
-  const [estado, acao, enviando] = useAcao(cadastrarEscolaAction);
+/** Cadastra; com `escola`, edita. Nada se apaga: cadastro errado se corrige aqui. */
+export function FormEscola({ escola }: { escola?: EscolaSummary }) {
+  const [estado, acao, enviando] = useAcao(escola ? editarEscolaAction : cadastrarEscolaAction);
   return (
-    <form action={acao} className={caixa}>
-      <h3 className="font-semibold">Cadastrar escola</h3>
+    <form action={acao} className={escola ? "space-y-3" : caixa}>
+      {escola ? (
+        <input type="hidden" name="escolaId" value={escola.id} />
+      ) : (
+        <h3 className="font-semibold">Cadastrar escola</h3>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="space-y-1 sm:col-span-3">
           <span className={rotuloCampo}>Nome</span>
-          <Input name="nome" required minLength={2} />
+          <Input name="nome" required minLength={2} defaultValue={escola?.nome} />
         </label>
         <label className="space-y-1">
           <span className={rotuloCampo}>Rede</span>
-          <select name="categoria" defaultValue="estadual" className={campoSelect}>
+          <select name="categoria" defaultValue={escola?.categoria ?? "estadual"} className={campoSelect}>
             <option value="estadual">Estadual</option>
             <option value="municipal">Municipal</option>
             <option value="federal">Federal</option>
@@ -389,11 +404,11 @@ export function FormEscola() {
         </label>
         <label className="space-y-1">
           <span className={rotuloCampo}>Cidade</span>
-          <Input name="cidade" required defaultValue="Juiz de Fora" />
+          <Input name="cidade" required defaultValue={escola?.cidade ?? "Juiz de Fora"} />
         </label>
         <div className="flex items-end">
           <Button type="submit" disabled={enviando} className="w-full">
-            Salvar escola
+            {escola ? "Salvar alterações" : "Salvar escola"}
           </Button>
         </div>
       </div>
@@ -402,36 +417,47 @@ export function FormEscola() {
   );
 }
 
-export function FormTurma({ escolas }: { escolas: Opcao[] }) {
-  const [estado, acao, enviando] = useAcao(cadastrarTurmaAction);
-  if (escolas.length === 0) return null;
+/**
+ * Cadastra; com `turma`, edita nome, atividade e período. A escola de uma turma
+ * não muda: os encontros já lançados guardam a escola dela.
+ */
+export function FormTurma({ escolas, turma }: { escolas: Opcao[]; turma?: Turma }) {
+  const [estado, acao, enviando] = useAcao(turma ? editarTurmaAction : cadastrarTurmaAction);
+  if (!turma && escolas.length === 0) return null;
   return (
-    <form action={acao} className={caixa}>
-      <h3 className="font-semibold">Cadastrar turma</h3>
+    <form action={acao} className={turma ? "space-y-3" : caixa}>
+      {!turma && <h3 className="font-semibold">Cadastrar turma</h3>}
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1">
-          <span className={rotuloCampo}>Escola</span>
-          <Escolha name="escolaId" opcoes={escolas} vazio="Escolha…" required />
-        </label>
+        {turma ? (
+          <>
+            <input type="hidden" name="turmaId" value={turma.id} />
+            <input type="hidden" name="escolaId" value={turma.escolaId} />
+          </>
+        ) : (
+          <label className="space-y-1">
+            <span className={rotuloCampo}>Escola</span>
+            <Escolha name="escolaId" opcoes={escolas} vazio="Escolha…" required />
+          </label>
+        )}
         <label className="space-y-1">
           <span className={rotuloCampo}>Atividade</span>
-          <Input name="modalidade" required placeholder="Lego, IA, Educação Financeira…" />
+          <Input name="modalidade" required defaultValue={turma?.modalidade} placeholder="Lego, IA, Educação Financeira…" />
         </label>
         <label className="space-y-1 sm:col-span-2">
           <span className={rotuloCampo}>Nome da turma</span>
-          <Input name="nome" required maxLength={120} placeholder="Lego de segunda à tarde" />
+          <Input name="nome" required maxLength={120} defaultValue={turma?.nome} placeholder="Lego de segunda à tarde" />
         </label>
         <label className="space-y-1">
           <span className={rotuloCampo}>Início</span>
-          <Input name="inicio" type="date" required />
+          <Input name="inicio" type="date" required defaultValue={turma?.inicio} />
         </label>
         <label className="space-y-1">
           <span className={rotuloCampo}>Fim previsto (opcional)</span>
-          <Input name="fim" type="date" />
+          <Input name="fim" type="date" defaultValue={turma?.fim ?? ""} />
         </label>
       </div>
       <Button type="submit" disabled={enviando}>
-        Salvar turma
+        {turma ? "Salvar alterações" : "Salvar turma"}
       </Button>
       <Aviso estado={estado} />
     </form>

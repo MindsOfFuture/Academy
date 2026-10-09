@@ -143,3 +143,8 @@ caso que o WhatsApp acomoda.
    trava. Encostar não conta (sair às 12h e entrar às 12h); vale o horário parcial;
    substituído, retirado, encontro cancelado e turma que não abriu ficam de fora. Por
    enquanto só no "Lançar encontro"; alocar alguém num encontro já lançado não avisa.
+7. **Turma e escola se editam, não se apagam** (coordenação, 09/10/2026). Apagar foi
+   pedido e desistido no mesmo dia, em favor de editar: cadastro errado se corrige, e
+   turma fora de uso é encerrada ou marcada como "não abriu". Na turma editam-se nome,
+   atividade e período; a escola não muda, porque os encontros já lançados guardam a
+   escola da turma. Na escola, nome, rede e cidade.

@@ -127,6 +127,13 @@ export async function cadastrarEscola(escola: NovaEscola): Promise<void> {
   throwOnError(error);
 }
 
+/** Correção de cadastro; o histórico guarda o que era. */
+export async function editarEscola(id: string, escola: NovaEscola): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("gestao").from("escola").update(escola).eq("id", id);
+  throwOnError(error);
+}
+
 export async function listarTurmas(): Promise<Turma[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -147,6 +154,20 @@ export async function cadastrarTurma(turma: NovaTurma): Promise<void> {
     inicio: turma.inicio,
     fim: turma.fim,
   });
+  throwOnError(error);
+}
+
+/**
+ * Edita nome, atividade e período. A escola não muda: os encontros já lançados
+ * guardam a escola da turma, e trocá-la aqui deixaria os dois desencontrados.
+ */
+export async function editarTurma(id: string, turma: Omit<NovaTurma, "escolaId">): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .schema("gestao")
+    .from("turma")
+    .update({ nome: turma.nome, modalidade: turma.modalidade, inicio: turma.inicio, fim: turma.fim })
+    .eq("id", id);
   throwOnError(error);
 }
 

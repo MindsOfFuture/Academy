@@ -4,7 +4,10 @@ import { exigirMembro } from "../../guard";
 import { FormEscola, FormSituacaoTurma, FormTurma } from "../forms";
 import { STATUS_TURMA } from "../rotulos";
 
-/** Turmas e escolas (spec 014). Turma que não abriu continua aqui, com o motivo. */
+/**
+ * Turmas e escolas (spec 014). Nada se apaga: cadastro errado se corrige em
+ * "Editar", e turma fora de uso é encerrada ou marcada como "não abriu".
+ */
 
 function dataBr(iso: string): string {
   const [ano, mes, dia] = iso.split("-");
@@ -43,6 +46,12 @@ export default async function TurmasPage() {
                 </p>
               </div>
               <FormSituacaoTurma turma={t} />
+              <details className="text-sm">
+                <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
+                <div className="pt-3">
+                  <FormTurma escolas={opcoesEscola} turma={t} />
+                </div>
+              </details>
             </li>
           ))}
           {turmas.length === 0 && <li className="p-4 text-sm text-muted-foreground">Nenhuma turma cadastrada.</li>}
@@ -55,8 +64,16 @@ export default async function TurmasPage() {
         </h2>
         <ul className="divide-y rounded-lg border bg-white text-sm shadow-sm">
           {escolas.map((e) => (
-            <li key={e.id} className="p-3">
-              {e.nome} · {e.categoria} · {e.cidade}
+            <li key={e.id} className="space-y-2 p-3">
+              <p>
+                {e.nome} · {e.categoria} · {e.cidade}
+              </p>
+              <details>
+                <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
+                <div className="pt-3">
+                  <FormEscola escola={e} />
+                </div>
+              </details>
             </li>
           ))}
         </ul>

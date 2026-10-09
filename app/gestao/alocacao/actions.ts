@@ -11,6 +11,8 @@ import {
   conflitosDeHorario,
   criarEncontro,
   definirSituacaoTurma,
+  editarEscola,
+  editarTurma,
   registrarAfastamento,
   substituirAlocacao,
 } from "@/lib/api/gestao/alocacao";
@@ -73,6 +75,27 @@ export async function cadastrarTurmaAction(_anterior: EstadoAcao | null, form: F
   const turma = validarTurma(form);
   if (!turma.ok) return falha(turma.mensagem);
   return executar(() => cadastrarTurma(turma.valor), "Turma cadastrada.");
+}
+
+export async function editarEscolaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "escolaId");
+  const escola = validarEscola(form);
+  if (!id) return falha("Escola não informada.");
+  if (!escola.ok) return falha(escola.mensagem);
+  return executar(() => editarEscola(id, escola.valor), "Escola atualizada.");
+}
+
+/** O formulário manda a escola da turma só para passar na validação; ela não muda. */
+export async function editarTurmaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "turmaId");
+  const turma = validarTurma(form);
+  if (!id) return falha("Turma não informada.");
+  if (!turma.ok) return falha(turma.mensagem);
+  return executar(() => editarTurma(id, turma.valor), "Turma atualizada.");
 }
 
 export async function situacaoTurmaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
