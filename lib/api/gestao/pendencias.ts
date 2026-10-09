@@ -104,6 +104,8 @@ export async function listarPendencias(papel: GestaoPapel): Promise<Pendencia[]>
       .from("agenda")
       .select("id, data, horario, modalidade, escola(nome), aula(id)")
       .gte("data", inicio)
+      // Encontro cancelado (spec 014) não é aula a registrar nem próxima aula.
+      .is("cancelado_em", null)
       .order("data"),
     supabase.auth.getUser(),
     listarMelhorias(),

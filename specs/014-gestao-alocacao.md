@@ -1,6 +1,6 @@
 # 014 — Gestão: alocação de bolsistas nos encontros
 
-Status: rascunho
+Status: aprovada (coordenação, 09/10/2026: decisões do Aberto abaixo)
 Constituição: `specs/constitution.md`
 
 Levantamento de origem: `docs/plans/levantamento-alocacao.md` (SP12).
@@ -22,7 +22,7 @@ caso que o WhatsApp acomoda.
   período previsto e situação: prevista, em andamento, encerrada ou **não abriu**.
   Turma que não abriu continua visível com o que foi previsto para ela.
 - **Encontro.** Cada linha da mensagem de hoje vira um encontro: data, início, fim,
-  atividade e turma. Encontro sem turma é permitido para tarefa de apoio e evento
+  atividade e turma. Início e fim são obrigatórios ao lançar, inclusive em tarefa. Encontro sem turma é permitido para tarefa de apoio e evento
   (organizar caixas, apresentação, competição), com descrição livre.
 - **Alocar.** Escolher os bolsistas de um encontro. Ao criar um encontro da turma, a
   equipe do último encontro dela vem preenchida e pode ser trocada.
@@ -58,12 +58,12 @@ caso que o WhatsApp acomoda.
 ## Critérios de aceite
 
 - [ ] **Validação com o real:** as 12 linhas das duas amostras do levantamento
-      (21/09 a 08/10) são lançadas inteiras, sem campo inventado e sem anotação fora
-      do sistema, e a carga de cada bolsista no período bate com a tabela do
+      (21/09 a 08/10) são lançadas inteiras, sem anotação fora do sistema, e a carga de cada bolsista no período bate com a tabela do
       levantamento. Se algum caso não couber, o modelo volta para a prancheta antes
       do relatório mensal.
 - [ ] Dado um encontro de 13h às 17h, quando B4 é alocado das 14h às 17h e B2 cobre
-      das 13h às 14h, então B4 soma 3 h e B2 soma 1 h a mais nesse encontro.
+      das 13h às 14h, então B4 soma 3 h e o encontro mostra que B2 cobriu. B2 já estava
+      no encontro inteiro, então continua com 4 h nele (na amostra real, ela está na equipe).
 - [ ] Dado um bolsista com encontros em duas escolas no mesmo mês, quando a
       coordenação abre a carga do mês, então vê o total e a divisão por escola.
 - [ ] Dado um bolsista que troca de turma no dia 15, quando a coordenação o retira dos
@@ -85,30 +85,53 @@ caso que o WhatsApp acomoda.
 
 ## Plano
 
-Só depois da spec aprovada. Esboço para dimensionar:
+- **Degrau da escada:** `gestao.agenda` virou o encontro (ganhou `inicio`/`fim` como
+  `time`, `turma_id` e cancelamento) e `gestao.agenda_bolsista` virou a alocação (ganhou
+  intervalo parcial, `situacao`, `coberto_por` e `motivo`). `horario` e `carga` continuam
+  como texto, agora escritos pelo banco, para a tela "Hoje" e o indicador 6 não mudarem.
+  A turma é a do M1 só com o que esta spec usa. Formulários reaproveitam `Aviso` e os
+  estilos de `app/gestao/equipe/forms.tsx`. Nenhuma dependência nova.
+- **Dados:** `supabase/migrations/20261009_gestao_alocacao.sql` — `gestao.turma`,
+  `gestao.afastamento`, colunas novas em `agenda` e `agenda_bolsista`, função
+  `substituir_alocacao`, view `v_carga` (`security_invoker`), `antes`/`depois` em
+  `registro_auditoria`.
+- **Autorização:** cliente SSR (`server.ts#createClient`), RLS `coordenacao_tudo` nas
+  tabelas novas; telas com `exigirMembro(..., "coordenacao")` no layout e na página;
+  ações com `ensureGestaoMember()`. Ninguém recebe `delete` em turma, encontro, alocação
+  ou afastamento. A auditoria passou a ser escrita só pelo banco (trigger `security
+  definer`, `authenticated` perdeu o insert direto): antes, qualquer membro podia
+  inserir uma linha de histórico inventada.
+- **Arquivos:** `lib/api/gestao/alocacao.ts`, `types.ts`, `validacao.ts`, `index.ts`,
+  `pendencias.ts` (encontro cancelado sai de "Hoje"); `app/gestao/alocacao/**`
+  (`layout`, calendário, `[id]`, `turmas`, `carga`, `actions`, `forms`, `rotulos`);
+  `app/gestao/abas.ts`; `app/gestao/equipe/forms.tsx` (exporta `Aviso` e estilos).
+- **Atalhos:** `v_carga` decide "passado" pela data do servidor (UTC);
+  `equipesRecentes` olha os 300 encontros mais recentes.
 
-- **Degrau da escada:** reaproveita `gestao.agenda` (vira o encontro, ganha `inicio`/
-  `fim` como `time` e `turma_id`), `gestao.agenda_bolsista` (vira a alocação, ganha
-  intervalo parcial e situação) e a auditoria append-only da spec 002. A turma é a do
-  M1 (`docs/plans/gestao-dia-a-dia.md`), só com as colunas que esta spec usa; o M1
-  acrescenta alunos e chamada depois, sem refazer.
-- **Dados:** migration `*_gestao_alocacao.sql` + teste em PGlite (ADR 021).
-- **Lacuna da auditoria:** hoje ela grava quem e quando, não o quê. O critério do
-  histórico exige guardar antes e depois.
+## Tarefas
 
-## Aberto
+- [x] Migration + teste em PGlite com as duas amostras reais do levantamento —
+      `tests/integration/gestao-alocacao-migration.test.ts`
+- [x] Consulta, soma da carga e histórico — `lib/api/gestao/alocacao.ts`
+- [x] Teste: divisão da carga por escola e turma, diferença do histórico, validações —
+      `tests/unit/lib/api/gestao/alocacao.test.ts`
+- [x] Telas: calendário, encontro, turmas e escolas, carga e afastamentos
+- [ ] Aplicar a migration em produção (aprovação do Rafael) e lançar outubro pela tela
 
-1. **A turma entra aqui.** O M1 (turmas) ainda não foi feito, e sem turma não há
-   "turma que não abriu". Proposta: esta spec cria a turma mínima e o M1 completa.
-   Isso pesa na estimativa de 14 h.
-2. **Alocação por encontro, não por período.** O real é por encontro: cada linha do
-   WhatsApp é um encontro com sua equipe. Um vínculo "bolsista na turma de tal a tal
-   data" não acomoda a competição de terça com equipe diferente, nem a substituição de
-   um encontro só. Proposta: por encontro, com a equipe da turma só como
-   preenchimento automático.
-3. **Encontro passado sem marcação conta como cumprido?** Se sim, a coordenação só
-   marca exceção (menos trabalho, e é o que mantém longe da planilha); se não, a carga
-   fica zerada até alguém confirmar tudo.
-4. **Tarefa sem horário de fim.** "Organizar as caixas" (05/10, 10h) não tem fim na
-   mensagem. Aceitar sem fim e não contar carga até alguém informar, ou exigir o fim
-   ao lançar? A validação com o real depende disso.
+## Limites conhecidos
+
+- O indicador 6 da tela "Hoje" ainda conta toda alocação, inclusive falta e
+  substituição. Passar a ler `v_carga` é trabalho da etapa 5 (painel).
+- Encontro sem turma ainda exige uma escola. Reunião ou capacitação fora de escola é
+  "atividade" do M2, fora desta spec.
+- Apagar uma escola ainda apaga em cascata os encontros dela (regra da spec 002). A
+  turma trava a exclusão (`restrict`), então só escola sem turma é afetada.
+
+## Decisões (09/10/2026)
+
+1. **A turma entra aqui**, mínima: escola, atividade, período e situação. O M1 completa
+   com alunos e chamada.
+2. **Alocação por encontro**, com a equipe da turma só como preenchimento automático.
+3. **Encontro passado sem marcação conta como cumprido.** A coordenação só marca exceção.
+4. **Fim obrigatório ao lançar**, inclusive em tarefa de apoio. Na validação com o real,
+   "organizar as caixas" (05/10) é lançada com o fim que a coordenação informar.

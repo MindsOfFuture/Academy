@@ -14,7 +14,7 @@ import {
 
 type Acao = (anterior: EstadoAcao | null, form: FormData) => Promise<EstadoAcao>;
 
-function Aviso({ estado }: { estado: EstadoAcao | null }) {
+export function Aviso({ estado }: { estado: EstadoAcao | null }) {
   if (!estado) return null;
   return (
     <p role={estado.ok ? "status" : "alert"} className={`text-sm ${estado.ok ? "text-green-700" : "text-red-700"}`}>
@@ -23,8 +23,8 @@ function Aviso({ estado }: { estado: EstadoAcao | null }) {
   );
 }
 
-const rotuloCampo = "text-sm font-medium text-gray-700";
-const campoSelect =
+export const rotuloCampo = "text-sm font-medium text-gray-700";
+export const campoSelect =
   "flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 export function FormConcederPapel() {

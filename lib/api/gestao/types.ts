@@ -380,3 +380,165 @@ export interface RespostaMelhoria {
     duplicadaDe: string | null;
     linkExecucao: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Alocação de bolsistas nos encontros (spec 014)
+// ---------------------------------------------------------------------------
+
+export type StatusTurma = "prevista" | "em_andamento" | "encerrada" | "nao_abriu";
+export type SituacaoAlocacao =
+    | "prevista"
+    | "cumprida"
+    | "faltou_avisou"
+    | "faltou_sem_aviso"
+    | "substituida"
+    | "retirada";
+
+export interface TurmaRow {
+    id: string;
+    escola_id: string;
+    nome: string;
+    modalidade: string;
+    inicio: string;
+    fim: string | null;
+    status: StatusTurma;
+    motivo: string | null;
+    escola: { nome: string } | { nome: string }[] | null;
+}
+
+export interface Turma {
+    id: string;
+    escolaId: string;
+    escolaNome: string;
+    nome: string;
+    modalidade: string;
+    inicio: string;
+    fim: string | null;
+    status: StatusTurma;
+    motivo: string | null;
+}
+
+export interface AlocacaoRow {
+    id: string;
+    bolsista_id: string;
+    situacao: SituacaoAlocacao;
+    inicio: string | null;
+    fim: string | null;
+    coberto_por: string | null;
+    motivo: string | null;
+    carga: string;
+}
+
+export interface Alocacao {
+    id: string;
+    bolsistaId: string;
+    bolsistaNome: string;
+    situacao: SituacaoAlocacao;
+    /** Intervalo parcial ("14:00"); nulo = o encontro inteiro. */
+    inicio: string | null;
+    fim: string | null;
+    cobertoPor: string | null;
+    cobertoPorNome: string | null;
+    motivo: string | null;
+    carga: string;
+}
+
+export interface EncontroRow {
+    id: string;
+    data: string;
+    inicio: string | null;
+    fim: string | null;
+    horario: string;
+    modalidade: string;
+    aulas: string;
+    escola_id: string;
+    turma_id: string | null;
+    cancelado_em: string | null;
+    motivo_cancelamento: string | null;
+    escola: { nome: string } | { nome: string }[] | null;
+    turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
+    agenda_bolsista: AlocacaoRow[] | null;
+}
+
+export interface Encontro {
+    id: string;
+    data: string;
+    inicio: string | null;
+    fim: string | null;
+    horario: string;
+    modalidade: string;
+    descricao: string;
+    escolaId: string;
+    escolaNome: string;
+    turmaId: string | null;
+    turmaNome: string | null;
+    turmaStatus: StatusTurma | null;
+    canceladoEm: string | null;
+    motivoCancelamento: string | null;
+    alocacoes: Alocacao[];
+}
+
+export interface NovoEncontro {
+    data: string;
+    inicio: string;
+    fim: string;
+    modalidade: string;
+    descricao: string;
+    escolaId: string;
+    turmaId: string | null;
+    equipe: string[];
+}
+
+export interface NovaTurma {
+    escolaId: string;
+    nome: string;
+    modalidade: string;
+    inicio: string;
+    fim: string | null;
+}
+
+export interface NovaEscola {
+    nome: string;
+    categoria: string;
+    cidade: string;
+}
+
+export interface NovoAfastamento {
+    bolsistaId: string;
+    inicio: string;
+    fim: string;
+    motivo: string;
+}
+
+export interface Afastamento extends NovoAfastamento {
+    id: string;
+    bolsistaNome: string;
+    /** Encontros do período em que a pessoa ainda está como prevista. */
+    encontrosAfetados: { alocacaoId: string; encontroId: string; data: string; horario: string; modalidade: string }[];
+}
+
+/** Linha de `gestao.v_carga`: uma alocação e as horas que contam. */
+export interface VCargaRow {
+    bolsista_id: string;
+    data: string;
+    escola_id: string;
+    turma_id: string | null;
+    horas: number | string;
+}
+
+export interface CargaBolsista {
+    bolsistaId: string;
+    nome: string;
+    total: number;
+    porEscola: { escolaId: string; nome: string; horas: number }[];
+    porTurma: { turmaId: string | null; nome: string; horas: number }[];
+}
+
+export interface RegistroHistorico {
+    tabela: string;
+    acao: "insert" | "update" | "delete";
+    autorNome: string;
+    ocorridoEm: string;
+    /** Campos que mudaram, já com o valor antes e depois. */
+    mudancas: { campo: string; antes: unknown; depois: unknown }[];
+}
