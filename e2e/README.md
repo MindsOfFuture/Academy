@@ -130,6 +130,27 @@ e2e/
 - Textos não menores que 14px
 - Line-height adequado
 
+## Gestão — `flows/gestao-alocacao.spec.ts`
+
+Fluxo da coordenação na alocação (criar → editar → concluir → histórico), a
+exceção "bolsista em duas escolas no mesmo horário" e o bloqueio de quem não tem
+papel na gestão. Escreve no banco do projeto (não há outro ambiente), por isso só
+com dado dedicado, nunca bolsista real:
+
+| O quê | Como |
+|---|---|
+| Coordenação de teste | conta própria, `coordenacao = true` em `gestao.papel_membro`; credenciais em `TEST_GESTAO_COORD_EMAIL/PASSWORD` |
+| Sem papel | a conta `TEST_STUDENT_*`, **sem** linha em `gestao.papel_membro` |
+| Bolsistas | duas contas com nome exato `Bolsista E2E A` e `Bolsista E2E B`, `bolsista = true`; e-mail de caixa que a equipe controla |
+| Escolas | `Escola E2E 1` e `Escola E2E 2` em `gestao.escola` |
+
+Os encontros vão para um dia de 2001, fora do calendário real, e acumulam a cada
+execução (nada se apaga na alocação). O servidor precisa de `GESTAO_ENABLED=true`.
+
+No CI a credencial ausente **falha** o teste em vez de pular, e o passo
+"Conferir que o E2E da alocação rodou" lê `test-results/results.json` e quebra se
+o spec não executou — o diretório errado (ADR 012) aparece como vermelho.
+
 ## Comandos para Executar
 
 ```bash

@@ -19,6 +19,28 @@ jobs:
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npx playwright test
+      env:
+        # Sem estas o middleware responde 503 e todo spec autenticado quebra ou pula.
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        GESTAO_ENABLED: "true"
+        TEST_STUDENT_EMAIL: ${{ secrets.TEST_STUDENT_EMAIL }}
+        TEST_STUDENT_PASSWORD: ${{ secrets.TEST_STUDENT_PASSWORD }}
+        TEST_GESTAO_COORD_EMAIL: ${{ secrets.TEST_GESTAO_COORD_EMAIL }}
+        TEST_GESTAO_COORD_PASSWORD: ${{ secrets.TEST_GESTAO_COORD_PASSWORD }}
+        # Sem RESEND_API_KEY de propósito: aviso de alocação dos bolsistas de teste não sai.
+    # ADR 012: spec fora do diretório certo não roda e o CI fica verde. Prova que rodou e passou.
+    - name: Conferir que o E2E da alocação rodou
+      if: ${{ !cancelled() }}
+      run: |
+        node -e "
+          const r = require('./test-results/results.json'); const t = [];
+          const walk = (s) => { (s.suites || []).forEach(walk); for (const sp of s.specs || []) if (sp.file.includes('gestao-alocacao')) t.push(...sp.tests); };
+          r.suites.forEach(walk);
+          const ok = t.filter((x) => x.status === 'expected' || x.status === 'flaky').length;
+          console.log('gestao-alocacao: ' + t.length + ' testes, ' + ok + ' passaram');
+          if (!t.length || ok !== t.length) process.exit(1);
+        "
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
