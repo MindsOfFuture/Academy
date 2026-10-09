@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { buildEmailHtml } from "@/lib/email/template";
 
 /**
  * Spec 014 — alocação de bolsistas nos encontros. A regra de validação do card
@@ -30,6 +31,7 @@ const CONCLUIR = readFileSync("supabase/migrations/20261009_gestao_concluir_enco
 const CONCLUIR_INICIO = readFileSync("supabase/migrations/20261009_gestao_concluir_depois_do_inicio.sql", "utf8");
 const HORAS_COBRIU = readFileSync("supabase/migrations/20261009_gestao_horas_de_quem_cobriu.sql", "utf8");
 const GESTOR = readFileSync("supabase/migrations/20261009_gestao_gestor_lembrete.sql", "utf8");
+const MODELO = readFileSync("supabase/migrations/20261009_gestao_lembrete_no_modelo.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -149,6 +151,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(CONCLUIR_INICIO);
     await db.exec(HORAS_COBRIU);
     await db.exec(GESTOR);
+    await db.exec(MODELO);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
@@ -160,6 +163,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(CONCLUIR_INICIO);
     await db.exec(HORAS_COBRIU);
     await db.exec(GESTOR);
+    await db.exec(MODELO);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -330,6 +334,17 @@ describe("migration da alocação (spec 014)", () => {
     expect(autor).toBe(B(5));
   });
 
+  it("o modelo de e-mail do banco é o mesmo do site", async () => {
+    for (const href of ["https://x.test/a", null]) {
+      const { html } = await um<{ html: string }>(
+        `select gestao.email_html('Título', 'Mensagem <b>ok</b>', ${href ? `'${href}'` : "null"}) as html`,
+      );
+      expect(html).toBe(buildEmailHtml("Título", "Mensagem <b>ok</b>", href ?? undefined));
+    }
+    const { esc } = await um<{ esc: string }>(`select gestao.html_escapar('a&<b>"c''') as esc`);
+    expect(esc).toBe("a&#38;&#60;b&#62;&#34;c&#39;");
+  });
+
   it("lembrete: só o papel do lembrete lê, só nas 24 h antes, uma vez por alocação", async () => {
     // Encontro que começa daqui a 2 h e outro daqui a 30 h, no horário de Brasília.
     const [perto, longe] = await linhas<{ data: string; inicio: string }>(
@@ -352,7 +367,7 @@ describe("migration da alocação (spec 014)", () => {
       await db.exec(`set role gestao_lembrete`);
       try {
         return (
-          await db.query<{ alocacao_id: string; email: { to: string[]; subject: string; text: string } }>(
+          await db.query<{ alocacao_id: string; email: { to: string[]; subject: string; html: string } }>(
             `select * from gestao.lembretes_pendentes('Academy <a@b>', 'https://academy.test/', '')`,
           )
         ).rows;
@@ -365,8 +380,9 @@ describe("migration da alocação (spec 014)", () => {
     expect(primeira).toHaveLength(1);
     expect(primeira[0].email.to).toEqual(["p14@ufjf.br"]); // B(7) é a 15ª pessoa do cadastro
     expect(primeira[0].email.subject).toContain("Lembrete perto");
-    expect(primeira[0].email.text).toContain(`https://academy.test/gestao/encontro/${idPerto}`);
-    expect(primeira[0].email.text).not.toContain(idLonge);
+    expect(primeira[0].email.html).toContain(`href="https://academy.test/gestao/encontro/${idPerto}"`);
+    expect(primeira[0].email.html).toContain("Minds of the Future");
+    expect(primeira[0].email.html).not.toContain(idLonge);
 
     await db.exec(`set role gestao_lembrete`);
     await db.query(`select gestao.marcar_lembrete_enviado($1)`, [primeira[0].alocacao_id]);

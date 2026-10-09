@@ -1,5 +1,6 @@
 import "server-only";
 import { sendNotificationEmail } from "@/lib/email/resend";
+import { buildEmailHtml, escaparHtml } from "@/lib/email/template";
 import { obterEncontro } from "./alocacao";
 import { listarEquipe } from "./equipe";
 
@@ -19,10 +20,6 @@ const ASSUNTO: Record<MotivoAviso, string> = {
   substituido: "Você foi substituído(a) em um encontro",
   cancelado: "Encontro cancelado",
 };
-
-function escapar(texto: string): string {
-  return texto.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
 
 function urlBase(): string {
   return (process.env.NEXT_PUBLIC_APP_URL || "https://mindsofthefuture.com.br").replace(/\/$/, "");
@@ -45,10 +42,11 @@ export async function avisar(motivo: MotivoAviso, encontroId: string, pessoas: s
     const linha = `${dia}/${mes} · ${encontro.horario} · ${encontro.modalidade} · ${onde}`;
     const extra = motivo === "cancelado" && encontro.motivoCancelamento ? `Motivo: ${encontro.motivoCancelamento}` : "";
     const link = `${urlBase()}/gestao/encontro/${encontro.id}`;
-    const html =
-      `<p>${escapar(ASSUNTO[motivo])}:</p><p><strong>${escapar(linha)}</strong></p>` +
-      (extra ? `<p>${escapar(extra)}</p>` : "") +
-      `<p><a href="${link}">Ver o encontro</a></p>`;
+    const html = buildEmailHtml(
+      escaparHtml(ASSUNTO[motivo]),
+      escaparHtml(linha) + (extra ? `<br>${escaparHtml(extra)}` : ""),
+      link,
+    );
 
     const emails = new Map(equipe.map((m) => [m.userProfileId, m.email]));
     await Promise.allSettled(
