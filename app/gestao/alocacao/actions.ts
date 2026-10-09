@@ -8,6 +8,7 @@ import {
   cadastrarEscola,
   cadastrarTurma,
   cancelarEncontro,
+  concluirEncontro,
   conflitosDeHorario,
   criarEncontro,
   definirSituacaoTurma,
@@ -147,6 +148,18 @@ export async function cancelarEncontroAction(_anterior: EstadoAcao | null, form:
   if (!id) return falha("Encontro não informado.");
   if (motivo.length < 3) return falha("Cancelar um encontro exige o motivo.");
   return executar(() => cancelarEncontro(id, motivo), "Encontro cancelado. Ele continua no histórico.");
+}
+
+export async function concluirEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "encontroId");
+  const concluir = campo(form, "acao") !== "reabrir";
+  if (!id) return falha("Encontro não informado.");
+  return executar(
+    () => concluirEncontro(id, concluir),
+    concluir ? "Encontro concluído. Quem estava prevista ficou como cumprida." : "Encontro reaberto.",
+  );
 }
 
 export async function alocarAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {

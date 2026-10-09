@@ -4,7 +4,13 @@ import { historicoDoEncontro, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import type { Alocacao } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../../guard";
-import { FormAlocacao, FormAlocar, FormCancelarEncontro, FormRemoverAlocacao } from "../forms";
+import {
+  FormAlocacao,
+  FormAlocar,
+  FormCancelarEncontro,
+  FormConcluirEncontro,
+  FormRemoverAlocacao,
+} from "../forms";
 import { SITUACAO, STATUS_TURMA, diaCurto } from "../rotulos";
 
 /** Um encontro (spec 014): equipe, o que aconteceu com cada um e o histórico. */
@@ -70,6 +76,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
   // Quem já está no encontro não aparece para acrescentar nem para substituir.
   const foraDoEncontro = ativos.filter((p) => !jaAlocados.has(p.id));
   const cancelado = Boolean(encontro.canceladoEm);
+  const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 
   return (
     <div className="space-y-6">
@@ -91,12 +98,20 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
             A turma está como “{STATUS_TURMA.nao_abriu}”: este encontro fica visível como previsto e não conta horas.
           </p>
         )}
+        {encontro.concluidoEm && (
+          <p className="rounded-md bg-green-50 p-2 text-sm text-green-900">
+            Concluído em {dataHoraBr(encontro.concluidoEm)}.
+          </p>
+        )}
+        {!cancelado && (encontro.concluidoEm || encontro.data <= hoje) && (
+          <FormConcluirEncontro encontroId={encontro.id} concluido={Boolean(encontro.concluidoEm)} />
+        )}
         {cancelado ? (
           <p className="rounded-md bg-gray-100 p-2 text-sm">
             Cancelado em {dataHoraBr(encontro.canceladoEm!)}: {encontro.motivoCancelamento}. Não conta horas.
           </p>
         ) : (
-          <FormCancelarEncontro encontroId={encontro.id} />
+          !encontro.concluidoEm && <FormCancelarEncontro encontroId={encontro.id} />
         )}
       </section>
 

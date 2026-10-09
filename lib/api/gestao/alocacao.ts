@@ -36,7 +36,7 @@ import type {
  */
 
 const SELECT_ENCONTRO =
-  "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, " +
+  "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, " +
   "escola(nome), turma(nome, status), " +
   "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga)";
 
@@ -111,6 +111,7 @@ export function mapEncontro(row: EncontroRow, nomes: Map<string, string>): Encon
     turmaStatus: turma?.status ?? null,
     canceladoEm: row.cancelado_em,
     motivoCancelamento: row.motivo_cancelamento,
+    concluidoEm: row.concluido_em,
     alocacoes: (row.agenda_bolsista ?? [])
       .map((a) => mapAlocacao(a, nomes))
       .sort((a, b) => a.bolsistaNome.localeCompare(b.bolsistaNome)),
@@ -331,6 +332,20 @@ export async function cancelarEncontro(id: string, motivo: string): Promise<void
     .from("agenda")
     // O banco troca pelo próprio relógio; aqui só sinaliza o cancelamento.
     .update({ cancelado_em: new Date().toISOString(), motivo_cancelamento: motivo })
+    .eq("id", id);
+  throwOnError(error);
+}
+
+/**
+ * Concluir confirma que o encontro aconteceu; o banco carimba a hora e passa
+ * quem estava "prevista" para "cumprida". Reabrir tira o carimbo.
+ */
+export async function concluirEncontro(id: string, concluir: boolean): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .schema("gestao")
+    .from("agenda")
+    .update({ concluido_em: concluir ? new Date().toISOString() : null })
     .eq("id", id);
   throwOnError(error);
 }

@@ -22,6 +22,7 @@ import {
   cadastrarEscolaAction,
   cadastrarTurmaAction,
   cancelarEncontroAction,
+  concluirEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
   editarEscolaAction,
@@ -270,6 +271,36 @@ export function FormCancelarEncontro({ encontroId }: { encontroId: string }) {
         Cancelar encontro
       </Button>
       <Aviso estado={estado} />
+    </form>
+  );
+}
+
+/** Concluir ou reabrir (decisão 10). Concluído fica verde no calendário. */
+export function FormConcluirEncontro({ encontroId, concluido }: { encontroId: string; concluido: boolean }) {
+  const [estado, acao, enviando] = useAcao(concluirEncontroAction);
+  return (
+    <form
+      action={acao}
+      onSubmit={(e) => {
+        const pergunta = concluido
+          ? "Reabrir este encontro? Ele volta a aparecer como não confirmado."
+          : "Concluir este encontro? Quem está como prevista passa a cumprida.";
+        if (!window.confirm(pergunta)) e.preventDefault();
+      }}
+      className="inline-flex flex-col items-start gap-1"
+    >
+      <input type="hidden" name="encontroId" value={encontroId} />
+      <input type="hidden" name="acao" value={concluido ? "reabrir" : "concluir"} />
+      <Button
+        type="submit"
+        size="sm"
+        variant={concluido ? "outline" : "default"}
+        disabled={enviando}
+        className={concluido ? undefined : "bg-green-700 text-white hover:bg-green-800"}
+      >
+        {concluido ? "Reabrir encontro" : "Concluir encontro"}
+      </Button>
+      {estado && !estado.ok && <Aviso estado={estado} />}
     </form>
   );
 }

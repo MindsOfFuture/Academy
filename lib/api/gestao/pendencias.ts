@@ -20,6 +20,7 @@ export interface AgendaPendenciaRow {
   data: string;
   horario: string;
   modalidade: string;
+  concluido_em?: string | null;
   escola: { nome: string } | { nome: string }[] | null;
   aula: { id: string }[] | null;
 }
@@ -49,7 +50,8 @@ export function montarPendencias(entrada: {
   const pendencias: Pendencia[] = [];
 
   const semRegistro = agendas
-    .filter((a) => a.data < hoje && (a.aula ?? []).length === 0)
+    // Encontro concluído (spec 014) já foi confirmado: não é pendência.
+    .filter((a) => a.data < hoje && !a.concluido_em && (a.aula ?? []).length === 0)
     .sort((a, b) => a.data.localeCompare(b.data));
   for (const a of semRegistro) {
     pendencias.push({
@@ -103,7 +105,7 @@ export async function listarPendencias(papel: GestaoPapel): Promise<Pendencia[]>
     supabase
       .schema("gestao")
       .from("agenda")
-      .select("id, data, horario, modalidade, escola(nome), aula(id)")
+      .select("id, data, horario, modalidade, concluido_em, escola(nome), aula(id)")
       .gte("data", inicio)
       // Encontro cancelado (spec 014) não é aula a registrar nem próxima aula.
       .is("cancelado_em", null)

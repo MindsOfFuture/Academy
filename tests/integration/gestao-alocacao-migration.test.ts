@@ -26,6 +26,7 @@ const SEM_ESCOLA = readFileSync("supabase/migrations/20261009_gestao_agenda_sem_
 const SUBSTITUIR = readFileSync("supabase/migrations/20261009_gestao_substituir_quem_ja_esta.sql", "utf8");
 const SUBSTITUTO_DE_FORA = readFileSync("supabase/migrations/20261009_gestao_substituto_de_fora.sql", "utf8");
 const REMOVER = readFileSync("supabase/migrations/20261009_gestao_remover_do_encontro.sql", "utf8");
+const CONCLUIR = readFileSync("supabase/migrations/20261009_gestao_concluir_encontro.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -141,6 +142,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(SUBSTITUIR);
     await db.exec(SUBSTITUTO_DE_FORA);
     await db.exec(REMOVER);
+    await db.exec(CONCLUIR);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
@@ -148,6 +150,7 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(SUBSTITUIR);
     await db.exec(SUBSTITUTO_DE_FORA);
     await db.exec(REMOVER);
+    await db.exec(CONCLUIR);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -334,6 +337,38 @@ describe("migration da alocação (spec 014)", () => {
       await db.exec(`delete from gestao.agenda_bolsista where bolsista_id = '${B(1)}'`);
     });
     expect((await um<{ n: number }>(`select count(*)::int as n from gestao.agenda_bolsista where bolsista_id = '${B(1)}'`)).n).toBeGreaterThan(0);
+  });
+
+  it("concluir: prevista vira cumprida, falta fica; futuro e cancelado não concluem; concluído não cancela", async () => {
+    await como(COORD, async () => {
+      const id = await encontro("2026-09-19", "08:00", "12:00", "Lego", [A(7), A(8)], null);
+      await db.exec(`update gestao.agenda_bolsista set situacao = 'faltou_avisou' where id = '${await alocacao(id, A(8))}'`);
+
+      await db.exec(`update gestao.agenda set concluido_em = '2000-01-01' where id = '${id}'`);
+      const { concluido } = await um<{ concluido: boolean }>(
+        `select concluido_em > '2020-01-01' as concluido from gestao.agenda where id = '${id}'`,
+      );
+      expect(concluido).toBe(true); // o carimbo é do banco, não do cliente
+      const situacoes = await linhas<{ bolsista_id: string; situacao: string }>(
+        `select bolsista_id, situacao from gestao.agenda_bolsista where agenda_id = '${id}' order by bolsista_id`,
+      );
+      expect(situacoes.map((l) => l.situacao)).toEqual(["cumprida", "faltou_avisou"]);
+
+      await expect(
+        db.exec(`update gestao.agenda set cancelado_em = now(), motivo_cancelamento = 'chuva' where id = '${id}'`),
+      ).rejects.toThrow(/reabra antes/);
+      await db.exec(`update gestao.agenda set concluido_em = null where id = '${id}'`);
+
+      const futuro = await encontro("2999-02-01", "08:00", "12:00", "Lego", [], null);
+      await expect(db.exec(`update gestao.agenda set concluido_em = now() where id = '${futuro}'`)).rejects.toThrow(
+        /já aconteceu/,
+      );
+      const cancelado = await encontro("2026-09-20", "08:00", "12:00", "Lego", [], null);
+      await db.exec(`update gestao.agenda set cancelado_em = now(), motivo_cancelamento = 'chuva' where id = '${cancelado}'`);
+      await expect(db.exec(`update gestao.agenda set concluido_em = now() where id = '${cancelado}'`)).rejects.toThrow(
+        /cancelado não pode ser concluído/,
+      );
+    });
   });
 
   it("turma que não abriu, encontro cancelado e encontro futuro não contam, e continuam visíveis", async () => {

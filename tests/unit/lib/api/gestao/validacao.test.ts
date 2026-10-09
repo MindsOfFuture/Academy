@@ -71,6 +71,8 @@ describe("validação e montagem da gestão (spec 003)", () => {
       { id: "a1", data: "2026-09-20", horario: "08h", modalidade: "lego", escola: { nome: "Escola A" }, aula: [] },
       { id: "a2", data: "2026-09-21", horario: "08h", modalidade: "lego", escola: [{ nome: "Escola B" }], aula: [{ id: "x" }] },
       { id: "a3", data: "2026-09-23", horario: "10h", modalidade: "lego", escola: null, aula: [] },
+      // Concluído (spec 014): já confirmado, não é "sem registro".
+      { id: "a4", data: "2026-09-19", horario: "08h", modalidade: "lego", concluido_em: "2026-09-19T15:00:00Z", escola: null, aula: [] },
     ];
 
     const coord = montarPendencias({ papel: "coordenacao", hoje: "2026-09-23", agendas, equipe: [semBolsa] });

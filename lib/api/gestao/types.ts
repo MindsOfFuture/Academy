@@ -464,6 +464,7 @@ export interface EncontroRow {
     turma_id: string | null;
     cancelado_em: string | null;
     motivo_cancelamento: string | null;
+    concluido_em: string | null;
     escola: { nome: string } | { nome: string }[] | null;
     turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
     agenda_bolsista: AlocacaoRow[] | null;
@@ -485,6 +486,8 @@ export interface Encontro {
     turmaStatus: StatusTurma | null;
     canceladoEm: string | null;
     motivoCancelamento: string | null;
+    /** Confirmado que aconteceu (decisão 10 da spec 014); verde no calendário. */
+    concluidoEm: string | null;
     alocacoes: Alocacao[];
 }
 

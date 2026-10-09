@@ -20,14 +20,23 @@ function CartaoEncontro({ e }: { e: Encontro }) {
   const cancelado = Boolean(e.canceladoEm);
   const naoAbriu = e.turmaStatus === "nao_abriu";
   const equipe = presentes(e);
+  const estilo =
+    cancelado || naoAbriu
+      ? "bg-gray-50 text-gray-500 line-through"
+      : e.concluidoEm
+        ? "border-green-300 bg-green-50 text-green-900"
+        : "bg-white";
   return (
     <Link
       href={`/gestao/alocacao/${e.id}`}
-      className={`block rounded-md border p-2 text-xs hover:border-[#684A97] ${
-        cancelado || naoAbriu ? "bg-gray-50 text-gray-500 line-through" : "bg-white"
-      }`}
+      className={`block rounded-md border p-2 text-xs hover:border-[#684A97] ${estilo}`}
     >
-      <span className="font-semibold">{e.horario}</span> · {e.modalidade}
+      {e.concluidoEm && <span className="sr-only">Concluído. </span>}
+      <span className="font-semibold">
+        {e.concluidoEm && <span aria-hidden>✓ </span>}
+        {e.horario}
+      </span>{" "}
+      · {e.modalidade}
       {e.turmaNome && <span className="block text-gray-600">{e.turmaNome}</span>}
       {e.escolaNome && <span className="block text-gray-600">{e.escolaNome}</span>}
       <span className="mt-1 block">
