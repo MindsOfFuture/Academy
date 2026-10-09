@@ -91,7 +91,7 @@ agregada. Modelar de trás para frente:
 |---|---|---|
 | 1 | Levantar os indicadores oficiais exigidos pela FACC/Governo MG | o formulário oficial **é** a especificação do banco |
 | 2 | Modelar `gestao.*` a partir deles | todo número do relatório final precisa de linha de origem rastreável |
-| 3 | Alocação: bolsista → escola → turma → carga horária | é o que alimenta os indicadores |
+| 3 | Alocação: bolsista → escola → turma → carga horária | é o que alimenta os indicadores — processo atual em [levantamento-alocacao.md](levantamento-alocacao.md) |
 | 4 | Relatório mensal do bolsista + geração do `.docx` | consequência de 3: o sistema já sabe a alocação |
 | 5 | Painel + exportação da prestação de contas | fecha os três critérios de sucesso |
 
