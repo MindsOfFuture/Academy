@@ -59,4 +59,4 @@ WhatsApp; escolher o horário do lembrete.
 - [x] Avisos por e-mail nas ações da coordenação
 - [x] Gestor, página do bolsista, janela do relatório
 - [x] Script e unidades do lembrete + RUNBOOK §8.6
-- [ ] Ativar o lembrete no VPS (senha do papel, /etc/academy.env, timer) — RUNBOOK §8.6
+- [x] Lembrete ativado no VPS em 09/10/2026 (senha do papel, /etc/academy.env, timer) — RUNBOOK §8.6

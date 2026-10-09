@@ -32,7 +32,7 @@ printf '%s\n' "$pendentes" | while IFS="$tab" read -r id corpo; do
     -H "Authorization: Bearer $RESEND_API_KEY" \
     -H "Content-Type: application/json" \
     -d "$corpo" >/dev/null
-  psql "$GESTAO_LEMBRETE_DB_URL" -X -q -v ON_ERROR_STOP=1 -v id="$id" <<'SQL'
+  psql "$GESTAO_LEMBRETE_DB_URL" -X -q -v ON_ERROR_STOP=1 -v id="$id" >/dev/null <<'SQL'
 select gestao.marcar_lembrete_enviado(:'id');
 SQL
   enviados=$((enviados + 1))

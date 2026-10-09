@@ -570,8 +570,9 @@ chave de serviço (ADR 021). Ativação, uma vez:
    `alter role gestao_lembrete login password '<gerada>';`
 2. Em `/etc/academy.env`, a conexão pelo pooler (modo sessão), com o usuário
    `gestao_lembrete.<project-ref>`:
-   `GESTAO_LEMBRETE_DB_URL=postgresql://gestao_lembrete.jrfehrhiyilxhbuwjmat:<senha>@<host-do-pooler>:5432/postgres?sslmode=require`
-   (host em Supabase → Connect → Session pooler).
+   `GESTAO_LEMBRETE_DB_URL=postgresql://gestao_lembrete.jrfehrhiyilxhbuwjmat:<senha>@aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require`
+   (o projeto está em `us-west-2`; `aws-1-*` e as outras regiões respondem "tenant/user not found").
+   Senha gerada sem `` no fim: arquivo vindo do Windows quebra a autenticação.
 3. `sudo apt-get install -y postgresql-client` (se `psql` não existir) e
    `sudo install -o root -g root -m 755 scripts/academy-lembrete-encontros.sh /usr/local/bin/academy-lembrete-encontros`.
 4. Unidades:
@@ -613,6 +614,13 @@ sudo systemctl start academy-lembrete-encontros.service && journalctl -u academy
 
 `RESEND_TEST_RECIPIENT` preenchido no `/etc/academy.env` redireciona também os
 lembretes, como no site.
+
+**Ativado em 09/10/2026**: papel com senha, `GESTAO_LEMBRETE_DB_URL` no
+`/etc/academy.env` (backup em `academy.env.bak-lembrete`), `postgresql-client`
+instalado, timer habilitado (`:05` de cada hora, Brasília). Conferido que o papel
+recebe `permission denied` em `gestao.escola` e `public.user_profile`; execução
+manual com um encontro de teste para o dia seguinte enviou 1 lembrete e marcou;
+a execução seguinte não reenviou.
 
 ---
 
