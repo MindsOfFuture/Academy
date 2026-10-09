@@ -80,8 +80,8 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
           {diaCurto(encontro.data)} · {encontro.horario} · {encontro.modalidade}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {encontro.turmaNome ? `${encontro.turmaNome} · ` : "Sem turma · "}
-          {encontro.escolaNome}
+          {encontro.turmaNome ?? "Sem turma"}
+          {` · ${encontro.escolaNome ?? "Fora de escola"}`}
           {encontro.descricao !== encontro.modalidade && ` · ${encontro.descricao}`}
         </p>
         {encontro.turmaStatus === "nao_abriu" && (

@@ -29,7 +29,8 @@ const PROXIMAS = 5;
 
 function nomeEscola(escola: AgendaPendenciaRow["escola"]): string {
   const alvo = Array.isArray(escola) ? escola[0] : escola;
-  return alvo?.nome ?? "Escola";
+  // Encontro sem escola (tarefa, reunião) existe desde a spec 014.
+  return alvo?.nome ?? "Fora de escola";
 }
 
 export function formatarData(iso: string): string {

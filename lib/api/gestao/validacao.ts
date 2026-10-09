@@ -167,8 +167,8 @@ export function validarSituacaoTurma(form: FormData): Validado<{ status: StatusT
 }
 
 /**
- * Encontro: início e fim obrigatórios (decisão 4 da spec 014). Sem turma, a
- * escola vem do formulário; com turma, o banco usa a da turma.
+ * Encontro: início e fim obrigatórios (decisão 4 da spec 014). Com turma, o
+ * banco usa a escola da turma; sem turma (tarefa, reunião), a escola é opcional.
  */
 export function validarEncontro(form: FormData): Validado<NovoEncontro> {
   const data = texto(form, "data");
@@ -183,7 +183,6 @@ export function validarEncontro(form: FormData): Validado<NovoEncontro> {
   if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe a data do encontro." };
   if (!HORA.test(inicio) || !HORA.test(fim)) return { ok: false, mensagem: "Informe o início e o fim do encontro." };
   if (fim <= inicio) return { ok: false, mensagem: "O fim precisa ser depois do início." };
-  if (!turmaId && !escolaId) return { ok: false, mensagem: "Escolha a turma ou, se não tiver turma, a escola." };
   if (modalidade.length < 2) return { ok: false, mensagem: "Informe a atividade, como Lego ou Organizar materiais." };
   if (descricao.length > 200) return { ok: false, mensagem: "A descrição passou de 200 caracteres." };
 
@@ -196,7 +195,8 @@ export function validarEncontro(form: FormData): Validado<NovoEncontro> {
       modalidade,
       descricao,
       turmaId: turmaId || null,
-      escolaId,
+      // Com turma, o banco usa a escola da turma; sem turma, a escola é opcional.
+      escolaId: turmaId ? null : escolaId || null,
       equipe: [...new Set(equipe)],
     },
   };

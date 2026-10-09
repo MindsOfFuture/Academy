@@ -117,8 +117,8 @@ export function FormEncontro({
         </label>
         {!turmaId && (
           <label className="space-y-1">
-            <span className={rotuloCampo}>Onde</span>
-            <Escolha name="escolaId" opcoes={escolas} vazio="Escolha a escola…" required />
+            <span className={rotuloCampo}>Escola (opcional)</span>
+            <Escolha name="escolaId" opcoes={escolas} vazio="Fora de escola" />
           </label>
         )}
         <label className="space-y-1">

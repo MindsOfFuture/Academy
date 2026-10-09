@@ -22,6 +22,7 @@ const MIGRATIONS = [
 ].map((path) => readFileSync(path, "utf8"));
 const ALOCACAO = readFileSync("supabase/migrations/20261009_gestao_alocacao.sql", "utf8");
 const COBERTO_SEM_FK = readFileSync("supabase/migrations/20261009_gestao_alocacao_coberto_sem_fk.sql", "utf8");
+const SEM_ESCOLA = readFileSync("supabase/migrations/20261009_gestao_agenda_sem_escola.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -133,9 +134,11 @@ describe("migration da alocação (spec 014)", () => {
     for (const sql of MIGRATIONS) await db.exec(sql);
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
+    await db.exec(SEM_ESCOLA);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
+    await db.exec(SEM_ESCOLA);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -222,6 +225,23 @@ describe("migration da alocação (spec 014)", () => {
         ),
       ).rejects.toThrow(/precisa ser da equipe/);
     });
+  });
+
+  it("encontro sem turma pode ficar fora de escola e conta horas; com turma, a escola é a da turma", async () => {
+    await como(COORD, async () => {
+      await db.exec(
+        `insert into gestao.agenda (data, aulas, modalidade, inicio, fim)
+         values ('2026-09-03', 'Reunião', 'Reunião de equipe', '14:00', '15:30')`,
+      );
+      const { id } = await um<{ id: string }>(`select id from gestao.agenda where data = '2026-09-03'`);
+      await db.exec(`insert into gestao.agenda_bolsista (agenda_id, bolsista_id) values ('${id}', '${B(1)}')`);
+
+      const t = await turma("Turma da escola 2", "Lego", ESCOLA2);
+      const deTurma = await encontro("2026-09-04", "08:00", "10:00", "Lego", [], t);
+      const { escola_id } = await um<{ escola_id: string }>(`select escola_id from gestao.agenda where id = '${deTurma}'`);
+      expect(escola_id).toBe(ESCOLA2);
+    });
+    expect(await horas(B(1), "2026-09-03", "2026-09-03")).toBe(1.5);
   });
 
   it("encontro sem fim e parcial fora do horário são recusados", async () => {

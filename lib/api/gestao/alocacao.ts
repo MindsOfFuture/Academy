@@ -103,7 +103,7 @@ export function mapEncontro(row: EncontroRow, nomes: Map<string, string>): Encon
     modalidade: row.modalidade,
     descricao: row.aulas,
     escolaId: row.escola_id,
-    escolaNome: primeiro(row.escola)?.nome ?? "Escola",
+    escolaNome: row.escola_id ? (primeiro(row.escola)?.nome ?? "Escola") : null,
     turmaId: row.turma_id,
     turmaNome: turma?.nome ?? null,
     turmaStatus: turma?.status ?? null,
@@ -372,7 +372,7 @@ export function agruparCarga(
   escolas: Map<string, string>,
   turmas: Map<string, string>,
 ): CargaBolsista[] {
-  const porPessoa = new Map<string, { total: number; escola: Map<string, number>; turma: Map<string | null, number> }>();
+  const porPessoa = new Map<string, { total: number; escola: Map<string | null, number>; turma: Map<string | null, number> }>();
   for (const l of linhas) {
     const horas = Number(l.horas);
     const acc = porPessoa.get(l.bolsista_id) ?? { total: 0, escola: new Map(), turma: new Map() };
@@ -388,7 +388,11 @@ export function agruparCarga(
       total: acc.total,
       porEscola: [...acc.escola.entries()]
         .filter(([, h]) => h > 0)
-        .map(([escolaId, h]) => ({ escolaId, nome: escolas.get(escolaId) ?? "Escola", horas: h })),
+        .map(([escolaId, h]) => ({
+          escolaId,
+          nome: escolaId ? (escolas.get(escolaId) ?? "Escola") : "Fora de escola",
+          horas: h,
+        })),
       porTurma: [...acc.turma.entries()]
         .filter(([, h]) => h > 0)
         .map(([turmaId, h]) => ({

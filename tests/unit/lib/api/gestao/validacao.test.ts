@@ -77,7 +77,7 @@ describe("validação e montagem da gestão (spec 003)", () => {
     expect(coord.map((p) => [p.tipo, p.titulo])).toEqual([
       ["aula_sem_registro", "Aula de 20/09 sem registro"],
       ["bolsista_sem_bolsa", "Bia está sem bolsa vigente"],
-      ["proxima_aula", "Hoje · Escola"],
+      ["proxima_aula", "Hoje · Fora de escola"],
     ]);
     expect(coord[0].urgente).toBe(true);
 

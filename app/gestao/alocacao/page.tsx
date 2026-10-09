@@ -29,7 +29,7 @@ function CartaoEncontro({ e }: { e: Encontro }) {
     >
       <span className="font-semibold">{e.horario}</span> · {e.modalidade}
       {e.turmaNome && <span className="block text-gray-600">{e.turmaNome}</span>}
-      <span className="block text-gray-600">{e.escolaNome}</span>
+      {e.escolaNome && <span className="block text-gray-600">{e.escolaNome}</span>}
       <span className="mt-1 block">
         {equipe.length ? equipe.map((a) => a.bolsistaNome.split(" ")[0]).join(", ") : "Sem equipe"}
       </span>
@@ -107,23 +107,13 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
         <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhum encontro lançado neste mês.</p>
       )}
 
-      {escolas.length === 0 ? (
-        <p className="rounded-lg border bg-white p-4 text-sm">
-          Para lançar encontros, primeiro{" "}
-          <Link href="/gestao/alocacao/turmas" className="text-[#684A97] underline">
-            cadastre uma escola
-          </Link>
-          .
-        </p>
-      ) : (
-        <FormEncontro
-          turmas={turmas}
-          escolas={escolas.map((e) => ({ id: e.id, nome: e.nome }))}
-          pessoas={pessoas}
-          equipes={equipes}
-          dataPadrao={`${mes}-01`}
-        />
-      )}
+      <FormEncontro
+        turmas={turmas}
+        escolas={escolas.map((e) => ({ id: e.id, nome: e.nome }))}
+        pessoas={pessoas}
+        equipes={equipes}
+        dataPadrao={`${mes}-01`}
+      />
     </div>
   );
 }

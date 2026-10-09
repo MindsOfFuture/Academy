@@ -460,7 +460,7 @@ export interface EncontroRow {
     horario: string;
     modalidade: string;
     aulas: string;
-    escola_id: string;
+    escola_id: string | null;
     turma_id: string | null;
     cancelado_em: string | null;
     motivo_cancelamento: string | null;
@@ -477,8 +477,9 @@ export interface Encontro {
     horario: string;
     modalidade: string;
     descricao: string;
-    escolaId: string;
-    escolaNome: string;
+    escolaId: string | null;
+    /** Nulo quando o encontro é fora de escola (tarefa, reunião). */
+    escolaNome: string | null;
     turmaId: string | null;
     turmaNome: string | null;
     turmaStatus: StatusTurma | null;
@@ -493,7 +494,7 @@ export interface NovoEncontro {
     fim: string;
     modalidade: string;
     descricao: string;
-    escolaId: string;
+    escolaId: string | null;
     turmaId: string | null;
     equipe: string[];
 }
@@ -530,7 +531,7 @@ export interface Afastamento extends NovoAfastamento {
 export interface VCargaRow {
     bolsista_id: string;
     data: string;
-    escola_id: string;
+    escola_id: string | null;
     turma_id: string | null;
     horas: number | string;
 }
@@ -539,7 +540,7 @@ export interface CargaBolsista {
     bolsistaId: string;
     nome: string;
     total: number;
-    porEscola: { escolaId: string; nome: string; horas: number }[];
+    porEscola: { escolaId: string | null; nome: string; horas: number }[];
     porTurma: { turmaId: string | null; nome: string; horas: number }[];
 }
 

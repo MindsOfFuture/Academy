@@ -123,8 +123,6 @@ caso que o WhatsApp acomoda.
 
 - O indicador 6 da tela "Hoje" ainda conta toda alocação, inclusive falta e
   substituição. Passar a ler `v_carga` é trabalho da etapa 5 (painel).
-- Encontro sem turma ainda exige uma escola. Reunião ou capacitação fora de escola é
-  "atividade" do M2, fora desta spec.
 - Apagar uma escola ainda apaga em cascata os encontros dela (regra da spec 002). A
   turma trava a exclusão (`restrict`), então só escola sem turma é afetada.
 
@@ -136,3 +134,6 @@ caso que o WhatsApp acomoda.
 3. **Encontro passado sem marcação conta como cumprido.** A coordenação só marca exceção.
 4. **Fim obrigatório ao lançar**, inclusive em tarefa de apoio. Na validação com o real,
    "organizar as caixas" (05/10) é lançada com o fim que a coordenação informar.
+5. **Encontro sem turma não exige escola** (pedido da coordenação, 09/10/2026): tarefa,
+   reunião ou evento podem ficar "fora de escola". Migration
+   `20261009_gestao_agenda_sem_escola.sql`, aplicada em produção no mesmo dia.

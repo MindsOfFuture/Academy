@@ -64,6 +64,10 @@ describe("validações da alocação", () => {
       ok: true,
       valor: { equipe: ["a", "b"], turmaId: null },
     });
+    // Sem turma e sem escola: tarefa ou reunião fora de escola.
+    expect(validarEncontro(form({ ...base, escolaId: "" }))).toMatchObject({ ok: true, valor: { escolaId: null } });
+    // Com turma, a escola do formulário é ignorada: vale a da turma.
+    expect(validarEncontro(form({ ...base, turmaId: "t1" }))).toMatchObject({ ok: true, valor: { escolaId: null, turmaId: "t1" } });
   });
 
   it("parcial precisa de chegada e saída; retirar exige motivo", () => {
