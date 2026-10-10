@@ -121,10 +121,11 @@ test.describe('Fluxo de Matrícula', () => {
       await page.waitForLoadState('networkidle');
 
       // Procurar botão de marcar como concluído
-      const completeButton = page.getByRole('button', { name: /concluir|concluído|marcar/i });
+      // Uma aula por botão: sem .first() o isVisible quebra no modo estrito do Playwright.
+      const completeButton = page.getByRole('button', { name: /concluir|concluído|marcar/i }).first();
 
       if (await completeButton.isVisible()) {
-        await completeButton.first().click();
+        await completeButton.click();
 
         // Verificar feedback
         await page.waitForTimeout(1000);
