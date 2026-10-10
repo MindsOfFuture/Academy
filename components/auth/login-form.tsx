@@ -70,13 +70,13 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-12 placeholder:text-gray-500 [&::-ms-reveal]:hidden focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
+            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-14 placeholder:text-gray-500 [&::-ms-reveal]:hidden focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
           />
           <button
             type="button"
             onClick={() => setShowPassword((p) => !p)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-            className="absolute right-4 text-[#6A4A98] transition-colors hover:text-[#5a3e85]"
+            className="absolute right-1.5 flex h-11 w-11 items-center justify-center rounded-full text-[#6A4A98] transition-colors hover:text-[#5a3e85]"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -108,7 +108,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       </form>
       <p className="mt-4 text-center text-sm text-gray-600 md:hidden">
         Não tem uma conta?{" "}
-        <button type="button" onClick={onToggleView} className="font-semibold text-[#6A4A98] underline hover:text-[#5a3e85]" >
+        <button type="button" onClick={onToggleView} className="inline-flex min-h-11 items-center font-semibold text-[#6A4A98] underline hover:text-[#5a3e85]">
           Criar conta
         </button>
       </p>

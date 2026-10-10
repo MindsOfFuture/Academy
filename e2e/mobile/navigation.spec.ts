@@ -89,6 +89,8 @@ test.describe('Navegação Mobile - Home Page', () => {
   });
 
   test('touch scroll deve funcionar suavemente', async ({ page }) => {
+    // Rolar antes de a página assentar perdia a rolagem de vez em quando (voltava ao topo).
+    await page.waitForLoadState('networkidle');
     const initialScrollY = await page.evaluate(() => window.scrollY);
     
     // Simular scroll via touch
@@ -96,10 +98,8 @@ test.describe('Navegação Mobile - Home Page', () => {
       window.scrollTo({ top: 300, behavior: 'smooth' });
     });
     
-    await page.waitForTimeout(500);
-    
-    const finalScrollY = await page.evaluate(() => window.scrollY);
-    expect(finalScrollY).toBeGreaterThan(initialScrollY);
+    // Rolagem suave leva tempo variável: espera ela acontecer em vez de dormir 500ms fixos.
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(initialScrollY);
   });
 });
 
@@ -198,7 +198,10 @@ test.describe('Navegação Mobile - Responsividade Visual', () => {
         if (box) {
           // WCAG recomenda mínimo de 44x44 para touch targets
           // Vamos usar 40 como limite mais flexível
-          expect(box.width).toBeGreaterThanOrEqual(40);
+          const nome = (await button.getAttribute('aria-label')) || (await button.innerText());
+          // Botão que o `next dev` injeta (o CI também roda em dev); não existe no site publicado.
+          if (nome === 'Open Next.js Dev Tools') continue;
+          expect(box.width, nome).toBeGreaterThanOrEqual(40);
           expect(box.height).toBeGreaterThanOrEqual(40);
         }
       }

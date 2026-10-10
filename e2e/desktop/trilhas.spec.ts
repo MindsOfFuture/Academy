@@ -1,10 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
+
+// /trilhas exige login: sem ele os testes abaixo rodavam sobre a tela de /auth.
+// O redirect de quem não está logado é coberto em e2e/flows/auth-hardening.spec.ts.
+test.beforeEach(async ({ page }) => {
+  const student = TEST_USERS.student;
+  test.skip(!student, 'Requer TEST_STUDENT_EMAIL/PASSWORD');
+  await loginViaUI(page, student!, '/trilhas');
+  await page.waitForLoadState('networkidle');
+});
 
 test.describe('Página de Trilhas Desktop', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-  });
 
   test('página deve carregar sem erros', async ({ page }) => {
     // Verificar que não há erro 500
@@ -102,9 +108,6 @@ test.describe('Página de Trilhas Desktop', () => {
 
 test.describe('Navegação de Trilhas para Curso', () => {
   test('clicar em card de curso deve navegar para detalhes', async ({ page }) => {
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-    
     const courseLink = page.locator('a[href*="/course"]').first();
     
     if (await courseLink.isVisible()) {

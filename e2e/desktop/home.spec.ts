@@ -245,11 +245,8 @@ test.describe('Home Page Desktop - Componentes', () => {
       const img = footerImages.nth(i);
       
       if (await img.isVisible()) {
-        const loaded = await img.evaluate((el: HTMLImageElement) => {
-          return el.complete && el.naturalWidth > 0;
-        });
-        
-        expect(loaded).toBeTruthy();
+        // Depois de rolar a imagem ainda pode estar baixando: espera terminar em vez de ler uma vez só.
+        await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
       }
     }
   });

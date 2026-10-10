@@ -34,7 +34,7 @@ test.describe('Visual Regression - Auth', () => {
     await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
 
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
 
     // Em mobile, deve ter botão para alternar entre login e signup
     const toggleButton = page.locator('button:has-text("Criar conta"), button:has-text("Entrar")');
@@ -47,7 +47,7 @@ test.describe('Visual Regression - Auth', () => {
     await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
 
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
 
     // Em desktop, ambos devem estar visíveis
     const forms = await page.locator('form').count();
@@ -102,7 +102,7 @@ test.describe('Touch Targets - WCAG', () => {
     await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
 
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
 
     const buttons = page.locator('button');
     const count = await buttons.count();
@@ -115,7 +115,8 @@ test.describe('Touch Targets - WCAG', () => {
 
         if (box) {
           // WCAG recomenda 44x44 mínimo
-          expect(box.height).toBeGreaterThanOrEqual(40);
+          const nome = (await button.getAttribute('aria-label')) || (await button.innerText());
+          expect(box.height, nome).toBeGreaterThanOrEqual(40);
         }
       }
     }
@@ -203,13 +204,12 @@ test.describe('Nossos Artigos - setas do carrossel', () => {
     await page.locator('#our-articles .swiper-button-prev').waitFor({ state: 'attached', timeout: 15000 });
     await page.locator('#our-articles .swiper-button-next').waitFor({ state: 'attached', timeout: 15000 });
 
-    const fontSizes = await page.evaluate(() =>
+    // O estilo do carrossel chega depois do elemento: ler uma vez só dava 16px de vez em quando.
+    await expect.poll(() => page.evaluate(() =>
       ['#our-articles .swiper-button-prev', '#our-articles .swiper-button-next'].map((selector) => {
         const el = document.querySelector(selector);
         return el ? window.getComputedStyle(el, '::after').fontSize : null;
       })
-    );
-
-    expect(fontSizes).toEqual(['24px', '24px']);
+    )).toEqual(['24px', '24px']);
   });
 });
