@@ -48,6 +48,10 @@ jobs:
         TEST_STUDENT_PASSWORD: ${{ secrets.TEST_STUDENT_PASSWORD }}
         TEST_GESTAO_COORD_EMAIL: ${{ secrets.TEST_GESTAO_COORD_EMAIL }}
         TEST_GESTAO_COORD_PASSWORD: ${{ secrets.TEST_GESTAO_COORD_PASSWORD }}
+        TEST_TEACHER_EMAIL: ${{ secrets.TEST_TEACHER_EMAIL }}
+        TEST_TEACHER_PASSWORD: ${{ secrets.TEST_TEACHER_PASSWORD }}
+        TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+        TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
         # Sem RESEND_API_KEY de propósito: aviso de alocação dos bolsistas de teste não sai.
     # ADR 012: spec fora do diretório certo não roda e o CI fica verde. Prova que rodou e passou.
     - name: Conferir que o E2E da alocação rodou
