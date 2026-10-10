@@ -19,12 +19,15 @@ import {
   removerAlocacao,
   substituirAlocacao,
 } from "@/lib/api/gestao/alocacao";
+import { cadastrarAlunoTurma, cadastrarListaAlunosTurma, finalizarMatricula } from "@/lib/api/gestao/alunos-turma";
 import { avisar } from "@/lib/api/gestao/avisos";
 import type { ConflitoHorario, EstadoAcao } from "@/lib/api/gestao/types";
 import {
   falha,
   mensagemDeErro,
   sucesso,
+  analisarListaAlunos,
+  validarAlunoTurma,
   validarAfastamento,
   validarEncontro,
   validarEscola,
@@ -243,4 +246,30 @@ export async function afastamentoAction(_anterior: EstadoAcao | null, form: Form
     () => registrarAfastamento(afastamento.valor),
     "Afastamento registrado. Substitua os encontros listados abaixo.",
   );
+}
+
+export async function cadastrarAlunoTurmaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const aluno = validarAlunoTurma(form);
+  if (!aluno.ok) return falha(aluno.mensagem);
+  return executar(() => cadastrarAlunoTurma(aluno.valor), "Aluno adicionado à turma.");
+}
+export async function cadastrarListaAlunosTurmaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const turmaId = campo(form, "turmaId");
+  const lista = analisarListaAlunos(campo(form, "lista"));
+  if (!turmaId) return falha("Turma não informada.");
+  if (lista.validos.length === 0 || lista.linhas.some((l) => l.erro)) return falha("Corrija as linhas inválidas antes de confirmar.");
+  return executar(() => cadastrarListaAlunosTurma(turmaId, lista.validos), String(lista.validos.length) + " alunos adicionados à turma.");
+}
+export async function finalizarMatriculaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "matriculaId");
+  const motivo = campo(form, "motivo");
+  if (!id) return falha("Matrícula não informada.");
+  if (motivo.length < 3 || motivo.length > 500) return falha("Informe um motivo curto.");
+  return executar(() => finalizarMatricula(id, motivo), "Matrícula finalizada.");
 }

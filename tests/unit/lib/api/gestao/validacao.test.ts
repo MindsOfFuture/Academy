@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { lerNumero, mensagemDeErro, validarBolsa } from "@/lib/api/gestao/validacao";
+import { analisarListaAlunos, lerNumero, mensagemDeErro, validarAlunoTurma, validarBolsa } from "@/lib/api/gestao/validacao";
 import { montarPendencias } from "@/lib/api/gestao/pendencias";
 import { mapMembro } from "@/lib/api/gestao/equipe";
 import type { MembroEquipe } from "@/lib/api/gestao/types";
@@ -23,6 +23,21 @@ const BOLSA_OK = {
 };
 
 describe("validação e montagem da gestão (spec 003)", () => {
+  it("valida os dados de aluno e confere cada linha colada antes de salvar", () => {
+    const aluno = new FormData();
+    aluno.set("turmaId", "turma-1"); aluno.set("nome", " Ana "); aluno.set("idade", "12"); aluno.set("anoEscolar", "7º ano");
+    expect(validarAlunoTurma(aluno)).toEqual({ ok: true, valor: { turmaId: "turma-1", nome: "Ana", idade: 12, anoEscolar: "7º ano" } });
+    aluno.set("idade", "12.5");
+    expect(validarAlunoTurma(aluno)).toMatchObject({ ok: false });
+    expect(analisarListaAlunos("Ana; 12; 7º ano\nlinha incompleta\nBia; 10; 5º ano")).toEqual({
+      linhas: [
+        { numero: 1, aluno: { nome: "Ana", idade: 12, anoEscolar: "7º ano" } },
+        { numero: 2, erro: "Use Nome; idade; ano escolar." },
+        { numero: 3, aluno: { nome: "Bia", idade: 10, anoEscolar: "5º ano" } },
+      ],
+      validos: [{ nome: "Ana", idade: 12, anoEscolar: "7º ano" }, { nome: "Bia", idade: 10, anoEscolar: "5º ano" }],
+    });
+  });
   it("aceita bolsa válida lendo a carga em formato brasileiro, sem valor em dinheiro, e recusa carga e vigência inválidas", () => {
     // Um valor enviado por fora do formulário é ignorado: a bolsa não guarda dinheiro.
     const ok = validarBolsa(form({ ...BOLSA_OK, valorMensal: "700,00" }));

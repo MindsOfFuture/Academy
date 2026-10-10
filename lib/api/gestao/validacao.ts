@@ -269,6 +269,7 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
     return "A pessoa precisa ficar com ao menos um papel. Para tirar o acesso, use “Desligar”.";
   }
   if (texto.includes("agenda_bolsista_agenda_id_bolsista_id_key")) return "Esta pessoa já está neste encontro.";
+  if (texto.includes("matricula_ativa_por_turma_aluno")) return "Este aluno já está matriculado nesta turma.";
   if (texto.includes("papel_membro_pkey") || texto.includes("duplicate key")) {
     return "Esta pessoa já faz parte da equipe.";
   }
@@ -290,4 +291,35 @@ export function falha(mensagem: string): EstadoAcao {
 
 export function sucesso(mensagem: string): EstadoAcao {
   return { ok: true, mensagem };
+}
+
+export interface LinhaAlunoTurma {
+  nome: string;
+  idade: number;
+  anoEscolar: string;
+}
+export function validarAlunoTurma(form: FormData) {
+  const nome = String(form.get("nome") ?? "").trim();
+  const idade = Number(form.get("idade"));
+  const anoEscolar = String(form.get("anoEscolar") ?? "").trim();
+  const turmaId = String(form.get("turmaId") ?? "").trim();
+  if (!turmaId) return { ok: false as const, mensagem: "Turma não informada." };
+  if (nome.length < 2 || nome.length > 120) return { ok: false as const, mensagem: "Informe o nome do aluno." };
+  if (!Number.isInteger(idade) || idade < 3 || idade > 100) return { ok: false as const, mensagem: "Confira a idade." };
+  if (!anoEscolar || anoEscolar.length > 80) return { ok: false as const, mensagem: "Informe o ano escolar." };
+  return { ok: true as const, valor: { turmaId, nome, idade, anoEscolar } };
+}
+
+/** Lê uma linha por estudante no formato Nome; idade; ano escolar. */
+export function analisarListaAlunos(texto: string): { linhas: { numero: number; aluno?: LinhaAlunoTurma; erro?: string }[]; validos: LinhaAlunoTurma[] } {
+  const linhas = texto.split(/\r?\n/).map((linha, indice) => ({ linha: linha.trim(), numero: indice + 1 })).filter((l) => l.linha);
+  const resultado = linhas.map(({ linha, numero }) => {
+    const partes = linha.split(";").map((p) => p.trim());
+    const idade = Number(partes[1]);
+    if (partes.length !== 3 || !partes[0] || !Number.isInteger(idade) || idade < 3 || idade > 100 || !partes[2]) {
+      return { numero, erro: "Use Nome; idade; ano escolar." };
+    }
+    return { numero, aluno: { nome: partes[0], idade, anoEscolar: partes[2] } };
+  });
+  return { linhas: resultado, validos: resultado.flatMap((l) => l.aluno ? [l.aluno] : []) };
 }

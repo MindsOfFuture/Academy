@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
   Alocacao,
+  MatriculaSummary,
   ConflitoHorario,
   EscolaSummary,
   EstadoAcao,
@@ -15,8 +16,12 @@ import type {
 } from "@/lib/api/gestao/types";
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
 import { SITUACAO, STATUS_TURMA } from "./rotulos";
+import { analisarListaAlunos } from "@/lib/api/gestao/validacao";
 import {
   afastamentoAction,
+  cadastrarAlunoTurmaAction,
+  cadastrarListaAlunosTurmaAction,
+  finalizarMatriculaAction,
   alocarAction,
   atualizarAlocacaoAction,
   cadastrarEscolaAction,
@@ -665,4 +670,56 @@ export function FormAfastamento({ pessoas }: { pessoas: Opcao[] }) {
       <Aviso estado={estado} />
     </form>
   );
+}
+
+
+export function FormAdicionarAluno({ turmaId }: { turmaId: string }) {
+  const [estado, acao, enviando] = useAcao(cadastrarAlunoTurmaAction);
+  return <form action={acao} className={caixa}>
+    <h2 className="font-semibold">Adicionar aluno</h2>
+    <input type="hidden" name="turmaId" value={turmaId} />
+    <div className="grid gap-3 sm:grid-cols-3">
+      <label className="space-y-1"><span className={rotuloCampo}>Nome</span><Input name="nome" required minLength={2} maxLength={120} /></label>
+      <label className="space-y-1"><span className={rotuloCampo}>Idade</span><Input name="idade" type="number" required min={3} max={100} /></label>
+      <label className="space-y-1"><span className={rotuloCampo}>Ano escolar</span><Input name="anoEscolar" required maxLength={80} placeholder="7º ano" /></label>
+    </div>
+    <Button type="submit" disabled={enviando}>Adicionar aluno</Button><Aviso estado={estado} />
+  </form>;
+}
+
+export function FormColarLista({ turmaId, matriculas }: { turmaId: string; matriculas: MatriculaSummary[] }) {
+  const [estado, acao, enviando] = useAcao(cadastrarListaAlunosTurmaAction);
+  const [texto, setTexto] = useState("");
+  const preview = analisarListaAlunos(texto);
+  const ativos = new Set(matriculas.filter(m => m.situacao === "ativa").map(m => m.nome.trim().toLocaleLowerCase("pt-BR")));
+  const duplicadas = preview.linhas.filter(l => l.aluno && ativos.has(l.aluno.nome.trim().toLocaleLowerCase("pt-BR")));
+  return <form action={acao} className={caixa}>
+    <h2 className="font-semibold">Colar lista</h2>
+    <p className="text-sm text-muted-foreground">Uma pessoa por linha: Nome; idade; ano escolar.</p>
+    <input type="hidden" name="turmaId" value={turmaId} />
+    <label className="sr-only" htmlFor="lista-alunos">Lista de alunos</label>
+    <textarea id="lista-alunos" name="lista" rows={5} value={texto} onChange={e => setTexto(e.target.value)} placeholder={"Ana Souza; 12; 7º ano"} className="w-full rounded-md border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+    {preview.linhas.length > 0 && <div aria-live="polite" className="space-y-1 text-sm"><p className="font-medium">Conferência</p>
+      {preview.linhas.map(l => <p key={l.numero} className={l.erro || (l.aluno && ativos.has(l.aluno.nome.trim().toLocaleLowerCase("pt-BR"))) ? "text-red-700" : "text-green-700"}>
+        Linha {l.numero}: {l.erro ?? (l.aluno && ativos.has(l.aluno.nome.trim().toLocaleLowerCase("pt-BR")) ? "Possível duplicidade: nome já está nesta turma." : l.aluno?.nome)}
+      </p>)}
+      {duplicadas.length > 0 && <p className="text-red-700">Ajuste ou remova as possíveis duplicidades antes de salvar.</p>}
+    </div>}
+    <Button type="submit" disabled={enviando || preview.validos.length === 0 || preview.linhas.some(l => l.erro) || duplicadas.length > 0}
+      onClick={e => { if (!window.confirm("Adicionar todos os alunos válidos desta lista?")) e.preventDefault(); }}>Confirmar e adicionar lista</Button>
+    <Aviso estado={estado} />
+  </form>;
+}
+
+export function AcaoFinalizarMatricula({ matricula }: { matricula: MatriculaSummary }) {
+  const [estado, acao, enviando] = useAcao(finalizarMatriculaAction);
+  return <form action={acao} className="flex flex-col gap-2 sm:flex-row sm:items-end" onSubmit={e => {
+    const motivo = new FormData(e.currentTarget).get("motivo");
+    if (!window.confirm("Finalizar a matrícula de " + matricula.nome + "? O histórico será mantido.")) e.preventDefault();
+    if (typeof motivo !== "string" || motivo.trim().length < 3) e.preventDefault();
+  }}>
+    <input type="hidden" name="matriculaId" value={matricula.id} />
+    <label className="flex-1 space-y-1"><span className={rotuloCampo}>Motivo para finalizar</span><Input name="motivo" required minLength={3} maxLength={500} placeholder="Mudou de escola…" /></label>
+    <Button type="submit" variant="outline" disabled={enviando}>Finalizar matrícula</Button><Aviso estado={estado} />
+  </form>;
 }

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { listarTurmas } from "@/lib/api/gestao/alocacao";
+import { contarMatriculasAtivas } from "@/lib/api/gestao/alunos-turma";
 import { listEscolas } from "@/lib/api/gestao/entities";
 import { exigirMembro } from "../../guard";
 import { FormEscola, FormSituacaoTurma, FormTurma } from "../forms";
@@ -16,7 +18,7 @@ function dataBr(iso: string): string {
 
 export default async function TurmasPage() {
   await exigirMembro("/gestao/alocacao/turmas", "coordenacao");
-  const [turmas, escolas] = await Promise.all([listarTurmas(), listEscolas()]);
+  const [turmas, escolas, contagens] = await Promise.all([listarTurmas(), listEscolas(), contarMatriculasAtivas()]);
   const opcoesEscola = escolas.map((e) => ({ id: e.id, nome: `${e.nome} · ${e.cidade}` }));
 
   return (
@@ -35,7 +37,7 @@ export default async function TurmasPage() {
             <li key={t.id} className="space-y-3 p-4">
               <div>
                 <p className="font-medium">
-                  {t.nome}{" "}
+                  <Link href={`/gestao/alocacao/turmas/${t.id}`} className="text-[#684A97] underline">{t.nome}</Link>{" "}
                   <span className="ml-1 rounded-full bg-[#684A97]/10 px-2 py-0.5 text-xs font-medium text-[#684A97]">
                     {STATUS_TURMA[t.status]}
                   </span>
@@ -44,6 +46,7 @@ export default async function TurmasPage() {
                   {t.modalidade} · {t.escolaNome} · desde {dataBr(t.inicio)}
                   {t.fim && ` até ${dataBr(t.fim)}`}
                 </p>
+                <p className="text-sm text-muted-foreground">{contagens[t.id] ?? 0} alunos ativos</p>
               </div>
               {/* As chaves remontam os formulários com o que foi salvo (ver a página do encontro). */}
               <FormSituacaoTurma key={`${t.status}|${t.motivo}`} turma={t} />

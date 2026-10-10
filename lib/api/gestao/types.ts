@@ -582,3 +582,34 @@ export interface EncontroDoDiaRow {
     turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
     agenda_bolsista: { bolsista_id: string; situacao: SituacaoAlocacao; inicio: string | null; fim: string | null }[] | null;
 }
+
+export type SituacaoMatricula = "ativa" | "finalizada";
+export interface MatriculaRow {
+  id: string;
+  turma_id: string;
+  aluno_id: string;
+  situacao: SituacaoMatricula;
+  finalizada_em: string | null;
+  finalizada_por: string | null;
+  motivo: string | null;
+  criado_em: string;
+  aluno: { id: string; nome: string; idade: number; ano_escolar: string } | { id: string; nome: string; idade: number; ano_escolar: string }[];
+}
+export interface MatriculaSummary {
+  id: string;
+  turmaId: string;
+  alunoId: string;
+  nome: string;
+  idade: number;
+  anoEscolar: string;
+  situacao: SituacaoMatricula;
+  finalizadaEm: string | null;
+  motivo: string | null;
+}
+export interface NovoAlunoTurma {
+  turmaId: string;
+  nome: string;
+  idade: number;
+  anoEscolar: string;
+  execucao?: string;
+}
