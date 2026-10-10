@@ -8,6 +8,8 @@ import type { AbaGestao } from "./nav";
 export function abasDoPapel(papel: GestaoPapel): AbaGestao[] {
   const abas: AbaGestao[] = [{ href: "/gestao", rotulo: "Hoje" }];
   if (papel === "coordenacao") abas.push({ href: "/gestao/equipe", rotulo: "Equipe" });
+  abas.push({ href: "/gestao/turmas", rotulo: papel === "coordenacao" ? "Turmas" : "Minhas turmas" });
+  if (papel === "coordenacao") abas.push({ href: "/gestao/alunos", rotulo: "Alunos" });
   abas.push({ href: "/gestao/melhorias", rotulo: "Melhorias" });
   return abas;
 }

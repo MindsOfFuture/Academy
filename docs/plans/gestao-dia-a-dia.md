@@ -220,7 +220,19 @@ Aceite:
 - [ ] Desligar ou apagar a última pessoa ativa da coordenação é recusado pelo banco.
 - [ ] Bolsista não encontra ninguém pela busca por e-mail nem lê a lista da equipe.
 
-### Módulo 1 — Turmas: a pasta vira página (spec 004)
+### Módulo 1 — Turmas: a pasta vira página (spec 014)
+
+Rascunho: `specs/014-gestao-turmas.md`. Em 08/10/2026, Rafael confirmou no tópico
+10724 ("1 s 2 inclui") as fontes oficiais Levantamentos + controles de turmas de
+2026, com histórico anterior depois, e arquivo assinado + status + data de conferência
+do termo desde a primeira versão (D1). A spec completa ainda não foi aprovada;
+essas decisões não autorizam migration, importação real, deploy ou mudança dos
+originais para somente leitura. O mapeamento e a revisão das fontes ficam em
+`docs/plans/gestao-turmas-importacao-2026.md`.
+
+As propostas abaixo são detalhadas pelo rascunho 014: chamada não começa com todos
+presentes; valores desconhecidos ficam não informados; indicadores mostram lacunas
+sem inventar dados. Os 75% para certificado continuam provisórios, não aprovados.
 
 Substitui pasta por turma, planilha de presença, planilha de termos e a planilha de
 KPI alimentada no fim.
@@ -299,7 +311,7 @@ Telas:
   aluno), **Encontros** (datas e horários, bolsistas alocados), **Chamada**, **Diários**,
   **KPI**.
 - `/gestao/turmas/[id]/chamada/[encontro]`: celular. Lista de alunos com um toque
-  presente/ausente, "todos presentes" como padrão. Meta: lançar chamada de 30 alunos
+  presente/ausente/não informado, sem presumir presença inicial. Meta: lançar chamada de 30 alunos
   em menos de um minuto.
 - `/gestao/turmas/[id]/lista-presenca`: versão para imprimir e colher assinatura na
   escola (substitui a planilha de presença e a `lista_enviada` montada à mão). CSS de
@@ -308,9 +320,10 @@ Telas:
   pendente). Pendência não bloqueia; a coordenação encerra mesmo assim e o KPI mostra
   o buraco. Encerrar grava `encerrada_em/por` e libera o convite da avaliação final.
 
-Importação: planilha de presença e planilha de termos de cada turma em andamento;
-planilha de KPI das turmas já encerradas (entram como turmas encerradas com seus
-alunos e presenças, quando a planilha tiver esse detalhe).
+Importação: Levantamentos e controles oficiais de turmas de 2026 primeiro, com
+revisão de correspondências e situação antes de confirmar; histórico anterior depois.
+Status vazio não define turma ativa ou encerrada. Importar apenas detalhe comprovado,
+sem transformar lacunas de presença em ausência nem totais de KPI em registros fictícios.
 
 Aceite:
 
@@ -921,7 +934,7 @@ Nenhuma bloqueia M0. Cada uma bloqueia só a spec indicada.
 
 | # | Decisão | Recomendação | Bloqueia |
 |---|---|---|---|
-| D1 | Termo assinado: guardar só o status (como hoje) ou também o arquivo escaneado? "Nada fora do sistema" pede o arquivo; a minimização da spec 002 pede só o status | Arquivo no bucket privado, só coordenação lê, prazo de retenção definido pela coordenação. Exige emenda da spec 002. Entra depois do status, sem retrabalho | M1 (parte do arquivo) |
+| D1 | Resolvida no produto em 08/10/2026: incluir arquivo assinado, status e data de conferência desde a primeira versão (tópico 10724, "1 s 2 inclui") | Arquivo privado; só coordenação ativa envia, confere e lê; URLs assinadas curtas, sem bucket público. Admin do produto sem coordenação, bolsista e desligado não leem documentos. Emenda restrita da spec 002 proposta na spec 014, sem novos campos de CPF/bancários. Retenção ainda não definida pela coordenação | Aprovação integral da spec 014 e política de retenção antes do armazenamento real; não autoriza produção |
 | D2 | CPF do bolsista para o relatório e a Fadepe | Tabela separada `gestao.bolsista_dados_pessoais`, só CPF, lida pelo dono e pela coordenação. Dado bancário nunca | M5 |
 | D3 | "Módulos" do histórico = módulos dos cursos da plataforma ou planos de aula do projeto? | Módulos dos cursos (é o que existe no sistema) | M6 |
 | D4 | Lista oficial de categorias de gasto e rubricas do convênio | Pedir à coordenação/Fadepe. Semente provisória: Bolsas, Kits e material de robótica, Transporte, Alimentação, Software e assinaturas, Domínio e hospedagem, Divulgação, Eventos, Outros | M4 |

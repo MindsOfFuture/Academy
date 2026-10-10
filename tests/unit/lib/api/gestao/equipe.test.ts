@@ -29,13 +29,22 @@ const schema = vi.fn((nome: string) => {
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ schema })) }));
 
-import { buscarUsuarioPorEmail, concederPapel, definirPapel, listarEquipe } from "@/lib/api/gestao/equipe";
+import { buscarUsuarios, buscarUsuarioPorEmail, concederPapel, definirPapel, listarEquipe } from "@/lib/api/gestao/equipe";
 
 const SO_BOLSISTA = { coordenacao: false, bolsista: true };
 const SO_COORDENACAO = { coordenacao: true, bolsista: false };
 const AMBOS = { coordenacao: true, bolsista: true };
 
 describe("lib/api/gestao/equipe", () => {
+  it("busca parcial limitada e rejeita enumeração vazia antes da RPC", async () => {
+    rpc.mockResolvedValue({ data: [], error: null });
+    await expect(buscarUsuarios("  Ana  ")).resolves.toEqual([]);
+    expect(rpc).toHaveBeenLastCalledWith("buscar_usuarios", { p_busca: "Ana", p_limite: 20 });
+    rpc.mockClear();
+    for (const q of ["", "a", "x".repeat(101)]) await expect(buscarUsuarios(q)).rejects.toThrow();
+    await expect(buscarUsuarios("Ana", 51)).rejects.toThrow();
+    expect(rpc).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     insert.mockResolvedValue({ error: null });

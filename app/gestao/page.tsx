@@ -25,6 +25,10 @@ export default async function GestaoPage() {
 
   return (
     <div className="space-y-8">
+      <section className="flex flex-wrap gap-3" aria-label="Cadastros e chamada">
+        <Link href="/gestao/turmas" className="min-h-11 rounded-lg bg-[#684A97] px-4 py-3 font-semibold text-white">{papel === "coordenacao" ? "Turmas, escolas e chamada" : "Minhas turmas e chamada"}</Link>
+        {papel === "coordenacao" && <Link href="/gestao/alunos" className="min-h-11 rounded-lg border px-4 py-3">Cadastrar alunos</Link>}
+      </section>
       <section aria-labelledby="a-fazer" className="space-y-3">
         <h2 id="a-fazer" className="text-xl font-semibold">
           O que você tem a fazer

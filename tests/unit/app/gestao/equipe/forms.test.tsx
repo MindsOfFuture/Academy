@@ -1,0 +1,46 @@
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+const {search,grant}=vi.hoisted(()=>({search:vi.fn(),grant:vi.fn()}));
+vi.mock("@/app/gestao/equipe/actions",()=>({buscarPessoasAction:search,concederPapelAction:grant,cadastrarBolsaAction:vi.fn(),definirPapelAction:vi.fn(),desligamentoAction:vi.fn(),removerMembroAction:vi.fn()}));
+import { FormConcederPapel } from "@/app/gestao/equipe/forms";
+const ids=['10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002'];
+beforeEach(()=>{vi.clearAllMocks();grant.mockResolvedValue({ok:true,mensagem:'Adicionada'});search.mockResolvedValue({ok:true,mensagem:'Selecione',pessoas:ids.map((id,i)=>({id,nome:'Ana Silva',email:`ana${i}@x`,coordenacao:null,bolsista:null,desligado_em:null}))});});
+afterEach(cleanup);
+it('busca parcial, distingue homônimos e exige escolha explícita por UUID',async()=>{
+ const {container}=render(<FormConcederPapel/>);
+ expect(screen.getByRole('button',{name:'Adicionar'})).toBeDisabled();
+ fireEvent.change(screen.getByRole('textbox',{name:'Nome ou e-mail'}),{target:{value:'Ana'}});
+ fireEvent.click(screen.getByRole('button',{name:'Buscar'}));
+ await screen.findByRole('radio',{name:/ana1@x/});
+ expect(grant).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('radio',{name:/ana1@x/}));
+ expect(container.querySelector<HTMLInputElement>('[name="userProfileId"]')?.value).toBe(ids[1]);
+ fireEvent.click(screen.getByRole('button',{name:'Adicionar'}));
+ await waitFor(()=>expect(grant).toHaveBeenCalled());
+ expect((grant.mock.calls[0][1] as FormData).get('userProfileId')).toBe(ids[1]);
+ fireEvent.change(screen.getByRole('textbox',{name:'Nome ou e-mail'}),{target:{value:'Bia'}});
+ expect(screen.getByRole('button',{name:'Adicionar'})).toBeDisabled();
+ expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+});
+it('descarta resposta antiga após editar a busca e mostra ausência de resultados', async()=>{
+ let resolve!: (value: unknown) => void;
+ search.mockImplementationOnce(()=>new Promise(r=>{resolve=r;}));
+ render(<FormConcederPapel/>);
+ const input=screen.getByRole('textbox',{name:'Nome ou e-mail'});
+ fireEvent.change(input,{target:{value:'Ana'}}); fireEvent.click(screen.getByRole('button',{name:'Buscar'}));
+ fireEvent.change(input,{target:{value:'Bia'}});
+ await act(async()=>resolve({ok:true,mensagem:'Antiga',pessoas:[{id:ids[0],nome:'Ana',email:'ana@x'}]}));
+ expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+ search.mockResolvedValueOnce({ok:true,mensagem:'Nenhuma conta encontrada',pessoas:[]});
+ fireEvent.click(screen.getByRole('button',{name:'Buscar'}));
+ expect(await screen.findByRole('status')).toHaveTextContent('Nenhuma conta encontrada');
+ expect(screen.getByRole('button',{name:'Adicionar'})).toBeDisabled();
+});
+it('mostra falha de busca sem resultados selecionáveis',async()=>{
+ search.mockRejectedValue(new Error('Rede'));
+ render(<FormConcederPapel/>);
+ fireEvent.change(screen.getByRole('textbox',{name:'Nome ou e-mail'}),{target:{value:'Ana'}});
+ fireEvent.click(screen.getByRole('button',{name:'Buscar'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent(/buscar/);
+ expect(screen.getByRole('button',{name:'Adicionar'})).toBeDisabled();
+});

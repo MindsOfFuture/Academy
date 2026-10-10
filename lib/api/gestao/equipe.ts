@@ -6,9 +6,10 @@ import type { BolsaVigente, EquipeRow, GestaoPapel, MembroEquipe, NovaBolsa, Pap
  * Equipe e bolsa do projeto (spec 003).
  *
  * A leitura da equipe passa por `gestao.equipe()` e a busca por
- * `gestao.buscar_usuario_por_email()`: a RLS de `public.user_profile` não deixa
- * a coordenação ler perfis alheios, e as duas funções devolvem só nome e e-mail,
- * só para a coordenação ativa. A escrita vai direto nas tabelas, sob a RLS
+ * `gestao.buscar_usuarios()` (nome/e-mail parcial) ou a RPC legada por e-mail
+ * exato. A RLS de perfil não deixa a coordenação ler perfis alheios; cada
+ * função confere a coordenação ativa antes de retornar sua projeção.
+ * A escrita vai direto nas tabelas, sob a RLS
  * fatiada da migration `20260923_gestao_fundacao.sql`.
  *
  * Cliente SSR autenticado; nenhum caminho de service role.
@@ -52,6 +53,16 @@ export async function listarEquipe(): Promise<MembroEquipe[]> {
   const { data, error } = await supabase.schema("gestao").rpc("equipe");
   throwOnError(error);
   return ((data ?? []) as EquipeRow[]).map(mapMembro);
+}
+
+export async function buscarUsuarios(busca: string, limite = 20): Promise<UsuarioBuscadoRow[]> {
+  const termo = busca.trim();
+  if (termo.length < 2 || termo.length > 100) throw new Error("Digite entre 2 e 100 caracteres para buscar.");
+  if (!Number.isInteger(limite) || limite < 1 || limite > 50) throw new Error("Limite de busca inválido.");
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("gestao").rpc("buscar_usuarios", { p_busca: termo, p_limite: limite });
+  throwOnError(error);
+  return (data ?? []) as UsuarioBuscadoRow[];
 }
 
 export async function buscarUsuarioPorEmail(email: string): Promise<UsuarioBuscadoRow | null> {

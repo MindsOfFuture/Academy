@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
 import {
   buscarUsuarioPorEmail,
+  buscarUsuarios,
   cadastrarBolsa,
   concederPapel,
   definirDesligamento,
@@ -53,14 +54,38 @@ function idDoForm(form: FormData): string {
   return typeof id === "string" ? id : "";
 }
 
+export async function buscarPessoasAction(busca: string) {
+  const negado = await exigirCoordenacao();
+  if (negado) return { ...negado, pessoas: [] as Awaited<ReturnType<typeof buscarUsuarios>> };
+  try {
+    const pessoas = await buscarUsuarios(busca);
+    return { ok: true, mensagem: pessoas.length ? "Selecione a pessoa e confirme o papel." : "Nenhuma conta encontrada. Tente outro nome ou e-mail.", pessoas };
+  } catch (error) {
+    return { ...falha(mensagemDeErro(error)), pessoas: [] as Awaited<ReturnType<typeof buscarUsuarios>> };
+  }
+}
+
 export async function concederPapelAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   const negado = await exigirCoordenacao();
   if (negado) return negado;
 
-  const email = validarEmail(typeof form.get("email") === "string" ? (form.get("email") as string) : "");
-  if (!email.ok) return falha(email.mensagem);
   const papeis = papeisDoForm(form);
   if (!papeis) return falha("Escolha o papel.");
+  // A selected UUID is authoritative; never fall back to displayed name/email.
+  if (form.has("userProfileId")) {
+    const id = idDoForm(form);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return falha("Selecione uma pessoa cadastrada.");
+    try {
+      // FK proves the account exists; authenticated table RLS rechecks coordination.
+      const final = await concederPapel(id, papeis);
+      revalidatePath(CAMINHO);
+      revalidatePath("/gestao");
+      return sucesso(`Pessoa selecionada adicionada à equipe como ${descreverPapeis(final)}.`);
+    } catch (error) { return falha(mensagemDeErro(error)); }
+  }
+  // Compatibility for previous exact-email callers, not used by the selection UI.
+  const email = validarEmail(typeof form.get("email") === "string" ? (form.get("email") as string) : "");
+  if (!email.ok) return falha(email.mensagem);
 
   try {
     const usuario = await buscarUsuarioPorEmail(email.valor);
