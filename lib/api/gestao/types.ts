@@ -284,14 +284,23 @@ export interface MembroEquipe extends PapeisMembro {
     temAlocacao: boolean;
 }
 
-/** Linha devolvida por `gestao.buscar_usuario_por_email()`. */
-export interface UsuarioBuscadoRow {
+/** Linha devolvida por `gestao.buscar_usuarios()` (spec 015). */
+export interface UsuarioEncontradoRow {
     id: string;
     nome: string | null;
-    email: string;
+    email_parcial: string;
     coordenacao: boolean | null;
     bolsista: boolean | null;
     desligado_em: string | null;
+}
+
+/** Pessoa achada na busca da tela de equipe; e-mail só parcial, para separar homônimos. */
+export interface UsuarioEncontrado {
+    id: string;
+    nome: string;
+    emailParcial: string;
+    /** Já está na equipe e ativa: escolher soma o papel ao que ela já tem. */
+    naEquipe: boolean;
 }
 
 export interface NovaBolsa {
@@ -379,4 +388,197 @@ export interface RespostaMelhoria {
     resposta: string | null;
     duplicadaDe: string | null;
     linkExecucao: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Alocação de bolsistas nos encontros (spec 014)
+// ---------------------------------------------------------------------------
+
+export type StatusTurma = "prevista" | "em_andamento" | "encerrada" | "nao_abriu";
+export type SituacaoAlocacao =
+    | "prevista"
+    | "cumprida"
+    | "faltou_avisou"
+    | "faltou_sem_aviso"
+    | "substituida"
+    | "retirada";
+
+export interface TurmaRow {
+    id: string;
+    escola_id: string;
+    nome: string;
+    modalidade: string;
+    inicio: string;
+    fim: string | null;
+    status: StatusTurma;
+    motivo: string | null;
+    escola: { nome: string } | { nome: string }[] | null;
+}
+
+export interface Turma {
+    id: string;
+    escolaId: string;
+    escolaNome: string;
+    nome: string;
+    modalidade: string;
+    inicio: string;
+    fim: string | null;
+    status: StatusTurma;
+    motivo: string | null;
+}
+
+export interface AlocacaoRow {
+    id: string;
+    bolsista_id: string;
+    situacao: SituacaoAlocacao;
+    inicio: string | null;
+    fim: string | null;
+    coberto_por: string | null;
+    motivo: string | null;
+    carga: string;
+    gestor: boolean;
+}
+
+export interface Alocacao {
+    id: string;
+    bolsistaId: string;
+    bolsistaNome: string;
+    situacao: SituacaoAlocacao;
+    /** Intervalo parcial ("14:00"); nulo = o encontro inteiro. */
+    inicio: string | null;
+    fim: string | null;
+    cobertoPor: string | null;
+    cobertoPorNome: string | null;
+    motivo: string | null;
+    carga: string;
+    /** Pode concluir o encontro (spec 016). */
+    gestor: boolean;
+}
+
+export interface EncontroRow {
+    id: string;
+    data: string;
+    inicio: string | null;
+    fim: string | null;
+    horario: string;
+    modalidade: string;
+    aulas: string;
+    escola_id: string | null;
+    turma_id: string | null;
+    cancelado_em: string | null;
+    motivo_cancelamento: string | null;
+    concluido_em: string | null;
+    relatorio: string | null;
+    escola: { nome: string } | { nome: string }[] | null;
+    turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
+    agenda_bolsista: AlocacaoRow[] | null;
+}
+
+export interface Encontro {
+    id: string;
+    data: string;
+    inicio: string | null;
+    fim: string | null;
+    horario: string;
+    modalidade: string;
+    descricao: string;
+    escolaId: string | null;
+    /** Nulo quando o encontro é fora de escola (tarefa, reunião). */
+    escolaNome: string | null;
+    turmaId: string | null;
+    turmaNome: string | null;
+    turmaStatus: StatusTurma | null;
+    canceladoEm: string | null;
+    motivoCancelamento: string | null;
+    /** Confirmado que aconteceu (decisão 10 da spec 014); verde no calendário. */
+    concluidoEm: string | null;
+    /** Escrito por quem concluiu (spec 016). */
+    relatorio: string | null;
+    alocacoes: Alocacao[];
+}
+
+export interface NovoEncontro {
+    data: string;
+    inicio: string;
+    fim: string;
+    modalidade: string;
+    descricao: string;
+    escolaId: string | null;
+    turmaId: string | null;
+    equipe: string[];
+}
+
+export interface NovaTurma {
+    escolaId: string;
+    nome: string;
+    modalidade: string;
+    inicio: string;
+    fim: string | null;
+}
+
+export interface NovaEscola {
+    nome: string;
+    categoria: string;
+    cidade: string;
+}
+
+export interface NovoAfastamento {
+    bolsistaId: string;
+    inicio: string;
+    fim: string;
+    motivo: string;
+}
+
+export interface Afastamento extends NovoAfastamento {
+    id: string;
+    bolsistaNome: string;
+    /** Encontros do período em que a pessoa ainda está como prevista. */
+    encontrosAfetados: { alocacaoId: string; encontroId: string; data: string; horario: string; modalidade: string }[];
+}
+
+/** Linha de `gestao.v_carga`: uma alocação e as horas que contam. */
+export interface VCargaRow {
+    bolsista_id: string;
+    data: string;
+    escola_id: string | null;
+    turma_id: string | null;
+    horas: number | string;
+}
+
+export interface CargaBolsista {
+    bolsistaId: string;
+    nome: string;
+    total: number;
+    porEscola: { escolaId: string | null; nome: string; horas: number }[];
+    porTurma: { turmaId: string | null; nome: string; horas: number }[];
+}
+
+export interface RegistroHistorico {
+    tabela: string;
+    acao: "insert" | "update" | "delete";
+    autorNome: string;
+    ocorridoEm: string;
+    /** Campos que mudaram, já com o valor antes e depois. */
+    mudancas: { campo: string; antes: unknown; depois: unknown }[];
+}
+
+/** Encontro do mesmo dia que se sobrepõe ao que está sendo lançado (spec 014). */
+export interface ConflitoHorario {
+    bolsistaId: string;
+    bolsistaNome: string;
+    encontroId: string;
+    horario: string;
+    modalidade: string;
+    turmaNome: string | null;
+}
+
+/** Linha da consulta de sobreposição: o encontro e só as alocações das pessoas escolhidas. */
+export interface EncontroDoDiaRow {
+    id: string;
+    inicio: string | null;
+    fim: string | null;
+    horario: string;
+    modalidade: string;
+    turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
+    agenda_bolsista: { bolsista_id: string; situacao: SituacaoAlocacao; inicio: string | null; fim: string | null }[] | null;
 }

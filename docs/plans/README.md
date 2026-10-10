@@ -9,6 +9,7 @@ sem decisão é dívida de contexto — quem lê o repo não sabe se é roadmap 
 | Plano | Escopo | Status |
 |---|---|---|
 | [sistema-interno-gestao.md](sistema-interno-gestao.md) | Módulo `/gestao`: alocação de bolsista, relatório mensal, prestação de contas | proposta |
+| [levantamento-alocacao.md](levantamento-alocacao.md) | Como a alocação bolsista → escola → turma → carga acontece hoje (observação, não proposta) | concluído |
 | [portal-de-ideias.md](portal-de-ideias.md) | Captura e triagem de ideias da equipe interna e bolsistas | absorvido pelo M8 de `gestao-dia-a-dia.md` |
 | [repositorio-skills-artifacts.md](repositorio-skills-artifacts.md) | Catálogo interno de Claude Skills e Artifacts do time | proposta |
 | [indicador-como-dado-contrato.md](indicador-como-dado-contrato.md) | Esboço de contrato "indicador como dado" (sem migration), base para `gestao.*` | esboço |

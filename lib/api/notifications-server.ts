@@ -1,5 +1,6 @@
 import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
 import { sendNotificationEmail } from "@/lib/email/resend";
+import { buildEmailHtml } from "@/lib/email/template";
 
 // ----- Types -----
 
@@ -35,23 +36,6 @@ export interface Notification {
 }
 
 // ----- Email templates -----
-
-function buildEmailHtml(title: string, message: string, href?: string): string {
-    return `
-    <div style="font-family:'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#f9f7fc;border-radius:12px;">
-        <div style="text-align:center;margin-bottom:16px;">
-            <h2 style="color:#684A97;margin:0;">Minds of the Future</h2>
-        </div>
-        <div style="background:#fff;border-radius:8px;padding:20px;border:1px solid #e5e0ed;">
-            <h3 style="margin:0 0 8px;color:#333;">${title}</h3>
-            <p style="margin:0 0 16px;color:#555;line-height:1.5;">${message}</p>
-            ${href ? `<a href="${href}" style="display:inline-block;background:#684A97;color:#fff;padding:10px 20px;border-radius:24px;text-decoration:none;font-weight:600;">Acessar</a>` : ""}
-        </div>
-        <p style="text-align:center;margin-top:16px;font-size:12px;color:#999;">
-            Você recebeu este e-mail porque tem uma conta na plataforma Minds of the Future.
-        </p>
-    </div>`;
-}
 
 function emailSubjectForType(type: NotificationType, title: string): string {
     switch (type) {

@@ -215,7 +215,8 @@ systemd). Chaves presentes (conferidas em produção):
 
 `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_ANON_KEY` ·
 `SUPABASE_SERVICE_ROLE_KEY` · `RESEND_API_KEY` · `RESEND_FROM_EMAIL` ·
-`RESEND_TEST_RECIPIENT` · `NEXT_PUBLIC_APP_URL`.
+`RESEND_TEST_RECIPIENT` · `NEXT_PUBLIC_APP_URL` · `GESTAO_LEMBRETE_DB_URL`
+(só do lembrete de encontro, 8.6).
 
 Regras:
 
@@ -554,6 +555,103 @@ build standalone em `/opt/academy` só carrega o que o Next rastreou, então um
 script `node` avulso não tem dependência garantida ali. Resolver com o script
 empacotado junto do release ou com dependências próprias, mas sem mudar este
 padrão.
+
+### 8.6 Lembrete de encontro: `academy-lembrete-encontros` (spec 016)
+
+De hora em hora, manda e-mail para quem está alocado num encontro que começa nas
+próximas 24 h, uma vez por alocação. É `sh` + `psql` + `curl`, sem `node`: o
+release standalone não carrega script avulso (8.5), e aqui não precisa. O banco
+escolhe os destinatários e monta o e-mail; o script envia e marca.
+
+Entra no banco com o papel **`gestao_lembrete`**, que só executa
+`gestao.lembretes_pendentes()` e `gestao.marcar_lembrete_enviado()` — nunca com a
+chave de serviço (ADR 021). Ativação, uma vez:
+
+1. Senha do papel (no SQL Editor do Supabase; a senha não vai para o repo):
+   `alter role gestao_lembrete login password '<gerada>';`
+2. Em `/etc/academy.env`, a conexão pelo pooler (modo sessão), com o usuário
+   `gestao_lembrete.<project-ref>`:
+   `GESTAO_LEMBRETE_DB_URL=postgresql://gestao_lembrete.jrfehrhiyilxhbuwjmat:<senha>@aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require`
+   (o projeto está em `us-west-2`; `aws-1-*` e as outras regiões respondem "tenant/user not found").
+   Senha gerada sem `\r` no fim: arquivo vindo do Windows quebra a autenticação.
+3. `sudo apt-get install -y postgresql-client` (se `psql` não existir) e
+   `sudo install -o root -g root -m 755 scripts/academy-lembrete-encontros.sh /usr/local/bin/academy-lembrete-encontros`.
+4. Unidades:
+
+`/etc/systemd/system/academy-lembrete-encontros.service`:
+
+```ini
+[Unit]
+Description=Academy: lembrete de encontro (24 h antes)
+OnFailure=academy-job-falhou@%n.service
+
+[Service]
+Type=oneshot
+User=academy
+EnvironmentFile=/etc/academy.env
+TimeoutStartSec=5min
+ExecStart=/usr/local/bin/academy-lembrete-encontros
+```
+
+`/etc/systemd/system/academy-lembrete-encontros.timer`:
+
+```ini
+[Unit]
+Description=Academy: lembrete de encontro (de hora em hora)
+
+[Timer]
+OnCalendar=*-*-* *:05:00 America/Sao_Paulo
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now academy-lembrete-encontros.timer
+sudo systemctl start academy-lembrete-encontros.service && journalctl -u academy-lembrete-encontros -n 5
+```
+
+`RESEND_TEST_RECIPIENT` preenchido no `/etc/academy.env` redireciona também os
+lembretes, como no site.
+
+**Ativado em 09/10/2026**: papel com senha, `GESTAO_LEMBRETE_DB_URL` no
+`/etc/academy.env` (backup em `academy.env.bak-lembrete`), `postgresql-client`
+instalado, timer habilitado (`:05` de cada hora, Brasília). Conferido que o papel
+recebe `permission denied` em `gestao.escola` e `public.user_profile`; execução
+manual com um encontro de teste para o dia seguinte enviou 1 lembrete e marcou;
+a execução seguinte não reenviou. Depois, o lembrete passou a sair no modelo de
+e-mail da plataforma (abaixo) e foi reenviado e conferido na caixa de entrada.
+
+#### Avisos de alocação (saem do site, não do VPS)
+
+Quem é alocado, removido ou substituído num encontro, e toda a equipe de um
+encontro cancelado, recebe e-mail **na hora da ação**, mandado pelo próprio site
+(`lib/api/gestao/avisos.ts`). Não há job: depende só de `RESEND_API_KEY` e
+`RESEND_FROM_EMAIL` no ambiente do site. Sem a chave, a ação vale e o aviso some —
+o log mostra `[sendNotificationEmail] Falha ao enviar e-mail: … Missing API key`.
+Aviso perdido não é reenviado; a pessoa vê a alocação no site.
+
+**Modelo único.** Avisos e lembrete usam o mesmo HTML dos outros e-mails
+(`lib/email/template.ts`). O lembrete, montado no banco, tem uma cópia em
+`gestao.email_html()`; o teste `tests/integration/gestao-alocacao-migration.test.ts`
+falha se as duas divergirem. Mudou o modelo → nova migration com o
+`gestao.email_html()` igual.
+
+**Servidor local apontando para produção.** Com `RESEND_*` no `.env.local`, os
+avisos vão para as pessoas reais da equipe. Para testar, preencher
+`RESEND_TEST_RECIPIENT` com o próprio e-mail ou alocar só a si mesmo.
+Reiniciar o `npm run dev` depois de mexer no `.env.local`.
+
+**Pendências deste módulo:**
+
+- os links dos e-mails (`/gestao/encontro/<id>`) só abrem depois do deploy desta
+  versão;
+- depois do deploy, apagar `gestao.buscar_usuario_por_email` (substituída pela
+  busca por nome, spec 015);
+- dados de teste em produção (nomes com `TESTE`, Escola A/B) apagados quando a
+  coordenação encerrar a validação.
 
 ---
 

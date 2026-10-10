@@ -8,6 +8,7 @@ import { User } from "@supabase/supabase-js";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
+import { temAcessoGestaoAction } from "@/app/gestao/actions";
 
 interface UserProfile {
     full_name: string | null;
@@ -17,6 +18,7 @@ interface UserProfile {
 export function AuthButtonClient() {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [gestao, setGestao] = useState(false);
     const supabase = createClient();
 
     useEffect(() => {
@@ -45,6 +47,15 @@ export function AuthButtonClient() {
         }
         fetchProfile();
     }, [user, supabase]);
+
+    // "Gestão" só para coordenação ou bolsista, e só com o módulo ligado
+    useEffect(() => {
+        if (!user) {
+            setGestao(false);
+            return;
+        }
+        temAcessoGestaoAction().then(setGestao, () => setGestao(false));
+    }, [user]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -96,6 +107,9 @@ export function AuthButtonClient() {
             </DropdownTrigger>
             <DropdownMenu aria-label="Menu do usuário" className="bg-[#FFD300] p-2 rounded-lg">
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Dashboard" as={Link} href="/protected">Dashboard</DropdownItem>
+                {gestao ? (
+                    <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Gestao" as={Link} href="/gestao">Gestão</DropdownItem>
+                ) : null}
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" as={Link} href="/protected/perfil">Perfil</DropdownItem>
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onPress={handleSignOut} color="danger">
                     Sair

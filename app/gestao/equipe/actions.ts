@@ -3,15 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
 import {
-  buscarUsuarioPorEmail,
+  buscarUsuarios,
   cadastrarBolsa,
   concederPapel,
   definirDesligamento,
   definirPapel,
   removerMembro,
 } from "@/lib/api/gestao/equipe";
-import type { EstadoAcao, GestaoPapel, PapeisMembro } from "@/lib/api/gestao/types";
-import { falha, mensagemDeErro, sucesso, validarBolsa, validarEmail } from "@/lib/api/gestao/validacao";
+import type { EstadoAcao, GestaoPapel, PapeisMembro, UsuarioEncontrado } from "@/lib/api/gestao/types";
+import { falha, mensagemDeErro, sucesso, validarBolsa } from "@/lib/api/gestao/validacao";
 
 /**
  * Ações da tela de equipe (spec 003). Toda ação confere o papel antes de tocar
@@ -53,24 +53,35 @@ function idDoForm(form: FormData): string {
   return typeof id === "string" ? id : "";
 }
 
+/**
+ * Busca da caixa "Adicionar pessoa" (spec 015). Chamada a cada letra digitada,
+ * então não lança: sem permissão ou com erro, devolve lista vazia.
+ */
+export async function buscarPessoasAction(termo: string): Promise<UsuarioEncontrado[]> {
+  if (await exigirCoordenacao()) return [];
+  if (typeof termo !== "string" || termo.trim().length < 3) return [];
+  try {
+    return await buscarUsuarios(termo.trim().slice(0, 100));
+  } catch {
+    return [];
+  }
+}
+
 export async function concederPapelAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   const negado = await exigirCoordenacao();
   if (negado) return negado;
 
-  const email = validarEmail(typeof form.get("email") === "string" ? (form.get("email") as string) : "");
-  if (!email.ok) return falha(email.mensagem);
+  const id = idDoForm(form);
+  const nome = typeof form.get("nome") === "string" ? (form.get("nome") as string) : "A pessoa";
+  if (!id) return falha("Busque a pessoa pelo nome e escolha na lista.");
   const papeis = papeisDoForm(form);
   if (!papeis) return falha("Escolha o papel.");
 
   try {
-    const usuario = await buscarUsuarioPorEmail(email.valor);
-    if (!usuario) {
-      return falha("Nenhuma conta com este e-mail. A pessoa precisa criar a conta no site antes.");
-    }
-    const final = await concederPapel(usuario.id, papeis);
+    const final = await concederPapel(id, papeis);
     revalidatePath(CAMINHO);
     revalidatePath("/gestao");
-    return sucesso(`${usuario.nome ?? usuario.email} agora faz parte da equipe como ${descreverPapeis(final)}.`);
+    return sucesso(`${nome} agora faz parte da equipe como ${descreverPapeis(final)}.`);
   } catch (error) {
     return falha(mensagemDeErro(error));
   }
