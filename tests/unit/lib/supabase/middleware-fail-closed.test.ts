@@ -29,6 +29,8 @@ const VALID_ANON_KEY = "anon-key-de-teste";
 /** Última implementação de `getUser` injetada no mock do createServerClient. */
 let getUserImpl: () => Promise<{ data: { user: unknown | null } }>;
 let sessionCookieToSet: { name: string; value: string } | null;
+/** Resposta da RPC `gestao_membro_papel` no mock. */
+let papelGestao: { data: unknown; error: unknown };
 
 vi.mock("@supabase/ssr", () => ({
     createServerClient: vi.fn((_url, _key, options) => ({
@@ -40,6 +42,7 @@ vi.mock("@supabase/ssr", () => ({
                 return getUserImpl();
             },
         },
+        rpc: vi.fn(async () => papelGestao),
     })),
 }));
 
@@ -76,6 +79,7 @@ beforeEach(() => {
     envSnapshot = { ...process.env };
     getUserImpl = async () => ({ data: { user: null } });
     sessionCookieToSet = null;
+    papelGestao = { data: null, error: null };
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => { });
 });
 
@@ -371,5 +375,44 @@ describe("updateSession — deep links dos módulos especiais", () => {
 
         expect(isPermissiveNext(response)).toBe(false);
         expect(response.status).toBe(503);
+    });
+});
+
+describe("updateSession — gestão responde 404 de verdade para quem não é membro", () => {
+    // O guard das telas roda depois que o app/loading.tsx já mandou status 200.
+    const reescritoPara404 = (response: Response) =>
+        new URL(response.headers.get("x-middleware-rewrite") ?? "https://x/").pathname === "/_gestao-404";
+
+    beforeEach(() => {
+        setEnv(VALID_URL, VALID_ANON_KEY);
+        process.env.GESTAO_ENABLED = "true";
+        getUserImpl = async () => ({ data: { user: { id: "user-1" } } });
+    });
+
+    it.each(["/gestao", "/gestao/alocacao"])("sem papel em %s: reescreve para 404", async (pathname) => {
+        expect(reescritoPara404(await updateSession(makeRequest(pathname)))).toBe(true);
+    });
+
+    it("erro na RPC conta como sem papel (fail-closed)", async () => {
+        papelGestao = { data: null, error: { message: "boom" } };
+        expect(reescritoPara404(await updateSession(makeRequest("/gestao")))).toBe(true);
+    });
+
+    it("módulo desligado: 404 mesmo para a coordenação", async () => {
+        process.env.GESTAO_ENABLED = "false";
+        papelGestao = { data: "coordenacao", error: null };
+        expect(reescritoPara404(await updateSession(makeRequest("/gestao")))).toBe(true);
+    });
+
+    it.each(["coordenacao", "bolsista"])("%s passa", async (papel) => {
+        papelGestao = { data: papel, error: null };
+        const response = await updateSession(makeRequest("/gestao/alocacao"));
+        expect(isPermissiveNext(response)).toBe(true);
+    });
+
+    it("não consulta papel fora da gestão nem em nome parecido", async () => {
+        for (const pathname of ["/protected", "/gestaox"]) {
+            expect(isPermissiveNext(await updateSession(makeRequest(pathname)))).toBe(true);
+        }
     });
 });

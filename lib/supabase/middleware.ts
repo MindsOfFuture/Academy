@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { missingSupabaseEnv } from "../env";
+import { gestaoHabilitada } from "../api/gestao/feature-flags";
 import { redirectToInternalPath } from "./redirect";
 
 const PUBLIC_PATH_PREFIXES = [
@@ -55,6 +57,17 @@ export function isExemptPath(pathname: string): boolean {
     return true;
   }
   return EXEMPT_ASSET_EXTENSIONS.test(pathname);
+}
+
+function isGestaoPath(pathname: string): boolean {
+  return pathname === "/gestao" || pathname.startsWith("/gestao/");
+}
+
+/** Mesma RPC de lib/api/gestao/auth.ts; erro conta como "não é membro" (fail-closed). */
+async function isGestaoMember(supabase: SupabaseClient): Promise<boolean> {
+  if (!gestaoHabilitada()) return false;
+  const { data, error } = await supabase.rpc("gestao_membro_papel");
+  return !error && (data === "coordenacao" || data === "bolsista");
 }
 
 export async function updateSession(request: NextRequest) {
@@ -128,6 +141,15 @@ export async function updateSession(request: NextRequest) {
       request,
       supabaseResponse,
     );
+  }
+
+  // Gestão: sem papel (ou módulo desligado) recebe 404 já aqui. O guard das telas
+  // (app/gestao/guard.ts) também barra, mas roda dentro do Suspense do
+  // app/loading.tsx, quando o status 200 já saiu, e o 200 revela que a tela existe.
+  if (user && isGestaoPath(request.nextUrl.pathname) && !(await isGestaoMember(supabase))) {
+    const notFound = NextResponse.rewrite(new URL("/_gestao-404", request.url));
+    supabaseResponse.cookies.getAll().forEach((cookie) => notFound.cookies.set(cookie));
+    return notFound;
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
