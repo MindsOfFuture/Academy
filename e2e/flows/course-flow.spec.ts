@@ -6,25 +6,10 @@ import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
  * Alguns testes requerem autenticação
  */
 
+// Removido em 10/10/2026 o teste "usuário pode navegar da home para trilhas": supunha /trilhas
+// pública, mas ela exige login. O redirect anônimo e o acesso logado já são provados em
+// e2e/flows/auth-hardening.spec.ts (PROTECTED_PAGES e o loop após o login).
 test.describe('Fluxo de Descoberta de Cursos', () => {
-  test('usuário pode navegar da home para trilhas', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Procurar link para trilhas
-    const trilhasLink = page.getByRole('link', { name: /trilhas|cursos|jornada/i });
-
-    if (await trilhasLink.isVisible()) {
-      await trilhasLink.click();
-      await page.waitForURL('/trilhas');
-      expect(page.url()).toContain('/trilhas');
-    } else {
-      // Navegar diretamente
-      await page.goto('/trilhas');
-      expect(page.url()).toContain('/trilhas');
-    }
-  });
-
   test('usuário pode ver detalhes de um curso', async ({ page }) => {
     await page.goto('/trilhas');
     await page.waitForLoadState('networkidle');
@@ -136,10 +121,11 @@ test.describe('Fluxo de Matrícula', () => {
       await page.waitForLoadState('networkidle');
 
       // Procurar botão de marcar como concluído
-      const completeButton = page.getByRole('button', { name: /concluir|concluído|marcar/i });
+      // Uma aula por botão: sem .first() o isVisible quebra no modo estrito do Playwright.
+      const completeButton = page.getByRole('button', { name: /concluir|concluído|marcar/i }).first();
 
       if (await completeButton.isVisible()) {
-        await completeButton.first().click();
+        await completeButton.click();
 
         // Verificar feedback
         await page.waitForTimeout(1000);

@@ -14,7 +14,7 @@ test.describe('Fluxo de Login Mobile', () => {
     await page.waitForLoadState('domcontentloaded');
     
     // Aguardar qualquer input de email aparecer
-    const emailInput = page.locator('input[type="email"]');
+    const emailInput = page.locator('input[type="email"]:visible');
     await expect(emailInput.first()).toBeVisible({ timeout: 15000 });
     
     // Verificar botão de entrar
@@ -26,7 +26,7 @@ test.describe('Fluxo de Login Mobile', () => {
     await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
     
-    const emailInput = page.locator('input[type="email"]').first();
+    const emailInput = page.locator('input[type="email"]:visible').first();
     await expect(emailInput).toBeVisible({ timeout: 15000 });
     
     // Testar que é possível digitar
@@ -39,7 +39,7 @@ test.describe('Fluxo de Login Mobile', () => {
     await page.waitForLoadState('domcontentloaded');
     
     // Aguardar página carregar
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
     
     const forgotLink = page.getByRole('link', { name: /esqueceu/i });
     await expect(forgotLink).toBeVisible();
@@ -52,7 +52,7 @@ test.describe('Fluxo de Cadastro Mobile', () => {
     await page.waitForLoadState('domcontentloaded');
     
     // Aguardar página carregar
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
     
     // Em mobile (md:hidden), deve ter botão para alternar
     const signupToggle = page.getByRole('button', { name: /criar conta/i });
@@ -75,7 +75,7 @@ test.describe('Fluxo de Recuperação de Senha Mobile', () => {
     await page.goto('/auth/forgot-password');
     await page.waitForLoadState('domcontentloaded');
     
-    const emailInput = page.locator('input[type="email"]');
+    const emailInput = page.locator('input[type="email"]:visible');
     await expect(emailInput.first()).toBeVisible({ timeout: 15000 });
   });
 
@@ -83,7 +83,7 @@ test.describe('Fluxo de Recuperação de Senha Mobile', () => {
     await page.goto('/auth/forgot-password');
     await page.waitForLoadState('domcontentloaded');
     
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
     
     const submitButton = page.getByRole('button', { name: /enviar/i });
     await expect(submitButton).toBeVisible();
@@ -95,7 +95,7 @@ test.describe('Acessibilidade do Auth Mobile', () => {
     await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
     
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
     
     const inputs = page.locator('input:visible');
     const count = await inputs.count();
@@ -114,7 +114,7 @@ test.describe('Acessibilidade do Auth Mobile', () => {
     await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
     
-    await page.locator('input[type="email"]').first().waitFor({ timeout: 15000 });
+    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
     
     // Pressionar Tab algumas vezes
     await page.keyboard.press('Tab');

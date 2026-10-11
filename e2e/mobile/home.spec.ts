@@ -20,9 +20,10 @@ test.describe('Home Page Mobile - Hero Section', () => {
     for (let i = 0; i < imageCount; i++) {
       const img = heroImages.nth(i);
       if (await img.isVisible()) {
-        // Verificar que imagem carregou (naturalWidth > 0)
-        const loaded = await img.evaluate((el: HTMLImageElement) => el.naturalWidth > 0);
-        expect(loaded).toBeTruthy();
+        // A foto do hero tem loading="lazy" e no celular fica abaixo da dobra: só baixa ao rolar.
+        await img.scrollIntoViewIfNeeded();
+        // Depois de rolar ainda pode estar baixando: espera terminar e então exige naturalWidth > 0.
+        await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
       }
     }
   });

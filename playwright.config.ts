@@ -25,6 +25,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
+  // O retry continua para diagnosticar, mas teste que só passa na segunda é defeito: reprova o CI.
+  failOnFlakyTests: !!process.env.CI,
   workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['html', { open: 'never' }],

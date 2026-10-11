@@ -17,8 +17,6 @@ interface LoginFormProps extends React.ComponentPropsWithoutRef<"div"> {
 }
 
 export function LoginForm({ className, onToggleView, ...props }: LoginFormProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -27,8 +25,13 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
 
   const nextPath = normalizeNextPath(searchParams.get("next")) ?? "/protected";
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Campos não controlados, lidos no envio: com estado do React, o que a pessoa digitava
+  // antes de a página ficar interativa era apagado no primeiro re-render (celular lento).
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const campos = e.currentTarget.elements;
+    const email = (campos.namedItem("email") as HTMLInputElement).value;
+    const password = (campos.namedItem("password") as HTMLInputElement).value;
     setIsLoading(true);
     setError(null);
     const supabase = createClient();
@@ -57,7 +60,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6">
         <div className="relative flex items-center">
           <Mail className="absolute left-4 text-[#6A4A98]" size={20} />
-          <Input id="email" type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2" />
+          <Input id="email" type="email" placeholder="Email" required className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2" />
         </div>
 
         <div className="relative flex items-center">
@@ -68,15 +71,13 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
             type={showPassword ? "text" : "password"}
             placeholder="Senha"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-12 placeholder:text-gray-500 [&::-ms-reveal]:hidden focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
+            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-14 placeholder:text-gray-500 [&::-ms-reveal]:hidden focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
           />
           <button
             type="button"
             onClick={() => setShowPassword((p) => !p)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-            className="absolute right-4 text-[#6A4A98] transition-colors hover:text-[#5a3e85]"
+            className="absolute right-1.5 flex h-11 w-11 items-center justify-center rounded-full text-[#6A4A98] transition-colors hover:text-[#5a3e85]"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -108,7 +109,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       </form>
       <p className="mt-4 text-center text-sm text-gray-600 md:hidden">
         Não tem uma conta?{" "}
-        <button type="button" onClick={onToggleView} className="font-semibold text-[#6A4A98] underline hover:text-[#5a3e85]" >
+        <button type="button" onClick={onToggleView} className="inline-flex min-h-11 items-center font-semibold text-[#6A4A98] underline hover:text-[#5a3e85]">
           Criar conta
         </button>
       </p>

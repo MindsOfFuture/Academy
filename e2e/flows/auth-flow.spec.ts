@@ -31,7 +31,7 @@ test.describe('Fluxo de Login Real', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Preencher formulário
-    const emailInput = page.locator('input[type="email"]').first();
+    const emailInput = page.locator('input[type="email"]:visible').first();
     const passwordInput = page.locator('input[type="password"]').first();
     const loginButton = page.getByRole('button', { name: /entrar/i });
 

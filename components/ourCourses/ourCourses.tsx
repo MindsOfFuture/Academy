@@ -30,14 +30,14 @@ export function OurCourses({ cursos }: OurCoursesProps) {
         </p>
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex w-full flex-col">
         <div className="flex flex-wrap items-start justify-center gap-12 p-6">
           {cursos.map((curso, index) => (
             <motion.div
               key={curso.id}
               // O onClick deve receber uma função que será executada no clique.
               onClick={() => handleCourseClick(curso.id)}
-              className="flex flex-col items-start justify-start w-[300px] h-[500px] p-3 text-black bg-white rounded-lg shadow-lg cursor-pointer"
+              className="flex flex-col items-start justify-start w-full max-w-[300px] h-[500px] p-3 text-black bg-white rounded-lg shadow-lg cursor-pointer"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
