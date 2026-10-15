@@ -1,5 +1,5 @@
-/* LG2 · Módulo 2 (Turma A) · teste headless do módulo publicado em public/lg2/turma-a/m02.
-   Execute: PW=<caminho do playwright> node tests/lg2-m02-turma-a.cjs
+/* LG2 · Módulo 2 (Turma B) · teste headless do módulo publicado em public/lg2/turma-b/m02.
+   Execute: PW=<caminho do playwright> node tests/lg2-m02-turma-b.cjs
    Opcional: LG2_M02_URL=http://127.0.0.1:8812/ (servidor externo); LG2_SHOTS=<pasta> (prints 390x844).
    Cobre: todas as regras da aba 4 alcançadas pela interface (N de N), casos da aba 8
    (divergências são relatadas, não falham), instrumentos M2.I04/M2.I05 contra a "saída esperada"
@@ -9,7 +9,7 @@ const path = require('node:path');
 const http = require('node:http');
 const vm = require('node:vm');
 
-const dir = path.resolve(__dirname, '..', 'public/lg2/turma-a/m02');
+const dir = path.resolve(__dirname, '..', 'public/lg2/turma-b/m02');
 const ctx = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(dir, 'dados/modulo2.js'), 'utf8'), ctx);
 const D = ctx.window.MODULO2;
@@ -27,8 +27,8 @@ try { playwright = require('playwright'); } catch { playwright = require(process
 
 /* ---------- estático ---------- */
 const app = fs.readFileSync(path.join(dir, 'js/app.js'), 'utf8');
-ok(/const CHAVE = "lg2-turma-a-m02";/.test(app), 'CHAVE deve ser lg2-turma-a-m02');
-ok(D.modulo.turma === 'Turma de 18', 'Capa C7 deve ser Turma de 18 (Turma A)');
+ok(/const CHAVE = "lg2-turma-b-m02";/.test(app), 'CHAVE deve ser lg2-turma-b-m02');
+ok(D.modulo.turma === 'Turma de 18', 'Capa C7 deve ser Turma de 18');
 const nP = M.perguntas.length, nR = D.regras.length;
 ok(nP === 21 && nR === 89, `contagens 21 perguntas / 89 regras (obtido ${nP}/${nR})`);
 ok(!JSON.stringify(D).match(/\b\d{4,5}-?\d{4}\b/), 'nenhum telefone no dados/modulo2.js');
@@ -264,7 +264,7 @@ async function servidor() {
     ok((await page.locator('.passo').textContent()) === 'Pergunta 2 de 21', 'recarregar volta à pergunta em que parou');
     await page.click('#v');
     ok(await page.locator('#ent .opcao.sel').textContent() === 'Em parte', 'resposta anterior persiste após recarregar');
-    ok(await page.evaluate(() => !!localStorage.getItem('lg2-turma-a-m02')), 'respostas gravadas na chave lg2-turma-a-m02');
+    ok(await page.evaluate(() => !!localStorage.getItem('lg2-turma-b-m02')), 'respostas gravadas na chave lg2-turma-b-m02');
 
     /* 7) resultado (caso T06 do grupo) para o print */
     const t06 = D.casos.find((c) => c.codigo === 'M2.T06');

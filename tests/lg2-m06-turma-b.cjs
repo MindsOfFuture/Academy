@@ -1,5 +1,5 @@
-/* Teste de navegação do LG2 M06 (Turma A) no navegador headless.
-   Execute: PW=<caminho do pacote playwright> node tests/lg2-m06-turma-a.cjs
+/* Teste de navegação do LG2 M06 (Turma B) no navegador headless.
+   Execute: PW=<caminho do pacote playwright> node tests/lg2-m06-turma-b.cjs
    Opcional: SHOTS=<pasta> grava os prints de celular (390x844); M06_DIR=<pasta> testa outra cópia.
    Alcança todas as regras da aba 4, roda os casos da aba 8 (divergências são relatadas, não falham),
    confere os instrumentos contra a "saída esperada" da aba 5. Sai com código 1 se algo falhar. */
@@ -8,7 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.PW || 'playwright');
 
-const DIR = path.resolve(process.env.M06_DIR || path.resolve(__dirname, '../public/lg2/turma-a/m06'));
+const DIR = path.resolve(process.env.M06_DIR || path.resolve(__dirname, '../public/lg2/turma-b/m06'));
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf' };
 const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
@@ -24,7 +24,7 @@ function check(nome, ok, extra) {
   if (!ok) falhas++;
 }
 const nrm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-const CHAVE = 'lg2-turma-a-m06';
+const CHAVE = 'lg2-turma-b-m06';
 
 /* funções que rodam dentro da página */
 const NA_PAGINA = {
@@ -77,7 +77,7 @@ const NA_PAGINA = {
   check('18 perguntas e 70 regras carregadas da planilha v0.2', P.length === 18 && R.length === 70, [P.length, R.length]);
   if (P.length !== 21) divergencias.push(`Capa C31 diz 21 perguntas; a aba 3 tem ${P.length}`);
   if (R.length !== 73) divergencias.push(`Capa C33 diz 73 regras; a aba 4 tem ${R.length}`);
-  check('chave da turma mantida (lg2-turma-a-m06)', fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8').includes(`const CHAVE = "${CHAVE}"`));
+  check('chave da turma mantida (lg2-turma-b-m06)', fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8').includes(`const CHAVE = "${CHAVE}"`));
   check('versão exibida = Capa literal', D.modulo.versao === 'v0.1' && D.modulo.data === '25/09/2026', D.modulo);
 
   /* ---------- condutor de caminhos ---------- */
@@ -160,7 +160,7 @@ const NA_PAGINA = {
     await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v });
     const txt = nrm(await page.evaluate(NA_PAGINA.retorno));
     check(`${cod} = "${v}" mostra ${r.codigo} e não avança`, txt.includes(nrm(r.texto)) && (await page.evaluate(NA_PAGINA.atual)) === cod
-      && !(await page.evaluate((c) => JSON.parse(localStorage.getItem('lg2-turma-a-m06')).R[c], cod)));
+      && !(await page.evaluate((c) => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R[c], cod)));
   }
   /* condições F */
   { const c = await caminho({ 'M6.P01': { tipo: 'NS' }, 'M6.P04': { tipo: 'multi', vs: ['Não sei'] } }, null);
@@ -231,7 +231,7 @@ const NA_PAGINA = {
     await caminho({ 'M6.P01': { tipo: 'texto', v: 'Equipamento, decoração' } }, null);
     for (const [it, cat] of [[0, 'essencial agora'], [1, 'desejável']]) await page.evaluate(([i, c]) => [...document.querySelectorAll('#prio .opcao')].find((b) => b.dataset.i === String(i) && b.dataset.c === c).click(), [it, cat]);
     await page.reload(); await page.click('#ir');
-    const pr = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m06')).prio);
+    const pr = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).prio);
     check(`I02: "${I['M6.I02'].ex_saida}" guardado após recarregar`, pr.Equipamento === 'essencial agora' && pr['decoração'] === 'desejável' && (await page.$$('#prio .opcao.sel')).length === 2, pr); }
 
   /* ---------- 4. persistência ---------- */
@@ -242,7 +242,7 @@ const NA_PAGINA = {
   await page.click('#ir');
   check('após recarregar volta à P04 com Pix e Boleto marcados', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04'
     && JSON.stringify(await page.$$eval('#ent .opcao.sel', (b) => b.map((x) => x.textContent.trim()))) === '["Pix","Boleto"]');
-  await page.evaluate(() => { localStorage.setItem('lg2-turma-a-m06', JSON.stringify({ R: { 'M6.P05': { estado: 'opcao', opcao: 'Sim' } }, hist: ['M6.P05'], prio: {} })); });
+  await page.evaluate(() => { localStorage.setItem('lg2-turma-b-m06', JSON.stringify({ R: { 'M6.P05': { estado: 'opcao', opcao: 'Sim' } }, hist: ['M6.P05'], prio: {} })); });
   await page.reload();
   check('respostas guardadas pela versão v0.1 são descartadas (começa do zero)', (await page.textContent('#ir')).includes('Começar'));
 

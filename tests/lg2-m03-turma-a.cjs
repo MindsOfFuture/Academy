@@ -1,13 +1,13 @@
-/* Teste do LG2 M03 (Turma B): caminhos por resposta (planilha m03_caminhos.xlsx) + campo inteiro da P04.
-   Execute: PW=<pacote playwright> NODE_OPTIONS=--no-experimental-webstorage node tests/lg2-m03-turma-b.cjs
+/* Teste do LG2 M03 (Turma A): caminhos por resposta (planilha m03_caminhos.xlsx) + campo inteiro da P04.
+   Execute: PW=<pacote playwright> NODE_OPTIONS=--no-experimental-webstorage node tests/lg2-m03-turma-a.cjs
    Opcional: SHOTS=<pasta> grava prints de celular (390x844). Sai com código 1 se algo falhar. */
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.PW || 'playwright');
 
-const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m03');
-const CHAVE = 'lg2-turma-b-m03';
+const DIR = path.resolve(__dirname, '../public/lg2/turma-a/m03');
+const CHAVE = 'lg2-turma-a-m03';
 const SHOTS = process.env.SHOTS || '';
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf' };
 const servidor = http.createServer((req, res) => {

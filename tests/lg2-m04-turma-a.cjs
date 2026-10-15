@@ -1,12 +1,12 @@
-/* Teste de navegação do LG2 M04 (Turma B) no navegador headless.
-   Execute: PW=<caminho do pacote playwright> node tests/lg2-m04-turma-b.cjs
+/* Teste de navegação do LG2 M04 (Turma A) no navegador headless.
+   Execute: PW=<caminho do pacote playwright> node tests/lg2-m04-turma-a.cjs
    Opcional: SHOTS=<pasta> grava os prints de celular (390x844). Sai com código 1 se algo falhar. */
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require(process.env.PW || 'playwright');
 
-const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m04');
+const DIR = path.resolve(__dirname, '../public/lg2/turma-a/m04');
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf' };
 const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
@@ -102,7 +102,7 @@ async function caminho(page, respostas) {
   check('P01 "Não sei" mostra o alerta do grupo', txt.includes(P['M4.P01'].alerta_naosei));
   check('P01 "Não sei" mostra a regra M4.R02', txt.includes(D.regras.find((r) => r.codigo === 'M4.R02').texto));
   check('P01 "Não sei" não oferece "Seguir"', !(await page.evaluate(NA_PAGINA.seguir)) && (await page.evaluate(NA_PAGINA.atual)) === 'M4.P01');
-  check('P01 "Não sei" não é gravado como resposta', await page.evaluate(() => !(JSON.parse(localStorage.getItem('lg2-turma-b-m04')).R['M4.P01'])));
+  check('P01 "Não sei" não é gravado como resposta', await page.evaluate(() => !(JSON.parse(localStorage.getItem('lg2-turma-a-m04')).R['M4.P01'])));
   await page.evaluate(NA_PAGINA.responder, 'Bolo de pote para lanche escolar');
   txt = await page.evaluate(() => document.body.innerText);
   check('P01 com frase mostra a regra M4.R01 e libera', txt.includes(D.regras.find((r) => r.codigo === 'M4.R01').texto) && await page.evaluate(NA_PAGINA.seguir));
@@ -180,10 +180,10 @@ async function caminho(page, respostas) {
   /* ---- trocar P02 descarta respostas que não valem mais ---- */
   {
     await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2', 'M4.P14': 'Protótipo sem venda' });
-    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m04')); s.hist = ['M4.P01', 'M4.P02']; localStorage.setItem('lg2-turma-b-m04', JSON.stringify(s)); });
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); s.hist = ['M4.P01', 'M4.P02']; localStorage.setItem('lg2-turma-a-m04', JSON.stringify(s)); });
     await page.reload(); await page.click('#ir');
     await page.evaluate(NA_PAGINA.responder, 'Serviço');
-    const R = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m04')).R);
+    const R = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m04')).R);
     check('trocar P02 para Serviço apaga P03/P04/P05 e a P14 "Protótipo sem venda"', !R['M4.P03'] && !R['M4.P05'] && !R['M4.P14'] && R['M4.P08'] === undefined, Object.keys(R));
   }
 
@@ -218,7 +218,7 @@ async function caminho(page, respostas) {
     await page.evaluate(NA_PAGINA.responder, 'Produto'); await page.evaluate(NA_PAGINA.seguir);
     await page.evaluate(NA_PAGINA.responder, 'NS'); await page.waitForTimeout(600); await foto('04_p03_nao_sei_prompt');
     const c = await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2', 'M4.P14': undefined });
-    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m04')); s.hist = s.hist.slice(0, s.hist.indexOf('M4.P14') + 1); localStorage.setItem('lg2-turma-b-m04', JSON.stringify(s)); });
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); s.hist = s.hist.slice(0, s.hist.indexOf('M4.P14') + 1); localStorage.setItem('lg2-turma-a-m04', JSON.stringify(s)); });
     await page.reload(); await page.click('#ir'); await foto('05_p14_pre_venda');
     await page.evaluate(() => document.querySelector('.caixa-entenda').scrollIntoView()); await foto('05b_p14_pre_venda_conceito');
     await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2', 'M4.P08': 'NS' }); await page.evaluate(() => window.scrollTo(0, 0)); await foto('06_resultado');

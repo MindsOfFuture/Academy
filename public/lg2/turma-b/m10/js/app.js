@@ -2,8 +2,10 @@
 (async function () {
   'use strict';
   const tela = document.getElementById('tela');
-  const CHAVE = 'lg2-turma-a-m10';
-  const assets = '../../turma-b/m04/assets/';
+  const CHAVE = 'lg2-turma-b-m10';
+  /* o módulo mudou de turma em 15/10: traz as respostas salvas na chave antiga */
+  try { const antiga = localStorage.getItem('lg2-turma-a-m10'); if (antiga && !localStorage.getItem(CHAVE)) localStorage.setItem(CHAVE, antiga); } catch (e) {}
+  const assets = 'assets/';
   const aviso = 'Versão parcial · texto aberto temporário. As alternativas de escolha e as regras de resposta não foram preenchidas na planilha. Por enquanto, todas as respostas são escritas livremente, sem avaliação automática.';
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let dados;
@@ -44,15 +46,15 @@
     if (status) status.textContent = erroArmazenamento || 'Respostas salvas apenas neste navegador.';
   }
   function rodape() {
-    return `<footer class="rodape"><p class="credito">Laboratório de Gestão II · Turma A · Módulo 10</p><div class="logos"><img src="${assets}logo_facc.png" alt="FACC"><img src="${assets}logo_ufjf.svg" alt="UFJF"><img src="${assets}logo_mg.svg" alt="Governo de Minas Gerais"></div></footer>`;
+    return `<footer class="rodape"><p class="credito">Laboratório de Gestão II · Turma B · Módulo 10</p><div class="logos"><img src="${assets}logo_facc.png" alt="FACC"><img src="${assets}logo_ufjf.svg" alt="UFJF"><img src="${assets}logo_mg.svg" alt="Governo de Minas Gerais"></div></footer>`;
   }
   function exibir(conteudo,passo='Perguntas do módulo') {
-    tela.innerHTML = `<div class="pag"><header class="topo"><div class="marca"><img class="logo" src="${assets}minds.svg" alt="Minds of the Future"><div>Laboratório de Gestão II<br>Turma A · Módulo 10</div></div><h1>${esc(dados.nome)}</h1><p class="passo">${esc(passo)}</p></header><main class="corpo"><p class="aviso">${aviso}</p>${conteudo}<p id="salvamento" class="salvamento" role="status">${esc(erroArmazenamento || 'Respostas salvas apenas neste navegador.')}</p>${rodape()}</main></div>`;
+    tela.innerHTML = `<div class="pag"><header class="topo"><div class="marca"><img class="logo" src="${assets}minds.svg" alt="Minds of the Future"><div>Laboratório de Gestão II<br>Turma B · Módulo 10</div></div><h1>${esc(dados.nome)}</h1><p class="passo">${esc(passo)}</p></header><main class="corpo"><p class="aviso">${aviso}</p>${conteudo}<p id="salvamento" class="salvamento" role="status">${esc(erroArmazenamento || 'Respostas salvas apenas neste navegador.')}</p>${rodape()}</main></div>`;
     window.scrollTo(0,0);
   }
   function ligarReset() {
     document.getElementById('reiniciar').onclick = () => {
-      if (!confirm('Apagar todas as respostas deste módulo da Turma A e recomeçar?')) return;
+      if (!confirm('Apagar todas as respostas deste módulo da Turma B e recomeçar?')) return;
       try { localStorage.removeItem(CHAVE); }
       catch {
         erroArmazenamento = 'Não foi possível apagar as respostas salvas. Tente novamente quando o armazenamento estiver disponível.';

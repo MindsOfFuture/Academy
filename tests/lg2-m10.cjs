@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
-const dir = path.join(root, 'public/lg2/turma-a/m10');
+const dir = path.join(root, 'public/lg2/turma-b/m10');
 const source = process.env.LG2_M10_XLSX;
 assert.ok(source && fs.existsSync(source), 'Defina LG2_M10_XLSX com o caminho da planilha original (não publicada).');
 assert.ok(fs.existsSync(path.join(dir, 'dados/perguntas.json')), 'M10 deve incluir as perguntas da planilha');
@@ -51,10 +51,10 @@ try { playwright = require('playwright'); } catch { playwright = require(process
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('response', response => { if (response.status() >= 400) errors.push(response.url()); });
-    await page.goto(`http://127.0.0.1:${server.address().port}/lg2/turma-a/m10/index.html`);
+    await page.goto(`http://127.0.0.1:${server.address().port}/lg2/turma-b/m10/index.html`);
     await page.getByRole('button',{name:'Começar',exact:true}).click({timeout:5000});
-    const key = 'lg2-turma-a-m10';
-    await page.evaluate(() => localStorage.setItem('lg2-turma-b-m10','sentinela'));
+    const key = 'lg2-turma-b-m10';
+    await page.evaluate(() => localStorage.setItem('lg2-turma-a-m09','sentinela'));
     const malicious = '<img src=x onerror="window.injetado=true"> & "teste"';
     for (let i=0; i<15; i++) {
       assert.equal(await page.locator('#pergunta').textContent(), expected[i].pergunta);
@@ -98,7 +98,7 @@ try { playwright = require('playwright'); } catch { playwright = require(process
     page.once('dialog', dialog => dialog.accept());
     await page.getByRole('button',{name:'Recomeçar do zero'}).click();
     assert.equal(await page.evaluate(k => localStorage.getItem(k),key),null);
-    assert.equal(await page.evaluate(() => localStorage.getItem('lg2-turma-b-m10')),'sentinela');
+    assert.equal(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m09')),'sentinela');
     await page.reload();
     await page.getByRole('button',{name:'Começar',exact:true}).click();
     assert.equal(await page.locator('textarea').inputValue(),'');
