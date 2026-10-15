@@ -16,6 +16,8 @@
   const link = (u, t) => /^https?:/.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : esc(t || u);
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
   function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  /* instrumentos: redesenha sem voltar ao topo (cada toque numa nota ou ficha redesenhava e jogava a pessoa para o início) */
+  function refazer(a) { const y = window.scrollY; tela.innerHTML = ""; tela.appendChild(telaInstrumentos(a)); window.scrollTo(0, y); }
 
   /* conceitos da Base técnica: a planilha não liga conceito a pergunta; mostramos todos em "Entenda os termos" no resultado */
   const conceitosDe = () => [];
@@ -165,6 +167,7 @@
             <div class="val">${Q.contagem.forte} · ${Q.contagem.fraco} · ${Q.contagem.nenhum}</div>
             <div class="sub">forte · fraco · nenhum${Q.motivo ? ` — motivo mais citado: ${esc(Q.motivo.t)}` : ""}</div>
           </div>
+          <p class="mini-info" id="quadro-origem">${Q.total ? `Contado a partir das ${Q.total} entrevista(s) salvas na ficha (${esc(i2.codigo)}).` : `O quadro conta as entrevistas salvas na ficha (${esc(i2.codigo)}). Registre uma pessoa entrevistada e toque em “Salvar na ficha” para ele mudar.`} <a href="#form">Registrar entrevista</a></p>
           ${Q.total ? `<p class="r-texto" id="frase">${esc(Q.frase)}</p>` : ""}
           <div class="aviso">${esc(i4.limite)}</div>
 
@@ -189,16 +192,16 @@
       const g = (id) => p.querySelector(id).value.trim();
       if (!sinal) { const e = p.querySelector("#f-erro"); e.textContent = "Escolha o sinal de interesse."; e.hidden = false; return; }
       S.fichas.push({ situacao: g("#f-sit"), frequencia: g("#f-freq"), motivo: g("#f-mot"), sinal });
-      salvar(); ir(telaInstrumentos, voltar);
+      salvar(); refazer(voltar);
     };
-    p.querySelectorAll("#fichas .x").forEach((b) => (b.onclick = () => { S.fichas.splice(+b.dataset.n, 1); salvar(); ir(telaInstrumentos, voltar); }));
-    p.querySelectorAll("input[type=checkbox]").forEach((c) => (c.onchange = () => { S.plano.feitos[+c.dataset.n] = c.checked; salvar(); ir(telaInstrumentos, voltar); }));
-    p.querySelector("#p-meta").onchange = (e) => { S.plano.meta = e.target.value.trim(); salvar(); ir(telaInstrumentos, voltar); };
+    p.querySelectorAll("#fichas .x").forEach((b) => (b.onclick = () => { S.fichas.splice(+b.dataset.n, 1); salvar(); refazer(voltar); }));
+    p.querySelectorAll("input[type=checkbox]").forEach((c) => (c.onchange = () => { S.plano.feitos[+c.dataset.n] = c.checked; salvar(); refazer(voltar); }));
+    p.querySelector("#p-meta").onchange = (e) => { S.plano.meta = e.target.value.trim(); salvar(); refazer(voltar); };
     p.querySelector("#p-prazo").onchange = (e) => { S.plano.prazo = e.target.value; salvar(); };
     const gok = p.querySelector("#g-ok");
-    if (gok) gok.onclick = () => { const v = p.querySelector("#g-nome").value.trim(); if (!v) return; S.grupos.push({ nome: v }); salvar(); ir(telaInstrumentos, voltar); };
-    p.querySelectorAll("#grupos .opcao").forEach((b) => (b.onclick = () => { S.grupos[+b.dataset.g][b.dataset.k] = +b.dataset.n; salvar(); ir(telaInstrumentos, voltar); }));
-    p.querySelectorAll("#grupos [data-gx]").forEach((b) => (b.onclick = () => { S.grupos.splice(+b.dataset.gx, 1); salvar(); ir(telaInstrumentos, voltar); }));
+    if (gok) gok.onclick = () => { const v = p.querySelector("#g-nome").value.trim(); if (!v) return; S.grupos.push({ nome: v }); salvar(); refazer(voltar); };
+    p.querySelectorAll("#grupos .opcao").forEach((b) => (b.onclick = () => { S.grupos[+b.dataset.g][b.dataset.k] = +b.dataset.n; salvar(); refazer(voltar); }));
+    p.querySelectorAll("#grupos [data-gx]").forEach((b) => (b.onclick = () => { S.grupos.splice(+b.dataset.gx, 1); salvar(); refazer(voltar); }));
     p.querySelector("#v").onclick = () => ir(voltar || telaCapa);
     return p;
   }

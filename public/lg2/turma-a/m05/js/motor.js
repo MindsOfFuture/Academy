@@ -6,6 +6,32 @@
 
   const NAO_SEI = /n[ãa]o sab|n[ãa]o sei|n[ãa]o lembra|n[ãa]o informad|incomplet/i;
 
+  /* Faixas da porcentagem de lucro sobre o custo de uma unidade (correção do grupo). */
+  const LUCRO_BAIXO = 20;    // abaixo disso: lucro baixo
+  const LUCRO_ALTO = 100;    // acima disso: lucro alto
+
+  /* Gastos fixos/indiretos (Parte comum): "Não sei" deixa de ser resposta e vira
+     botão de ajuda; a pessoa precisa responder Sim/Não ou o valor para seguir. */
+  const AJUDA_NAO_SEI = ["M5.P24", "M5.P25", "M5.P26", "M5.P27", "M5.P28", "M5.P29",
+    "M5.P30", "M5.P31", "M5.P32", "M5.P33", "M5.P34", "M5.P35"];
+
+  /* O preço vai para o fim: ... P35 -> P37 (quantidade) -> P36 (preço) -> análise do preço -> resultado. */
+  const PRECO = "PRECO";
+  const MSG_RESPONDA = "Responda para continuar. Se não souber, toque em “Não sei” para ver uma explicação.";
+
+  const MSG_PRECO = {
+    sugerido: {
+      baixo: "Esse preço pode ficar baixo demais para cobrir seus gastos. Você pode aumentar a porcentagem de lucro ou conferir se os preços que você paga nas mercadorias e materiais estão corretos.",
+      alto: "Uma porcentagem de lucro muito alta pode deixar o preço acima do que os clientes estão dispostos a pagar e atrapalhar as vendas.",
+    },
+    reverso: {
+      baixo: "Seu lucro em cada venda está baixo. Com esse preço, qualquer gasto a mais pode fazer você trabalhar sem ganhar. Confira os valores que você informou ou pense em ajustar o preço.",
+      alto: "Seu lucro em cada venda está alto. Isso pode ajudar, mas um preço muito acima dos concorrentes pode atrapalhar as vendas.",
+    },
+    negativo: "Com esse preço você vende abaixo do que gasta para fazer cada unidade.",
+    semCusto: "Não foi possível calcular quanto você gasta para fazer cada unidade com as informações que você deu. Por isso não dá para calcular a porcentagem de lucro agora. Você pode voltar e conferir os valores.",
+  };
+
   function montar(D) {
     const ordem = [];          // perguntas na ordem da planilha (sem as linhas de seção)
     const porCodigo = {};
@@ -13,7 +39,8 @@
     D.perguntas.forEach((p) => {
       if (p.secao) { secao = p.secao; return; }
       const q = Object.assign({ secao }, p);
-      q.opcoesLista = opcoes(q);
+      q.ajudaNaoSei = AJUDA_NAO_SEI.includes(q.codigo);
+      q.opcoesLista = opcoes(q).filter((o) => !(q.ajudaNaoSei && NAO_SEI.test(o)));
       ordem.push(q);
       porCodigo[q.codigo] = q;
     });
@@ -49,7 +76,7 @@
   /* Botões extras de quem não sabe: os que a planilha lista em Opções
      (fora das escolhas) ou "Não sei" quando existe regra para isso. */
   function botoesAlternativos(M, q) {
-    if (campo(q) === "escolha") return [];
+    if (campo(q) === "escolha" || q.ajudaNaoSei) return [];
     const ops = q.opcoesLista.filter((o) => !/^(kg|g|l|ml|unidade|outro)$/i.test(o));
     if (ops.length) return ops;
     const temRegra = (M.regrasDe[q.codigo] || []).some((r) => NAO_SEI.test(valorCond(r)));
@@ -75,6 +102,7 @@
         || rs.find((r) => alvo === "não sei" && NAO_SEI.test(valorCond(r)))
         || null;
     }
+    if (resp.estado === "naosei" && q.ajudaNaoSei) return null;
     if (resp.estado === "naosei") return rs.find((r) => NAO_SEI.test(valorCond(r))) || null;
     return rs.find((r) => !NAO_SEI.test(valorCond(r)) && !/^ainda n/i.test(valorCond(r))) || null;
   }
@@ -82,6 +110,13 @@
   /* Próxima pergunta: "Ir para Pxx" da regra; se não houver, a coluna
      Próximo passo da pergunta (com os desvios Sim/Não escritos pelo grupo). */
   function proxima(M, q, resp, r) {
+    if (q.codigo === "M5.P37") return "M5.P36";       // quantidade antes do preço
+    if (q.codigo === "M5.P36") return PRECO;          // depois do preço, a análise do preço
+    const p = proximaPlanilha(M, q, resp, r);
+    return p === "M5.P36" ? "M5.P37" : p;             // quem ia para o preço vai antes para a quantidade
+  }
+
+  function proximaPlanilha(M, q, resp, r) {
     const cod = (s) => {
       const m = /P(\d{2})/.exec(s || "");
       return m ? "M5.P" + m[1] : null;
@@ -94,7 +129,7 @@
     }
     const j = q.proximo || "";
     if (/resultado/i.test(j)) return "RESULTADO";
-    const escolha = resp && resp.estado === "opcao" ? rotulo(resp.opcao) : resp && resp.estado === "naosei" ? "Não sei" : null;
+    const escolha = resp && resp.estado === "opcao" ? rotulo(resp.opcao) : resp && resp.estado === "naosei" && !q.ajudaNaoSei ? "Não sei" : null;
     if (/[→]|\bse\b/.test(j) && escolha) {
       for (const parte of j.split(";")) {
         let conds, alvo;
@@ -130,7 +165,8 @@
   function validar(M, q, valor, R) {
     const msg = q.alerta || "";
     const c = campo(q);
-    const falha = msg && msg !== "—" ? msg : "Preencha para continuar, ou use o botão de quem não sabe.";
+    const falha = q.ajudaNaoSei ? MSG_RESPONDA
+      : msg && msg !== "—" ? msg : "Preencha para continuar, ou use o botão de quem não sabe.";
     const neg = (n) => n !== null && n < 0;
     if (c === "texto") return String(valor || "").trim() ? null : falha;
     if (c === "lista") return (valor || []).filter((s) => s.trim()).length ? null : falha;
@@ -272,7 +308,48 @@
       fixos, outros, perdas, trabalho, mensal, qtd, fat, resultado, pe, tempo };
   }
 
-  const API = { montar, campo, opcoes, botoesAlternativos, regra, proxima, validar, calcular,
+  /* Painel "Não sei" dos gastos fixos: conceito(s) da Base técnica citados pela
+     pergunta e o texto que o grupo escreveu para quem não sabe (como descobrir). */
+  function ajudaNaoSei(M, q) {
+    if (!q.ajudaNaoSei) return null;
+    const conceitos = (String(q.fonte || "").match(/M5\.BT\d{2}/g) || []).map((c) => M.conceito[c]).filter(Boolean);
+    const comoAchar = (M.regrasDe[q.codigo] || []).filter((r) => NAO_SEI.test(valorCond(r))).map((r) => r.texto)
+      .filter((t) => t && t.trim() && t !== "—");
+    return { conceitos, comoAchar, video: (q.video || "").trim() };
+  }
+
+  /* Análise do preço (passo depois da P36). Reaproveita o custo de uma unidade de calcular().
+     modo "sugerido": a pessoa ainda não tem preço -> preço possível = custo x (1 + lucro%/100).
+     modo "reverso": a pessoa informou o preço -> lucro% = (preço - custo) / custo x 100. */
+  function classificar(pct) {
+    return pct < LUCRO_BAIXO ? "baixo" : pct > LUCRO_ALTO ? "alto" : null;
+  }
+  function analisarPreco(M, R, lucro) {
+    const r36 = R["M5.P36"];
+    if (!r36) return null;
+    const c = calcular(M, R);
+    const custo = c.custoUnidade;
+    const modo = r36.estado === "valor" ? "reverso" : "sugerido";
+    const a = { modo, custo, tipo: c.tipo };
+    if (!(isFinite(custo) && custo > 0)) return Object.assign(a, { semCusto: true, mensagens: [MSG_PRECO.semCusto] });
+    let pct, preco;
+    if (modo === "reverso") {
+      preco = num(r36.valor);
+      pct = ((preco - custo) / custo) * 100;
+    } else {
+      pct = num(lucro);
+      if (pct === null || pct < 0) return Object.assign(a, { pendente: true, mensagens: [] });
+      preco = custo * (1 + pct / 100);
+    }
+    const nivel = classificar(pct);
+    const negativo = pct < 0;
+    const mensagens = [];
+    if (nivel) mensagens.push(MSG_PRECO[modo][nivel]);
+    if (negativo) mensagens.push(MSG_PRECO.negativo);
+    return Object.assign(a, { preco, pct, nivel, negativo, mensagens });
+  }
+
+  const API = { montar, ajudaNaoSei, analisarPreco, classificar, LUCRO_BAIXO, LUCRO_ALTO, MSG_PRECO, MSG_RESPONDA, PRECO, campo, opcoes, botoesAlternativos, regra, proxima, validar, calcular,
     itensDe, listaDeOrigem, num, compativel, valorCond };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else raiz.Motor = API;

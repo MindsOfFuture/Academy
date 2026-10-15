@@ -1,269 +1,313 @@
-/* Telas do Módulo 1. Todo texto de conteúdo vem de window.MODULO1 (a planilha),
-   sem edição. As respostas ficam só neste aparelho. */
+/* Telas do Módulo 1. Todo texto de conteúdo vem de window.MODULO1, sem edição.
+   As respostas ficam só neste aparelho. */
 (function () {
   "use strict";
   const D = window.MODULO1, M = Motor.montar(D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-a-m01";
+  const VERSAO = 2;                  // muda quando o conjunto de perguntas muda: respostas antigas são descartadas
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
-  let S = carregar();               // { R: respostas, hist: [códigos] }
-  function carregar() { try { return JSON.parse(localStorage.getItem(CHAVE)) || novo(); } catch { return novo(); } }
-  function novo() { return { R: {}, hist: [] }; }
+  let S = carregar();                // { v, R: respostas, atual: código da tela atual }
+  function carregar() {
+    try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.v === VERSAO && s.R ? s : novo(); }
+    catch { return novo(); }
+  }
+  function novo() { return { v: VERSAO, R: {}, atual: null }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const link = (u, t) => /^https?:/.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : esc(t || u);
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  function ir(f, a) { parar(); tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
 
-  /* conceitos da Base técnica citados pelo grupo na própria pergunta ("BT05", "(BT06)") */
-  function conceitosDe(q) {
-    const cods = [...new Set(((q.ajuda || "") + " " + (q.resposta || "")).match(/BT\d{2}/g) || [])];
-    return D.base.filter((b) => cods.some((c) => b.codigo === "M1." + c));
-  }
-  const educativoDe = (cod) => D.educativo.filter((e) => e.onde === cod);
-
-  function blocoEducativo(lista) {
-    return lista.map((e) => `
-      <div class="caixa caixa-${e.tipo === "Faça" ? "faca" : e.tipo === "Entenda" ? "entenda" : "ia"}">
-        <span class="tag">${esc(e.tipo)}</span>
-        <b>${esc(e.titulo)}</b>
-        <p>${esc(e.texto)}</p>
-        ${vazio(e.exemplo) ? "" : `<p class="ex">${esc(e.exemplo)}</p>`}
-        ${vazio(e.prompt) ? "" : `<div class="prompt"><p>${esc(e.prompt)}</p><button class="btn-copiar" data-t="${esc(e.prompt)}">Copiar texto</button></div>
-          <p class="ex">${esc(e.conferir)}</p>`}
-        <span class="fonte">Fonte: ${esc(e.fonte)}</span>
-      </div>`).join("");
-  }
-  function blocoConceitos(lista) {
-    if (!lista.length) return "";
-    return `<details class="saiba"><summary>Entenda os termos</summary>${lista.map((b) => `
-      <div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(b.definicao)}</p>
-      ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(b.exemplo)}</p>`}
-      <span class="fonte">Fonte: ${link(b.link, b.fonte)}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`).join("")}
-    </details>`;
-  }
-  function ligarCopiar(p) {
-    p.querySelectorAll(".btn-copiar").forEach((b) => (b.onclick = () => {
-      navigator.clipboard && navigator.clipboard.writeText(b.dataset.t);
-      b.textContent = "Copiado";
-    }));
+  /* ---------- ícones simples das listas ---------- */
+  const SVG = (d) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const ICO = {
+    pessoa: SVG('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>'),
+    ideia: SVG('<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'),
+    certo: SVG('<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 10"/>'),
+    nao: SVG('<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>'),
+    info: SVG('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
+  };
+  function blocos(lista, icones, classes) {
+    return lista.map((b, i) => `
+      <section class="bloco-lista ${classes ? classes[i] : ""}">
+        <h3>${esc(b.titulo)}</h3>
+        <ul>${b.lista.map((t) => `<li>${ICO[icones[i]]}<span>${esc(t)}</span></li>`).join("")}</ul>
+      </section>`).join("");
   }
 
-  /* ================= capa ================= */
-  function telaCapa() {
-    const iniciado = S.hist.length > 0;
+  /* ---------- Ouvir: lê a tela em voz alta ---------- */
+  const fala = "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function" ? window.speechSynthesis : null;
+  function parar() { if (fala) try { fala.cancel(); } catch {} }
+  function botaoOuvir() { return fala ? `<button class="ouvir" type="button" data-ouvir>${SVG('<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/>')}<span>Ouvir</span></button>` : ""; }
+  function textoDaTela(p) {
+    const partes = [];
+    p.querySelectorAll("[data-ler]").forEach((e) => {
+      if (e.closest("[hidden]") || e.closest("details:not([open]) > :not(summary)")) return;
+      const t = e.innerText.replace(/\s+/g, " ").trim();
+      if (t) partes.push(t);
+    });
+    return partes.join(". ").replace(/\.\s*\./g, ".");
+  }
+  function ligarOuvir(p) {
+    const b = p.querySelector("[data-ouvir]");
+    if (!b) return;
+    b.onclick = () => {
+      if (fala.speaking) { parar(); return; }
+      const u = new SpeechSynthesisUtterance(textoDaTela(p));
+      u.lang = "pt-BR";
+      const voz = fala.getVoices().find((v) => /^pt(-|_)BR/i.test(v.lang));
+      if (voz) u.voice = voz;
+      fala.speak(u);
+    };
+  }
+
+  function rodape() {
+    return `<footer class="rodape">
+      <p class="credito">${esc(D.limites.rodape)}</p>
+      <div class="logos">
+        <img src="assets/logo_facc.png" alt="FACC">
+        <img src="assets/logo_ufjf.svg" alt="UFJF">
+        <img src="assets/logo_mg.svg" alt="Governo de Minas Gerais">
+      </div>
+    </footer>`;
+  }
+
+  /* ================= tela inicial ================= */
+  function telaInicio() {
+    const I = D.inicio;
+    const iniciado = Object.keys(S.R).length > 0 || !!S.atual;
     const p = el(`
       <div class="pag">
         <header class="capa">
-          <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
-          <div class="sobre">Módulo ${esc(D.modulo.numero)}</div>
-          <h1>${esc(D.modulo.nome)}</h1>
-          <p>${esc(D.mapa.objetivo)}</p>
+          <div class="capa-topo"><img class="logo" src="assets/minds.svg" alt="Minds of the Future">${botaoOuvir()}</div>
+          <div class="sobre" data-ler>${esc(I.rotulo)}</div>
+          <h1 data-ler>${esc(I.titulo)}</h1>
+          <p data-ler>${esc(I.descricao)}</p>
         </header>
-        <main class="corpo">
-          <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
-          <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p></div>
-          <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
-          <div class="acoes">
-            <button class="btn btn-primario" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
-            ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
-            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
-          </div>
-          ${rodape()}
+        <main class="corpo" data-ler>
+          ${blocos(I.blocos, ["pessoa", "ideia", "certo"])}
         </main>
+        <div class="fixo">
+          <p class="tempo" data-ler>${esc(I.tempo)}</p>
+          <button class="btn btn-primario" id="ir">${esc(I.botao)}</button>
+          <button class="link" id="limites">${esc(I.link)}</button>
+          ${iniciado ? `<button class="link" id="zerar">Apagar respostas e recomeçar</button>` : ""}
+        </div>
+        <div class="corpo">${rodape()}</div>
       </div>`);
     p.querySelector("#ir").onclick = () => {
-      const atual = S.hist[S.hist.length - 1];
-      if (atual === "RESULTADO") ir(telaResultado);
-      else ir(telaPergunta, atual || Motor.proxima(M, S.R, null));
+      if (S.atual === "RESULTADO") return ir(telaResultado);
+      ir(telaPergunta, S.atual && M.porCodigo[S.atual] ? S.atual : Motor.proxima(M, S.R, null));
     };
     const z = p.querySelector("#zerar");
-    if (z) z.onclick = () => { if (confirm("Apagar suas respostas e recomeçar?")) { S = novo(); salvar(); ir(telaCapa); } };
+    if (z) z.onclick = () => { if (confirm("Apagar suas respostas e recomeçar?")) { S = novo(); salvar(); ir(telaInicio); } };
     p.querySelector("#limites").onclick = () => ir(telaLimites);
+    ligarOuvir(p);
     return p;
   }
 
+  /* ================= O que esta parte não faz ================= */
   function telaLimites() {
+    const L = D.limites;
     const p = el(`
       <div class="pag">
-        <header class="topo"><button class="voltar" id="v">‹ voltar</button><h2>Limites do módulo</h2></header>
+        <header class="topo">
+          <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
+          <h2 data-ler>${esc(L.titulo)}</h2>
+        </header>
         <main class="corpo">
-          <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
-          <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
-          <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
-          <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+          <div data-ler>${blocos(L.blocos, ["nao", "certo", "info"], ["b-nao", "", ""])}</div>
+          <div class="aviso-roxo" data-ler>${esc(L.aviso)}</div>
           ${rodape()}
         </main>
       </div>`);
-    p.querySelector("#v").onclick = () => ir(telaCapa);
+    p.querySelector("#v").onclick = () => ir(telaInicio);
+    ligarOuvir(p);
     return p;
   }
 
   /* ================= pergunta ================= */
-  function progresso() {
-    const vistas = S.hist.filter((c) => c !== "RESULTADO").length;
-    return Math.min(100, Math.round((vistas / M.perguntas.length) * 100));
+  function progresso(cod) {
+    const cam = Motor.caminho(M, S.R);
+    const i = cam.indexOf(cod);
+    return Math.max(4, Math.round(((i < 0 ? 0 : i) / cam.length) * 100));
+  }
+  /* respostas de perguntas que deixaram de aparecer são descartadas */
+  function limparInvisiveis() {
+    for (let k = 0; k < 5; k++) {
+      const vis = new Set(Motor.caminho(M, S.R));
+      let mudou = false;
+      Object.keys(S.R).forEach((c) => { if (!vis.has(c)) { delete S.R[c]; mudou = true; } });
+      if (!mudou) break;
+    }
+  }
+  function caixaMensagem(m) {
+    if (!m) return "";
+    const cls = m.titulo === "Dica" ? "msg-dica" : "msg-tudobem";
+    return `<div class="msg ${cls}" role="status" data-ler><b>${esc(m.titulo)}</b><p>${esc(m.texto)}</p></div>`;
   }
 
   function telaPergunta(cod) {
     const q = M.porCodigo[cod];
-    if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
-    const tipo = Motor.campo(q);
-    const resp = S.R[cod] || null;
-    let escolhida = resp && resp.estado === "opcao" ? resp.opcao : null;
-
+    S.atual = cod; salvar();
     const p = el(`
       <div class="pag">
         <header class="topo">
-          <button class="voltar" id="v">‹ ${S.hist.length > 1 ? "voltar" : "início"}</button>
-          <div class="passo">Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}</div>
-          <div class="barra"><div class="barra-fill" style="width:${progresso()}%"></div></div>
+          <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
+          <div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progresso(cod)}"><div class="barra-fill" style="width:${progresso(cod)}%"></div></div>
         </header>
         <main class="corpo">
-          <div class="pergunta">
-            <h2 class="q">${esc(q.pergunta)}</h2>
-            <p class="ajuda">${esc(q.ajuda)}</p>
+          <div class="pergunta" data-cod="${esc(cod)}">
+            <h2 class="q" data-ler>${esc(Motor.textoPergunta(M, S.R, q))}</h2>
+            <p class="apoio" data-ler>${esc(q.apoio)}</p>
             <div class="entrada" id="ent"></div>
-            ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
-            <div class="erro" id="erro" hidden></div>
           </div>
-          <div id="retorno"></div>
-          ${blocoEducativo(educativoDe(cod))}
-          ${blocoConceitos(conceitosDe(q))}
-          <div class="acoes" id="acoes"><button class="btn btn-primario" id="ok">Continuar</button></div>
+          <div id="msg"></div>
+          ${q.ajuda ? `<details class="ajuda-box"><summary data-ler>O que quer dizer isso?</summary>
+            <p data-ler>${esc(q.ajuda.texto)}</p>${vazio(q.ajuda.exemplo) ? "" : `<p class="ex" data-ler>${esc(q.ajuda.exemplo)}</p>`}</details>` : ""}
         </main>
+        <div class="fixo"><button class="btn btn-primario" id="ok" disabled>Continuar</button></div>
       </div>`);
-    ligarCopiar(p);
+    const ent = p.querySelector("#ent"), msg = p.querySelector("#msg"), ok = p.querySelector("#ok");
 
-    p.querySelector("#v").onclick = () => {
-      S.hist.pop();
-      const ant = S.hist.pop();
-      salvar();
-      if (ant) ir(telaPergunta, ant); else ir(telaCapa);
-    };
-
-    const ent = p.querySelector("#ent");
-    if (tipo === "escolha") {
-      ent.classList.add("opcoes");
-      q.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}" data-op="${esc(op)}"><b>${esc(Motor.rotulo(op))}</b></button>`);
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
-        ent.appendChild(b);
-      });
-    } else {
-      const v = resp && resp.estado === "valor" ? resp.valor : "";
-      ent.appendChild(el(tipo === "numero"
-        ? `<div class="linha"><span class="pre">R$</span><input class="campo" inputmode="decimal" value="${esc(v)}"></div>`
-        : `<textarea class="campo" rows="3">${esc(v)}</textarea>`));
-    }
-    const ns = p.querySelector("#ns");
-    if (ns) ns.onclick = () => responder({ estado: "naosei" });
-
-    p.querySelector("#ok").onclick = () => {
-      if (tipo === "escolha") {
-        if (!escolhida) return erro("Escolha uma opção para continuar.");
-        return responder({ estado: "opcao", opcao: escolhida });
+    function atualizar() {
+      const r = S.R[cod];
+      const pronto = Motor.completa(q, r);
+      ok.disabled = !pronto;
+      ok.setAttribute("aria-disabled", String(!pronto));
+      let m = null;
+      if (q.tipo === "escolha") {
+        ent.querySelectorAll(".opcao").forEach((b) => {
+          const sel = !!r && r.estado === "opcao" && r.opcao === b.dataset.op;
+          b.classList.toggle("sel", sel);
+          b.setAttribute("aria-pressed", String(sel));
+        });
+        const op = r && r.estado === "opcao" ? q.opcoes.find((o) => o.texto === r.opcao) : null;
+        m = op ? op.mensagem : null;
+        const extra = ent.querySelector(".outra");
+        if (extra) extra.hidden = !(op && op.campo);
+      } else {
+        const ns = ent.querySelector("#ns");
+        const sel = !!r && r.estado === "naosei";
+        if (ns) { ns.classList.toggle("sel", sel); ns.setAttribute("aria-pressed", String(sel)); }
+        m = sel && q.botao_naosei ? q.botao_naosei.mensagem : null;
       }
-      const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(Motor.temNaoSei(q) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
-      if (tipo === "numero" && isNaN(parseFloat(v.replace(/\./g, "").replace(",", ".")))) return erro("Informe um número.");
-      responder({ estado: "valor", valor: v });
-    };
-    function erro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
-
-    function responder(r0) {
-      p.querySelector("#erro").hidden = true;
-      S.R[cod] = r0;
-      /* respostas de perguntas que deixaram de aparecer são descartadas */
+      msg.innerHTML = caixaMensagem(m);
+    }
+    function gravar(r) {
+      if (r) S.R[cod] = r; else delete S.R[cod];
       limparInvisiveis();
       salvar();
-      const regras = Motor.regrasAgora(M, S.R, cod);
-      const prox = Motor.proxima(M, S.R, cod);
-      mostrarRetorno(regras, prox);
+      atualizar();
     }
 
-    function mostrarRetorno(regras, prox) {
-      const box = p.querySelector("#retorno");
-      box.innerHTML = `<div class="retorno">
-        <p class="r-texto r-pergunta">${esc(q.resposta)}</p>
-        ${regras.map((r) => `
-          <div class="regra">
-            <p class="r-texto">${esc(r.texto)}</p>
-            ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(r.alerta)}</div>`}
-            ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
-            ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${esc(r.encaminhamento)}</div>`}
-          </div>`).join("")}
-        ${vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(q.alerta)}</div>`}
-      </div>`;
-      const acoes = p.querySelector("#acoes");
-      acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario">${prox === "RESULTADO" ? "Ver meu retrato inicial" : "Seguir"}</button>`);
-      b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
-      acoes.appendChild(b);
-      const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
-      c.onclick = () => ir(telaPergunta, cod);
-      acoes.appendChild(c);
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (q.tipo === "escolha") {
+      ent.classList.add("opcoes");
+      q.opcoes.forEach((op) => {
+        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><b data-ler>${esc(op.texto)}</b><span class="check" aria-hidden="true">✓</span></button>`);
+        b.onclick = () => {
+          const ant = S.R[cod];
+          const r = { estado: "opcao", opcao: op.texto };
+          if (op.campo && ant && ant.opcao === op.texto && ant.detalhe) r.detalhe = ant.detalhe;
+          gravar(r);
+          if (op.campo) { const t = ent.querySelector(".outra textarea"); if (t) t.focus(); }
+        };
+        ent.appendChild(b);
+        if (op.campo) {
+          const r0 = S.R[cod];
+          const box = el(`<div class="outra" hidden><textarea class="campo" rows="2" aria-label="${esc(op.texto)}">${esc(r0 && r0.opcao === op.texto ? r0.detalhe || "" : "")}</textarea></div>`);
+          box.querySelector("textarea").oninput = (e) => {
+            S.R[cod] = { estado: "opcao", opcao: op.texto, detalhe: e.target.value };
+            salvar(); atualizar();
+          };
+          ent.appendChild(box);
+        }
+      });
+    } else {
+      const r0 = S.R[cod];
+      const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      ent.appendChild(el(`<div>
+        <textarea class="campo" id="txt" rows="3" placeholder="${esc(q.placeholder || "")}" aria-label="${esc(q.pergunta)}">${esc(r0 && r0.estado === "valor" ? r0.valor : "")}</textarea>
+        <div class="alt">
+          ${Rec && q.botao_falar ? `<button class="btn-alt" type="button" id="falar">${SVG('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>')}<span>${esc(q.botao_falar)}</span></button>` : ""}
+          ${q.botao_naosei ? `<button class="btn-alt btn-ns" type="button" id="ns" aria-pressed="false"><span data-ler>${esc(q.botao_naosei.texto)}</span><span class="check" aria-hidden="true">✓</span></button>` : ""}
+        </div>
+      </div>`));
+      const txt = ent.querySelector("#txt");
+      txt.oninput = () => gravar(txt.value.trim() ? { estado: "valor", valor: txt.value } : null);
+      const ns = ent.querySelector("#ns");
+      if (ns) ns.onclick = () => { txt.value = ""; gravar({ estado: "naosei", texto: q.botao_naosei.texto }); };
+      const fb = ent.querySelector("#falar");
+      if (fb) {
+        let rec = null;
+        const rotulo = fb.querySelector("span");
+        fb.onclick = () => {
+          if (rec) { rec.stop(); return; }
+          rec = new Rec();
+          rec.lang = "pt-BR"; rec.interimResults = false; rec.maxAlternatives = 1;
+          fb.classList.add("gravando"); rotulo.textContent = "Ouvindo… toque para parar";
+          rec.onresult = (e) => {
+            const t = Array.from(e.results).map((x) => x[0].transcript).join(" ").trim();
+            if (t) { txt.value = (txt.value.trim() ? txt.value.trim() + " " : "") + t; txt.dispatchEvent(new Event("input")); }
+          };
+          rec.onend = rec.onerror = () => { rec = null; fb.classList.remove("gravando"); rotulo.textContent = q.botao_falar; };
+          try { rec.start(); } catch { rec.onend(); }
+        };
+      }
     }
+    atualizar();
+
+    p.querySelector("#v").onclick = () => {
+      const cam = Motor.caminho(M, S.R);
+      const i = cam.indexOf(cod);
+      if (i > 0) ir(telaPergunta, cam[i - 1]); else { S.atual = null; salvar(); ir(telaInicio); }
+    };
+    ok.onclick = () => {
+      if (!Motor.completa(q, S.R[cod])) return;
+      const prox = Motor.proxima(M, S.R, cod);
+      if (prox === "RESULTADO") { S.atual = "RESULTADO"; salvar(); ir(telaResultado); }
+      else ir(telaPergunta, prox);
+    };
+    ligarOuvir(p);
     return p;
   }
 
-  function limparInvisiveis() {
-    let cod = Motor.proxima(M, {}, null);
-    const vis = new Set();
-    const R = {};
-    while (cod !== "RESULTADO") {
-      vis.add(cod);
-      if (S.R[cod] === undefined) break;
-      R[cod] = S.R[cod];
-      cod = Motor.proxima(M, R, cod);
-    }
-    Object.keys(S.R).forEach((k) => { if (!vis.has(k)) delete S.R[k]; });
-  }
-
   /* ================= resultado: retrato inicial =================
-     A aba 4 veio sem regras, então o fechamento só junta as respostas do
-     usuário com os textos que o grupo escreveu (Mapa e colunas H e I da aba 3). */
+     Junta as respostas do usuário com os textos que o grupo escreveu no Mapa. */
   function telaResultado() {
     const lista = Motor.retrato(M, S.R);
     const regras = Motor.regrasTodas(M, S.R);
     const naosei = lista.filter((x) => x.naosei);
-    const alertas = [...new Set(lista.map((x) => x.q.alerta).filter((t) => !vazio(t)))];
-    const mostra = (x) => x.q.marcador || Motor.campo(x.q) !== "escolha"
-      ? (x.valor === Motor.NS ? Motor.NS : (Motor.campo(x.q) === "numero" ? "R$ " : "") + x.valor)
-      : Motor.rotulo(x.valor);
+    const mostra = (x) => x.detalhe ? `${x.valor}: ${x.detalhe}` : x.valor;
     const p = el(`
       <div class="pag">
         <header class="topo">
-          <button class="voltar" id="v">‹ voltar</button>
-          <div class="passo">Resultado</div>
-          <h2>Retrato inicial</h2>
+          <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
+          <div class="passo" data-ler>Resultado</div>
+          <h2 data-ler>Retrato inicial</h2>
         </header>
         <main class="corpo">
-          <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
+          <div class="cartao" data-ler><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
 
-          <div class="secao-titulo">Suas respostas</div>
+          <div class="secao-titulo" data-ler>Suas respostas</div>
           ${lista.map((x) => `
-            <div class="cartao resp ${x.naosei ? "resp-ns" : ""}">
-              <p class="mini-info">${esc(x.q.pergunta)}</p>
+            <div class="cartao resp ${x.naosei ? "resp-ns" : ""}" data-ler>
+              <p class="mini-info">${esc(x.pergunta)}</p>
               <h3>${esc(mostra(x))}</h3>
-              <p>${esc(x.q.resposta)}</p>
             </div>`).join("")}
 
           ${regras.map((r) => `<div class="regra"><p class="r-texto">${esc(r.texto)}</p></div>`).join("")}
 
-          ${alertas.length ? `<div class="secao-titulo">Atenção</div>${alertas.map((t) => `<div class="bloco b-alerta">${esc(t)}</div>`).join("")}` : ""}
+          ${naosei.length ? `<div class="bloco b-lacuna" data-ler><b>Perguntas que você ainda não soube responder</b><ul>${naosei.map((x) => `<li>${esc(x.pergunta)}</li>`).join("")}</ul></div>` : ""}
 
-          ${naosei.length ? `<div class="bloco b-lacuna"><b>Perguntas respondidas com “Não sei”</b><ul>${naosei.map((x) => `<li>${esc(x.q.pergunta)}</li>`).join("")}</ul></div>` : ""}
+          <div class="cartao" data-ler><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
 
-          <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
+          <div class="secao-titulo" data-ler>Para onde seguem estas informações</div>
+          ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao" data-ler><h3>Módulo ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
 
-          <div class="secao-titulo">Para onde seguem estas informações</div>
-          ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao"><h3>Módulo ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
-
-          <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+          <div class="aviso-roxo" data-ler>${esc(D.mapa.mensagem_limite)}</div>
 
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
@@ -273,23 +317,13 @@
           ${rodape()}
         </main>
       </div>`);
-    p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
+    p.querySelector("#v").onclick = () => { const cam = Motor.caminho(M, S.R); ir(telaPergunta, cam[cam.length - 1]); };
     p.querySelector("#imp").onclick = () => window.print();
-    p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); };
-    p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); } };
+    p.querySelector("#rev").onclick = () => ir(telaPergunta, Motor.proxima(M, {}, null));
+    p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaInicio); } };
+    ligarOuvir(p);
     return p;
   }
 
-  function rodape() {
-    return `<footer class="rodape">
-      <p class="credito">Conteúdo do Grupo ${esc(D.modulo.numero)} · Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
-      <div class="logos">
-        <img src="assets/logo_facc.png" alt="FACC">
-        <img src="assets/logo_ufjf.svg" alt="UFJF">
-        <img src="assets/logo_mg.svg" alt="Governo de Minas Gerais">
-      </div>
-    </footer>`;
-  }
-
-  ir(telaCapa);
+  ir(telaInicio);
 })();
