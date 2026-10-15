@@ -4,7 +4,9 @@
   "use strict";
   const D = window.MODULO6, M = Motor.montar(D);
   const tela = document.getElementById("tela");
-  const CHAVE = "lg2-turma-a-m06";
+  const CHAVE = "lg2-turma-b-m06";
+  /* o módulo mudou de turma em 15/10: traz as respostas salvas na chave antiga */
+  try { const antiga = localStorage.getItem("lg2-turma-a-m06"); if (antiga && !localStorage.getItem(CHAVE)) localStorage.setItem(CHAVE, antiga); } catch (e) {}
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
   /* as respostas guardadas pela planilha v0.1 usam outra numeração de perguntas: começam do zero */
