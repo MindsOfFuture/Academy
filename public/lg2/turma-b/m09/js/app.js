@@ -53,23 +53,50 @@
     }));
   }
 
+  /* ================= peças do layout (modelo do Módulo 5) ================= */
+  function topo(trilha) {
+    return `<div class="barra-topo">
+      <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+    </div>`;
+  }
+  /* faixa roxa: na capa, grande com hero-inicio; nas outras telas, pequena com hero-preco */
+  function heroi(o) {
+    const longo = String(o.titulo || "").length > 42;
+    return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
+      <div class="heroi-topo">
+        <div class="heroi-txt">
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <${o.h1 ? "h1" : "h2"} class="heroi-tit ${longo && !o.grande ? "heroi-tit-longo" : ""}">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
+          ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
+        </div>
+        <img class="heroi-img" src="assets/${o.grande ? "hero-inicio.webp" : "hero-preco.webp"}" alt="">
+      </div>
+      ${o.extra || ""}
+    </section>`;
+  }
+  function dica(texto) {
+    if (vazio(texto)) return "";
+    return `<aside class="dica"><img src="assets/hero-preco.webp" alt=""><div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
+  }
+  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  function ligar(p) {
+    p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
+  }
+
   /* ================= capa ================= */
   function telaCapa() {
     const iniciado = S.hist.length > 0;
     const p = el(`
       <div class="pag">
-        <header class="capa">
-          <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
-          <div class="sobre">Módulo ${esc(D.modulo.numero)}</div>
-          <h1>${esc(D.modulo.nome)}</h1>
-          <p>${esc(D.mapa.objetivo)}</p>
-        </header>
+        ${topo("")}
+        ${heroi({ grande: true, h1: true, titulo: D.modulo.nome, texto: D.mapa.objetivo })}
         <main class="corpo">
           <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
           <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p></div>
           <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
           <div class="acoes">
-            <button class="btn btn-primario" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
+            <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
             <button class="btn btn-linha" id="base">Consultar a base local de CNAEs</button>
             <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
@@ -77,6 +104,7 @@
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#ir").onclick = () => {
       const atual = S.hist[S.hist.length - 1];
       if (atual === "RESULTADO") ir(telaResultado);
@@ -92,15 +120,18 @@
   function telaLimites() {
     const p = el(`
       <div class="pag">
-        <header class="topo"><button class="voltar" id="v">‹ voltar</button><h2>Limites do módulo</h2></header>
+        ${topo("Limites")}
+        ${heroi({ titulo: "Limites do módulo" })}
         <main class="corpo">
           <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => ir(telaCapa);
     return p;
   }
@@ -110,14 +141,17 @@
     const I = D.instrumentos;
     const p = el(`
       <div class="pag">
-        <header class="topo"><button class="voltar" id="v">‹ voltar</button><h2>${esc(I.I02_titulo)}</h2></header>
+        ${topo("Base local de CNAEs")}
+        ${heroi({ titulo: I.I02_titulo })}
         <main class="corpo">
           <p class="ajuda">${esc(I.I02_intro)}</p>
           <input class="campo" id="busca" placeholder="Busque pelo CNAE ou pela atividade">
           <div id="lista"></div>
+          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     const lista = p.querySelector("#lista");
     const sem = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const desenhar = (t) => {
@@ -155,25 +189,28 @@
 
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ ${S.hist.length > 1 ? "voltar" : "início"}</button>
+        ${topo("Perguntas")}
+        ${heroi({ titulo: D.modulo.nome, extra: `<div class="progresso">
           <div class="passo">Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}</div>
           <div class="barra"><div class="barra-fill" style="width:${progresso()}%"></div></div>
-        </header>
+        </div>` })}
         <main class="corpo">
-          <div class="pergunta">
+          <div class="cartao-q pergunta">
             <h2 class="q">${esc(q.pergunta)}</h2>
-            <p class="ajuda">${esc(q.ajuda)}</p>
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
+            ${dica(q.ajuda)}
+            <div id="retorno"></div>
+            ${blocoEducativo(educativoDe(cod))}
+            ${blocoConceitos(conceitosDe(q))}
+            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            ${botaoVoltar()}
           </div>
-          <div id="retorno"></div>
-          ${blocoEducativo(educativoDe(cod))}
-          ${blocoConceitos(conceitosDe(q))}
-          <div class="acoes" id="acoes"><button class="btn btn-primario" id="ok">Continuar</button></div>
+          ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     ligarCopiar(p);
 
     p.querySelector("#v").onclick = () => {
@@ -187,7 +224,7 @@
     if (tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><b>${esc(op)}</b></button>`);
+        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
         b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
         ent.appendChild(b);
       });
@@ -240,7 +277,7 @@
       </div>`;
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario">${prox === "RESULTADO" ? "Ver meu checklist" : "Seguir"}</button>`);
+      const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver meu checklist" : "Seguir"}</button>`);
       b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
       acoes.appendChild(b);
       const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
@@ -282,12 +319,12 @@
 
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ voltar</button>
-          <div class="passo">Resultado</div>
-          <h2>${esc(I.I01_titulo)}</h2>
-        </header>
+        ${topo("Resultado")}
+        ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: I.I01_titulo })}
         <main class="corpo">
+          <section class="concluido">
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Veja abaixo o resultado pelas suas respostas.</p></div></div>
+          </section>
           <div class="res-num">
             <div class="lbl">Nível de risco provável</div>
             <div class="val">${nv ? esc(nv.rotulo) : "A confirmar"}</div>
@@ -329,10 +366,12 @@
             <button class="btn btn-linha" id="base">Consultar a base local de CNAEs</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
+          ${botaoVoltar()}
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m10/index.html">Ir para o Módulo 10</a></div>
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
     p.querySelector("#imp").onclick = () => window.print();
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); };

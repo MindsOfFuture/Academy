@@ -59,23 +59,50 @@
     lista.filter((c) => c.tipo !== "Nenhum").forEach((c) => box.appendChild(caixa(c)));
   }
 
+  /* ================= peças do layout (as mesmas do Módulo 5) ================= */
+  function topo(trilha) {
+    return `<div class="barra-topo">
+      <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" type="button" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+    </div>`;
+  }
+  function heroi(o) {
+    return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
+      <div class="heroi-topo">
+        <div class="heroi-txt">
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <${o.h1 ? "h1" : "h2"} class="heroi-tit ${o.titClasse || ""}">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
+          ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
+        </div>
+        <img class="heroi-img" src="assets/${o.img || "hero-preco.webp"}" alt="">
+      </div>
+    </section>`;
+  }
+  /* etapas = os 4 blocos da planilha ("Bloco 1: ..." aparece como "Bloco 1"; o nome inteiro fica na faixa) */
+  const curto = (b) => String(b).split(":")[0].trim();
+  function etapas(n, tudo) {
+    return `<ol class="etapas" aria-label="Blocos do módulo">${D.blocos.map((nome, i) => {
+      const k = i + 1, st = tudo || k < n ? "feita" : k === n ? "atual" : "";
+      return `<li class="${st}"${k === n && !tudo ? ' aria-current="step"' : ""}><span class="bola" aria-hidden="true"></span><span class="rot">${esc(curto(nome))}</span></li>`;
+    }).join("")}</ol>`;
+  }
+  /* Voltar embaixo, em contorno; o rótulo do botão continua o mesmo ("‹ voltar"), com a seta desenhada */
+  const botaoVoltar = (rot) => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v"><span class="sr">‹ </span>${esc(rot)}</button></div>`;
+  function ligar(p) { p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); }); }
+
   /* ================= capa ================= */
   function telaCapa() {
     const iniciado = S.hist.length > 0;
     const p = el(`
       <div class="pag">
-        <header class="capa">
-          <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
-          <div class="sobre">Módulo ${esc(D.modulo.numero)}</div>
-          <h1>${esc(D.modulo.nome)}</h1>
-          <p>${esc(D.mapa.objetivo)}</p>
-        </header>
+        ${topo("")}
+        ${heroi({ grande: true, h1: true, titulo: D.modulo.nome, texto: D.mapa.objetivo, img: "hero-inicio.webp" })}
         <main class="corpo">
           <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
           <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p></div>
           <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
           <div class="acoes">
-            <button class="btn btn-primario" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
+            <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
             <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
           </div>
@@ -90,21 +117,25 @@
     const z = p.querySelector("#zerar");
     if (z) z.onclick = () => { if (confirm("Apagar suas respostas e recomeçar?")) { S = novo(); salvar(); ir(telaCapa); } };
     p.querySelector("#limites").onclick = () => ir(telaLimites);
+    ligar(p);
     return p;
   }
 
   function telaLimites() {
     const p = el(`
       <div class="pag">
-        <header class="topo"><button class="voltar" id="v">‹ voltar</button><h2>Limites do módulo</h2></header>
+        ${topo("Limites")}
+        ${heroi({ titulo: "Limites do módulo" })}
         <main class="corpo">
           <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+          ${botaoVoltar("voltar")}
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => ir(telaCapa);
     return p;
   }
@@ -122,13 +153,11 @@
 
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ ${doResumo ? "resumo" : S.hist.length > 1 ? "voltar" : "início"}</button>
-          <div class="passo">Pergunta ${pos} de ${vis.length}</div>
-          <div class="bloco-nome">${esc(q.bloco)}</div>
-          <div class="barra"><div class="barra-fill" style="width:${Math.round((pos / vis.length) * 100)}%"></div></div>
-        </header>
+        ${topo(curto(q.bloco))}
+        ${heroi({ kicker: `Pergunta ${pos} de ${vis.length}`, kickerClasse: "passo", titulo: q.bloco, titClasse: "bloco-nome" })}
+        ${etapas(D.blocos.indexOf(q.bloco) + 1)}
         <main class="corpo">
+          <div class="cartao-q">
           <div class="pergunta">
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${tipo === "multipla" ? `<p class="mini-info">Você pode marcar mais de uma opção.</p>` : ""}
@@ -139,8 +168,12 @@
             <div id="extra"></div>
           </div>
           <div class="acoes" id="acoes"></div>
+          ${botaoVoltar(doResumo ? "resumo" : S.hist.length > 1 ? "voltar" : "início")}
+          </div>
+          ${rodape()}
         </main>
       </div>`);
+    ligar(p);
 
     p.querySelector("#v").onclick = () => {
       if (doResumo) { S.hist.pop(); salvar(); return ir(telaResultado); }
@@ -158,7 +191,7 @@
       /* modo: "continuar" (normal) | "seguir" (há retorno para ler) | "mesmo" (dica para corrigir) */
       acoes.innerHTML = "";
       const rot = modo === "seguir" ? "Seguir" : modo === "mesmo" ? "Continuar mesmo assim" : "Continuar";
-      const b = el(`<button class="btn btn-primario" id="ok">${rot}</button>`);
+      const b = el(`<button class="btn btn-primario seta" id="ok">${rot}</button>`);
       b.onclick = modo === "continuar" ? continuar : modo === "mesmo" ? () => { gravar(coletar()); avancar(); } : avancar;
       acoes.appendChild(b);
     }
@@ -174,7 +207,7 @@
     if (tipo === "escolha" || tipo === "escolhacampos" || tipo === "multipla") {
       ent.classList.add("opcoes");
       q.opcoes.forEach((op) => {
-        const b = el(`<button class="opcao" type="button" ${tipo === "multipla" ? 'role="checkbox"' : 'role="radio"'}><b>${esc(op)}</b></button>`);
+        const b = el(`<button class="opcao" type="button" ${tipo === "multipla" ? 'role="checkbox"' : 'role="radio"'}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
         b.dataset.op = op;
         b.onclick = () => {
           if (tipo === "multipla") {
@@ -358,12 +391,13 @@
     const blocos = D.blocos.map((b) => ({ nome: b, qs: vis.filter((q) => q.bloco === b) })).filter((b) => b.qs.length);
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ voltar</button>
-          <div class="passo">Resultado</div>
-          <h2>Resumo das suas respostas</h2>
-        </header>
+        ${topo("Resultado")}
+        ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Resumo das suas respostas" })}
+        ${etapas(D.blocos.length, true)}
         <main class="corpo">
+          <section class="concluido">
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Veja abaixo o resumo das suas respostas.</p></div></div>
+          </section>
           <div class="res-num">
             <div class="lbl">Perguntas respondidas</div>
             <div class="val">${resp.length} de ${vis.length}</div>
@@ -399,6 +433,7 @@
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
+          ${botaoVoltar("voltar")}
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-a/m04/index.html">Ir para o Módulo 4</a></div>
           ${rodape()}
         </main>
@@ -407,6 +442,7 @@
       S.hist.pop(); const a = S.hist.pop(); salvar();
       if (a && M.porCodigo[a]) ir(telaPergunta, a); else ir(telaCapa);
     };
+    ligar(p);
     p.querySelectorAll(".preencher").forEach((b) => (b.onclick = () => ir(telaPergunta, b.dataset.cod, true)));
     p.querySelector("#imp").onclick = () => window.print();
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, S.R, null)); };

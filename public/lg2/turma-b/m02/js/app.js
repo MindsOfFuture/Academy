@@ -57,23 +57,52 @@
     }));
   }
 
+  /* ================= peças do layout (modelo do Módulo 5) ================= */
+  function topo(trilha) {
+    return `<div class="barra-topo">
+      <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+    </div>`;
+  }
+  /* faixa roxa: o.kicker e o.titulo vêm do que a tela já mostrava; o.progresso (0-100) desenha a barra amarela */
+  function heroi(o) {
+    const tag = o.h1 ? "h1" : "h2";
+    return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
+      <div class="heroi-topo">
+        <div class="heroi-txt">
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <${tag} class="heroi-tit ${o.titClasse || ""}">${esc(o.titulo)}</${tag}>
+          ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
+        </div>
+        <img class="heroi-img" src="assets/${o.img || "hero-preco.webp"}" alt="">
+      </div>
+      ${o.progresso === undefined ? "" : `<div class="heroi-prog"><div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.progresso}"><div class="barra-fill" style="width:${o.progresso}%"></div></div></div>`}
+    </section>`;
+  }
+  /* ajuda aberta da planilha, em cartão de dica (html já escapado) */
+  const dica = (html) => html ? `<aside class="dica"><img src="assets/hero-preco.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p></div></aside>` : "";
+  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  /* opção com bolinha; sem espaços entre as tags para o nome do botão continuar igual ao texto da opção */
+  const opcaoHtml = (op, sel, attrs) => `<button class="opcao ${sel ? "sel" : ""}"${attrs || ""}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`;
+  function concluido() {
+    return `<section class="concluido"><div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Confira abaixo o resumo das suas respostas.</p></div></div></section>`;
+  }
+  /* liga os botões comuns a todas as telas */
+  function ligar(p) { p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); }); }
+
   /* ================= capa ================= */
   function telaCapa() {
     const iniciado = S.hist.length > 0;
     const p = el(`
       <div class="pag">
-        <header class="capa">
-          <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
-          <div class="sobre">Módulo ${esc(D.modulo.numero)}</div>
-          <h1>${esc(D.modulo.nome)}</h1>
-          <p>${esc(D.mapa.objetivo)}</p>
-        </header>
+        ${topo("")}
+        ${heroi({ grande: true, h1: true, titulo: D.modulo.nome, texto: D.mapa.objetivo, img: "hero-inicio.webp" })}
         <main class="corpo">
           <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
           <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p></div>
           <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
           <div class="acoes">
-            <button class="btn btn-primario" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
+            <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
             <button class="btn btn-linha" id="inst">Instrumentos: roteiro, ficha, plano e quadro</button>
             <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
@@ -81,6 +110,7 @@
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#ir").onclick = () => {
       const atual = S.hist[S.hist.length - 1];
       if (atual === "RESULTADO") ir(telaResultado);
@@ -96,15 +126,18 @@
   function telaLimites() {
     const p = el(`
       <div class="pag">
-        <header class="topo"><button class="voltar" id="v">‹ voltar</button><h2>Limites do módulo</h2></header>
+        ${topo("Limites")}
+        ${heroi({ titulo: "Limites do módulo" })}
         <main class="corpo">
           <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => ir(telaCapa);
     return p;
   }
@@ -132,7 +165,8 @@
     const passos = passosPlano();
     const p = el(`
       <div class="pag">
-        <header class="topo"><button class="voltar" id="v">‹ voltar</button><h2>Instrumentos</h2></header>
+        ${topo("Instrumentos")}
+        ${heroi({ titulo: "Instrumentos" })}
         <main class="corpo">
           ${cabInst(i1)}
           <div class="cartao"><h3>Antes da conversa</h3><p>${esc(D.base[2] ? D.base[2].definicao : "")}</p><p class="ex">${esc(D.base[2] ? D.base[2].exemplo : "")}</p></div>
@@ -146,7 +180,7 @@
             <label class="mini-info">frequência de compra</label><input class="campo" id="f-freq">
             <label class="mini-info">motivo de escolha</label><input class="campo" id="f-mot">
             <label class="mini-info">sinal de interesse (forte, fraco ou nenhum)</label>
-            <div class="opcoes" id="f-sinal">${Motor.SINAIS.map((s) => `<button class="opcao" data-s="${s}"><b>${s}</b></button>`).join("")}</div>
+            <div class="opcoes" id="f-sinal">${Motor.SINAIS.map((s) => opcaoHtml(s, false, ` data-s="${esc(s)}"`)).join("")}</div>
             <div class="erro" id="f-erro" hidden></div>
             <div class="acoes"><button class="btn btn-primario" id="f-ok">Salvar na ficha</button></div>
           </div>
@@ -183,9 +217,11 @@
             <div class="acoes"><button class="btn btn-claro" id="g-ok">Adicionar grupo</button></div>
           </div>
           <div class="aviso">${esc(i5.limite)}</div>` : ""}
+          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     let sinal = null;
     p.querySelectorAll("#f-sinal .opcao").forEach((b) => (b.onclick = () => {
       sinal = b.dataset.s; p.querySelectorAll("#f-sinal .opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel");
@@ -223,26 +259,26 @@
 
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ ${S.hist.length > 1 ? "voltar" : "início"}</button>
-          <div class="passo">Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}</div>
-          <div class="barra"><div class="barra-fill" style="width:${progresso()}%"></div></div>
-        </header>
+        ${topo("Perguntas")}
+        ${heroi({ titulo: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, titClasse: "passo", texto: D.modulo.nome, progresso: progresso() })}
         <main class="corpo">
-          <div class="pergunta">
+          <div class="cartao-q pergunta">
             <h2 class="q">${esc(q.pergunta)}</h2>
-            <p class="ajuda">${esc(q.ajuda)}</p>
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
+            ${vazio(q.ajuda) ? "" : dica(esc(q.ajuda))}
+            <div id="retorno"></div>
+            ${blocoEducativo(educativoDe(cod))}
+            ${blocoVideos(videosDe(cod))}
+            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            ${botaoVoltar()}
           </div>
-          <div id="retorno"></div>
-          ${blocoEducativo(educativoDe(cod))}
-          ${blocoVideos(videosDe(cod))}
-          <div class="acoes" id="acoes"><button class="btn btn-primario" id="ok">Continuar</button></div>
+          ${rodape()}
         </main>
       </div>`);
     ligarCopiar(p);
+    ligar(p);
 
     p.querySelector("#v").onclick = () => {
       S.hist.pop();
@@ -255,7 +291,7 @@
     if (tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><b>${esc(op)}</b></button>`);
+        const b = el(opcaoHtml(op, escolhida === op));
         b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
         ent.appendChild(b);
       });
@@ -307,7 +343,7 @@
       </div>`;
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
+      const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
       b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
       acoes.appendChild(b);
       const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
@@ -340,12 +376,10 @@
     const resp = M.perguntas.filter((q) => S.R[q.codigo] !== undefined);
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ voltar</button>
-          <div class="passo">Resultado</div>
-          <h2>${esc(D.modulo.nome)}</h2>
-        </header>
+        ${topo("Resultado")}
+        ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: D.modulo.nome })}
         <main class="corpo">
+          ${concluido()}
           <div class="res-num">
             <div class="lbl">${esc(D.base[3] ? D.base[3].conceito : "")}</div>
             <div class="val">${Q.total ? `${Q.contagem.forte} de ${Q.total}` : "—"}</div>
@@ -366,10 +400,12 @@
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
+          ${botaoVoltar()}
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-a/m03/index.html">Ir para o Módulo 3</a></div>
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
     p.querySelector("#inst").onclick = () => ir(telaInstrumentos, telaResultado);
     p.querySelector("#imp").onclick = () => window.print();

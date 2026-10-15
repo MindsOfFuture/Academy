@@ -48,8 +48,17 @@
   function rodape() {
     return `<footer class="rodape"><p class="credito">Laboratório de Gestão II · Turma B · Módulo 10</p><div class="logos"><img src="${assets}logo_facc.png" alt="FACC"><img src="${assets}logo_ufjf.svg" alt="UFJF"><img src="${assets}logo_mg.svg" alt="Governo de Minas Gerais"></div></footer>`;
   }
-  function exibir(conteudo,passo='Perguntas do módulo') {
-    tela.innerHTML = `<div class="pag"><header class="topo"><div class="marca"><img class="logo" src="${assets}minds.svg" alt="Minds of the Future"><div>Laboratório de Gestão II<br>Turma B · Módulo 10</div></div><h1>${esc(dados.nome)}</h1><p class="passo">${esc(passo)}</p></header><main class="corpo"><p class="aviso">${aviso}</p>${conteudo}<p id="salvamento" class="salvamento" role="status">${esc(erroArmazenamento || 'Respostas salvas apenas neste navegador.')}</p>${rodape()}</main></div>`;
+  /* Layout no modelo do Módulo 5: barra do topo com trilha, faixa roxa com ilustração,
+     cartão da pergunta e conclusão no resumo. Rótulos e ids dos botões não mudam. */
+  function topo(trilha) {
+    return `<div class="barra-topo"><img class="logo-mini" src="${assets}minds.svg" alt="Minds of the Future"><nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo 10</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ''}</nav></div>`;
+  }
+  function heroi(o) {
+    return `<section class="heroi ${o.grande ? 'heroi-grande' : ''}"><div class="heroi-topo"><div class="heroi-txt"><div class="kicker ${o.kickerClasse || ''}">${esc(o.kicker || 'Módulo 10')}</div><h1 class="heroi-tit ${o.grande ? '' : 'heroi-tit-longo'}">${esc(dados.nome)}</h1>${o.texto ? `<p>${esc(o.texto)}</p>` : ''}</div><img class="heroi-img" src="${assets}${o.grande ? 'hero-inicio.webp' : 'hero-preco.webp'}" alt=""></div>${o.extra || ''}</section>`;
+  }
+  function exibir(conteudo,o={}) {
+    tela.innerHTML = `<div class="pag">${topo(o.trilha)}${heroi(o)}<main class="corpo"><p class="aviso">${aviso}</p>${conteudo}<p id="salvamento" class="salvamento" role="status">${esc(erroArmazenamento || 'Respostas salvas apenas neste navegador.')}</p>${rodape()}</main></div>`;
+    tela.querySelectorAll('[data-inicio]').forEach(b => { b.onclick = () => { editando = false; capa(); }; });
     window.scrollTo(0,0);
   }
   function ligarReset() {
@@ -68,7 +77,7 @@
     };
   }
   function capa() {
-    exibir(`<div class="cartao"><h2>15 perguntas para registrar suas respostas</h2><p>Ao final, você poderá revisar e imprimir o que escreveu. Esta versão reúne apenas as perguntas, não um diagnóstico ou plano de ação automático.</p></div><p>Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas.</p><div class="acoes"><button id="iniciar" class="btn btn-primario">${estado.iniciado ? 'Continuar de onde parei' : 'Começar'}</button><button id="reiniciar" class="btn btn-linha">Recomeçar do zero</button></div>`);
+    exibir(`<div class="cartao"><h2>15 perguntas para registrar suas respostas</h2><p>Ao final, você poderá revisar e imprimir o que escreveu. Esta versão reúne apenas as perguntas, não um diagnóstico ou plano de ação automático.</p></div><p>Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas.</p><div class="acoes"><button id="iniciar" class="btn btn-primario seta">${estado.iniciado ? 'Continuar de onde parei' : 'Começar'}</button><button id="reiniciar" class="btn btn-claro">Recomeçar do zero</button></div>`,{grande:true,texto:'Laboratório de Gestão II · Turma B'});
     document.getElementById('iniciar').onclick = () => {
       estado.iniciado = true;
       salvar();
@@ -78,7 +87,10 @@
   }
   function pergunta() {
     const q = perguntas[estado.indice];
-    exibir(`<section class="pergunta"><label class="q" id="pergunta" for="resposta">${esc(q.pergunta)}</label><textarea class="campo" id="resposta" rows="5" aria-describedby="modo"></textarea><p id="modo" class="salvamento">Resposta em texto aberto. Você pode deixar em branco e revisar depois.</p></section><div class="acoes"><button class="btn btn-primario" id="proxima">${estado.indice === perguntas.length-1 ? 'Ver resumo' : 'Próxima'}</button><button class="btn btn-claro" id="voltar">Voltar</button>${editando ? '<button class="btn btn-linha" id="resumir">Voltar ao resumo</button>' : ''}<button id="reiniciar" class="btn btn-linha">Recomeçar do zero</button></div>`,`Pergunta ${estado.indice+1} de ${perguntas.length}`);
+    const passo = `Pergunta ${estado.indice+1} de ${perguntas.length}`;
+    const pct = Math.round(((estado.indice+1)/perguntas.length)*100);
+    exibir(`<section class="cartao-q pergunta"><label class="q" id="pergunta" for="resposta">${esc(q.pergunta)}</label><textarea class="campo" id="resposta" rows="5" aria-describedby="modo"></textarea><p id="modo" class="salvamento">Resposta em texto aberto. Você pode deixar em branco e revisar depois.</p><div class="acoes"><button class="btn btn-primario seta" id="proxima">${estado.indice === perguntas.length-1 ? 'Ver resumo' : 'Próxima'}</button>${editando ? '<button class="btn btn-claro" id="resumir">Voltar ao resumo</button>' : ''}</div><div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="voltar">Voltar</button></div></section>`,
+      {trilha:'Perguntas',extra:`<div class="progresso"><p class="passo">${esc(passo)}</p><div class="barra"><div class="barra-fill" style="width:${pct}%"></div></div></div><button id="reiniciar" class="reinicio">Recomeçar do zero</button>`});
     const campo = document.getElementById('resposta');
     campo.value = estado.respostas[q.id] || '';
     campo.oninput = () => { estado.respostas[q.id] = campo.value; salvar(); };
@@ -95,7 +107,7 @@
     campo.focus({preventScroll:true});
   }
   function resumo() {
-    exibir(`<section class="resumo"><h2>Resumo das suas respostas</h2><p>Registro do que você escreveu, sem avaliação automática.</p>${perguntas.map((q,i) => `<article class="cartao"><h2>${esc(q.pergunta)}</h2><p class="resposta">${esc(estado.respostas[q.id] || 'Sem resposta')}</p><button class="btn btn-claro editar" data-indice="${i}" aria-label="Editar resposta ${i+1}">Editar resposta</button></article>`).join('')}</section><div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resumo</button><button class="btn btn-linha" id="reiniciar">Recomeçar do zero</button></div><div class="acoes lg2-proximo"><a class="btn btn-claro" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/protected/modulos/laboratorio-de-gestao?aba=b">Voltar aos módulos</a></div>`,'Resumo');
+    exibir(`<section class="concluido"><div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo 10</h2><p>Suas respostas estão reunidas abaixo.</p></div></div></section><section class="resumo"><h2>Resumo das suas respostas</h2><p>Registro do que você escreveu, sem avaliação automática.</p>${perguntas.map((q,i) => `<article class="cartao"><h2>${esc(q.pergunta)}</h2><p class="resposta">${esc(estado.respostas[q.id] || 'Sem resposta')}</p><button class="btn btn-claro editar" data-indice="${i}" aria-label="Editar resposta ${i+1}">Editar resposta</button></article>`).join('')}</section><div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resumo</button><button class="btn btn-claro" id="reiniciar">Recomeçar do zero</button></div><div class="acoes lg2-proximo"><a class="btn btn-claro" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/protected/modulos/laboratorio-de-gestao?aba=b">Voltar aos módulos</a></div>`,{trilha:'Resumo',kicker:'Resumo',kickerClasse:'passo'});
     document.querySelectorAll('[data-indice]').forEach(button => {
       button.onclick = () => { estado.indice = Number(button.dataset.indice); estado.resumo = false; editando = true; salvar(); pergunta(); };
     });

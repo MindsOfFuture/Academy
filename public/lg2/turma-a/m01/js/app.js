@@ -63,6 +63,30 @@
     };
   }
 
+  /* ---------- peças do layout (as mesmas do Módulo 5) ---------- */
+  const PARTE = "Parte " + D.modulo.numero;        // o documento do grupo chama o módulo de "Parte 1"
+  function topo(trilha) {
+    return `<div class="barra-topo">
+      <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" type="button" data-inicio>Início</button><span>/</span><span>${esc(PARTE)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+    </div>`;
+  }
+  /* faixa roxa pequena: "< Voltar" e Ouvir no topo (regra do Módulo 1), título e, se houver, barra de progresso */
+  function faixa(o) {
+    return `<header class="heroi topo">
+      <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
+      <div class="heroi-topo">
+        <div class="heroi-txt">
+          ${o.kicker ? `<div class="kicker ${o.kickerClasse || ""}"${o.ler ? " data-ler" : ""}>${esc(o.kicker)}</div>` : ""}
+          <h2 class="heroi-tit"${o.ler ? " data-ler" : ""}>${esc(o.titulo)}</h2>
+        </div>
+        <img class="heroi-img" src="assets/hero-preco.webp" alt="">
+      </div>
+      ${o.barra || ""}
+    </header>`;
+  }
+  function ligarInicio(p) { p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaInicio); }); }
+
   function rodape() {
     return `<footer class="rodape">
       <p class="credito">${esc(D.limites.rodape)}</p>
@@ -80,23 +104,29 @@
     const iniciado = Object.keys(S.R).length > 0 || !!S.atual;
     const p = el(`
       <div class="pag">
-        <header class="capa">
-          <div class="capa-topo"><img class="logo" src="assets/minds.svg" alt="Minds of the Future">${botaoOuvir()}</div>
-          <div class="sobre" data-ler>${esc(I.rotulo)}</div>
-          <h1 data-ler>${esc(I.titulo)}</h1>
-          <p data-ler>${esc(I.descricao)}</p>
+        ${topo("")}
+        <header class="heroi heroi-grande capa">
+          <div class="heroi-topo">
+            <div class="heroi-txt">
+              <div class="heroi-linha"><div class="kicker sobre" data-ler>${esc(I.rotulo)}</div>${botaoOuvir()}</div>
+              <h1 class="heroi-tit" data-ler>${esc(I.titulo)}</h1>
+              <p data-ler>${esc(I.descricao)}</p>
+            </div>
+            <img class="heroi-img" src="assets/hero-inicio.webp" alt="">
+          </div>
         </header>
         <main class="corpo" data-ler>
           ${blocos(I.blocos, ["pessoa", "ideia", "certo"])}
         </main>
         <div class="fixo">
           <p class="tempo" data-ler>${esc(I.tempo)}</p>
-          <button class="btn btn-primario" id="ir">${esc(I.botao)}</button>
+          <button class="btn btn-primario seta" id="ir">${esc(I.botao)}</button>
           <button class="link" id="limites">${esc(I.link)}</button>
           ${iniciado ? `<button class="link" id="zerar">Apagar respostas e recomeçar</button>` : ""}
         </div>
         <div class="corpo">${rodape()}</div>
       </div>`);
+    ligarInicio(p);
     p.querySelector("#ir").onclick = () => {
       if (S.atual === "RESULTADO") return ir(telaResultado);
       ir(telaPergunta, S.atual && M.porCodigo[S.atual] ? S.atual : Motor.proxima(M, S.R, null));
@@ -113,10 +143,8 @@
     const L = D.limites;
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
-          <h2 data-ler>${esc(L.titulo)}</h2>
-        </header>
+        ${topo(L.titulo)}
+        ${faixa({ titulo: L.titulo, ler: true })}
         <main class="corpo">
           <div data-ler>${blocos(L.blocos, ["nao", "certo", "info"], ["b-nao", "", ""])}</div>
           <div class="aviso-roxo" data-ler>${esc(L.aviso)}</div>
@@ -124,6 +152,7 @@
         </main>
       </div>`);
     p.querySelector("#v").onclick = () => ir(telaInicio);
+    ligarInicio(p);
     ligarOuvir(p);
     return p;
   }
@@ -154,22 +183,23 @@
     S.atual = cod; salvar();
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
-          <div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progresso(cod)}"><div class="barra-fill" style="width:${progresso(cod)}%"></div></div>
-        </header>
+        ${topo("")}
+        ${faixa({ kicker: PARTE, titulo: D.inicio.titulo, barra: `<div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progresso(cod)}"><div class="barra-fill" style="width:${progresso(cod)}%"></div></div>` })}
         <main class="corpo">
-          <div class="pergunta" data-cod="${esc(cod)}">
-            <h2 class="q" data-ler>${esc(Motor.textoPergunta(M, S.R, q))}</h2>
-            <p class="apoio" data-ler>${esc(q.apoio)}</p>
-            <div class="entrada" id="ent"></div>
+          <div class="cartao-q">
+            <div class="pergunta" data-cod="${esc(cod)}">
+              <h2 class="q" data-ler>${esc(Motor.textoPergunta(M, S.R, q))}</h2>
+              <p class="apoio" data-ler>${esc(q.apoio)}</p>
+              <div class="entrada" id="ent"></div>
+            </div>
+            <div id="msg"></div>
+            ${q.ajuda ? `<details class="ajuda-box"><summary data-ler>O que quer dizer isso?</summary>
+              <p data-ler>${esc(q.ajuda.texto)}</p>${vazio(q.ajuda.exemplo) ? "" : `<p class="ex" data-ler>${esc(q.ajuda.exemplo)}</p>`}</details>` : ""}
           </div>
-          <div id="msg"></div>
-          ${q.ajuda ? `<details class="ajuda-box"><summary data-ler>O que quer dizer isso?</summary>
-            <p data-ler>${esc(q.ajuda.texto)}</p>${vazio(q.ajuda.exemplo) ? "" : `<p class="ex" data-ler>${esc(q.ajuda.exemplo)}</p>`}</details>` : ""}
         </main>
-        <div class="fixo"><button class="btn btn-primario" id="ok" disabled>Continuar</button></div>
+        <div class="fixo"><button class="btn btn-primario seta" id="ok" disabled>Continuar</button></div>
       </div>`);
+    ligarInicio(p);
     const ent = p.querySelector("#ent"), msg = p.querySelector("#msg"), ok = p.querySelector("#ok");
 
     function atualizar() {
@@ -206,7 +236,7 @@
     if (q.tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoes.forEach((op) => {
-        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><b data-ler>${esc(op.texto)}</b><span class="check" aria-hidden="true">✓</span></button>`);
+        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b data-ler>${esc(op.texto)}</b></span><span class="check" aria-hidden="true">✓</span></button>`);
         b.onclick = () => {
           const ant = S.R[cod];
           const r = { estado: "opcao", opcao: op.texto };
@@ -283,12 +313,12 @@
     const mostra = (x) => x.detalhe ? `${x.valor}: ${x.detalhe}` : x.valor;
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
-          <div class="passo" data-ler>Resultado</div>
-          <h2 data-ler>Retrato inicial</h2>
-        </header>
+        ${topo("Retrato inicial")}
+        ${faixa({ kicker: "Resultado", kickerClasse: "passo", titulo: "Retrato inicial", ler: true })}
         <main class="corpo">
+          <section class="concluido">
+            <div class="conc-topo"><span class="conc-check" aria-hidden="true"></span><div><h2 data-ler>Você concluiu a ${esc(PARTE)}</h2><p data-ler>Veja abaixo o seu retrato inicial.</p></div></div>
+          </section>
           <div class="cartao" data-ler><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
 
           <div class="secao-titulo" data-ler>Suas respostas</div>
@@ -322,6 +352,7 @@
     p.querySelector("#imp").onclick = () => window.print();
     p.querySelector("#rev").onclick = () => ir(telaPergunta, Motor.proxima(M, {}, null));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaInicio); } };
+    ligarInicio(p);
     ligarOuvir(p);
     return p;
   }
