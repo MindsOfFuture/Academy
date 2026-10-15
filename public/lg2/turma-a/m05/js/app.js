@@ -1,11 +1,17 @@
 /* Telas do Módulo 5. Todo texto de conteúdo vem de window.MODULO5 (a planilha),
-   sem edição. As respostas ficam só neste aparelho. */
+   sem edição. As respostas ficam só neste aparelho.
+   Proposta de layout (mockup do grupo): faixa roxa com ilustração, etapas
+   (Seu produto → Gastos → Preço e resultado), etiqueta do item com "Alterar",
+   cartão de dica, Voltar/Continuar e lista "Minhas análises". */
 (function () {
   "use strict";
   const D = window.MODULO5, M = Motor.montar(D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-a-m05";
+  const CHAVE_HIST = CHAVE + "-historico";          // análises concluídas
+  const CHAVE_ATUAL = CHAVE + "-historico-atual";   // qual análise da lista é a de agora
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-";
+  const ROTULO_REINICIO = "Analisar outro produto, serviço ou mercadoria";
 
   /* Versão do estado salvo: a 2 tirou o "Não sei" dos gastos fixos e passou o preço
      para o fim. Respostas salvas em outra versão são descartadas. */
@@ -23,10 +29,8 @@
     if (!confirm("Analisar outro produto, serviço ou mercadoria? As respostas atuais serão apagadas. Se já tiver um resultado, salve ou imprima antes de continuar.")) return;
     S = novo();
     salvar();
+    try { localStorage.removeItem(CHAVE_ATUAL); } catch {}
     ir(telaPergunta, "M5.P01");
-  }
-  function acaoReiniciar() {
-    return `<div class="acoes"><button class="btn btn-claro" id="novo">Analisar outro produto, serviço ou mercadoria</button></div>`;
   }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -40,6 +44,91 @@
     else if (cod === Motor.PRECO) ir(telaPreco);
     else if (cod && M.porCodigo[cod]) ir(telaPergunta, cod);
     else ir(telaCapa);
+  }
+
+  /* ================= peças do layout ================= */
+  const TIPOS = {
+    Produto: { nome: "M5.P02", seu: "seu produto", etapa: "Seu produto", card: "card-produto.webp", dica: "dica-produto.webp", gastos: "dica-gastos.webp", heroi: "hero-produto.webp", heroiGastos: "hero-gastos.webp", ex: "Ex.: bolos, marmitas e artesanato." },
+    Mercadoria: { nome: "M5.P10", seu: "sua mercadoria", etapa: "Sua mercadoria", card: "card-mercadoria.webp", dica: "card-mercadoria.webp", gastos: "card-mercadoria.webp", heroi: "hero-preco.webp", heroiGastos: "hero-preco.webp", ex: "Ex.: roupas, bebidas e acessórios." },
+    "Serviço": { nome: "M5.P17", seu: "seu serviço", etapa: "Seu serviço", card: "card-servico.webp", dica: "card-servico.webp", gastos: "card-servico.webp", heroi: "hero-preco.webp", heroiGastos: "hero-preco.webp", ex: "Ex.: manicure, aulas e consertos." },
+  };
+  function tipoAtual() {
+    const r = S.R["M5.P01"];
+    return r && r.estado === "opcao" ? r.opcao.split(":")[0].trim() : null;
+  }
+  const infoTipo = () => TIPOS[tipoAtual()] || null;
+  /* etapa de cada passo: perguntas do tipo = 1; gastos fixos = 2; quantidade, preço e resultado = 3 */
+  function etapa(cod) {
+    if (["M5.P36", "M5.P37", Motor.PRECO, "RESULTADO"].includes(cod)) return 3;
+    const q = M.porCodigo[cod];
+    return q && q.secao === "Parte comum" ? 2 : 1;
+  }
+
+  function topo(trilha) {
+    return `<div class="barra-topo">
+      <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+    </div>`;
+  }
+  function heroi(o) {
+    return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
+      <div class="heroi-topo">
+        <div class="heroi-txt">
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <${o.h1 ? "h1" : "h2"} class="heroi-tit">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
+          ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
+        </div>
+        ${o.img ? `<img class="heroi-img" src="assets/${o.img}" alt="" style="${o.foco ? `object-position:${o.foco}` : ""}">` : ""}
+      </div>
+      ${o.reinicio ? `<button class="reinicio" id="novo">${ROTULO_REINICIO}</button>` : ""}
+    </section>`;
+  }
+  function heroiEtapa(n) {
+    const t = infoTipo();
+    if (n === 1) return heroi({ titulo: `Vamos conhecer ${t ? t.seu : "seu negócio"}.`, texto: "Responda uma pergunta por vez. Nós te ajudamos no caminho.", img: t ? t.heroi : "hero-preco.webp", reinicio: true });
+    if (n === 2) return heroi({ titulo: "Vamos organizar seus gastos.", texto: "Agora, os gastos que você tem todo mês para manter o negócio.", img: t ? t.heroiGastos : "hero-preco.webp", reinicio: true });
+    return heroi({ titulo: "Vamos chegar ao seu preço.", texto: "Quanto você vende, quanto cobra e quanto sobra em cada venda.", img: "hero-preco.webp", reinicio: true });
+  }
+  function etapas(n, tudo) {
+    const t = infoTipo();
+    const nomes = [t ? t.etapa : "Seu negócio", "Gastos", "Preço e resultado"];
+    return `<ol class="etapas" aria-label="Etapas da análise">${nomes.map((nome, i) => {
+      const k = i + 1, st = tudo || k < n ? "feita" : k === n ? "atual" : "";
+      return `<li class="${st}"${k === n && !tudo ? ' aria-current="step"' : ""}><span class="bola" aria-hidden="true"></span><span class="rot">${esc(nome)}</span></li>`;
+    }).join("")}</ol>`;
+  }
+  /* etiqueta do item: "Produto: Bolo de cenoura · Alterar" (volta à pergunta do nome) */
+  function contexto(cod) {
+    const tipo = tipoAtual(), t = infoTipo();
+    if (!t || cod === "M5.P01") return "";
+    const r = S.R[t.nome];
+    const nome = r && r.estado === "valor" && !vazio(r.valor) ? r.valor : null;
+    if (!nome || cod === t.nome) return `<div class="contexto"><span class="chip chip-tipo">Tipo escolhido: ${esc(tipo)}</span><button class="alterar" data-alterar="M5.P01">Alterar</button></div>`;
+    return `<div class="contexto"><span class="chip">${esc(tipo)}: ${esc(nome)}</span><button class="alterar" data-alterar="${t.nome}">Alterar</button></div>`;
+  }
+  function voltarPara(cod) {
+    const i = S.hist.lastIndexOf(cod);
+    if (i >= 0) S.hist = S.hist.slice(0, i);
+    salvar();
+    ir(telaPergunta, cod);
+  }
+  function dica(texto, img) {
+    if (vazio(texto)) return "";
+    return `<aside class="dica">${img ? `<img src="assets/${img}" alt="">` : ""}<div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
+  }
+  function imgDica(n) {
+    const t = infoTipo();
+    if (n === 3) return "hero-preco.webp";
+    if (!t) return "dica-produto.webp";
+    return n === 2 ? t.gastos : t.dica;
+  }
+  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  /* liga os botões comuns a todas as telas */
+  function ligar(p) {
+    p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
+    p.querySelectorAll("[data-alterar]").forEach((b) => { b.onclick = () => voltarPara(b.dataset.alterar); });
+    const n = p.querySelector("#novo");
+    if (n) n.onclick = reiniciar;
   }
 
   const obs = (t) => vazio(t) ? "" : `<div class="obs"><b>Observação</b>${esc(t)}</div>`;
@@ -83,12 +172,8 @@
     const iniciado = S.hist.length > 0;
     const p = el(`
       <div class="pag">
-        <header class="capa">
-          <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
-          <div class="sobre">Módulo ${esc(D.modulo.numero)}</div>
-          <h1>${esc(D.modulo.nome)}</h1>
-          <p>${esc(D.mapa.objetivo)}</p>
-        </header>
+        ${topo("")}
+        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.mapa.objetivo, img: "hero-inicio.webp" })}
         <main class="corpo">
           <div class="cartao">
             <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
@@ -100,19 +185,22 @@
             <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
           </div>
           <div class="acoes">
-            <button class="btn btn-primario" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
+            <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
+            <button class="btn btn-linha lista-ico" id="minhas">Ver minhas análises</button>
             <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
           </div>
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#ir").onclick = () => {
       const atual = S.hist[S.hist.length - 1];
       if (atual) abrir(atual); else ir(telaPergunta, "M5.P01");
     };
     const z = p.querySelector("#zerar");
     if (z) z.onclick = reiniciar;
+    p.querySelector("#minhas").onclick = () => ir(telaAnalises, telaCapa);
     p.querySelector("#limites").onclick = () => ir(telaLimites);
     return p;
   }
@@ -120,28 +208,23 @@
   function telaLimites() {
     const p = el(`
       <div class="pag">
-        <header class="topo"><button class="voltar" id="v">‹ voltar</button><h2>Limites do módulo</h2></header>
+        ${topo("Limites")}
+        ${heroi({ titulo: "Limites do módulo", texto: "O que este módulo faz, o que não faz e quando procurar ajuda.", img: "hero-preco.webp" })}
         <main class="corpo">
           <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => ir(telaCapa);
     return p;
   }
 
   /* ================= pergunta ================= */
-  function progresso() {
-    const r = S.R["M5.P01"];
-    const ramo = r && r.estado === "opcao" ? Motor.valorCond({ condicao: "=" + r.opcao.split(":")[0] }) : null;
-    const secRamo = { Produto: "Perguntas Produto", Mercadoria: "Perguntas Mercadoria", "Serviço": "Perguntas Serviço" }[ramo];
-    const total = 1 + M.ordem.filter((x) => x.secao === secRamo || x.secao === "Parte comum").length;
-    return Math.min(100, Math.round(((S.hist.length - 1) / (secRamo ? total : 20)) * 100));
-  }
-
   function telaPergunta(cod) {
     const q = M.porCodigo[cod];
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
@@ -149,31 +232,37 @@
     const resp = S.R[cod] || null;
     const alt = Motor.botoesAlternativos(M, q);
     const ajudaNS = Motor.ajudaNaoSei(M, q);
+    const inicial = cod === "M5.P01";
+    const n = etapa(cod);
+    const t = infoTipo();
 
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ ${S.hist.length > 1 ? "voltar" : "início"}</button>
-          <div class="passo">${esc(q.secao)}</div>
-          <div class="barra"><div class="barra-fill" style="width:${progresso()}%"></div></div>
-          ${acaoReiniciar()}
-        </header>
+        ${topo(inicial ? "" : t ? tipoAtual() : "")}
+        ${inicial ? heroi({ titulo: "Entenda seus gastos. Defina melhor seu preço.", texto: "Organize os gastos do seu negócio e descubra quanto sobra em cada venda, um passo de cada vez.", img: "hero-inicio.webp", foco: "22% 30%", reinicio: true }) : heroiEtapa(n)}
+        ${inicial ? "" : etapas(n)}
         <main class="corpo">
-          <div class="pergunta">
+          <div class="cartao-q pergunta">
+            ${inicial ? `<div class="kicker-q">Vamos conhecer seu negócio</div>` : contexto(cod)}
             <h2 class="q">${esc(q.pergunta)}</h2>
-            <p class="ajuda">${esc(q.ajuda)}</p>
+            ${inicial ? `<p class="sub-q">${esc(q.ajuda)}</p>` : ""}
             ${obs(q.observacao)}
             ${ajudaNS ? "" : blocoVideo(q.video)}
             <div class="entrada" id="ent"></div>
+            ${inicial ? `<p class="nota-info">Trabalha com mais de um tipo? Comece por um deles.</p>` : ""}
             ${alt.length ? `<div class="alt" id="alt"></div>` : ""}
             ${ajudaNS ? `<div class="alt"><button class="btn-ajuda" id="naosei" aria-expanded="false"><span aria-hidden="true">?</span> Não sei</button></div>${painelNaoSei(ajudaNS)}` : ""}
             <div class="erro" id="erro" hidden></div>
+            ${inicial ? "" : dica(q.ajuda, imgDica(n))}
+            <div id="retorno"></div>
+            ${blocoConceitos(conceitos(q.fonte))}
+            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            ${botaoVoltar()}
           </div>
-          <div id="retorno"></div>
-          ${blocoConceitos(conceitos(q.fonte))}
-          <div class="acoes" id="acoes"><button class="btn btn-primario" id="ok">Continuar</button></div>
+          ${rodape()}
         </main>
       </div>`);
+    ligar(p);
 
     p.querySelector("#v").onclick = () => {
       S.hist.pop();
@@ -182,7 +271,6 @@
       if (ant) abrir(ant); else ir(telaCapa);
     };
 
-    p.querySelector("#novo").onclick = reiniciar;
     const bNS = p.querySelector("#naosei");
     if (bNS) bNS.onclick = () => {
       const painel = p.querySelector("#painel");
@@ -196,9 +284,11 @@
 
     if (tipo === "escolha") {
       ent.classList.add("opcoes");
+      if (inicial) ent.classList.add("opcoes-tipo");
       q.opcoesLista.forEach((op) => {
         const [tit, desc] = op.includes(":") ? [op.split(":")[0], op.slice(op.indexOf(":") + 1)] : [op, ""];
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><b>${esc(tit.trim())}</b>${desc ? `<span>${esc(desc.trim())}</span>` : ""}</button>`);
+        const info = inicial ? TIPOS[tit.trim()] : null;
+        const b = el(`<button class="opcao ${info ? "opcao-tipo" : ""} ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(tit.trim())}</b>${desc ? `<span class="op-desc">${esc(desc.trim())}</span>` : ""}${info ? `<small>${esc(info.ex)}</small>` : ""}</span>${info ? `<img src="assets/${info.card}" alt="">` : ""}</button>`);
         b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
         ent.appendChild(b);
       });
@@ -227,7 +317,7 @@
       responder({ estado: "valor", valor: v });
     };
 
-    function mostrarErro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
+    function mostrarErro(txt) { const e = p.querySelector("#erro"); e.textContent = txt; e.hidden = false; }
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
@@ -255,7 +345,7 @@
         acoes.appendChild(b);
         return;
       }
-      const b = el(`<button class="btn btn-primario">${prox === "RESULTADO" ? "Ver o resultado" : "Seguir"}</button>`);
+      const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver o resultado" : "Seguir"}</button>`);
       b.onclick = () => {
         if (prox === "RESULTADO" || prox === Motor.PRECO) { S.hist.push(prox); salvar(); }
         abrir(prox);
@@ -282,7 +372,7 @@
       return () => ent.querySelector("input").value;
     }
     if (tipo === "numero" || tipo === "percentual") {
-      const suf = tipo === "percentual" ? "%" : /r\$/i.test(q.tipo) ? "" : "";
+      const suf = tipo === "percentual" ? "%" : "";
       const pre = /r\$/i.test(q.tipo) ? "R$" : "";
       ent.appendChild(el(`<div class="linha">${pre ? `<span class="pre">${pre}</span>` : ""}<input class="campo" inputmode="decimal" value="${esc(val ?? "")}">${suf ? `<span class="pre">${suf}</span>` : ""}</div>`));
       return () => ent.querySelector("input").value;
@@ -367,30 +457,29 @@
     let a = Motor.analisarPreco(M, S.R, S.lucro);
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ voltar</button>
-          <div class="passo">${esc((M.conceito["M5.BT08"] || {}).conceito || "Preço de venda")}</div>
-          <div class="barra"><div class="barra-fill" style="width:100%"></div></div>
-          ${acaoReiniciar()}
-        </header>
+        ${topo(tipoAtual() || "")}
+        ${heroiEtapa(3)}
+        ${etapas(3)}
         <main class="corpo">
-          <div class="pergunta">
+          <div class="cartao-q pergunta">
+            ${contexto(Motor.PRECO)}
             <h2 class="q">${sugerido ? "Quanto de lucro você quer ganhar em cada venda? (%)" : "Quanto você ganha em cada venda"}</h2>
             ${obs(q36.observacao)}
             ${sugerido && a && !a.semCusto ? `<p class="ajuda">Vamos somar essa porcentagem ao que você gasta para fazer cada unidade e mostrar um preço possível.</p>
               <div class="entrada" id="ent"><div class="linha"><input class="campo" id="lucro" inputmode="decimal" value="${esc(S.lucro ?? "")}"><span class="pre">%</span></div></div>` : ""}
             <div class="erro" id="erro" hidden></div>
-          </div>
-          <div id="analise">${blocoAnalise(a, false)}</div>
-          <div class="acoes" id="acoes">
-            ${sugerido && a && !a.semCusto ? `<button class="btn btn-primario" id="calc">Continuar</button>` : ""}
-            <button class="btn ${sugerido && a && !a.semCusto ? "btn-claro" : "btn-primario"}" id="res" ${sugerido && a && !a.semCusto && (a.pendente) ? "hidden" : ""}>Ver o resultado</button>
+            <div id="analise">${blocoAnalise(a, false)}</div>
+            <div class="acoes" id="acoes">
+              ${sugerido && a && !a.semCusto ? `<button class="btn btn-primario seta" id="calc">Continuar</button>` : ""}
+              <button class="btn ${sugerido && a && !a.semCusto ? "btn-claro" : "btn-primario seta"}" id="res" ${sugerido && a && !a.semCusto && (a.pendente) ? "hidden" : ""}>Ver o resultado</button>
+            </div>
+            ${botaoVoltar()}
           </div>
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const ant = S.hist.pop(); salvar(); abrir(ant); };
-    p.querySelector("#novo").onclick = reiniciar;
     const calc = p.querySelector("#calc");
     if (calc) calc.onclick = () => {
       const v = p.querySelector("#lucro").value;
@@ -410,9 +499,89 @@
     return p;
   }
 
+  /* ================= minhas análises (lista salva neste aparelho) ================= */
+  function lerHist() {
+    try { const l = JSON.parse(localStorage.getItem(CHAVE_HIST)); return Array.isArray(l) ? l : []; } catch { return []; }
+  }
+  function gravarHist(l) { try { localStorage.setItem(CHAVE_HIST, JSON.stringify(l)); } catch {} }
+  function idAtual() { try { return localStorage.getItem(CHAVE_ATUAL); } catch { return null; } }
+  /* guarda (ou atualiza) a análise de agora quando o resultado aparece */
+  function registrarAnalise(c, a) {
+    const l = lerHist();
+    const id = idAtual() || String(Date.now());
+    const estado = JSON.parse(JSON.stringify(S));
+    const i = l.findIndex((x) => x.id === id);
+    if (i >= 0 && JSON.stringify(l[i].estado) === JSON.stringify(estado)) return l[i];
+    const ok = a && !a.semCusto && !a.pendente && isFinite(a.pct);
+    const item = {
+      id, nome: vazio(c.nome) ? "Sem nome" : c.nome, tipo: c.tipo || "", data: new Date().toISOString(),
+      preco: c.preco !== null ? c.preco : ok ? a.preco : null,
+      precoInformado: c.preco !== null,
+      lucro: ok ? a.pct : null,
+      estado,
+    };
+    if (i >= 0) l[i] = item; else l.unshift(item);
+    gravarHist(l);
+    try { localStorage.setItem(CHAVE_ATUAL, id); } catch {}
+    return item;
+  }
+  const dataBR = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("pt-BR"); };
+
+  function telaAnalises(voltar) {
+    const l = lerHist();
+    const p = el(`
+      <div class="pag">
+        ${topo("Minhas análises")}
+        ${heroi({ titulo: "Minhas análises", texto: "As análises que você concluiu ficam guardadas neste aparelho.", img: "hero-preco.webp" })}
+        <main class="corpo">
+          ${l.length ? `<ul class="lista-analises">${l.map((x) => `
+            <li class="analise-item" data-id="${esc(x.id)}">
+              <div class="ai-topo">
+                ${TIPOS[x.tipo] ? `<img src="assets/${TIPOS[x.tipo].card}" alt="">` : ""}
+                <div><b>${esc(x.nome)}</b>${x.tipo ? `<span class="chip">${esc(x.tipo)}</span>` : ""}<small>Concluída em ${esc(dataBR(x.data))}</small></div>
+              </div>
+              <div class="ai-nums">
+                <div><small>${x.precoInformado ? "Preço" : "Preço possível"}</small><span>${x.preco !== null && isFinite(x.preco) ? brl(x.preco) : "—"}</span></div>
+                <div><small>Lucro em cada venda</small><span>${x.lucro !== null && isFinite(x.lucro) ? pct(x.lucro) : "—"}</span></div>
+              </div>
+              <div class="ai-acoes"><button class="btn btn-primario btn-peq" data-abrir="${esc(x.id)}">Abrir</button><button class="btn btn-linha btn-peq" data-apagar="${esc(x.id)}">Apagar</button></div>
+            </li>`).join("")}</ul>`
+          : `<div class="cartao vazio-lista"><h3>Nenhuma análise ainda</h3><p>Quando você chegar ao resultado de um produto, serviço ou mercadoria, a análise aparece aqui.</p></div>`}
+          ${botaoVoltar()}
+          ${rodape()}
+        </main>
+      </div>`);
+    ligar(p);
+    p.querySelector("#v").onclick = () => ir(voltar || telaCapa);
+    p.querySelectorAll("[data-abrir]").forEach((b) => { b.onclick = () => {
+      const x = lerHist().find((y) => y.id === b.dataset.abrir);
+      if (!x) return;
+      const atual = idAtual();
+      const salvaNaLista = atual && lerHist().some((y) => y.id === atual);
+      if (S.hist.length && atual !== x.id && !salvaNaLista &&
+        !confirm("Abrir esta análise? As respostas que você ainda não terminou serão trocadas por ela.")) return;
+      S = JSON.parse(JSON.stringify(x.estado));
+      salvar();
+      try { localStorage.setItem(CHAVE_ATUAL, x.id); } catch {}
+      if (S.hist[S.hist.length - 1] !== "RESULTADO") S.hist.push("RESULTADO");
+      salvar();
+      ir(telaResultado);
+    }; });
+    p.querySelectorAll("[data-apagar]").forEach((b) => { b.onclick = () => {
+      const x = lerHist().find((y) => y.id === b.dataset.apagar);
+      if (!x || !confirm(`Apagar a análise de “${x.nome}” da lista?`)) return;
+      gravarHist(lerHist().filter((y) => y.id !== x.id));
+      if (idAtual() === x.id) { try { localStorage.removeItem(CHAVE_ATUAL); } catch {} }
+      ir(telaAnalises, voltar);
+    }; });
+    return p;
+  }
+
   /* ================= resultado ================= */
   function telaResultado() {
     const c = Motor.calcular(M, S.R);
+    const aPreco = Motor.analisarPreco(M, S.R, S.lucro);
+    registrarAnalise(c, aPreco);
     const bt = (n) => M.conceito["M5.BT" + n] || {};
     const regraFinal = D.regras.find((r) => r.pergunta === "Resultado");
     const temCusto = c.linhas.length > 0 || c.tipo === "Serviço";
@@ -423,16 +592,31 @@
       if (r && !vazio(r.lacuna) && !lacunas.includes(r.lacuna)) lacunas.push(r.lacuna);
     });
     const card = (t, v, sub) => `<div class="mini"><span>${v}</span><small>${esc(t)}</small>${sub ? `<em>${esc(sub)}</em>` : ""}</div>`;
+    const t = TIPOS[c.tipo];
 
     const p = el(`
       <div class="pag">
-        <header class="topo">
-          <button class="voltar" id="v">‹ voltar</button>
-          <div class="passo">Resultado</div>
-          <h2>${esc(c.nome || "Seu negócio")}</h2>
-          ${acaoReiniciar()}
-        </header>
+        ${topo(c.tipo || "")}
+        ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Uma análise concluída.", texto: "Você organizou os gastos e entendeu o preço deste item.", img: "hero-inicio.webp", foco: "22% 30%" })}
+        ${etapas(3, true)}
         <main class="corpo">
+          <section class="concluido">
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a análise deste item!</h2><p>Agora você pode analisar outro produto, serviço ou mercadoria.</p></div></div>
+            <div class="item-salvo">
+              ${t ? `<img src="assets/${t.card}" alt="">` : ""}
+              <div class="is-txt"><b>${esc(c.nome || "Seu negócio")}</b>${c.tipo ? `<span class="chip">${esc(c.tipo)}</span>` : ""}</div>
+              <div class="is-rodape"><span class="salvo">Análise salva</span><a href="#numeros" class="ver" id="ver">Ver análise ↓</a></div>
+            </div>
+            <div class="outra">
+              <h3>Seu negócio tem mais de uma oferta?</h3>
+              <p>Recomece as perguntas para outro item. Suas análises anteriores ficam salvas.</p>
+              <button class="btn btn-primario seta" id="novo">${ROTULO_REINICIO}</button>
+              <small>Você poderá escolher Produto, Serviço ou Mercadoria novamente.</small>
+            </div>
+            <button class="btn btn-linha lista-ico" id="minhas">Ver minhas análises</button>
+          </section>
+
+          <div id="numeros" class="numeros">
           ${temCusto && regraFinal ? `
             <div class="res-num">
               <div class="lbl">${esc(bt("03").conceito || "")}</div>
@@ -454,7 +638,7 @@
             </div>
             ${c.mc <= 0 ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(bt("09").definicao)}</div>` : ""}
           ` : ""}
-          ${blocoAnalise(Motor.analisarPreco(M, S.R, S.lucro), true)}
+          ${blocoAnalise(aPreco, true)}
 
           <div class="secao-titulo">Gastos do mês</div>
           <table class="comp">
@@ -486,18 +670,22 @@
 
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
+          </div>
 
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
           </div>
+          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
+    ligar(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); abrir(a); };
     p.querySelector("#imp").onclick = () => window.print();
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, "M5.P01"); };
-    p.querySelector("#novo").onclick = reiniciar;
+    p.querySelector("#minhas").onclick = () => ir(telaAnalises, telaResultado);
+    p.querySelector("#ver").onclick = (e) => { e.preventDefault(); p.querySelector("#numeros").scrollIntoView({ behavior: "smooth", block: "start" }); };
     return p;
   }
 
