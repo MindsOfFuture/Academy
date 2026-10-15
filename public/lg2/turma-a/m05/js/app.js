@@ -677,6 +677,7 @@
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
           </div>
           ${botaoVoltar()}
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m06/index.html">Ir para o Módulo 6</a></div>
           ${rodape()}
         </main>
       </div>`);
