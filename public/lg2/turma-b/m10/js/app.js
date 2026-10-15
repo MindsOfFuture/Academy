@@ -95,7 +95,7 @@
     campo.focus({preventScroll:true});
   }
   function resumo() {
-    exibir(`<section class="resumo"><h2>Resumo das suas respostas</h2><p>Registro do que você escreveu, sem avaliação automática.</p>${perguntas.map((q,i) => `<article class="cartao"><h2>${esc(q.pergunta)}</h2><p class="resposta">${esc(estado.respostas[q.id] || 'Sem resposta')}</p><button class="btn btn-claro editar" data-indice="${i}" aria-label="Editar resposta ${i+1}">Editar resposta</button></article>`).join('')}</section><div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resumo</button><button class="btn btn-linha" id="reiniciar">Recomeçar do zero</button></div>`,'Resumo');
+    exibir(`<section class="resumo"><h2>Resumo das suas respostas</h2><p>Registro do que você escreveu, sem avaliação automática.</p>${perguntas.map((q,i) => `<article class="cartao"><h2>${esc(q.pergunta)}</h2><p class="resposta">${esc(estado.respostas[q.id] || 'Sem resposta')}</p><button class="btn btn-claro editar" data-indice="${i}" aria-label="Editar resposta ${i+1}">Editar resposta</button></article>`).join('')}</section><div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resumo</button><button class="btn btn-linha" id="reiniciar">Recomeçar do zero</button></div><div class="acoes lg2-proximo"><a class="btn btn-claro" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/protected/modulos/laboratorio-de-gestao?aba=b">Voltar aos módulos</a></div>`,'Resumo');
     document.querySelectorAll('[data-indice]').forEach(button => {
       button.onclick = () => { estado.indice = Number(button.dataset.indice); estado.resumo = false; editando = true; salvar(); pergunta(); };
     });

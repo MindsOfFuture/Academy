@@ -39,3 +39,20 @@ it("cada módulo publicado guarda as respostas numa chave própria da turma", ()
   );
   expect(chaves).toEqual(["lg2-turma-a-m01", "lg2-turma-a-m03", "lg2-turma-a-m04", "lg2-turma-a-m05", "lg2-turma-b-m02", "lg2-turma-b-m06", "lg2-turma-b-m08", "lg2-turma-b-m09", "lg2-turma-b-m10"]);
 });
+
+it("o fim de cada módulo pronto leva ao próximo módulo pronto, em qualquer turma", () => {
+  const todos = (["a", "b"] as const)
+    .flatMap((turma) => PRONTOS[turma].map((numero) => ({ turma, numero })))
+    .sort((x, y) => x.numero - y.numero);
+  todos.forEach(({ turma, numero }, i) => {
+    const app = readFileSync(path.join(process.cwd(), "public", caminhoModulo(turma, numero).replace("index.html", "js/app.js")), "utf8");
+    const blocos = app.match(/<div class="acoes lg2-proximo">.*?<\/div>/g) ?? [];
+    expect(blocos).toHaveLength(1);
+    const seguinte = todos[i + 1];
+    if (seguinte) {
+      expect(blocos[0]).toContain(`href="${caminhoModulo(seguinte.turma, seguinte.numero)}">Ir para o Módulo ${seguinte.numero}<`);
+    } else {
+      expect(blocos[0]).toContain(`href="/protected/modulos/laboratorio-de-gestao?aba=${turma}">Voltar aos módulos<`);
+    }
+  });
+});

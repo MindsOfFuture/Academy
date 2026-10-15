@@ -329,6 +329,7 @@
             <button class="btn btn-linha" id="base">Consultar a base local de CNAEs</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m10/index.html">Ir para o Módulo 10</a></div>
           ${rodape()}
         </main>
       </div>`);
