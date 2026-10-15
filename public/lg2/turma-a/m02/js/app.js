@@ -124,7 +124,7 @@
     S.grupos = S.grupos || [];
     const SG = Motor.segmentos(S.grupos);
     const nota = (g, k) => `<div class="opcoes mini">${[1, 2, 3].map((n) => `<button class="opcao ${+g[k] === n ? "sel" : ""}" data-g="${g.i}" data-k="${k}" data-n="${n}">${n}</button>`).join("")}</div>`;
-    const Q = Motor.quadro(S.fichas);
+    const Q = Motor.quadro(S.fichas, I("M2.I04").ex_saida);
     const passos = passosPlano();
     const p = el(`
       <div class="pag">
@@ -331,7 +331,7 @@
     const regras = Motor.regrasTodas(M, S.R);
     const lac = Motor.lacunas(regras), enc = Motor.encaminhamentos(regras);
     const ale = Motor.alertas(regras), prox = Motor.proximos(regras);
-    const Q = Motor.quadro(S.fichas);
+    const Q = Motor.quadro(S.fichas, I("M2.I04").ex_saida);
     const resp = M.perguntas.filter((q) => S.R[q.codigo] !== undefined);
     const p = el(`
       <div class="pag">

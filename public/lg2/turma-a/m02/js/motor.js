@@ -80,7 +80,7 @@
 
   /* ---- M2.I04 Quadro de evidências: conta as linhas da ficha (M2.I02) ---- */
   const SINAIS = ["forte", "fraco", "nenhum"];
-  function quadro(fichas) {
+  function quadro(fichas, modelo) {
     const c = { forte: 0, fraco: 0, nenhum: 0 };
     const motivos = {};
     (fichas || []).forEach((f) => {
@@ -90,13 +90,15 @@
     });
     const total = (fichas || []).length;
     const top = Object.values(motivos).sort((a, b) => b.n - a.n)[0] || null;
-    /* frase no formato do exemplo do grupo (aba 5, M2.I04, saída esperada) */
+    /* frase no formato do exemplo do grupo (aba 5, M2.I04, saída esperada): só os números
+       do início mudam; o resto da frase vem literal da planilha (modelo = ex_saida) */
     const pct = total ? Math.floor((c.forte / total) * 100) : 0;
-    const frase = total ? `${c.forte} de ${total} pessoas (${pct}%) mostraram um sinal forte de interesse; ainda é uma amostra pequena.` : "";
+    const m = String(modelo || "").replace(/^["“\s]+|["”\s]+$/g, "").match(/^\d+ de \d+ pessoas \(\d+%\)(.*)$/);
+    const frase = total ? `${c.forte} de ${total} pessoas (${pct}%)${m ? m[1] : ""}` : "";
     return { contagem: c, total, pct, motivo: top, frase };
   }
 
-  /* ---- M2.I05 Quadro de segmentos: soma as três notas (1 a 3) e ordena do maior para o menor ---- */
+  /* ---- M2.I05 (aba 5): soma as três notas (1 a 3) e ordena do maior para o menor ---- */
   function segmentos(grupos) {
     return (grupos || []).map((g, i) => {
       const notas = [g.alcancar, g.necessidade, g.pagar].map((x) => parseInt(x, 10));
