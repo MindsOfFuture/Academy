@@ -1,20 +1,26 @@
-/* Telas do Módulo 4. Todo texto de conteúdo vem de window.MODULO4 (a planilha),
+/* Telas do Módulo 3. Todo texto de conteúdo vem de window.MODULO3 (a planilha),
    sem edição. As respostas ficam só neste aparelho. */
 (function () {
   "use strict";
-  const D = window.MODULO4, M = Motor.montar(D);
+  const D = window.MODULO3, M = Motor.montar(D);
   const tela = document.getElementById("tela");
-  const CHAVE = "lg2-turma-b-m04";
-  const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || /^nenhum[a]?\.?$/i.test(String(s).trim());
+  const CHAVE = "lg2-turma-a-m03";
+  /* o módulo mudou de turma em 15/10: traz as respostas salvas na chave antiga */
+  try { const antiga = localStorage.getItem("lg2-turma-b-m03"); if (antiga && !localStorage.getItem(CHAVE)) localStorage.setItem(CHAVE, antiga); } catch (e) {}
+  const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
-  let S = carregar();               // { R: respostas, hist: [códigos] }
-  function carregar() { try { return JSON.parse(localStorage.getItem(CHAVE)) || novo(); } catch { return novo(); } }
-  function novo() { return { R: {}, hist: [] }; }
+  /* VERSAO: sobe quando o formato das respostas muda (caminhos por resposta, P15 múltipla),
+     para descartar respostas antigas gravadas sob a mesma CHAVE */
+  const VERSAO = 2;
+  let S = carregar();               // { v, R: respostas, hist: [códigos] }
+  function carregar() {
+    try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.v === VERSAO ? s : novo(); } catch { return novo(); }
+  }
+  function novo() { return { v: VERSAO, R: {}, hist: [] }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const link = (u, t) => /^https?:/.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : esc(t || u);
-  const txt = (s) => esc(String(s ?? "").trim()).replace(/\n/g, "<br>");   // quebras de linha da célula
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
   function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
 
@@ -46,14 +52,6 @@
       ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(b.exemplo)}</p>`}
       <span class="fonte">Fonte: ${link(b.link, b.fonte)}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`).join("")}
     </details>`;
-  }
-  /* um conceito da Base técnica, aberto (pedido do grupo: "exibir também significado do termo") */
-  function conceitoAberto(cod) {
-    const b = D.base.find((x) => x.codigo === cod);
-    if (!b) return "";
-    return `<div class="caixa caixa-entenda"><b>${esc(b.conceito)}</b><p>${txt(b.definicao)}</p>
-      ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(b.exemplo)}</p>`}
-      <span class="fonte">Fonte: ${link(b.link, b.fonte)}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`;
   }
   function ligarCopiar(p) {
     p.querySelectorAll(".btn-copiar").forEach((b) => (b.onclick = () => {
@@ -122,10 +120,11 @@
     const q = M.porCodigo[cod];
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const tipo = Motor.campo(q);
-    const V = Motor.versao(M, S.R, q);
     const resp = S.R[cod] || null;
-    let escolhida = resp && resp.estado === "opcao" && V.opcoesLista.includes(resp.opcao) ? resp.opcao : null;
-    const unidade = /reais|R\$/.test(V.pergunta) ? "R$" : /dias/.test(V.pergunta) ? "dias" : "";
+    const nsRot = Motor.temNaoSei(q);
+    let escolhida = resp && resp.estado === "opcao" ? resp.opcao : null;
+    let marcadas = resp && resp.estado === "opcoes" ? resp.opcoes.slice() : [];
+    const abreCampo = (op) => /^Outr[oa]\b/.test(op);   // "Outro" (P02) e "Outra dúvida" (P15) abrem campo
 
     const p = el(`
       <div class="pag">
@@ -136,14 +135,13 @@
         </header>
         <main class="corpo">
           <div class="pergunta">
-            <h2 class="q">${esc(V.pergunta)}</h2>
-            ${vazio(q.destaque) ? "" : `<div class="bloco b-proximo destaque">${txt(q.destaque)}</div>`}
-            <p class="ajuda">${txt(q.ajuda)}</p>
-            ${vazio(q.destaque_alerta) ? "" : `<div class="bloco b-alerta destaque"><b>Atenção</b>${txt(q.destaque_alerta)}</div>`}
-            ${q.conceito_destaque ? conceitoAberto(q.conceito_destaque) : ""}
+            <h2 class="q">${esc(q.pergunta)}</h2>
+            <p class="ajuda">${esc(q.ajuda)}</p>
+            ${tipo === "multipla" ? `<p class="mini-info" id="multi-aviso">Você pode marcar mais de uma opção.</p>` : ""}
             <div class="entrada" id="ent"></div>
-            ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
+            ${nsRot ? `<div class="alt"><button class="btn-alt" id="ns">${esc(nsRot)}</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
+            <div id="caminho"></div>
           </div>
           <div id="retorno"></div>
           ${blocoEducativo(educativoDe(cod))}
@@ -161,75 +159,116 @@
     };
 
     const ent = p.querySelector("#ent");
-    if (tipo === "escolha") {
+    const boxCaminho = p.querySelector("#caminho");
+    function mostrarCaminhos(lista) {
+      boxCaminho.innerHTML = lista.map((c) => `
+        <div class="bloco caminho ${c.tipo === "Resposta" ? "b-resp" : "b-dica"}" data-op="${esc(c.opcao)}"><b>${esc(c.tipo)}</b>${esc(c.texto)}</div>`).join("");
+    }
+    /* campo extra: "Outro"/"Outra dúvida" (abre só quando marcado) e o detalhe livre da M3.P05 */
+    let extra = null;
+    if (tipo === "escolha" || tipo === "multipla" || tipo === "escolhatexto") {
       ent.classList.add("opcoes");
-      V.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><b>${esc(op)}</b></button>`);
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
+      q.opcoesLista.forEach((op) => {
+        const sel = tipo === "multipla" ? marcadas.includes(op) : escolhida === op;
+        const b = el(`<button class="opcao ${sel ? "sel" : ""}" ${tipo === "multipla" ? `role="checkbox" aria-checked="${sel}"` : ""}><b>${esc(op)}</b></button>`);
+        b.dataset.op = op;
+        b.onclick = () => {
+          if (tipo === "multipla") {
+            if (marcadas.includes(op)) marcadas = marcadas.filter((x) => x !== op);
+            /* "Não sei" é exclusivo: marcá-lo limpa as outras, e marcar outra limpa o "Não sei" */
+            else marcadas = op === Motor.NS ? [op] : marcadas.filter((x) => x !== Motor.NS).concat(op);
+          } else escolhida = op;
+          pintar();
+        };
         ent.appendChild(b);
       });
+      const precisaExtra = q.opcoesLista.some(abreCampo) || tipo === "escolhatexto";
+      if (precisaExtra) {
+        const v0 = resp ? (tipo === "escolhatexto" ? resp.valor : resp.detalhe) || "" : "";
+        extra = el(`<label class="item extra" id="extra"><span>${tipo === "escolhatexto" ? "Se quiser, conte com suas palavras" : "Explique aqui"}</span>
+          <textarea class="campo" rows="3">${esc(v0)}</textarea></label>`);
+        ent.after(extra);
+      }
     } else {
       const v = resp && resp.estado === "valor" ? resp.valor : "";
       ent.appendChild(el(tipo === "numero"
-        ? `<div class="linha">${unidade === "R$" ? `<span class="pre">R$</span>` : ""}<input class="campo" inputmode="decimal" value="${esc(v)}">${unidade === "dias" ? `<span class="pre">dias</span>` : ""}</div>`
+        ? `<div class="linha"><input class="campo" inputmode="decimal" value="${esc(v)}"><span class="pre">R$</span></div>`
+        : tipo === "inteiro"
+        ? `<div class="linha"><input class="campo" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${esc(v)}"></div>`
         : `<textarea class="campo" rows="3">${esc(v)}</textarea>`));
     }
+    function pintar() {
+      ent.querySelectorAll(".opcao").forEach((x) => {
+        const on = tipo === "multipla" ? marcadas.includes(x.dataset.op) : escolhida === x.dataset.op;
+        x.classList.toggle("sel", on);
+        if (tipo === "multipla") x.setAttribute("aria-checked", on);
+      });
+      if (extra && tipo !== "escolhatexto") extra.hidden = !(tipo === "multipla" ? marcadas.some(abreCampo) : abreCampo(escolhida || ""));
+      if (tipo === "multipla") mostrarCaminhos(Motor.retornos(q, { estado: "opcoes", opcoes: marcadas }));
+      else if (escolhida) mostrarCaminhos(Motor.retornos(q, { estado: "opcao", opcao: escolhida }));
+    }
+    if (ent.classList.contains("opcoes")) pintar();
+    else if (resp) mostrarCaminhos(Motor.retornos(q, resp));
+
     const ns = p.querySelector("#ns");
     if (ns) ns.onclick = () => responder({ estado: "naosei" });
 
     p.querySelector("#ok").onclick = () => {
+      const txtExtra = extra ? extra.querySelector("textarea").value.trim() : "";
       if (tipo === "escolha") {
         if (!escolhida) return erro("Escolha uma opção para continuar.");
-        return responder({ estado: "opcao", opcao: escolhida });
+        const r = { estado: "opcao", opcao: escolhida };
+        if (abreCampo(escolhida) && txtExtra) r.detalhe = txtExtra;
+        return responder(r);
+      }
+      if (tipo === "multipla") {
+        if (!marcadas.length) return erro("Marque pelo menos uma opção para continuar.");
+        const r = { estado: "opcoes", opcoes: q.opcoesLista.filter((o) => marcadas.includes(o)) };
+        if (marcadas.some(abreCampo) && txtExtra) r.detalhe = txtExtra;
+        return responder(r);
+      }
+      if (tipo === "escolhatexto") {
+        if (!escolhida && !txtExtra) return erro("Escolha uma opção ou escreva sua resposta para continuar.");
+        return responder(escolhida ? Object.assign({ estado: "opcao", opcao: escolhida }, txtExtra ? { valor: txtExtra } : {}) : { estado: "valor", valor: txtExtra });
       }
       const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(Motor.temNaoSei(q) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
+      if (!v) return erro(nsRot ? `Responda ou toque em "${nsRot}".` : "Responda para continuar.");
+      if (tipo === "inteiro" && !Motor.inteiroValido(v)) {
+        /* número inválido: mostra a dica do grupo e não avança */
+        p.querySelector("#erro").hidden = true;
+        p.querySelector("#retorno").innerHTML = "";
+        return mostrarCaminhos([Motor.caminho(q, "Número inválido")].filter(Boolean));
+      }
       if (tipo === "numero" && isNaN(parseFloat(v.replace(/\./g, "").replace(",", ".")))) return erro("Informe um número.");
-      responder({ estado: "valor", valor: v });
+      responder({ estado: "valor", valor: tipo === "inteiro" ? String(parseInt(v, 10)) : v });
     };
     function erro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
-      /* pedido do grupo (M4.P01): com "Não sei" a pessoa não avança enquanto não escrever a frase */
-      if (q.bloqueia_naosei && r0.estado === "naosei") {
-        const R = Object.assign({}, S.R, { [cod]: r0 });
-        delete S.R[cod]; salvar();
-        return mostrarRetorno(Motor.regrasAgora(M, R, cod), null, Motor.NS);
-      }
       S.R[cod] = r0;
       /* respostas de perguntas que deixaram de aparecer são descartadas */
       limparInvisiveis();
       salvar();
+      mostrarCaminhos(Motor.retornos(q, r0));
       const regras = Motor.regrasAgora(M, S.R, cod);
       const prox = Motor.proxima(M, S.R, cod);
-      mostrarRetorno(regras, prox, Motor.valor(S.R, cod));
+      mostrarRetorno(regras, prox);
     }
 
-    function mostrarRetorno(regras, prox, v) {
-      const ehNS = v === Motor.NS;
+    function mostrarRetorno(regras, prox) {
       const box = p.querySelector("#retorno");
-      const se = Motor.retornoSe(q, v);
       box.innerHTML = `<div class="retorno">
-        ${vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${txt(q.resposta)}</p>`}
-        ${ehNS && !vazio(q.resposta_naosei) ? `<p class="r-texto r-pergunta">${txt(q.resposta_naosei)}</p>` : ""}
-        ${ehNS && !vazio(q.prompt_ia) ? `<div class="prompt"><p>${txt(q.prompt_ia)}</p><button class="btn-copiar" data-t="${esc(q.prompt_ia)}">Copiar texto</button></div>` : ""}
-        ${ehNS && q.conceito_naosei ? conceitoAberto(q.conceito_naosei) : ""}
-        ${vazio(se) ? "" : `<div class="bloco b-proximo">${txt(se)}</div>`}
+        ${vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
         ${regras.map((r) => `
           <div class="regra">
-            <p class="r-texto">${txt(r.texto)}</p>
-            ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${txt(r.alerta)}</div>`}
-            ${vazio(r.proximo) || !prox ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${txt(r.proximo)}</div>`}
-            ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${txt(r.encaminhamento)}</div>`}
+            <p class="r-texto">${esc(r.texto)}</p>
+            ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(r.alerta)}</div>`}
+            ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
+            ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${esc(r.encaminhamento)}</div>`}
           </div>`).join("")}
-        ${vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${txt(q.alerta)}</div>`}
-        ${ehNS && !vazio(q.alerta_naosei) ? `<div class="bloco b-alerta bloqueio"><b>Atenção</b>${txt(q.alerta_naosei)}</div>` : ""}
-        ${prox && !vazio(q.proximo) ? `<div class="bloco b-proximo"><b>Próximo passo</b>${txt(q.proximo)}</div>` : ""}
+        ${vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(q.alerta)}</div>`}
       </div>`;
-      ligarCopiar(box);
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
-      if (!prox) return;            // bloqueado: continua o botão "Continuar", que exige a resposta
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
       const b = el(`<button class="btn btn-primario">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
@@ -238,22 +277,22 @@
       const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
       c.onclick = () => ir(telaPergunta, cod);
       acoes.appendChild(c);
+      box.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     return p;
   }
 
   function limparInvisiveis() {
     let cod = Motor.proxima(M, {}, null);
+    const vis = new Set();
     const R = {};
     while (cod !== "RESULTADO") {
-      const r = S.R[cod];
-      /* resposta de opção que não existe mais nesta versão da pergunta (ex.: M4.P14 depois de trocar M4.P02) */
-      if (r && r.estado === "opcao" && !Motor.versao(M, R, M.porCodigo[cod]).opcoesLista.includes(r.opcao)) break;
-      if (r === undefined) break;
-      R[cod] = r;
+      vis.add(cod);
+      if (S.R[cod] === undefined) break;
+      R[cod] = S.R[cod];
       cod = Motor.proxima(M, R, cod);
     }
-    Object.keys(S.R).forEach((k) => { if (!(k in R)) delete S.R[k]; });
+    Object.keys(S.R).forEach((k) => { if (!vis.has(k)) delete S.R[k]; });
   }
 
   /* ================= resultado: resumo das respostas + alertas da planilha ================= */
@@ -278,14 +317,13 @@
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
 
           <div class="secao-titulo">Suas respostas</div>
-          ${resp.map((q) => { const v = Motor.valor(S.R, q.codigo), se = Motor.retornoSe(q, v); return `
-            <div class="etapa ${v === Motor.NS ? "e-conf" : "e-sim"}">
-              <div class="etapa-topo"><span class="etq">${esc(q.codigo.slice(3))}</span><b>${esc(Motor.versao(M, S.R, q).pergunta)}</b></div>
-              <p>${txt(v)}</p>
-              ${vazio(q.alerta) ? "" : `<p class="mini-info"><b>Atenção:</b> ${txt(q.alerta)}</p>`}
-              ${vazio(se) ? "" : `<p class="mini-info">${txt(se)}</p>`}
-              ${vazio(q.proximo) ? "" : `<p class="mini-info"><b>Próximo passo:</b> ${txt(q.proximo)}</p>`}
-            </div>`; }).join("")}
+          ${resp.map((q) => `
+            <div class="etapa ${Motor.valor(S.R, q.codigo) === Motor.NS ? "e-conf" : "e-sim"}">
+              <div class="etapa-topo"><span class="etq">${esc(q.codigo.slice(3))}</span><b>${esc(q.pergunta)}</b></div>
+              <p>${esc(Motor.texto(S.R, q.codigo))}</p>
+              ${Motor.retornos(q, S.R[q.codigo]).map((c) => `<p class="mini-info"><b>${esc(c.tipo)}:</b> ${esc(c.texto)}</p>`).join("")}
+              ${vazio(q.alerta) ? "" : `<p class="mini-info"><b>Atenção:</b> ${esc(q.alerta)}</p>`}
+            </div>`).join("")}
   
           ${regras.length ? `<div class="secao-titulo">Orientações</div>${regras.map((r) => `<div class="cartao"><p>${esc(r.texto)}</p>
             ${vazio(r.proximo) ? "" : `<p class="mini-info"><b>Próximo passo:</b> ${esc(r.proximo)}</p>`}</div>`).join("")}` : ""}
