@@ -149,3 +149,13 @@ textarea.campo{resize:vertical;font-family:inherit}
 .roteiro li{margin-bottom:8px}
 .roteiro b{color:var(--m-purple);display:block}
 .cartao .mini-info a{word-break:break-all}
+
+/* ---- Módulo 3: retorno por resposta (Dica / Resposta) ---- */
+#caminho{margin-top:14px}
+.caminho{animation:sobe .3s ease-out}
+.b-dica{background:var(--m-lavender);border-left:4px solid var(--m-purple);color:#3d2f5c}
+.b-dica b{color:var(--m-purple)}
+.b-resp{background:#fff;border:2px solid var(--m-purple);color:#2b2340}
+.b-resp b{color:var(--m-coral)}
+.extra{margin-top:12px}
+.extra[hidden]{display:none}

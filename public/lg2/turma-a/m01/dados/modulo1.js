@@ -1,4 +1,7 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao. */
+/* Dados do Módulo 1. Mapa, Base técnica e conexões vêm da planilha do grupo.
+   Tela inicial, tela "O que esta parte não faz" e perguntas vêm do documento
+   "Módulo 1 – Textos do app em linguagem simples" (08/10/2026), que substitui a aba
+   "3 Fluxo de perguntas". Textos literais. */
 window.MODULO1 = {
  "origem": "LG2_M01_planilha_do_grupo.xlsx",
  "modulo": {
@@ -141,159 +144,439 @@ window.MODULO1 = {
    "status": "Rascunho"
   }
  ],
+ "inicio": {
+  "rotulo": "PARTE 1",
+  "titulo": "Você e a sua ideia",
+  "descricao": "Vamos conversar sobre você e sobre o que você quer vender. Não existe resposta certa ou errada.",
+  "blocos": [
+   {
+    "titulo": "Isso é para você se:",
+    "lista": [
+     "Você quer começar um pequeno negócio",
+     "Ou você já tem um e quer fazer ele crescer"
+    ]
+   },
+   {
+    "titulo": "Antes de começar, pense nisto:",
+    "lista": [
+     "O que você quer vender",
+     "Quanto tempo você tem para isso",
+     "O que você já tem para trabalhar",
+     "Quanto dinheiro você pode usar sem faltar para as contas da casa",
+     "Não sabe tudo isso? Tudo bem, a gente te ajuda."
+    ]
+   },
+   {
+    "titulo": "No final, você vai ter:",
+    "lista": [
+     "Um resumo sobre você e o seu momento",
+     "Sua ideia explicada de um jeito simples: o que você já sabe e o que ainda precisa testar",
+     "Uma lista do que ainda falta descobrir",
+     "Uma tarefa fácil para fazer já"
+    ]
+   }
+  ],
+  "tempo": "Leva uns 10 minutos",
+  "botao": "Começar",
+  "link": "O que esta parte não faz"
+ },
+ "limites": {
+  "titulo": "O que você pode esperar",
+  "blocos": [
+   {
+    "titulo": "O app não faz:",
+    "lista": [
+     "Não diz se a sua ideia vai dar certo",
+     "Não promete lucro nem vendas",
+     "Não decide por você se deve abrir o negócio, contratar pessoas ou pegar empréstimo"
+    ]
+   },
+   {
+    "titulo": "O app te ajuda a:",
+    "lista": [
+     "Fazer um resumo sobre você e o seu momento",
+     "Explicar sua ideia de um jeito simples",
+     "Separar o que você já sabe do que ainda precisa testar",
+     "Ver o que ainda falta descobrir",
+     "Escolher um próximo passo fácil"
+    ]
+   },
+   {
+    "titulo": "Quando pedir ajuda a um profissional",
+    "lista": [
+     "Se você precisar de um empréstimo maior do que a família pode emprestar: converse com alguém que entende de dinheiro e juros antes de assinar.",
+     "Se você vai vender comida que estraga fácil ou fazer algo ligado à saúde: confirme as regras com um profissional da área antes de começar."
+    ]
+   }
+  ],
+  "aviso": "O app ajuda você a pensar e se organizar. Os resultados dependem das suas respostas e não são garantidos. Regras de impostos, registro e licenças devem ser confirmadas em sites do governo e com profissionais.",
+  "rodape": "Feito pelo Grupo 1 · Laboratório de Gestão II · FACC/UFJF"
+ },
  "perguntas": [
   {
    "codigo": "M1.P01",
-   "modulo": "M1",
-   "pergunta": "Em que estágio sua ideia de negócio está hoje?",
-   "ajuda": "Seja sincero. Isso nos ajuda a sugerir o melhor caminho.",
-   "tipo": "Escolha",
+   "numero": "1",
    "condicao": "sempre",
-   "opcoes": "1. Só na cabeça | 2. Já fiz testes/amostras | 3. Já fiz primeiras vendas | 4. Não sei",
-   "resposta": "Define se precisa focar em validação ou estruturação.",
-   "alerta": "Não gaste dinheiro antes de testar na prática.",
-   "proximo": "Vá para M1.P02",
-   "fonte": "Sebrae, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "Como está a sua ideia hoje?",
+   "apoio": "Escolha a frase que mais parece com você. Não tem resposta errada.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Ainda está só na minha cabeça",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Antes de gastar dinheiro, teste sua ideia com pouca coisa. A gente te ajuda nas próximas perguntas."
+     }
+    },
+    {
+     "texto": "Já fiz um pouco para testar ou dar de amostra",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Ótimo começo! Pergunte a quem provou se compraria e por quanto."
+     }
+    },
+    {
+     "texto": "Já vendi algumas vezes",
+     "mensagem": null
+    },
+    {
+     "texto": "Já vendo sempre",
+     "mensagem": null
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Vamos descobrir juntos nas próximas perguntas."
+     }
+    }
+   ]
   },
   {
    "codigo": "M1.P02",
-   "modulo": "M1",
-   "pergunta": "Qual é/foi o principal motivo para você começar este negócio?",
-   "ajuda": "Entender sua motivação ajuda a definir o ritmo e os riscos.",
-   "tipo": "Escolha",
+   "numero": "2",
    "condicao": "sempre",
-   "opcoes": "1. Necessidade de renda urgente | 2. Identifiquei uma oportunidade | 3. Renda extra | 4. Não sei",
-   "resposta": "Molda o retrato do empreendedor.",
-   "alerta": "Negócios por urgência exigem mais cautela.",
-   "proximo": "Vá para M1.P03",
-   "fonte": "GEM, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "O que fez você querer ter um negócio?",
+   "apoio": "Escolha o motivo mais importante para você.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Preciso de dinheiro logo para pagar as contas",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco."
+     }
+    },
+    {
+     "texto": "Vi que as pessoas precisam de algo que eu posso vender",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Antes de gastar, pergunte a algumas pessoas se elas comprariam."
+     }
+    },
+    {
+     "texto": "Quero ganhar um dinheiro a mais",
+     "mensagem": null
+    },
+    {
+     "texto": "Quero trabalhar por conta própria",
+     "mensagem": null
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Vamos descobrir juntos nas próximas perguntas."
+     }
+    }
+   ]
   },
   {
    "codigo": "M1.P03",
-   "modulo": "M1",
-   "pergunta": "Descreva, em poucas palavras, o produto ou serviço que quer vender/já vende.",
-   "ajuda": "Pense no que o cliente vai comprar.",
-   "tipo": "Texto",
+   "numero": "3",
    "condicao": "sempre",
-   "opcoes": "[Campo de texto] | Não sei",
-   "resposta": "Salva a descrição na Síntese da ideia.",
-   "alerta": "-",
-   "proximo": "Vá para M1.P04",
-   "fonte": "Sebrae, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "O que você vende ou quer vender?",
+   "apoio": "Pode ser uma coisa que você faz ou um trabalho que você oferece.",
+   "placeholder": "Ex.: bolo de pote, conserto de celular, unha de gel",
+   "botao_falar": "Falar em vez de escrever",
+   "botao_naosei": {
+    "texto": "Ainda não sei",
+    "mensagem": {
+     "titulo": "Tudo bem",
+     "texto": "Pense em algo que você já sabe fazer bem ou que as pessoas pedem para você. Você pode mudar depois."
+    }
+   },
+   "tipo": "texto"
   },
   {
    "codigo": "M1.P04",
-   "modulo": "M1",
-   "pergunta": "Você já tem experiência profissional ou técnica nessa área de atuação?",
-   "ajuda": "Trabalhos anteriores e hobbies contam.",
-   "tipo": "Escolha",
+   "numero": "4",
    "condicao": "sempre",
-   "opcoes": "1. Sim, bastante experiência | 2. Alguma experiência/teoria | 3. Nenhuma experiência | 4. Não sei",
-   "resposta": "Conecta com a BT05 (Experiência).",
-   "alerta": "-",
-   "proximo": "Se = \"3\", vá para M1.P04.1; Senão, M1.P05",
-   "fonte": "Sebrae, 01/10/2026",
-   "status": "Rascunho"
-  },
-  {
-   "codigo": "M1.P04.1",
-   "modulo": "M1",
-   "pergunta": "Como você planeja suprir essa falta de experiência inicial na área?",
-   "ajuda": "Pense na forma mais acessível no momento.",
-   "tipo": "Escolha",
-   "condicao": "M1.P04 = \"3. Nenhuma experiência\"",
-   "opcoes": "1. Farei cursos gratuitos | 2. Terei um parceiro experiente | 3. Vou aprender testando | 4. Não sei",
-   "resposta": "Valida a resiliência do empreendedor iniciante.",
-   "alerta": "Cuidado com investimentos altos sem saber a técnica.",
-   "proximo": "Vá para M1.P05",
-   "fonte": "Equipe, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "Você já sabe fazer isso?",
+   "apoio": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho.",
+   "pergunta_com_resposta": {
+    "de": "M1.P03",
+    "modelo": "Você já sabe fazer {resposta}?"
+   },
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Sim, já faço bem",
+     "mensagem": null
+    },
+    {
+     "texto": "Sei um pouco, ainda estou aprendendo",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Pratique com amigos e família antes de vender. Assim você ganha confiança."
+     }
+    },
+    {
+     "texto": "Ainda não sei fazer",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Tudo bem começar do zero. Procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."
+     }
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Vamos descobrir juntos nas próximas perguntas."
+     }
+    }
+   ],
+   "ajuda": {
+    "texto": "Queremos saber se você já fez esse tipo de trabalho antes. Quem já sabe fazer começa com mais facilidade.",
+    "exemplo": "Exemplo: Maria trabalhou 5 anos como costureira numa fábrica. Agora ela faz consertos de roupa em casa."
+   }
   },
   {
    "codigo": "M1.P05",
-   "modulo": "M1",
-   "pergunta": "Quantas horas por semana você pode se dedicar/já dedica de fato a este negócio?",
-   "ajuda": "Considere seu trabalho atual, família e descanso.",
-   "tipo": "Escolha",
+   "numero": "5",
    "condicao": "sempre",
-   "opcoes": "1. Menos de 10h | 2. Entre 10h e 20h | 3. Mais de 20h | 4. Não sei",
-   "resposta": "Conecta com a BT06 (Limitações de tempo).",
-   "alerta": "A falta de tempo é um grande gargalo.",
-   "proximo": "Se = \"1\", vá para M1.P05.1; Senão, M1.P06",
-   "fonte": "Sebrae, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "Quanto tempo por dia você tem para o seu negócio?",
+   "apoio": "Pense no tempo que sobra depois do trabalho, da casa e da família.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Até 1 hora por dia",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Pouco tempo também dá certo. Comece com poucos clientes e faça sob encomenda."
+     }
+    },
+    {
+     "texto": "De 1 a 3 horas por dia",
+     "mensagem": null
+    },
+    {
+     "texto": "Mais de 3 horas por dia",
+     "mensagem": null
+    },
+    {
+     "texto": "Só nos fins de semana",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Venda em feiras, eventos ou por encomenda para entregar no fim de semana."
+     }
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Pense em um dia comum: quanto tempo livre você tem? Você pode mudar depois."
+     }
+    }
+   ],
+   "ajuda": {
+    "texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar.",
+    "exemplo": "Exemplo: \"Trabalho de segunda a sexta. Só posso fazer meus doces no sábado.\""
+   }
   },
   {
-   "codigo": "M1.P05.1",
-   "modulo": "M1",
-   "pergunta": "Com menos de 10h semanais, o crescimento será mais lento. Você tem flexibilidade para ajustar horários se o negócio crescer?",
-   "ajuda": "Responda focando na sua rotina atual.",
-   "tipo": "Escolha",
-   "condicao": "M1.P05 = \"1. Menos de 10h\"",
-   "opcoes": "1. Sim, posso ajustar | 2. Não, meu horário é rígido | 3. Não sei",
-   "resposta": "Verifica rigidez do gargalo de tempo.",
-   "alerta": "Alinhe suas expectativas de retorno ao seu tempo disponível.",
-   "proximo": "Vá para M1.P06",
-   "fonte": "Equipe, 01/10/2026",
-   "status": "Rascunho"
+   "codigo": "M1.P05A",
+   "numero": "5A",
+   "condicao": "M1.P05 = \"Até 1 hora por dia\" ou M1.P05 = \"Só nos fins de semana\"",
+   "pergunta": "Se o negócio crescer, você consegue arrumar mais tempo para ele?",
+   "apoio": "Pense na sua rotina de hoje.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Sim, consigo arrumar mais tempo",
+     "mensagem": null
+    },
+    {
+     "texto": "Não, meus horários não podem mudar",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Tudo bem. Seu negócio pode crescer devagar, no seu ritmo."
+     }
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Você pode pensar nisso mais para frente."
+     }
+    }
+   ]
   },
   {
    "codigo": "M1.P06",
-   "modulo": "M1",
-   "pergunta": "Você já possui alguma ferramenta, equipamento ou estrutura (mesmo em casa) para começar?",
-   "ajuda": "Avalie os recursos disponíveis (BT06).",
-   "tipo": "Escolha",
+   "numero": "6",
    "condicao": "sempre",
-   "opcoes": "1. Tenho tudo que preciso | 2. Tenho parte | 3. Não tenho nada | 4. Não sei",
-   "resposta": "Conecta com a restrição estrutural.",
-   "alerta": "-",
-   "proximo": "Vá para M1.P07",
-   "fonte": "Sebrae, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "Você já tem o que precisa para trabalhar?",
+   "apoio": "Por exemplo: ferramentas, máquinas, panelas, forno ou um espaço em casa.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Sim, tenho tudo",
+     "mensagem": null
+    },
+    {
+     "texto": "Tenho só uma parte",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar."
+     }
+    },
+    {
+     "texto": "Não tenho nada ainda",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."
+     }
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Faça uma lista do que você usa para fazer seu produto e veja o que já tem em casa."
+     }
+    }
+   ]
   },
   {
    "codigo": "M1.P07",
-   "modulo": "M1",
-   "pergunta": "Qual é o valor máximo (em R$) que pode arriscar hoje sem prejudicar seu sustento?",
-   "ajuda": "Sua perda acessível. Se não puder gastar, coloque 0.",
-   "tipo": "Número",
+   "numero": "7",
    "condicao": "sempre",
-   "opcoes": "[Campo numérico] | Não sei",
-   "resposta": "Define teto financeiro (BT01).",
-   "alerta": "Nunca pegue empréstimos para ideias não validadas.",
-   "proximo": "Se = 0 ou M1.P06 = \"3\", vá para M1.P07.1; Senão, Fim",
-   "fonte": "Sebrae, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "Quanto dinheiro você pode usar no negócio sem faltar para as contas da casa?",
+   "apoio": "Pense num dinheiro que, se for perdido, não vai fazer falta para comida, aluguel e contas.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Nada por enquanto",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Dá para começar sem dinheiro. Na próxima pergunta vamos ver como."
+     }
+    },
+    {
+     "texto": "Até R$ 100",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Comece pequeno e use esse dinheiro aos poucos."
+     }
+    },
+    {
+     "texto": "Entre R$ 100 e R$ 500",
+     "mensagem": null
+    },
+    {
+     "texto": "Entre R$ 500 e R$ 1.000",
+     "mensagem": null
+    },
+    {
+     "texto": "Mais de R$ 1.000",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Mesmo podendo usar mais, teste antes com pouco. Não pegue empréstimo no banco para começar."
+     }
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Veja quanto sobra no fim do mês depois de pagar as contas. É um bom começo."
+     }
+    }
+   ],
+   "ajuda": {
+    "texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa.",
+    "exemplo": "Exemplo: \"Tenho R$ 500 guardados para comprar ingredientes. Se eu não vender nada, não vai faltar comida em casa.\""
+   }
   },
   {
-   "codigo": "M1.P07.1",
-   "modulo": "M1",
-   "pergunta": "Sem recursos iniciais ou estrutura, como pretende iniciar a produção ou os testes?",
-   "ajuda": "Tente pensar em caminhos com custo zero.",
-   "tipo": "Escolha",
-   "condicao": "M1.P07 = 0 OU M1.P06 = \"3\"",
-   "opcoes": "1. Empréstimo com amigos/família | 2. Usar prestadores de serviço | 3. Vou tentar juntar dinheiro primeiro | 4. Não sei",
-   "resposta": "Mostra vias alternativas sem assumir dívida bancária.",
-   "alerta": "Evite contrair dívidas bancárias logo no primeiro dia.",
-   "proximo": "Fim do Módulo 1",
-   "fonte": "Equipe, 01/10/2026",
-   "status": "Rascunho"
+   "codigo": "M1.P07A",
+   "numero": "7A",
+   "condicao": "M1.P07 = \"Nada por enquanto\" ou M1.P06 = \"Não tenho nada ainda\"",
+   "pergunta": "Como você pensa em começar sem dinheiro ou sem material?",
+   "apoio": "Pense em jeitos de começar gastando pouco ou nada.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Pegando emprestado com amigos ou família",
+     "mensagem": {
+      "titulo": "Dica",
+      "texto": "Combine por escrito quanto e quando você vai devolver."
+     }
+    },
+    {
+     "texto": "Pagando alguém para fazer uma parte do trabalho",
+     "mensagem": null
+    },
+    {
+     "texto": "Vendendo por encomenda, com o cliente pagando uma parte antes",
+     "mensagem": null
+    },
+    {
+     "texto": "Juntando dinheiro primeiro",
+     "mensagem": null
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": {
+      "titulo": "Tudo bem",
+      "texto": "Um jeito comum é vender por encomenda e pedir parte do pagamento antes."
+     }
+    }
+   ]
   },
   {
    "codigo": "M1.P08",
-   "modulo": "M1",
-   "pergunta": "Selecione a dificuldade que mais te preocupa no curto prazo.",
-   "tipo": "Escolha",
+   "numero": "8",
    "condicao": "sempre",
-   "opcoes": "1. Conhecimento técnico/teórico | 2. Falta de infraestrutura | 3. Rede de relacionamento | 4. Tecnologias | 5. Outros | 6. Não sei",
-   "resposta": "Mapeia gargalos adicionais para indicar conteúdos em módulos futuros.",
-   "alerta": "-",
-   "proximo": "Fim do Módulo 1",
-   "fonte": "Equipe, 01/10/2026",
-   "status": "Rascunho"
+   "pergunta": "O que mais te preocupa agora?",
+   "apoio": "Escolha só uma opção.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Ainda não sei fazer direito",
+     "mensagem": null
+    },
+    {
+     "texto": "Me falta lugar ou equipamento",
+     "mensagem": null
+    },
+    {
+     "texto": "Conheço poucas pessoas para vender ou me ajudar",
+     "mensagem": null
+    },
+    {
+     "texto": "Tenho dificuldade com celular, internet ou redes sociais",
+     "mensagem": null
+    },
+    {
+     "texto": "Outra coisa",
+     "mensagem": null,
+     "campo": true
+    },
+    {
+     "texto": "Não sei dizer",
+     "mensagem": null
+    }
+   ]
   }
  ],
  "regras": [],

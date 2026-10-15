@@ -1,4 +1,6 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao. */
+/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao.
+   Campos "caminhos" (retorno por resposta) e opcoes/tipo de M3.P01-P05, P11 e P15 vindos de
+   m03_caminhos.xlsx (aba "Caminhos por resposta"; P06 dela = M3.P11, P07 = M3.P15). */
 window.MODULO3 = {
  "origem": "LG2_M03_planilha_do_grupo.xlsx",
  "modulo": {
@@ -197,58 +199,173 @@ window.MODULO3 = {
    "modulo": "M3",
    "pergunta": "Qual produto ou serviço você pretende pesquisar?",
    "ajuda": "Descreva a oferta de forma simples. Se ainda não souber, selecione Não sei.",
-   "tipo": "Texto",
+   "tipo": "Texto livre",
    "condicao": "Sempre",
-   "opcoes": "Texto livre; Não sei",
+   "opcoes": "Texto livre; Não sei ainda",
    "resposta": "Vamos usar esta descrição para sugerir termos de busca.",
    "alerta": "Uma descrição muito ampla pode trazer resultados pouco úteis.",
-   "proximo": "Defina o perfil do cliente que será analisado nas próximas etapas."
+   "proximo": "Defina o perfil do cliente que será analisado nas próximas etapas.",
+   "caminhos": [
+    {
+     "opcao": "Resposta preenchida",
+     "tipo": "Dica",
+     "texto": "Descreva de forma simples o que você pretende vender ou pesquisar. Ex.: bolos de aniversário, manutenção de celulares ou aulas particulares."
+    },
+    {
+     "opcao": "Resposta muito genérica",
+     "tipo": "Dica",
+     "texto": "Tente especificar melhor. Em vez de 'comida', escreva 'marmitas fitness para trabalhadores da região'."
+    },
+    {
+     "opcao": "Não sei ainda",
+     "tipo": "Dica",
+     "texto": "Você pode começar pela necessidade que pretende atender e definir o produto ou serviço com mais detalhes depois."
+    }
+   ]
   },
   {
    "codigo": "M3.P02",
    "modulo": "M3",
    "pergunta": "Seu negócio será de qual tipo?",
    "ajuda": "Escolha o que mais se aproxima agora",
-   "tipo": "Escolha",
+   "tipo": "Seleção única",
    "condicao": "Sempre",
-   "opcoes": "Produto que eu fabrico; Produto que eu revendo; Serviço; Não sei",
+   "opcoes": "Produto que eu fabrico; Produto que eu revendo; Serviço; Outro; Ainda estou decidindo",
    "resposta": "O tipo muda onde e como pesquisar concorrentes (loja, perfil, agenda, marketplace).",
    "alerta": "Uma necessidade pouco clara pode dificultar a identificação do mercado e dos concorrentes.",
-   "proximo": "Fabricar, revender e prestar serviço têm concorrentes e substitutos diferentes."
+   "proximo": "Fabricar, revender e prestar serviço têm concorrentes e substitutos diferentes.",
+   "caminhos": [
+    {
+     "opcao": "Produto que eu fabrico",
+     "tipo": "Resposta",
+     "texto": "Você pretende produzir o próprio produto para vender."
+    },
+    {
+     "opcao": "Produto que eu revendo",
+     "tipo": "Resposta",
+     "texto": "Você pretende comprar produtos prontos e revendê-los."
+    },
+    {
+     "opcao": "Serviço",
+     "tipo": "Resposta",
+     "texto": "Seu negócio será baseado principalmente na prestação de um serviço."
+    },
+    {
+     "opcao": "Outro",
+     "tipo": "Dica",
+     "texto": "Explique brevemente como seu negócio funcionará para que as próximas orientações sejam mais adequadas."
+    },
+    {
+     "opcao": "Ainda estou decidindo",
+     "tipo": "Dica",
+     "texto": "Tudo bem. Continue a pesquisa e use as próximas respostas para entender melhor sua ideia."
+    }
+   ]
   },
   {
    "codigo": "M3.P03",
    "modulo": "M3",
    "pergunta": "Onde você pretende vender?",
    "ajuda": "Pense no lugar onde o cliente encontraria sua oferta.",
-   "tipo": "Escolha",
+   "tipo": "Seleção única",
    "condicao": "Sempre",
-   "opcoes": "Presencialmente, na minha região; Pela internet (redes sociais, site ou marketplace); Nos dois; Não sei",
+   "opcoes": "Presencialmente; Pela internet; Nos dois; Ainda não sei",
    "resposta": "O canal indica onde procurar concorrentes: no mapa da região, nas redes sociais, em marketplaces.",
-   "alerta": "Na internet, a concorrência pode estar em outras cidades."
+   "alerta": "Na internet, a concorrência pode estar em outras cidades.",
+   "caminhos": [
+    {
+     "opcao": "Presencialmente",
+     "tipo": "Dica",
+     "texto": "Considere loja, feira, ponto de atendimento, venda direta ou outro espaço físico."
+    },
+    {
+     "opcao": "Pela internet",
+     "tipo": "Dica",
+     "texto": "Considere site, redes sociais, WhatsApp, marketplace ou outra plataforma digital."
+    },
+    {
+     "opcao": "Nos dois",
+     "tipo": "Dica",
+     "texto": "Escolha esta opção se pretende combinar vendas ou atendimento físico e digital."
+    },
+    {
+     "opcao": "Ainda não sei",
+     "tipo": "Dica",
+     "texto": "Observe onde seu público costuma procurar esse produto ou serviço antes de decidir."
+    }
+   ]
   },
   {
    "codigo": "M3.P04",
    "modulo": "M3",
    "pergunta": "Quantos negócios que atendem à mesma necessidade você já identificou (diretos, indiretos ou substitutos)?",
    "ajuda": "Conte os que você registrou na tabela de concorrentes (M3.I02). Se não fez a pesquisa, escolha \"Não sei\".",
-   "tipo": "Número",
+   "tipo": "Número inteiro",
    "condicao": "Sempre",
    "opcoes": "Não sei",
    "resposta": "Esse número mostra o quanto da pesquisa já foi feita; ele não diz se o mercado é grande ou pequeno.",
-   "alerta": "Encontrar zero negócios costuma indicar pesquisa incompleta; amplie para indiretos e substitutos."
+   "alerta": "Encontrar zero negócios costuma indicar pesquisa incompleta; amplie para indiretos e substitutos.",
+   "caminhos": [
+    {
+     "opcao": "0",
+     "tipo": "Dica",
+     "texto": "Zero significa que você ainda não identificou nenhum negócio. Isso não garante que não existam concorrentes."
+    },
+    {
+     "opcao": "1 ou mais",
+     "tipo": "Resposta",
+     "texto": "Você identificou [N] negócio(s) que atendem à mesma necessidade."
+    },
+    {
+     "opcao": "Número inválido",
+     "tipo": "Dica",
+     "texto": "Informe um número inteiro igual ou maior que zero."
+    },
+    {
+     "opcao": "Não sei",
+     "tipo": "Dica",
+     "texto": "Pesquise negócios que resolvem a mesma necessidade, incluindo concorrentes diretos, indiretos e produtos ou serviços substitutos."
+    }
+   ]
   },
   {
    "codigo": "M3.P05",
    "modulo": "M3",
    "pergunta": "O que seu possível cliente faz hoje para resolver essa necessidade, se o seu negócio não existisse?",
    "ajuda": "Pense em alternativas: comprar pronto, fazer em casa, mudar o hábito. Se não souber, escolha \"Não sei\".",
-   "tipo": "Texto",
+   "tipo": "Texto livre",
    "condicao": "Sempre",
-   "opcoes": "Não sei",
+   "opcoes": "Compra de outro concorrente; Faz por conta própria; Usa outro produto ou serviço substituto; Não faz nada / não resolve; Não sei",
    "resposta": "As alternativas citadas podem ser concorrentes indiretos ou substitutos e entram na tabela.",
    "alerta": "Respostas baseadas só na sua opinião precisam ser confirmadas com clientes reais.",
-   "proximo": "Confirme conversando com possíveis clientes"
+   "proximo": "Confirme conversando com possíveis clientes",
+   "caminhos": [
+    {
+     "opcao": "Compra de outro concorrente",
+     "tipo": "Dica",
+     "texto": "Se souber, informe qual tipo de negócio ou solução o cliente costuma procurar."
+    },
+    {
+     "opcao": "Faz por conta própria",
+     "tipo": "Dica",
+     "texto": "Ex.: prepara em casa, conserta sozinho, pesquisa e compra os materiais ou realiza o serviço por conta própria."
+    },
+    {
+     "opcao": "Usa outro produto ou serviço substituto",
+     "tipo": "Dica",
+     "texto": "Pense em outra solução que resolve a mesma necessidade, mesmo que seja diferente do seu produto ou serviço."
+    },
+    {
+     "opcao": "Não faz nada / não resolve",
+     "tipo": "Dica",
+     "texto": "Isso pode significar que a necessidade ainda não é percebida como importante ou que existe uma oportunidade a investigar."
+    },
+    {
+     "opcao": "Não sei",
+     "tipo": "Dica",
+     "texto": "Converse com possíveis clientes ou observe como eles resolvem essa necessidade atualmente."
+    }
+   ]
   },
   {
    "codigo": "M3.P06",
@@ -315,12 +432,29 @@ window.MODULO3 = {
    "modulo": "M3",
    "pergunta": "A procura pelo que você vende muda ao longo do ano (datas, estações, férias)?",
    "ajuda": "Pense em épocas em que a procura sobe ou cai.",
-   "tipo": "Escolha",
+   "tipo": "Seleção única",
    "condicao": "Sempre",
    "opcoes": "Sim; Não; Não sei",
    "resposta": "Se a procura muda, preço, estoque e caixa também precisam variar.",
    "alerta": "Sazonalidade só vale como hipótese até aparecer em dados ou nas conversas com clientes.",
-   "proximo": "Se a resposta for \"Sim\", descreva as épocas (M3.P12)."
+   "proximo": "Se a resposta for \"Sim\", descreva as épocas (M3.P12).",
+   "caminhos": [
+    {
+     "opcao": "Sim",
+     "tipo": "Dica",
+     "texto": "Indique datas, meses, estações, férias ou outros períodos em que a procura pode aumentar ou diminuir."
+    },
+    {
+     "opcao": "Não",
+     "tipo": "Resposta",
+     "texto": "Você não identificou uma mudança relevante na procura ao longo do ano."
+    },
+    {
+     "opcao": "Não sei",
+     "tipo": "Dica",
+     "texto": "Pesquise se o setor possui períodos de maior ou menor procura ou converse com clientes e concorrentes."
+    }
+   ]
   },
   {
    "codigo": "M3.P12",
@@ -363,12 +497,49 @@ window.MODULO3 = {
    "modulo": "M3",
    "pergunta": "O que você ainda gostaria de descobrir sobre o mercado?",
    "ajuda": "Escolha o que mais pesa na sua decisão agora.",
-   "tipo": "Escolha",
+   "tipo": "Seleção múltipla",
    "condicao": "Sempre",
-   "opcoes": "Preços praticados; Quantos clientes existem na região; Como os concorrentes se comunicam; Não sei",
+   "opcoes": "Preços praticados; Quantidade de clientes / tamanho do público; Concorrentes; Comportamento / necessidade dos clientes; Canais de venda e divulgação; Outra dúvida; Não sei",
    "resposta": "O app ajuda a observar concorrentes, preços e canais. Ele não calcula o tamanho do mercado.",
    "alerta": "Números de mercado sem fonte confiável podem enganar.",
-   "proximo": "Se precisar de dados de mercado, procure o Sebrae mais próximo."
+   "proximo": "Se precisar de dados de mercado, procure o Sebrae mais próximo.",
+   "caminhos": [
+    {
+     "opcao": "Preços praticados",
+     "tipo": "Dica",
+     "texto": "Use esta opção se ainda precisar entender quanto os concorrentes cobram e como os preços variam."
+    },
+    {
+     "opcao": "Quantidade de clientes / tamanho do público",
+     "tipo": "Dica",
+     "texto": "Use quando quiser descobrir se existe público suficiente ou qual é o tamanho aproximado da demanda."
+    },
+    {
+     "opcao": "Concorrentes",
+     "tipo": "Dica",
+     "texto": "Use quando ainda quiser descobrir quem são os concorrentes diretos, indiretos ou substitutos."
+    },
+    {
+     "opcao": "Comportamento / necessidade dos clientes",
+     "tipo": "Dica",
+     "texto": "Use quando ainda precisar entender melhor o que o cliente procura, valoriza ou faz atualmente."
+    },
+    {
+     "opcao": "Canais de venda e divulgação",
+     "tipo": "Dica",
+     "texto": "Use quando quiser descobrir onde os clientes procuram, compram ou contratam esse tipo de produto ou serviço."
+    },
+    {
+     "opcao": "Outra dúvida",
+     "tipo": "Dica",
+     "texto": "Escreva qual informação ainda falta para você se sentir mais seguro para decidir sobre o negócio."
+    },
+    {
+     "opcao": "Não sei",
+     "tipo": "Dica",
+     "texto": "Revise suas respostas e pense: qual informação ainda falta para saber se existe público, concorrência e oportunidade?"
+    }
+   ]
   }
  ],
  "regras": [],

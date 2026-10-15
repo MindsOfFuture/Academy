@@ -250,7 +250,8 @@ window.MODULO5 = {
    "alerta": "Se estiver em dúvida, mostrar exemplos de cada opção.",
    "proximo": "Produto → P02; Mercadoria → P10; Serviço → P17",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "secao": "Perguntas Produto"
@@ -267,7 +268,8 @@ window.MODULO5 = {
    "alerta": "Preencha o nome para continuar.",
    "proximo": "P03",
    "fonte": "M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P03",
@@ -280,7 +282,8 @@ window.MODULO5 = {
    "alerta": "Se não souber, permitir continuar com os itens que lembrar.",
    "proximo": "P04",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P04",
@@ -294,7 +297,8 @@ window.MODULO5 = {
    "alerta": "Não aceitar valores negativos.",
    "proximo": "P05",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P05",
@@ -308,7 +312,8 @@ window.MODULO5 = {
    "alerta": "A quantidade deve ser maior que zero.",
    "proximo": "P06",
    "fonte": "M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P06",
@@ -322,7 +327,8 @@ window.MODULO5 = {
    "alerta": "A unidade usada precisa ser compatível com a unidade informada anteriormente.",
    "proximo": "P07",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P07",
@@ -336,7 +342,8 @@ window.MODULO5 = {
    "alerta": "A quantidade deve ser maior que zero.",
    "proximo": "P08",
    "fonte": "M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P08",
@@ -350,7 +357,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Sim → P09; Não/Não sei → P24",
    "fonte": "M5.BT06",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P09",
@@ -364,7 +372,8 @@ window.MODULO5 = {
    "alerta": "A quantidade deve ser maior que zero.",
    "proximo": "P24",
    "fonte": "M5.BT06 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "secao": "Perguntas Mercadoria"
@@ -381,7 +390,8 @@ window.MODULO5 = {
    "alerta": "Preencha o nome para continuar.",
    "proximo": "P11",
    "fonte": "M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P11",
@@ -395,7 +405,8 @@ window.MODULO5 = {
    "alerta": "Não aceitar valor negativo.",
    "proximo": "P12",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P12",
@@ -409,7 +420,8 @@ window.MODULO5 = {
    "alerta": "A quantidade deve ser maior que zero.",
    "proximo": "P13",
    "fonte": "M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P13",
@@ -423,7 +435,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Sim → P14; Não/Não sei → P15",
    "fonte": "M5.BT01",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P14",
@@ -437,7 +450,8 @@ window.MODULO5 = {
    "alerta": "Não aceitar valor negativo.",
    "proximo": "P15",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P15",
@@ -451,7 +465,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Sim → P16; Não/Não sei → P24",
    "fonte": "M5.BT06",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P16",
@@ -465,7 +480,8 @@ window.MODULO5 = {
    "alerta": "A quantidade deve ser maior que zero.",
    "proximo": "P24",
    "fonte": "M5.BT06 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "secao": "Perguntas Serviço"
@@ -482,7 +498,8 @@ window.MODULO5 = {
    "alerta": "Preencha o nome para continuar.",
    "proximo": "P18",
    "fonte": "M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P18",
@@ -496,7 +513,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Sim → P19; Não/Não sei → P23",
    "fonte": "M5.BT01",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P19",
@@ -509,7 +527,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "P20",
    "fonte": "M5.BT01",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P20",
@@ -523,7 +542,8 @@ window.MODULO5 = {
    "alerta": "Não aceitar valores negativos.",
    "proximo": "P21",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P21",
@@ -537,7 +557,8 @@ window.MODULO5 = {
    "alerta": "A quantidade deve ser maior que zero.",
    "proximo": "P22",
    "fonte": "M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P22",
@@ -551,7 +572,8 @@ window.MODULO5 = {
    "alerta": "Se não souber, permitir informar uma estimativa.",
    "proximo": "P23",
    "fonte": "M5.BT01 / M5.BT03",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P23",
@@ -565,7 +587,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "P24",
    "fonte": "M5.BT07",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "secao": "Parte comum"
@@ -582,7 +605,8 @@ window.MODULO5 = {
    "alerta": "Se não souber, orientar onde pode verificar essa informação.",
    "proximo": "Sim → P25; Não/Não sei → P26",
    "fonte": "M5.BT05",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P25",
@@ -596,7 +620,8 @@ window.MODULO5 = {
    "alerta": "Valor deve ficar entre 0% e 100%.",
    "proximo": "P26",
    "fonte": "M5.BT05",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P26",
@@ -610,7 +635,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Sim → P27; Não/Não sei → P28",
    "fonte": "M5.BT04",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P27",
@@ -624,7 +650,8 @@ window.MODULO5 = {
    "alerta": "Informar que uma estimativa já pode ser utilizada.",
    "proximo": "P28",
    "fonte": "M5.BT04",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P28",
@@ -638,7 +665,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "P29 se Sim; P30 se Não/Não sei",
    "fonte": "M5.BT02",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P29",
@@ -652,7 +680,9 @@ window.MODULO5 = {
    "alerta": "Não aceitar valor negativo.",
    "proximo": "P30",
    "fonte": "M5.BT02",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": "",
+   "observacao": "Se o seu negócio funciona dentro da sua casa, não coloque o valor total do aluguel. Coloque só a parte que o negócio usa."
   },
   {
    "codigo": "M5.P30",
@@ -666,7 +696,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "P31 se Sim; P32 se Não/Não sei",
    "fonte": "M5.BT02",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P31",
@@ -680,7 +711,9 @@ window.MODULO5 = {
    "alerta": "Não aceitar valor negativo.",
    "proximo": "P32",
    "fonte": "M5.BT02",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": "",
+   "observacao": "Se o negócio funciona na sua casa, coloque só a parte da conta que o negócio gasta, não a conta inteira."
   },
   {
    "codigo": "M5.P32",
@@ -694,7 +727,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Sim → P33; Não/Não sei → P34",
    "fonte": "M5.BT02",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P33",
@@ -708,7 +742,8 @@ window.MODULO5 = {
    "alerta": "Não aceitar valores negativos.",
    "proximo": "P34",
    "fonte": "M5.BT02",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P34",
@@ -722,7 +757,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Sim → P35; Não/Não sei → P36",
    "fonte": "M5.BT07",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P35",
@@ -736,7 +772,8 @@ window.MODULO5 = {
    "alerta": "Não aceitar valor negativo.",
    "proximo": "P36",
    "fonte": "M5.BT07",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   },
   {
    "codigo": "M5.P36",
@@ -750,7 +787,9 @@ window.MODULO5 = {
    "alerta": "O alerta sobre preço insuficiente deve aparecer depois dos cálculos.",
    "proximo": "P37",
    "fonte": "M5.BT08",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": "",
+   "observacao": "Se você está começando a vender, pode precisar de um lucro maior em cada venda para compensar a quantidade pequena de vendas no início."
   },
   {
    "codigo": "M5.P37",
@@ -764,7 +803,8 @@ window.MODULO5 = {
    "alerta": "—",
    "proximo": "Resultado",
    "fonte": "M5.BT11",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "video": ""
   }
  ],
  "regras": [

@@ -2,12 +2,12 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { chromium } = require('C:/Users/faelr/Downloads/reps/Academy/node_modules/playwright');
+const { chromium } = require(process.env.PW || 'C:/Users/faelr/Downloads/reps/Academy/node_modules/playwright');
 
 const root = path.resolve(__dirname, '../public');
 const label = 'Analisar outro produto, serviço ou mercadoria';
 const key = 'lg2-turma-a-m05';
-const artifacts = 'C:/Users/faelr/AppData/Local/hermes/work/lg2-m05-restart';
+const artifacts = process.env.LG2_M05_RESTART_SHOTS || (process.platform === 'win32' ? 'C:/Users/faelr/AppData/Local/hermes/work/lg2-m05-restart' : path.join(require('node:os').tmpdir(), 'lg2-m05-restart'));
 const server = http.createServer(async (req, res) => {
   try {
     const file = path.resolve(root, '.' + decodeURIComponent(new URL(req.url, 'http://localhost').pathname));
@@ -47,7 +47,7 @@ const server = http.createServer(async (req, res) => {
       await dialogHandled;
     };
     const assertFresh = async () => {
-      assert.deepEqual(await state(), { R: {}, hist: ['M5.P01'] });
+      assert.deepEqual(await state(), { versao: 2, R: {}, hist: ['M5.P01'] });
       assert.equal(await page.locator('.opcao').count(), 3);
       assert.equal(await page.locator('.opcao.sel').count(), 0);
     };
@@ -83,6 +83,10 @@ const server = http.createServer(async (req, res) => {
 
       // Responde pelo DOM real até o resultado; não injeta respostas no armazenamento.
       for (let step = 0; step < 50 && (await state()).hist.at(-1) !== 'RESULTADO'; step++) {
+        if ((await state()).hist.at(-1) === 'PRECO') {   // análise do preço (depois da P36)
+          await page.getByRole('button', { name: 'Ver o resultado', exact: true }).click();
+          continue;
+        }
         if (await page.locator('#ent .opcao').count()) {
           const no = page.locator('#ent .opcao').filter({ hasText: /^Não$/ });
           await (await no.count() ? no : page.locator('#ent .opcao').first()).click();

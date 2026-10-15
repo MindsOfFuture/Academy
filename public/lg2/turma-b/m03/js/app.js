@@ -7,9 +7,14 @@
   const CHAVE = "lg2-turma-b-m03";
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
-  let S = carregar();               // { R: respostas, hist: [códigos] }
-  function carregar() { try { return JSON.parse(localStorage.getItem(CHAVE)) || novo(); } catch { return novo(); } }
-  function novo() { return { R: {}, hist: [] }; }
+  /* VERSAO: sobe quando o formato das respostas muda (caminhos por resposta, P15 múltipla),
+     para descartar respostas antigas gravadas sob a mesma CHAVE */
+  const VERSAO = 2;
+  let S = carregar();               // { v, R: respostas, hist: [códigos] }
+  function carregar() {
+    try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.v === VERSAO ? s : novo(); } catch { return novo(); }
+  }
+  function novo() { return { v: VERSAO, R: {}, hist: [] }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -114,7 +119,10 @@
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const tipo = Motor.campo(q);
     const resp = S.R[cod] || null;
+    const nsRot = Motor.temNaoSei(q);
     let escolhida = resp && resp.estado === "opcao" ? resp.opcao : null;
+    let marcadas = resp && resp.estado === "opcoes" ? resp.opcoes.slice() : [];
+    const abreCampo = (op) => /^Outr[oa]\b/.test(op);   // "Outro" (P02) e "Outra dúvida" (P15) abrem campo
 
     const p = el(`
       <div class="pag">
@@ -127,9 +135,11 @@
           <div class="pergunta">
             <h2 class="q">${esc(q.pergunta)}</h2>
             <p class="ajuda">${esc(q.ajuda)}</p>
+            ${tipo === "multipla" ? `<p class="mini-info" id="multi-aviso">Você pode marcar mais de uma opção.</p>` : ""}
             <div class="entrada" id="ent"></div>
-            ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
+            ${nsRot ? `<div class="alt"><button class="btn-alt" id="ns">${esc(nsRot)}</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
+            <div id="caminho"></div>
           </div>
           <div id="retorno"></div>
           ${blocoEducativo(educativoDe(cod))}
@@ -147,31 +157,88 @@
     };
 
     const ent = p.querySelector("#ent");
-    if (tipo === "escolha") {
+    const boxCaminho = p.querySelector("#caminho");
+    function mostrarCaminhos(lista) {
+      boxCaminho.innerHTML = lista.map((c) => `
+        <div class="bloco caminho ${c.tipo === "Resposta" ? "b-resp" : "b-dica"}" data-op="${esc(c.opcao)}"><b>${esc(c.tipo)}</b>${esc(c.texto)}</div>`).join("");
+    }
+    /* campo extra: "Outro"/"Outra dúvida" (abre só quando marcado) e o detalhe livre da M3.P05 */
+    let extra = null;
+    if (tipo === "escolha" || tipo === "multipla" || tipo === "escolhatexto") {
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><b>${esc(op)}</b></button>`);
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
+        const sel = tipo === "multipla" ? marcadas.includes(op) : escolhida === op;
+        const b = el(`<button class="opcao ${sel ? "sel" : ""}" ${tipo === "multipla" ? `role="checkbox" aria-checked="${sel}"` : ""}><b>${esc(op)}</b></button>`);
+        b.dataset.op = op;
+        b.onclick = () => {
+          if (tipo === "multipla") {
+            if (marcadas.includes(op)) marcadas = marcadas.filter((x) => x !== op);
+            /* "Não sei" é exclusivo: marcá-lo limpa as outras, e marcar outra limpa o "Não sei" */
+            else marcadas = op === Motor.NS ? [op] : marcadas.filter((x) => x !== Motor.NS).concat(op);
+          } else escolhida = op;
+          pintar();
+        };
         ent.appendChild(b);
       });
+      const precisaExtra = q.opcoesLista.some(abreCampo) || tipo === "escolhatexto";
+      if (precisaExtra) {
+        const v0 = resp ? (tipo === "escolhatexto" ? resp.valor : resp.detalhe) || "" : "";
+        extra = el(`<label class="item extra" id="extra"><span>${tipo === "escolhatexto" ? "Se quiser, conte com suas palavras" : "Explique aqui"}</span>
+          <textarea class="campo" rows="3">${esc(v0)}</textarea></label>`);
+        ent.after(extra);
+      }
     } else {
       const v = resp && resp.estado === "valor" ? resp.valor : "";
       ent.appendChild(el(tipo === "numero"
         ? `<div class="linha"><input class="campo" inputmode="decimal" value="${esc(v)}"><span class="pre">R$</span></div>`
+        : tipo === "inteiro"
+        ? `<div class="linha"><input class="campo" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="${esc(v)}"></div>`
         : `<textarea class="campo" rows="3">${esc(v)}</textarea>`));
     }
+    function pintar() {
+      ent.querySelectorAll(".opcao").forEach((x) => {
+        const on = tipo === "multipla" ? marcadas.includes(x.dataset.op) : escolhida === x.dataset.op;
+        x.classList.toggle("sel", on);
+        if (tipo === "multipla") x.setAttribute("aria-checked", on);
+      });
+      if (extra && tipo !== "escolhatexto") extra.hidden = !(tipo === "multipla" ? marcadas.some(abreCampo) : abreCampo(escolhida || ""));
+      if (tipo === "multipla") mostrarCaminhos(Motor.retornos(q, { estado: "opcoes", opcoes: marcadas }));
+      else if (escolhida) mostrarCaminhos(Motor.retornos(q, { estado: "opcao", opcao: escolhida }));
+    }
+    if (ent.classList.contains("opcoes")) pintar();
+    else if (resp) mostrarCaminhos(Motor.retornos(q, resp));
+
     const ns = p.querySelector("#ns");
     if (ns) ns.onclick = () => responder({ estado: "naosei" });
 
     p.querySelector("#ok").onclick = () => {
+      const txtExtra = extra ? extra.querySelector("textarea").value.trim() : "";
       if (tipo === "escolha") {
         if (!escolhida) return erro("Escolha uma opção para continuar.");
-        return responder({ estado: "opcao", opcao: escolhida });
+        const r = { estado: "opcao", opcao: escolhida };
+        if (abreCampo(escolhida) && txtExtra) r.detalhe = txtExtra;
+        return responder(r);
+      }
+      if (tipo === "multipla") {
+        if (!marcadas.length) return erro("Marque pelo menos uma opção para continuar.");
+        const r = { estado: "opcoes", opcoes: q.opcoesLista.filter((o) => marcadas.includes(o)) };
+        if (marcadas.some(abreCampo) && txtExtra) r.detalhe = txtExtra;
+        return responder(r);
+      }
+      if (tipo === "escolhatexto") {
+        if (!escolhida && !txtExtra) return erro("Escolha uma opção ou escreva sua resposta para continuar.");
+        return responder(escolhida ? Object.assign({ estado: "opcao", opcao: escolhida }, txtExtra ? { valor: txtExtra } : {}) : { estado: "valor", valor: txtExtra });
       }
       const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(Motor.temNaoSei(q) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
+      if (!v) return erro(nsRot ? `Responda ou toque em "${nsRot}".` : "Responda para continuar.");
+      if (tipo === "inteiro" && !Motor.inteiroValido(v)) {
+        /* número inválido: mostra a dica do grupo e não avança */
+        p.querySelector("#erro").hidden = true;
+        p.querySelector("#retorno").innerHTML = "";
+        return mostrarCaminhos([Motor.caminho(q, "Número inválido")].filter(Boolean));
+      }
       if (tipo === "numero" && isNaN(parseFloat(v.replace(/\./g, "").replace(",", ".")))) return erro("Informe um número.");
-      responder({ estado: "valor", valor: v });
+      responder({ estado: "valor", valor: tipo === "inteiro" ? String(parseInt(v, 10)) : v });
     };
     function erro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
 
@@ -181,6 +248,7 @@
       /* respostas de perguntas que deixaram de aparecer são descartadas */
       limparInvisiveis();
       salvar();
+      mostrarCaminhos(Motor.retornos(q, r0));
       const regras = Motor.regrasAgora(M, S.R, cod);
       const prox = Motor.proxima(M, S.R, cod);
       mostrarRetorno(regras, prox);
@@ -250,7 +318,8 @@
           ${resp.map((q) => `
             <div class="etapa ${Motor.valor(S.R, q.codigo) === Motor.NS ? "e-conf" : "e-sim"}">
               <div class="etapa-topo"><span class="etq">${esc(q.codigo.slice(3))}</span><b>${esc(q.pergunta)}</b></div>
-              <p>${esc(Motor.valor(S.R, q.codigo))}</p>
+              <p>${esc(Motor.texto(S.R, q.codigo))}</p>
+              ${Motor.retornos(q, S.R[q.codigo]).map((c) => `<p class="mini-info"><b>${esc(c.tipo)}:</b> ${esc(c.texto)}</p>`).join("")}
               ${vazio(q.alerta) ? "" : `<p class="mini-info"><b>Atenção:</b> ${esc(q.alerta)}</p>`}
             </div>`).join("")}
   

@@ -21,15 +21,59 @@
     const r = R[cod];
     if (!r) return undefined;
     if (r.estado === "naosei") return NS;
+    if (r.estado === "opcoes") return r.opcoes.join("; ");
     return r.estado === "opcao" ? r.opcao : String(r.valor ?? "").trim();
+  }
+  /* texto mostrado no resumo: a resposta + o que a pessoa escreveu no campo extra */
+  function texto(R, cod) {
+    const r = R[cod], v = valor(R, cod);
+    if (!r || r.estado === "naosei" || r.estado === "valor") return v;
+    const extra = [r.estado === "opcao" ? r.valor : "", r.detalhe].map((s) => String(s || "").trim()).filter(Boolean);
+    return extra.length ? `${v} — ${extra.join(" — ")}` : v;
   }
 
   function campo(q) {
-    if (/escolha|sim\/n/i.test(q.tipo)) return "escolha";
+    if (/m[uú]ltipla/i.test(q.tipo)) return "multipla";
+    if (/escolha|sele[cç][aã]o|sim\/n/i.test(q.tipo)) return "escolha";
+    if (/inteiro/i.test(q.tipo)) return "inteiro";
     if (/n[uú]mero/i.test(q.tipo)) return "numero";
+    /* texto livre com opções da planilha de caminhos (M3.P05): botões + campo de detalhe */
+    if (q.caminhos && q.opcoesLista.length > 1 && !q.opcoesLista.includes("Texto livre")) return "escolhatexto";
     return "texto";
   }
-  const temNaoSei = (q) => campo(q) !== "escolha" && q.opcoesLista.includes(NS);
+  /* rótulo do botão "Não sei" dos campos abertos ("Não sei", "Não sei ainda") */
+  const temNaoSei = (q) => ["texto", "numero", "inteiro"].includes(campo(q)) ? (q.opcoesLista.find((o) => /^Não sei/.test(o)) || null) : null;
+
+  /* ---- caminhos por resposta (planilha m03_caminhos) ---- */
+  const inteiroValido = (v) => /^\d+$/.test(String(v).trim());
+  const GENERICOS = new Set(("comida comidas produto produtos servico servicos coisa coisas roupa roupas venda vendas loja lojas " +
+    "negocio negocios alimento alimentos alimentacao doce doces bebida bebidas lanche lanches artesanato outro outros " +
+    "varios varias qualquer geral algo tudo item itens mercadoria mercadorias").split(" "));
+  const VAZIAS = new Set("de da do das dos e em para pra um uma o a os as com".split(" "));
+  function generica(txt) {
+    const t = String(txt || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    if (t.replace(/\s+/g, " ").length < 10) return true;
+    const pal = t.split(/[^a-z0-9]+/).filter((w) => w && !VAZIAS.has(w));
+    return pal.length > 0 && pal.every((w) => GENERICOS.has(w));
+  }
+  function caminho(q, opcao, n) {
+    const c = (q.caminhos || []).find((x) => x.opcao === opcao);
+    return c ? { opcao: c.opcao, tipo: c.tipo, texto: n === undefined ? c.texto : c.texto.replace(/\[N\]/g, n) } : null;
+  }
+  /* retornos (título Dica/Resposta + texto literal) de uma resposta salva */
+  function retornos(q, r) {
+    if (!q.caminhos || !r) return [];
+    const tipo = campo(q);
+    let lista = [];
+    if (r.estado === "naosei") lista = [caminho(q, temNaoSei(q) || NS)];
+    else if (tipo === "texto") lista = [caminho(q, generica(r.valor) ? "Resposta muito genérica" : "Resposta preenchida")];
+    else if (tipo === "inteiro") {
+      const n = parseInt(r.valor, 10);
+      lista = [n === 0 ? caminho(q, "0") : caminho(q, "1 ou mais", n)];
+    } else if (r.estado === "opcoes") lista = q.opcoesLista.filter((o) => r.opcoes.includes(o)).map((o) => caminho(q, o));
+    else if (r.estado === "opcao") lista = [caminho(q, r.opcao)];
+    return lista.filter(Boolean);
+  }
 
   /* ---- condições escritas pelo grupo ---- */
   function atomo(M, R, txt) {
@@ -84,7 +128,7 @@
   const encaminhamentos = (rs) => semVazio(rs, "encaminhamento", "Nenhum");
   const alertas = (rs) => semVazio(rs, "alerta", "Nenhum");
 
-  const API = { montar, valor, campo, temNaoSei, avaliar, proxima, regrasAgora, regrasTodas,
+  const API = { montar, valor, texto, campo, temNaoSei, inteiroValido, generica, caminho, retornos, avaliar, proxima, regrasAgora, regrasTodas,
                 respondidas, lacunas, encaminhamentos, alertas, NS };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);
