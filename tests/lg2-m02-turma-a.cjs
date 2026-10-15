@@ -217,6 +217,10 @@ async function servidor() {
       await clicarTexto('#f-sinal .opcao', s);
       await page.click('#f-ok');
     }
+    /* regressão (Ana, 15/10): o placar muda ao salvar entrevistas e diz de onde vem a contagem */
+    const placar = norm(await page.locator('.res-num .val').first().textContent());
+    ok(placar === '2 · 2 · 1', `placar M2.I04 deveria ser "2 · 2 · 1" (obtido "${placar}")`);
+    ok(/5 entrevista\(s\) salvas na ficha/.test(await page.locator('#quadro-origem').textContent()), 'nota de origem do placar ausente');
     const frase = norm(await page.locator('#frase').textContent());
     ok(frase === semAspas(i4.ex_saida), `M2.I04: "${frase}" ≠ saída esperada "${semAspas(i4.ex_saida)}"`);
     console.log(`M2.I04 obtido: ${frase}`);
@@ -230,6 +234,12 @@ async function servidor() {
         }, [nome, k, n]);
       }
     }
+    /* regressão: tocar numa nota não joga a pessoa para o topo da página */
+    await page.evaluate(() => document.querySelector('#grupos').scrollIntoView());
+    const yAntes = await page.evaluate(() => window.scrollY);
+    await page.evaluate(() => document.querySelector('#grupos .opcao[data-k="pagar"][data-n="2"]').click());
+    const yDepois = await page.evaluate(() => window.scrollY);
+    ok(yAntes > 300 && Math.abs(yDepois - yAntes) < 5, `rolagem deve ficar no lugar após tocar numa nota (antes ${yAntes}, depois ${yDepois})`);
     const tot = await page.evaluate(() => [...document.querySelectorAll('#grupos .item')].map((x) => `${x.querySelector('b').textContent} = ${x.querySelector('.etq') ? x.querySelector('.etq').textContent : '?'} pontos`));
     const esperado5 = (i5.ex_saida.match(/Grupo [A-Z] = \d+ pontos/g) || []);
     ok(JSON.stringify(tot) === JSON.stringify(esperado5), `M2.I05: ${tot.join('; ')} ≠ ${esperado5.join('; ')}`);

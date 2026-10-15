@@ -152,3 +152,52 @@ textarea.campo{resize:vertical;font-family:inherit}
 
 .resp h3{margin:.2rem 0}
 .resp-ns{border-left:4px solid var(--m-coral, #E8473A)}
+
+/* ---- Módulo 1 · textos em linguagem simples (out/2026) ---- */
+/* letra mínima de 16px em toda a tela */
+.capa .sobre,.capa p,.voltar,.passo,.cartao h3,.cartao p,.aviso,.secao-titulo,.credito,.mini-info,
+.bloco,.bloco b,.btn-alt,.erro,.r-texto,.fonte{font-size:16px}
+.capa .sobre{letter-spacing:1.2px}
+.capa-topo,.topo-linha{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.capa-topo .logo{margin-bottom:0}
+.capa-topo{margin-bottom:18px}
+.topo-linha .voltar{margin-bottom:0}
+.ouvir{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.55);color:#fff;font:inherit;font-size:16px;font-weight:700;padding:6px 14px;border-radius:var(--m-pill);cursor:pointer}
+.ouvir .ico{width:20px;height:20px;color:var(--m-yellow)}
+.ico{width:22px;height:22px;flex:0 0 auto}
+.bloco-lista{margin-bottom:20px}
+.bloco-lista h3{color:var(--m-purple);font-size:18px;margin-bottom:8px}
+.bloco-lista ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.bloco-lista li{display:flex;gap:10px;align-items:flex-start;font-size:16px;color:#2b2340}
+.bloco-lista li .ico{color:var(--m-purple);margin-top:1px}
+.b-nao li .ico{color:var(--m-coral)}
+.fixo{position:sticky;bottom:0;background:var(--m-paper);padding:12px 20px 16px;border-top:2px solid var(--m-lavender);display:flex;flex-direction:column;gap:6px;z-index:5}
+.tempo{text-align:center;color:var(--m-gray);font-size:16px}
+.link{background:none;border:none;color:var(--m-purple);font:inherit;font-size:16px;text-decoration:underline;padding:6px;cursor:pointer}
+.aviso-roxo{background:var(--m-purple);color:#fff;border-radius:var(--m-radius);padding:16px 18px;font-size:16px;margin:18px 0}
+.pergunta .apoio{font-size:16px;color:var(--m-gray);margin-bottom:16px}
+.opcao{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.opcao b{font-weight:400}
+.opcao .check,.btn-alt .check{display:none;flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--m-purple);color:#fff;font-size:17px;line-height:28px;text-align:center;font-weight:700}
+.opcao.sel .check{display:inline-block}
+.opcao.sel b{font-weight:700}
+.btn-alt{display:inline-flex;align-items:center;gap:8px;font-size:16px}
+.btn-alt .ico{width:20px;height:20px}
+.btn-alt .check{width:22px;height:22px;line-height:22px;font-size:14px}
+.btn-alt.sel{border-color:var(--m-purple);background:var(--m-lavender)}
+.btn-alt.sel .check{display:inline-block}
+.btn-alt.gravando{background:var(--m-coral);border-color:var(--m-coral);color:#fff}
+.outra{margin-top:2px}
+.campo::placeholder{color:#9a95a8}
+.msg{margin-top:16px;border-radius:12px;padding:12px 15px;border-left:5px solid;animation:sobe .3s ease-out}
+.msg b{display:block;font-size:16px;margin-bottom:2px}
+.msg p{font-size:16px}
+.msg-dica{background:#E6F6FA;border-color:#30C2DB;color:#0E5187}
+.msg-tudobem{background:#E8F5EC;border-color:#5DB37A;color:#24613A}
+.ajuda-box{margin-top:18px;border:2px solid var(--m-lavender);border-radius:var(--m-radius);padding:12px 14px}
+.ajuda-box summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px}
+.ajuda-box p{font-size:16px;margin-top:8px}
+.ajuda-box .ex{color:var(--m-gray);font-style:italic}
+.btn-primario:disabled{background:var(--m-lavender-mid);color:#fff;cursor:not-allowed}
+.resp h3{font-size:16px}
+@media print{.fixo,.ouvir{display:none!important}}
