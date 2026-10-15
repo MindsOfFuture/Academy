@@ -1,6 +1,6 @@
 /* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao. */
 window.MODULO4 = {
- "origem": "LG2_M04_planilha_do_grupo.xlsx",
+ "origem": "M04.xlsx",
  "modulo": {
   "numero": "4",
   "nome": "Produto, proposta de valor e teste da ideia",
@@ -19,7 +19,7 @@ window.MODULO4 = {
  "mapa": {
   "objetivo": "Ao final deste módulo, o usuário será capaz de detalhar seu produto (incluindo aspectos como matéria-prima e demais componentes), estruturar sua proposta de valor por meio do Canvas de Proposta de Valor e testar sua ideia junto ao mercado, identificando se o que foi planejado atende de fato às necessidades do público ou se ajustes são necessários.",
   "usuario": "Nossos usuários identificados seriam quem já tem uma ideia na cabeça e precisa amadurecer, pensar no que seria necessário para realizar e o que entregaria de valor para o cliente.",
-  "decisoes": "O módulo organiza e orienta o processo de reflexão do usuário sobre seu produto, proposta de valor e validação de ideia, mas quem decide é sempre o usuário.  Ajudamos a como estruturar e detalhar as informações do próprio produto, a como preencher e organizar o Canvas de Proposta de Valor, com perguntas e instruções que guiam o raciocínio do usuário em cada bloco (perfil do cliente, mapa de valor, etc.), a como estruturar um teste ou validação da ideia junto ao público, oferecendo um roteiro de perguntas e critérios de avaliação sem a parte da execução, e a como identificar, a partir das respostas do próprio usuário, se há desalinhamento entre o que foi planejado e o que o público sinaliza como necessidade, sinalizando pontos de atenção, sem prescrever a solução",
+  "decisoes": "Como este módulo ajuda você\n\nEste módulo guia você a pensar com clareza sobre o seu produto, o valor que ele entrega e se a ideia faz sentido para o seu público. As decisões são sempre suas. Nós orientamos o caminho, e você escolhe o destino.\n\nO que você vai fazer aqui:\n\n - Detalhar seu produto: organize as informações principais sobre o que você oferece.\n - Preencher o Canvas de Proposta de Valor: responda a perguntas simples, bloco por bloco (perfil do cliente, mapa de valor e outros), para entender quem você atende e o que realmente importa para essas pessoas.\n - Preparar o teste da sua ideia: receba um roteiro de perguntas e critérios para conversar com seu público e avaliar as respostas. A aplicação do teste fica por sua conta.\n - Identificar possíveis desencontros: com base no que você mesmo respondeu, mostramos onde o seu plano pode estar diferente do que o público precisa. Apontamos os pontos de atenção, mas não dizemos o que você deve fazer: a solução é sua.",
   "nao_faz": "Não sugere o produto, não dá ideia de desenvolvimento, não determina a matéria prima do produto, não faz o canvas para o usuário, não instruí como fazer o teste de ideia.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
   "ter_em_maos": "Celular, acesso a internet",
@@ -52,10 +52,6 @@ window.MODULO4 = {
    "nome": "Operação, fornecedores, capacidade e qualidade",
    "envia": "Especificação do produto e variedade mínima a produzir.",
    "combinado": "Não"
-  },
-  {
-   "modulo": "7.0",
-   "nome": "Operação, fornecedores, capacidade e qualidade"
   }
  ],
  "base": [
@@ -196,89 +192,106 @@ window.MODULO4 = {
   {
    "codigo": "M4.P01",
    "modulo": "M4",
-   "pergunta": "Em uma frase, o que você pretende oferecer aos seus primeiros clientes?",
-   "ajuda": "Descreva como explicaria a um conhecido. Ex.: \"bolo de pote para lanche escolar\". Se você já descreveu sua ideia em outro módulo, revise a frase aqui. Ela pode ser ajustada depois.",
+   "pergunta": "Em uma frase, o que você pretende oferecer aos seus primeiros clientes? Vamos usar esta frase como ponto de partida.",
+   "ajuda": "Descreva como explicaria a um conhecido. Descrições muito amplas (ex.: \"doces\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente. Procure fazer conforme o exemplo. Ex.: \"Eu pretendo oferecer aos meus clientes um bolo de pote para lanche escolar\". ",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
-   "resposta": "Vamos usar esta frase como ponto de partida. Ela pode ser reescrita depois de conversar com possíveis clientes.",
-   "alerta": "Descrições muito amplas (ex.: \"doces\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente.",
+   "alerta": "",
    "proximo": "Siga para a próxima pergunta para detalhar o que você pretende oferecer.",
    "fonte": "M4.BT08 (Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "alerta_naosei": "Você não poderá avançar antes de conseguir construir a frase, porque isso define as próximas etapas.",
+   "bloqueia_naosei": true
   },
   {
    "codigo": "M4.P02",
    "modulo": "M4",
-   "pergunta": "O que você quer desenvolver? Mercadoria, produto ou serviço?",
+   "pergunta": "O que você quer desenvolver: Mercadoria, produto ou serviço?",
    "ajuda": "Escolha a opção que mais se aproxima. Ela define quais perguntas você verá a seguir.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Produto físico; Serviço; Ambos; Não sei",
-   "resposta": "Vamos mostrar as perguntas que fazem sentido para o seu caso.",
-   "alerta": "Se a oferta mistura produto e serviço, vale pensar no que o cliente realmente paga: o objeto, o seu trabalho ou os dois.",
-   "proximo": "Siga para as perguntas sobre materiais (produto) ou sobre as etapas (serviço).",
+   "opcoes": "Produto; Serviço; Mercadoria; Mercadoria+ Serviço; Produto+ Serviço; Mercadoria+Produto;",
+   "proximo": "",
    "fonte": "Estrutura do fluxo (sem regra externa)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "destaque": "Nota: O que é produto? É o que você produz; precisa de materiais para fazer, do seu tempo para ser feito. EX.: artesanato, comida caseira, etc. O que serviço? É o que presta à alguém; EX.: cabeleleiro, manicure, psicologo. O que é mercadoria? É o que você compra e revende. EX.:roupas, bebidas, cosméticos, eletronicos."
   },
   {
    "codigo": "M4.P03",
    "modulo": "M4",
    "pergunta": "Quais materiais, ingredientes ou componentes principais o produto precisa ter para ser feito?",
-   "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: farinha, ovos, açúcar, embalagem. Essa lista é a base da ficha técnica do produto.",
+   "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: farinha, ovos, açúcar, embalagem. Essa lista é a base da ficha técnica do produto.Sem uma lista clara, cada lote pode sair diferente, e fica difícil repetir o teste ou calcular o custo.",
    "tipo": "Texto",
    "condicao": "M4.P02 = Produto físico ou M4.P02 = Ambos",
    "opcoes": "Não sei",
-   "resposta": "Esta lista fica registrada como rascunho da ficha técnica do seu produto. Você pode completá-la com as quantidades depois.",
-   "alerta": "Sem uma lista clara, cada lote pode sair diferente, e fica difícil repetir o teste ou calcular o custo.",
+   "resposta": "",
    "proximo": "Se ainda não tem as quantidades, anote o que usou em uma unidade; depois o módulo de custos ajuda a estimar o custo por unidade.",
    "fonte": "M4.BT09 (fonte a substituir; ver aba Revisão e sugestões, item 12)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "resposta_naosei": "Em caso de dificuldade para preencher essa ficha tecnica, indicamos que você use o seguinte prompt na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
+   "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um produto que eu quero fazer. Quero apenas o que é necessário para produzi-lo, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do produto.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Adapte as perguntas ao tipo de produto (físico, alimento, serviço, digital).\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar ao meu produto)\n- Descrição do produto: o que é, para que serve e como deve ficar pronto.\n- Materiais, ingredientes ou componentes: o que usa e em que quantidade.\n- Medidas e especificações: tamanho, peso, cor, capacidade e outras características técnicas.\n- Equipamentos e ferramentas necessários.\n- Passo a passo de produção.\n- Tempo de produção e rendimento (quanto sai por vez).\n- Embalagem e armazenamento.\n- Cuidados de qualidade e segurança (testes, normas ou exigências legais, se houver).\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica organizada em seções, usando apenas o que eu informei. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO PRODUTO QUE QUERO DETALHAR É:\n[escreva aqui o seu produto]",
+   "conceito_naosei": "M4.BT09",
+   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto ou M4.P02 = Mercadoria ou M4.P02 = Mercadoria+ Serviço"
   },
   {
    "codigo": "M4.P04",
-   "modulo": "M4",
-   "pergunta": "O que você precisa ter e fazer para realizar o serviço uma vez, do pedido do cliente até a entrega?",
-   "ajuda": "Liste materiais, ferramentas, tempo e etapas principais. Ex.: combinar horário, ir até o local, executar o serviço, confirmar com o cliente.",
-   "tipo": "Texto",
-   "condicao": "M4.P02 = Serviço ou M4.P02 = Ambos",
-   "opcoes": "Não sei",
-   "resposta": "Estas etapas ficam registradas para ajudar a definir a oferta mínima do seu serviço.",
-   "alerta": "Serviços dependem do seu tempo e da sua agenda. Se o tempo gasto não estiver claro, o teste pode consumir mais horas do que você imaginou.",
-   "proximo": "Anote quanto tempo leva uma execução completa; isso ajuda nas próximas perguntas e nos módulos de custos e de operação.",
-   "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
-   "status": "Rascunho"
+   "pergunta": "Como seu produto vai chegar até o cliente? ",
+   "ajuda": "Pense e descreva formas viáveis de como levar o produto até o seu cliente.",
+   "tipo": "Escolha",
+   "condicao": "M4.P02 = Produto físico ou M4.P03 = Produto + Serviço ",
+   "opcoes": "De porta a porta pessoalmente; Plataformas (ifood); entregador parceiro; loja própria ou parceira; Retirada presencial pelo cliente; Não sei",
+   "resposta": "",
+   "resposta_naosei": "Reflita melhor sobre as opções. Cada opção demonstra um custo especifico que é importante ser definido para saber a viabilidade do seu negocio.  Sem sabermos isso, poderemos encontrar problemas em outros módulos.",
+   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto"
   },
   {
    "codigo": "M4.P05",
    "modulo": "M4",
    "pergunta": "Quantas versões, opções ou sabores diferentes você pretende oferecer no primeiro teste?",
-   "ajuda": "Conte só o que entra no primeiro teste, não o cardápio ou pacote completo do futuro. Ex.: 3 sabores.",
-   "tipo": "Número",
-   "condicao": "M4.P02 = Produto físico ou M4.P02 = Ambos",
+   "ajuda": "Conte só o que entra no primeiro teste, não o cardápio ou pacote completo do futuro. Ex.: 3 sabores.\n\nVamos considerar este número como a variedade mínima do seu primeiro teste.",
+   "tipo": "Texto",
+   "condicao": "M4.P02 = Produto ou M4.P02 = Produto + Serviço",
    "opcoes": "Não sei",
-   "resposta": "Vamos considerar este número como a variedade mínima do seu primeiro teste. Você pode reduzi-lo ou ampliá-lo depois.",
-   "alerta": "Muitas opções aumentam custo, tempo e sobras, e dificultam saber o que o cliente realmente preferiu.",
+   "resposta": "",
    "proximo": "Se o número for maior que 3 ou você não souber, a próxima pergunta ajuda a separar o essencial do que pode esperar.",
    "fonte": "M4.BT10 (fonte a substituir); o limite de 3 é sugestão do grupo, a validar com a tutora",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "destaque_alerta": "Muitas opções aumentam custo, tempo e sobras, e dificultam saber o que o cliente realmente preferiu.",
+   "resposta_naosei": "Pense melhor: Quantas opções/variações você estaria disposto(a) a oferecer ao seu cliente? Ex.: quero oferecer picolé gourmet de ninho trufado, brigadeiro e sensação do mesmo tamanho.",
+   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto"
   },
   {
    "codigo": "M4.P06",
    "modulo": "M4",
-   "pergunta": "Entre as opções que você pensou, quais são essenciais para resolver o problema do cliente e quais podem esperar?",
+   "pergunta": "O que você precisa ter e fazer para realizar o serviço uma vez, do pedido do cliente até a entrega?",
+   "ajuda": "Liste materiais, ferramentas, tempo e etapas principais. Ex.: combinar horário, ir até o local, executar o serviço, confirmar com o cliente.\n\nAnote quanto tempo leva uma execução completa; isso ajuda nas próximas perguntas e nos módulos de custos e de operação.",
+   "tipo": "Texto",
+   "condicao": "M4.P02 = Serviço ou M4.P02 = Produto+Serviço ou M4.P02 = Mercadoria + Serviço ",
+   "opcoes": "Não sei",
+   "resposta": "",
+   "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
+   "status": "Rascunho",
+   "resposta_naosei": "Serviços dependem do seu tempo e da sua agenda. Se o tempo gasto não estiver claro, o teste pode consumir mais horas do que você imaginou.",
+   "condicao_app": "M4.P02 = Serviço ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+ Serviço"
+  },
+  {
+   "codigo": "M4.P07",
+   "modulo": "M4",
+   "pergunta": "Entre as opções que você pensou, quais são essenciais para resolver o problema do cliente e quais podem esperar? Vamos considerar só as opções essenciais na sua oferta mínima.",
    "ajuda": "Essencial é o que o cliente precisa receber para sentir que o problema foi resolvido. O restante é secundário. Ex.: essencial: bolo comestível e no prazo combinado; secundário: papel personalizado, cartão, fita.",
    "tipo": "Texto",
    "condicao": "M4.P05 > 3 ou M4.P05 = Não sei",
    "opcoes": "Não sei",
-   "resposta": "Vamos considerar só as opções essenciais na sua oferta mínima. As demais ficam como ideias para depois.",
-   "alerta": "Incluir tudo de uma vez tende a aumentar o custo e a confundir o resultado do teste.",
+   "resposta": "",
    "proximo": "Mantenha na oferta mínima poucas opções essenciais; o restante fica na lista de ideias futuras.",
    "fonte": "M4.BT10 (fonte a substituir; ver aba Revisão e sugestões, item 12)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "destaque_alerta": "Incluir tudo de uma vez tende a aumentar o custo e a confundir o resultado do teste.",
+   "resposta_naosei": "Pense melhor: o que você precisa responder é o minimo que você precisa realizar para começar seu negócio, como no exemplo. Agora é só escolher o que é essencial e o que pode esperar, ou seja, o que não faz diferença no início do negócio."
   },
   {
-   "codigo": "M4.P07",
+   "codigo": "M4.P08",
    "modulo": "M4",
    "pergunta": "Quem você imagina como seu primeiro cliente? Descreva um grupo específico de pessoas.",
    "ajuda": "Quanto mais específico, mais fácil de testar. Ex.: \"pais de alunos da escola perto de casa\", em vez de \"todo mundo\".",
@@ -286,13 +299,13 @@ window.MODULO4 = {
    "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Vamos usar este grupo como o público do primeiro teste. Ele pode mudar depois de conversar com pessoas reais.",
-   "alerta": "Todo mundo dificulta o teste: cada grupo compra por motivos diferentes, e fica difícil saber quem respondeu.",
+   "alerta": "Todo mundo dificulta o teste: cada grupo compra por motivos diferentes, e fica difícil saber quem realmente faz parte de seu publico",
    "proximo": "Se você já pesquisou clientes no módulo de clientes e necessidades, compare com o que escreveu aqui.",
    "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P08",
+   "codigo": "M4.P09",
    "modulo": "M4",
    "pergunta": "Que problema ou necessidade desse cliente o seu produto ou serviço ajuda a resolver?",
    "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"esqueceu de encomendar o bolo de aniversário\".",
@@ -306,7 +319,7 @@ window.MODULO4 = {
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P09",
+   "codigo": "M4.P10",
    "modulo": "M4",
    "pergunta": "O que o cliente ganha na prática ao usar o que você oferece?",
    "ajuda": "Descreva o resultado para o cliente, não a característica do produto. Ex.: em vez de \"bolo sem glúten\" (característica), \"poder comer doce sem passar mal\" (benefício).",
@@ -320,7 +333,7 @@ window.MODULO4 = {
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P10",
+   "codigo": "M4.P11",
    "modulo": "M4",
    "pergunta": "Qual destes é o principal motivo que faria o cliente escolher você, e não outra opção que ele já tem hoje?",
    "ajuda": "Pense no que o cliente faz hoje para resolver o problema: comprar em outro lugar, fazer em casa, deixar como está. Escolha o motivo que você consegue sustentar na prática.",
@@ -334,10 +347,10 @@ window.MODULO4 = {
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P11",
+   "codigo": "M4.P12",
    "modulo": "M4",
    "pergunta": "Com as suas respostas anteriores, escreva a sua proposta de valor em uma ou duas frases.",
-   "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [produto ou serviço], que [benefício]. Diferente de [alternativa], meu diferencial é [motivo].\" Escreva com as suas palavras.",
+   "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [produto ou serviço], que [benefício], proporcionando [meu diferencial].\" Ex.: \"Para pessoas com intolerância a gluten/ lactose que evitam comer bolo de pote e passarem mal, ofereço um bolo de pote sem gluten e sem lactose, que não causa desconforto algum, proporcionando um produto de qualidade.\"  Escreva com as suas palavras. ",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
@@ -348,46 +361,62 @@ window.MODULO4 = {
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P12",
+   "codigo": "M4.P13",
    "modulo": "M4",
    "pergunta": "O que você acredita que vai acontecer quando o seu primeiro cliente receber a sua oferta? Escreva como uma suposição que pode ser confirmada ou não.",
-   "ajuda": "Modelo: \"[grupo de clientes] compraria ou reservaria [oferta] por [preço]\". Ex.: \"Alunos e pais voltando da escola pagariam R$ 18 por um bolo de pote.\" A suposição precisa poder ser desmentida.",
+   "ajuda": "Modelo: \"[cliente] compraria/marcaria um horário [produto ou serviço] por [preço]\". Ex.: \"Alunos e pais voltando da escola pagariam R$ 10 por um bolo de pote.\" A suposição precisa poder ser desmentida.",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Esta será a hipótese do seu teste. Se o resultado não a confirmar, isso também traz informação útil.",
-   "alerta": "As pessoas vão gostar não pode ser medido. Uma hipótese útil é específica e pode ser desmentida.",
-   "proximo": "Anote qual parte da hipótese você tem menos certeza: ela merece ser testada primeiro.",
+   "alerta": "Anote qual parte da hipótese você tem menos certeza: ela merece ser testada primeiro. Lembre-se: Dizer que ‘as pessoas vão gostar’ não ajuda, pois não dá para medir. Uma boa hipótese é clara e pode ser testada.",
    "fonte": "M4.BT08 (Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P13",
+   "codigo": "M4.P14",
    "modulo": "M4",
-   "pergunta": "Você consegue investir na produção de um produto teste? Leve em consideração que precisa de tempo, disposição, investimento, experiência de oferta, e que se não houver essa disponibilidade, o teste pode ser feito de ourtra forma. ",
-   "ajuda": "Cada forma dá um tipo de evidência. Mostrar um protótipo a poucas pessoas ajuda a entender a ideia, mas não comprova venda. Oferecer a clientes reais, com preço, mostra se as pessoas realmente pagam. A pré-venda ou reserva pede que o cliente se comprometa antes de o produto existir.",
+   "pergunta": "Você consegue investir na produção de um produto teste? ",
+   "ajuda": "Escolha o teste conforme o tempo, a disposição e o investimento que você tem. Mostrar um protótipo a poucas pessoas ajuda a entender a ideia, mas não prova venda. Oferecer a clientes reais, com preço, mostra se pagam de verdade. Na pré-venda ou reserva, o cliente se compromete antes de o produto existir. ",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Protótipo sem venda; Oferta mínima com preço; Pré-venda/reserva;",
-   "resposta": "Vamos organizar as próximas perguntas de acordo com esta forma de teste.",
+   "opcoes": "Protótipo sem venda; Oferta mínima com preço; Pré-venda/reserva; Não sei ",
+   "resposta": "",
    "alerta": "Elogios de amigos e familiares não comprovam que haverá vendas. Pedidos, reservas e pagamentos são sinais mais fortes.",
-   "proximo": "Se escolheu oferecer a clientes reais, responda as perguntas sobre oferta mínima e cuidados; se escolheu o protótipo, siga para a métrica.",
+   "proximo": "",
    "fonte": "M4.BT04; M4.BT05; M4.BT07 (Sebrae SC; Hostinger; Meu Bolso em Dia, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "condicao_app": "sempre",
+   "variantes": [
+    {
+     "condicao_app": "M4.P02 = Serviço ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+ Serviço",
+     "pergunta": "Você consegue investir na oferta desse serviço como um teste?",
+     "opcoes": " Oferta mínima com preço; Pré-venda/reserva;"
+    }
+   ],
+   "video": "Vídeo (conteúdo: explicar as opções, indicar o que é preciso para fazer cada uma, beneficios e pontos de atenção a serem levados em consideração)",
+   "conceito_destaque": "M4.BT07"
   },
   {
    "codigo": "M4.P15",
    "modulo": "M4",
    "pergunta": "Sua oferta envolve alimentos, saúde, produtos para crianças ou outra atividade que costuma ter regras específicas para vender?",
-   "ajuda": "Mesmo em um teste pequeno, vender a clientes reais pode exigir cuidados legais e sanitários, conforme a atividade e o local. Se não tiver certeza, escolha \"Não sei\".",
+   "ajuda": "Mesmo em um teste pequeno, vender a clientes reais pode exigir cuidados legais e sanitários, conforme a atividade e o local. Se não tiver certeza, consulte fontes oficiais (prefeitura, Vigilância Sanitária, Sebrae) antes de vender.",
    "tipo": "Sim/Não",
    "condicao": "M4.P13 = Oferta mínima com preço ou M4.P13 = Pré-venda/reserva",
    "opcoes": "Sim; Não; Não sei",
-   "resposta": "Vamos indicar onde confirmar as regras. O app não faz enquadramento jurídico nem sanitário.",
-   "alerta": "Vender sem conhecer as regras da atividade pode gerar problemas para você e para o cliente, mesmo em um teste.",
-   "proximo": "Se a resposta for Sim ou Não sei, consulte fontes oficiais (prefeitura, Vigilância Sanitária, Sebrae) antes de vender.",
+   "resposta": "Vender sem conhecer as regras da atividade pode gerar problemas para você e para o cliente, mesmo em um teste.",
+   "alerta": "O app não faz enquadramento jurídico nem sanitário.",
    "fonte": "Pendente: fonte oficial datada sobre atividade regulada (ver módulo de licenças); M4.BT11 sem fonte ainda",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "retorno_se": {
+    "valores": [
+     "Sim",
+     "Não sei"
+    ],
+    "texto": "Se a sua oferta envolve alimentos ou saúde, consulte a Anvisa (gov.br/anvisa). Se envolve produtos para crianças, consulte o Inmetro (gov.br/inmetro).Para tirar dúvidas acesse Sebrae.com.br . Para a regra da sua cidade, busque “[sua cidade] + Vigilância Sanitária”."
+   },
+   "condicao_app": "M4.P14 = Oferta mínima com preço ou M4.P14 = Pré-venda/reserva"
   },
   {
    "codigo": "M4.P16",
@@ -397,11 +426,12 @@ window.MODULO4 = {
    "tipo": "Sim/Não",
    "condicao": "sempre",
    "opcoes": "Sim; Não; Não sei",
-   "resposta": "O app não guarda dados dos seus clientes. Esta pergunta só ajuda você a planejar o cuidado com eles.",
-   "alerta": "Coletar mais dados do que o necessário, ou sem dizer para que serão usados, cria risco para você e para o cliente.",
+   "resposta": "O app não guarda dados dos seus clientes. Esta pergunta só ajuda você a planejar o cuidado com eles se você quiser ter formas de contato com seus clientes depois.",
    "proximo": "Defina antes quais dados são realmente necessários (ex.: só o telefone para confirmar o pedido) e confirme a regra em fonte oficial.",
    "fonte": "M4.BT12 (sem fonte ainda; ver aba Revisão e sugestões, item 11)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "destaque_alerta": "Coletar mais dados do que o necessário, ou sem dizer para que serão usados, cria risco para você e para o cliente.",
+   "resposta_naosei": "Pense se para você e para o seu negócio, seria interessante coletar número de telefone de um cliente, para criar um canal de divulgação dos produtos que você pode oferecer, e se ele quiser, poderá ser adicionado. É seu interesse fazer isso? Reflita sobre e marque a resposta que mais fizer sentido."
   },
   {
    "codigo": "M4.P17",
@@ -411,56 +441,154 @@ window.MODULO4 = {
    "tipo": "Escolha",
    "condicao": "sempre",
    "opcoes": "Pedidos/reservas; Pedidos de preço/informações; Aceitaram experimentar; Outra; Não sei",
-   "resposta": "Esta será a métrica do seu teste: o que você vai contar.",
-   "alerta": "Curtidas, elogios e \"eu compraria\" são sinais fracos. Comportamentos como pedir, reservar ou pagar mostram mais.",
    "proximo": "Defina como e onde vai registrar essa contagem (ex.: uma lista simples com data).",
    "fonte": "M4.BT06; M4.BT07 (NaPrática; Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "destaque_alerta": "Curtidas, elogios e \"eu compraria\" são sinais fracos. Comportamentos como pedir, reservar ou pagar mostram mais."
   },
   {
    "codigo": "M4.P18",
    "modulo": "M4",
-   "pergunta": "Antes de testar: qual é o número mínimo dessa métrica que fará você considerar a hipótese confirmada?",
+   "pergunta": "Você marcou a opção Outra. Qual será esse comportamento? ",
+   "ajuda": "É importante que o comportamento definido possa ser medido, como é no caso de um número de pedidos, ou quantidade de pessoas que aceitaram experimentar.",
+   "tipo": "Texto",
+   "condicao": "M4.P17= Outra",
+   "destaque_alerta": "Verifique se realmente esse outro comportamento indica que a hipotese foi confirmada.Talvez valha a pena algum outro método listado anteriormente."
+  },
+  {
+   "codigo": "M4.P19",
+   "modulo": "M4",
+   "pergunta": "Antes de testar: qual é o número mínimo em que você poderá considerar a hipótese confirmada?",
    "ajuda": "Defina o número ANTES de ver o resultado. Ex.: \"5 reservas em 7 dias\". Escolha um número que faça sentido para o tamanho do seu teste.",
-   "tipo": "Número",
+   "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Este é o seu critério de decisão. Ele fica registrado antes do teste para não ser ajustado depois.",
-   "alerta": "Definir o critério depois de ver o resultado tende a justificar a ideia original em vez de testá-la. Um número muito baixo também pode dar falsa segurança.",
+   "alerta": "Definir o critério depois de ver o resultado tende a justificar a ideia original em vez de testá-la. Um número muito baixo também pode dar falsa segurança. Busque ser bem realista. ",
    "proximo": "Decida agora o que você vai rever se o resultado ficar abaixo do critério (ex.: preço, público ou oferta).",
    "fonte": "M4.BT06 (NaPrática, consulta em 22/09/2026)",
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P19",
+   "codigo": "M4.P20",
    "modulo": "M4",
    "pergunta": "Por quantos dias o teste ficará aberto?",
    "ajuda": "Um prazo curto e definido evita que o teste se arraste sem decisão. Ex.: 7 dias.",
    "tipo": "Número",
    "condicao": "sempre",
    "opcoes": "Não sei",
-   "resposta": "Este prazo entra no seu cartão de experimento.",
    "alerta": "Sem prazo, é difícil saber quando avaliar o resultado, e o critério perde o sentido.",
    "proximo": "Marque no calendário a data em que você vai comparar o resultado com o critério.",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
    "status": "Rascunho"
   },
   {
-   "codigo": "M4.P20",
+   "codigo": "M4.P21",
    "modulo": "M4",
-   "pergunta": "Qual é o valor máximo, em reais, que você aceita gastar neste primeiro teste?",
-   "ajuda": "Defina antes do teste. Pense em um valor que você possa perder sem comprometer despesas essenciais (moradia, alimentação, contas, reserva de emergência). Se puder testar sem gastar, responda 0.",
+   "pergunta": "Qual é o valor máximo, em reais, que você poderia gastar neste primeiro teste?",
+   "ajuda": "Defina antes do teste. Pense em um valor que você possa investir sem comprometer despesas essenciais (moradia, alimentação, contas, reserva de emergência). Se puder testar sem gastar, responda 0.",
    "tipo": "Número",
    "condicao": "sempre",
    "opcoes": "Não sei",
-   "resposta": "Este é o seu limite de gasto. O app não indica um valor: a escolha é sua.",
-   "alerta": "Usar dinheiro de despesas essenciais ou recorrer a dívidas aumenta o risco do teste. Compras difíceis de desfazer também aumentam o risco.",
+   "resposta": "Este é o seu limite de gasto. O app não indica um valor: a escolha é sua de acordo com as suas condições de gastos.",
+   "alerta": "Usar dinheiro de despesas essenciais ou recorrer a dívidas aumenta o risco do teste. Compras difíceis de desfazer também aumentam o risco, é preciso ter cautela e um bom planejamento financeiro para não criar-se problemas.",
    "proximo": "Compare este limite com o custo estimado no módulo de custos e prefira formas de teste que possam ser interrompidas sem perda grande.",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
    "status": "Rascunho"
   }
  ],
- "regras": [],
+ "regras": [
+  {
+   "codigo": "M4.R01",
+   "pergunta": "M4.P01",
+   "condicao": "M4.P01 preenchida (qualquer texto)",
+   "texto": "Anotamos essa frase como ponto de partida. Ela pode ser reescrita depois de você conversar com possíveis clientes.",
+   "alerta": "Frases muito amplas (ex.: \"doces\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente. Quanto mais específica, mais fácil de testar.",
+   "lacuna": "Se a descrição reflete o que o cliente compra.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "M4.BT01, Sebrae/Proposta de Valor, 22/09/2026"
+  },
+  {
+   "codigo": "M4.R02",
+   "pergunta": "M4.P01",
+   "condicao": "M4.P01 = Não sei",
+   "texto": "Tudo bem não ter a frase pronta agora. Pense em algo que você sabe fazer ou produzir e que alguém poderia querer. Anote mesmo que pareça incompleto",
+   "alerta": "Sem uma descrição mínima, as perguntas seguintes ficam sem base. Tente escrever pelo menos o que você faz ou produz.",
+   "lacuna": "Descrição inicial do produto ou serviço.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "M4.BT01, Sebrae/Proposta de Valor, 22/09/2026"
+  },
+  {
+   "codigo": "M4.R03",
+   "pergunta": "M4.P02",
+   "condicao": "M4.P02 = Produto físico",
+   "texto": "Vamos mostrar as perguntas sobre materiais, componentes e variedade do produto.",
+   "alerta": "Nenhum. ",
+   "lacuna": "Qual o produto.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "Pergunta presente no M1",
+   "condicao_app": "M4.P02 = Produto"
+  },
+  {
+   "codigo": "M4.R04",
+   "pergunta": "M4.P02",
+   "condicao": "M4.P02 = Serviço",
+   "texto": "Vamos mostrar as perguntas sobre as etapas e o que é necessário para realizar o serviço.",
+   "alerta": "Serviços dependem do seu tempo e da sua agenda. Tenha em mente quanto tempo cada execução leva.",
+   "lacuna": "Qual o serviço.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "Pergunta presente no M1"
+  },
+  {
+   "codigo": "M4.R05",
+   "pergunta": "M4.P02",
+   "condicao": "M4.P02 = Ambos",
+   "texto": "Vamos mostrar tanto as perguntas sobre materiais quanto as perguntas sobre etapas do serviço.",
+   "alerta": "Se a oferta mistura produto e serviço, vale pensar no que o cliente realmente paga: o objeto, o trabalho ou os dois. Isso pode influenciar o preço e o teste.",
+   "lacuna": "Nenhuma.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "Pergunta presente no M1",
+   "condicao_app": "M4.P02 = Produto+ Serviço"
+  },
+  {
+   "codigo": "M4.R06",
+   "pergunta": "M4.P02",
+   "condicao": "M4.P02 = Não sei",
+   "texto": "Sem problema. Pense no que o cliente recebe: se é um objeto que ele leva, provavelmente é um produto. Se é algo que você faz por ele sem entregar um objeto, provavelmente é um serviço. Você pode ajustar essa resposta depois.",
+   "alerta": "A escolha aqui define quais perguntas você verá. Se mudar de ideia, revise antes de avançar.",
+   "lacuna": "Classificação da oferta como produto, serviço ou ambos.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "Pergunta presente no M1"
+  },
+  {
+   "codigo": "M4.R07",
+   "pergunta": "M4.P03",
+   "condicao": "M4.P03 preenchida (qualquer texto)",
+   "texto": "Lista registrada como rascunho da ficha técnica do produto. Você pode acrescentar quantidades no módulo de custos.",
+   "alerta": "Itens pequenos (embalagem, perdas, taxa do cartão) costumam ser esquecidos e mudam o custo por unidade.",
+   "lacuna": "Quantidades de cada item.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "M4.BT09 (Sebrae, 22/09/2026)"
+  },
+  {
+   "codigo": "M4.R08",
+   "pergunta": "M4.P03",
+   "condicao": "M4.P03 = Não sei",
+   "texto": "Tudo bem não ter a lista completa agora. Anote pelo menos o item principal que o que você vai oferecer precisa para existir.",
+   "alerta": "Sem uma lista mínima de materiais, fica difícil estimar o custo por unidade no módulo seguinte e repetir o teste de forma consistente.",
+   "lacuna": "Lista completa.",
+   "proximo": "Próxima pergunta.",
+   "encaminhamento": "Nenhum",
+   "fonte": "M4.BT09 (Sebrae, 22/09/2026)"
+  }
+ ],
  "instrumentos": {
   "lista": []
  },
