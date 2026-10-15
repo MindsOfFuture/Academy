@@ -7,9 +7,11 @@
   const CHAVE = "lg2-turma-a-m06";
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
+  /* as respostas guardadas pela planilha v0.1 usam outra numeração de perguntas: começam do zero */
+  const DADOS = "2026-10-15";
   let S = carregar();   // { R: respostas, hist: [códigos], prio: {item: categoria}, fluxo: null|{...}, cen: {...} }
-  function carregar() { try { return JSON.parse(localStorage.getItem(CHAVE)) || novo(); } catch { return novo(); } }
-  function novo() { return { R: {}, hist: [], prio: {}, fluxo: null, cen: null }; }
+  function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.dados === DADOS ? s : novo(); } catch { return novo(); } }
+  function novo() { return { dados: DADOS, R: {}, hist: [], prio: {}, fluxo: null, cen: null }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -24,6 +26,7 @@
   function conceitosDe(q) {
     const f = norm(q.fonte);
     return D.base.filter((b) => {
+      if (String(q.fonte || "").includes(b.codigo)) return true;   // "com base em M6.BT04 e M6.BT05"
       const pag = norm(String(b.link || "").replace(/\/(Paginas\/default\.aspx)?$/i, "").split("/").filter(Boolean).pop());
       return pag && f.includes(pag.split(" ").slice(0, 4).join(" "));
     }).slice(0, 3);
@@ -121,6 +124,8 @@
     const tipo = Motor.campo(q);
     const resp = S.R[cod] || null;
     let escolhida = resp && resp.estado === "opcao" ? resp.opcao : null;
+    let marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.estado === "naosei" && tipo === "multi" ? [Motor.NS] : [];
+    if (resp && resp.estado === "naosei" && tipo !== "multi") escolhida = Motor.NS;
 
     const p = el(`
       <div class="pag">
@@ -132,7 +137,7 @@
         <main class="corpo">
           <div class="pergunta">
             <h2 class="q">${esc(q.pergunta)}</h2>
-            <p class="ajuda">${esc(q.ajuda)}</p>
+            ${vazio(q.ajuda) ? "" : `<p class="ajuda">${esc(q.ajuda)}</p>`}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
@@ -153,11 +158,22 @@
     };
 
     const ent = p.querySelector("#ent");
-    if (tipo === "escolha") {
+    if (tipo === "escolha" || tipo === "simnao_texto") {
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
         const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><b>${esc(op)}</b></button>`);
         b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
+        ent.appendChild(b);
+      });
+      if (tipo === "simnao_texto") ent.appendChild(el(`<textarea class="campo" id="detalhe" rows="3">${esc(resp && resp.detalhe || "")}</textarea>`));
+    } else if (tipo === "multi") {
+      ent.classList.add("opcoes");
+      q.opcoesLista.forEach((op) => {
+        const b = el(`<button class="opcao ${marcadas.includes(op) ? "sel" : ""}"><b>${esc(op)}</b></button>`);
+        b.onclick = () => {
+          marcadas = marcadas.includes(op) ? marcadas.filter((x) => x !== op) : q.opcoesLista.filter((x) => x === op || marcadas.includes(x));
+          b.classList.toggle("sel", marcadas.includes(op));
+        };
         ent.appendChild(b);
       });
     } else {
@@ -170,19 +186,29 @@
     if (ns) ns.onclick = () => responder({ estado: "naosei" });
 
     p.querySelector("#ok").onclick = () => {
-      if (tipo === "escolha") {
-        if (!escolhida) return erro("Escolha uma opção para continuar.");
-        return responder({ estado: "opcao", opcao: escolhida });
+      if (tipo === "escolha" || tipo === "simnao_texto") {
+        if (!escolhida) return responder({ estado: "vazia" });
+        if (escolhida === Motor.NS) return responder({ estado: "naosei" });
+        const r0 = { estado: "opcao", opcao: escolhida };
+        if (tipo === "simnao_texto" && escolhida === "Sim") r0.detalhe = p.querySelector("#detalhe").value.trim();
+        return responder(r0);
       }
-      const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(Motor.temNaoSei(q) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
-      if (tipo === "numero" && isNaN(Motor.num(v))) return erro("Informe um valor em reais.");
-      responder({ estado: "valor", valor: v });
+      if (tipo === "multi") {
+        if (!marcadas.length) return responder({ estado: "vazia" });
+        return responder({ estado: "multi", opcoes: marcadas.slice() });
+      }
+      responder(Motor.envio(q, ent.querySelector("input,textarea").value));
     };
     function erro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
+      const regras = Motor.regrasPara(M, cod, r0);
+      /* resposta vazia/inválida, ou regra cujo encaminhamento é "Retornar à Pxx": fica na pergunta */
+      if (!Motor.valido(r0) || regras.some(Motor.retorna)) {
+        if (!regras.length) return erro("Responda para continuar.");
+        return mostrarRetorno(regras, null, true);
+      }
       S.R[cod] = r0;
       S.fluxo = null; S.cen = null;      // a projeção é refeita com as novas respostas
       limparInvisiveis();
@@ -190,20 +216,21 @@
       mostrarRetorno(Motor.regrasAgora(M, S.R, cod), Motor.proxima(M, S.R, cod));
     }
 
-    function mostrarRetorno(regras, prox) {
+    function mostrarRetorno(regras, prox, parado) {
       const box = p.querySelector("#retorno");
-      box.innerHTML = `<div class="retorno">
-        <p class="r-texto r-pergunta">${esc(q.resposta)}</p>
+      box.innerHTML = `<div class="retorno${parado ? " parado" : ""}">
+        ${parado || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
         ${regras.map((r) => `
           <div class="regra">
             <p class="r-texto">${esc(r.texto)}</p>
             ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(r.alerta)}</div>`}
             ${vazio(r.lacuna) ? "" : `<div class="bloco b-lacuna"><b>O que ainda falta</b>${esc(r.lacuna)}</div>`}
             ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
-            ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${esc(r.encaminhamento)}</div>`}
+            ${vazio(r.encaminhamento) || Motor.retorna(r) ? "" : `<div class="bloco b-enc"><b>Encaminhamento</b>${esc(r.encaminhamento)}</div>`}
           </div>`).join("")}
-        ${vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(q.alerta)}</div>`}
+        ${parado || vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(q.alerta)}</div>`}
       </div>`;
+      if (parado) { box.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
       const b = el(`<button class="btn btn-primario">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
@@ -240,24 +267,24 @@
 
   function blocoI01() {
     const ins = I("M6.I01"), inv = Motor.investimento(S.R);
-    const total = (inv.valor || 0) + (inv.estoque || 0);
-    const temValor = inv.valor !== null || inv.estoque !== null;
+    const temValor = inv.valor !== null;
+    const naoSeiP02 = D.regras.find((r) => r.pergunta === "M6.P02" && Motor.casa(r.condicao, { estado: "naosei" })) || {};
     return `${cabInstr(ins)}
       <div class="res-num">
         <div class="lbl">${esc(ins.mostra)}</div>
-        <div class="val">${temValor ? brl(total) : "—"}</div>
+        <div class="val" id="i01-val">${temValor ? brl(inv.valor) : "—"}</div>
         <div class="sub">${temValor
-          ? `${esc(conceito("M6.BT01").conceito)}: ${inv.valor !== null ? brl(inv.valor) : "não informado"}`
-            + (inv.estoque !== null ? ` · ${esc(conceito("M6.BT07").conceito)}: ${brl(inv.estoque)}` : "")
+          ? inv.partes.map((x) => `${esc(M.porCodigo[x.codigo].pergunta)} ${brl(x.valor)}`).join(" · ")
             + (inv.forma && inv.forma !== Motor.NS ? ` · ${esc(inv.forma)}` : "")
-          : esc((D.regras.find((r) => r.codigo === "M6.R04") || {}).texto)}</div>
+          : esc(naoSeiP02.texto)}</div>
       </div>
       ${regraInstr(ins)}${limiteInstr(ins)}`;
   }
 
   function blocoI02() {
     const ins = I("M6.I02"), itens = Motor.itens(S.R), cats = Motor.categorias(M);
-    if (!itens.length) return `${cabInstr(ins)}<div class="bloco b-lacuna">${esc((D.regras.find((r) => r.codigo === "M6.R02") || {}).lacuna)}</div>`;
+    const naoSeiP01 = D.regras.find((r) => r.pergunta === "M6.P01" && Motor.casa(r.condicao, { estado: "naosei" })) || {};
+    if (!itens.length) return `${cabInstr(ins)}<div class="bloco b-lacuna">${esc(naoSeiP01.lacuna)}</div>`;
     return `${cabInstr(ins)}
       <div class="lista" id="prio">${itens.map((it, i) => `
         <div class="item"><b class="nome">${esc(it)}</b>
@@ -272,7 +299,7 @@
   }
   function blocoI04() {
     const ins = I("M6.I04"), F = fluxo(), P = Motor.projetar(F);
-    const p10 = Motor.valor(S.R, "M6.P10");
+    const p09 = S.R["M6.P09"], p06 = Motor.valor(S.R, "M6.P06");
     return `${cabInstr(ins)}
       <div class="linha"><span class="lbl">Saldo inicial</span><span class="unid">R$</span><input class="campo" id="f-ini" inputmode="decimal" value="${F.saldoInicial}"></div>
       <div class="tabela-wrap"><table class="fluxo">
@@ -284,7 +311,8 @@
           <td class="sf">${brl(s.final)}</td></tr>`).join("")}</tbody>
       </table></div>
       <p class="mini-info">Os valores das suas respostas já entraram na semana do prazo escolhido. Você pode mudar qualquer semana.</p>
-      ${p10 && p10 !== Motor.NS ? `<div class="bloco b-proximo"><b>${esc(M.porCodigo["M6.P10"].pergunta)}</b>${esc(p10)}</div>` : ""}
+      ${p06 && p06 !== Motor.NS ? `<div class="bloco b-proximo"><b>${esc(M.porCodigo["M6.P06"].pergunta)}</b>${esc(p06)}</div>` : ""}
+      ${p09 && p09.detalhe ? `<div class="bloco b-proximo"><b>${esc(M.porCodigo["M6.P09"].pergunta)}</b>${esc(p09.detalhe)}</div>` : ""}
       ${P.some((s) => s.alerta) ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(ins.limite)} (semana ${P.filter((s) => s.alerta).map((s) => s.semana).join(", ")})</div>` : ""}
       ${regraInstr(ins)}`;
   }
@@ -333,11 +361,11 @@
           ${ale.length ? `<div class="secao-titulo">Alertas</div>${ale.map((a) => `<div class="bloco b-alerta">${esc(a)}</div>`).join("")}` : ""}
           ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
           ${regras.length ? `<div class="secao-titulo">Próximos passos</div><ol class="roteiro">${[...new Set(regras.map((r) => r.proximo).filter((x) => !vazio(x)))].map((x) => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}
-          <div class="bloco b-enc"><b>Quem procurar, pelas suas respostas</b>${enc.length ? enc.map(esc).join(" · ") : esc(D.mapa.caso_real)}</div>
+          <div class="bloco b-enc"><b>Encaminhamentos, pelas suas respostas</b>${enc.length ? `<ul>${enc.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}<p>${esc(D.mapa.encaminhamentos)}</p></div>
 
           <div class="secao-titulo">Suas respostas</div>
-          ${M.perguntas.map((q) => { const v = Motor.valor(S.R, q.codigo);
-            return `<div class="cartao"><h3>${esc(q.pergunta)}</h3><p>${v === undefined ? `<span class="mini-info">Não apareceu no seu caminho</span>` : esc(v)}</p></div>`; }).join("")}
+          ${M.perguntas.map((q) => { const v = Motor.valor(S.R, q.codigo), det = (S.R[q.codigo] || {}).detalhe;
+            return `<div class="cartao"><h3>${esc(q.pergunta)}</h3><p>${v === undefined ? `<span class="mini-info">Não apareceu no seu caminho</span>` : esc(v) + (det ? ` · ${esc(det)}` : "")}</p></div>`; }).join("")}
 
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
           <div class="acoes">
