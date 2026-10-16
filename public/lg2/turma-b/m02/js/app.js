@@ -74,13 +74,13 @@
           <${tag} class="heroi-tit ${o.titClasse || ""}">${esc(o.titulo)}</${tag}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
-        <img class="heroi-img" src="assets/${o.img || "hero-preco.webp"}" alt="">
+        <img class="heroi-img" src="assets/${o.img || "hero-tela.webp"}" alt="">
       </div>
       ${o.progresso === undefined ? "" : `<div class="heroi-prog"><div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.progresso}"><div class="barra-fill" style="width:${o.progresso}%"></div></div></div>`}
     </section>`;
   }
   /* ajuda aberta da planilha, em cartão de dica (html já escapado) */
-  const dica = (html) => html ? `<aside class="dica"><img src="assets/hero-preco.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p></div></aside>` : "";
+  const dica = (html) => html ? `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p></div></aside>` : "";
   const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
   /* opção com bolinha; sem espaços entre as tags para o nome do botão continuar igual ao texto da opção */
   const opcaoHtml = (op, sel, attrs) => `<button class="opcao ${sel ? "sel" : ""}"${attrs || ""}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`;

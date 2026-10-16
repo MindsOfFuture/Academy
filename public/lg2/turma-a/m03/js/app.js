@@ -74,7 +74,7 @@
           <${o.h1 ? "h1" : "h2"} class="heroi-tit ${o.titClasse || ""}">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
-        <img class="heroi-img" src="assets/${o.img || "hero-preco.webp"}" alt="">
+        <img class="heroi-img" src="assets/${o.img || "hero-tela.webp"}" alt="">
       </div>
     </section>`;
   }

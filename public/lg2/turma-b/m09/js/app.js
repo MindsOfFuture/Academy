@@ -60,7 +60,7 @@
       <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
     </div>`;
   }
-  /* faixa roxa: na capa, grande com hero-inicio; nas outras telas, pequena com hero-preco */
+  /* faixa roxa: na capa, grande com hero-inicio; nas outras telas, pequena com hero-tela */
   function heroi(o) {
     const longo = String(o.titulo || "").length > 42;
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
@@ -70,14 +70,14 @@
           <${o.h1 ? "h1" : "h2"} class="heroi-tit ${longo && !o.grande ? "heroi-tit-longo" : ""}">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
-        <img class="heroi-img" src="assets/${o.grande ? "hero-inicio.webp" : "hero-preco.webp"}" alt="">
+        <img class="heroi-img" src="assets/${o.grande ? "hero-inicio.webp" : "hero-tela.webp"}" alt="">
       </div>
       ${o.extra || ""}
     </section>`;
   }
   function dica(texto) {
     if (vazio(texto)) return "";
-    return `<aside class="dica"><img src="assets/hero-preco.webp" alt=""><div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
+    return `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
   }
   const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
   function ligar(p) {

@@ -70,7 +70,33 @@
       <div class="logos"><img src="assets/logo_facc.png" alt="FACC"><img src="assets/logo_ufjf.svg" alt="UFJF"><img src="assets/logo_mg.svg" alt="Governo de Minas Gerais"></div>
     </footer>`;
   }
-  const blocoConceitos = (cods, titulo) => !cods.length ? "" : `<details class="saiba"><summary>${titulo || "Entenda os termos"}</summary>
+  /* ---------- peças do layout (modelo do Módulo 5) ---------- */
+  function topo(trilha) {
+    return `<div class="barra-topo">
+      <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo 10</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+    </div>`;
+  }
+  /* faixa roxa: na capa, grande com hero-inicio; nas outras telas, pequena com hero-tela */
+  function heroi(o) {
+    const longo = String(o.titulo || "").length > 42;
+    return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
+      <div class="heroi-topo">
+        <div class="heroi-txt">
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo 10")}</div>
+          <${o.h1 ? "h1" : "h2"} class="heroi-tit ${longo && !o.grande ? "heroi-tit-longo" : ""}">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
+          ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
+        </div>
+        <img class="heroi-img" src="assets/${o.grande ? "hero-inicio.webp" : "hero-tela.webp"}" alt="">
+      </div>
+      ${o.extra || ""}
+      ${o.reinicio ? `<button class="reinicio" id="zerar">Recomeçar do zero</button>` : ""}
+    </section>`;
+  }
+  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  function ligar(p) { p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); }); }
+
+  const blocoConceitos = (cods, titulo) => !cods.length ? "" : `<details class="saiba dica"><summary><img src="assets/hero-tela.webp" alt=""><span>${titulo || "Entenda os termos"}</span></summary>
     ${cods.map((c) => conceito[c]).map((b) => `<div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(b.definicao)}</p><p class="ex">${esc(b.porque)}</p></div>`).join("")}
   </details>`;
   const blocoRegra = (g) => `<div class="regra"><p class="r-texto">${esc(g.texto)}</p>${g.alerta ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(g.alerta)}</div>` : ""}${g.lacuna ? `<div class="bloco b-lacuna"><b>O que ainda falta</b>${esc(g.lacuna)}</div>` : ""}</div>`;
@@ -85,19 +111,15 @@
   function telaCapa() {
     const comecou = Object.keys(S.R).length > 0;
     const p = el(`<div class="pag">
-      <header class="capa">
-        <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
-        <div class="sobre">Módulo 10</div>
-        <h1>${esc(D.nome)}</h1>
-        <p>${esc(D.objetivo)}</p>
-      </header>
+      ${topo("")}
+      ${heroi({ grande: true, h1: true, titulo: D.nome, texto: D.objetivo })}
       <main class="corpo">
         <div class="cartao"><h3>Para quem é</h3><p>${esc(D.para_quem)}</p></div>
         <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.ter_em_maos)}</p></div>
         <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.entrega)}</p></div>
         <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas. Elas ficam salvas apenas neste navegador.</p>
         <div class="acoes">
-          <button class="btn btn-primario" id="ir">${comecou ? "Continuar de onde parei" : "Começar"}</button>
+          <button class="btn btn-primario seta" id="ir">${comecou ? "Continuar de onde parei" : "Começar"}</button>
           ${comecou ? `<button class="btn btn-linha" id="zerar">Recomeçar do zero</button>` : ""}
         </div>
         ${rodape()}
@@ -110,6 +132,7 @@
       ir(telaPergunta, falta);
     };
     const z = p.querySelector("#zerar"); if (z) z.onclick = reiniciar;
+    ligar(p);
     return p;
   }
 
@@ -122,21 +145,22 @@
     const resp = S.R[cod];
     let escolhida = resp && resp.estado === "opcao" ? resp.opcao : resp && resp.estado === "naosei" && q.tipo === "escolha" ? NS : null;
     const p = el(`<div class="pag">
-      <header class="topo">
-        <button class="voltar" id="v">‹ ${S.hist.length > 1 ? "voltar" : "início"}</button>
+      ${topo("Perguntas")}
+      ${heroi({ titulo: D.nome, reinicio: true, extra: `<div class="progresso">
         <div class="passo">Pergunta ${n} de ${seq.length}</div>
         <div class="barra"><div class="barra-fill" style="width:${Math.round((n / seq.length) * 100)}%"></div></div>
-      </header>
+      </div>` })}
       <main class="corpo">
-        <div class="pergunta">
+        <div class="cartao-q pergunta">
           <h2 class="q" id="pergunta">${esc(q.pergunta)}</h2>
           <div class="entrada" id="ent"></div>
           ${q.tipo === "texto" ? `<div class="alt"><button class="btn-alt" id="ns">${NS}</button></div>` : ""}
           <div class="erro" id="erro" hidden></div>
+          <div id="retorno"></div>
+          ${blocoConceitos(q.conceitos)}
+          <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+          ${botaoVoltar()}
         </div>
-        <div id="retorno"></div>
-        ${blocoConceitos(q.conceitos)}
-        <div class="acoes" id="acoes"><button class="btn btn-primario" id="ok">Continuar</button><button class="btn btn-linha" id="zerar">Recomeçar do zero</button></div>
         ${rodape()}
       </main>
     </div>`);
@@ -147,12 +171,13 @@
       if (ant) ir(telaPergunta, ant); else ir(telaCapa);
     };
     p.querySelector("#zerar").onclick = reiniciar;
+    ligar(p);
     const ent = p.querySelector("#ent");
     let campos = [];
     if (q.tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoes.forEach((op) => {
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><b>${esc(op)}</b></button>`);
+        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
         b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
         ent.appendChild(b);
       });
@@ -193,15 +218,12 @@
       box.innerHTML = `<div class="retorno">${regrasPara(cod, r0).map(blocoRegra).join("")}${aviso ? `<p class="erro">${esc(aviso)}</p>` : ""}</div>`;
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario">${prox === "RESULTADO" ? "Ver o resultado" : "Seguir"}</button>`);
+      const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver o resultado" : "Seguir"}</button>`);
       b.onclick = () => prox === "RESULTADO" ? ir(telaResultado) : ir(telaPergunta, prox);
       acoes.appendChild(b);
       const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
       c.onclick = () => { S.hist.pop(); ir(telaPergunta, cod); };
       acoes.appendChild(c);
-      const z = el(`<button class="btn btn-linha">Recomeçar do zero</button>`);
-      z.onclick = reiniciar;
-      acoes.appendChild(z);
       box.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     return p;
@@ -231,12 +253,12 @@
     const sinais = S.R["M10.P12"] && S.R["M10.P12"].estado === "valor" ? S.R["M10.P12"].itens : [];
     const p11 = S.R["M10.P11"] ? respostaTexto(porCod["M10.P11"], S.R["M10.P11"]) : "";
     const p = el(`<div class="pag">
-      <header class="topo">
-        <button class="voltar" id="v">‹ voltar</button>
-        <div class="passo">Resultado</div>
-        <h2>${esc(D.nome)}</h2>
-      </header>
+      ${topo("Resultado")}
+      ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: D.nome })}
       <main class="corpo">
+        <section class="concluido">
+          <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo 10</h2><p>Veja abaixo o resultado pelas suas respostas.</p></div></div>
+        </section>
         <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.entrega)}</p></div>
         ${probs.length ? `<div class="cartao"><h3>${esc(porCod["M10.P10"].pergunta)}</h3>
           ${probs.map((pr, i) => `<div class="prob"><b>${i + 1}. ${esc(pr)}</b></div>`).join("")}
@@ -249,6 +271,7 @@
         }).join("")}
         ${blocoConceitos(D.base.map((b) => b.codigo), "Entenda todos os termos do módulo")}
         <div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resultado</button><button class="btn btn-linha" id="zerar">Recomeçar do zero</button></div>
+        ${botaoVoltar()}
         <div class="acoes lg2-proximo"><a class="btn btn-claro" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/protected/modulos/laboratorio-de-gestao?aba=b">Voltar aos módulos</a></div>
         ${rodape()}
       </main>
@@ -257,6 +280,7 @@
     p.querySelectorAll("[data-c]").forEach((b) => { b.onclick = () => { S.hist.pop(); ir(telaPergunta, b.dataset.c); }; });
     p.querySelector("#imprimir").onclick = () => window.print();
     p.querySelector("#zerar").onclick = reiniciar;
+    ligar(p);
     return p;
   }
 

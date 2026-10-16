@@ -40,7 +40,7 @@ const server = http.createServer(async (req, res) => {
   // aba extra: base local de CNAEs
   await btn('Consultar a base local de CNAEs').click();
   assert.equal(await txt('.heroi-tit'), norm(D.instrumentos.I02_titulo));
-  assert.equal(await page.locator('.heroi img[src="assets/hero-preco.webp"]').count(), 1);
+  assert.equal(await page.locator('.heroi img[src="assets/hero-tela.webp"]').count(), 1);
   await page.fill('#busca', cnae);
   assert.ok(await page.locator('.cnae').count() >= 1);
   await btn('Voltar').click();

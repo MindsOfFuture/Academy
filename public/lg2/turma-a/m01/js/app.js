@@ -80,7 +80,7 @@
           ${o.kicker ? `<div class="kicker ${o.kickerClasse || ""}"${o.ler ? " data-ler" : ""}>${esc(o.kicker)}</div>` : ""}
           <h2 class="heroi-tit"${o.ler ? " data-ler" : ""}>${esc(o.titulo)}</h2>
         </div>
-        <img class="heroi-img" src="assets/hero-preco.webp" alt="">
+        <img class="heroi-img" src="assets/hero-tela.webp" alt="">
       </div>
       ${o.barra || ""}
     </header>`;
