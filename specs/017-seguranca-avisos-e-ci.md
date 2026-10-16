@@ -58,7 +58,15 @@ Qualquer pessoa logada, inclusive um aluno, conseguia mandar aviso e e-mail com 
 
 ## Parte de banco (preparada, não aplicada)
 
-Arquivo único para o SQL Editor: `supabase/migrations/20261016_security_db_hardening.sql`, só no branch `fix/security-db-1016` até ser aplicado em produção. Traz um bloco de diagnóstico só de leitura e as travas: perfil (papel e status de verificação), certificado só com curso concluído, nota só pelo professor, dados pessoais do aluno fora do alcance do professor, análises de desempenho só para admin e professor aprovado no próprio curso. Validado em PGlite com sondas por papel.
+Arquivo único para o SQL Editor: `supabase/migrations/20261016_security_db_hardening.sql`, só no branch `fix/security-db-1016` até ser aplicado em produção. Traz um bloco de diagnóstico só de leitura e as travas: perfil (papel e status de verificação), certificado só com curso concluído, nota só pelo professor, dados pessoais do aluno fora do alcance do professor, análises de desempenho só para admin e professor aprovado no próprio curso. Validado em PGlite com sondas por papel (`tests/integration/security-db-hardening-migration.test.ts`, fixture do `public` com policies de pior caso em `tests/integration/fixtures/public-baseline-1016.sql`):
+
+- a migration roda depois de 20260825 + 20260825_analytics_guard + 20260902 do repo, duas vezes seguidas sem erro;
+- 47 verificações passam com a migration (46 sondas por papel + a função de alunos devolver só id, nome, e-mail e foto);
+- sem a migration, 20 sondas de abuso passam (autoaprovação, papel de admin por conta própria, certificado sem concluir, nota dada pelo próprio aluno, correção por professor de outro curso, analytics de qualquer aluno para professor pendente) e as 22 sondas de uso legítimo continuam passando: as travas não quebram cadastro, onboarding pelo servidor, aprovação pela administração, entrega, correção, emissão de quem concluiu.
+
+Impacto da etapa 2 (retirar a policy "Teachers view enrolled student profiles", comentada no fim da migration): sem trocar antes o código, o professor deixa de ver nome/e-mail dos alunos nas listas de entregas e correções (`lib/api/assignments.ts`), na lista de alunos do curso e na matrícula feita por ele (`lib/api/enrollments.ts`) e o nome/foto no chat da atividade (`lib/api/activity-chat.ts`). Nenhuma tela de professor lê CPF, telefone, endereço ou nascimento de aluno; `lib/api/certificates.ts` lê o CPF na emissão, mas o trigger `enforce_certificate_fields` já grava o dado real.
+
+Fica de fora (pede o corpo das funções de produção, ver diagnóstico): `get_students_list`/`get_enrollable_users` listam todos os usuários para qualquer professor, e o professor matricula qualquer pessoa no próprio curso pelo navegador (V-3).
 
 ## Tarefas
 
