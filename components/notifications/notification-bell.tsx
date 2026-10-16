@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Bell, CheckCheck, MessageSquare, GraduationCap, UserCheck, UserX, BookOpen, ClipboardList, Lightbulb } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeNextPath } from "@/lib/utils";
 
 interface NotificationPayload {
     title: string;
@@ -179,9 +180,11 @@ export function NotificationBell() {
         if (!n.readAt) {
             await markRead(n.id);
         }
-        if (n.payload.href) {
+        // Aviso antigo pode ter link externo gravado: só navega dentro do site.
+        const href = normalizeNextPath(n.payload.href);
+        if (href) {
             setOpen(false);
-            router.push(n.payload.href);
+            router.push(href);
         }
     };
 

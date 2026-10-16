@@ -7,8 +7,8 @@ import {
     markAllNotificationsRead,
     notifyAdmins,
     type NotificationType,
-    type NotificationPayload,
 } from "@/lib/api/notifications-server";
+import { authorizeNotification } from "@/lib/api/notification-rules";
 import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
@@ -111,17 +111,19 @@ async function handleTeacherPendingNotice(request: Request, authenticatedUserId:
 
 /**
  * POST /api/notifications
- * Creates a notification. Requires authentication.
- * Body: { userId, type, payload }
+ * Cria um aviso para outra pessoa. Exige sessão e uma relação real entre quem
+ * envia e quem recebe (ver `lib/api/notification-rules.ts`); o texto e o link
+ * são montados no servidor.
+ * Body: { userId, type, payload: { courseId | assignmentId | submissionId | studentId } }
  */
 export async function POST(request: Request) {
     try {
         const body = await request.clone().json();
         const { action, userId, type, payload } = body as {
             action?: "notify_admins";
-            userId?: string;
+            userId?: unknown;
             type: NotificationType;
-            payload: NotificationPayload;
+            payload?: Record<string, unknown> | null;
         };
 
         const supabase = await createServerSupabase();
@@ -142,11 +144,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
         }
 
-        if (!userId || !type || !payload?.title) {
-            return NextResponse.json({ error: "Campos obrigatórios: userId, type, payload.title" }, { status: 400 });
+        if (!userId || !type) {
+            return NextResponse.json({ error: "Campos obrigatórios: userId, type" }, { status: 400 });
         }
 
-        await createNotification({ userId, type, payload });
+        // ponytail: contador em memória (lib/rate-limit.ts), vale por processo.
+        if (!rateLimit(`notifications:${currentUserId}`, 60, 10 * 60 * 1000)) {
+            return NextResponse.json({ error: "Muitas solicitações." }, { status: 429 });
+        }
+
+        const serviceRole = await createServiceRoleClient();
+        const notification = await authorizeNotification(serviceRole, currentUserId, { userId, type, payload });
+        if (!notification) {
+            return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+        }
+
+        await createNotification(notification);
         return NextResponse.json({ success: true });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Erro ao criar notificação";

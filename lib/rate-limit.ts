@@ -27,9 +27,21 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
     return true;
 }
 
-/** IP do cliente atrás do proxy reverso; cai para "unknown" quando ausente. */
+/**
+ * IP do cliente atrás do proxy reverso; cai para "unknown" quando ausente.
+ *
+ * Premissa (spec 017): o nginx do VPS é o único salto antes do Node (Node preso
+ * em 127.0.0.1, Cloudflare só DNS) e grava `X-Real-IP $remote_addr` e
+ * `X-Forwarded-For $proxy_add_x_forwarded_for`. O que vale é o que o próprio
+ * nginx escreveu: `X-Real-IP`, ou o último item do `X-Forwarded-For`. O
+ * primeiro item do XFF vem do cliente e pode ser qualquer coisa.
+ */
 export function clientIp(request: Request): string {
-    const forwarded = request.headers.get("x-forwarded-for");
-    if (forwarded) return forwarded.split(",")[0].trim();
-    return request.headers.get("x-real-ip") || "unknown";
+    const realIp = request.headers.get("x-real-ip")?.trim();
+    if (realIp) return realIp;
+    const hops = (request.headers.get("x-forwarded-for") || "")
+        .split(",")
+        .map((hop) => hop.trim())
+        .filter(Boolean);
+    return hops.at(-1) || "unknown";
 }

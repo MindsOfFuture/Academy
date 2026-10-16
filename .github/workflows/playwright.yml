@@ -1,4 +1,6 @@
 name: Playwright Tests
+permissions:
+  contents: read
 on:
   # development também: teste que só roda na main acusa a falha quando já está no ar.
   push:
@@ -65,9 +67,5 @@ jobs:
           console.log('gestao-alocacao: ' + t.length + ' testes, ' + ok + ' passaram');
           if (!t.length || ok !== t.length) process.exit(1);
         "
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+    # Sem artefato de propósito (spec 017): o repositório é público e qualquer
+    # conta do GitHub baixa artefatos. O resultado fica no log do reporter "list".

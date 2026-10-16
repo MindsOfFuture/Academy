@@ -73,12 +73,26 @@ describe("rateLimit", () => {
         expect(rateLimit(`${key}-outra`, 2, 60_000)).toBe(true);
     });
 
-    it("lê o primeiro IP de x-forwarded-for", () => {
-        const request = new Request("https://example.com", {
-            headers: { "x-forwarded-for": "203.0.113.5, 10.0.0.1" },
+    it("usa o IP que o nginx gravou, não o que o cliente mandou (spec 017)", () => {
+        // Cliente forja "203.0.113.5"; o nginx acrescenta o IP real 198.51.100.7
+        // ao X-Forwarded-For e grava o mesmo em X-Real-IP.
+        const comProxy = new Request("https://example.com", {
+            headers: { "x-forwarded-for": "203.0.113.5, 198.51.100.7", "x-real-ip": "198.51.100.7" },
         });
+        expect(clientIp(comProxy)).toBe("198.51.100.7");
 
-        expect(clientIp(request)).toBe("203.0.113.5");
+        // Sem X-Real-IP, o último salto do X-Forwarded-For é o do proxy.
+        const soXff = new Request("https://example.com", {
+            headers: { "x-forwarded-for": "203.0.113.5, 198.51.100.7" },
+        });
+        expect(clientIp(soXff)).toBe("198.51.100.7");
+
+        // Trocar o cabeçalho forjado não muda a chave do limite.
+        const outraForja = new Request("https://example.com", {
+            headers: { "x-forwarded-for": "192.0.2.99, 198.51.100.7", "x-real-ip": "198.51.100.7" },
+        });
+        expect(clientIp(outraForja)).toBe(clientIp(comProxy));
+
         expect(clientIp(new Request("https://example.com"))).toBe("unknown");
     });
 });

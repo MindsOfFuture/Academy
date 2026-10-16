@@ -43,9 +43,12 @@ export default defineConfig({
   
   use: {
     baseURL: testBaseUrl,
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // No CI nada que grave o que foi digitado: o trace guarda o valor de cada
+    // fill() (senha das contas de teste) e as respostas de login com o token,
+    // e o vídeo mostra a tela. O repositório é público (spec 017).
+    trace: process.env.CI ? 'off' : 'on-first-retry',
+    screenshot: process.env.CI ? 'off' : 'only-on-failure',
+    video: process.env.CI ? 'off' : 'retain-on-failure',
     // Configurações de acessibilidade
     actionTimeout: 15 * 1000,
     navigationTimeout: 30 * 1000,

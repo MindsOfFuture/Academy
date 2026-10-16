@@ -122,11 +122,8 @@ function CompleteTeacherProfileContent() {
 
             if (requestError) throw requestError;
 
-            // Update user profile verification status
-            await supabase
-                .from("user_profile")
-                .update({ verification_status: "pending" })
-                .eq("id", authData.user.id);
+            // O status "aguardando aprovação" já foi gravado no servidor pela
+            // rota acima; o navegador não escreve mais nessa coluna.
 
             // Notify admins. O texto vem do banco no servidor; a sessão atual
             // já identifica o professor, então não enviamos payload.
