@@ -354,6 +354,7 @@ export async function submitAssignment(params: {
                         title: `Nova entrega: ${assignment.title || "Atividade"}`,
                         message: `O aluno ${profile?.full_name || "Estudante"} entregou a atividade "${assignment.title || "Atividade"}".`,
                         href: `/protected?tab=corrections`,
+                        assignmentId: params.assignmentId,
                     },
                 }),
             }).catch(() => { });

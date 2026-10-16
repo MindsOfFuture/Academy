@@ -1,6 +1,7 @@
 import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
 import { sendNotificationEmail } from "@/lib/email/resend";
-import { buildEmailHtml } from "@/lib/email/template";
+import { buildEmailHtml, escaparHtml } from "@/lib/email/template";
+import { normalizeNextPath } from "@/lib/utils";
 
 // ----- Types -----
 
@@ -95,11 +96,14 @@ export async function createNotification(params: {
 
     if (profile?.email) {
         const subject = emailSubjectForType(params.type, params.payload.title);
+        // Título e mensagem carregam texto de pessoas (nome, feedback): sempre
+        // escapados. Link só para caminho interno, senão o botão sai do e-mail.
+        const href = normalizeNextPath(params.payload.href);
         const html = buildEmailHtml(
-            params.payload.title,
-            params.payload.message,
-            params.payload.href
-                ? `${process.env.NEXT_PUBLIC_APP_URL || "https://mindsofthefuture.com.br"}${params.payload.href}`
+            escaparHtml(String(params.payload.title ?? "")),
+            escaparHtml(String(params.payload.message ?? "")),
+            href
+                ? escaparHtml(`${process.env.NEXT_PUBLIC_APP_URL || "https://mindsofthefuture.com.br"}${href}`)
                 : undefined,
         );
         // Fire-and-forget — email failure must not block

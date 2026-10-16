@@ -63,6 +63,7 @@ export async function enrollInCourse(courseId: string) {
                 title: courseData?.title || "Novo Curso",
                 message: `Você foi matriculado no curso: ${courseData?.title || "Novo Curso"}.`,
                 href: `/course?id=${courseId}`,
+                courseId,
             },
         }),
     }).catch(() => {});
@@ -238,6 +239,7 @@ export async function addStudentToCourse(courseId: string, userId: string) {
                 title: courseData?.title || "Novo Curso",
                 message: `Você foi matriculado no curso: ${courseData?.title || "Novo Curso"}.`,
                 href: `/course?id=${courseId}`,
+                courseId,
             },
         }),
     }).catch(() => {});
