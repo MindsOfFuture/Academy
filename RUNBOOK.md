@@ -314,6 +314,7 @@ Sintomas → ação (todos verificáveis):
 | Build falha `Missing API key` | Env não carregado no build | `set -a; . /etc/academy.env; set +a` antes do `npm run build` |
 | Email nunca chega | `RESEND_TEST_RECIPIENT` preenchida / endereço sem regra no routing | Esvaziar a env / conferir regras do Cloudflare |
 | App fora do ar, causa desconhecida | — | `rollback-academy-current.sh apply` (§3) ou snapshot `academy.rollback-*` |
+| Botão de formulário preso em "Lançando…"/"Concluindo…", mas o dado gravou (a gestão mostra certo ao recarregar) | Corrida conhecida do Next 15 + React 19 no build de produção: a resposta da ação chega e a tela não confirma ([vercel/next.js#82289](https://github.com/vercel/next.js/discussions/82289), [#88767](https://github.com/vercel/next.js/discussions/88767)). Visto em 19/10/2026 no E2E com o build (Next 15.5.21, React 19.1.0); sem relato de usuário até então | Recarregar a página. Se a coordenação relatar com frequência: trocar a versão do Next/React (decisão adiada em 19/10/2026), não mexer nos formulários |
 
 Rotina de diagnóstico:
 
