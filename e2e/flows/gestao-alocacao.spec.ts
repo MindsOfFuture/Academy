@@ -91,6 +91,13 @@ test.beforeEach(({ page }) => {
       .filter((m) => corpo.includes(m))
       .join(' | ');
     console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} terminou (${corpo.length} b) ${marcas}`);
+    if (corpo.length > 1000) {
+      // Só a estrutura do payload e o texto das mensagens da própria tela, sem dado de pessoa.
+      const linhas = corpo.split('\n');
+      console.log(`[navegador]   linhas=${linhas.length} linha0=${linhas[0].slice(0, 160)}`);
+      console.log(`[navegador]   mensagens=${JSON.stringify(corpo.match(/"mensagem":"[^"]{0,80}"/g))} ok=${JSON.stringify(corpo.match(/"ok":(true|false)/g))}`);
+      console.log(`[navegador]   cabecalhos=${JSON.stringify(Object.keys((await r.response())?.headers() ?? {}))} redirect=${(await r.response())?.headers()['x-action-redirect'] ?? '-'}`);
+    }
   });
 });
 
