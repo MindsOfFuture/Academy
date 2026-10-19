@@ -71,10 +71,21 @@ test.beforeEach(({ page }) => {
     if (m.type() === 'error') console.log(`[navegador] console: ${m.text().slice(0, 300)}`);
   });
   page.on('requestfailed', (r) => console.log(`[navegador] falhou: ${r.method()} ${new URL(r.url()).pathname} ${r.failure()?.errorText}`));
+  const t0 = Date.now();
+  const gestao = (r: { method(): string; url(): string }) =>
+    r.method() === 'POST' && new URL(r.url()).pathname.startsWith('/gestao');
+  page.on('request', (r) => {
+    if (gestao(r)) console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} enviado`);
+  });
   page.on('response', (r) => {
-    if (r.request().method() === 'POST' && r.status() >= 400) {
+    if (gestao(r.request())) {
+      console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} → ${r.status()} (cabeçalho)`);
+    } else if (r.request().method() === 'POST' && r.status() >= 400) {
       console.log(`[navegador] POST ${new URL(r.url()).pathname} → ${r.status()}`);
     }
+  });
+  page.on('requestfinished', (r) => {
+    if (gestao(r)) console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} terminou`);
   });
 });
 
