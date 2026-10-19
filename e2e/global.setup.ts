@@ -1,4 +1,5 @@
 import { test as setup, expect } from '@playwright/test';
+import { TEST_USERS, loginViaUI, type TestUser } from './fixtures/auth.fixture';
 
 /**
  * Setup global que roda antes dos testes
@@ -32,3 +33,47 @@ setup('verificar rotas principais existem', async ({ page }) => {
     
   }
 });
+
+/**
+ * O dev server compila cada página na primeira visita, e o primeiro teste a
+ * chegar nela estourava o tempo (34 s em /course, que é protegida). Visitar sem
+ * sessão não adianta: o middleware redireciona para /auth e a página não
+ * compila. Aqui cada conta de teste abre as páginas que os specs usam, uma vez.
+ */
+const ID_QUALQUER = '00000000-0000-4000-8000-000000000000';
+const AQUECER: { conta: TestUser | null; inicio: string; rotas: string[] }[] = [
+  {
+    conta: TEST_USERS.student,
+    inicio: '/protected',
+    rotas: [
+      '/trilhas',
+      '/course',
+      '/protected/perfil',
+      '/protected/activitie',
+      '/protected/modulos/educacao-financeira',
+      '/protected/modulos/laboratorio-de-gestao',
+      '/artigos',
+      '/validar',
+    ],
+  },
+  {
+    conta:
+      process.env.TEST_GESTAO_COORD_EMAIL && process.env.TEST_GESTAO_COORD_PASSWORD
+        ? { email: process.env.TEST_GESTAO_COORD_EMAIL, password: process.env.TEST_GESTAO_COORD_PASSWORD, role: 'admin' }
+        : null,
+    inicio: '/gestao',
+    rotas: ['/gestao/alocacao', `/gestao/alocacao/${ID_QUALQUER}`, '/gestao/equipe'],
+  },
+];
+
+for (const { conta, inicio, rotas } of AQUECER) {
+  setup(`compilar páginas de ${inicio}`, async ({ page }) => {
+    setup.skip(!conta || !!process.env.PLAYWRIGHT_BASE_URL, 'sem conta de teste, ou site já publicado');
+    setup.setTimeout(10 * 60 * 1000);
+    await loginViaUI(page, conta!, inicio);
+    for (const rota of rotas) {
+      const resposta = await page.goto(rota, { timeout: 2 * 60 * 1000 });
+      expect(resposta?.status(), rota).toBeLessThan(500);
+    }
+  });
+}

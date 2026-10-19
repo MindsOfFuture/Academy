@@ -103,17 +103,11 @@ export default defineConfig({
     },
   ],
 
-  /* Servidor automático. No CI, o build de produção: o dev compila cada página
-     na primeira visita, e o primeiro teste a chegar nela estourava o tempo
-     (34 s em trilhas.spec.ts) e reprovava o CI como instável. Sobe como no VPS
-     (docs/deploy-vps.md): `output: "standalone"` não funciona com `next start`. */
+  /* Dev server automático */
   webServer: externalBaseUrl ? undefined : {
-    command: process.env.CI
-      ? 'npm run build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public' +
-        ` && PORT=${testPort} HOSTNAME=:: node .next/standalone/server.js`
-      : `npm run dev -- --port ${testPort}`,
+    command: `npm run dev -- --port ${testPort}`,
     url: testBaseUrl,
     reuseExistingServer: !process.env.CI,
-    timeout: (process.env.CI ? 10 : 2) * 60 * 1000,
+    timeout: 120 * 1000,
   },
 });

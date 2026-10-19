@@ -63,51 +63,6 @@ async function lancarIgnorandoSobreposicao(page: Page) {
 
 test.describe.configure({ mode: 'serial' });
 
-// O CI não guarda trace nem screenshot (spec 017): o erro do navegador vai para o
-// log, sem corpo de requisição.
-test.beforeEach(({ page }) => {
-  page.on('pageerror', (e) => console.log(`[navegador] erro: ${e.message}`));
-  page.on('console', (m) => {
-    if (m.type() === 'error') console.log(`[navegador] console: ${m.text().slice(0, 300)}`);
-  });
-  page.on('requestfailed', (r) => console.log(`[navegador] falhou: ${r.method()} ${new URL(r.url()).pathname} ${r.failure()?.errorText}`));
-  const t0 = Date.now();
-  const gestao = (r: { method(): string; url(): string }) =>
-    r.method() === 'POST' && new URL(r.url()).pathname.startsWith('/gestao');
-  page.on('request', (r) => {
-    if (gestao(r)) console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} enviado`);
-  });
-  page.on('response', (r) => {
-    if (gestao(r.request())) {
-      console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} → ${r.status()} (cabeçalho)`);
-    } else if (r.request().method() === 'POST' && r.status() >= 400) {
-      console.log(`[navegador] POST ${new URL(r.url()).pathname} → ${r.status()}`);
-    }
-  });
-  page.on('requestfinished', async (r) => {
-    if (!gestao(r)) return;
-    const corpo = (await (await r.response())?.text().catch(() => '')) ?? '';
-    const marcas = ['"concluido":true', 'Encontro lançado com', 'Pessoa alocada', 'Alocação atualizada']
-      .filter((m) => corpo.includes(m))
-      .join(' | ');
-    console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} terminou (${corpo.length} b) ${marcas}`);
-    if (corpo.length > 1000) {
-      // Só a estrutura do payload e o texto das mensagens da própria tela, sem dado de pessoa.
-      const linhas = corpo.split('\n');
-      console.log(`[navegador]   linhas=${linhas.length} linha0=${linhas[0].slice(0, 160)}`);
-      console.log(`[navegador]   mensagens=${JSON.stringify(corpo.match(/"mensagem":"[^"]{0,80}"/g))} ok=${JSON.stringify(corpo.match(/"ok":(true|false)/g))}`);
-      console.log(`[navegador]   cabecalhos=${JSON.stringify(Object.keys((await r.response())?.headers() ?? {}))} redirect=${(await r.response())?.headers()['x-action-redirect'] ?? '-'}`);
-    }
-  });
-});
-
-test.afterEach(async ({ page }, info) => {
-  if (info.status === info.expectedStatus) return;
-  const avisos = await page.locator('[role=status], [role=alert]').allTextContents().catch(() => []);
-  console.log(`[navegador] na falha: ${page.url().replace(/^https?:\/\/[^/]+/, '')} · avisos: ${JSON.stringify(avisos)}`);
-  console.log(`[navegador] botões: ${JSON.stringify(await page.getByRole('button').allTextContents().catch(() => []))}`);
-});
-
 test('coordenação: cria, edita, conclui e confere no histórico', async ({ page }) => {
   const coord = exigir(COORD, 'TEST_GESTAO_COORD_EMAIL/PASSWORD');
   const atividade = `Lego E2E ${RODADA}`;
