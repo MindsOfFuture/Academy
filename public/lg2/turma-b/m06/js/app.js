@@ -429,7 +429,7 @@
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
           ${botaoVoltar()}
-          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m08/index.html">Ir para o Módulo 8</a></div>
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m07/index.html">Ir para o Módulo 7</a></div>
           ${rodape()}
         </main>
       </div>`);
