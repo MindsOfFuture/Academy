@@ -14,7 +14,7 @@
     { n: 4, nome: 'Produto, proposta de valor e teste da ideia', caminho: '/lg2/turma-a/m04/index.html' },
     { n: 5, nome: 'Custos, despesas, preço e margem', caminho: '/lg2/turma-a/m05/index.html' },
     { n: 6, nome: 'Investimento, capital de giro e fluxo de caixa', caminho: '/lg2/turma-b/m06/index.html' },
-    { n: 7, nome: 'Operação, fornecedores, capacidade e qualidade', caminho: null },
+    { n: 7, nome: 'Operação, fornecedores, capacidade e qualidade', caminho: '/lg2/turma-b/m07/index.html' },
     { n: 8, nome: 'Formalização, enquadramento e tributação básica', caminho: '/lg2/turma-b/m08/index.html' },
     { n: 9, nome: 'Licenças, endereço e atividades reguladas', caminho: '/lg2/turma-b/m09/index.html' },
     { n: 10, nome: 'Comunicação, vendas, pessoas e plano de ação', caminho: '/lg2/turma-b/m10/index.html' }
@@ -141,7 +141,12 @@
       concluir(m.n);
       seguir(m.n);
     }, true);
-    var olhar = function () { if (doc.querySelector('.lg2-proximo')) concluir(m.n); };
+    // Só conta quando a caixa está à vista: o Módulo 7, por exemplo, só mostra o botão do
+    // próximo módulo quando a pessoa responde "Sim, pode seguir".
+    var olhar = function () {
+      var c = doc.querySelector('.lg2-proximo');
+      if (c && !c.closest('[hidden]') && c.getClientRects().length > 0) concluir(m.n);
+    };
     olhar();
     vigia = setInterval(olhar, 600);
   });

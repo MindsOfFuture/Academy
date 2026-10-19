@@ -9,8 +9,8 @@ const publicRoot = path.resolve(__dirname, '..', 'public');
 let playwright;
 try { playwright = require('playwright'); } catch { playwright = require(process.env.PW); }
 
-// Ordem esperada, escrita à parte do app: módulo 7 ainda não foi entregue.
-const PRONTOS = [1, 2, 3, 4, 5, 6, 8, 9, 10];
+// Ordem esperada, escrita à parte do app.
+const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 (async () => {
   const server = http.createServer((req, res) => {
@@ -46,7 +46,7 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 8, 9, 10];
     await page.goto(base + '/lg2/jornada/index.html');
     await esperarModulo(1);
     assert.equal(await atual(), 1);
-    assert.deepEqual(await situacoes(), ['liberado', 'bloqueado', 'bloqueado', 'bloqueado', 'bloqueado', 'bloqueado', 'breve', 'bloqueado', 'bloqueado', 'bloqueado']);
+    assert.deepEqual(await situacoes(), ['liberado', ...Array(9).fill('bloqueado')]);
 
     // Tocar num módulo trancado não abre: avisa qual concluir.
     await page.click('#trilha li:nth-child(3) button');
@@ -57,21 +57,22 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 8, 9, 10];
     await page.evaluate(() => { document.getElementById('modulo').contentWindow.location.href = '/lg2/turma-a/m05/index.html'; });
     await page.waitForTimeout(300);
     await esperarModulo(1);
-    // Módulo 7 (em breve) só avisa.
-    await page.click('#trilha li:nth-child(7) button');
-    assert.match(await page.textContent('#aviso'), /Módulo 7 ainda está sendo preparado/);
 
     // Responde o módulo de verdade, tela por tela, até aparecer o botão do próximo módulo.
     const frame = () => page.frames().find((f) => f !== page.mainFrame());
     async function responderAteOFim(n) {
-      let anterior = '', repetido = 0;
+      let anterior = '', repetido = 0, viuEscondido = false;
       for (let passo = 0; passo < 300; passo++) {
         const f = frame();
         const tela = await f.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 600)).catch(() => '');
         repetido = tela === anterior ? repetido + 1 : 0;
         anterior = tela;
-        const r = await f.evaluate((forcar) => {
-          if (document.querySelector('.lg2-proximo')) return 'fim';
+        const r = await f.evaluate((arg) => {
+          const forcar = arg.forcar;
+          const prox = document.querySelector('.lg2-proximo');
+          if (prox && !prox.closest('[hidden]') && prox.getClientRects().length) return 'fim';
+          // Resultado com o botão do próximo módulo ainda escondido (M7): avisa uma vez para o teste conferir.
+          if (prox && !arg.viuEscondido) return 'escondido';
           const vis = (e) => e && e.offsetParent !== null && !e.disabled;
           // campos vazios: texto/número neutro
           for (const i of document.querySelectorAll('input:not([type=checkbox]):not([type=radio]), textarea')) {
@@ -90,6 +91,14 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 8, 9, 10];
           const txt = (b) => b.textContent.replace(/\s+/g, ' ').trim();
           // A tela não mudou depois de avançar: falta escolher. Toca uma opção (alterna entre elas).
           if (forcar) {
+            // Cada grupo de opções ainda sem escolha recebe a primeira opção (fora "Não sei").
+            let tocou = 0;
+            for (const g of document.querySelectorAll('.opcoes')) {
+              if (!vis(g) || g.querySelector('.sel, [aria-pressed="true"], [aria-checked="true"]')) continue;
+              const o = [...g.querySelectorAll('button')].find((b) => vis(b) && !/não sei/i.test(txt(b)));
+              if (o) { o.click(); tocou++; }
+            }
+            if (tocou && forcar === 1) return 'grupos:' + tocou;
             const ops = botoes.filter((b) => (b.classList.contains('opcao') || b.closest('.opcoes')) && !/não sei/i.test(txt(b)));
             if (ops.length) { const op = ops[(forcar - 1) % ops.length]; op.click(); return 'forcou:' + txt(op).slice(0, 30); }
           }
@@ -101,9 +110,17 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 8, 9, 10];
           const op = botoes.find((b) => (b.classList.contains('opcao') || b.closest('.opcoes')) && !/não sei/i.test(txt(b)) && b.getAttribute('aria-pressed') !== 'true' && !b.classList.contains('marcada') && !b.classList.contains('ativa'));
           if (op) { op.click(); return 'opcao:' + txt(op).slice(0, 30); }
           return 'parado:' + botoes.map(txt).join(' | ').slice(0, 400);
-        }, repetido && repetido % 2 ? (repetido + 1) / 2 : 0);
-        if (process.env.DEBUG) console.log(n, r);
+        }, { forcar: repetido && repetido % 2 ? (repetido + 1) / 2 : 0, viuEscondido });
+        if (process.env.DEBUG) console.log(n, r, process.env.DEBUG === '2' ? tela.slice(0, 260) : '');
         if (r === 'fim') return passo;
+        if (r === 'escondido') {
+          // O módulo ainda não liberou o botão do próximo: a jornada não pode dar como concluído.
+          await page.waitForTimeout(1500);
+          const feitos = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-jornada')).feitos);
+          assert.ok(!feitos.includes(n), `módulo ${n} concluído antes de mostrar o botão do próximo módulo`);
+          viuEscondido = true; escondidos.push(n);
+          continue;
+        }
         if (r.startsWith('parado') || repetido > 12) { if (process.env.DEBUG) console.log('TELA', anterior, await f.evaluate(() => [...document.querySelectorAll('button,a')].map((b) => b.textContent.replace(/\s+/g, ' ').trim() + (b.offsetParent ? '' : '(oculto)') + (b.disabled ? '(off)' : '')).join(' | '))); throw new Error(`Módulo ${n} parou: ${r}`); }
         await page.waitForTimeout(60);
       }
@@ -111,6 +128,7 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 8, 9, 10];
     }
 
     const passos = {};
+    const escondidos = [];
     for (let i = 0; i < PRONTOS.length; i++) {
       const n = PRONTOS[i];
       await esperarModulo(n);
@@ -130,16 +148,17 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 8, 9, 10];
       if (prox) await esperarModulo(prox);
     }
     await page.waitForSelector('#fim:not([hidden])');
-    assert.deepEqual(await situacoes(), ['feito', 'feito', 'feito', 'feito', 'feito', 'feito', 'breve', 'feito', 'feito', 'feito']);
+    assert.deepEqual(await situacoes(), Array(10).fill('feito'));
 
     // Concluído, qualquer módulo volta a abrir; recarregar mantém o progresso.
     await page.click('#trilha li:nth-child(5) button');
     await esperarModulo(5);
     await page.reload();
     await esperarModulo(5);
-    assert.equal((await situacoes()).filter((s) => s === 'feito').length, 9);
+    assert.equal((await situacoes()).filter((s) => s === 'feito').length, 10);
     if (process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada-concluida.png') });
 
+    assert.deepEqual(escondidos, [7], 'o Módulo 7 esconde o botão do próximo até "Sim, pode seguir"');
     assert.deepEqual(errors, []);
     console.log('jornada ok · telas respondidas por módulo:', JSON.stringify(passos));
   } finally {
