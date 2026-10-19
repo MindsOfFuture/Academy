@@ -84,9 +84,21 @@ test.beforeEach(({ page }) => {
       console.log(`[navegador] POST ${new URL(r.url()).pathname} → ${r.status()}`);
     }
   });
-  page.on('requestfinished', (r) => {
-    if (gestao(r)) console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} terminou`);
+  page.on('requestfinished', async (r) => {
+    if (!gestao(r)) return;
+    const corpo = (await (await r.response())?.text().catch(() => '')) ?? '';
+    const marcas = ['"concluido":true', 'Encontro lançado com', 'Pessoa alocada', 'Alocação atualizada']
+      .filter((m) => corpo.includes(m))
+      .join(' | ');
+    console.log(`[navegador] +${Date.now() - t0}ms POST ${new URL(r.url()).pathname} terminou (${corpo.length} b) ${marcas}`);
   });
+});
+
+test.afterEach(async ({ page }, info) => {
+  if (info.status === info.expectedStatus) return;
+  const avisos = await page.locator('[role=status], [role=alert]').allTextContents().catch(() => []);
+  console.log(`[navegador] na falha: ${page.url().replace(/^https?:\/\/[^/]+/, '')} · avisos: ${JSON.stringify(avisos)}`);
+  console.log(`[navegador] botões: ${JSON.stringify(await page.getByRole('button').allTextContents().catch(() => []))}`);
 });
 
 test('coordenação: cria, edita, conclui e confere no histórico', async ({ page }) => {
