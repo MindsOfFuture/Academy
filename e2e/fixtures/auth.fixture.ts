@@ -49,14 +49,14 @@ export async function loginViaUI(page: Page, user: TestUser, nextPath = '/protec
 
 // Helper para logout
 export async function logout(page: Page) {
-  // Logo após o login o clique pode chegar antes de o menu ficar interativo e se perder:
-  // clica de novo até o item aparecer.
+  // Logo após o login o menu pode não abrir, ou a navbar se refaz e fecha o menu
+  // com o "Sair" na mão (o item some do DOM no meio do clique): repete abrir e
+  // clicar juntos. Só abre se não estiver aberto, senão o clique fecharia o menu.
   const sair = page.getByRole('menuitem', { name: /sair/i });
   await expect(async () => {
-    await page.locator('nav button').last().click();
-    await expect(sair).toBeVisible({ timeout: 2000 });
+    if (!(await sair.isVisible())) await page.locator('nav button').last().click();
+    await sair.click({ timeout: 2000 });
   }).toPass({ timeout: 15000 });
-  await sair.click();
   
   // Aguardar redirecionamento
   await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
