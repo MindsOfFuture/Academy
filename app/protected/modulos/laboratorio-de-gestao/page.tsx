@@ -9,6 +9,7 @@ const PATH = "/protected/modulos/laboratorio-de-gestao";
 const ABAS = [
   { id: "a", rotulo: "Turma A" },
   { id: "b", rotulo: "Turma B" },
+  { id: "jornada", rotulo: "Jornada completa" },
   { id: "demo", rotulo: "Demonstração" },
 ] as const;
 type Aba = (typeof ABAS)[number]["id"];
@@ -47,6 +48,20 @@ export default async function LaboratorioDeGestaoPage({
         <>
           <h2 className="mb-4 text-xl font-bold text-purple-900">Primeiro Passo</h2>
           <PrimeiroPasso userId={user.id} />
+        </>
+      ) : aba === "jornada" ? (
+        <>
+          <h2 className="mb-4 text-xl font-bold text-purple-900">Jornada completa</h2>
+          <p className="mb-5 max-w-2xl text-purple-900">
+            Todos os módulos, do 1 ao 10, num caminho só. Cada módulo libera quando você chega ao resultado do anterior.
+            Os módulos são os mesmos das turmas, então qualquer melhoria feita pelos grupos já aparece aqui.
+          </p>
+          <a
+            href="/lg2/jornada/index.html"
+            className="inline-block rounded-full bg-purple-800 px-6 py-3 font-bold text-white shadow transition hover:bg-purple-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-700"
+          >
+            Começar a jornada
+          </a>
         </>
       ) : (
         <>
