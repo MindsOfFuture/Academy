@@ -63,6 +63,21 @@ async function lancarIgnorandoSobreposicao(page: Page) {
 
 test.describe.configure({ mode: 'serial' });
 
+// O CI não guarda trace nem screenshot (spec 017): o erro do navegador vai para o
+// log, sem corpo de requisição.
+test.beforeEach(({ page }) => {
+  page.on('pageerror', (e) => console.log(`[navegador] erro: ${e.message}`));
+  page.on('console', (m) => {
+    if (m.type() === 'error') console.log(`[navegador] console: ${m.text().slice(0, 300)}`);
+  });
+  page.on('requestfailed', (r) => console.log(`[navegador] falhou: ${r.method()} ${new URL(r.url()).pathname} ${r.failure()?.errorText}`));
+  page.on('response', (r) => {
+    if (r.request().method() === 'POST' && r.status() >= 400) {
+      console.log(`[navegador] POST ${new URL(r.url()).pathname} → ${r.status()}`);
+    }
+  });
+});
+
 test('coordenação: cria, edita, conclui e confere no histórico', async ({ page }) => {
   const coord = exigir(COORD, 'TEST_GESTAO_COORD_EMAIL/PASSWORD');
   const atividade = `Lego E2E ${RODADA}`;
