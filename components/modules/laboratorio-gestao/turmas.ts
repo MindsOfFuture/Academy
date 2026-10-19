@@ -20,7 +20,7 @@ export type TurmaId = "a" | "b";
 // ponytail: lista fixa no código; cada módulo novo é um commit. Upgrade: ler public/lg2/ no build.
 export const PRONTOS: Record<TurmaId, readonly number[]> = {
   a: [1, 3, 4, 5],
-  b: [2, 6, 8, 9, 10],
+  b: [2, 6, 7, 8, 9, 10],
 };
 
 export function caminhoModulo(turma: TurmaId, numero: number) {
