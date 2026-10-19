@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jornada completa · Laboratório de Gestão</title>
+  <link rel="stylesheet" href="css/jornada.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo-linha">
+      <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
+      <div class="titulos">
+        <p class="kicker">Laboratório de Gestão</p>
+        <h1>Jornada completa</h1>
+      </div>
+      <a class="sair" href="/protected/modulos/laboratorio-de-gestao?aba=jornada">Sair</a>
+    </div>
+    <ol class="trilha" id="trilha" aria-label="Módulos da jornada"></ol>
+    <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
+  </header>
+  <main class="palco">
+    <iframe id="modulo" title="Módulo da jornada"></iframe>
+    <section class="fim" id="fim" hidden>
+      <h2>Jornada concluída!</h2>
+      <p>Você passou por todos os módulos que já estão prontos. Pode voltar a qualquer um deles tocando no número lá em cima.</p>
+      <a class="btn" href="/protected/modulos/laboratorio-de-gestao?aba=jornada">Voltar ao Laboratório de Gestão</a>
+      <div class="logos">
+        <img src="assets/logo_facc.png" alt="FACC">
+        <img src="assets/logo_ufjf.svg" alt="UFJF">
+        <img src="assets/logo_mg.svg" alt="Governo de Minas Gerais">
+      </div>
+    </section>
+  </main>
+  <script src="js/jornada.js"></script>
+</body>
+</html>
