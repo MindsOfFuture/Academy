@@ -103,11 +103,15 @@ export default defineConfig({
     },
   ],
 
-  /* Dev server automático */
+  /* Servidor automático. No CI, o build de produção: o dev compila cada página
+     na primeira visita, e o primeiro teste a chegar nela estourava o tempo
+     (34 s em trilhas.spec.ts) e reprovava o CI como instável. */
   webServer: externalBaseUrl ? undefined : {
-    command: `npm run dev -- --port ${testPort}`,
+    command: process.env.CI
+      ? `npm run build && npm run start -- --port ${testPort}`
+      : `npm run dev -- --port ${testPort}`,
     url: testBaseUrl,
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: (process.env.CI ? 10 : 2) * 60 * 1000,
   },
 });
