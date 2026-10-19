@@ -114,22 +114,9 @@ test.describe('Home Page Desktop - Performance', () => {
     page.on('pageerror', error => {
       jsErrors.push(error.message);
     });
-    // Diagnóstico temporário: o que segura o networkidle no CI.
-    const abertos = new Map<string, number>();
-    const t0 = Date.now();
-    const chave = (u: string) => new URL(u).pathname;
-    page.on('request', r => abertos.set(chave(r.url()) + ' ' + r.resourceType(), Date.now() - t0));
-    page.on('requestfinished', r => abertos.delete(chave(r.url()) + ' ' + r.resourceType()));
-    page.on('requestfailed', r => abertos.delete(chave(r.url()) + ' ' + r.resourceType()));
-    const pedidos: string[] = [];
-    page.on('request', r => pedidos.push(`+${Date.now() - t0} ${chave(r.url())}`));
     
     await page.goto('/');
-    await page.waitForLoadState('networkidle').catch((e) => {
-      console.log(`[rede] abertos: ${JSON.stringify([...abertos])}`);
-      console.log(`[rede] últimos pedidos: ${JSON.stringify(pedidos.slice(-25))}`);
-      throw e;
-    });
+    await page.waitForLoadState('networkidle');
     
     // Filtrar erros não críticos (hydration, ResizeObserver)
     const criticalErrors = jsErrors.filter(e => 
