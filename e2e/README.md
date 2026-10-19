@@ -139,10 +139,15 @@ com dado dedicado, nunca bolsista real:
 
 | O quê | Como |
 |---|---|
-| Coordenação de teste | conta própria, `coordenacao = true` em `gestao.papel_membro`; credenciais em `TEST_GESTAO_COORD_EMAIL/PASSWORD` |
+| Coordenação de teste | conta própria, `coordenacao = true` e `teste = true` em `gestao.papel_membro`; credenciais em `TEST_GESTAO_COORD_EMAIL/PASSWORD` |
 | Sem papel | a conta `TEST_STUDENT_*`, **sem** linha em `gestao.papel_membro` |
-| Bolsistas | duas contas com nome exato `Bolsista E2E A` e `Bolsista E2E B`, `bolsista = true`; e-mail de caixa que a equipe controla |
-| Escolas | `Escola E2E 1` e `Escola E2E 2` em `gestao.escola` |
+| Bolsistas | duas contas com nome exato `Bolsista E2E A` e `Bolsista E2E B`, `bolsista = true` e `teste = true`; e-mail de caixa que a equipe controla |
+| Escolas | `Escola E2E 1` e `Escola E2E 2` em `gestao.escola`, `teste = true` |
+
+Com `teste = true` a conta e a escola só aparecem para outras contas de teste,
+e a coordenação de teste só enxerga o que é de teste (migration
+`20261019_gestao_dados_de_teste.sql`). Escola criada pela coordenação de teste
+já nasce marcada.
 
 Os encontros vão para um dia de 2001, fora do calendário real, e acumulam a cada
 execução (nada se apaga na alocação). O servidor precisa de `GESTAO_ENABLED=true`.
