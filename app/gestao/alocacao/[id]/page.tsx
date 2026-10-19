@@ -8,10 +8,9 @@ import {
   FormAlocar,
   FormCancelarEncontro,
   FormConcluirEncontro,
-  FormGestor,
   FormRemoverAlocacao,
 } from "../forms";
-import { Relatorio, Resumo, dataHoraBr, jaComecou } from "../resumo";
+import { NotasPendentes, Relatorio, Resumo, dataHoraBr, jaComecou } from "../resumo";
 import { SITUACAO, STATUS_TURMA, diaCurto } from "../rotulos";
 
 /** Um encontro (spec 014): equipe, o que aconteceu com cada um e o histórico. */
@@ -37,7 +36,7 @@ const CAMPO: Record<string, string> = {
   motivo_cancelamento: "motivo do cancelamento",
   concluido_em: "concluído em",
   relatorio: "relatório",
-  gestor: "gestor",
+  nota_encerramento: "nota de encerramento",
 };
 
 function valorLegivel(v: unknown): string {
@@ -93,6 +92,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
           </p>
         )}
         <Relatorio encontro={encontro} />
+        <NotasPendentes encontro={encontro} />
         {cancelado ? (
           <p className="rounded-md bg-gray-100 p-2 text-sm">
             Cancelado em {dataHoraBr(encontro.canceladoEm!)}: {encontro.motivoCancelamento}. Não conta horas.
@@ -112,10 +112,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <Resumo a={a} />
                 {!cancelado && (
-                  <div className="flex flex-wrap gap-2">
-                    <FormGestor alocacaoId={a.id} gestor={a.gestor} />
-                    <FormRemoverAlocacao alocacaoId={a.id} nome={a.bolsistaNome} />
-                  </div>
+                  <FormRemoverAlocacao alocacaoId={a.id} nome={a.bolsistaNome} />
                 )}
               </div>
               {!cancelado && (

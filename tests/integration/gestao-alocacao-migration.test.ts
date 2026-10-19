@@ -32,6 +32,8 @@ const CONCLUIR_INICIO = readFileSync("supabase/migrations/20261009_gestao_conclu
 const HORAS_COBRIU = readFileSync("supabase/migrations/20261009_gestao_horas_de_quem_cobriu.sql", "utf8");
 const GESTOR = readFileSync("supabase/migrations/20261009_gestao_gestor_lembrete.sql", "utf8");
 const MODELO = readFileSync("supabase/migrations/20261009_gestao_lembrete_no_modelo.sql", "utf8");
+const NOTAS = readFileSync("supabase/migrations/20261018_gestao_notas_de_encerramento.sql", "utf8");
+const SEM_GESTOR = readFileSync("supabase/migrations/20261018_gestao_sem_gestor.sql", "utf8");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -152,6 +154,8 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(HORAS_COBRIU);
     await db.exec(GESTOR);
     await db.exec(MODELO);
+    await db.exec(NOTAS);
+    await db.exec(SEM_GESTOR);
     // Idempotência.
     await db.exec(ALOCACAO);
     await db.exec(COBERTO_SEM_FK);
@@ -164,6 +168,8 @@ describe("migration da alocação (spec 014)", () => {
     await db.exec(HORAS_COBRIU);
     await db.exec(GESTOR);
     await db.exec(MODELO);
+    await db.exec(NOTAS);
+    await db.exec(SEM_GESTOR);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
@@ -302,36 +308,68 @@ describe("migration da alocação (spec 014)", () => {
     expect(await horas(A(7), "2026-09-27", "2026-09-27")).toBe(2.5);
   });
 
-  it("gestor conclui o próprio encontro com relatório; alocado sem ser gestor não conclui", async () => {
+  it("cada um escreve a própria nota; a última conclui o encontro; quem faltou não precisa", async () => {
     const id = await como(COORD, async () => {
-      const t = await turma("Turma do gestor", "Lego");
-      const e = await encontro("2026-09-29", "08:00", "12:00", "Lego", [B(5), B(6)], t);
-      await db.exec(`update gestao.agenda_bolsista set gestor = true where agenda_id = '${e}' and bolsista_id = '${B(5)}'`);
+      const t = await turma("Turma das notas", "Lego");
+      const e = await encontro("2026-09-29", "08:00", "12:00", "Lego", [B(5), B(6), B(7)], t);
+      await db.exec(`update gestao.agenda_bolsista set situacao = 'faltou_avisou' where agenda_id = '${e}' and bolsista_id = '${B(7)}'`);
       return e;
     });
+    const concluido = async () =>
+      (await um<{ c: boolean }>(`select concluido_em is not null as c from gestao.agenda where id = '${id}'`)).c;
 
     await como(B(6), async () => {
-      await expect(db.query(`select gestao.concluir_encontro($1, 'Relatório da Bia sem ser gestora.')`, [id])).rejects.toThrow(
-        /gestores do encontro/,
-      );
-      // Bolsista alocado lê a turma e os nomes da equipe para a página do encontro.
-      expect(await linhas(`select nome from gestao.turma where nome = 'Turma do gestor'`)).toHaveLength(1);
+      // Bolsista não conclui à mão, mas lê a turma e os nomes da equipe para a página do encontro.
+      await expect(db.query(`select gestao.concluir_encontro($1)`, [id])).rejects.toThrow(/só a coordenação/);
+      expect(await linhas(`select nome from gestao.turma where nome = 'Turma das notas'`)).toHaveLength(1);
       expect((await linhas(`select * from gestao.nomes_da_equipe()`)).length).toBeGreaterThan(1);
+
+      await expect(db.query(`select gestao.escrever_nota_encerramento($1, 'curto')`, [id])).rejects.toThrow(/10 a 5000/);
+      const { r } = await um<{ r: boolean }>(`select gestao.escrever_nota_encerramento('${id}', 'Turma animada, 18 alunos.') as r`);
+      expect(r).toBe(false);
+    });
+    expect(await concluido()).toBe(false);
+
+    await como(B(7), async () => {
+      await expect(db.query(`select gestao.escrever_nota_encerramento($1, 'Eu nem estava lá.')`, [id])).rejects.toThrow(
+        /só quem esteve/,
+      );
     });
 
     await como(B(5), async () => {
-      await expect(db.query(`select gestao.concluir_encontro($1, 'curto')`, [id])).rejects.toThrow(/relatório/);
-      await db.query(`select gestao.concluir_encontro($1, 'Correu bem; faltou material de Lego.')`, [id]);
+      const { r } = await um<{ r: boolean }>(`select gestao.escrever_nota_encerramento('${id}', 'Faltou material de Lego.') as r`);
+      expect(r).toBe(true);
     });
-
-    const feito = await um<{ concluido: boolean; relatorio: string }>(
-      `select concluido_em is not null as concluido, relatorio from gestao.agenda where id = '${id}'`,
-    );
-    expect(feito).toEqual({ concluido: true, relatorio: "Correu bem; faltou material de Lego." });
+    expect(await concluido()).toBe(true);
+    expect(
+      await linhas(`select situacao, nota_encerramento from gestao.agenda_bolsista where agenda_id = '${id}' order by bolsista_id`),
+    ).toEqual([
+      { situacao: "cumprida", nota_encerramento: "Faltou material de Lego." },
+      { situacao: "cumprida", nota_encerramento: "Turma animada, 18 alunos." },
+      { situacao: "faltou_avisou", nota_encerramento: null },
+    ]);
     const { autor } = await um<{ autor: string }>(
       `select autor from gestao.registro_auditoria where tabela = 'agenda' and registro_id = '${id}' order by id desc limit 1`,
     );
     expect(autor).toBe(B(5));
+  });
+
+  it("a coordenação conclui sem as notas e sem relatório; futuro e cancelado não recebem nota", async () => {
+    const [semNotas, futuro] = await como(COORD, async () => {
+      const a = await encontro("2026-09-30", "08:00", "12:00", "Lego", [B(8)], null);
+      await db.query(`select gestao.concluir_encontro($1)`, [a]);
+      const f = await encontro("2099-01-01", "08:00", "12:00", "Lego", [B(8)], null);
+      return [a, f];
+    });
+    expect(await um(`select concluido_em is not null as c, relatorio from gestao.agenda where id = '${semNotas}'`)).toEqual({
+      c: true,
+      relatorio: null,
+    });
+    await como(B(8), async () => {
+      await expect(
+        db.query(`select gestao.escrever_nota_encerramento($1, 'Antes da hora começar.')`, [futuro]),
+      ).rejects.toThrow(/depois da hora de início/);
+    });
   });
 
   it("o modelo de e-mail do banco é o mesmo do site", async () => {
@@ -478,12 +516,7 @@ describe("migration da alocação (spec 014)", () => {
       const id = await encontro("2026-09-19", "08:00", "12:00", "Lego", [A(7), A(8)], null);
       await db.exec(`update gestao.agenda_bolsista set situacao = 'faltou_avisou' where id = '${await alocacao(id, A(8))}'`);
 
-      await expect(db.exec(`update gestao.agenda set concluido_em = now() where id = '${id}'`)).rejects.toThrow(
-        /relatório/,
-      );
-      await db.exec(
-        `update gestao.agenda set concluido_em = '2000-01-01', relatorio = 'Aula tranquila, 20 alunos.' where id = '${id}'`,
-      );
+      await db.exec(`update gestao.agenda set concluido_em = '2000-01-01' where id = '${id}'`);
       const { concluido } = await um<{ concluido: boolean }>(
         `select concluido_em > '2020-01-01' as concluido from gestao.agenda where id = '${id}'`,
       );

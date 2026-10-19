@@ -38,7 +38,7 @@ import type {
 const SELECT_ENCONTRO =
   "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, relatorio, " +
   "escola(nome), turma(nome, status), " +
-  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, gestor)";
+  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, nota_encerramento)";
 
 function throwOnError(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
@@ -95,7 +95,7 @@ function mapAlocacao(row: AlocacaoRow, nomes: Map<string, string>): Alocacao {
     cobertoPorNome: row.coberto_por ? (nomes.get(row.coberto_por) ?? "Pessoa fora da equipe") : null,
     motivo: row.motivo,
     carga: row.carga,
-    gestor: row.gestor,
+    notaEncerramento: row.nota_encerramento,
   };
 }
 
@@ -343,10 +343,9 @@ export async function cancelarEncontro(id: string, motivo: string): Promise<void
 }
 
 /**
- * Concluir confirma que o encontro aconteceu e grava o relatório; o banco
- * carimba a hora, passa quem estava "prevista" para "cumprida" e confere que
- * quem pede é da coordenação ou gestor do encontro (spec 016). Reabrir tira o
- * carimbo e mantém o relatório.
+ * Concluir confirma que o encontro aconteceu e grava o relatório (opcional); o
+ * banco carimba a hora, passa quem estava "prevista" para "cumprida" e confere
+ * que quem pede é da coordenação. Reabrir tira o carimbo e mantém o relatório.
  */
 export async function concluirEncontro(id: string, concluir: boolean, relatorio: string | null): Promise<void> {
   const supabase = await createClient();
@@ -356,10 +355,18 @@ export async function concluirEncontro(id: string, concluir: boolean, relatorio:
   throwOnError(error);
 }
 
-export async function definirGestor(alocacaoId: string, gestor: boolean): Promise<void> {
+/**
+ * A nota de encerramento de quem pede. O banco confere que a pessoa esteve no
+ * encontro e que ele já começou; devolve true quando foi a última nota e o
+ * encontro se concluiu.
+ */
+export async function escreverNotaEncerramento(encontroId: string, nota: string): Promise<boolean> {
   const supabase = await createClient();
-  const { error } = await supabase.schema("gestao").from("agenda_bolsista").update({ gestor }).eq("id", alocacaoId);
+  const { data, error } = await supabase
+    .schema("gestao")
+    .rpc("escrever_nota_encerramento", { p_agenda: encontroId, p_nota: nota });
   throwOnError(error);
+  return data === true;
 }
 
 /**
