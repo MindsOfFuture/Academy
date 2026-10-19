@@ -11,10 +11,10 @@ import {
   concluirEncontro,
   conflitosDeHorario,
   criarEncontro,
-  definirGestor,
   definirSituacaoTurma,
   editarEscola,
   editarTurma,
+  escreverNotaEncerramento,
   registrarAfastamento,
   removerAlocacao,
   substituirAlocacao,
@@ -155,24 +155,15 @@ export async function cancelarEncontroAction(_anterior: EstadoAcao | null, form:
   }, "Encontro cancelado. Ele continua no histórico.");
 }
 
-/**
- * Concluir ou reabrir (spec 016): coordenação ou gestor do encontro. Aqui só se
- * exige ser da equipe; quem pode de fato é o banco que decide, em
- * `gestao.concluir_encontro()`.
- */
+/** Concluir ou reabrir à mão: só a coordenação, com relatório opcional. */
 export async function concluirEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
-  try {
-    await ensureGestaoMember();
-  } catch (error) {
-    return falha(error instanceof Error ? error.message : "Acesso negado.");
-  }
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
   const id = campo(form, "encontroId");
   const concluir = campo(form, "acao") !== "reabrir";
   const relatorio = campo(form, "relatorio");
   if (!id) return falha("Encontro não informado.");
-  if (concluir && (relatorio.length < 10 || relatorio.length > 5000)) {
-    return falha("Escreva o relatório do encontro (de 10 a 5000 caracteres).");
-  }
+  if (relatorio.length > 5000) return falha("O relatório vai até 5000 caracteres.");
   return executar(
     () => concluirEncontro(id, concluir, concluir ? relatorio : null),
     concluir ? "Encontro concluído. Quem estava prevista ficou como cumprida." : "Encontro reaberto.",
@@ -212,13 +203,25 @@ export async function removerAlocacaoAction(_anterior: EstadoAcao | null, form: 
   }, "Pessoa removida do encontro.");
 }
 
-export async function definirGestorAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
-  const negado = await exigirCoordenacao();
-  if (negado) return negado;
-  const id = campo(form, "alocacaoId");
-  const gestor = campo(form, "gestor") === "sim";
-  if (!id) return falha("Alocação não informada.");
-  return executar(() => definirGestor(id, gestor), gestor ? "Agora é gestor do encontro." : "Deixou de ser gestor.");
+/**
+ * A nota de encerramento de quem está no encontro. Aqui só se exige ser da
+ * equipe; quem pode de fato o banco decide, em `gestao.escrever_nota_encerramento()`.
+ */
+export async function escreverNotaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  try {
+    await ensureGestaoMember();
+  } catch (error) {
+    return falha(error instanceof Error ? error.message : "Acesso negado.");
+  }
+  const id = campo(form, "encontroId");
+  const nota = campo(form, "nota");
+  if (!id) return falha("Encontro não informado.");
+  if (nota.length < 10 || nota.length > 5000) return falha("Escreva a nota de encerramento (de 10 a 5000 caracteres).");
+  let concluiu = false;
+  const estado = await executar(async () => {
+    concluiu = await escreverNotaEncerramento(id, nota);
+  }, "Nota salva.");
+  return estado.ok && concluiu ? sucesso("Nota salva. Era a última: o encontro foi concluído.") : estado;
 }
 
 export async function substituirAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {

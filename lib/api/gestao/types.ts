@@ -436,7 +436,7 @@ export interface AlocacaoRow {
     coberto_por: string | null;
     motivo: string | null;
     carga: string;
-    gestor: boolean;
+    nota_encerramento: string | null;
 }
 
 export interface Alocacao {
@@ -451,8 +451,8 @@ export interface Alocacao {
     cobertoPorNome: string | null;
     motivo: string | null;
     carga: string;
-    /** Pode concluir o encontro (spec 016). */
-    gestor: boolean;
+    /** Escrita pela própria pessoa depois do início; a última nota conclui o encontro. */
+    notaEncerramento: string | null;
 }
 
 export interface EncontroRow {
@@ -492,7 +492,7 @@ export interface Encontro {
     motivoCancelamento: string | null;
     /** Confirmado que aconteceu (decisão 10 da spec 014); verde no calendário. */
     concluidoEm: string | null;
-    /** Escrito por quem concluiu (spec 016). */
+    /** Opcional, da coordenação ao concluir (spec 016). */
     relatorio: string | null;
     alocacoes: Alocacao[];
 }

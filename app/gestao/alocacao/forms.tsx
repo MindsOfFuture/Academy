@@ -25,9 +25,9 @@ import {
   concluirEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
-  definirGestorAction,
   editarEscolaAction,
   editarTurmaAction,
+  escreverNotaAction,
   removerAlocacaoAction,
   situacaoTurmaAction,
   substituirAction,
@@ -277,9 +277,9 @@ export function FormCancelarEncontro({ encontroId }: { encontroId: string }) {
 }
 
 /**
- * Concluir ou reabrir (decisão 10 da spec 014). Concluir abre a janela do
- * relatório (spec 016), obrigatório; reabrir só confirma e mantém o relatório.
- * Serve à coordenação e ao gestor do encontro — quem pode, o banco decide.
+ * Concluir ou reabrir à mão, só pela coordenação (decisão 10 da spec 014).
+ * Concluir abre a janela do relatório, opcional; reabrir só confirma e mantém o
+ * relatório. Sem a coordenação, o encontro se conclui com a última nota de encerramento.
  */
 export function FormConcluirEncontro({
   encontroId,
@@ -341,11 +341,9 @@ export function FormConcluirEncontro({
             Concluir encontro
           </h4>
           <label className="block space-y-1">
-            <span className={rotuloCampo}>Relatório do encontro</span>
+            <span className={rotuloCampo}>Relatório do encontro (opcional)</span>
             <textarea
               name="relatorio"
-              required
-              minLength={10}
               maxLength={5000}
               rows={7}
               value={texto}
@@ -370,17 +368,35 @@ export function FormConcluirEncontro({
   );
 }
 
-/** Marca ou tira o gestor do encontro (spec 016): quem conclui junto com a coordenação. */
-export function FormGestor({ alocacaoId, gestor }: { alocacaoId: string; gestor: boolean }) {
-  const [estado, acao, enviando] = useAcao(definirGestorAction);
+/**
+ * A nota de encerramento do próprio bolsista. Pode ser reescrita; quando a
+ * última pessoa da equipe escreve a sua, o encontro se conclui.
+ */
+export function FormNotaEncerramento({ encontroId, nota }: { encontroId: string; nota: string | null }) {
+  const [estado, acao, enviando] = useAcao(escreverNotaAction);
+  // Controlado: o React limpa o formulário depois do envio, e uma nota recusada não pode sumir.
+  const [texto, setTexto] = useState(nota ?? "");
   return (
-    <form action={acao} className="inline-flex flex-col items-start gap-1">
-      <input type="hidden" name="alocacaoId" value={alocacaoId} />
-      <input type="hidden" name="gestor" value={gestor ? "nao" : "sim"} />
-      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
-        {gestor ? "Tirar gestor" : "Tornar gestor"}
+    <form action={acao} className="space-y-2">
+      <input type="hidden" name="encontroId" value={encontroId} />
+      <label className="block space-y-1">
+        <span className={rotuloCampo}>Sua nota de encerramento</span>
+        <textarea
+          name="nota"
+          required
+          minLength={10}
+          maxLength={5000}
+          rows={5}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="O que foi feito, como a turma respondeu, o que faltou, o que levar na próxima."
+          className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+      </label>
+      <Button type="submit" size="sm" disabled={enviando}>
+        {enviando ? "Salvando…" : nota ? "Atualizar nota" : "Salvar nota"}
       </Button>
-      {estado && !estado.ok && <Aviso estado={estado} />}
+      <Aviso estado={estado} />
     </form>
   );
 }
