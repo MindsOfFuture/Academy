@@ -21,6 +21,13 @@ const securityHeaders = [
   { key: "Content-Security-Policy", value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'" },
 ];
 
+// A jornada completa do LG2 (public/lg2/jornada/) abre os módulos num iframe do próprio site.
+// Só public/lg2/ aceita moldura, e só do mesmo domínio; o resto continua DENY / 'none'.
+const lg2FrameHeaders = [
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" },
+];
+
 const nextConfig: NextConfig = {
   // Deploy autocontido em .next/standalone — único alvo é o VPS (ADR 018).
   output: "standalone",
@@ -37,7 +44,11 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // Ordem importa: a regra posterior sobrescreve a mesma chave da anterior.
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/lg2/:path*", headers: lg2FrameHeaders },
+    ];
   },
 };
 export default nextConfig;
