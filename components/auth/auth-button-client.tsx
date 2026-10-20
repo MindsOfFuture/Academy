@@ -84,6 +84,16 @@ export function AuthButtonClient() {
     }
 
     return user ? (
+        <>
+        {/* Atalho visível no topo para a equipe da gestão (coordenação e bolsistas) */}
+        {gestao ? (
+            <Link
+                href="/gestao"
+                className="rounded-full bg-[#FFD300] px-3 py-1 text-sm font-semibold text-[#684A97] shadow-md transition-opacity hover:opacity-90 md:text-base"
+            >
+                Gestão
+            </Link>
+        ) : null}
         <Dropdown className="text-lg hover:cursor-pointer">
             <DropdownTrigger className="text-lg rounded-lg outline-none">
                 <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -107,15 +117,13 @@ export function AuthButtonClient() {
             </DropdownTrigger>
             <DropdownMenu aria-label="Menu do usuário" className="bg-[#FFD300] p-2 rounded-lg">
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Dashboard" as={Link} href="/protected">Dashboard</DropdownItem>
-                {gestao ? (
-                    <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Gestao" as={Link} href="/gestao">Gestão</DropdownItem>
-                ) : null}
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" as={Link} href="/protected/perfil">Perfil</DropdownItem>
                 <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onPress={handleSignOut} color="danger">
                     Sair
                 </DropdownItem>
             </DropdownMenu>
         </Dropdown>
+        </>
     ) : (
         <Link
             className="text-m md:text-2xl bold transition-all duration-300 hover:text-[26px]"
