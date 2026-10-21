@@ -57,4 +57,4 @@ trocá-los. O site passa a mostrar o novo valor na próxima visita.
       valor inválido recusado) — `tests/integration/gestao-numeros-do-site-migration.test.ts`
 - [x] Leitura, validação e escrita — `lib/api/gestao/site.ts`, `validacao.ts`
 - [x] Formulário na tela "Hoje" — `app/gestao/numeros-do-site.tsx`
-- [ ] Migration aplicada em produção
+- [x] Migration aplicada em produção em 21/10/2026 (`gestao_numeros_do_site`), com ensaio antes: coordenação grava, bolsista recusado
