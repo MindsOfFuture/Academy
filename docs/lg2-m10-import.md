@@ -1,61 +1,29 @@
-# M10 · Turma A — importação parcial das perguntas
+# M10 · Turma B — Comunicação, vendas, pessoas e plano de ação
 
-## Escopo e autorização
+## Fonte
 
-Inclusão das perguntas do grupo na estrutura estática aprovada em `specs/013-lg2-modulos-por-turma.md`. O usuário confirmou explicitamente **Turma A, módulo 10** e autorizou **texto aberto temporário** quando faltam alternativas. O nome é o já cadastrado em `turmas.ts`: Comunicação, vendas, pessoas e plano de ação.
+Planilha do Grupo 10 `Modulo_10_Perguntas_e_Caminhos.xlsx` (sha256 em `dados/modulo10.js`). Ela substitui o questionário anterior (documento v2, 12 perguntas). Capa e conceitos continuam os do documento v2, porque a planilha nova não traz texto de abertura nem Base técnica.
 
-Esta entrega disponibiliza um questionário, não um módulo pedagógico completo: não produz diagnóstico, recomendações, cálculos ou plano de 90 dias. O aviso de versão parcial aparece na abertura, em todas as perguntas e no resumo impresso. A marcação em `PRONTOS.a` significa que o questionário está navegável, não que o conteúdo recebeu aprovação pedagógica.
+`dados/modulo10.js` é gerado por um extrator fora do repositório e guarda, literais: 13 perguntas (aba Passo a passo), 38 caminhos (aba Caminhos por resposta), instrumentos, pedido de IA, resumo (blocos, próximos passos, cruzamentos) e a lista dos 10 módulos. As colunas "Caminho técnico" e "Próximo passo / regra" viram comportamento e não vão para a tela.
 
-## Origem e fidelidade
+## Como o módulo funciona
 
-- Planilha original recebida do grupo; arquivo e nome pessoal não publicados. Para o teste, informe seu caminho local em `LG2_M10_XLSX`.
-- Todas as 16 abas foram lidas usando ZIP/XML da biblioteca padrão de Python.
-- Importadas literalmente as **15 perguntas de C5:C19** da aba `3 Fluxo de perguntas`, na ordem original; sem corrigir redação.
-- Excluída a linha 4: exemplo de M5, confirmado pelo preenchimento cinza `FFF2F2F2`.
-- A5:A10 contêm `M10.P01` a `M10.P06`, preservados.
-- A11:A19 estão vazias. Os identificadores internos `linha-11` a `linha-19` são referências às linhas de origem, não códigos atribuídos ao grupo; não aparecem como códigos pedagógicos na interface.
-- O hash SHA-256 do arquivo recebido está em `dados/perguntas.json` e é conferido no teste.
-- Nenhum nome de integrante, telefone ou metadado pessoal foi publicado. A extração pública é uma lista explícita de pergunta, linha, código e tipo original, não uma cópia da pasta de trabalho.
+- **Ponto de partida**: lê o que a pessoa já respondeu nos Módulos 1, 3, 4, 5 e 6 neste aparelho (oferta, para quem, proposta de valor, diferencial, canais, preço, entrega, pagamento) com o selo "Veio do Módulo N". Nada é obrigatório.
+- **Só leitura** das chaves dos outros módulos; o Módulo 10 grava apenas em `lg2-turma-b-m10` (estado versionado, `v: 2`).
+- **Fases**: Como você vende · Pessoas · Seu plano. A tela final (M10-12) mostra o plano, o roteiro de venda editável, a mensagem de apresentação, o checklist de sócios, o retrato por módulo (1 a 9), até 3 alertas, 1 encaminhamento e o próximo passo.
+- **Regras** em `js/motor.js` (lista de prioridades, ordem por urgência, datas, frase do plano). A capacidade do Módulo 7 usa uma cópia do motor daquele módulo (`js/motor7.js`).
 
-## Lacunas preservadas
+## Escolhas do app (a planilha pede dados que os módulos publicados não guardam)
 
-- A Capa não informa número, nome, turma, integrantes, versão ou data. A definição Turma A/M10 veio do usuário. A tabela genérica `Listas` sugere Turma de 24 para M10, mas não substitui essa confirmação.
-- Os tipos foram escritos em **F (Condição)**, deixando **E (Tipo)** vazia. Foram preservados em `tipoOriginal`, sem interpretar esses valores como desvios.
-- G (Opções) está vazia nas 15 perguntas. Todas usam campo livre, inclusive a pergunta cujo tipo original é `Sim/não`; nenhuma alternativa foi inventada.
-- Não há ajuda, resposta, alerta, próximo passo, fonte/data ou status preenchidos nas linhas importadas. Não há regras de exibição definidas: as 15 perguntas são acessíveis em sequência, mesmo aquelas que pressupõem uma situação anterior.
-- A Capa conta 6 perguntas por código, mas existem 15 textos; as nove perguntas sem código não foram descartadas.
-- A Base técnica contém textos do grupo, mas sem fontes, links ou datas; não foi incorporada porque esta entrega se limita às perguntas.
-- As abas de lógica, instrumentos e conteúdo educativo têm apenas exemplos de M5. Vídeos não têm roteiro do grupo; casos de teste têm apenas o exemplo e rótulos de tipos. Documentação e integração conservam exemplos do template. Nada disso foi convertido em conteúdo do M10.
+- **Sócio**: o Módulo 8 publicado não pergunta se há sócio (M8-03). O M10 faz a pergunta do documento v2 ("Você tem ou pretende ter sócio?") antes do acordo.
+- **Lista de prioridades**: os módulos não guardam lacunas com tema e gravidade. O app monta a lista com as respostas que dá para ler: "Não sei" de cada módulo (gravidade baixa) e alertas definidos aqui (alta: não sabe fazer, nenhum cliente ouvido, preço "Não sei", capacidade abaixo do volume, endereço negado, acordo entre sócios; média: consulta de viabilidade — alta se o imóvel já foi alugado —, só elogios, critério do teste, dinheiro para começar, fornecedor único, sem conferência de qualidade, tempo de produção, formalização, tempo de resposta, divulgação, etapa sem responsável).
+- **Responsáveis por etapa (M10-07)**: o mapa do Módulo 7 não tem "quem faz"; a pergunta aparece para todas as etapas do mapa e a resposta fica no M10 (não altera o M7).
+- **Roteiro de venda**: sem a etapa de nota fiscal (o Módulo 8 publicado não tem a pergunta M8-08).
+- **Ofertas guardadas** ("Analisar outra oferta"): o Módulo 1 publicado não guarda outras ofertas; a parte condicional não aparece.
+- **Retrato**: os módulos não marcam fato × hipótese; o app mostra uma informação-chave por módulo, as hipóteses evidentes (ideia ainda não vendida, só elogios, hipótese do teste) e quantas respostas "Não sei" ficaram.
+- **Frase do plano**: segue o caso da aba "Cálculos a conferir" ("…; vai funcionar se vierem 5 pedidos."), que acrescenta "vierem" ao formato da coluna F.
+- A aba "Diagnóstico das telas" descreve a versão parcial antiga (15 perguntas), não a v2 publicada.
 
-## Funcionamento
+## Teste
 
-- Entrada: `public/lg2/turma-a/m10/index.html`.
-- HTML/CSS/JS nativos; sem biblioteca, servidor de respostas ou dependência nova.
-- Reutiliza diretamente o CSS e os cinco recursos institucionais de `../../turma-b/m04/`; não importa seu motor, dados ou conteúdo. O complemento CSS local cuida apenas do questionário e da impressão.
-- Chave exclusiva `lg2-turma-a-m10`; salva texto a cada edição e posição a cada mudança, com retomada após recarga.
-- Voltar, editar pelo resumo, imprimir e reiniciar com confirmação. Cancelar preserva tudo; confirmar remove apenas a chave deste módulo.
-- Respostas podem ficar em branco; o resumo apresenta `Sem resposta`. Não há validação de negócio inventada.
-- Conteúdo de respostas é escapado; o campo usa `.value`. Falha ao salvar ou apagar é informada, em vez de prometer persistência.
-- Autorização do Academy continua no middleware existente; não foi criada exceção pública nem alterado banco de dados.
-
-## Evidência reproduzível
-
-```bash
-node tests/lg2-m10.cjs
-```
-
-O teste usa `python3` com biblioteca padrão para ler a fonte original e Playwright já instalado. Aceita `LG2_M10_XLSX`, `PYTHON`, `PW` e `LG2_M10_SCREENSHOT` para caminhos alternativos. O servidor de teste escuta em uma porta efêmera em `127.0.0.1`, e é encerrado junto com o navegador mesmo em falha.
-
-Resultado observado: exit code 0. Verificados texto literal e tipos/linhas contra XLSX, hash da fonte, disponibilidade na Turma A, 15/15 perguntas alcançáveis, textarea em todas as perguntas, salvamento/recarga, voltar/editar, resumo, escape de HTML malicioso, impressão acionada e controles ocultos no CSS de impressão, cancelamento e confirmação de reset, isolamento da Turma B, ausência do exemplo e de dados pessoais, sem erros de página/HTTP e sem overflow horizontal em 390×844.
-
-Captura móvel revisada visualmente: `C:/Users/faelr/AppData/Local/hermes/work/lg2-m10/preview.png`. Mostra a primeira pergunta, aviso de texto aberto temporário, campo, controles e rodapé institucional legíveis, sem recortes.
-
-O teste cobre o módulo estático em navegador real, não o login ou o build completo de Next.js. A impressão foi verificada pela chamada e pelo estilo de impressão, não por impressora física. Nenhum deploy, commit ou push foi feito.
-
-## Verificação para publicação
-
-A publicação de M5 e M10 foi autorizada pelo usuário. A primeira execução completa identificou um teste de registro desatualizado: a lista de chaves ainda não incluía M10 e o extrator reconhecia somente aspas duplas. O teste foi atualizado para conferir explicitamente a chave `lg2-turma-a-m10`, aceitando ambos os delimitadores sem remover nenhuma asserção.
-
-Após a correção, `NODE_OPTIONS=--no-experimental-webstorage npm test -- --run --coverage` terminou com exit 0: 67 arquivos passaram, 591 testes passaram e 2 foram ignorados. Cobertura: statements 70,62%, branches 62,38%, functions 70,55%, lines 73,37%. Os testes focados de M5 e M10 também passaram, incluindo a comparação literal das 15 perguntas com a fonte privada.
-
-`LG2_M10_XLSX` é obrigatório no teste de fonte: o caminho e o nome pessoal do arquivo recebido não são publicados.
+`node tests/lg2-m10.cjs` (com `PW=<playwright>`): texto literal contra a planilha embutida, casos da aba "Cálculos a conferir", as 38 linhas de caminhos alcançadas na tela com o conjunto exato de caixas, cruzamentos, herança, percurso completo, recarregar, corrigir, versão e recomeçar.
