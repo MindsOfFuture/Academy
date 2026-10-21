@@ -31,6 +31,7 @@ import {
   removerAlocacaoAction,
   situacaoTurmaAction,
   substituirAction,
+  substituirTodosAction,
 } from "./actions";
 
 type Opcao = { id: string; nome: string };
@@ -58,6 +59,75 @@ function Escolha({ name, opcoes, vazio, defaultValue = "", required }: {
       ))}
     </select>
   );
+}
+
+function diaMes(iso: string): string {
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+}
+
+/**
+ * Aviso de horário sobreposto (decisão 6 da spec 014), usado no lançamento e
+ * nas ações em lote (spec 020). Com várias datas, cada linha diz o dia.
+ */
+export function JanelaConflitos({
+  janelaRef,
+  conflitos,
+  confirmar,
+  aoConfirmar,
+}: {
+  janelaRef: React.RefObject<HTMLDialogElement | null>;
+  conflitos: ConflitoHorario[];
+  confirmar: string;
+  aoConfirmar: () => void;
+}) {
+  const variasDatas = new Set(conflitos.map((c) => c.data)).size > 1;
+  return (
+    <dialog
+      ref={janelaRef}
+      aria-labelledby="sobreposicao-titulo"
+      className="w-[min(32rem,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-black/40"
+    >
+      <div className="space-y-4 p-5">
+        <h4 id="sobreposicao-titulo" className="text-lg font-semibold">
+          Horário sobreposto
+        </h4>
+        <p className="text-sm text-muted-foreground">
+          {conflitos.length === 1 ? "Esta pessoa já está" : "Estas pessoas já estão"} em outro encontro nesse dia e
+          horário:
+        </p>
+        <ul className="max-h-72 divide-y overflow-y-auto rounded-md border text-sm">
+          {conflitos.map((c) => (
+            <li key={`${c.bolsistaId}-${c.encontroId}`} className="p-3">
+              <span className="font-medium">{c.bolsistaNome}</span>
+              <span className="block text-muted-foreground">
+                {variasDatas && c.data && `${diaMes(c.data)} · `}
+                {c.horario} · {c.modalidade}
+                {c.turmaNome && ` · ${c.turmaNome}`} ·{" "}
+                <Link href={`/gestao/alocacao/${c.encontroId}`} target="_blank" className="text-[#684A97] underline">
+                  ver encontro
+                </Link>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => janelaRef.current?.close()}>
+            Revisar
+          </Button>
+          <Button type="button" onClick={aoConfirmar}>
+            {confirmar}
+          </Button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+/** Quantas datas a repetição semanal gera (a conta que vale é a do servidor). */
+function contarSemanas(data: string, ate: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !/^\d{4}-\d{2}-\d{2}$/.test(ate) || ate < data) return 1;
+  const dias = (Date.parse(`${ate}T00:00:00Z`) - Date.parse(`${data}T00:00:00Z`)) / 86_400_000;
+  return Math.floor(dias / 7) + 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +165,9 @@ export function FormEncontro({
   const [turmaId, setTurmaId] = useState("");
   const [modalidade, setModalidade] = useState("");
   const [equipe, setEquipe] = useState<Set<string>>(new Set());
+  const [data, setData] = useState(dataPadrao);
+  const [repetirAte, setRepetirAte] = useState("");
+  const semanas = repetirAte ? contarSemanas(data, repetirAte) : 1;
   const abertas = turmas.filter((t) => t.status === "prevista" || t.status === "em_andamento");
 
   function escolherTurma(id: string) {
@@ -143,7 +216,7 @@ export function FormEncontro({
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="space-y-1">
           <span className={rotuloCampo}>Data</span>
-          <Input name="data" type="date" required defaultValue={dataPadrao} />
+          <Input name="data" type="date" required value={data} onChange={(e) => setData(e.target.value)} />
         </label>
         <label className="space-y-1">
           <span className={rotuloCampo}>Início</span>
@@ -184,6 +257,16 @@ export function FormEncontro({
           <span className={rotuloCampo}>Observação (opcional)</span>
           <Input name="descricao" maxLength={200} placeholder="Competição, encerramento…" />
         </label>
+        <label className="space-y-1">
+          <span className={rotuloCampo}>Repetir toda semana até (opcional)</span>
+          <Input
+            name="repetirAte"
+            type="date"
+            min={data || undefined}
+            value={repetirAte}
+            onChange={(e) => setRepetirAte(e.target.value)}
+          />
+        </label>
       </div>
 
       <fieldset className="space-y-2">
@@ -208,47 +291,17 @@ export function FormEncontro({
       </fieldset>
 
       <Button type="submit" disabled={enviando || conferindo}>
-        {conferindo ? "Conferindo horários…" : enviando ? "Lançando…" : "Lançar encontro"}
+        {conferindo
+          ? "Conferindo horários…"
+          : enviando
+            ? "Lançando…"
+            : semanas > 1
+              ? `Lançar ${semanas} encontros`
+              : "Lançar encontro"}
       </Button>
       <Aviso estado={estado} />
 
-      <dialog
-        ref={janelaRef}
-        aria-labelledby="sobreposicao-titulo"
-        className="w-[min(32rem,calc(100vw-2rem))] rounded-lg p-0 shadow-xl backdrop:bg-black/40"
-      >
-        <div className="space-y-4 p-5">
-          <h4 id="sobreposicao-titulo" className="text-lg font-semibold">
-            Horário sobreposto
-          </h4>
-          <p className="text-sm text-muted-foreground">
-            {conflitos.length === 1 ? "Esta pessoa já está" : "Estas pessoas já estão"} em outro encontro nesse dia e
-            horário:
-          </p>
-          <ul className="divide-y rounded-md border text-sm">
-            {conflitos.map((c) => (
-              <li key={`${c.bolsistaId}-${c.encontroId}`} className="p-3">
-                <span className="font-medium">{c.bolsistaNome}</span>
-                <span className="block text-muted-foreground">
-                  {c.horario} · {c.modalidade}
-                  {c.turmaNome && ` · ${c.turmaNome}`} ·{" "}
-                  <Link href={`/gestao/alocacao/${c.encontroId}`} target="_blank" className="text-[#684A97] underline">
-                    ver encontro
-                  </Link>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => janelaRef.current?.close()}>
-              Revisar
-            </Button>
-            <Button type="button" onClick={lancar}>
-              Lançar mesmo assim
-            </Button>
-          </div>
-        </div>
-      </dialog>
+      <JanelaConflitos janelaRef={janelaRef} conflitos={conflitos} confirmar="Lançar mesmo assim" aoConfirmar={lancar} />
     </form>
   );
 }
@@ -421,18 +474,47 @@ export function FormRemoverAlocacao({ alocacaoId, nome }: { alocacaoId: string; 
   );
 }
 
+/** Acrescenta uma ou várias pessoas de uma vez (spec 020). */
 export function FormAlocar({ encontroId, pessoas }: { encontroId: string; pessoas: Opcao[] }) {
   const [estado, acao, enviando] = useAcao(alocarAction);
+  const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (estado?.ok) setMarcadas(new Set());
+  }, [estado]);
   if (pessoas.length === 0) return null;
+
+  function alternar(id: string) {
+    setMarcadas((atual) => {
+      const nova = new Set(atual);
+      if (nova.has(id)) nova.delete(id);
+      else nova.add(id);
+      return nova;
+    });
+  }
+
   return (
-    <form action={acao} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+    <form action={acao} className={caixa}>
       <input type="hidden" name="encontroId" value={encontroId} />
-      <label className="flex-1 space-y-1">
-        <span className={rotuloCampo}>Acrescentar pessoa</span>
-        <Escolha name="bolsistaId" opcoes={pessoas} vazio="Escolha…" required />
-      </label>
-      <Button type="submit" variant="outline" disabled={enviando}>
-        Alocar
+      <fieldset className="space-y-2">
+        <legend className={rotuloCampo}>Acrescentar pessoas</legend>
+        <div className="grid gap-1 sm:grid-cols-3">
+          {pessoas.map((p) => (
+            <label key={p.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="bolsistaId"
+                value={p.id}
+                checked={marcadas.has(p.id)}
+                onChange={() => alternar(p.id)}
+                className="h-4 w-4 accent-[#684A97]"
+              />
+              {p.nome}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <Button type="submit" variant="outline" disabled={enviando || marcadas.size === 0}>
+        {marcadas.size > 1 ? `Alocar ${marcadas.size} pessoas` : "Alocar"}
       </Button>
       <Aviso estado={estado} />
     </form>
@@ -677,6 +759,29 @@ export function FormAfastamento({ pessoas }: { pessoas: Opcao[] }) {
       <p className="text-xs text-muted-foreground">Não registre dado de saúde nem anexe atestado.</p>
       <Button type="submit" disabled={enviando}>
         Registrar
+      </Button>
+      <Aviso estado={estado} />
+    </form>
+  );
+}
+
+/** Afastamento (spec 020): a mesma pessoa entra em todos os encontros que faltam substituir. */
+export function FormSubstituirTodos({ alocacoes, pessoas }: { alocacoes: string[]; pessoas: Opcao[] }) {
+  const [estado, acao, enviando] = useAcao(substituirTodosAction);
+  if (alocacoes.length === 0 || pessoas.length === 0) return null;
+  const n = alocacoes.length;
+  return (
+    <form action={acao} className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-end">
+      {alocacoes.map((id) => (
+        <input key={id} type="hidden" name="alocacaoId" value={id} />
+      ))}
+      <input type="hidden" name="motivo" value="Afastamento" />
+      <label className="flex-1 space-y-1">
+        <span className={rotuloCampo}>Substituir em todos por</span>
+        <Escolha name="substitutoId" opcoes={pessoas} vazio="Escolha…" required />
+      </label>
+      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+        {enviando ? "Substituindo…" : `Substituir em ${n} ${n === 1 ? "encontro" : "encontros"}`}
       </Button>
       <Aviso estado={estado} />
     </form>
