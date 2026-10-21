@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { getHero } from "@/lib/api/content";
 import { getIndicadores } from "@/lib/api/gestao/indicators";
 import { listarPendencias } from "@/lib/api/gestao/pendencias";
 import type { Pendencia } from "@/lib/api/gestao/types";
 import { exigirMembro } from "./guard";
+import { FormNumerosDoSite } from "./numeros-do-site";
 
 /**
  * Tela "Hoje" do módulo de gestão (spec 003).
@@ -10,14 +12,17 @@ import { exigirMembro } from "./guard";
  * Guard: `exigirMembro` (flag → login → papel), defesa em profundidade
  * (specs/constitution.md §III). Dados só por `lib/api/gestao`. O bolsista vê as
  * próprias pendências (a RLS recorta); a coordenação vê as da equipe e, embaixo,
- * os seis indicadores do convênio (spec 002).
+ * os seis indicadores do convênio (spec 002) e os números da página inicial
+ * (spec 019).
  */
 export default async function GestaoPage() {
   const papel = await exigirMembro("/gestao");
 
-  const [pendencias, indicadores] = await Promise.all([
+  const coordenacao = papel === "coordenacao";
+  const [pendencias, indicadores, site] = await Promise.all([
     listarPendencias(papel),
-    papel === "coordenacao" ? getIndicadores() : Promise.resolve(null),
+    coordenacao ? getIndicadores() : Promise.resolve(null),
+    coordenacao ? getHero() : Promise.resolve(null),
   ]);
 
   const aFazer = pendencias.filter((p) => p.tipo !== "proxima_aula");
@@ -72,6 +77,15 @@ export default async function GestaoPage() {
             <Indicador titulo="Aulas realizadas" valor={indicadores.aulas.total} />
             <Indicador titulo="Alocações de bolsistas" valor={indicadores.cargaBolsistas.totalAlocacoes} />
           </div>
+        </section>
+      )}
+
+      {site && (
+        <section aria-labelledby="numeros-do-site" className="space-y-3">
+          <h2 id="numeros-do-site" className="text-xl font-semibold">
+            Números da página inicial
+          </h2>
+          <FormNumerosDoSite escolas={site.n_escolas} alunos={site.n_alunos} />
         </section>
       )}
     </div>

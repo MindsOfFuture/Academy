@@ -131,6 +131,18 @@ const SITUACOES: readonly SituacaoAlocacao[] = [
 ];
 const STATUS_TURMA: readonly StatusTurma[] = ["prevista", "em_andamento", "encerrada", "nao_abriu"];
 
+const INTEIRO = /^\d{1,7}$/;
+
+/** Números da página inicial (spec 019): inteiros de 0 a 1.000.000. */
+export function validarNumerosDoSite(form: FormData): Validado<{ escolas: number; alunos: number }> {
+  const escolas = texto(form, "escolas").replace(/\./g, "");
+  const alunos = texto(form, "alunos").replace(/\./g, "");
+  const valido = (v: string) => INTEIRO.test(v) && Number(v) <= 1_000_000;
+  if (!valido(escolas)) return { ok: false, mensagem: "Informe o número de escolas (de 0 a 1.000.000, sem vírgula)." };
+  if (!valido(alunos)) return { ok: false, mensagem: "Informe o número de alunos (de 0 a 1.000.000, sem vírgula)." };
+  return { ok: true, valor: { escolas: Number(escolas), alunos: Number(alunos) } };
+}
+
 export function validarEscola(form: FormData): Validado<NovaEscola> {
   const nome = texto(form, "nome");
   const categoria = texto(form, "categoria");
