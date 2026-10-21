@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { lerNumero, mensagemDeErro, validarBolsa } from "@/lib/api/gestao/validacao";
+import { lerNumero, mensagemDeErro, validarBolsa, validarNumerosDoSite } from "@/lib/api/gestao/validacao";
 import { montarPendencias } from "@/lib/api/gestao/pendencias";
 import { mapMembro } from "@/lib/api/gestao/equipe";
 import type { MembroEquipe } from "@/lib/api/gestao/types";
@@ -99,5 +99,30 @@ describe("validação e montagem da gestão (spec 003)", () => {
     expect(
       mensagemDeErro(new Error('new row for relation "papel_membro" violates check constraint "papel_membro_algum_papel"')),
     ).toBe("A pessoa precisa ficar com ao menos um papel. Para tirar o acesso, use “Desligar”.");
+  });
+});
+
+describe("números da página inicial (spec 019)", () => {
+  it("aceita inteiros, inclusive com ponto de milhar", () => {
+    expect(validarNumerosDoSite(form({ escolas: "36", alunos: "1.520" }))).toEqual({
+      ok: true,
+      valor: { escolas: 36, alunos: 1520 },
+    });
+    expect(validarNumerosDoSite(form({ escolas: "0", alunos: "1000000" }))).toEqual({
+      ok: true,
+      valor: { escolas: 0, alunos: 1000000 },
+    });
+  });
+
+  it("recusa vazio, negativo, decimal, letra e acima de 1.000.000", () => {
+    for (const [escolas, alunos] of [["", "10"], ["-1", "10"], ["3,5", "10"], ["dez", "10"], ["10", "1000001"], ["10", ""]]) {
+      expect(validarNumerosDoSite(form({ escolas, alunos })).ok).toBe(false);
+    }
+  });
+
+  it("traduz a recusa do banco para quem não é da coordenação", () => {
+    expect(mensagemDeErro(new Error("gestao: só a coordenação muda os números do site"))).toBe(
+      "Só a coordenação muda os números do site.",
+    );
   });
 });
