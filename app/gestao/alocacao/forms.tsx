@@ -168,6 +168,10 @@ export function FormEncontro({
   const [data, setData] = useState(dataPadrao);
   const [repetirAte, setRepetirAte] = useState("");
   const semanas = repetirAte ? contarSemanas(data, repetirAte) : 1;
+  useEffect(() => {
+    // Lançou: a repetição não fica armada para o próximo lançamento.
+    if (estado?.ok) setRepetirAte("");
+  }, [estado]);
   const abertas = turmas.filter((t) => t.status === "prevista" || t.status === "em_andamento");
 
   function escolherTurma(id: string) {

@@ -197,7 +197,7 @@ export function SelecaoLote({
                     true,
                   )
                 }
-                className={`${campoSelect} w-auto`}
+                className={`${campoSelect.replace("w-full", "")} w-full sm:w-64`}
               >
                 <option value="">Marcar os de uma turma…</option>
                 {turmas.map((t) => (
