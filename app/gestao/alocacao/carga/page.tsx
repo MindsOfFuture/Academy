@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cargaDoMes, listarAfastamentos } from "@/lib/api/gestao/alocacao";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import { exigirMembro } from "../../guard";
-import { FormAfastamento } from "../forms";
+import { FormAfastamento, FormSubstituirTodos } from "../forms";
 import { diaCurto, horasTexto, mesDaUrl, mesVizinho, nomeDoMes } from "../rotulos";
 
 /**
@@ -23,6 +23,8 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
   const bolsistas = equipe
     .filter((m) => m.bolsista && !m.desligadoEm)
     .map((m) => ({ id: m.userProfileId, nome: m.nome }));
+  // Quem pode substituir: a equipe ativa, como na página do encontro.
+  const ativos = equipe.filter((m) => !m.desligadoEm).map((m) => ({ id: m.userProfileId, nome: m.nome }));
   const maior = Math.max(1, ...carga.map((c) => c.total));
 
   return (
@@ -91,6 +93,10 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
                       </li>
                     ))}
                   </ul>
+                  <FormSubstituirTodos
+                    alocacoes={a.encontrosAfetados.map((e) => e.alocacaoId)}
+                    pessoas={ativos.filter((p) => p.id !== a.bolsistaId)}
+                  />
                 </div>
               ) : (
                 <p className="text-sm text-green-700">Nenhum encontro pendente no período.</p>

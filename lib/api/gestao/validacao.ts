@@ -8,6 +8,7 @@ import type {
   NovaTurma,
   NovoAfastamento,
   NovoEncontro,
+  PedidoLote,
   RespostaMelhoria,
   SituacaoAlocacao,
   StatusMelhoria,
@@ -170,6 +171,66 @@ export function validarSituacaoTurma(form: FormData): Validado<{ status: StatusT
  * Encontro: início e fim obrigatórios (decisão 4 da spec 014). Com turma, o
  * banco usa a escola da turma; sem turma (tarefa, reunião), a escola é opcional.
  */
+/** Teto do lote e da repetição (spec 020): cabe um semestre de uma turma semanal. */
+export const LOTE_MAXIMO = 60;
+export const REPETICOES_MAXIMAS = 30;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** De `inicio` até `ate`, de 7 em 7 dias, as duas pontas incluídas. Datas "AAAA-MM-DD". */
+export function datasSemanais(inicio: string, ate: string): string[] {
+  const datas: string[] = [];
+  const dia = new Date(`${inicio}T00:00:00Z`);
+  while (datas.length <= REPETICOES_MAXIMAS) {
+    const iso = dia.toISOString().slice(0, 10);
+    if (iso > ate) break;
+    datas.push(iso);
+    dia.setUTCDate(dia.getUTCDate() + 7);
+  }
+  return datas;
+}
+
+/** "Repetir toda semana até": vazio = só a data do encontro. */
+export function validarRepeticao(form: FormData, data: string): Validado<string[]> {
+  const ate = texto(form, "repetirAte");
+  if (!ate) return { ok: true, valor: [data] };
+  if (!DATA_ISO.test(ate)) return { ok: false, mensagem: "Informe até quando o encontro se repete." };
+  if (ate < data) return { ok: false, mensagem: "A repetição precisa terminar depois da data do encontro." };
+  const datas = datasSemanais(data, ate);
+  if (datas.length > REPETICOES_MAXIMAS) {
+    return { ok: false, mensagem: `A repetição vai até ${REPETICOES_MAXIMAS} semanas. Escolha uma data mais próxima.` };
+  }
+  return { ok: true, valor: datas };
+}
+
+function ids(form: FormData, campo: string): string[] {
+  return [...new Set(form.getAll(campo).filter((v): v is string => typeof v === "string" && UUID.test(v)))];
+}
+
+const ACOES_LOTE = ["alocar", "retirar", "trocar", "cancelar", "concluir"] as const;
+
+export function validarLote(form: FormData): Validado<PedidoLote> {
+  const acao = texto(form, "acao") as PedidoLote["acao"];
+  const encontros = ids(form, "encontros");
+  const pessoas = ids(form, "pessoas");
+  const pessoa = ids(form, "pessoa")[0] ?? null;
+  const substituto = ids(form, "substituto")[0] ?? null;
+  const motivo = texto(form, "motivo");
+
+  if (!ACOES_LOTE.includes(acao)) return { ok: false, mensagem: "Escolha o que fazer com os encontros marcados." };
+  if (encontros.length === 0) return { ok: false, mensagem: "Marque pelo menos um encontro." };
+  if (encontros.length > LOTE_MAXIMO) {
+    return { ok: false, mensagem: `Marque até ${LOTE_MAXIMO} encontros por vez.` };
+  }
+  if (acao === "alocar" && pessoas.length === 0) return { ok: false, mensagem: "Escolha quem entra nos encontros." };
+  if ((acao === "retirar" || acao === "trocar") && !pessoa) return { ok: false, mensagem: "Escolha quem sai dos encontros." };
+  if (acao === "trocar" && !substituto) return { ok: false, mensagem: "Escolha quem entra no lugar." };
+  if (acao === "trocar" && pessoa === substituto) return { ok: false, mensagem: "Escolha outra pessoa para entrar no lugar." };
+  if (acao === "cancelar" && motivo.length < 3) return { ok: false, mensagem: "Cancelar exige o motivo." };
+  if (motivo.length > 500) return { ok: false, mensagem: "O motivo vai até 500 caracteres." };
+
+  return { ok: true, valor: { acao, encontros, pessoas, pessoa, substituto, motivo } };
+}
+
 export function validarEncontro(form: FormData): Validado<NovoEncontro> {
   const data = texto(form, "data");
   const inicio = texto(form, "inicio");

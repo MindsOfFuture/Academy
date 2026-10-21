@@ -5,9 +5,13 @@ import { listarEquipe } from "@/lib/api/gestao/equipe";
 import type { Encontro } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../guard";
 import { FormEncontro } from "./forms";
+import { CaixaLote, SelecaoLote } from "./lote";
 import { diaCurto, mesDaUrl, mesVizinho, nomeDoMes } from "./rotulos";
 
-/** Calendário da alocação (spec 014): o mês inteiro, cada encontro com a equipe. */
+/**
+ * Calendário da alocação (spec 014): o mês inteiro, cada encontro com a equipe.
+ * Com a seleção ligada, a mesma ação vale para vários encontros (spec 020).
+ */
 
 const SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -27,22 +31,30 @@ function CartaoEncontro({ e }: { e: Encontro }) {
         ? "border-green-300 bg-green-50 text-green-900"
         : "bg-white";
   return (
-    <Link
-      href={`/gestao/alocacao/${e.id}`}
-      className={`block rounded-md border p-2 text-xs hover:border-[#684A97] ${estilo}`}
-    >
-      {e.concluidoEm && <span className="sr-only">Concluído. </span>}
-      <span className="font-semibold">
-        {e.concluidoEm && <span aria-hidden>✓ </span>}
-        {e.horario}
-      </span>{" "}
-      · {e.modalidade}
-      {e.turmaNome && <span className="block text-gray-600">{e.turmaNome}</span>}
-      {e.escolaNome && <span className="block text-gray-600">{e.escolaNome}</span>}
-      <span className="mt-1 block">
-        {equipe.length ? equipe.map((a) => a.bolsistaNome.split(" ")[0]).join(", ") : "Sem equipe"}
-      </span>
-    </Link>
+    <div className="flex items-start gap-1">
+      <CaixaLote
+        id={e.id}
+        turmaId={e.turmaId}
+        ativo={!cancelado && !e.concluidoEm}
+        rotulo={`${diaCurto(e.data)} ${e.horario} ${e.modalidade}`}
+      />
+      <Link
+        href={`/gestao/alocacao/${e.id}`}
+        className={`block min-w-0 flex-1 rounded-md border p-2 text-xs hover:border-[#684A97] ${estilo}`}
+      >
+        {e.concluidoEm && <span className="sr-only">Concluído. </span>}
+        <span className="font-semibold">
+          {e.concluidoEm && <span aria-hidden>✓ </span>}
+          {e.horario}
+        </span>{" "}
+        · {e.modalidade}
+        {e.turmaNome && <span className="block text-gray-600">{e.turmaNome}</span>}
+        {e.escolaNome && <span className="block text-gray-600">{e.escolaNome}</span>}
+        <span className="mt-1 block">
+          {equipe.length ? equipe.map((a) => a.bolsistaNome.split(" ")[0]).join(", ") : "Sem equipe"}
+        </span>
+      </Link>
+    </div>
   );
 }
 
@@ -62,6 +74,13 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
     .filter((m) => !m.desligadoEm)
     .sort((a, b) => Number(b.bolsista) - Number(a.bolsista) || a.nome.localeCompare(b.nome))
     .map((m) => ({ id: m.userProfileId, nome: m.nome }));
+
+  // Turmas com encontro no mês, para marcar todos os de uma turma de uma vez (spec 020).
+  const turmasDoMes = [
+    ...new Map(
+      encontros.filter((e) => e.turmaId).map((e) => [e.turmaId!, { id: e.turmaId!, nome: e.turmaNome ?? "Turma" }]),
+    ).values(),
+  ].sort((a, b) => a.nome.localeCompare(b.nome));
 
   const porDia = new Map<string, Encontro[]>();
   for (const e of encontros) porDia.set(e.data, [...(porDia.get(e.data) ?? []), e]);
@@ -86,35 +105,37 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
         </Link>
       </div>
 
-      {/* Telas largas: grade do mês. */}
-      <div className="hidden overflow-hidden rounded-lg border bg-gray-200 md:grid md:grid-cols-7 md:gap-px">
-        {SEMANA.map((d) => (
-          <div key={d} className="bg-gray-50 p-2 text-center text-xs font-medium text-gray-600">
-            {d}
-          </div>
-        ))}
-        {celulas.map((dia, i) => (
-          <div key={dia ?? `vazio-${i}`} className="min-h-24 space-y-1 bg-white p-1">
-            {dia && <span className="text-xs text-gray-500">{Number(dia.slice(8))}</span>}
-            {dia && (porDia.get(dia) ?? []).map((e) => <CartaoEncontro key={e.id} e={e} />)}
-          </div>
-        ))}
-      </div>
+      <SelecaoLote turmas={turmasDoMes} pessoas={pessoas}>
+        {/* Telas largas: grade do mês. */}
+        <div className="hidden overflow-hidden rounded-lg border bg-gray-200 md:grid md:grid-cols-7 md:gap-px">
+          {SEMANA.map((d) => (
+            <div key={d} className="bg-gray-50 p-2 text-center text-xs font-medium text-gray-600">
+              {d}
+            </div>
+          ))}
+          {celulas.map((dia, i) => (
+            <div key={dia ?? `vazio-${i}`} className="min-h-24 space-y-1 bg-white p-1">
+              {dia && <span className="text-xs text-gray-500">{Number(dia.slice(8))}</span>}
+              {dia && (porDia.get(dia) ?? []).map((e) => <CartaoEncontro key={e.id} e={e} />)}
+            </div>
+          ))}
+        </div>
 
-      {/* Celular: lista por dia. */}
-      <ul className="space-y-3 md:hidden">
-        {[...porDia.entries()].map(([dia, lista]) => (
-          <li key={dia} className="space-y-1">
-            <p className="text-sm font-medium">{diaCurto(dia)}</p>
-            {lista.map((e) => (
-              <CartaoEncontro key={e.id} e={e} />
-            ))}
-          </li>
-        ))}
-      </ul>
-      {encontros.length === 0 && (
-        <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhum encontro lançado neste mês.</p>
-      )}
+        {/* Celular: lista por dia. */}
+        <ul className="space-y-3 md:hidden">
+          {[...porDia.entries()].map(([dia, lista]) => (
+            <li key={dia} className="space-y-1">
+              <p className="text-sm font-medium">{diaCurto(dia)}</p>
+              {lista.map((e) => (
+                <CartaoEncontro key={e.id} e={e} />
+              ))}
+            </li>
+          ))}
+        </ul>
+        {encontros.length === 0 && (
+          <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhum encontro lançado neste mês.</p>
+        )}
+      </SelecaoLote>
 
       <FormEncontro
         turmas={turmas}
