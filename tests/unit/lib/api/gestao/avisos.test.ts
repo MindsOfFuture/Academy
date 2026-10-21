@@ -25,8 +25,9 @@ const encontro = {
     { bolsistaId: "duda", situacao: "cumprida" },
   ],
 };
-const obterEncontro = vi.fn(async () => encontro);
-vi.mock("@/lib/api/gestao/alocacao", () => ({ obterEncontro: () => obterEncontro() }));
+const segundo = { ...encontro, id: "e2", data: "2026-10-12", motivoCancelamento: null };
+const obterEncontros = vi.fn(async (ids: string[]) => [encontro, segundo].filter((e) => ids.includes(e.id)));
+vi.mock("@/lib/api/gestao/alocacao", () => ({ obterEncontros: (ids: string[]) => obterEncontros(ids) }));
 vi.mock("@/lib/api/gestao/equipe", () => ({
   listarEquipe: async () => [
     { userProfileId: "bia", email: "bia@ufjf.br" },
@@ -35,7 +36,7 @@ vi.mock("@/lib/api/gestao/equipe", () => ({
   ],
 }));
 
-import { avisar } from "@/lib/api/gestao/avisos";
+import { avisar, avisarLote } from "@/lib/api/gestao/avisos";
 
 describe("avisos por e-mail", () => {
   beforeEach(() => enviar.mockClear());
@@ -51,8 +52,24 @@ describe("avisos por e-mail", () => {
   });
 
   it("falha ao montar o aviso não lança", async () => {
-    obterEncontro.mockRejectedValueOnce(new Error("sem rede"));
+    obterEncontros.mockRejectedValueOnce(new Error("sem rede"));
     await expect(avisar("alocado", "e1", ["bia"])).resolves.toBeUndefined();
     expect(enviar).not.toHaveBeenCalled();
+  });
+
+  it("lote: um e-mail por pessoa, com todos os encontros dela (spec 020)", async () => {
+    await avisarLote("alocado", [
+      { encontroId: "e1", pessoas: ["bia", "caio"] },
+      { encontroId: "e2", pessoas: ["bia"] },
+    ]);
+    expect(enviar).toHaveBeenCalledTimes(2);
+    const chamadas = enviar.mock.calls as unknown as [string, string, string][];
+    const bia = chamadas.find(([para]) => para === "bia@ufjf.br")!;
+    expect(bia[1]).toBe("Você foi alocado(a) em 2 encontros");
+    expect(bia[2]).toContain("05/10 · 13h às 17h");
+    expect(bia[2]).toContain("12/10 · 13h às 17h");
+    const caio = chamadas.find(([para]) => para === "caio@ufjf.br")!;
+    expect(caio[1]).toBe("Você foi alocado(a) em um encontro: 05/10 · 13h às 17h · Lego · Lego segunda · EE Teste");
+    expect(obterEncontros).toHaveBeenLastCalledWith(["e1", "e2"]);
   });
 });

@@ -567,6 +567,8 @@ export interface ConflitoHorario {
     bolsistaId: string;
     bolsistaNome: string;
     encontroId: string;
+    /** "AAAA-MM-DD"; o aviso mostra quando a conferência cobre várias datas (spec 020). */
+    data?: string;
     horario: string;
     modalidade: string;
     turmaNome: string | null;
@@ -581,4 +583,35 @@ export interface EncontroDoDiaRow {
     modalidade: string;
     turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
     agenda_bolsista: { bolsista_id: string; situacao: SituacaoAlocacao; inicio: string | null; fim: string | null }[] | null;
+}
+
+// ---------------------------------------------------------------------------
+// Alocação em lote (spec 020)
+// ---------------------------------------------------------------------------
+
+export type AcaoLote = "alocar" | "retirar" | "trocar" | "cancelar" | "concluir";
+
+export interface PedidoLote {
+    acao: AcaoLote;
+    encontros: string[];
+    /** "alocar": quem entra. */
+    pessoas: string[];
+    /** "retirar" e "trocar": quem sai. */
+    pessoa: string | null;
+    /** "trocar": quem entra no lugar. */
+    substituto: string | null;
+    /** Obrigatório em "cancelar"; opcional em "trocar". */
+    motivo: string;
+}
+
+/** O que fazer num encontro: quem entra ("alocar") ou qual alocação mexer ("retirar", "trocar"). */
+export interface PassoLote {
+    encontro: Encontro;
+    alocacaoId: string | null;
+    pessoas: string[];
+}
+
+export interface PlanoLote {
+    passos: PassoLote[];
+    pulados: { encontro: Encontro; motivo: string }[];
 }

@@ -54,6 +54,16 @@ vi.mock("@/lib/api/gestao/pendencias", () => ({
   ],
 }));
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
+vi.mock("@/lib/api/content", () => ({
+  getHero: async () => ({ n_escolas: 35, n_alunos: 1499, subtitulo: "" }),
+}));
+vi.mock("@/app/gestao/numeros-do-site", () => ({
+  FormNumerosDoSite: ({ escolas, alunos }: { escolas: number; alunos: number }) => (
+    <p>
+      site: {escolas} escolas, {alunos} alunos
+    </p>
+  ),
+}));
 vi.mock("@/app/gestao/equipe/forms", () => ({
   FormConcederPapel: () => <div />,
   FormBolsa: () => <div />,
@@ -106,6 +116,8 @@ describe("rota /gestao", () => {
     expect(screen.getByText("05/10 · Escola A")).toBeInTheDocument();
     expect(screen.getByText("Alunos participantes")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("Números da página inicial")).toBeInTheDocument();
+    expect(screen.getByText("site: 35 escolas, 1499 alunos")).toBeInTheDocument();
   });
 
   it("mostra ao bolsista só as pendências, sem os indicadores do convênio", async () => {
@@ -114,6 +126,7 @@ describe("rota /gestao", () => {
     render(await GestaoPage());
     expect(screen.getByText("Aula de 01/10 sem registro")).toBeInTheDocument();
     expect(screen.queryByText("Alunos participantes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Números da página inicial")).not.toBeInTheDocument();
   });
 
   it("devolve 404 ao bolsista na tela de equipe", async () => {

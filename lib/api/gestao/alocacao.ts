@@ -14,6 +14,8 @@ import type {
   NovaTurma,
   NovoAfastamento,
   NovoEncontro,
+  PedidoLote,
+  PlanoLote,
   RegistroHistorico,
   SituacaoAlocacao,
   StatusTurma,
@@ -267,6 +269,108 @@ export async function criarEncontro(novo: NovoEncontro): Promise<string> {
 }
 
 /**
+ * O mesmo encontro em várias datas (spec 020, "repetir toda semana"): um pedido
+ * grava todos os encontros e outro, todas as equipes. Devolve os ids na ordem das datas.
+ */
+export async function criarEncontros(novo: NovoEncontro, datas: string[]): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .schema("gestao")
+    .from("agenda")
+    .insert(
+      datas.map((dia) => ({
+        data: dia,
+        inicio: novo.inicio,
+        fim: novo.fim,
+        modalidade: novo.modalidade,
+        aulas: novo.descricao || novo.modalidade,
+        escola_id: novo.escolaId,
+        turma_id: novo.turmaId,
+      })),
+    )
+    .select("id, data");
+  throwOnError(error);
+  const criados = ((data ?? []) as { id: string; data: string }[]).sort((x, y) => x.data.localeCompare(y.data));
+  if (novo.equipe.length > 0 && criados.length > 0) {
+    const { error: erroEquipe } = await supabase
+      .schema("gestao")
+      .from("agenda_bolsista")
+      .insert(criados.flatMap((e) => novo.equipe.map((bolsista_id) => ({ agenda_id: e.id, bolsista_id }))));
+    throwOnError(erroEquipe);
+  }
+  return criados.map((e) => e.id);
+}
+
+/** Vários encontros de uma vez, na ordem de data e horário (spec 020). */
+export async function obterEncontros(ids: string[]): Promise<Encontro[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const [{ data, error }, nomes] = await Promise.all([
+    supabase.schema("gestao").from("agenda").select(SELECT_ENCONTRO).in("id", ids).order("data").order("inicio"),
+    nomesDaEquipe(),
+  ]);
+  throwOnError(error);
+  return ((data ?? []) as unknown as EncontroRow[]).map((row) => mapEncontro(row, nomes));
+}
+
+/** Situações em que a pessoa ainda pode ser substituída (as mesmas de `gestao.substituir_alocacao`). */
+const SUBSTITUIVEL = new Set(["prevista", "faltou_avisou", "faltou_sem_aviso"]);
+
+/**
+ * Decide, encontro por encontro, o que a ação em lote faz e o que fica de fora
+ * (spec 020). As regras são as da tela de um encontro só; o banco confere de novo.
+ */
+export function planejarLote(pedido: PedidoLote, encontros: Encontro[]): PlanoLote {
+  const plano: PlanoLote = { passos: [], pulados: [] };
+  const pular = (encontro: Encontro, motivo: string) => plano.pulados.push({ encontro, motivo });
+
+  for (const encontro of encontros) {
+    if (encontro.canceladoEm) {
+      pular(encontro, "já estava cancelado");
+      continue;
+    }
+    const daPessoa = encontro.alocacoes.find((a) => a.bolsistaId === pedido.pessoa) ?? null;
+    switch (pedido.acao) {
+      case "alocar": {
+        const ja = new Set(encontro.alocacoes.map((a) => a.bolsistaId));
+        const novas = pedido.pessoas.filter((p) => !ja.has(p));
+        if (novas.length === 0) pular(encontro, "todos já estavam nele");
+        else plano.passos.push({ encontro, alocacaoId: null, pessoas: novas });
+        break;
+      }
+      case "retirar":
+        if (!daPessoa) pular(encontro, "a pessoa não estava nele");
+        else plano.passos.push({ encontro, alocacaoId: daPessoa.id, pessoas: [daPessoa.bolsistaId] });
+        break;
+      case "trocar":
+        if (!daPessoa) pular(encontro, "a pessoa não estava nele");
+        else if (!SUBSTITUIVEL.has(daPessoa.situacao)) pular(encontro, "a pessoa já cumpriu, saiu ou foi substituída");
+        else plano.passos.push({ encontro, alocacaoId: daPessoa.id, pessoas: [daPessoa.bolsistaId] });
+        break;
+      case "cancelar":
+        if (encontro.concluidoEm) pular(encontro, "já estava concluído");
+        else plano.passos.push({ encontro, alocacaoId: null, pessoas: [] });
+        break;
+      case "concluir":
+        if (encontro.concluidoEm) pular(encontro, "já estava concluído");
+        else plano.passos.push({ encontro, alocacaoId: null, pessoas: [] });
+        break;
+    }
+  }
+  return plano;
+}
+
+/** "Feito em 3 encontros. Ficaram de fora: 13/10 (já estava cancelado)." */
+export function mensagemDoLote(feitos: number, deFora: { data: string; motivo: string }[]): string {
+  const dia = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  const partes = [feitos === 0 ? "Nada foi feito." : `Feito em ${feitos} ${feitos === 1 ? "encontro" : "encontros"}.`];
+  if (deFora.length > 0) {
+    partes.push(`Ficaram de fora: ${deFora.map((p) => `${dia(p.data)} (${p.motivo.replace(/\.$/, "")})`).join("; ")}.`);
+  }
+  return partes.join(" ");
+}
+
+/**
  * Quem das pessoas escolhidas já está em outro encontro que se sobrepõe a
  * [inicio, fim). Encostar não é sobrepor: sair às 12h e entrar às 12h passa.
  * Vale o horário parcial de quem chega depois ou sai antes. Não conta quem foi
@@ -319,7 +423,10 @@ export async function conflitosDeHorario(
     nomesDaEquipe(),
   ]);
   throwOnError(error);
-  return acharSobreposicoes({ inicio, fim }, (linhas ?? []) as unknown as EncontroDoDiaRow[], nomes);
+  return acharSobreposicoes({ inicio, fim }, (linhas ?? []) as unknown as EncontroDoDiaRow[], nomes).map((c) => ({
+    ...c,
+    data,
+  }));
 }
 
 export async function alocar(encontroId: string, bolsistas: string[]): Promise<void> {
