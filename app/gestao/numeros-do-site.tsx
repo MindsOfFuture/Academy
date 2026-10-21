@@ -1,17 +1,28 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { EstadoAcao } from "@/lib/api/gestao/types";
 import { Aviso, rotuloCampo } from "./equipe/forms";
 import { numerosDoSiteAction } from "./actions";
 
-/** Spec 019: os dois números que a página inicial mostra, editáveis pela coordenação. */
+/**
+ * Spec 019: os dois números que a página inicial mostra, editáveis pela coordenação.
+ * Envio à mão (e não por `action` no formulário): o React limparia os campos depois
+ * de salvar e a tela voltaria a mostrar os números antigos.
+ */
 export function FormNumerosDoSite({ escolas, alunos }: { escolas: number; alunos: number }) {
   const [estado, acao, enviando] = useActionState<EstadoAcao | null, FormData>(numerosDoSiteAction, null);
   return (
-    <form action={acao} className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const dados = new FormData(e.currentTarget);
+        startTransition(() => acao(dados));
+      }}
+      className="space-y-3 rounded-lg border bg-white p-4 shadow-sm"
+    >
       <div className="grid gap-3 sm:grid-cols-3 sm:items-end">
         <label className="space-y-1">
           <span className={rotuloCampo}>Escolas atendidas</span>
