@@ -1,497 +1,648 @@
-/* Módulo 10 (Turma B) contra o documento "Módulo 10 v2.docx" do grupo; execute: node tests/lg2-m10.cjs.
-   ESPERADO foi copiado do documento (Telas 2, 3 e 4); o fluxo esperado abaixo é escrito à parte do app. */
-const assert = require('node:assert/strict');
+/* Módulo 10 (Turma B) contra a planilha "Modulo_10_Perguntas_e_Caminhos.xlsx" do Grupo 10.
+   Execute: PW=<caminho do pacote playwright> node tests/lg2-m10.cjs   (SHOTS=<pasta> grava prints 390x844)
+   ESPERADO foi copiado da planilha (abas "Passo a passo" e "Caminhos por resposta"); roda sem a planilha.
+   1) o texto em dados/modulo10.js é o da planilha, sem edição;
+   2) regras: casos da aba "Cálculos a conferir" contra motor.js;
+   3) cada linha da aba "Caminhos por resposta" é alcançada na tela, com o conjunto exato de caixas;
+   4) cruzamentos, encaminhamento e herança dos Módulos 1 a 9; percurso inteiro, recarregar e retomar.
+   Sai com código 1 se algo falhar. */
+const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const root = path.resolve(__dirname, '..');
-const dir = path.join(root, 'public/lg2/turma-b/m10');
+const { chromium } = require(process.env.PW || 'playwright');
+
+const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m10');
 const ESPERADO = {
- "nome": "Comunicação, vendas, pessoas e plano de ação",
- "objetivo": "Ao final do módulo, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
- "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam ao módulo com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. O módulo busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
- "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
- "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado.",
  "perguntas": [
   [
-   "M10.P01",
-   null,
+   "M10-01",
+   "Como você vende",
+   "Além de [canais de venda], por onde os clientes falam com você?"
+  ],
+  [
+   "M10-02",
+   "Como você vende",
    "Em quanto tempo você costuma responder a um cliente?"
   ],
   [
-   "M10.P02",
-   null,
+   "M10-03",
+   "Como você vende",
    "Quando alguém demonstra interesse, você segue uma sequência até fechar a venda?"
   ],
   [
-   "M10.P03",
-   null,
+   "M10-04",
+   "Como você vende",
    "Depois da entrega, você volta a falar com o cliente?"
   ],
   [
-   "M10.P04",
-   null,
-   "Quais tarefas você tem dificuldade para fazer ou não tem tempo de fazer?"
+   "M10-05",
+   "Como você vende",
+   "Como as pessoas vão saber que [oferta em foco] existe nas próximas semanas?"
   ],
   [
-   "M10.P05",
-   null,
-   "Você tem ou pretende ter sócio?"
-  ],
-  [
-   "M10.P06",
-   "M10.P05 = Sim",
+   "M10-06",
+   "Pessoas",
    "Vocês já combinaram por escrito quem faz o quê, quanto cada um coloca e como dividem o resultado?"
   ],
   [
-   "M10.P07",
-   null,
-   "Para cada tarefa principal do negócio, há uma pessoa responsável, mesmo que seja você?"
+   "M10-07",
+   "Pessoas",
+   "Quem cuida destas etapas do seu processo?"
   ],
   [
-   "M10.P08",
-   null,
-   "Você está pensando em contratar alguém?"
+   "M10-08",
+   "Pessoas",
+   "Você pensa em contratar alguém nos próximos meses?"
   ],
   [
-   "M10.P09",
-   "M10.P08 = Sim",
-   "Você já considerou outras formas de resolver essa necessidade?"
+   "M10-08a",
+   "Pessoas",
+   "Antes de contratar, quais outras formas você já considerou?"
   ],
   [
-   "M10.P10",
-   null,
-   "Quais são os 3 problemas ou tarefas mais urgentes do seu negócio hoje?"
+   "M10-09",
+   "Seu plano",
+   "Estes são os pontos que apareceram no seu percurso. Quais são os 3 mais urgentes para você?"
   ],
   [
-   "M10.P11",
-   null,
-   "Se você esperar 3 meses sem agir, o que tende a acontecer com cada um deles?"
+   "M10-10",
+   "Seu plano",
+   "Se você esperar 3 meses sem agir, o que tende a acontecer com cada uma?"
   ],
   [
-   "M10.P12",
-   null,
-   "Para cada prioridade, que sinal observável mostraria que a ação funcionou?"
+   "M10-11",
+   "Seu plano",
+   "Para a prioridade mais urgente: o que você vai fazer, até quando, e que sinal vai mostrar que funcionou?"
+  ],
+  [
+   "M10-12",
+   "Fechamento",
+   "Este é o seu plano de ação e o retrato do seu negócio. Está certo?"
   ]
  ],
- "regras": [
+ "caminhos": [
   [
-   "M10.R01",
-   "M10.P01 = Até 1 hora",
-   "Resposta rápida aumenta significativamente as chances de conversão e demonstra profissionalismo inicial.",
-   "Manter a rapidez à medida que o volume cresce exigirá automatização ou equipe."
+   "M10-01",
+   "Uma ou mais opções (WhatsApp, Instagram ou outra rede, telefone, pessoalmente, e-mail)",
+   "Resposta",
+   "Anotado. Concentrar a conversa em poucos canais ajuda a não perder pedidos."
   ],
   [
-   "M10.R02",
-   "M10.P01 = Entre 1 e 4 horas",
-   "Responder em poucas horas mantém o cliente interessado, mas exige atenção para não perder o impulso de compra.",
-   "Se o cliente tiver urgência, ele pode procurar a concorrência nesse intervalo."
+   "M10-01",
+   "Ainda não falo com clientes",
+   "Dica",
+   "Pense em por onde o seu cliente prefere falar: o Módulo 2 mostrou onde ele procura ([onde procuram])."
   ],
   [
-   "M10.R03",
-   "M10.P01 = Até 24 horas",
-   "Um prazo de um dia pode ser aceitável para serviços complexos, mas é arriscado para compras por impulso.",
-   "Ao responder no dia seguinte, o cliente já pode ter resolvido a necessidade de outra forma."
+   "M10-01",
+   "Não sei",
+   "Dica",
+   "Lembre como foram os últimos contatos: mensagem, ligação ou pessoalmente?"
   ],
   [
-   "M10.R04",
-   "M10.P01 = Mais de 24 horas",
-   "Uma resposta lenta é um dos principais motivos de desistência de compra, encaminhando o cliente para a concorrência.",
-   "A demora no primeiro contato reduz drasticamente a chance de fechamento."
+   "M10-02",
+   "Em até 1 hora / No mesmo dia",
+   "Resposta",
+   "Responder rápido costuma pesar na decisão de compra."
   ],
   [
-   "M10.R05",
-   "M10.P01 = Não sei",
-   "Medir o tempo médio de resposta é o primeiro passo para melhorar o padrão de atendimento.",
-   "A ausência de resposta padronizada costuma gerar frustração no cliente."
+   "M10-02",
+   "Em 1 ou 2 dias",
+   "Dica",
+   "Separar dois momentos fixos por dia para responder pode ajudar. [Se tempo de apoio alto no M7]: isso também pesa no seu tempo de apoio."
   ],
   [
-   "M10.R06",
-   "M10.P02 = Sim",
-   "Seguir uma sequência testada ajuda a entender em qual etapa exata as vendas costumam travar.",
-   "Vendas fechadas muito rapidamente sem qualificação podem gerar clientes insatisfeitos depois."
+   "M10-02",
+   "Mais de 2 dias",
+   "Atenção",
+   "Quem espera muito pode comprar de outra pessoa. Uma mensagem automática dizendo quando você responde pode ajudar."
   ],
   [
-   "M10.R07",
-   "M10.P02 = Não",
-   "Vender sem uma sequência padronizada depende muito da sorte e do talento individual de quem atende no momento.",
-   "A falta de um processo repetível impede escalar as vendas do negócio."
+   "M10-02",
+   "Ainda não vendo / Não sei",
+   "Dica",
+   "Quando começar, anote a hora da mensagem e a hora da sua resposta em alguns contatos."
   ],
   [
-   "M10.R08",
-   "M10.P02 = Não sei",
-   "Não ter clareza sobre o processo prático de venda dificulta o treino de novas pessoas no futuro.",
-   "Sem etapas claras, é impossível medir o desempenho de vendas."
+   "M10-03",
+   "Sim, sigo passos parecidos",
+   "Resposta",
+   "Confira o roteiro. Ele usa o que você já respondeu nos outros módulos."
   ],
   [
-   "M10.R09",
-   "M10.P03 = Sim",
-   "O pós-venda ativo é uma das formas mais baratas de gerar recompra e indicações espontâneas.",
-   "Ignorar reclamações no pós-venda anula o benefício desse contato."
+   "M10-03",
+   "Depende do cliente",
+   "Dica",
+   "Um roteiro base ajuda a não esquecer passos, mesmo que cada conversa seja diferente."
   ],
   [
-   "M10.R10",
-   "M10.P03 = Não",
-   "Deixar de falar com o cliente após a entrega é perder a chance de fidelizar e de corrigir falhas que você ainda não viu.",
-   "Vender apenas uma vez para cada cliente encarece o custo de aquisição (marketing)."
+   "M10-03",
+   "Ainda não vendi",
+   "Dica",
+   "Use o roteiro no seu teste e anote o que funcionou."
   ],
   [
-   "M10.R11",
-   "M10.P03 = Não sei",
-   "Sem contato pós-venda, não é possível saber de fato se o produto ou serviço resolveu o problema do cliente.",
-   ""
+   "M10-03",
+   "Não sei",
+   "Dica",
+   "Lembre a última venda: o que aconteceu entre o primeiro contato e o pagamento?"
   ],
   [
-   "M10.R12",
-   "M10.P04 = Preenchido",
-   "Identificar os gargalos de rotina ajuda a priorizar o que precisa ser simplificado ou delegado.",
-   "Tentar abraçar todas as tarefas sem auxílio reduz a qualidade das entregas essenciais."
+   "M10-04",
+   "Sim, peço opinião / Sim, ofereço de novo",
+   "Resposta",
+   "Anote o que os clientes dizem: isso alimenta o seu padrão de qualidade (Módulo 7)."
   ],
   [
-   "M10.R13",
-   "M10.P04 = Não sei",
-   "Não mapear as dificuldades de tempo impede reconhecer onde o negócio está perdendo eficiência.",
-   "A sobrecarga crônica costuma ser percebida apenas quando prazos e vendas já foram prejudicados."
+   "M10-04",
+   "Não, só se o cliente me procura",
+   "Dica",
+   "Uma mensagem alguns dias depois, perguntando se deu tudo certo, pode trazer a próxima venda e indicações."
   ],
   [
-   "M10.R14",
-   "M10.P05 = Sim",
-   "Ter sócio permite somar competências complementares e dividir responsabilidades de gestão.",
-   "Expectativas não alinhadas entre sócios são uma das maiores causas de encerramento precoce."
+   "M10-04",
+   "Ainda não vendi / Não sei",
+   "Dica",
+   "Inclua uma mensagem depois da entrega no seu roteiro de venda."
   ],
   [
-   "M10.R15",
-   "M10.P05 = Não",
-   "Empreender sozinho dá agilidade na decisão, mas exige disciplina rigorosa para equilibrar operação e gestão.",
-   "Centralizar tudo aumenta o risco de estafa e cria dependência total da presença física do titular."
+   "M10-05",
+   "Indicação de quem já comprou / Redes sociais próprias / Grupos de mensagem / Cartaz ou panfleto no bairro / Parceria com outro negócio",
+   "Resposta",
+   "Anotado. A mensagem de apresentação usa o seu diferencial; confira e ajuste."
   ],
   [
-   "M10.R16",
-   "M10.P05 = Não sei",
-   "Avaliar a necessidade de sociedade depende de identificar se faltam recursos financeiros ou habilidades técnicas.",
-   "Convidar um sócio apenas por insegurança inicial pode gerar vínculos contratuais difíceis de desfazer."
+   "M10-05",
+   "Anúncio pago",
+   "Atenção",
+   "Anúncio pago é um gasto. Confira se ele entrou nos seus gastos do Módulo 5 e defina um limite antes de começar."
   ],
   [
-   "M10.R17",
-   "M10.P06 = Sim",
-   "Formalizar os papéis, aportes e regras de retirada previne atritos operacionais e societários.",
-   "Acordos informais perdem força com o tempo se não forem registrados documentalmente."
+   "M10-05",
+   "Ainda não sei",
+   "Dica",
+   "Comece pelo que não custa: avisar quem já comprou e pedir indicação."
   ],
   [
-   "M10.R18",
-   "M10.P06 = Não",
-   "A ausência de regras claras por escrito gera dúvidas frequentes sobre esforço individual e remuneração.",
-   "Divergências sobre dedicação e dinheiro costumam paralisar as operações da empresa."
+   "M10-06",
+   "Sim, por escrito",
+   "Resposta",
+   "Ótimo. Guardem o documento e revisem se algo mudar."
   ],
   [
-   "M10.R19",
-   "M10.P06 = Não sei",
-   "A falta de alinhamento explícito indica indefinição sobre o papel de cada integrante no negócio.",
-   "Não saber como as decisões serão tomadas deixa a sociedade vulnerável a conflitos internos."
+   "M10-06",
+   "Só combinamos de boca / Ainda não",
+   "Atenção",
+   "Um acordo escrito evita desentendimentos sobre trabalho, dinheiro e saída de um sócio. Para a forma do documento, procure um contador ou advogado."
   ],
   [
-   "M10.R20",
-   "M10.P07 = Sim",
-   "Atribuir um responsável único para cada atividade garante cobrança de prazos e consistência.",
-   "Mesmo que uma única pessoa execute várias funções, é recomendado que o papel operacional esteja delimitado."
+   "M10-06",
+   "Não sei",
+   "Dica",
+   "Converse com o sócio sobre os itens do checklist de acordo."
   ],
   [
-   "M10.R21",
-   "M10.P07 = Não",
-   "Tarefas sem dono definido tendem a ser esquecidas ou executadas com atraso e erros.",
-   "A falta de responsabilidade clara gera retrabalho e descompasso na rotina de entrega."
+   "M10-07",
+   "Responsável escolhido por etapa (eu, sócio, ajudante, ninguém ainda)",
+   "Resposta",
+   "Mapa atualizado."
   ],
   [
-   "M10.R22",
-   "M10.P07 = Não sei",
-   "Indefinição sobre papéis operacionais impede a padronização e o treinamento futuro de terceiros.",
-   "Sem clareza de quem responde por cada processo, problemas operacionais ficam sem solução definitiva."
+   "M10-07",
+   "'Ninguém ainda' em alguma etapa",
+   "Dica",
+   "Etapa sem responsável costuma ser a que atrasa."
   ],
   [
-   "M10.R23",
-   "M10.P08 = Sim",
-   "Contratar amplia a capacidade de entrega, mas cria uma obrigação financeira fixa e contínua.",
-   "Lembre-se de calcular os encargos trabalhistas, que podem elevar o custo consideravelmente além do salário nominal."
+   "M10-08",
+   "Não",
+   "Resposta",
+   "Anotado."
   ],
   [
-   "M10.R24",
-   "M10.P08 = Não",
-   "Manter a operação enxuta preserva a margem e mantém custos fixos sob controle no início.",
-   "Se a demanda crescer além do limite pessoal de atendimento, a qualidade do produto pode cair."
+   "M10-08",
+   "Sim, para produzir ou atender / para vender ou divulgar / para tarefas administrativas",
+   "Atenção",
+   "Contratar tem custo todo mês e regras próprias. Antes de decidir, veja as alternativas e converse com um contador sobre a forma de contratar."
   ],
   [
-   "M10.R25",
-   "M10.P08 = Não sei",
-   "A dúvida sobre contratar indica necessidade de medir primeiro o volume real de trabalho excedente.",
-   "Contratações precipitadas antes da estabilização da receita geram custos rescisórios prematuros."
+   "M10-08",
+   "Não sei",
+   "Dica",
+   "Pense no que você deixa de fazer por falta de tempo. É isso que alguém faria."
   ],
   [
-   "M10.R26",
-   "M10.P09 = Sim",
-   "Avaliar alternativas como automação, parcerias ou terceirização flexibiliza o custo da operação.",
-   "Contratos terceirizados exigem alinhamento claro de nível de serviço para não comprometer a qualidade."
+   "M10-08a",
+   "Uma ou mais (parceria com outro negócio, profissional por serviço avulso, ajuda da família, menos variedade de opções, rever o tempo de apoio, ainda nenhuma)",
+   "Resposta",
+   "Anotado. O plano pode começar testando uma alternativa antes de contratar."
   ],
   [
-   "M10.R27",
-   "M10.P09 = Não",
-   "Contratar diretamente sem explorar soluções alternativas pode gerar custo fixo desnecessário.",
-   "Ferramentas digitais gratuitas ou serviços pontuais poderiam suprir a demanda com menor compromisso financeiro."
+   "M10-09",
+   "Até 3 itens da lista",
+   "Resposta",
+   "Anotado. Vamos ver qual delas é a mais urgente."
   ],
   [
-   "M10.R28",
-   "M10.P09 = Não sei",
-   "Conhecer opções de apoio disponíveis no mercado evita assumir compromissos empregatícios precoces.",
-   "Deixar de pesquisar alternativas de suporte encarece a gestão da rotina inicial."
+   "M10-09",
+   "Outro (texto)",
+   "Resposta",
+   "Anotado."
   ],
   [
-   "M10.R29",
-   "M10.P10 = Preenchido",
-   "Listar os 3 problemas mais urgentes evita a perda de foco e ajuda a concentrar esforços no que é vital.",
-   "Tratar tudo como urgente gera ansiedade e impede a conclusão aprofundada de qualquer tarefa."
+   "M10-09",
+   "Mais de 3",
+   "Dica",
+   "Com três prioridades fica mais fácil começar. As outras ficam guardadas."
   ],
   [
-   "M10.R30",
-   "M10.P10 = Não sei",
-   "A ausência de prioridades claras faz o empreendedor reagir apenas a imprevistos cotidianos.",
-   "Sem foco definido, o tempo é consumido por rotinas secundárias enquanto gargalos graves persistem."
+   "M10-09",
+   "Não sei",
+   "Dica",
+   "Deixamos marcadas as três que mais pesam pelo que você respondeu. Você pode trocar."
   ],
   [
-   "M10.R31",
-   "M10.P11 = Piora grave / Risco",
-   "Reconhecer o custo da inação ajuda a classificar a real gravidade do problema para a sobrevivência do negócio.",
-   "Postergar soluções críticas transforma dificuldades pontuais em crises financeiras ou operacionais."
+   "M10-10",
+   "Para cada prioridade: piora muito / piora um pouco / fica igual / não sei",
+   "Resposta",
+   "A mais urgente parece ser: [prioridade]."
   ],
   [
-   "M10.R32",
-   "M10.P11 = Pouco impacto",
-   "Problemas que não se agravam com o tempo não devem consumir o tempo escasso da liderança.",
-   "Gastar energia resolvendo detalhes de baixo impacto desvia o foco de vendas e entregas essenciais."
+   "M10-11",
+   "Ação, data, sinal e número preenchidos",
+   "Resposta",
+   "Seu plano: [frase]. Combine com você mesmo de olhar o resultado nessa data."
   ],
   [
-   "M10.R33",
-   "M10.P11 = Não sei",
-   "Não antecipar os desdobramentos de um problema impede agir de forma preventiva.",
-   "Ignorar a evolução de um gargalo transfere a decisão para um momento de emergência."
+   "M10-11",
+   "Sem número",
+   "Dica",
+   "Quanto basta para dizer que funcionou? Definir antes evita mudar a régua depois."
   ],
   [
-   "M10.R34",
-   "M10.P12 = Preenchido",
-   "Definir um indicador observável permite saber com precisão se o esforço gerou a melhoria esperada.",
-   "Metas subjetivas dificultam avaliar se a rotina melhorou ou se os recursos foram mal aproveitados."
+   "M10-11",
+   "Data acima de 90 dias",
+   "Dica",
+   "Um prazo longo dificulta acompanhar. Qual seria um primeiro passo para as próximas duas semanas?"
   ],
   [
-   "M10.R35",
-   "M10.P12 = Não sei",
-   "Agir sem um critério de sucesso mensurável impede saber quando a tarefa foi concluída satisfatoriamente.",
-   "A ausência de métricas claras perpetua ações corretivas ineficazes por longos períodos."
+   "M10-11",
+   "Data inválida (passada)",
+   "Dica",
+   "Escolha uma data a partir de hoje."
+  ],
+  [
+   "M10-11",
+   "Não sei",
+   "Dica",
+   "Comece pelo menor passo possível desta semana."
+  ],
+  [
+   "M10-12",
+   "Sim, salvar",
+   "Resposta",
+   "Pronto! Seu plano está salvo. Tudo aqui são estimativas e orientações; as decisões são suas. [Se houver ofertas guardadas]: Quer fazer o percurso com [próxima oferta]?"
+  ],
+  [
+   "M10-12",
+   "Quero corrigir algo",
+   "Resposta",
+   "Qual resposta você quer mudar?"
   ]
  ],
- "base": [
-  [
-   "M10-C01",
-   "Mensagem",
-   "Frase curta que diz para quem é o negócio, o que ele oferece, qual benefício entrega e o que o diferencia.",
-   "Se o cliente não entende o que você faz em poucos segundos, tende a não perguntar nem comprar. Também orienta o que você escreve e posta."
-  ],
-  [
-   "M10-C02",
-   "Canais físicos",
-   "Lugares onde o cliente encontra o negócio ou conversa com ele: WhatsApp, Instagram, loja, indicação, site, entre outros.",
-   "Estar em todos os canais cansa e dispersa. Escolher poucos que você consegue manter ativos costuma ser mais viável, sempre com o mesmo preço, prazo e jeito de falar."
-  ],
-  [
-   "M10-C03",
-   "Atendimento",
-   "Como você recebe, responde e resolve as demandas do cliente antes, durante e depois da compra.",
-   "É onde muitos pequenos negócios ganham ou perdem clientes: resposta lenta ou confusa afasta, resposta clara aproxima."
-  ],
-  [
-   "M10-C04",
-   "Vendas",
-   "Sequência de passos para vender: abordar, entender a necessidade, fazer a proposta, negociar, fechar e acompanhar.",
-   "Vender sem sequência depende de sorte. Registrar as etapas mostra onde as vendas travam e o que testar primeiro."
-  ],
-  [
-   "M10-C05",
-   "Pós-venda",
-   "Contato depois da entrega: confirmar se deu certo, ouvir reclamações, pedir feedbacks e convidar para voltar.",
-   "Cliente que volta e indica costuma custar menos do que conquistar um novo. Também revela falhas que você ainda não via."
-  ],
-  [
-   "M10-C06",
-   "Competências",
-   "Conhecimentos, habilidades e atitudes necessários para executar as tarefas do negócio.",
-   "Antes de chamar um sócio ou contratar, é preciso saber o que você já sabe fazer e o que falta. Uma lacuna pode ser resolvida aprendendo, terceirizando ou fazendo parceria."
-  ],
-  [
-   "M10-C07",
-   "Sócios",
-   "Pessoas que dividem com você o negócio, em dinheiro, trabalho, resultado e responsabilidades.",
-   "Sociedade sem regras claras é fonte comum de conflito. Combinar antes quem entra com o quê e como se divide o resultado ajuda a evitar problemas. Os detalhes jurídicos devem ser confirmados com profissional habilitado."
-  ],
-  [
-   "M10-C08",
-   "Responsabilidades",
-   "Definição por escrito de quem faz o quê, até quando e quem decide cada assunto.",
-   "Evita tarefas sem dono ou feitas em duplicidade. Vale também para quem trabalha sozinho, para decidir onde colocar o próprio tempo."
-  ],
-  [
-   "M10-C09",
-   "Contratação",
-   "Decidir se vale colocar alguém para trabalhar no negócio, analisando demanda, carga de trabalho, capacidade de pagar e alternativas.",
-   "Contratar cria um compromisso contínuo, além do salário. Analisar antes reduz o risco de assumir um custo que o negócio não sustenta. Regras trabalhistas devem ser confirmadas em fonte oficial."
-  ],
-  [
-   "M10-C10",
-   "Prioridades",
-   "O que merece atenção primeiro, considerando impacto, prazo e risco de piorar.",
-   "Com pouco tempo e dinheiro, tentar fazer tudo ao mesmo tempo costuma terminar em nada concluído. Priorizar permite montar um plano de 90 dias com poucas ações."
-  ]
- ]
+ "apoio": {
+  "M10-01": "Marque todos. Não informe números nem perfis.",
+  "M10-02": "Pense na última semana. Se ainda não vende, pense no que consegue fazer.",
+  "M10-03": "Você já ouviu [pessoas ouvidas] pessoas no Módulo 2. Montamos um roteiro com o que você respondeu: [etapas]. Confira.",
+  "M10-04": "[Se compra recorrente no Módulo 2]: Você disse que o cliente compra [frequência]. Voltar a falar pode trazer a próxima venda.",
+  "M10-05": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3].",
+  "M10-06": "Você disse no Módulo 8 que terá sócio. Combinar antes evita desentendimentos depois.",
+  "M10-07": "Etapas do seu mapa (Módulo 7) que ainda estão sem responsável: [etapas].",
+  "M10-08": "[Se capacidade curta no Módulo 7]: Com o tempo informado, cabem cerca de [N] por mês, e você pretende [volume].",
+  "M10-08a": "Marque as que você já pensou. Contratar tem custo fixo e regras próprias.",
+  "M10-09": "Juntamos o que ficou em aberto nos módulos anteriores. Escolha até 3 ou escreva outro.",
+  "M10-10": "Responda para cada prioridade. Isso ajuda a decidir por onde começar.",
+  "M10-11": "Ex.: 'Fazer a consulta de viabilidade até sexta; sinal: resposta da prefeitura'. Ou: 'Divulgar no grupo do bairro por 2 semanas; sinal: 5 pedidos'.",
+  "M10-12": "Confira antes de salvar. Você pode corrigir qualquer resposta, de qualquer módulo."
+ }
 };
-const ctx = { window: {} };
-vm.runInNewContext(fs.readFileSync(path.join(dir, 'dados/modulo10.js'), 'utf8'), ctx);
-const D = JSON.parse(JSON.stringify(ctx.window.MODULO10));
-for (const k of ['nome', 'objetivo', 'para_quem', 'ter_em_maos', 'entrega']) assert.equal(D[k], ESPERADO[k], k);
-assert.deepEqual(D.perguntas.map((q) => [q.codigo, q.condicao, q.pergunta]), ESPERADO.perguntas);
-assert.deepEqual(D.regras.map((g) => [g.codigo, g.condicao, g.texto, g.alerta]), ESPERADO.regras);
-assert.deepEqual(D.base.map((b) => [b.codigo, b.conceito, b.definicao, b.porque]), ESPERADO.base);
-assert.equal(/rafael/i.test(fs.readFileSync(path.join(dir, 'dados/modulo10.js'), 'utf8')), false);
-console.log(`PASS dados: ${D.perguntas.length} perguntas, ${D.regras.length} regras e ${D.base.length} conceitos literais do documento.`);
+const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf', '.webp': 'image/webp' };
+const servidor = http.createServer((req, res) => {
+  const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
+  if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
+  res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
+  fs.createReadStream(f).pipe(res);
+});
+let falhas = 0;
+function check(nome, ok, extra) {
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${nome}${!ok && extra !== undefined ? ' :: ' + JSON.stringify(extra).slice(0, 600) : ''}`);
+  if (!ok) falhas++;
+}
+const nrm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+const CHAVE = 'lg2-turma-b-m10';
 
-/* respostas possíveis por pergunta (escrito à parte): P01 tem a lista do documento; P04/P10/P12 são texto + Não sei */
-const SNN = ['Sim', 'Não', 'Não sei'];
-const OPC = { 'M10.P01': ['Até 1 hora', 'Entre 1 e 4 horas', 'Até 24 horas', 'Mais de 24 horas', 'Não sei'], 'M10.P02': SNN, 'M10.P03': SNN,
-  'M10.P05': SNN, 'M10.P06': SNN, 'M10.P07': SNN, 'M10.P08': SNN, 'M10.P09': SNN, 'M10.P11': ['Piora grave / Risco', 'Pouco impacto', 'Não sei'] };
-const TEXTO = ['M10.P04', 'M10.P10', 'M10.P12'];
-const ORDEM = ESPERADO.perguntas.map((q) => q[0]);
-const valor = (cod, r) => r === 'Não sei' ? 'Não sei' : TEXTO.includes(cod) ? 'Preenchido' : r;
-const esperadas = (cod, r) => ESPERADO.regras.filter((g) => g[1] === `${cod} = ${valor(cod, r)}`).map((g) => g[2]);
-/* respostas anteriores que deixam a pergunta visível */
-function antes(cod) {
-  const R = {};
-  for (const c of ORDEM) {
-    if (c === cod) break;
-    R[c] = c === 'M10.P05' || c === 'M10.P08' ? { estado: 'opcao', opcao: 'Sim' }
-      : TEXTO.includes(c) ? { estado: 'valor', itens: c === 'M10.P10' ? ['Atrasos', 'Estoque', ''] : ['ok'] } : { estado: 'opcao', opcao: 'Sim' };
-  }
-  return R;
+/* ---------- 1. dados literais ---------- */
+const src = fs.readFileSync(path.join(DIR, 'dados/modulo10.js'), 'utf8');
+const ctx = { window: {} }; vm.createContext(ctx); vm.runInContext(src, ctx);
+const D = JSON.parse(JSON.stringify(ctx.window.MODULO10));
+check('dados: 13 perguntas na ordem da planilha', JSON.stringify(D.perguntas.map((q) => [q.codigo, q.fase, q.pergunta])) === JSON.stringify(ESPERADO.perguntas), D.perguntas.map((q) => q.codigo));
+const cams = D.perguntas.flatMap((q) => q.caminhos.map((c) => [q.codigo, c.opcao, c.retorno, c.texto]));
+check('dados: 38 caminhos literais (opção, tipo de retorno, mensagem)', JSON.stringify(cams) === JSON.stringify(ESPERADO.caminhos), cams.length);
+check('dados: texto de apoio literal', D.perguntas.every((q) => q.apoio === ESPERADO.apoio[q.codigo]));
+check('dados: nenhuma ordem ao implementador nos dados públicos', !/rafael/i.test(src));
+check('dados: sem códigos de pergunta nas mensagens da tela final', !/M\d+-\d+/.test(JSON.stringify(D.resumo.proximos)));
+
+/* ---------- 2. regras (aba "Cálculos a conferir") ---------- */
+const Mo = require(path.join(DIR, 'js/motor.js'));
+{
+  const it = [
+    { tema: 'Preço abaixo do mercado', gravidade: 'alta' },
+    { tema: 'Medir o tempo de produção', gravidade: 'media' },
+    { tema: 'Fazer a consulta de viabilidade na prefeitura', gravidade: 'media', bloqueia: true },
+    { tema: 'Definir a divulgação', gravidade: 'media' },
+    { tema: 'Acordo entre sócios', gravidade: 'alta' },
+    { tema: 'acordo entre sócios', gravidade: 'baixa' },
+  ];
+  const l = Mo.prioridades(it).map((x) => x.tema);
+  check('Caso: lista de prioridades sem repetição e por gravidade (alta, bloqueia, demais)', JSON.stringify(l) === JSON.stringify(['Preço abaixo do mercado', 'Acordo entre sócios', 'Fazer a consulta de viabilidade na prefeitura', 'Medir o tempo de produção', 'Definir a divulgação']), l);
+  const muitos = Array.from({ length: 12 }, (_, i) => ({ tema: 'Item ' + i, gravidade: 'baixa' }));
+  check('Caso: lista com até 8 itens', Mo.prioridades(muitos).length === 8);
+  const o = Mo.ordenarPorUrgencia(['A', 'B', 'C'], { A: 'piora muito', B: 'fica igual', C: 'piora muito' }, ['C', 'A', 'B']);
+  check('Caso: ordem por urgência = A e C (empate pela gravidade da lista), depois B', JSON.stringify(o) === JSON.stringify(['C', 'A', 'B']), o);
+  const o2 = Mo.ordenarPorUrgencia(['A', 'B', 'C'], { A: 'piora muito', B: 'fica igual', C: 'piora muito' }, ['A', 'B', 'C']);
+  check('Caso: ordem por urgência com A antes de C na lista = A, C, B', JSON.stringify(o2) === JSON.stringify(['A', 'C', 'B']), o2);
+  const f = Mo.frasePlano({ acao: 'divulgar no grupo do bairro', data: '2026-11-04', sinal: 'pedidos', numero: '5' });
+  check("Caso: frase do plano 'Divulgar no grupo do bairro até [data]; vai funcionar se vierem 5 pedidos.'", f === 'Divulgar no grupo do bairro até 04/11/2026; vai funcionar se vierem 5 pedidos.', f);
+  check('Regra: data passada é bloqueada; acima de 90 dias pede passo intermediário', Mo.avaliarData('2026-10-01', '2026-10-21') === 'passada' && Mo.avaliarData('2027-02-01', '2026-10-21') === 'longe' && Mo.avaliarData('2026-11-04', '2026-10-21') === 'ok');
+  check('Regra: "Não sei" em prioridades marca as 3 primeiras da lista', JSON.stringify(Mo.tresPrimeiras([{ tema: 'a' }, { tema: 'b' }, { tema: 'c' }, { tema: 'd' }])) === '["a","b","c"]');
 }
 
-const http = require('node:http');
-let playwright;
-try { playwright = require('playwright'); } catch { playwright = require(process.env.PW); }
-const norm = (s) => s.replace(/\s+/g, ' ').trim();
+/* ---------- respostas dos outros módulos (sementes) ---------- */
+const HERANCA = {
+  'lg2-turma-a-m01': { R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' } } },
+  'lg2-turma-b-m02': { R: { 'M2.P18': { estado: 'valor', valor: '6' }, 'M2.P11': { estado: 'opcao', opcao: 'Meu bairro' }, 'M2.P17': { estado: 'opcao', opcao: 'Toda semana' } } },
+  'lg2-turma-a-m03': { R: { 'M3.P13': { estado: 'opcoes', opcoes: ['Redes sociais (Instagram, Facebook, WhatsApp)'] }, 'M3.P21': { estado: 'valor', valor: 'Bolo fresco entregue no mesmo dia' }, 'M3.P15': { estado: 'valor', valor: 'Doceria da esquina, padaria' } } },
+  'lg2-turma-a-m04': { R: { 'M4.P08': { estado: 'valor', valor: 'trabalhadores do bairro' }, 'M4.P12': { estado: 'valor', valor: 'Sobremesa caseira pronta para levar.' }, 'M4.P04': { estado: 'opcao', opcao: 'Retirada presencial pelo cliente' }, 'M4.P19': { estado: 'valor', valor: '10' }, 'M4.P05': { estado: 'valor', valor: 'Três sabores' } } },
+  'lg2-turma-a-m05': { versao: 1, R: { 'M5.P36': { estado: 'valor', valor: '12' }, 'M5.P32': { estado: 'opcao', opcao: 'Não' } } },
+  'lg2-turma-b-m06': { R: { 'M6.P04': { estado: 'multi', opcoes: ['Pix', 'Dinheiro'] } } },
+  /* Módulo 7: até 10 h, apoio até 2 h, 30 min por unidade = no máximo 69 por mês; volume 55 = folga de 14 */
+  'lg2-turma-b-m07': { v: 1, ini: { horas: 'Até 10 h', volume: '55', minUn: 30 }, mapa: ['Receber o pedido', 'Fazer', 'Entregar'], R: { 'M7-03': { estado: 'opcao', opcao: 'Até 2 h' }, 'M7-11': { estado: 'multi', opcoes: ['Pedidos entregues no prazo'] } } },
+  'lg2-turma-b-m09': { R: { 'M9.P10': { estado: 'opcao', opcao: 'Ainda não fiz' }, 'M9.P09': { estado: 'opcao', opcao: 'Não' } } },
+};
+const INI = { oferta: 'Bolo de pote', grupo: 'trabalhadores do bairro', proposta: 'Sobremesa caseira pronta para levar.', diferencial: 'Bolo fresco entregue no mesmo dia', estagio: 'Já vendo', canais: 'Redes sociais (Instagram, Facebook, WhatsApp)', preco: '12', entrega: 'Retirada presencial pelo cliente', pagamento: 'Pix, Dinheiro', de: {} };
+const NEUTRO = {
+  'M10-01': { estado: 'multi', opcoes: ['WhatsApp'] },
+  'M10-02': { estado: 'opcao', opcao: 'No mesmo dia' },
+  'M10-03': { estado: 'opcao', opcao: 'Sim, sigo passos parecidos' },
+  'M10-04': { estado: 'opcao', opcao: 'Sim, peço opinião' },
+  'M10-05': { estado: 'opcao', opcao: 'Indicação de quem já comprou' },
+  SOCIO: { estado: 'opcao', opcao: 'Sim' },
+  'M10-06': { estado: 'opcao', opcao: 'Sim, por escrito' },
+  'M10-07': { estado: 'etapas', quem: { 'Receber o pedido': 'Eu', Fazer: 'Eu', Entregar: 'Eu' } },
+  'M10-08': { estado: 'opcao', opcao: 'Não' },
+  'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda', naosei: false },
+  'M10-10': { estado: 'escala', u: { 'Organizar a agenda': 'piora muito' } },
+  'M10-11': { estado: 'plano', acao: 'a', data: '2099-01-01', sinal: 'b', numero: '1', frase: 'A até 01/01/2099; vai funcionar se vierem 1 b.' },
+};
+const ORDEM = ['M10-01', 'M10-02', 'M10-03', 'M10-04', 'M10-05', 'SOCIO', 'M10-06', 'M10-07', 'M10-08', 'M10-08a', 'M10-09', 'M10-10', 'M10-11'];
+function estadoAte(cod, rExtra) {
+  const R = {};
+  for (const c of ORDEM) { if (c === cod) break; if (NEUTRO[c]) R[c] = NEUTRO[c]; }
+  Object.assign(R, rExtra || {});
+  return { v: 2, ini: INI, R, roteiro: null, hist: [], inst: { mensagem: null, checklist: {} }, voltarResumo: false };
+}
+/* fragmentos literais de um texto com [colchetes]; a parte "[Se …]:" só aparece quando vale */
+const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^\]]*\]/).map((x) => nrm(x).replace(/^[.,:;\s]+|[.,:;\s]+$/g, '')).filter((x) => x.length > 3);
+
 (async () => {
-  const publicRoot = path.join(root, 'public');
-  const server = http.createServer((req, res) => {
-    const name = path.resolve(publicRoot, '.' + decodeURIComponent(req.url.split('?')[0]));
-    if (!name.startsWith(publicRoot + path.sep)) { res.writeHead(403).end(); return; }
-    fs.readFile(name, (error, bytes) => {
-      if (error) { res.writeHead(404).end(); return; }
-      const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf' };
-      res.writeHead(200, { 'Content-Type': types[path.extname(name)] || 'application/octet-stream' }).end(bytes);
-    });
-  });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const url = `http://127.0.0.1:${server.address().port}/lg2/turma-b/m10/index.html`;
-  const KEY = 'lg2-turma-b-m10';
-  let browser;
-  try {
-    browser = await playwright.chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-    const errors = [];
-    page.on('pageerror', (e) => errors.push(e.message));
-    page.on('response', (r) => { if (r.status() >= 400) errors.push(r.url()); });
-    page.on('dialog', (d) => d.accept());
-    const clicar = (t) => page.evaluate((t) => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === t); if (!b) throw new Error('sem botão ' + t); b.click(); }, t);
-    const regrasNaTela = () => page.$$eval('#retorno .regra .r-texto', (xs) => xs.map((x) => x.textContent));
-    await page.goto(url);
-    await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ respostas: { 'M10.P01': 'texto antigo' }, indice: 3, iniciado: true })), KEY);
+  await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
+  const URL = `http://127.0.0.1:${servidor.address().port}/index.html`;
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const erros = [];
+  page.on('pageerror', (e) => erros.push(e.message));
+  page.on('dialog', (d) => d.accept());
+  await page.goto(URL);
+
+  const semear = async (estado, heranca) => {
+    await page.evaluate(([e, h, k]) => {
+      localStorage.clear();
+      Object.entries(h).forEach(([kk, v]) => localStorage.setItem(kk, JSON.stringify(v)));
+      if (e) localStorage.setItem(k, JSON.stringify(e));
+    }, [estado, heranca || HERANCA, CHAVE]);
     await page.reload();
-    assert.ok(await page.getByRole('button', { name: 'Começar', exact: true }).isVisible(), 'estado da versão anterior deve ser descartado');
-
-    /* cada resposta de cada pergunta mostra exatamente as regras da Tela 4 */
-    const alcancadas = new Set();
-    for (const cod of ORDEM) {
-      const respostas = OPC[cod] || ['texto', 'Não sei'];
-      for (const r of respostas) {
-        await page.evaluate(([k, R]) => localStorage.setItem(k, JSON.stringify({ v: 2, R, hist: [] })), [KEY, antes(cod)]);
-        await page.reload();
-        await clicar(Object.keys(antes(cod)).length ? 'Continuar de onde parei' : 'Começar');
-        assert.equal(await page.locator('#pergunta').textContent(), ESPERADO.perguntas.find((q) => q[0] === cod)[2], cod);
-        if (OPC[cod]) {
-          assert.deepEqual(await page.$$eval('#ent .opcao', (xs) => xs.map((x) => x.textContent)), OPC[cod], cod + ' opções');
-          await clicar(r);
-        } else if (r === 'Não sei') { await clicar('Não sei'); }
-        else { await page.locator('#ent .campo').first().fill('Uma resposta'); }
-        if (r !== 'Não sei' || OPC[cod]) await clicar('Continuar');
-        const vistas = await regrasNaTela();
-        assert.deepEqual(vistas, esperadas(cod, r), `${cod} = ${r}`);
-        vistas.forEach((t) => alcancadas.add(t));
-      }
-    }
-    assert.equal(alcancadas.size, ESPERADO.regras.length);
-    console.log(`PASS regras: ${alcancadas.size} de ${ESPERADO.regras.length} alcançadas, cada uma com o conjunto exato.`);
-
-    /* resposta vazia não avança */
-    await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload();
-    await clicar('Começar'); await clicar('Continuar');
-    assert.ok(await page.locator('#erro').isVisible());
-    assert.equal(await page.locator('#retorno .regra').count(), 0);
-
-    /* percurso completo pela tela: P05 = Não esconde P06; P08 = Sim mostra P09 */
-    const xss = '<img src=x onerror="window.injetado=true"> & "teste"';
-    const vistasPerg = [];
-    const plano = { 'M10.P01': 'Até 24 horas', 'M10.P02': 'Não', 'M10.P03': 'Não sei', 'M10.P04': xss, 'M10.P05': 'Não', 'M10.P07': 'Sim',
-      'M10.P08': 'Sim', 'M10.P09': 'Não', 'M10.P10': ['Atender mais rápido', 'Organizar estoque', 'Contratar ajudante'], 'M10.P11': 'Piora grave / Risco',
-      'M10.P12': ['Responder em 1 hora', 'Zero falta', 'Ajudante em 30 dias'] };
-    for (;;) {
-      const t = await page.locator('#pergunta').textContent();
-      const cod = ESPERADO.perguntas.find((q) => q[2] === t)[0];
-      vistasPerg.push(cod);
-      const r = plano[cod];
-      if (Array.isArray(r)) {
-        const campos = page.locator('#ent .campo');
-        assert.equal(await campos.count(), 3, cod);
-        if (cod === 'M10.P12') assert.deepEqual(await page.$$eval('#ent label', (xs) => xs.map((x) => x.textContent)), plano['M10.P10']);
-        for (let i = 0; i < 3; i++) await campos.nth(i).fill(r[i]);
-      } else if (OPC[cod]) await clicar(r); else await page.locator('#ent .campo').first().fill(r);
-      await clicar('Continuar');
-      if (cod === 'M10.P02') { await page.reload(); await clicar('Continuar de onde parei'); assert.equal(await page.locator('#pergunta').textContent(), ESPERADO.perguntas[2][2], 'retoma na P03'); continue; }
-      const fim = await page.getByRole('button', { name: 'Ver o resultado', exact: true }).count();
-      if (fim) { await clicar('Ver o resultado'); break; }
-      await clicar('Seguir');
-    }
-    assert.deepEqual(vistasPerg, ['M10.P01', 'M10.P02', 'M10.P03', 'M10.P04', 'M10.P05', 'M10.P07', 'M10.P08', 'M10.P09', 'M10.P10', 'M10.P11', 'M10.P12'].flatMap((c) => c === 'M10.P03' ? [c] : [c]));
-    assert.equal(await page.locator('.passo').textContent(), 'Resultado');
-    const corpo = norm(await page.locator('main').innerText());
-    for (const s of [...plano['M10.P10'], ...plano['M10.P12'], 'Piora grave / Risco', xss, ...esperadas('M10.P05', 'Não'), ...esperadas('M10.P09', 'Não')]) assert.ok(corpo.includes(norm(s)), 'resultado sem: ' + s);
-    for (const s of esperadas('M10.P06', 'Sim')) assert.ok(!corpo.includes(s), 'P06 não deveria aparecer');
-    assert.equal(await page.evaluate(() => window.injetado), undefined);
-    assert.equal(await page.locator('.lg2-proximo a').getAttribute('href'), '/protected/modulos/laboratorio-de-gestao?aba=b');
-    if (process.env.LG2_M10_SCREENSHOT) await page.screenshot({ path: process.env.LG2_M10_SCREENSHOT, fullPage: true });
-
-    /* editar P05 para Sim abre a P06; voltar para Não apaga a resposta da P06 */
-    await page.locator('[data-c="M10.P05"]').click();
-    await clicar('Sim'); await clicar('Continuar'); await clicar('Seguir');
-    assert.equal(await page.locator('#pergunta').textContent(), ESPERADO.perguntas[5][2]);
-    await clicar('Não'); await clicar('Continuar');
-    await page.locator('#v').click();
-    assert.equal(await page.locator('#pergunta').textContent(), ESPERADO.perguntas[4][2], 'voltar leva à P05');
-    await clicar('Não'); await clicar('Continuar');
-    const salvo = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
-    assert.equal(salvo.R['M10.P06'], undefined);
-    assert.equal(salvo.R['M10.P05'].opcao, 'Não');
-
-    /* recomeçar */
-    await clicar('Recomeçar do zero');
-    assert.ok(await page.getByRole('button', { name: 'Começar', exact: true }).isVisible());
-    assert.equal(await page.evaluate((k) => localStorage.getItem(k), KEY), null);
-    assert.deepEqual(errors, []);
-    console.log('PASS tela: condições P06/P09, retomada após recarregar, resultado com os 3 problemas, XSS escapado, recomeçar.');
-  } finally {
-    if (browser) await browser.close();
-    server.close();
+  };
+  const clicar = async (t) => {
+    const ok = await page.evaluate((t) => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.replace(/\s+/g, ' ').trim() === t); if (b) { b.click(); return true; } return false; }, t);
+    if (!ok) throw new Error('botão não encontrado: ' + t);
+    await page.waitForTimeout(60);
+  };
+  const abrir = async (cod, rExtra, heranca) => {
+    await semear(estadoAte(cod, rExtra), heranca);
+    await clicar('Continuar de onde parei');
+  };
+  const titulo = () => page.evaluate(() => document.querySelector('.q').innerText);
+  const blocos = (sel) => page.evaluate((s) => [...document.querySelectorAll(s + ' .bloco')].map((b) => b.innerText.replace(/\s+/g, ' ').trim()), sel || '#retorno');
+  const temTexto = (bs, t) => fragmentos(t).every((f) => bs.some((b) => b.includes(f)));
+  const caminhoTexto = (cod, op) => D.perguntas.find((q) => q.codigo === cod).caminhos.find((c) => c.opcao === op).texto;
+  async function confere(nome, cod, op, n, sel) {
+    const bs = await blocos(sel);
+    check(`Caminho ${cod} · ${op}`, temTexto(bs, caminhoTexto(cod, op)) && bs.length === (n || 1), { nome, bs });
   }
+
+  /* ---------- 3. cada linha de "Caminhos por resposta" ---------- */
+  let alcancadas = 0;
+  const conta = () => alcancadas++;
+  /* M10-01 */
+  await abrir('M10-01');
+  check('M10-01: [canais de venda] vem do Módulo 3', (await titulo()) === 'Além de redes sociais (Instagram, Facebook, WhatsApp), por onde os clientes falam com você?', await titulo());
+  await clicar('WhatsApp'); await confere('', 'M10-01', ESPERADO.caminhos[0][1]); conta();
+  await clicar('Ainda não falo com clientes'); await confere('', 'M10-01', 'Ainda não falo com clientes'); conta();
+  check('M10-01: [onde procuram] vem do Módulo 2', (await blocos()).join(' ').includes('(meu bairro)'));
+  await clicar('Não sei'); await confere('', 'M10-01', 'Não sei'); conta();
+  /* escolhas únicas: cada opção da linha mostra a mensagem da linha */
+  const UNICAS = {
+    'M10-02': ['Em até 1 hora / No mesmo dia', 'Em 1 ou 2 dias', 'Mais de 2 dias', 'Ainda não vendo / Não sei'],
+    'M10-03': ['Sim, sigo passos parecidos', 'Depende do cliente', 'Ainda não vendi', 'Não sei'],
+    'M10-04': ['Sim, peço opinião / Sim, ofereço de novo', 'Não, só se o cliente me procura', 'Ainda não vendi / Não sei'],
+    'M10-05': ['Indicação de quem já comprou / Redes sociais próprias / Grupos de mensagem / Cartaz ou panfleto no bairro / Parceria com outro negócio', 'Anúncio pago', 'Ainda não sei'],
+    'M10-06': ['Sim, por escrito', 'Só combinamos de boca / Ainda não', 'Não sei'],
+    'M10-08': ['Não', 'Sim, para produzir ou atender / para vender ou divulgar / para tarefas administrativas', 'Não sei'],
+  };
+  for (const [cod, linhas] of Object.entries(UNICAS)) {
+    await abrir(cod);
+    for (const linha of linhas) {
+      const ops = linha.split(' / ').map((x) => (/^para /.test(x) ? 'Sim, ' + x : x));
+      for (const op of ops) {
+        await clicar(op);
+        /* contratar com folga no Módulo 7: a observação do cruzamento vem junto (2 caixas) */
+        await confere(op, cod, linha, cod === 'M10-08' && op.startsWith('Sim') ? 2 : 1);
+      }
+      conta();
+    }
+  }
+  /* M10-02 "Em 1 ou 2 dias" com tempo de apoio alto no Módulo 7: a parte condicional aparece */
+  const h7 = JSON.parse(JSON.stringify(HERANCA)); h7['lg2-turma-b-m07'].R['M7-03'] = { estado: 'opcao', opcao: 'De 6 a 10 h' };
+  await abrir('M10-02', {}, h7); await clicar('Em 1 ou 2 dias');
+  check('M10-02: [Se tempo de apoio alto no M7] aparece só quando vale', (await blocos()).join(' ').includes('isso também pesa no seu tempo de apoio'));
+  await abrir('M10-02'); await clicar('Em 1 ou 2 dias');
+  check('M10-02: sem apoio alto, a parte condicional não aparece', !(await blocos()).join(' ').includes('tempo de apoio'));
+  /* M10-03: texto de apoio com pessoas ouvidas e roteiro pré-montado */
+  await abrir('M10-03');
+  const ap3 = await page.evaluate(() => document.querySelector('.ajuda').innerText);
+  check('M10-03: apoio com [pessoas ouvidas] e [etapas] do roteiro', ap3.startsWith('Você já ouviu 6 pessoas no Módulo 2.') && ap3.includes('Preço: R$ 12') && ap3.includes('Receber: pix, dinheiro'), ap3);
+  /* M10-04: apoio condicional (compra recorrente no Módulo 2) */
+  await abrir('M10-04');
+  check('M10-04: [Se compra recorrente no Módulo 2] com [frequência]', (await page.evaluate(() => document.querySelector('.ajuda').innerText)) === 'Você disse que o cliente compra toda semana. Voltar a falar pode trazer a próxima venda.');
+  /* M10-05: [oferta em foco] e [diferencial do Módulo 3] */
+  await abrir('M10-05');
+  check('M10-05: pergunta e apoio preenchidos', (await titulo()).includes('saber que Bolo de pote existe') && (await page.evaluate(() => document.querySelector('.ajuda').innerText)).includes('diferencial: Bolo fresco entregue no mesmo dia.'));
+  /* M10-07 */
+  await abrir('M10-07');
+  check('M10-07: as etapas vêm do mapa do Módulo 7', (await page.evaluate(() => [...document.querySelectorAll('#ent p.rot-campo')].map((x) => x.innerText))).join('|') === 'Receber o pedido|Fazer|Entregar');
+  const porEtapa = async (idx) => page.evaluate((idx) => { [...document.querySelectorAll('#ent .opcoes')].forEach((g, i) => g.querySelectorAll('.opcao')[idx[i]].click()); }, idx);
+  await porEtapa([0, 0, 0]); await page.waitForTimeout(60); await confere('', 'M10-07', ESPERADO.caminhos.find((c) => c[0] === 'M10-07')[1]); conta();
+  await porEtapa([0, 0, 3]); await page.waitForTimeout(60); await confere('', 'M10-07', "'Ninguém ainda' em alguma etapa"); conta();
+  /* M10-08: capacidade curta no Módulo 7 (volume 100) */
+  const hc = JSON.parse(JSON.stringify(HERANCA)); hc['lg2-turma-b-m07'].ini.volume = '100';
+  await abrir('M10-08', {}, hc);
+  check('M10-08: [Se capacidade curta no Módulo 7] com [N] e [volume]', (await page.evaluate(() => document.querySelector('.ajuda').innerText)) === 'Com o tempo informado, cabem cerca de 69 por mês, e você pretende 100 por mês.');
+  await abrir('M10-08'); await clicar('Sim, para vender ou divulgar');
+  check("Caso: contratar com folga = 'Com o tempo informado, ainda cabem cerca de 14 por mês.'", (await blocos()).some((b) => b.includes('Com o tempo informado, ainda cabem cerca de 14 por mês.')));
+  check('Caso: contratar com folga, sem dizer "não contrate"', !(await blocos()).join(' ').toLowerCase().includes('não contrate'));
+  /* M10-08a */
+  await abrir('M10-08a', { 'M10-08': { estado: 'opcao', opcao: 'Sim, para produzir ou atender' } });
+  await clicar('Menos variedade de opções'); await clicar('Rever o tempo de apoio');
+  const b8a = await blocos();
+  check('Caminho M10-08a · Uma ou mais (+ M4 e M7 juntos)', temTexto(b8a, caminhoTexto('M10-08a', ESPERADO.caminhos.find((c) => c[0] === 'M10-08a')[1])) && b8a.length === 3 && b8a[1].includes('Três sabores') && b8a[2].includes('Até 2 h'), b8a); conta();
+  await clicar('Ainda nenhuma');
+  check('M10-08a: "Ainda nenhuma" desmarca as outras', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.innerText))).join() === 'Ainda nenhuma');
+  /* M10-09: lista vinda do percurso */
+  const h9 = JSON.parse(JSON.stringify(HERANCA));
+  h9['lg2-turma-b-m07'].R['M7-02'] = { estado: 'naosei' };
+  h9['lg2-turma-a-m05'].R['M5.P36'] = { estado: 'naosei' };
+  await abrir('M10-09', { 'M10-02': { estado: 'opcao', opcao: 'Mais de 2 dias' }, 'M10-05': { estado: 'opcao', opcao: 'Ainda não sei' }, 'M10-06': { estado: 'opcao', opcao: 'Ainda não' } }, h9);
+  const lista = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()));
+  check('M10-09: lista do percurso por gravidade, sem códigos', JSON.stringify(lista) === JSON.stringify(['Definir o preço de venda', 'Acordo entre sócios', 'Fazer a consulta de viabilidade na prefeitura', 'Medir o tempo de produção', 'Tempo de resposta aos clientes', 'Definir a divulgação', 'Completar a resposta “Não sei” do Módulo 5', 'Completar a resposta “Não sei” do Módulo 7']) && !/M\d/.test(lista.join()), lista);
+  await clicar(lista[0]); await confere('', 'M10-09', 'Até 3 itens da lista'); conta();
+  await clicar(lista[1]); await clicar(lista[2]); await clicar(lista[3]);
+  check('M10-09: a 4ª escolha não entra', (await page.evaluate(() => document.querySelectorAll('#ent .opcao.sel').length)) === 3);
+  await confere('', 'M10-09', 'Mais de 3'); conta();
+  await clicar('Não sei'); await confere('', 'M10-09', 'Não sei'); conta();
+  check('M10-09: "Não sei" marca as 3 primeiras', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.innerText.trim()))) === JSON.stringify(lista.slice(0, 3)));
+  await clicar(lista[2]); await page.fill('#outro', 'Organizar a agenda'); await clicar('Continuar');
+  await confere('', 'M10-09', 'Outro (texto)'); conta();
+  await clicar('Continuar');
+  /* M10-10 com as três escolhidas */
+  check('M10-10: uma escala por prioridade', (await page.evaluate(() => [...document.querySelectorAll('#ent p.rot-campo')].map((x) => x.innerText))).join('|') === [lista[0], lista[1], 'Organizar a agenda'].join('|'));
+  await page.evaluate(() => { const gs = [...document.querySelectorAll('#ent .opcoes')]; gs[0].querySelectorAll('.opcao')[2].click(); gs[1].querySelectorAll('.opcao')[0].click(); gs[2].querySelectorAll('.opcao')[0].click(); });
+  await page.waitForTimeout(60);
+  check('Caminho M10-10 · A mais urgente: piora muito, empate pela ordem da lista', (await blocos()).join() === 'A mais urgente parece ser: Acordo entre sócios.', await blocos()); conta();
+  await clicar('Continuar');
+  /* M10-11 */
+  const hoje = await page.evaluate(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+  const dias = (n) => new Date(Date.parse(hoje) + n * 864e5).toISOString().slice(0, 10);
+  check('M10-11: mostra a prioridade mais urgente', (await page.evaluate(() => document.querySelector('#ent .bloco').innerText)).includes('Acordo entre sócios'));
+  const plano = async (a, d, s, n) => { await page.fill('#acao', a); await page.fill('#data', d); await page.fill('#sinal', s); await page.fill('#numero', n); await clicar('Continuar'); };
+  await plano('conversar com o sócio', dias(-3), 'acordo assinado', '1'); await confere('', 'M10-11', 'Data inválida (passada)'); conta();
+  check('M10-11: data passada não avança', (await titulo()).startsWith('Para a prioridade'));
+  await plano('conversar com o sócio', dias(10), 'acordo assinado', ''); await confere('', 'M10-11', 'Sem número', 1);
+  const sug = await page.evaluate(() => document.querySelector('#retorno').innerText);
+  check('Caso: plano sem número = pergunta gentil com o critério do teste (Módulo 4), sem bloquear', sug.includes('você combinou: 10') && sug.includes('pedidos entregues no prazo'), sug); conta();
+  await clicar('Continuar');
+  check('M10-11: segue sem número no segundo toque', (await blocos()).join(' ').startsWith('Seu plano:'));
+  await abrir('M10-11', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda' } });
+  await plano('divulgar no grupo do bairro', dias(120), 'pedidos', '5'); await confere('', 'M10-11', 'Data acima de 90 dias'); conta();
+  await plano('divulgar no grupo do bairro', dias(14), 'pedidos', '5');
+  const frase = `Divulgar no grupo do bairro até ${dias(14).split('-').reverse().join('/')}; vai funcionar se vierem 5 pedidos`;
+  check('Caminho M10-11 · completo: "Seu plano: [frase]."', (await blocos()).join() === `Seu plano: ${frase}. Combine com você mesmo de olhar o resultado nessa data.`, await blocos()); conta();
+  await abrir('M10-11', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda' } });
+  await clicar('Não sei'); await confere('', 'M10-11', 'Não sei'); conta();
+  /* M10-12 (tela final) */
+  await semear(estadoAte('FIM'));
+  await clicar('Continuar de onde parei');
+  await clicar('Sim, salvar'); await confere('', 'M10-12', 'Sim, salvar', 1, '#ret12'); conta();
+  check('M10-12: sem "[Se houver ofertas guardadas]" (o Módulo 1 não guarda outras ofertas)', !(await blocos('#ret12')).join().includes('próxima oferta'));
+  await clicar('Quero corrigir algo'); await confere('', 'M10-12', 'Quero corrigir algo', 1, '#ret12'); conta();
+  check('M10-12: lista "Corrigir minha resposta"', (await page.evaluate(() => document.querySelectorAll('#corr .editar').length)) === ORDEM.length - 1 + 1);
+  check(`Caminhos alcançados: ${alcancadas} de ${ESPERADO.caminhos.length}`, alcancadas === ESPERADO.caminhos.length, alcancadas);
+
+  /* ---------- 4. cruzamentos e encaminhamento no resumo ---------- */
+  const resumo = async (r, h) => { await semear(estadoAte('FIM', r), h); await clicar('Continuar de onde parei'); return page.evaluate(() => document.querySelector('.corpo').innerText.replace(/\s+/g, ' ')); };
+  let t = await resumo({ 'M10-05': { estado: 'opcao', opcao: 'Anúncio pago' } });
+  check('Caso: anúncio pago sem gasto no Módulo 5 = pergunta gentil', t.includes('PERGUNTA GENTIL') && t.includes('O anúncio não aparece nos seus gastos. Quer incluir?'));
+  const hg = JSON.parse(JSON.stringify(HERANCA)); hg['lg2-turma-a-m05'].R['M5.P33'] = { estado: 'valor', valor: [{ nome: 'Anúncio no Instagram', valor: '50' }] };
+  t = await resumo({ 'M10-05': { estado: 'opcao', opcao: 'Anúncio pago' } }, hg);
+  check('Anúncio pago com gasto de anúncio no Módulo 5 = sem pergunta', !t.includes('O anúncio não aparece'));
+  t = await resumo({ 'M10-06': { estado: 'opcao', opcao: 'Ainda não' } });
+  const enc = await page.evaluate(() => [...document.querySelectorAll('.b-enc')].map((x) => x.innerText.trim()));
+  check('Caso: sócio sem acordo = observação + um encaminhamento só no resumo', t.includes('Combinar por escrito antes de investir juntos evita desentendimentos.') && enc.length === 1 && enc[0] === 'Para a forma do documento, procure um contador ou advogado.', enc);
+  check('Resumo: checklist de acordo entre sócios com os 5 itens', (await page.evaluate(() => document.querySelectorAll('.chk input').length)) === 5);
+  t = await resumo({ 'M10-01': { estado: 'opcao', opcao: 'Ainda não falo com clientes' }, 'M10-04': { estado: 'opcao', opcao: 'Não, só se o cliente me procura' }, 'M10-02': { estado: 'opcao', opcao: 'Mais de 2 dias' } });
+  check('Cruzamentos: vende sem canal; recorrente sem pós-venda; resposta lenta com concorrente', t.includes('Você já vende, mas não marcou por onde fala com clientes. Quer rever?') && t.includes('Seu cliente compra toda semana.') && t.includes('Quem espera muito pode comprar de Doceria da esquina ou de outra pessoa.'));
+  check('Resumo: no máximo 3 alertas', (await page.evaluate(() => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === 'Pontos para conferir'); return s ? s.querySelectorAll('.bloco').length : 0; })) === 3);
+  check('Resumo: retrato com uma linha por módulo (1 a 9)', (await page.evaluate(() => document.querySelectorAll('.retrato').length)) === 9);
+  check('Resumo: sem "Turma B", sem versão e sem "salvas apenas neste navegador"', !/Turma B|vers[aã]o \d|apenas neste navegador/i.test(t));
+  check('Resumo: botão de volta aos módulos (.lg2-proximo) visível', await page.isVisible('.lg2-proximo a'));
+
+  /* ---------- 5. percurso inteiro, com dados herdados ---------- */
+  await semear(null);
+  if (process.env.SHOTS) fs.mkdirSync(process.env.SHOTS, { recursive: true });
+  const foto = async (n) => { if (process.env.SHOTS) { await page.waitForTimeout(350); await page.screenshot({ path: path.join(process.env.SHOTS, n + '.png'), fullPage: n.includes('resultado') }); } };
+  await foto('m10_capa');
+  await clicar('Começar');
+  const partida = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-campo]')].map((i) => [i.dataset.campo, i.value])));
+  check('Partida: dados herdados dos Módulos 1, 3, 4, 5 e 6', partida.oferta === 'Bolo de pote' && partida.proposta === 'Sobremesa caseira pronta para levar.' && partida.preco === '12' && partida.pagamento === 'Pix, Dinheiro' && partida.canais.startsWith('Redes sociais'), partida);
+  check('Partida: selo "Veio do Módulo N"', (await page.evaluate(() => document.querySelectorAll('.veio').length)) >= 8);
+  await foto('m10_partida');
+  await clicar('Continuar');
+  const passos = [];
+  for (let i = 0; i < 20; i++) {
+    if (await page.$('#q12')) break;
+    const q = await titulo(); passos.push(q);
+    if (/falam com você/.test(q)) { await clicar('WhatsApp'); await foto('m10_pergunta'); }
+    else if (/Em quanto tempo/.test(q)) await clicar('No mesmo dia');
+    else if (/sequência/.test(q)) { await clicar('Depende do cliente'); await foto('m10_roteiro'); }
+    else if (/Depois da entrega/.test(q)) await clicar('Sim, peço opinião');
+    else if (/vão saber/.test(q)) await clicar('Grupos de mensagem');
+    else if (/sócio\?/.test(q)) await clicar('Não');
+    else if (/Quem cuida/.test(q)) await porEtapa([0, 0, 3]);
+    else if (/contratar alguém/.test(q)) await clicar('Não');
+    else if (/mais urgentes/.test(q)) { await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].slice(0, 2).forEach((b) => b.click())); await foto('m10_prioridades'); }
+    else if (/esperar 3 meses/.test(q)) await page.evaluate(() => [...document.querySelectorAll('#ent .opcoes')].forEach((g, i) => g.querySelectorAll('.opcao')[i].click()));
+    else if (/prioridade mais urgente/.test(q)) { await plano('fazer a consulta de viabilidade', dias(7), 'resposta da prefeitura', '1'); await foto('m10_plano'); }
+    await page.waitForTimeout(60);
+    await clicar('Continuar');
+  }
+  check('Percurso: sócio "Não" pula o acordo; contratar "Não" pula as alternativas', passos.length === 11 && !passos.some((x) => /combinaram|outras formas/.test(x)), passos);
+  await foto('m10_resultado');
+  const r1 = await page.evaluate(() => document.querySelector('.corpo').innerText.replace(/\s+/g, ' '));
+  check('Resultado: plano com a frase e prioridades', r1.includes('Fazer a consulta de viabilidade até') && r1.includes('vai funcionar se vierem 1 resposta da prefeitura.'));
+  check('Resultado: roteiro "base" com pós-venda', r1.includes('Roteiro de venda (base)') && r1.includes('Depois da entrega: pedir a opinião do cliente'));
+  check('Resultado: etapa sem responsável vira prioridade na lista seguinte', r1.includes('Entregar: Ninguém ainda'));
+  await page.reload();
+  check('Recarregar: retoma no resultado', (await page.evaluate(() => document.querySelector('#ir').innerText)) === 'Continuar de onde parei');
+  await clicar('Continuar de onde parei');
+  check('Recarregar: o resultado volta igual', (await page.evaluate(() => document.querySelector('.corpo').innerText.replace(/\s+/g, ' '))) === r1);
+  /* corrigir uma resposta e voltar ao resumo */
+  await clicar('Quero corrigir algo');
+  await page.evaluate(() => [...document.querySelectorAll('.editar')].find((b) => b.closest('.corr-item').innerText.includes('Em quanto tempo')).click());
+  await clicar('Mais de 2 dias'); await clicar('Continuar');
+  check('Corrigir: volta direto ao resumo com a resposta nova', (await page.$('#q12')) && (await page.evaluate(() => document.querySelector('.corpo').innerText)).includes('Mais de 2 dias'));
+  /* estado salvo da versão anterior (sem v: 2) é descartado */
+  await page.evaluate((k) => { localStorage.setItem(k, JSON.stringify({ R: { 'M10.P01': { estado: 'opcao', opcao: 'Até 1 hora' } }, hist: [] })); }, CHAVE);
+  await page.reload();
+  check('Versão: respostas da versão anterior são descartadas', (await page.evaluate(() => document.querySelector('#ir').innerText)) === 'Começar');
+  /* recomeçar */
+  await semear(estadoAte('FIM'));
+  await clicar('Continuar de onde parei'); await clicar('Recomeçar do zero');
+  check('Recomeçar: apaga só o Módulo 10', (await page.evaluate((k) => localStorage.getItem(k) === null && localStorage.getItem('lg2-turma-b-m07') !== null, CHAVE)));
+  check('Nunca escreve nas chaves dos outros módulos', (await page.evaluate((h) => Object.entries(h).every(([k, v]) => localStorage.getItem(k) === JSON.stringify(v)), HERANCA)));
+
+  check('Sem erros de JavaScript', erros.length === 0, erros);
+  await browser.close();
+  servidor.close();
+  console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTUDO OK');
+  process.exit(falhas ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -1,14 +1,19 @@
+/* Gerado por extrair_m10.py a partir da planilha do Grupo 10. Não edite à mão. */
 window.MODULO10 = {
- "nome": "Comunicação, vendas, pessoas e plano de ação",
- "capa": "Capa: Módulo 10 - Comunicação, vendas, pessoas e plano de ação",
- "objetivo": "Ao final do módulo, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
- "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam ao módulo com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. O módulo busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
- "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
- "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado.",
- "origem": {
-  "arquivo": "Módulo 10 v2.docx",
-  "sha256": "64e6f927b39e86a68860e700a9374a4b6103eea8144896a9a9e6eb322753cc53",
-  "turma": "B"
+ "origem": "Grupo 10 · Laboratório de Gestão II · FACC/UFJF",
+ "fonte": {
+  "arquivo": "Modulo_10_Perguntas_e_Caminhos.xlsx",
+  "sha256": "b1daf00cb3df9c9fef1fa6b68235c332a401c0d293ae44fa554de332d2df231e"
+ },
+ "modulo": {
+  "numero": 10,
+  "nome": "Comunicação, vendas, pessoas e plano de ação"
+ },
+ "capa": {
+  "objetivo": "Ao final do módulo, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
+  "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam ao módulo com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. O módulo busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
+  "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
+  "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado."
  },
  "base": [
   {
@@ -72,424 +77,520 @@ window.MODULO10 = {
    "porque": "Com pouco tempo e dinheiro, tentar fazer tudo ao mesmo tempo costuma terminar em nada concluído. Priorizar permite montar um plano de 90 dias com poucas ações."
   }
  ],
+ "fases": [
+  "Como você vende",
+  "Pessoas",
+  "Seu plano"
+ ],
+ "socio": {
+  "pergunta": "Você tem ou pretende ter sócio?",
+  "opcoes": [
+   "Sim",
+   "Não",
+   "Não sei"
+  ]
+ },
  "perguntas": [
   {
-   "codigo": "M10.P01",
-   "condicao": null,
+   "codigo": "M10-01",
+   "fase": "Como você vende",
+   "pergunta": "Além de [canais de venda], por onde os clientes falam com você?",
+   "descobre": "Canais de conversa",
+   "aparece": "Sempre",
+   "guarda": "Canais de conversa",
+   "caminhos": [
+    {
+     "opcao": "Uma ou mais opções (WhatsApp, Instagram ou outra rede, telefone, pessoalmente, e-mail)",
+     "retorno": "Resposta",
+     "texto": "Anotado. Concentrar a conversa em poucos canais ajuda a não perder pedidos."
+    },
+    {
+     "opcao": "Ainda não falo com clientes",
+     "retorno": "Dica",
+     "texto": "Pense em por onde o seu cliente prefere falar: o Módulo 2 mostrou onde ele procura ([onde procuram])."
+    },
+    {
+     "opcao": "Não sei",
+     "retorno": "Dica",
+     "texto": "Lembre como foram os últimos contatos: mensagem, ligação ou pessoalmente?"
+    }
+   ],
+   "pergunta_caminhos": "Além de [canais de venda do Módulo 3], por onde os clientes falam com você?",
+   "apoio": "Marque todos. Não informe números nem perfis.",
+   "tipo": "Seleção múltipla"
+  },
+  {
+   "codigo": "M10-02",
+   "fase": "Como você vende",
    "pergunta": "Em quanto tempo você costuma responder a um cliente?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Até 1 hora",
-    "Entre 1 e 4 horas",
-    "Até 24 horas",
-    "Mais de 24 horas",
-    "Não sei"
+   "descobre": "Tempo de resposta",
+   "aparece": "Sempre",
+   "guarda": "Tempo de resposta",
+   "caminhos": [
+    {
+     "opcao": "Em até 1 hora / No mesmo dia",
+     "retorno": "Resposta",
+     "texto": "Responder rápido costuma pesar na decisão de compra."
+    },
+    {
+     "opcao": "Em 1 ou 2 dias",
+     "retorno": "Dica",
+     "texto": "Separar dois momentos fixos por dia para responder pode ajudar. [Se tempo de apoio alto no M7]: isso também pesa no seu tempo de apoio."
+    },
+    {
+     "opcao": "Mais de 2 dias",
+     "retorno": "Atenção",
+     "texto": "Quem espera muito pode comprar de outra pessoa. Uma mensagem automática dizendo quando você responde pode ajudar."
+    },
+    {
+     "opcao": "Ainda não vendo / Não sei",
+     "retorno": "Dica",
+     "texto": "Quando começar, anote a hora da mensagem e a hora da sua resposta em alguns contatos."
+    }
    ],
-   "conceitos": [
-    "M10-C03"
-   ]
+   "apoio": "Pense na última semana. Se ainda não vende, pense no que consegue fazer.",
+   "tipo": "Seleção única"
   },
   {
-   "codigo": "M10.P02",
-   "condicao": null,
+   "codigo": "M10-03",
+   "fase": "Como você vende",
    "pergunta": "Quando alguém demonstra interesse, você segue uma sequência até fechar a venda?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Sim",
-    "Não",
-    "Não sei"
+   "descobre": "Sequência de venda",
+   "aparece": "Sempre",
+   "guarda": "Roteiro de venda",
+   "caminhos": [
+    {
+     "opcao": "Sim, sigo passos parecidos",
+     "retorno": "Resposta",
+     "texto": "Confira o roteiro. Ele usa o que você já respondeu nos outros módulos."
+    },
+    {
+     "opcao": "Depende do cliente",
+     "retorno": "Dica",
+     "texto": "Um roteiro base ajuda a não esquecer passos, mesmo que cada conversa seja diferente."
+    },
+    {
+     "opcao": "Ainda não vendi",
+     "retorno": "Dica",
+     "texto": "Use o roteiro no seu teste e anote o que funcionou."
+    },
+    {
+     "opcao": "Não sei",
+     "retorno": "Dica",
+     "texto": "Lembre a última venda: o que aconteceu entre o primeiro contato e o pagamento?"
+    }
    ],
-   "conceitos": [
-    "M10-C04"
-   ]
+   "apoio": "Você já ouviu [pessoas ouvidas] pessoas no Módulo 2. Montamos um roteiro com o que você respondeu: [etapas]. Confira.",
+   "tipo": "Seleção única + roteiro editável"
   },
   {
-   "codigo": "M10.P03",
-   "condicao": null,
+   "codigo": "M10-04",
+   "fase": "Como você vende",
    "pergunta": "Depois da entrega, você volta a falar com o cliente?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Sim",
-    "Não",
-    "Não sei"
+   "descobre": "Pós-venda",
+   "aparece": "Sempre",
+   "guarda": "Pós-venda",
+   "caminhos": [
+    {
+     "opcao": "Sim, peço opinião / Sim, ofereço de novo",
+     "retorno": "Resposta",
+     "texto": "Anote o que os clientes dizem: isso alimenta o seu padrão de qualidade (Módulo 7)."
+    },
+    {
+     "opcao": "Não, só se o cliente me procura",
+     "retorno": "Dica",
+     "texto": "Uma mensagem alguns dias depois, perguntando se deu tudo certo, pode trazer a próxima venda e indicações."
+    },
+    {
+     "opcao": "Ainda não vendi / Não sei",
+     "retorno": "Dica",
+     "texto": "Inclua uma mensagem depois da entrega no seu roteiro de venda."
+    }
    ],
-   "conceitos": [
-    "M10-C05"
-   ]
+   "apoio": "[Se compra recorrente no Módulo 2]: Você disse que o cliente compra [frequência]. Voltar a falar pode trazer a próxima venda.",
+   "tipo": "Seleção única"
   },
   {
-   "codigo": "M10.P04",
-   "condicao": null,
-   "pergunta": "Quais tarefas você tem dificuldade para fazer ou não tem tempo de fazer?",
-   "tipoOriginal": "Múltipla escolha",
-   "tipo": "texto",
-   "opcoes": [],
-   "conceitos": [
-    "M10-C06"
-   ]
-  },
-  {
-   "codigo": "M10.P05",
-   "condicao": null,
-   "pergunta": "Você tem ou pretende ter sócio?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Sim",
-    "Não",
-    "Não sei"
+   "codigo": "M10-05",
+   "fase": "Como você vende",
+   "pergunta": "Como as pessoas vão saber que [oferta em foco] existe nas próximas semanas?",
+   "descobre": "Divulgação principal",
+   "aparece": "Sempre",
+   "guarda": "Divulgação",
+   "caminhos": [
+    {
+     "opcao": "Indicação de quem já comprou / Redes sociais próprias / Grupos de mensagem / Cartaz ou panfleto no bairro / Parceria com outro negócio",
+     "retorno": "Resposta",
+     "texto": "Anotado. A mensagem de apresentação usa o seu diferencial; confira e ajuste."
+    },
+    {
+     "opcao": "Anúncio pago",
+     "retorno": "Atenção",
+     "texto": "Anúncio pago é um gasto. Confira se ele entrou nos seus gastos do Módulo 5 e defina um limite antes de começar."
+    },
+    {
+     "opcao": "Ainda não sei",
+     "retorno": "Dica",
+     "texto": "Comece pelo que não custa: avisar quem já comprou e pedir indicação."
+    }
    ],
-   "conceitos": [
-    "M10-C07"
-   ]
+   "apoio": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3].",
+   "tipo": "Seleção única"
   },
   {
-   "codigo": "M10.P06",
-   "condicao": "M10.P05 = Sim",
+   "codigo": "M10-06",
+   "fase": "Pessoas",
    "pergunta": "Vocês já combinaram por escrito quem faz o quê, quanto cada um coloca e como dividem o resultado?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Sim",
-    "Não",
-    "Não sei"
+   "descobre": "Acordo entre sócios",
+   "aparece": "Se M8-03 = sim",
+   "guarda": "Acordo entre sócios",
+   "caminhos": [
+    {
+     "opcao": "Sim, por escrito",
+     "retorno": "Resposta",
+     "texto": "Ótimo. Guardem o documento e revisem se algo mudar."
+    },
+    {
+     "opcao": "Só combinamos de boca / Ainda não",
+     "retorno": "Atenção",
+     "texto": "Um acordo escrito evita desentendimentos sobre trabalho, dinheiro e saída de um sócio. Para a forma do documento, procure um contador ou advogado."
+    },
+    {
+     "opcao": "Não sei",
+     "retorno": "Dica",
+     "texto": "Converse com o sócio sobre os itens do checklist de acordo."
+    }
    ],
-   "conceitos": [
-    "M10-C07",
-    "M10-C08"
-   ]
+   "apoio": "Você disse no Módulo 8 que terá sócio. Combinar antes evita desentendimentos depois.",
+   "tipo": "Seleção única"
   },
   {
-   "codigo": "M10.P07",
-   "condicao": null,
-   "pergunta": "Para cada tarefa principal do negócio, há uma pessoa responsável, mesmo que seja você?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Sim",
-    "Não",
-    "Não sei"
+   "codigo": "M10-07",
+   "fase": "Pessoas",
+   "pergunta": "Quem cuida destas etapas do seu processo?",
+   "descobre": "Responsáveis",
+   "aparece": "Só se o mapa do M7 tiver etapas sem responsável",
+   "guarda": "Responsáveis por etapa",
+   "caminhos": [
+    {
+     "opcao": "Responsável escolhido por etapa (eu, sócio, ajudante, ninguém ainda)",
+     "retorno": "Resposta",
+     "texto": "Mapa atualizado."
+    },
+    {
+     "opcao": "'Ninguém ainda' em alguma etapa",
+     "retorno": "Dica",
+     "texto": "Etapa sem responsável costuma ser a que atrasa."
+    }
    ],
-   "conceitos": [
-    "M10-C08"
-   ]
+   "apoio": "Etapas do seu mapa (Módulo 7) que ainda estão sem responsável: [etapas].",
+   "tipo": "Seleção por etapa"
   },
   {
-   "codigo": "M10.P08",
-   "condicao": null,
-   "pergunta": "Você está pensando em contratar alguém?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Sim",
-    "Não",
-    "Não sei"
+   "codigo": "M10-08",
+   "fase": "Pessoas",
+   "pergunta": "Você pensa em contratar alguém nos próximos meses?",
+   "descobre": "Intenção de contratar",
+   "aparece": "Sempre",
+   "guarda": "Contratação",
+   "caminhos": [
+    {
+     "opcao": "Não",
+     "retorno": "Resposta",
+     "texto": "Anotado."
+    },
+    {
+     "opcao": "Sim, para produzir ou atender / para vender ou divulgar / para tarefas administrativas",
+     "retorno": "Atenção",
+     "texto": "Contratar tem custo todo mês e regras próprias. Antes de decidir, veja as alternativas e converse com um contador sobre a forma de contratar."
+    },
+    {
+     "opcao": "Não sei",
+     "retorno": "Dica",
+     "texto": "Pense no que você deixa de fazer por falta de tempo. É isso que alguém faria."
+    }
    ],
-   "conceitos": [
-    "M10-C09"
-   ]
+   "apoio": "[Se capacidade curta no Módulo 7]: Com o tempo informado, cabem cerca de [N] por mês, e você pretende [volume].",
+   "tipo": "Seleção única"
   },
   {
-   "codigo": "M10.P09",
-   "condicao": "M10.P08 = Sim",
-   "pergunta": "Você já considerou outras formas de resolver essa necessidade?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Sim",
-    "Não",
-    "Não sei"
+   "codigo": "M10-08a",
+   "fase": "Pessoas",
+   "pergunta": "Antes de contratar, quais outras formas você já considerou?",
+   "descobre": "Alternativas",
+   "aparece": "Se pensa em contratar",
+   "guarda": "Alternativas",
+   "caminhos": [
+    {
+     "opcao": "Uma ou mais (parceria com outro negócio, profissional por serviço avulso, ajuda da família, menos variedade de opções, rever o tempo de apoio, ainda nenhuma)",
+     "retorno": "Resposta",
+     "texto": "Anotado. O plano pode começar testando uma alternativa antes de contratar."
+    }
    ],
-   "conceitos": [
-    "M10-C09"
-   ]
+   "apoio": "Marque as que você já pensou. Contratar tem custo fixo e regras próprias.",
+   "tipo": "Seleção múltipla"
   },
   {
-   "codigo": "M10.P10",
-   "condicao": null,
-   "pergunta": "Quais são os 3 problemas ou tarefas mais urgentes do seu negócio hoje?",
-   "tipoOriginal": "Texto aberto",
-   "tipo": "texto",
-   "opcoes": [],
-   "conceitos": [
-    "M10-C10"
-   ]
-  },
-  {
-   "codigo": "M10.P11",
-   "condicao": null,
-   "pergunta": "Se você esperar 3 meses sem agir, o que tende a acontecer com cada um deles?",
-   "tipoOriginal": "Escolha única",
-   "tipo": "escolha",
-   "opcoes": [
-    "Piora grave / Risco",
-    "Pouco impacto",
-    "Não sei"
+   "codigo": "M10-09",
+   "fase": "Seu plano",
+   "pergunta": "Estes são os pontos que apareceram no seu percurso. Quais são os 3 mais urgentes para você?",
+   "descobre": "Prioridades",
+   "aparece": "Sempre (lista pré-preenchida)",
+   "guarda": "Prioridades (até 3)",
+   "caminhos": [
+    {
+     "opcao": "Até 3 itens da lista",
+     "retorno": "Resposta",
+     "texto": "Anotado. Vamos ver qual delas é a mais urgente."
+    },
+    {
+     "opcao": "Outro (texto)",
+     "retorno": "Resposta",
+     "texto": "Anotado."
+    },
+    {
+     "opcao": "Mais de 3",
+     "retorno": "Dica",
+     "texto": "Com três prioridades fica mais fácil começar. As outras ficam guardadas."
+    },
+    {
+     "opcao": "Não sei",
+     "retorno": "Dica",
+     "texto": "Deixamos marcadas as três que mais pesam pelo que você respondeu. Você pode trocar."
+    }
    ],
-   "conceitos": [
-    "M10-C10"
-   ]
+   "apoio": "Juntamos o que ficou em aberto nos módulos anteriores. Escolha até 3 ou escreva outro.",
+   "tipo": "Seleção múltipla (até 3) + 'Outro'"
   },
   {
-   "codigo": "M10.P12",
-   "condicao": null,
-   "pergunta": "Para cada prioridade, que sinal observável mostraria que a ação funcionou?",
-   "tipoOriginal": "Texto aberto",
-   "tipo": "texto",
-   "opcoes": [],
-   "conceitos": [
-    "M10-C10"
-   ]
+   "codigo": "M10-10",
+   "fase": "Seu plano",
+   "pergunta": "Se você esperar 3 meses sem agir, o que tende a acontecer com cada uma?",
+   "descobre": "Urgência",
+   "aparece": "Sempre",
+   "guarda": "Urgência por prioridade",
+   "caminhos": [
+    {
+     "opcao": "Para cada prioridade: piora muito / piora um pouco / fica igual / não sei",
+     "retorno": "Resposta",
+     "texto": "A mais urgente parece ser: [prioridade]."
+    }
+   ],
+   "apoio": "Responda para cada prioridade. Isso ajuda a decidir por onde começar.",
+   "tipo": "Escala por prioridade"
+  },
+  {
+   "codigo": "M10-11",
+   "fase": "Seu plano",
+   "pergunta": "Para a prioridade mais urgente: o que você vai fazer, até quando, e que sinal vai mostrar que funcionou?",
+   "descobre": "Plano da prioridade principal",
+   "aparece": "Sempre",
+   "guarda": "Plano de ação",
+   "caminhos": [
+    {
+     "opcao": "Ação, data, sinal e número preenchidos",
+     "retorno": "Resposta",
+     "texto": "Seu plano: [frase]. Combine com você mesmo de olhar o resultado nessa data."
+    },
+    {
+     "opcao": "Sem número",
+     "retorno": "Dica",
+     "texto": "Quanto basta para dizer que funcionou? Definir antes evita mudar a régua depois."
+    },
+    {
+     "opcao": "Data acima de 90 dias",
+     "retorno": "Dica",
+     "texto": "Um prazo longo dificulta acompanhar. Qual seria um primeiro passo para as próximas duas semanas?"
+    },
+    {
+     "opcao": "Data inválida (passada)",
+     "retorno": "Dica",
+     "texto": "Escolha uma data a partir de hoje."
+    },
+    {
+     "opcao": "Não sei",
+     "retorno": "Dica",
+     "texto": "Comece pelo menor passo possível desta semana."
+    }
+   ],
+   "apoio": "Ex.: 'Fazer a consulta de viabilidade até sexta; sinal: resposta da prefeitura'. Ou: 'Divulgar no grupo do bairro por 2 semanas; sinal: 5 pedidos'.",
+   "tipo": "Ação (texto) + data + sinal + número"
+  },
+  {
+   "codigo": "M10-12",
+   "fase": "Fechamento",
+   "pergunta": "Este é o seu plano de ação e o retrato do seu negócio. Está certo?",
+   "descobre": "Confirmação",
+   "aparece": "Sempre (última tela)",
+   "guarda": "Plano confirmado",
+   "caminhos": [
+    {
+     "opcao": "Sim, salvar",
+     "retorno": "Resposta",
+     "texto": "Pronto! Seu plano está salvo. Tudo aqui são estimativas e orientações; as decisões são suas. [Se houver ofertas guardadas]: Quer fazer o percurso com [próxima oferta]?"
+    },
+    {
+     "opcao": "Quero corrigir algo",
+     "retorno": "Resposta",
+     "texto": "Qual resposta você quer mudar?"
+    }
+   ],
+   "apoio": "Confira antes de salvar. Você pode corrigir qualquer resposta, de qualquer módulo.",
+   "tipo": "Seleção única"
   }
  ],
- "regras": [
+ "instrumentos": [
   {
-   "codigo": "M10.R01",
-   "condicao": "M10.P01 = Até 1 hora",
-   "texto": "Resposta rápida aumenta significativamente as chances de conversão e demonstra profissionalismo inicial.",
-   "alerta": "Manter a rapidez à medida que o volume cresce exigirá automatização ou equipe.",
-   "lacuna": ""
+   "nome": "Roteiro de venda",
+   "mostra": "Passos do primeiro contato ao pós-venda, com o que dizer e o que confirmar em cada um.",
+   "aviso": "Roteiro para adaptar a cada conversa."
   },
   {
-   "codigo": "M10.R02",
-   "condicao": "M10.P01 = Entre 1 e 4 horas",
-   "texto": "Responder em poucas horas mantém o cliente interessado, mas exige atenção para não perder o impulso de compra.",
-   "alerta": "Se o cliente tiver urgência, ele pode procurar a concorrência nesse intervalo.",
-   "lacuna": ""
+   "nome": "Mensagem de apresentação",
+   "mostra": "Duas ou três frases para apresentar a oferta, a partir do diferencial e da proposta de valor.",
+   "aviso": "Confira se a mensagem promete só o que você entrega."
   },
   {
-   "codigo": "M10.R03",
-   "condicao": "M10.P01 = Até 24 horas",
-   "texto": "Um prazo de um dia pode ser aceitável para serviços complexos, mas é arriscado para compras por impulso.",
-   "alerta": "Ao responder no dia seguinte, o cliente já pode ter resolvido a necessidade de outra forma.",
-   "lacuna": ""
+   "nome": "Checklist de acordo entre sócios",
+   "mostra": "Itens a combinar: quem faz o quê; quanto cada um coloca; como divide o resultado; como decide; o que acontece se um sair.",
+   "aviso": "Para a forma do documento, procure um contador ou advogado."
   },
   {
-   "codigo": "M10.R04",
-   "condicao": "M10.P01 = Mais de 24 horas",
-   "texto": "Uma resposta lenta é um dos principais motivos de desistência de compra, encaminhando o cliente para a concorrência.",
-   "alerta": "A demora no primeiro contato reduz drasticamente a chance de fechamento.",
-   "lacuna": ""
+   "nome": "Plano de ação",
+   "mostra": "Até 3 prioridades em ordem; para a principal: ação, prazo, sinal e quanto basta.",
+   "aviso": "O plano é seu e pode mudar. Revise na data marcada."
   },
   {
-   "codigo": "M10.R05",
-   "condicao": "M10.P01 = Não sei",
-   "texto": "Medir o tempo médio de resposta é o primeiro passo para melhorar o padrão de atendimento.",
-   "alerta": "A ausência de resposta padronizada costuma gerar frustração no cliente.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R06",
-   "condicao": "M10.P02 = Sim",
-   "texto": "Seguir uma sequência testada ajuda a entender em qual etapa exata as vendas costumam travar.",
-   "alerta": "Vendas fechadas muito rapidamente sem qualificação podem gerar clientes insatisfeitos depois.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R07",
-   "condicao": "M10.P02 = Não",
-   "texto": "Vender sem uma sequência padronizada depende muito da sorte e do talento individual de quem atende no momento.",
-   "alerta": "A falta de um processo repetível impede escalar as vendas do negócio.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R08",
-   "condicao": "M10.P02 = Não sei",
-   "texto": "Não ter clareza sobre o processo prático de venda dificulta o treino de novas pessoas no futuro.",
-   "alerta": "Sem etapas claras, é impossível medir o desempenho de vendas.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R09",
-   "condicao": "M10.P03 = Sim",
-   "texto": "O pós-venda ativo é uma das formas mais baratas de gerar recompra e indicações espontâneas.",
-   "alerta": "Ignorar reclamações no pós-venda anula o benefício desse contato.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R10",
-   "condicao": "M10.P03 = Não",
-   "texto": "Deixar de falar com o cliente após a entrega é perder a chance de fidelizar e de corrigir falhas que você ainda não viu.",
-   "alerta": "Vender apenas uma vez para cada cliente encarece o custo de aquisição (marketing).",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R11",
-   "condicao": "M10.P03 = Não sei",
-   "texto": "Sem contato pós-venda, não é possível saber de fato se o produto ou serviço resolveu o problema do cliente.",
-   "alerta": "",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R12",
-   "condicao": "M10.P04 = Preenchido",
-   "texto": "Identificar os gargalos de rotina ajuda a priorizar o que precisa ser simplificado ou delegado.",
-   "alerta": "Tentar abraçar todas as tarefas sem auxílio reduz a qualidade das entregas essenciais.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R13",
-   "condicao": "M10.P04 = Não sei",
-   "texto": "Não mapear as dificuldades de tempo impede reconhecer onde o negócio está perdendo eficiência.",
-   "alerta": "A sobrecarga crônica costuma ser percebida apenas quando prazos e vendas já foram prejudicados.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R14",
-   "condicao": "M10.P05 = Sim",
-   "texto": "Ter sócio permite somar competências complementares e dividir responsabilidades de gestão.",
-   "alerta": "Expectativas não alinhadas entre sócios são uma das maiores causas de encerramento precoce.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R15",
-   "condicao": "M10.P05 = Não",
-   "texto": "Empreender sozinho dá agilidade na decisão, mas exige disciplina rigorosa para equilibrar operação e gestão.",
-   "alerta": "Centralizar tudo aumenta o risco de estafa e cria dependência total da presença física do titular.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R16",
-   "condicao": "M10.P05 = Não sei",
-   "texto": "Avaliar a necessidade de sociedade depende de identificar se faltam recursos financeiros ou habilidades técnicas.",
-   "alerta": "Convidar um sócio apenas por insegurança inicial pode gerar vínculos contratuais difíceis de desfazer.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R17",
-   "condicao": "M10.P06 = Sim",
-   "texto": "Formalizar os papéis, aportes e regras de retirada previne atritos operacionais e societários.",
-   "alerta": "Acordos informais perdem força com o tempo se não forem registrados documentalmente.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R18",
-   "condicao": "M10.P06 = Não",
-   "texto": "A ausência de regras claras por escrito gera dúvidas frequentes sobre esforço individual e remuneração.",
-   "alerta": "Divergências sobre dedicação e dinheiro costumam paralisar as operações da empresa.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R19",
-   "condicao": "M10.P06 = Não sei",
-   "texto": "A falta de alinhamento explícito indica indefinição sobre o papel de cada integrante no negócio.",
-   "alerta": "Não saber como as decisões serão tomadas deixa a sociedade vulnerável a conflitos internos.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R20",
-   "condicao": "M10.P07 = Sim",
-   "texto": "Atribuir um responsável único para cada atividade garante cobrança de prazos e consistência.",
-   "alerta": "Mesmo que uma única pessoa execute várias funções, é recomendado que o papel operacional esteja delimitado.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R21",
-   "condicao": "M10.P07 = Não",
-   "texto": "Tarefas sem dono definido tendem a ser esquecidas ou executadas com atraso e erros.",
-   "alerta": "A falta de responsabilidade clara gera retrabalho e descompasso na rotina de entrega.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R22",
-   "condicao": "M10.P07 = Não sei",
-   "texto": "Indefinição sobre papéis operacionais impede a padronização e o treinamento futuro de terceiros.",
-   "alerta": "Sem clareza de quem responde por cada processo, problemas operacionais ficam sem solução definitiva.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R23",
-   "condicao": "M10.P08 = Sim",
-   "texto": "Contratar amplia a capacidade de entrega, mas cria uma obrigação financeira fixa e contínua.",
-   "alerta": "Lembre-se de calcular os encargos trabalhistas, que podem elevar o custo consideravelmente além do salário nominal.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R24",
-   "condicao": "M10.P08 = Não",
-   "texto": "Manter a operação enxuta preserva a margem e mantém custos fixos sob controle no início.",
-   "alerta": "Se a demanda crescer além do limite pessoal de atendimento, a qualidade do produto pode cair.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R25",
-   "condicao": "M10.P08 = Não sei",
-   "texto": "A dúvida sobre contratar indica necessidade de medir primeiro o volume real de trabalho excedente.",
-   "alerta": "Contratações precipitadas antes da estabilização da receita geram custos rescisórios prematuros.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R26",
-   "condicao": "M10.P09 = Sim",
-   "texto": "Avaliar alternativas como automação, parcerias ou terceirização flexibiliza o custo da operação.",
-   "alerta": "Contratos terceirizados exigem alinhamento claro de nível de serviço para não comprometer a qualidade.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R27",
-   "condicao": "M10.P09 = Não",
-   "texto": "Contratar diretamente sem explorar soluções alternativas pode gerar custo fixo desnecessário.",
-   "alerta": "Ferramentas digitais gratuitas ou serviços pontuais poderiam suprir a demanda com menor compromisso financeiro.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R28",
-   "condicao": "M10.P09 = Não sei",
-   "texto": "Conhecer opções de apoio disponíveis no mercado evita assumir compromissos empregatícios precoces.",
-   "alerta": "Deixar de pesquisar alternativas de suporte encarece a gestão da rotina inicial.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R29",
-   "condicao": "M10.P10 = Preenchido",
-   "texto": "Listar os 3 problemas mais urgentes evita a perda de foco e ajuda a concentrar esforços no que é vital.",
-   "alerta": "Tratar tudo como urgente gera ansiedade e impede a conclusão aprofundada de qualquer tarefa.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R30",
-   "condicao": "M10.P10 = Não sei",
-   "texto": "A ausência de prioridades claras faz o empreendedor reagir apenas a imprevistos cotidianos.",
-   "alerta": "Sem foco definido, o tempo é consumido por rotinas secundárias enquanto gargalos graves persistem.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R31",
-   "condicao": "M10.P11 = Piora grave / Risco",
-   "texto": "Reconhecer o custo da inação ajuda a classificar a real gravidade do problema para a sobrevivência do negócio.",
-   "alerta": "Postergar soluções críticas transforma dificuldades pontuais em crises financeiras ou operacionais.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R32",
-   "condicao": "M10.P11 = Pouco impacto",
-   "texto": "Problemas que não se agravam com o tempo não devem consumir o tempo escasso da liderança.",
-   "alerta": "Gastar energia resolvendo detalhes de baixo impacto desvia o foco de vendas e entregas essenciais.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R33",
-   "condicao": "M10.P11 = Não sei",
-   "texto": "Não antecipar os desdobramentos de um problema impede agir de forma preventiva.",
-   "alerta": "Ignorar a evolução de um gargalo transfere a decisão para um momento de emergência.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R34",
-   "condicao": "M10.P12 = Preenchido",
-   "texto": "Definir um indicador observável permite saber com precisão se o esforço gerou a melhoria esperada.",
-   "alerta": "Metas subjetivas dificultam avaliar se a rotina melhorou ou se os recursos foram mal aproveitados.",
-   "lacuna": ""
-  },
-  {
-   "codigo": "M10.R35",
-   "condicao": "M10.P12 = Não sei",
-   "texto": "Agir sem um critério de sucesso mensurável impede saber quando a tarefa foi concluída satisfatoriamente.",
-   "alerta": "A ausência de métricas claras perpetua ações corretivas ineficazes por longos períodos.",
-   "lacuna": ""
+   "nome": "Retrato final do percurso",
+   "mostra": "Uma linha por módulo: o que já se sabe (fato), o que ainda é hipótese e o que falta.",
+   "aviso": "Retrato com as suas respostas. Não é avaliação nem garantia."
   }
- ]
+ ],
+ "checklist_socios": [
+  "quem faz o quê",
+  "quanto cada um coloca",
+  "como divide o resultado",
+  "como decide",
+  "o que acontece se um sair"
+ ],
+ "pedidos_ia": [
+  {
+   "pedido": "Mensagem de apresentação",
+   "texto": "Tenho um pequeno negócio de [oferta em foco] para [grupo em foco]. O que o cliente ganha comigo: [diferencial]. Me ajude a organizar essas ideias em 3 versões curtas de mensagem, sem inventar promessas, preços ou números.",
+   "conferir": "Leia em voz alta: soa como você? Promete só o que você entrega?",
+   "obs": "Sem nome do negócio nem contato."
+  }
+ ],
+ "modulos": [
+  {
+   "numero": 1,
+   "nome": "Perfil do empreendedor e definição da ideia"
+  },
+  {
+   "numero": 2,
+   "nome": "Clientes, necessidades e comportamento de compra"
+  },
+  {
+   "numero": 3,
+   "nome": "Mercado e concorrentes"
+  },
+  {
+   "numero": 4,
+   "nome": "Produto, proposta de valor e teste da ideia"
+  },
+  {
+   "numero": 5,
+   "nome": "Custos, despesas, preço e margem"
+  },
+  {
+   "numero": 6,
+   "nome": "Investimento, capital de giro e fluxo de caixa"
+  },
+  {
+   "numero": 7,
+   "nome": "Operação, fornecedores, capacidade e qualidade"
+  },
+  {
+   "numero": 8,
+   "nome": "Formalização, enquadramento e tributação básica"
+  },
+  {
+   "numero": 9,
+   "nome": "Licenças, endereço e atividades reguladas"
+  },
+  {
+   "numero": 10,
+   "nome": "Comunicação, vendas, pessoas e plano de ação"
+  }
+ ],
+ "resumo": {
+  "blocos": [
+   {
+    "bloco": "Seu plano",
+    "conteudo": "Prioridade principal com ação, prazo, sinal e quanto basta; as outras duas em ordem."
+   },
+   {
+    "bloco": "Como você vende",
+    "conteudo": "Roteiro de venda, mensagem de apresentação e divulgação."
+   },
+   {
+    "bloco": "Pessoas",
+    "conteudo": "Sócios e acordo, responsáveis, contratação."
+   },
+   {
+    "bloco": "Retrato do negócio",
+    "conteudo": "Uma linha por módulo: o que já se sabe, o que é hipótese, o que falta."
+   },
+   {
+    "bloco": "Encaminhamento",
+    "conteudo": "Um só, o mais importante (ex.: contador, prefeitura)."
+   }
+  ],
+  "proximos": [
+   {
+    "situacao": "Plano completo",
+    "mensagem": "Na data marcada, volte aqui e registre o que aconteceu."
+   },
+   {
+    "situacao": "Plano sem sinal ou número",
+    "mensagem": "Defina quanto basta antes de começar."
+   },
+   {
+    "situacao": "Ofertas guardadas",
+    "mensagem": "Quer fazer o percurso com [próxima oferta]? O que vale para o negócio todo já vem preenchido."
+   }
+  ],
+  "cruzamentos": [
+   {
+    "quando": "Estágio = vendas e nenhum canal de conversa",
+    "mensagem": "Você já vende, mas não marcou por onde fala com clientes. Quer rever?",
+    "forma": "Pergunta gentil"
+   },
+   {
+    "quando": "Compra recorrente (M2-05) e sem pós-venda",
+    "mensagem": "Seu cliente compra [frequência]. Falar com ele depois da entrega pode trazer a próxima venda.",
+    "forma": "Observação"
+   },
+   {
+    "quando": "Resposta em mais de 2 dias e concorrentes no Módulo 3",
+    "mensagem": "Quem espera muito pode comprar de [concorrente] ou de outra pessoa.",
+    "forma": "Observação"
+   },
+   {
+    "quando": "Contratar e capacidade com folga (M7)",
+    "mensagem": "Com o tempo informado, ainda cabem cerca de [folga] por mês.",
+    "forma": "Observação"
+   },
+   {
+    "quando": "Anúncio pago sem gasto no Módulo 5",
+    "mensagem": "O anúncio não aparece nos seus gastos. Quer incluir?",
+    "forma": "Pergunta gentil"
+   },
+   {
+    "quando": "Sócio sem acordo escrito",
+    "mensagem": "Combinar por escrito antes de investir juntos evita desentendimentos.",
+    "forma": "Observação"
+   }
+  ]
+ }
 };

@@ -77,7 +77,7 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
           // campos vazios: texto/número neutro
           for (const i of document.querySelectorAll('input:not([type=checkbox]):not([type=radio]), textarea')) {
             if (vis(i) && !i.value) {
-              i.value = i.type === 'number' || i.inputMode === 'numeric' || i.inputMode === 'decimal' ? '10' : (i.type === 'date' ? '2026-10-20' : '10');
+              i.value = i.type === 'number' || i.inputMode === 'numeric' || i.inputMode === 'decimal' ? '10' : (i.type === 'date' ? new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10) : '10');
               i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true }));
             }
           }
