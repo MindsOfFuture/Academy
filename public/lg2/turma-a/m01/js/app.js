@@ -5,20 +5,41 @@
   const D = window.MODULO1, M = Motor.montar(D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-a-m01";
-  const VERSAO = 2;                  // muda quando o conjunto de perguntas muda: respostas antigas são descartadas
+  const VERSAO = 3;                  // muda quando o conjunto de perguntas muda: respostas antigas são descartadas
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
   let S = carregar();                // { v, R: respostas, atual: código da tela atual }
   function carregar() {
-    try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.v === VERSAO && s.R ? s : novo(); }
+    try {
+      const s = JSON.parse(localStorage.getItem(CHAVE));
+      if (s && s.v === 2 && s.R) return migrar2(s);
+      return s && s.v === VERSAO && s.R ? s : novo();
+    }
     catch { return novo(); }
+  }
+  /* v2 -> v3 (ajuste do "Não sei"): as perguntas são as mesmas; só some a resposta que deixou de
+     existir ("Não sei dizer" fora da 5A e da 7A, "Ainda não sei" da Pergunta 3). A pessoa volta
+     para a primeira pergunta que ficou sem resposta. */
+  function migrar2(s) {
+    let tirou = false;
+    Object.keys(s.R).forEach((c) => {
+      const q = M.porCodigo[c];
+      const r = s.R[c];
+      if (!q || !Motor.completa(q, r) || (r.estado === "naosei" && !q.botao_naosei)) { delete s.R[c]; tirou = true; }
+    });
+    s.v = VERSAO;
+    if (tirou) {
+      const falta = Motor.caminho(M, s.R).find((c) => !Motor.completa(M.porCodigo[c], s.R[c]));
+      s.atual = falta || "RESULTADO";
+    }
+    return s;
   }
   function novo() { return { v: VERSAO, R: {}, atual: null }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { parar(); tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  function ir(f, a) { parar(); fecharVideo(); tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
 
   /* ---------- ícones simples das listas ---------- */
   const SVG = (d) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -178,6 +199,48 @@
     return `<div class="msg ${cls}" role="status" data-ler><b>${esc(m.titulo)}</b><p>${esc(m.texto)}</p></div>`;
   }
 
+  /* ---------- card de vídeo (Perguntas 3 e 7) ----------
+     Só aparece quando o vídeo do grupo chegar: basta preencher "video.url" nos dados.
+     O vídeo abre por cima da pergunta; ao terminar ou fechar, a pessoa volta para a mesma
+     pergunta, sem resposta gravada. */
+  function cartaoVideo(q) {
+    if (!q.video || !q.video.url) return "";
+    return `<button class="video-card" type="button" data-video>${SVG('<circle cx="12" cy="12" r="10"/><path d="M10 8.5v7l6-3.5z" fill="currentColor"/>')}<span data-ler>${esc(q.video.texto)}</span></button>`;
+  }
+  let videoAberto = null;
+  function fecharVideo() {
+    if (!videoAberto) return;
+    const { caixa, volta } = videoAberto;
+    videoAberto = null;
+    document.removeEventListener("keydown", teclaVideo);
+    caixa.remove();
+    document.body.classList.remove("com-video");
+    if (volta && document.contains(volta)) volta.focus();
+  }
+  function teclaVideo(e) { if (e.key === "Escape") fecharVideo(); }
+  function abrirVideo(v, volta) {
+    parar(); fecharVideo();
+    const arquivo = /\.(mp4|webm|ogg|m4v)(\?|#|$)/i.test(v.url);
+    const midia = arquivo
+      ? `<video class="video-midia" src="${esc(v.url)}" controls autoplay playsinline></video>`
+      : `<iframe class="video-midia" src="${esc(v.url)}" title="${esc(v.texto)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    const caixa = el(`<div class="video-fundo" role="dialog" aria-modal="true" aria-label="${esc(v.texto)}">
+      <div class="video-caixa">
+        <button class="video-fechar" type="button" data-fechar>Fechar vídeo</button>
+        ${midia}
+      </div>
+    </div>`);
+    caixa.querySelector("[data-fechar]").onclick = fecharVideo;
+    caixa.onclick = (e) => { if (e.target === caixa) fecharVideo(); };
+    const vid = caixa.querySelector("video");
+    if (vid) vid.addEventListener("ended", fecharVideo);
+    document.body.appendChild(caixa);
+    document.body.classList.add("com-video");
+    document.addEventListener("keydown", teclaVideo);
+    videoAberto = { caixa, volta };
+    caixa.querySelector("[data-fechar]").focus();
+  }
+
   function telaPergunta(cod) {
     const q = M.porCodigo[cod];
     S.atual = cod; salvar();
@@ -191,6 +254,7 @@
               <h2 class="q" data-ler>${esc(Motor.textoPergunta(M, S.R, q))}</h2>
               <p class="apoio" data-ler>${esc(q.apoio)}</p>
               <div class="entrada" id="ent"></div>
+              ${cartaoVideo(q)}
             </div>
             <div id="msg"></div>
             ${q.ajuda ? `<details class="ajuda-box"><summary data-ler>O que quer dizer isso?</summary>
@@ -294,6 +358,8 @@
       const i = cam.indexOf(cod);
       if (i > 0) ir(telaPergunta, cam[i - 1]); else { S.atual = null; salvar(); ir(telaInicio); }
     };
+    const cv = p.querySelector("[data-video]");
+    if (cv) cv.onclick = () => abrirVideo(q.video, cv);
     ok.onclick = () => {
       if (!Motor.completa(q, S.R[cod])) return;
       const prox = Motor.proxima(M, S.R, cod);

@@ -1,7 +1,9 @@
 /* Dados do Módulo 1. Mapa, Base técnica e conexões vêm da planilha do grupo.
    Tela inicial, tela "O que esta parte não faz" e perguntas vêm do documento
    "Módulo 1 – Textos do app em linguagem simples" (08/10/2026), que substitui a aba
-   "3 Fluxo de perguntas". Textos literais. */
+   "3 Fluxo de perguntas". Ajuste "Módulo 1 – Ajuste do “Não sei” e vídeos": o "Não sei dizer"
+   fica só nas Perguntas 5A e 7A; as Perguntas 3 e 7 têm o card de vídeo, que só aparece quando
+   "video.url" for preenchido (o "assunto" é o pedido do grupo, não vai para a tela). Textos literais. */
 window.MODULO1 = {
  "origem": "LG2_M01_planilha_do_grupo.xlsx",
  "modulo": {
@@ -242,13 +244,6 @@ window.MODULO1 = {
     {
      "texto": "Já vendo sempre",
      "mensagem": null
-    },
-    {
-     "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Vamos descobrir juntos nas próximas perguntas."
-     }
     }
    ]
   },
@@ -281,13 +276,6 @@ window.MODULO1 = {
     {
      "texto": "Quero trabalhar por conta própria",
      "mensagem": null
-    },
-    {
-     "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Vamos descobrir juntos nas próximas perguntas."
-     }
     }
    ]
   },
@@ -299,14 +287,12 @@ window.MODULO1 = {
    "apoio": "Pode ser uma coisa que você faz ou um trabalho que você oferece.",
    "placeholder": "Ex.: bolo de pote, conserto de celular, unha de gel",
    "botao_falar": "Falar em vez de escrever",
-   "botao_naosei": {
-    "texto": "Ainda não sei",
-    "mensagem": {
-     "titulo": "Tudo bem",
-     "texto": "Pense em algo que você já sabe fazer bem ou que as pessoas pedem para você. Você pode mudar depois."
-    }
-   },
-   "tipo": "texto"
+   "tipo": "texto",
+   "video": {
+    "texto": "Não sabe ou não entendeu? Assista ao vídeo",
+    "assunto": "Ter uma boa ideia é diferente de ter uma oportunidade de negócio: como escolher o que vender a partir do que você sabe fazer e do que as pessoas pedem.",
+    "url": null
+   }
   },
   {
    "codigo": "M1.P04",
@@ -336,13 +322,6 @@ window.MODULO1 = {
      "mensagem": {
       "titulo": "Dica",
       "texto": "Tudo bem começar do zero. Procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."
-     }
-    },
-    {
-     "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Vamos descobrir juntos nas próximas perguntas."
      }
     }
    ],
@@ -379,13 +358,6 @@ window.MODULO1 = {
      "mensagem": {
       "titulo": "Dica",
       "texto": "Venda em feiras, eventos ou por encomenda para entregar no fim de semana."
-     }
-    },
-    {
-     "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Pense em um dia comum: quanto tempo livre você tem? Você pode mudar depois."
      }
     }
    ],
@@ -447,13 +419,6 @@ window.MODULO1 = {
       "titulo": "Dica",
       "texto": "Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."
      }
-    },
-    {
-     "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Faça uma lista do que você usa para fazer seu produto e veja o que já tem em casa."
-     }
     }
    ]
   },
@@ -493,18 +458,16 @@ window.MODULO1 = {
       "titulo": "Dica",
       "texto": "Mesmo podendo usar mais, teste antes com pouco. Não pegue empréstimo no banco para começar."
      }
-    },
-    {
-     "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Veja quanto sobra no fim do mês depois de pagar as contas. É um bom começo."
-     }
     }
    ],
    "ajuda": {
     "texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa.",
     "exemplo": "Exemplo: \"Tenho R$ 500 guardados para comprar ingredientes. Se eu não vender nada, não vai faltar comida em casa.\""
+   },
+   "video": {
+    "texto": "Não sabe ou não entendeu? Assista ao vídeo",
+    "assunto": "Antes de abrir: como descobrir quanto dinheiro você pode usar sem faltar nada em casa (olhar o que sobra no fim do mês, separar as contas fixas, não contar com empréstimo).",
+    "url": null
    }
   },
   {
@@ -571,10 +534,6 @@ window.MODULO1 = {
      "texto": "Outra coisa",
      "mensagem": null,
      "campo": true
-    },
-    {
-     "texto": "Não sei dizer",
-     "mensagem": null
     }
    ]
   }

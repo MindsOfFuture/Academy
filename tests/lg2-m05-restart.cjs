@@ -47,8 +47,8 @@ const server = http.createServer(async (req, res) => {
       await dialogHandled;
     };
     const assertFresh = async () => {
-      assert.deepEqual(await state(), { versao: 2, R: {}, hist: ['M5.P01'] });
-      assert.equal(await page.locator('.opcao').count(), 3);
+      assert.deepEqual(await state(), { versao: 3, R: {}, hist: ['M5.P00'] });
+      assert.equal(await page.locator('.opcao').count(), 4);   // pergunta 1 do Módulo 1 ("Não sei dizer" virou ajuda)
       assert.equal(await page.locator('.opcao.sel').count(), 0);
     };
     const assertTop = async () => {
@@ -63,6 +63,9 @@ const server = http.createServer(async (req, res) => {
 
     for (const [branch, first] of [['Produto', 'M5.P02'], ['Serviço', 'M5.P17'], ['Mercadoria', 'M5.P10']]) {
       await assertFresh();
+      await page.locator('.opcao').first().click();             // P00 -> P01
+      await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+      await page.getByRole('button', { name: 'Seguir', exact: true }).click();
       await page.getByRole('button', { name: new RegExp('^' + branch) }).click();
       await page.getByRole('button', { name: 'Continuar', exact: true }).click();
       await page.getByRole('button', { name: 'Seguir', exact: true }).click();

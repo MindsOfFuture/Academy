@@ -1,6 +1,7 @@
 /* Módulo 10 (Turma B) contra a planilha "Modulo_10_Perguntas_e_Caminhos.xlsx" do Grupo 10.
    Execute: PW=<caminho do pacote playwright> node tests/lg2-m10.cjs   (SHOTS=<pasta> grava prints 390x844)
    ESPERADO foi copiado da planilha (abas "Passo a passo" e "Caminhos por resposta"); roda sem a planilha.
+   CAPA_PDF veio do PDF "Módulo 10 - Versão 2910" (capa: Para quem é, O que ter em mãos, O que você recebe no final).
    1) o texto em dados/modulo10.js é o da planilha, sem edição;
    2) regras: casos da aba "Cálculos a conferir" contra motor.js;
    3) cada linha da aba "Caminhos por resposta" é alcançada na tela, com o conjunto exato de caixas;
@@ -13,6 +14,13 @@ const vm = require('node:vm');
 const { chromium } = require(process.env.PW || 'playwright');
 
 const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m10');
+const CAPA_PDF = {
+ "nome": "Comunicação, vendas, pessoas e plano de ação",
+ "objetivo": "Ao final do módulo, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
+ "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam ao módulo com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. O módulo busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
+ "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
+ "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado."
+};
 const ESPERADO = {
  "perguntas": [
   [
@@ -349,6 +357,7 @@ const D = JSON.parse(JSON.stringify(ctx.window.MODULO10));
 check('dados: 13 perguntas na ordem da planilha', JSON.stringify(D.perguntas.map((q) => [q.codigo, q.fase, q.pergunta])) === JSON.stringify(ESPERADO.perguntas), D.perguntas.map((q) => q.codigo));
 const cams = D.perguntas.flatMap((q) => q.caminhos.map((c) => [q.codigo, c.opcao, c.retorno, c.texto]));
 check('dados: 38 caminhos literais (opção, tipo de retorno, mensagem)', JSON.stringify(cams) === JSON.stringify(ESPERADO.caminhos), cams.length);
+check('dados: capa literal do PDF v2910 (objetivo, para quem é, o que ter em mãos, o que recebe)', D.modulo.nome === CAPA_PDF.nome && ['objetivo', 'para_quem', 'ter_em_maos', 'entrega'].every((k) => D.capa[k] === CAPA_PDF[k]), D.capa);
 check('dados: texto de apoio literal', D.perguntas.every((q) => q.apoio === ESPERADO.apoio[q.codigo]));
 check('dados: nenhuma ordem ao implementador nos dados públicos', !/rafael/i.test(src));
 check('dados: sem códigos de pergunta nas mensagens da tela final', !/M\d+-\d+/.test(JSON.stringify(D.resumo.proximos)));
@@ -388,7 +397,7 @@ const HERANCA = {
   'lg2-turma-b-m06': { R: { 'M6.P04': { estado: 'multi', opcoes: ['Pix', 'Dinheiro'] } } },
   /* Módulo 7: até 10 h, apoio até 2 h, 30 min por unidade = no máximo 69 por mês; volume 55 = folga de 14 */
   'lg2-turma-b-m07': { v: 1, ini: { horas: 'Até 10 h', volume: '55', minUn: 30 }, mapa: ['Receber o pedido', 'Fazer', 'Entregar'], R: { 'M7-03': { estado: 'opcao', opcao: 'Até 2 h' }, 'M7-11': { estado: 'multi', opcoes: ['Pedidos entregues no prazo'] } } },
-  'lg2-turma-b-m09': { R: { 'M9.P10': { estado: 'opcao', opcao: 'Ainda não fiz' }, 'M9.P09': { estado: 'opcao', opcao: 'Não' } } },
+  'lg2-turma-b-m09': { v: 2, R: { 'M9-04': { estado: 'opcao', opcao: 'Ainda não fiz' }, 'M9-03': { estado: 'opcao', opcao: 'Ainda não escolhi' } } },
 };
 const INI = { oferta: 'Bolo de pote', grupo: 'trabalhadores do bairro', proposta: 'Sobremesa caseira pronta para levar.', diferencial: 'Bolo fresco entregue no mesmo dia', estagio: 'Já vendo', canais: 'Redes sociais (Instagram, Facebook, WhatsApp)', preco: '12', entrega: 'Retirada presencial pelo cliente', pagamento: 'Pix, Dinheiro', de: {} };
 const NEUTRO = {
@@ -591,6 +600,8 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   if (process.env.SHOTS) fs.mkdirSync(process.env.SHOTS, { recursive: true });
   const foto = async (n) => { if (process.env.SHOTS) { await page.waitForTimeout(350); await page.screenshot({ path: path.join(process.env.SHOTS, n + '.png'), fullPage: n.includes('resultado') }); } };
   await foto('m10_capa');
+  { const tc = nrm(await page.evaluate(() => document.body.innerText));
+    check('Capa: textos do PDF v2910 na ordem do PDF', ['Para quem é', 'O que ter em mãos', 'O que você recebe no final'].every((t, i, l) => tc.includes(t) && (i === 0 || tc.indexOf(l[i - 1]) < tc.indexOf(t))) && ['objetivo', 'para_quem', 'ter_em_maos', 'entrega'].every((k) => tc.includes(nrm(CAPA_PDF[k]))), tc.slice(0, 300)); }
   await clicar('Começar');
   const partida = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-campo]')].map((i) => [i.dataset.campo, i.value])));
   check('Partida: dados herdados dos Módulos 1, 3, 4, 5 e 6', partida.oferta === 'Bolo de pote' && partida.proposta === 'Sobremesa caseira pronta para levar.' && partida.preco === '12' && partida.pagamento === 'Pix, Dinheiro' && partida.canais.startsWith('Redes sociais'), partida);

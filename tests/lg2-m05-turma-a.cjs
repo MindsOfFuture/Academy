@@ -46,6 +46,32 @@ for (const c of FIXOS) {
   ok(!M.porCodigo[c].opcoesLista.some((o) => /n[ãa]o sei/i.test(o)), `${c}: "Não sei" fora das opções`);
   ok(Motor.botoesAlternativos(M, M.porCodigo[c]).length === 0, `${c}: sem botão de resposta alternativa`);
 }
+/* correções 15/10 e 22/10: "Não sei" é ajuda em todas as perguntas; P00 (Módulo 1) abre; formas de pagamento antes das taxas */
+for (const q of M.ordem) {
+  ok(!q.opcoesLista.some((o) => /n[ãa]o sei/i.test(o)), `${q.codigo}: "Não sei" não é opção de resposta`);
+  ok(Motor.botoesAlternativos(M, q).every((o) => /^Ainda não/.test(o)), `${q.codigo}: só "Ainda não…" como botão alternativo`);
+  ok(Motor.ajudaNaoSei(M, q) !== null, `${q.codigo}: tem ajuda "Não sei"`);
+}
+ok(M.ordem[0].codigo === 'M5.P00' && M.ordem[0].pergunta === 'Como está a sua ideia hoje?', 'primeira pergunta = pergunta 1 do Módulo 1');
+ok(M.ordem[M.ordem.findIndex((q) => q.codigo === 'M5.P24') - 1].codigo === 'M5.PG', 'formas de pagamento logo antes das taxas');
+for (const c of ['M5.P08', 'M5.P15', 'M5.P23', 'M5.P35']) ok(Motor.proxima(M, M.porCodigo[c], { estado: 'opcao', opcao: 'Não' }, null) !== 'M5.P24', `${c}: não pula as formas de pagamento`);
+ok(Motor.proxima(M, M.porCodigo['M5.P08'], { estado: 'opcao', opcao: 'Não' }, Motor.regra(M, M.porCodigo['M5.P08'], { estado: 'opcao', opcao: 'Não' })) === 'M5.PG', 'P08 Não -> formas de pagamento');
+ok(Motor.taxaMedia([{ taxa: '0', parte: '60' }, { taxa: '5', parte: '40' }]) === 2, 'taxa média ponderada pelas formas: 0%x60 + 5%x40 = 2%');
+ok(Motor.validar(M, M.porCodigo['M5.P25'], [{ forma: 'Pix', taxa: '', prazo: '' }], {}) === Motor.MSG_RESPONDA, 'P25: taxa vazia não vale 0');
+ok(Motor.validar(M, M.porCodigo['M5.P25'], [{ forma: 'Pix', taxa: '0', prazo: '', parte: '50' }, { forma: 'Cartão de crédito', taxa: '5', prazo: '30', parte: '40' }], {}) === Motor.MSG_SOMA_PARTES, 'P25: partes que não somam 100% bloqueiam');
+ok(Motor.validar(M, M.porCodigo['M5.P29'], '', {}) === Motor.MSG_RESPONDA, 'P29: campo vazio não vale R$ 0');
+ok(Motor.validar(M, M.porCodigo['M5.P02'], '', {}) === 'Preencha o nome para continuar.', 'P02: mensagem do grupo para nome vazio');
+{
+  const Rq = { 'M5.P05': { estado: 'valor', valor: [{ q: '8', u: 'ml' }] } };
+  ok(Motor.avisoQuantidade(M, M.porCodigo['M5.P06'], [{ q: '1', u: 'L' }], Rq) === Motor.MSG_QTD_ALTA, 'esmalte 8 ml x 1 L por atendimento: aviso de quantidade alta (conversão L->ml)');
+  ok(Motor.avisoQuantidade(M, M.porCodigo['M5.P06'], [{ q: '5', u: 'ml' }], Rq) === null, '5 ml de 8 ml: sem aviso');
+  ok(Motor.avisoQuantidade(M, M.porCodigo['M5.P06'], [{ q: '0,5', u: 'kg' }], { 'M5.P05': { estado: 'valor', valor: [{ q: '600', u: 'g' }] } }) === null, '0,5 kg de 600 g: sem aviso (kg->g)');
+}
+{
+  const f = Motor.faixaMercado('de R$ 40 a R$ 60');
+  ok(f && f.min === 40 && f.max === 60, 'faixa do Módulo 3 lida do texto livre');
+  ok(Motor.faixaMercado('não sei') === null, 'faixa sem número = sem comparação');
+}
 /* conta do motor contra a conta à mão (unidade) */
 ok(Motor.classificar(19.9) === 'baixo' && Motor.classificar(20) === null && Motor.classificar(100) === null && Motor.classificar(100.1) === 'alto', 'faixas 20/100 no classificar');
 
@@ -147,11 +173,35 @@ const server = http.createServer(async (req, res) => {
       const fs_ = await page.evaluate((s) => [...document.querySelectorAll(s)].filter((e) => e.offsetParent !== null).map((e) => parseFloat(getComputedStyle(e).fontSize)), sel);
       ok(fs_.length > 0 && fs_.every((f) => f >= 16), `fonte >= 16px em ${sel} (${fs_.join(',')})`);
     };
-    const inicio = async () => {
+    const inicio = async (m1, ideia = 'Já vendo sempre') => {
       await page.goto(URL0);
-      await page.evaluate(() => localStorage.clear());
+      await page.evaluate((m1) => { localStorage.clear(); if (m1) localStorage.setItem('lg2-turma-a-m01', JSON.stringify(m1)); }, m1 || null);
       await page.reload();
       ok(await clicar('#ir', 'Começar'), 'Começar');
+      ok(await atual() === 'M5.P00', 'primeira tela = pergunta 1 do Módulo 1');
+      ok((await texto('h2.q')) === 'Como está a sua ideia hoje?', 'P00: texto da pergunta 1 do Módulo 1');
+      ok(await page.locator('#naosei').count() === 1, 'P00: botão de ajuda "Não sei" já no começo');
+      ok(await page.locator('#ent .opcao').count() === 4, 'P00: 4 opções ("Não sei dizer" virou ajuda)');
+      if (!(m1 && m1.R['M1.P01'])) await escolher(ideia);
+    };
+    /* formas de pagamento (múltipla escolha) */
+    const formas = async (lista) => {
+      const c = await atual();
+      ok(c === 'M5.PG', `formas de pagamento antes das taxas (em ${c})`);
+      ok(await page.locator('#naosei').count() === 1, 'PG: botão de ajuda');
+      await continuar();
+      ok(await erroVisivel() && await atual() === 'M5.PG', 'PG: não avança sem marcar');
+      for (const f of lista) ok(await clicar('#ent .opcao', f), `PG: marca ${f}`);
+      await continuar();
+      ok(!(await erroVisivel()), 'PG: aceita');
+      await seguir();
+    };
+    /* ajuda "Não sei" de uma pergunta qualquer: abre e traz o texto esperado */
+    const ajudaTraz = async (trecho, onde) => {
+      ok(await page.locator('#naosei').count() === 1, `${onde}: botão de ajuda`);
+      await page.click('#naosei');
+      ok((await texto('#painel')).includes(norm(trecho)), `${onde}: ajuda traz "${trecho.slice(0, 40)}…"`);
+      await page.click('#naosei');
     };
 
     /* ===== 0. versão do estado: resposta salva no formato antigo é descartada ===== */
@@ -159,19 +209,41 @@ const server = http.createServer(async (req, res) => {
     await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ R: { 'M5.P24': { estado: 'naosei' } }, hist: ['M5.P01', 'M5.P24'] })), KEY);
     await page.reload();
     ok(await page.locator('#ir').textContent() === 'Começar' && await page.locator('#zerar').count() === 0, 'estado antigo (sem versão) descartado');
+    await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ versao: 2, R: { 'M5.P01': { estado: 'opcao', opcao: 'Produto' } }, hist: ['M5.P01', 'M5.P02'] })), KEY);
+    await page.reload();
+    ok(await page.locator('#ir').textContent() === 'Começar', 'estado da versão 2 descartado (formato da taxa mudou)');
     console.log('PASS-stage: versão do estado');
 
     /* ===== 1. Produto: todos os gastos fixos "Sim", preço ainda não definido (a) ===== */
     await inicio();
     await escolher('Produto');
     await preencher(['Bolo de pote']);                               // P02
+    ok((await texto('#nota-consumo')).includes(norm(Motor.NOTA_CONSUMO.exemplo)) && (await texto('#nota-consumo')).includes('formas, panelas, máquinas e tesouras'), 'P03: explica consumo x equipamento com o exemplo do cabeleireiro');
+    ok((await texto('#nota-luz')).includes(Motor.NOTA_LUZ_AGUA), 'P03: aviso para não colocar conta de luz nem de água');
+    await fonte16('.nota-orienta p');
+    await shot('m05_materiais_P03.png');
+    await ajudaTraz(M.regrasDe['M5.P03'].find((r) => /n[ãa]o sab/i.test(r.condicao)).texto, 'P03');
     await preencher(['Farinha', 'Ovo']);                            // P03
     await preencher(['10', '12']);                                  // P04 preço pago
     await preencher(['1', '12'], ['kg', 'unidade']);                // P05 quanto vem
-    await preencher(['500', '6'], ['g', 'unidade']);                // P06 quanto usa
+    /* P06: 2 kg usados de um pacote de 1 kg -> aviso para conferir (não trava de vez) */
+    {
+      const ins = await page.locator('#ent input').all();
+      await ins[0].fill('2'); await ins[1].fill('6');
+      const ss = await page.locator('#ent select').all();
+      await ss[0].selectOption({ label: 'kg' }); await ss[1].selectOption({ label: 'unidade' });
+      await continuar();
+      ok(await erroVisivel() && (await texto('#erro')).includes(Motor.MSG_QTD_ALTA), 'P06: aviso de quantidade maior que a embalagem');
+      ok(await page.locator('#erro.aviso-qtd').count() === 1 && await atual() === 'M5.P06', 'P06: aviso não avança no 1º toque');
+      await shot('m05_quantidade_alta_P06.png');
+    }
+    await preencher(['500', '6'], ['g', 'unidade']);                // P06 quanto usa (corrigido: sem aviso)
     await preencher(['10']);                                        // P07 quantas unidades
+    ok(await page.locator('#ent .opcao').count() === 2, 'P08: só Sim/Não ("Não sei" virou ajuda)');
+    await ajudaTraz(M.regrasDe['M5.P08'].find((r) => /n[ãa]o sei/i.test(r.condicao)).texto, 'P08');
     await escolher('Sim');                                          // P08 embalagem
     await preencher(['20', '10']);                                  // P09 pacote
+    await formas(['Pix', 'Cartão de crédito']);
     // custo à mão: farinha 10*(0,5kg/1kg)/10 = 0,50; ovo 12*(6/12)/10 = 0,60; embalagem 20/10 = 2,00 -> 3,10
     const custoProd = 0.5 + 0.6 + 2;
     ok(await atual() === 'M5.P24', 'Produto chega à P24');
@@ -179,7 +251,15 @@ const server = http.createServer(async (req, res) => {
     await shot('02-naosei-painel-P24.png');
     await escolher('Sim');                                          // P24
     await checarFixo(true);                                         // P25 (valor): bloqueia vazio
-    await preencher(['5']);
+    ok(await page.locator('#ent .forma').count() === 2, 'P25: uma taxa por forma marcada (Pix e cartão de crédito)');
+    {
+      const ins = await page.locator('#ent input').all();       // Pix: taxa, prazo, parte; Crédito: taxa, prazo, parte
+      for (const [i, v] of [[0, '0'], [1, ''], [2, '50'], [3, '5'], [4, '30'], [5, '40']]) await ins[i].fill(v);
+      await continuar();
+      ok(await erroVisivel() && (await texto('#erro')) === Motor.MSG_SOMA_PARTES, 'P25: partes 50 + 40 não passam');
+      await shot('m05_taxas_por_forma_P25.png');
+    }
+    await preencher(['0', '', '60', '5', '30', '40']);              // taxa média = 0x60% + 5x40% = 2%
     await checarFixo(false); await escolher('Sim');                 // P26
     await checarFixo(true); await preencher(['100']);               // P27
     await checarFixo(false); await escolher('Sim');                 // P28
@@ -212,11 +292,14 @@ const server = http.createServer(async (req, res) => {
     ok(!(await state()).hist.includes('M5.P36'), 'P36 ainda não visitada antes da P37');
     await preencher(['100']);                                       // P37
     ok(await atual() === 'M5.P36', 'P36 (preço) vem depois da P37');
-    ok((await texto('.obs')).includes('Se você está começando a vender, pode precisar de um lucro maior em cada venda para compensar a quantidade pequena de vendas no início.'), 'P36: observação do início de vendas');
+    ok(!(await texto('#tela')).includes('compensar a quantidade pequena de vendas'), 'P36: orientação "lucro maior para quem vende pouco" retirada');
+    ok(await page.locator('.btn-alt').count() === 1 && !(await texto('.btn-alt')).includes('Não sei'), 'P36: só "Ainda não defini" como alternativa');
     await alt('Ainda não defini');
     ok(await atual() === 'PRECO', 'P36 "Ainda não defini" abre o passo do lucro');
-    ok((await texto('h2.q')) === 'Quanto de lucro você quer ganhar em cada venda? (%)', 'pergunta do % de lucro');
-    ok((await texto('.obs')).includes('compensar a quantidade pequena de vendas'), 'passo do preço: observação');
+    ok((await texto('h2.q')) === 'Quanto você quer acrescentar sobre o custo? (%)', 'pergunta da % sobre o custo');
+    ok((await texto('#poucas-vendas')).includes(Motor.POUCAS_VENDAS) && (await texto('#poucas-vendas')).includes('R$ 20,50'), 'passo do preço: poucas vendas + parcela 2.050 ÷ 100 = R$ 20,50');
+    ok((await texto('#margem-x-acrescimo')).includes(Motor.MARGEM_X_ACRESCIMO.exemplo), 'passo do preço: exemplo acréscimo x margem');
+    ok(await page.locator('#poucas-vendas').count() === 1, 'explicação das poucas vendas aparece uma vez só');
     ok(await page.locator('#res').isHidden(), 'Ver o resultado só depois de informar o %');
     await clicar('#calc', 'Continuar');
     ok(await erroVisivel() && await atual() === 'PRECO', 'passo do lucro não avança vazio');
@@ -224,6 +307,8 @@ const server = http.createServer(async (req, res) => {
     const lucro = async (v) => { await page.fill('#lucro', String(v)); await clicar('#calc', 'Continuar'); return texto('#analise'); };
     let t = await lucro(50);
     ok(t.includes(brl(custoProd * 1.5)) && brl(custoProd * 1.5) === 'R$ 4,65', `50% -> preço possível R$ 4,65 (tela: ${t.slice(0, 80)})`);
+    // preço que cobre custo + parcela do mês + taxa: (3,10 + 20,50) / (1 - 2%) = 24,08
+    ok((await texto('#preco-minimo')).includes('R$ 24,08'), 'preço mínimo com custo, taxa e parcela dos gastos do mês: R$ 24,08');
     ok(!t.includes(MSG.sugerido.baixo) && !t.includes(MSG.sugerido.alto), '50%: sem aviso');
     t = await lucro(10);
     ok(t.includes(brl(custoProd * 1.1)) && t.includes(MSG.sugerido.baixo) && !t.includes(MSG.sugerido.alto), '10%: aviso de lucro baixo (a)');
@@ -239,23 +324,31 @@ const server = http.createServer(async (req, res) => {
     ok(tr.includes('R$ 3,10') && tr.includes('R$ 4,65'), 'resultado Produto: custo R$ 3,10 e preço possível R$ 4,65');
     // gastos do mês à mão: aluguel 500 + água/luz 150 + outros 300 = 950 fixos; perdas 100; trabalho 1000 -> 2050
     ok(tr.includes('R$ 950,00') && tr.includes('R$ 2.050,00'), 'resultado Produto: gastos do mês 950 / total 2.050');
+    // sem preço informado o resultado usa o preço possível: sobra = 4,65 - 3,10 - 2% de 4,65 = 1,457 -> 2.050 / 1,457 = 1.407,0007 -> 1408 (para cima)
+    ok(/Ponto de equilíbrio\s*1408\b/.test(tr) && tr.includes('Preço possível (simulação)'), 'resultado Produto: vendas para cobrir o mês arredondadas para cima (1408)');
+    ok((await texto('#tab-formas')).includes('Pix (60% das vendas)') && (await texto('#tab-formas')).includes('recebe em 30 dias') && (await texto('#tab-formas')).includes('2,0%'), 'resultado: taxa e prazo por forma + taxa média 2,0%');
+    ok((await texto('#margem-x-acrescimo')).includes(Motor.MARGEM_X_ACRESCIMO.exemplo), 'resultado: explicação acréscimo x margem');
+    ok(await page.locator('#simulacao').count() === 0, 'quem já vende sempre: sem aviso de simulação');
+    ok((await texto('#descontados')).includes('o valor que você separa pelo seu trabalho'), 'resultado: explica o que já foi descontado (inclui a remuneração)');
     await semNaN('resultado Produto');
     await shot('06-resultado-produto.png');
     const salvo = await state();
     await page.reload();
     ok(await clicar('#ir', 'Continuar de onde parei'), 'Continuar de onde parei após recarregar');
     ok(await atual() === 'RESULTADO' && (await texto('#tela')).includes('R$ 4,65'), 'resultado persiste após recarregar');
-    ok(JSON.stringify(await state()) === JSON.stringify(salvo) && salvo.versao === 2 && salvo.lucro === '50', 'estado salvo (versão 2, lucro 50) persiste');
+    ok(JSON.stringify(await state()) === JSON.stringify(salvo) && salvo.versao === 3 && salvo.lucro === '50', 'estado salvo (versão 3, lucro 50) persiste');
     console.log('PASS-stage: Produto + preço possível');
 
     /* ===== 2. Mercadoria: gastos fixos "Não", preço informado (b) ===== */
     await inicio();
+    await page.evaluate(() => localStorage.setItem('lg2-turma-a-m03', JSON.stringify({ R: { 'M3.P20': { estado: 'valor', valor: 'de R$ 25 a R$ 40' } } })));
     await escolher('Mercadoria');
     await preencher(['Camiseta']);   // P10
     await preencher(['200']);        // P11 compra
     await preencher(['10']);         // P12 quantidade -> custo 20
     await escolher('Não');           // P13 frete
     await escolher('Não');           // P15 embalagem
+    await formas(['Dinheiro']);
     for (const c of ['M5.P24', 'M5.P26', 'M5.P28', 'M5.P30', 'M5.P32', 'M5.P34']) {
       ok(await atual() === c, `Mercadoria/Não: passa pela ${c}`);
       await checarFixo(c === 'M5.P24');
@@ -286,6 +379,10 @@ const server = http.createServer(async (req, res) => {
       if (esp === 'alto') ok(temA && !temB && !temN, `preço ${v}: aviso de lucro alto (b)`);
       if (esp === 'neg') ok(temB && temN && !temA, `preço ${v}: lucro negativo = baixo + "abaixo do que gasta"`);
       if (v === '15') await shot('05b-lucro-negativo.png');
+      ok(t.includes(Motor.MSG_ACIMA_MERCADO) === (p > 40), `preço ${v}: aviso de acima da faixa do Módulo 3 só acima de R$ 40`);
+      ok(t.includes('Faixa de preço que você informou no Módulo 3: R$ 25,00 a R$ 40,00'), `preço ${v}: mostra a faixa do Módulo 3`);
+      if (v === '30') ok(t.includes('R$ 10,00') && t.includes('33,3%') && t.includes('Margem sobre o preço'), 'preço 30, custo 20: sobra R$ 10,00 e margem 33,3% sobre o preço');
+      if (v === '45') await shot('m05_preco_faixa_m3.png');
       if (v === '22') await shot('05-lucro-reverso-baixo.png');
     }
     ok(pct1((23.33 - 20) / 20 * 100) === '16,6%' || pct1((23.33 - 20) / 20 * 100) === '16,7%', 'arredondamento 1 casa');
@@ -294,53 +391,98 @@ const server = http.createServer(async (req, res) => {
     ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (b)');
     tr = await texto('#tela');
     ok(tr.includes('50,0%') && tr.includes('R$ 20,00') && tr.includes('R$ 30,00'), 'resultado Mercadoria: lucro 50,0%, custo 20, preço 30');
+    ok(await page.inputValue('#sim-preco') === '30' && await page.inputValue('#sim-qtd') === '50', 'simulação começa com o preço e a quantidade informados');
+    await page.fill('#sim-preco', '25'); await page.fill('#sim-qtd', '10'); await page.click('#sim-ok');
+    ok((await texto('#sim-res')).includes('R$ 5,00') && (await texto('#sim-res')).includes('R$ 50,00'), 'simular R$ 25 x 10 vendas: sobra R$ 5,00, resultado R$ 50,00');
+    ok((await state()).R['M5.P36'].valor === '30', 'simular não muda as respostas');
     ok(tr.includes('R$ 1.500,00'), 'resultado Mercadoria: faturamento 50 x 30 = 1.500');
     await semNaN('resultado Mercadoria');
     console.log('PASS-stage: Mercadoria + lucro reverso');
 
     /* ===== 3. Serviço: com materiais, mistura Sim/Não, "Ainda não comecei" e "Não sei" no preço ===== */
-    await inicio();
+    const m1 = { v: 2, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendi algumas vezes' }, 'M1.P03': { estado: 'valor', valor: 'Corte de cabelo' } } };
+    await inicio(m1);
+    ok(await page.locator('#ent .opcao.sel').count() === 1 && (await texto('#ent .opcao.sel')) === 'Já vendi algumas vezes', 'P00: resposta do Módulo 1 vem marcada');
+    ok((await texto('.selo-m')).includes('Veio do Módulo 1'), 'P00: selo "Veio do Módulo 1"');
+    await shot('m05_P00_modulo1.png');
+    await continuar(); await seguir();
+    ok((await state()).R['M5.P00'].opcao === 'Já vendi algumas vezes', 'P00 gravada no Módulo 5');
     await escolher('Serviço');
-    await preencher(['Corte de cabelo']);   // P17
+    ok(await page.inputValue('#ent input') === 'Corte de cabelo' && (await texto('.selo-m')).includes('Módulo 1'), 'P17: nome trazido do Módulo 1 (pergunta 3)');
+    await continuar(); await seguir();      // P17
     await escolher('Sim');                  // P18
+    ok((await texto('#nota-consumo')).includes('tesoura') && (await texto('#nota-luz')).includes('luz'), 'P19: explicação de consumo e luz/água também no serviço');
     await preencher(['Shampoo']);           // P19
     await preencher(['30']);                // P20
     await preencher(['1'], ['L']);          // P21
     await preencher(['50'], ['ml']);        // P22 -> 30 * 0,05 = 1,50
     await preencher(['1', '0']);            // P23
-    await checarFixo(false); await escolher('Sim'); await preencher(['3']);   // P24/P25
+    await formas(['Cartão de débito']);
+    await checarFixo(false); await escolher('Sim');
+    ok(await page.locator('#ent .forma').count() === 1 && await page.locator('#ent .parte').count() === 0, 'P25: uma forma só, sem pedir a parte das vendas');
+    await preencher(['3']);                 // P24/P25
     await escolher('Não');                  // P26
     await escolher('Sim'); await preencher(['300']);                          // P28/P29
     await escolher('Não');                  // P30
     await escolher('Não');                  // P32
     await escolher('Não');                  // P34
+    ok(!(await texto('.btn-alt')).includes('Não sei'), 'P37: "Não sei" não é resposta');
     await alt('Ainda não comecei a vender'); // P37
     ok(await atual() === 'M5.P36', 'Serviço: P37 -> P36');
-    await alt('Não sei');                   // P36
-    ok(await atual() === 'PRECO', 'Serviço: P36 Não sei -> passo do lucro');
+    await alt('Ainda não defini');          // P36
+    ok(await atual() === 'PRECO', 'Serviço: P36 Ainda não defini -> passo do lucro');
     t = await lucro(30);
     ok(t.includes(brl(1.5 * 1.3)), 'Serviço: 30% -> preço possível R$ 1,95');
     ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (Serviço)');
     tr = await texto('#tela');
     ok(tr.includes('R$ 1,50') && tr.includes('R$ 1,95'), 'resultado Serviço: custo 1,50 e preço possível 1,95');
+    ok((await texto('#simulacao')).includes(Motor.MSG_SIMULACAO), 'ainda não comecei a vender: resultado marcado como simulação');
+    // sobra por atendimento 1,95 - 1,50 - 3% = 0,3915 -> aluguel 300 / 0,3915 = 766,3 -> 767
+    ok(/Ponto de equilíbrio\s*767\b/.test(tr), 'Serviço: 767 atendimentos para cobrir o mês (para cima)');
+    ok(JSON.stringify(await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))) === JSON.stringify(m1), 'Módulo 1 só lido, nunca alterado');
     await semNaN('resultado Serviço');
     console.log('PASS-stage: Serviço + preço possível');
 
     /* ===== 4. Serviço sem materiais: custo por unidade não calculável -> mensagem clara, sem % ===== */
-    await inicio();
+    await inicio({ v: 2, R: { 'M1.P05': { estado: 'opcao', opcao: 'Até 1 hora por dia' } } });
     await escolher('Serviço');
     await preencher(['Aula particular']);
     await escolher('Não');                  // P18 -> P23
     await preencher(['1', '30']);
+    await formas(['Pix']);
     for (let i = 0; i < 6; i++) await escolher('Não');
-    await preencher(['20']);                // P37
+    await preencher(['21']);                // P37: 21 x 1h30 = 31,5 h > 30 h (até 1 hora por dia no Módulo 1)
     await preencher(['80']);                // P36
     t = await texto('#analise');
     ok(t.includes(MSG.semCusto) && !/%/.test(t), 'sem custo por unidade: mensagem clara, sem %');
     await semNaN('passo do preço sem custo');
     ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (sem custo)');
     await semNaN('resultado sem custo');
+    ok((await texto('#tempo-alto')).includes(Motor.MSG_TEMPO) && (await texto('#tempo-alto')).includes('31,5 horas'), 'Serviço: aviso de tempo maior que o disponível no Módulo 1');
+    await page.locator('#tempo-alto').scrollIntoViewIfNeeded();
+    await shot('m05_tempo_servico.png');
+    ok(await clicar('#tempo-alto button', 'Conferir a quantidade') && await atual() === 'M5.P37', 'aviso de tempo leva à quantidade para revisar');
     console.log('PASS-stage: sem custo por unidade');
+
+    /* ===== 5. Venda abaixo do custo com gasto mensal: vender mais não resolve ===== */
+    await inicio(null, 'Ainda está só na minha cabeça');
+    await escolher('Mercadoria');
+    await preencher(['Boné']); await preencher(['200']); await preencher(['10']);
+    await escolher('Não'); await escolher('Não');
+    await formas(['Pix']);
+    await escolher('Não'); await escolher('Não');           // P24, P26
+    await escolher('Sim'); await preencher(['500']);        // P28/P29
+    await escolher('Não'); await escolher('Não'); await escolher('Não');
+    await preencher(['30']);                                // P37
+    await preencher(['15']);                                // P36 abaixo do custo (20)
+    ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (sem sobra)');
+    tr = await texto('#tela');
+    ok((await texto('#sem-sobra')).includes(Motor.MSG_SEM_SOBRA) && !/Ponto de equilíbrio\s*\d/.test(tr), 'sem sobra por venda: explica que vender mais não resolve, sem ponto de equilíbrio');
+    ok((await texto('#simulacao')).includes(Motor.MSG_SIMULACAO), 'ideia só na cabeça (Módulo 1): resultado marcado como simulação');
+    await semNaN('resultado sem sobra');
+    await page.evaluate(() => document.getElementById('numeros').scrollIntoView());
+    await shot('m05_resultado_sem_sobra.png');
+    console.log('PASS-stage: sem sobra + simulação');
 
     ok(errors.length === 0, 'sem erros de JavaScript: ' + errors.join(' | '));
   } catch (e) {
