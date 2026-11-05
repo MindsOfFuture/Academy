@@ -3,7 +3,11 @@
    Opcional: LG2_SHOTS=<pasta> (prints 390x844).
    Confere o documento "Módulo 1 – Textos do app em linguagem simples": fluxo (5A e 7A),
    mensagem de cada opção, regras de todas as telas, tela inicial, "O que esta parte não faz",
-   persistência e descarte de respostas antigas. Sai com código != 0 se falhar. */
+   persistência e descarte de respostas antigas. Também confere o "Ajuste do “Não sei” e vídeos":
+   "Não sei dizer" só na 5A e na 7A (última opção), sem "Ainda não sei" na Pergunta 3, card de vídeo
+   das Perguntas 3 e 7 escondido enquanto não houver vídeo (e, com um vídeo de teste, abre por cima e
+   volta para a mesma pergunta sem resposta) e a migração das respostas da versão anterior.
+   Inclui teste de sabotagem dos próprios conferidores. Sai com código != 0 se falhar. */
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
@@ -38,10 +42,6 @@ const EXP = {
    [
     "Já vendo sempre",
     null
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Vamos descobrir juntos nas próximas perguntas."
    ]
   ],
   "ajuda": false
@@ -65,10 +65,6 @@ const EXP = {
    [
     "Quero trabalhar por conta própria",
     null
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Vamos descobrir juntos nas próximas perguntas."
    ]
   ],
   "ajuda": false
@@ -77,10 +73,7 @@ const EXP = {
   "pergunta": "O que você vende ou quer vender?",
   "apoio": "Pode ser uma coisa que você faz ou um trabalho que você oferece.",
   "placeholder": "Ex.: bolo de pote, conserto de celular, unha de gel",
-  "naosei": [
-   "Ainda não sei",
-   "Tudo bem: Pense em algo que você já sabe fazer bem ou que as pessoas pedem para você. Você pode mudar depois."
-  ],
+  "video": true,
   "ajuda": false
  },
  "M1.P04": {
@@ -98,10 +91,6 @@ const EXP = {
    [
     "Ainda não sei fazer",
     "Dica: Tudo bem começar do zero. Procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Vamos descobrir juntos nas próximas perguntas."
    ]
   ],
   "ajuda": true,
@@ -126,10 +115,6 @@ const EXP = {
    [
     "Só nos fins de semana",
     "Dica: Venda em feiras, eventos ou por encomenda para entregar no fim de semana."
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Pense em um dia comum: quanto tempo livre você tem? Você pode mudar depois."
    ]
   ],
   "ajuda": true,
@@ -169,10 +154,6 @@ const EXP = {
    [
     "Não tenho nada ainda",
     "Dica: Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Faça uma lista do que você usa para fazer seu produto e veja o que já tem em casa."
    ]
   ],
   "ajuda": false
@@ -200,12 +181,9 @@ const EXP = {
    [
     "Mais de R$ 1.000",
     "Dica: Mesmo podendo usar mais, teste antes com pouco. Não pegue empréstimo no banco para começar."
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Veja quanto sobra no fim do mês depois de pagar as contas. É um bom começo."
    ]
   ],
+  "video": true,
   "ajuda": true,
   "ajuda_texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa."
  },
@@ -259,10 +237,6 @@ const EXP = {
    [
     "Outra coisa",
     null
-   ],
-   [
-    "Não sei dizer",
-    null
    ]
   ],
   "ajuda": false
@@ -286,6 +260,50 @@ for (const f of ['dados/modulo1.js', 'js/app.js', 'js/motor.js', 'index.html', '
   ok(!/rafael/i.test(fs.readFileSync(path.join(dir, f), 'utf8')), `"rafael" em ${f}`);
 ok(!/\(?\d{2}\)?\s?9?\d{4}-?\d{4}\b/.test(dados.replace(/\d{2}\/\d{2}\/\d{4}/g, '')), 'nenhum telefone em dados/modulo1.js');
 ok(!/M1\.P04\.1|suprir essa falta/.test(dados), 'Pergunta 4A deve sair dos dados');
+
+/* ---------- ajuste do "Não sei" e vídeos, direto nos dados ---------- */
+const CARD = 'Não sabe ou não entendeu? Assista ao vídeo';
+const COM_NAOSEI = ['M1.P05A', 'M1.P07A'];
+const COM_VIDEO = ['M1.P03', 'M1.P07'];
+function lerDados(txt) {
+  const ctx = { window: {} };
+  require('node:vm').runInNewContext(txt, ctx);
+  return JSON.parse(JSON.stringify(ctx.window.MODULO1));
+}
+/* devolve a lista de problemas; vazia = dados de acordo com o documento de ajuste */
+function conferirAjuste(D) {
+  const p = [];
+  for (const q of D.perguntas) {
+    const ops = (q.opcoes || []).map((o) => o.texto);
+    const ns = ops.filter((o) => /n[ãa]o sei/i.test(o) && o !== 'Ainda não sei fazer' && o !== 'Ainda não sei fazer direito');
+    if (COM_NAOSEI.includes(q.codigo)) {
+      if (ns.length !== 1 || ops[ops.length - 1] !== 'Não sei dizer') p.push(`${q.codigo}: "Não sei dizer" deve ser a última opção`);
+    } else if (ns.length) p.push(`${q.codigo}: não pode ter "${ns.join('", "')}"`);
+    if (q.botao_naosei) p.push(`${q.codigo}: não pode ter botão "${q.botao_naosei.texto}"`);
+    if (COM_VIDEO.includes(q.codigo)) {
+      if (!q.video || q.video.texto !== CARD) p.push(`${q.codigo}: falta o card de vídeo`);
+      else if (q.video.url !== null) p.push(`${q.codigo}: vídeo ainda não chegou, url deve ser null`);
+    } else if (q.video) p.push(`${q.codigo}: não deveria ter card de vídeo`);
+    if (/Tudo bem/.test(JSON.stringify(q.botao_naosei || '')) ) p.push(`${q.codigo}: mensagem "Tudo bem" do Não sei`);
+  }
+  return p;
+}
+const DADOS = lerDados(dados);
+const probs = conferirAjuste(DADOS);
+ok(probs.length === 0, 'ajuste nos dados: ' + probs.join(' | '));
+/* sabotagem: cada estrago tem de ser apontado pelo conferidor */
+const sabot = [
+  ['"Não sei dizer" volta na P1', (D) => D.perguntas[0].opcoes.push({ texto: 'Não sei dizer', mensagem: null })],
+  ['"Não sei dizer" sai da 5A', (D) => { const q = D.perguntas.find((x) => x.codigo === 'M1.P05A'); q.opcoes.pop(); }],
+  ['"Não sei dizer" fora do fim na 7A', (D) => { const q = D.perguntas.find((x) => x.codigo === 'M1.P07A'); q.opcoes.unshift(q.opcoes.pop()); }],
+  ['"Ainda não sei" volta na P3', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P03').botao_naosei = { texto: 'Ainda não sei', mensagem: null }; }],
+  ['card sem vídeo na P7', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P07').video; }],
+  ['card na P1', (D) => { D.perguntas[0].video = { texto: CARD, url: null }; }],
+];
+for (const [nome, estraga] of sabot) {
+  const D = JSON.parse(JSON.stringify(DADOS)); estraga(D);
+  ok(conferirAjuste(D).length > 0, `sabotagem não detectada: ${nome}`);
+}
 
 /* ---------- servidor ---------- */
 async function servidor() {
@@ -360,7 +378,7 @@ async function servidor() {
     const t = await texto();
     const q = await page.evaluate(() => document.querySelector('.q').textContent);
     let qEsp = e.pergunta;
-    if (c === 'M1.P04' && R['M1.P03'] && R['M1.P03'] !== 'Ainda não sei') qEsp = `Você já sabe fazer ${R.__p4}?`;
+    if (c === 'M1.P04' && R['M1.P03']) qEsp = `Você já sabe fazer ${R.__p4}?`;
     ok(q === qEsp, `${c}: pergunta "${q}" != "${qEsp}"`);
     ok(t.includes(e.apoio), `${c}: apoio`);
     ok(await page.evaluate(() => [...document.querySelectorAll('.topo button')].some((b) => b.textContent.trim() === '< Voltar')), `${c}: "< Voltar" no topo`);
@@ -369,11 +387,14 @@ async function servidor() {
     ok(e.ajuda ? d.length === 1 && d[0][0] === false && d[0][1] === 'O que quer dizer isso?' : d.length === 0, `${c}: caixa de ajuda (fechada, título)`);
     if (e.ajuda) ok(t.includes('O que quer dizer isso?') && !/Fonte/i.test(t), `${c}: ajuda sem fonte`);
     await regrasGerais(c);
+    ok(!/Não sei dizer|Ainda não sei\b(?! fazer)/.test(t.replace(/Não sei dizer/g, COM_NAOSEI.includes(c) ? '' : 'Não sei dizer')), `${c}: "Não sei" fora da 5A/7A`);
+    ok(await page.evaluate(() => !document.querySelector('#ns, .video-card, .video-fundo')), `${c}: sem botão Não sei e sem card de vídeo (vídeo ainda não chegou)`);
     if (R.__novo) ok(await continuarDesligado() === true, `${c}: Continuar deve começar apagado`);
     if (e.opcoes) {
       const ops = await estadoOpcoes();
       ok(JSON.stringify(ops.map((o) => o.t)) === JSON.stringify(e.opcoes.map((o) => o[0])), `${c}: opções ${JSON.stringify(ops.map((o) => o.t))}`);
-      ok(ops.length && ops[ops.length - 1].t === 'Não sei dizer', `${c}: "Não sei dizer" deve ser a última`);
+      if (COM_NAOSEI.includes(c)) ok(ops.length && ops[ops.length - 1].t === 'Não sei dizer', `${c}: "Não sei dizer" deve ser a última`);
+      else ok(!ops.some((o) => o.t === 'Não sei dizer'), `${c}: "Não sei dizer" não pode aparecer`);
       if (R.__novo) ok((await msgAgora()) === null, `${c}: sem mensagem antes de responder`);
       if (todasMsgs) for (const [op, m] of e.opcoes) {
         await opcao(op);
@@ -392,14 +413,9 @@ async function servidor() {
       const temRec = await page.evaluate(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition));
       const temBotao = await page.evaluate(() => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Falar em vez de escrever'));
       ok(temRec === temBotao, 'P3: botão "Falar em vez de escrever" só quando há reconhecimento de voz');
-      if (v === 'Ainda não sei') {
-        ok(await clicarTexto('button', 'Ainda não sei'), 'P3: botão Ainda não sei');
-        ok((await msgAgora()) === EXP[c].naosei[1], `P3: mensagem do "Ainda não sei": ${await msgAgora()}`);
-        ok(await page.evaluate(() => document.querySelector('#ns').classList.contains('sel')), 'P3: ✓ no Ainda não sei');
-      } else {
-        await page.fill('#txt', v);
-        ok((await msgAgora()) === null, 'P3: sem mensagem ao escrever');
-      }
+      ok(await continuarDesligado() === true, 'P3: Continuar apagado sem texto');
+      await page.fill('#txt', v);
+      ok((await msgAgora()) === null, 'P3: sem mensagem ao escrever');
     } else {
       ok(await opcao(v), `${c}: opção "${v}" não encontrada`);
       if (v === 'Outra coisa') {
@@ -497,8 +513,14 @@ async function servidor() {
   await caminho('7A por P6', com({ 'M1.P06': 'Não tenho nada ainda', 'M1.P07': 'Mais de R$ 1.000' }));
   for (const op of EXP['M1.P07'].opcoes.map((o) => o[0]))
     await caminho(`P7 = ${op}`, com({ 'M1.P07': op }));
-  // P3 "Ainda não sei": P4 volta ao texto geral
-  await caminho('P3 Ainda não sei', com({ 'M1.P03': 'Ainda não sei', 'M1.P08': 'Não sei dizer' }));
+  // "Não sei dizer" na 5A e na 7A (as únicas que ainda têm a opção) vira lacuna no resultado
+  await caminho('Não sei na 5A e na 7A', com({ 'M1.P05': 'Só nos fins de semana', 'M1.P05A': 'Não sei dizer', 'M1.P06': 'Não tenho nada ainda', 'M1.P07A': 'Não sei dizer' }));
+  t = await texto();
+  ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna li')].map((l) => l.textContent).join('|')) ===
+    'Se o negócio crescer, você consegue arrumar mais tempo para ele?|Como você pensa em começar sem dinheiro ou sem material?', 'resultado: lacunas = 5A e 7A');
+  // sem nenhum "Não sei", não há bloco de lacunas
+  await caminho('sem Não sei', com({}));
+  ok(await page.evaluate(() => !document.querySelector('.b-lacuna')), 'resultado: sem lacunas quando tudo foi respondido');
 
   /* ---------- Voltar ---------- */
   await inicio();
@@ -533,6 +555,62 @@ async function servidor() {
   await opcao('Mais de 3 horas por dia'); await continuar();
   ok(await cod() === 'M1.P06', 'trocar P5 pula a 5A');
 
+  /* ---------- card de vídeo com um vídeo de teste (como ficará quando o grupo mandar) ---------- */
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const pv = await ctx.newPage();
+    pv.on('pageerror', (e) => erros.push('vídeo: ' + e.message));
+    await pv.route('**/dados/modulo1.js', (rt) => { let n = 0; rt.fulfill({ contentType: 'text/javascript',
+      body: dados.replace(/"url": null/g, () => (++n === 1 ? '"url": "about:blank"' : '"url": "teste.mp4"')) }); });
+    await pv.route('**/teste.mp4', (rt) => rt.fulfill({ status: 200, contentType: 'video/mp4', body: '' }));
+    await pv.goto(srv.url); await pv.evaluate(() => localStorage.clear()); await pv.reload(); await pv.waitForSelector('#ir');
+    const pc = () => pv.evaluate(() => (document.querySelector('.pergunta') || {}).dataset?.cod);
+    const clica = (sel, txt) => pv.evaluate(([sel, txt]) => { const b = [...document.querySelectorAll(sel)].find((x) => x.textContent.replace('✓', '').trim() === txt); if (b) b.click(); return !!b; }, [sel, txt]);
+    const card = () => pv.evaluate(() => { const c = document.querySelector('.video-card'); return c ? c.textContent.trim() : null; });
+    const aberto = () => pv.evaluate(() => { const d = document.querySelector('.video-fundo[role=dialog]'); return !!d && d.getBoundingClientRect().height > 0; });
+    const salvo = (c) => pv.evaluate((c) => (JSON.parse(localStorage.getItem('lg2-turma-a-m01') || '{}').R || {})[c] || null, c);
+    const desligado = () => pv.evaluate(() => [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar').disabled);
+    await clica('button', 'Começar');
+    const vistos = {};
+    for (let i = 0; i < 12; i++) {
+      const c = await pc();
+      if (!c) break;
+      vistos[c] = await card();
+      if (COM_VIDEO.includes(c)) {
+        ok(vistos[c] === CARD, `${c}: card "${vistos[c]}" com vídeo`);
+        ok(await pv.evaluate(() => { const c = document.querySelector('.video-card'), e = document.querySelector('#ent');
+          return e.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING && c.getBoundingClientRect().top >= e.getBoundingClientRect().bottom; }), `${c}: card logo abaixo das opções/campo`);
+        await pv.click('.video-card');
+        ok(await aberto(), `${c}: tocar no card abre o vídeo`);
+        ok(await pv.evaluate((c) => c === 'M1.P03' ? !!document.querySelector('.video-fundo iframe[src="about:blank"]') : !!document.querySelector('.video-fundo video[src="teste.mp4"]'), c), `${c}: vídeo certo na caixa`);
+        if (c === 'M1.P03') await clica('button', 'Fechar vídeo');
+        else await pv.evaluate(() => document.querySelector('.video-fundo video').dispatchEvent(new Event('ended')));
+        ok(!(await aberto()), `${c}: ${c === 'M1.P03' ? 'fechar' : 'terminar'} o vídeo fecha a caixa`);
+        ok(await pc() === c && (await salvo(c)) === null && (await desligado()) === true, `${c}: volta para a mesma pergunta, sem resposta`);
+        await pv.click('.video-card'); await pv.keyboard.press('Escape');
+        ok(!(await aberto()) && await pc() === c, `${c}: Esc fecha o vídeo`);
+      }
+      if (c === 'M1.P03') await pv.fill('#txt', 'Bolo de pote');
+      else await clica('.opcao', c === 'M1.P07' ? 'Nada por enquanto' : (await pv.evaluate(() => document.querySelector('.opcao b').textContent)));
+      await clica('button', 'Continuar');
+    }
+    ok(JSON.stringify(Object.keys(vistos).filter((c) => vistos[c])) === JSON.stringify(COM_VIDEO), `card só nas Perguntas 3 e 7: ${JSON.stringify(vistos)}`);
+    await ctx.close();
+  }
+
+  /* ---------- respostas da versão anterior (v2, com "Não sei" em toda pergunta) ---------- */
+  await page.evaluate(() => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 2, atual: 'RESULTADO', R: {
+    'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P02': { estado: 'opcao', opcao: 'Não sei dizer' },
+    'M1.P03': { estado: 'naosei', texto: 'Ainda não sei' }, 'M1.P04': { estado: 'opcao', opcao: 'Sim, já faço bem' },
+    'M1.P05': { estado: 'opcao', opcao: 'Até 1 hora por dia' }, 'M1.P05A': { estado: 'opcao', opcao: 'Não sei dizer' } } })));
+  await page.reload(); await page.waitForSelector('#ir');
+  ok((await texto()).includes('Apagar respostas'), 'v2: mantém as respostas que continuam valendo');
+  await clicarTexto('button', 'Começar');
+  ok(await cod() === 'M1.P02' && (await estadoOpcoes()).every((o) => !o.sel), 'v2: volta para a P2, que perdeu o "Não sei dizer"');
+  const mig = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')));
+  ok(mig.v === 3 && JSON.stringify(Object.keys(mig.R).sort()) === JSON.stringify(['M1.P01', 'M1.P04', 'M1.P05', 'M1.P05A']) && mig.R['M1.P05A'].opcao === 'Não sei dizer',
+    'v2: tira só "Não sei dizer" da P2 e "Ainda não sei" da P3, guarda o resto (inclusive o da 5A): ' + JSON.stringify(mig));
+
   /* ---------- respostas da versão antiga são descartadas ---------- */
   await page.evaluate(() => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ R: { 'M1.P01': { estado: 'opcao', opcao: '1. Só na cabeça' } }, hist: ['M1.P01', 'M1.P02'] })));
   await page.reload(); await page.waitForSelector('#ir');
@@ -544,5 +622,5 @@ async function servidor() {
   ok(erros.length === 0, 'erros na página: ' + erros.join(' | '));
   await browser.close(); srv.close();
   if (falhas.length) { console.log(`FAIL ${falhas.length} de ${checks} checagens`); falhas.forEach((f) => console.log(' - ' + f)); process.exit(1); }
-  console.log(`PASS ${checks} checagens · caminhos: 5A (5 opções da P5), 7A (P6 e 6 opções da P7), P8 e resultado alcançados`);
+  console.log(`PASS ${checks} checagens · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

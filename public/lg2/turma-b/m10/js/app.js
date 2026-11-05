@@ -212,8 +212,8 @@
     if (C.ouvidas === 0) add("Conversar com possíveis clientes", "alta", 2);
     if (ehNS(m5["M5.P36"])) add("Definir o preço de venda", "alta", 5);
     if (C.cap7.cmp && C.cap7.cmp.tipo === "falta") add("O que você quer vender não cabe no seu tempo", "alta", 7);
-    if (textoDe(m9["M9.P10"]) === "Sim, foi negada") add("Rever o endereço: a atividade foi negada nesse local", "alta", 9);
-    if (textoDe(m9["M9.P10"]) === "Ainda não fiz" || ehNS(m9["M9.P10"])) add("Fazer a consulta de viabilidade na prefeitura", textoDe(m9["M9.P09"]) === "Sim" ? "alta" : "media", 9, true);
+    if (textoDe(m9["M9-04"]) === "Sim, foi negada") add("Rever o endereço: a atividade foi negada nesse local", "alta", 9);
+    if (textoDe(m9["M9-04"]) === "Ainda não fiz" || ehNS(m9["M9-04"])) add("Fazer a consulta de viabilidade na prefeitura", ["Na minha casa", "Em apartamento ou condomínio residencial", "Em loja ou sala comercial"].includes(textoDe(m9["M9-03"])) ? "alta" : "media", 9, true);
     if (SEM_ACORDO.includes(opR("M10-06"))) add("Acordo entre sócios", "alta", 10);
     /* gravidade média */
     if (textoDe(m2["M2.P21"]) === "Só elogios") add("Confirmar com clientes se o problema é real", "media", 2);
@@ -318,14 +318,13 @@
   function telaCapa() {
     const K = D.capa;
     const comecou = !!S.ini;
-    const inst = D.instrumentos.filter((x) => x.nome !== "Checklist de acordo entre sócios");
     const p = el(`<div class="pag">
       ${topo("")}
       ${heroi({ grande: true, h1: true, kicker: "Módulo 10", titulo: D.modulo.nome, texto: K.objetivo })}
       <main class="corpo">
         <div class="cartao"><h3>Para quem é</h3><p>${esc(K.para_quem)}</p></div>
-        <div class="cartao"><h3>No final, você vai ter</h3><ul class="lista-capa">${inst.map((x) => `<li><b>${esc(x.nome)}.</b> ${esc(x.mostra)}</li>`).join("")}</ul></div>
         <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(K.ter_em_maos)}</p></div>
+        <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(K.entrega)}</p></div>
         <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas.</p>
         <div class="acoes">
           <button class="btn btn-primario seta" id="ir">${comecou ? "Continuar de onde parei" : "Começar"}</button>
@@ -705,8 +704,8 @@
   function encaminhamento() {
     if (temSocio() && SEM_ACORDO.includes(opR("M10-06"))) return D.instrumentos.find((x) => x.nome === "Checklist de acordo entre sócios").aviso;
     if (contrata()) return "Contratar tem custo todo mês e regras próprias. Converse com um contador sobre a forma de contratar.";
-    const p10 = textoDe(lerR(9)["M9.P10"]);
-    if (p10 === "Ainda não fiz" || ehNS(lerR(9)["M9.P10"])) return "Antes de alugar ou reformar, consulte a prefeitura sobre a atividade no endereço.";
+    const p10 = textoDe(lerR(9)["M9-04"]);
+    if (p10 === "Ainda não fiz" || ehNS(lerR(9)["M9-04"])) return "Antes de alugar ou reformar, consulte a prefeitura sobre a atividade no endereço.";
     return "";
   }
   function proximosPassos() {
@@ -738,7 +737,7 @@
       6: I().pagamento ? `Formas de pagamento: ${curto(I().pagamento, 70)}` : null,
       7: C.cap7.mes ? `Cabem ${C.cap7.mes} por mês` : C.etapas7.length ? `${C.etapas7.length} etapas no mapa do processo` : null,
       8: t(8, "M8.P05") && t(8, "M8.P05") !== NS ? `CNPJ: ${t(8, "M8.P05")}` : null,
-      9: t(9, "M9.P10") && t(9, "M9.P10") !== NS ? `Consulta na prefeitura: ${t(9, "M9.P10").toLowerCase()}` : null,
+      9: t(9, "M9-04") && t(9, "M9-04") !== NS ? `Consulta na prefeitura: ${t(9, "M9-04").toLowerCase()}` : null,
     };
     const hip = {
       1: I().estagio && I().estagio !== ESTAGIOS[2] ? "Ainda não vendeu: a ideia é uma hipótese" : null,

@@ -226,6 +226,24 @@ a{color:var(--m-purple)}
   .heroi-tit{font-size:21px}
   .opcao-tipo img{width:84px;height:56px}
 }
+/* correções 15/10 e 22/10: orientação de preenchimento, selo de outro módulo, múltipla escolha, taxa por forma */
+.nota-orienta{background:var(--m-lavender);border-left:4px solid var(--m-purple);border-radius:12px;padding:10px 14px;font-size:16px;color:#3d3650;margin:8px 0}
+.nota-orienta b{display:block;color:var(--m-purple);font-size:16px;margin-bottom:2px}
+.nota-orienta p+p{margin-top:6px}
+.nota-orienta .ex b{display:inline}
+.selo-m{display:inline-block;background:var(--m-lavender);color:var(--m-purple);border-radius:var(--m-pill);padding:4px 12px;font-size:14px;margin:8px 0 4px}
+.caixa{flex:0 0 22px;height:22px;border-radius:6px;border:2px solid var(--m-lavender-mid);background:#fff}
+.opcao.sel .caixa{border-color:var(--m-purple);background:var(--m-purple) var(--i-check) center/16px no-repeat}
+.forma{border:2px solid var(--m-lavender);border-radius:14px;padding:8px 12px 10px;margin-bottom:10px}
+.forma legend{font-weight:bold;color:var(--m-purple);padding:0 6px}
+#ent .nota{font-size:16px;color:var(--m-gray);margin-top:6px}
+.erro.aviso-qtd{background:#fff7e0;color:#6b5200;border-left:4px solid var(--m-yellow-soft)}
+.b-simulacao{background:var(--m-lavender);border-left:4px solid var(--m-purple);color:#3d3650;font-size:16px}
+.b-simulacao b{color:var(--m-purple)}
+.simula{border:2px solid var(--m-lavender);border-radius:14px;padding:12px;margin-bottom:12px}
+.simula .btn{margin-top:8px}
+#sim-res{margin-top:10px}
+#numeros .nota{font-size:15px;color:var(--m-gray);margin:-4px 0 12px}
 @media print{
   body{background:#fff}#tela{box-shadow:none;max-width:none}
   .acoes,.voltar,.reinicio,.barra-topo,.etapas,.contexto,.outra,#minhas,.ver{display:none!important}

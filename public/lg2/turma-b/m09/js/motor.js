@@ -1,224 +1,247 @@
-/* Motor do Módulo 9. Lê as condições exatamente como o grupo escreveu na planilha
-   ("M9.P06 = Na minha casa ou M9.P06 = ...", "≠ Não sei", "<= 200") e decide
-   quais perguntas aparecem, quais regras valem e o que entra no checklist.
-   Não cria texto: só escolhe entre os textos da planilha. */
+/* Regras do Módulo 9 (documento final do Grupo 9, 30/10/2026), sem tela: quais perguntas aparecem,
+   o checklist de endereço e licenças, os alertas, os próximos passos e os cruzamentos.
+   As colunas "Aparece quando" e "Próximo passo / regra" do documento viram as funções abaixo.
+   R = respostas deste módulo ({ cod: {estado: "opcao"|"naosei"|"valor", opcao, valor} });
+   X = o que foi lido dos outros módulos neste aparelho (só leitura). */
 (function (raiz) {
   "use strict";
   const NS = "Não sei";
-  const COD = /M9\.P\d{2}/g;
-  const CNAE = /\d{4}-\d\/\d{2}/g;
-  const NIVEL = { "Nível I": 1, "Nível II": 2, "Nível III": 3 };
 
-  function montar(D) {
-    const perguntas = D.perguntas.filter((p) => p.codigo);
-    const porCodigo = {};
-    perguntas.forEach((p) => {
-      p.opcoesLista = String(p.opcoes || "").split(";").map((s) => s.trim()).filter(Boolean);
-      porCodigo[p.codigo] = p;
+  /* opções citadas nas regras (as mesmas do documento; o teste confere que existem nos dados) */
+  const O = {
+    casa: "Na minha casa", apto: "Em apartamento ou condomínio residencial", loja: "Em loja ou sala comercial",
+    semLocal: "Sem local fixo (digital, na casa do cliente ou ambulante)", naoEscolhi: "Ainda não escolhi",
+    internet: "Só pela internet ou por telefone", cliente: "Na casa ou na empresa do cliente",
+    rua: "Na rua, em feiras ou eventos, em barraca, carrinho ou veículo (food truck)",
+    pCasa: "Minha casa", pApto: "Apartamento ou condomínio", pLoja: "Loja ou sala comercial", pSem: "Sem local fixo", pIdeia: "Ainda não faço ideia",
+    aprovada: "Sim, foi aprovada", negada: "Sim, foi negada", naoFiz: "Ainda não fiz",
+    gasNao: "Não", encanado: "Sim, gás encanado da rua (gás natural)", botijao: "Sim, botijão ou cilindro (gás de cozinha, GLP)", revenda: "Vou vender gás de cozinha (revenda)",
+    tres: "3 ou mais botijões de 13 kg", cilindros: "Cilindros de 20 kg ou 45 kg (P20, P45)",
+    dentro: "Dentro da cozinha ou de outro cômodo fechado",
+    inflMaior: "Sim, em maior quantidade ou para vender",
+    obra: "Sim, obra que muda estrutura, área ou uso", alimentos: "Sim, alimentos ou bebidas",
+  };
+  /* perguntas em que o "Não sei" mostra o aviso com "Já verifiquei" (texto do documento + regra das linhas) */
+  const AVISO_NS = ["M9-02", "M9-03a", "M9-04", "M9-06", "M9-07", "M9-07a", "M9-07b", "M9-07c", "M9-08", "M9-10", "M9-11", "M9-12"];
+
+  const op = (R, c) => { const r = R[c]; return !r ? null : r.estado === "naosei" ? NS : r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : null; };
+  const ns = (R, c) => !!R[c] && R[c].estado === "naosei";
+  const sim = (v) => typeof v === "string" && v.startsWith("Sim");
+
+  /* tipo de local: escolhido (M9-03) ou pretendido (M9-03b); sem local fixo: forma (M9-03a) */
+  function local(R) {
+    const o3 = op(R, "M9-03"), o3b = op(R, "M9-03b"), o3a = op(R, "M9-03a");
+    let tipo = { [O.casa]: "casa", [O.apto]: "apto", [O.loja]: "loja" }[o3] || null, planejado = false;
+    if (!tipo && (o3 === O.naoEscolhi || o3 === NS)) { tipo = { [O.pCasa]: "casa", [O.pApto]: "apto", [O.pLoja]: "loja" }[o3b] || null; planejado = !!tipo; }
+    const pedeForma = o3 === O.semLocal || ((o3 === O.naoEscolhi || o3 === NS) && o3b === O.pSem);
+    const forma = !pedeForma ? null : o3a === O.internet || o3a === O.cliente ? "remoto" : o3a === O.rua ? "rua" : o3a === NS ? "indefinido" : null;
+    const indefinido = o3b === O.pIdeia || forma === "indefinido";
+    return { tipo, planejado, pedeForma, forma, indefinido, fixo: !!tipo, casaOuApto: tipo === "casa" || tipo === "apto" };
+  }
+  const sanitario = (R) => sim(op(R, "M9-02"));
+  /* público no local: M9-06 = Sim (qualquer número); na rua, público no local = sim */
+  const publico = (R) => sim(op(R, "M9-06")) || local(R).forma === "rua";
+
+  /* "Aparece quando" de cada pergunta, na ordem do fluxo (M9-14 é a tela do resumo) */
+  function sequencia(R) {
+    const L = local(R), o3 = op(R, "M9-03");
+    const s = ["M9-01", "M9-02", "M9-03"];
+    if (o3 === O.semLocal) s.push("M9-03a");
+    if (o3 === O.naoEscolhi || o3 === NS) { s.push("M9-03b"); if (op(R, "M9-03b") === O.pSem) s.push("M9-03a"); }
+    s.push("M9-04");
+    if (L.casaOuApto) s.push("M9-05");
+    if (L.fixo) s.push("M9-06");
+    if (L.fixo || L.forma === "rua") {
+      s.push("M9-07");
+      if (op(R, "M9-07") === O.botijao) s.push("M9-07a", "M9-07b");
+      s.push("M9-07c");
+    }
+    if (L.tipo === "apto") s.push("M9-08");
+    if (L.casaOuApto && sanitario(R)) s.push("M9-09");
+    s.push("M9-10", "M9-11");
+    if (L.fixo) s.push("M9-12");
+    s.push("M9-13");
+    return s;
+  }
+
+  /* ---------- texto do documento ---------- */
+  const caminho = (D, cod, opcao) => {
+    const q = D.perguntas.find((x) => x.codigo === cod);
+    return q && q.caminhos.find((c) => c.opcao === opcao || c.opcoes.includes(opcao));
+  };
+  /* "Verifique ... ⚠ Atenção: ..." -> { verifique, atencao } */
+  function partesAviso(t) {
+    const s = String(t || ""), i = s.indexOf("⚠ Atenção:");
+    return i < 0 ? { verifique: s, atencao: "" } : { verifique: s.slice(0, i).trim(), atencao: s.slice(i + "⚠ Atenção:".length).trim() };
+  }
+  const avisoNS = (D, cod) => partesAviso((caminho(D, cod, NS) || {}).texto).atencao;
+  const linkEstado = (D, R) => { const e = D.viabilidade.estados.find((x) => x.estado === op(R, "M9-01")); return e ? e.link : D.viabilidade.geral; };
+
+  /* ---------- checklist: itens na ordem do instrumento ---------- */
+  const ORGAOS = {
+    prefeitura: { nome: "Prefeitura e portal da Redesim ou Junta Comercial do estado", base: "M9.BT05" },
+    vigilancia: { nome: "Vigilância Sanitária", base: "M9.BT11" },
+    bombeiros: { nome: "Bombeiros", base: "M9.BT14" },
+    ambiental: { nome: "Órgão ambiental", base: "M9.BT15" },
+    conselho: { nome: "Conselho profissional", base: "M9.BT16" },
+    condominio: { nome: "Condomínio", base: "M9.BT09" },
+    anp: { nome: "ANP (revenda de gás)", base: "M9.BT22" },
+    detran: { nome: "Detran (veículo adaptado)", base: "M9.BT23" },
+  };
+  const ITENS = [
+    { id: "viabilidade", nome: "Consulta de viabilidade", base: "M9.BT05" },
+    { id: "local", nome: "Condições do local (área, público, condomínio)", base: "M9.BT08" },
+    { id: "gas", nome: "Gás (tipo, quantidade e onde fica) e inflamáveis", base: "M9.BT21" },
+    { id: "bombeiros", nome: "Bombeiros", base: "M9.BT14" },
+    { id: "vigilancia", nome: "Vigilância Sanitária", base: "M9.BT11" },
+    { id: "ambulante", nome: "Uso de espaço público (ambulante)", base: "M9.BT23" },
+    { id: "conselho", nome: "Conselho profissional", base: "M9.BT16" },
+    { id: "ambiente", nome: "Meio ambiente", base: "M9.BT15" },
+    { id: "obra", nome: "Obra", base: "M9.BT19" },
+  ];
+  const SIT = { feito: "feito", fazer: "a fazer", na: "não se aplica", conf: "a confirmar" };
+
+  function checklist(D, R, feitos) {
+    const L = local(R), o4 = op(R, "M9-04"), o7 = op(R, "M9-07"), o7c = op(R, "M9-07c");
+    const pulado = (motivo) => (L.indefinido ? { sit: SIT.conf, motivo: "Local ainda não definido" } : { sit: SIT.na, motivo });
+    const porNS = (cods) => cods.filter((c) => ns(R, c));
+    const out = [];
+    const add = (id, r, orgaos) => out.push(Object.assign({ id, orgaos }, r));
+
+    /* 1. consulta de viabilidade */
+    add("viabilidade",
+      o4 === O.aprovada ? { sit: SIT.feito } : o4 === NS ? { sit: SIT.conf, ns: ["M9-04"] }
+        : L.forma === "remoto" ? { sit: SIT.conf, motivo: "Endereço do registro" } : L.indefinido ? { sit: SIT.conf, motivo: "Local ainda não definido" } : { sit: SIT.fazer },
+      ["prefeitura"]);
+    /* 2. condições do local */
+    if (!L.fixo) add("local", pulado("Sem local fixo"), ["prefeitura"]);
+    else {
+      const c = porNS(["M9-05", "M9-06", "M9-08"]);
+      add("local", c.length ? { sit: SIT.conf, ns: c } : { sit: SIT.fazer }, L.tipo === "apto" ? ["prefeitura", "condominio"] : ["prefeitura"]);
+    }
+    /* 3. gás e inflamáveis (local fixo ou rua) */
+    const temGas = !!o7 && o7 !== O.gasNao && o7 !== NS;
+    if (!L.fixo && L.forma !== "rua") add("gas", pulado("Sem local fixo"), ["bombeiros"]);
+    else {
+      const c = porNS(["M9-07", "M9-07a", "M9-07b", "M9-07c"]);
+      add("gas", c.length ? { sit: SIT.conf, ns: c } : temGas || o7c === O.inflMaior ? { sit: SIT.fazer } : { sit: SIT.na, motivo: "Sem gás e sem produtos que pegam fogo em maior quantidade" },
+        o7 === O.revenda ? ["bombeiros", "anp"] : ["bombeiros"]);
+    }
+    /* 4. Bombeiros */
+    if (!L.fixo && L.forma !== "rua") add("bombeiros", pulado("Sem local fixo"), ["bombeiros"]);
+    else {
+      const c = porNS(L.forma === "rua" ? ["M9-07"] : ["M9-06", "M9-07", "M9-07c"]);
+      const aceso = L.tipo === "loja" || temGas || (L.fixo && (sim(op(R, "M9-06")) || o7c === O.inflMaior));
+      add("bombeiros", aceso ? { sit: SIT.fazer } : c.length ? { sit: SIT.conf, ns: c } : { sit: SIT.na, motivo: L.forma === "rua" ? "Sem gás" : "Sem público, gás ou inflamáveis em maior quantidade" }, ["bombeiros"]);
+    }
+    /* 5. Vigilância Sanitária */
+    add("vigilancia", sanitario(R) ? { sit: SIT.fazer } : ns(R, "M9-02") ? { sit: SIT.conf, ns: ["M9-02"] } : { sit: SIT.na, motivo: "Atividade sem interesse sanitário" }, ["vigilancia"]);
+    /* 6. uso de espaço público (ambulante) */
+    add("ambulante", L.forma === "rua" ? { sit: SIT.fazer } : L.forma === "indefinido" ? { sit: SIT.conf, ns: ["M9-03a"] } : { sit: SIT.na, motivo: "Não vende em local público" },
+      ["prefeitura", "detran"]);
+    /* 7. conselho, 8. meio ambiente */
+    const sn = (cod, motivo) => (op(R, cod) === "Sim" ? { sit: SIT.fazer } : ns(R, cod) ? { sit: SIT.conf, ns: [cod] } : { sit: SIT.na, motivo });
+    add("conselho", sn("M9-10", "Não exige profissional registrado em conselho"), ["conselho"]);
+    add("ambiente", sn("M9-11", "Sem fumaça, barulho, água suja, pó ou restos químicos"), ["ambiental", "prefeitura"]);
+    /* 9. obra */
+    if (!L.fixo) add("obra", pulado("Sem local fixo"), ["prefeitura"]);
+    else add("obra", op(R, "M9-12") === O.obra ? { sit: SIT.fazer } : ns(R, "M9-12") ? { sit: SIT.conf, ns: ["M9-12"] } : { sit: SIT.na, motivo: "Sem obra que mude estrutura, área ou uso" }, ["prefeitura"]);
+
+    return out.map((it) => {
+      const def = ITENS.find((x) => x.id === it.id);
+      const marcado = !!(feitos && feitos[it.id]) && (it.sit === SIT.fazer || it.sit === SIT.conf);
+      return Object.assign({}, def, it, {
+        sit: marcado ? SIT.feito : it.sit,
+        marcado,
+        hipotese: L.planejado && ["local", "gas", "bombeiros", "obra"].includes(it.id),
+        avisos: (it.ns || []).map((c) => avisoNS(D, c)).filter(Boolean),
+      });
     });
-    const base = {};
-    D.instrumentos.I02.forEach((l) => { if (l.cnae) base[l.cnae] = l; });
-    return { D, perguntas, porCodigo, base };
   }
 
-  /* o que o usuário respondeu, como texto comparável à planilha */
-  function valor(R, cod) {
-    const r = R[cod];
-    if (!r) return undefined;
-    if (r.estado === "naosei") return NS;
-    return r.estado === "opcao" ? r.opcao : String(r.valor ?? "").trim();
-  }
-
-  function campo(q) {
-    if (/escolha|sim\/n/i.test(q.tipo)) return "escolha";
-    if (/n[uú]mero/i.test(q.tipo)) return "numero";
-    return "texto";
-  }
-  /* botão "Não sei" fora da lista de opções (perguntas de texto e número) */
-  const temNaoSei = (q) => campo(q) !== "escolha" && q.opcoesLista.includes(NS);
-
-  /* CNAEs digitados em P05 cruzados com a base local (M9.I02) */
-  function cnaes(M, R) {
-    const v = valor(R, "M9.P05");
-    if (!v || v === NS) return [];
-    return [...new Set(v.match(CNAE) || [])].map((c) => ({ cnae: c, linha: M.base[c] || null }));
-  }
-  function aplicaJF(R) {
-    const v = valor(R, "M9.P01");
-    return v !== "Outro município de MG" && v !== "Outro estado" && v !== NS;
-  }
-  function nivel(M, R) {
-    if (!aplicaJF(R)) return null;
-    const lista = cnaes(M, R).filter((c) => c.linha);
-    if (!lista.length) return null;
-    const n = Math.max(...lista.map((c) => NIVEL[c.linha.nivel] || 0));
-    return n ? { n, rotulo: Object.keys(NIVEL).find((k) => NIVEL[k] === n), linha: lista.find((c) => NIVEL[c.linha.nivel] === n).linha } : null;
-  }
-
-  /* ---- condições escritas pelo grupo ---- */
-  function atomo(M, R, txt) {
-    txt = txt.trim();
-    if (/^sempre$/i.test(txt)) return true;
-    if (/^#\d+$/.test(txt)) return GRUPOS[+txt.slice(1)];
-    if (/M9\.P05 com CNAE de nível III/i.test(txt)) {
-      if (R["M9.P05"] === undefined) return undefined;
-      return cnaes(M, R).some((c) => c.linha && c.linha.nivel === "Nível III");
-    }
-    if (/M9\.P05 com 2 ou mais CNAEs de níveis diferentes/i.test(txt)) {
-      if (R["M9.P05"] === undefined) return undefined;
-      return new Set(cnaes(M, R).filter((c) => c.linha).map((c) => c.linha.nivel)).size >= 2;
-    }
-    /* coluna G da base local ("Pode na residência?") = Não */
-    if (/M9\.P05 com CNAE fora do anexo do Dec\. 15\.004/i.test(txt)) {
-      if (R["M9.P05"] === undefined) return undefined;
-      return cnaes(M, R).some((c) => c.linha && /^Não/.test(c.linha.residencia || ""));
-    }
-    const m = txt.match(/^(M9\.P\d{2})\s*(<=|>=|≠|=|<|>)\s*(.+)$/);
-    if (!m) return false;
-    const [, cod, op, alvo] = m;
-    const v = valor(R, cod);
-    if (v === undefined) return undefined;
-    if (op === "=") return v === alvo.trim();
-    if (op === "≠") return v !== alvo.trim() && v !== "";
-    const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
-    if (v === NS || isNaN(n)) return false;
-    const a = parseFloat(alvo);
-    return op === "<=" ? n <= a : op === ">=" ? n >= a : op === "<" ? n < a : n > a;
-  }
-  /* parênteses da coluna F: "(A ou B) e C". O grupo de dentro é avaliado primeiro e vira #n */
-  let GRUPOS = [];
-  function avaliar(M, R, cond) {
-    let txt = String(cond || "");
-    const salvo = GRUPOS; GRUPOS = salvo.slice();
-    let m;
-    /* só parênteses que contêm uma condição; "(revenda de produtos)" é texto da opção */
-    while ((m = txt.match(/\(([^()]*M9\.P\d{2}\s*(?:=|≠|<|>)[^()]*)\)/))) {
-      const v = avaliar(M, R, m[1]);
-      GRUPOS.push(v);
-      txt = txt.replace(m[0], "#" + (GRUPOS.length - 1));
-    }
-    const r = avaliarSimples(M, R, txt);
-    GRUPOS = salvo;
-    return r;
-  }
-  function avaliarSimples(M, R, cond) {
-    const ou = String(cond || "").split(/\s+ou\s+(?=M9\.P|#)/);
-    let indef = false;
-    for (const parte of ou) {
-      const es = parte.split(/\s+e\s+(?=M9\.P|#)/).map((a) => atomo(M, R, a));
-      if (es.every((x) => x === true)) return true;
-      if (es.some((x) => x === undefined) && !es.some((x) => x === false)) indef = true;
-    }
-    return indef ? undefined : false;
-  }
-  const refs = (txt) => [...new Set(String(txt || "").match(COD) || [])];
-
-  /* próxima pergunta: a primeira depois de `cod` cuja condição (coluna F) vale */
-  function proxima(M, R, cod) {
-    const i = cod ? M.perguntas.findIndex((p) => p.codigo === cod) : -1;
-    for (let j = i + 1; j < M.perguntas.length; j++) {
-      const q = M.perguntas[j];
-      if (avaliar(M, R, q.condicao) === true) return q.codigo;
-    }
-    return "RESULTADO";
-  }
-
-  /* regras que acabaram de ficar completas ao responder `cod` */
-  function regrasAgora(M, R, cod) {
-    return M.D.regras.filter((r) => {
-      const rs = refs(r.condicao);
-      return rs.includes(cod) && rs.every((c) => R[c] !== undefined) && avaliar(M, R, r.condicao) === true;
-    });
-  }
-  /* todas as regras que valem com as respostas finais */
-  function regrasTodas(M, R) {
-    return M.D.regras.filter((r) => avaliar(M, R, r.condicao) === true);
-  }
-
-  /* ---- checklist M9.I01: aplica-se / não se aplica / confirmar ---- */
-  /* interesse sanitário: P07 começa com "Sim", ou algum CNAE da base local é de um grupo de saúde */
-  const SANIT = /^(Alimentação|Beleza|Saúde|Animais)/;
-  function checklist(M, R) {
-    const v = (c) => valor(R, c);
-    const local = v("M9.P08"), p07 = v("M9.P07");
-    const casa = local === "Na minha casa" || local === "Em apartamento ou condomínio residencial";
-    const localIndef = local === undefined || local === NS || local === "Ainda não escolhi";
-    const sanit = /^Sim/.test(p07 || "") || cnaes(M, R).some((c) => c.linha && SANIT.test(c.linha.grupo));
-    const sanitIndef = !sanit && (p07 === undefined || p07 === NS);
-    const nv = nivel(M, R);
-    const tri = (sim, talvez) => (sim ? "aplica-se" : talvez ? "confirmar" : "não se aplica");
-    const sitP = (c, sim, talvez) => {
-      const x = v(c);
-      if (x === undefined || x === NS) return "confirmar";
-      return sim(x) ? "aplica-se" : talvez && talvez(x) ? "confirmar" : "não se aplica";
-    };
-    const nivelSt = (k) => (nv ? tri(nv.n === k) : aplicaJF(R) ? "confirmar" : "não se aplica");
-    const st = {
-      "1": "aplica-se",
-      "2": aplicaJF(R) ? "aplica-se" : v("M9.P01") === NS ? "confirmar" : "não se aplica",
-      "3": "aplica-se",
-      "4": tri(casa, localIndef),
-      "5": tri(local === "Em apartamento ou condomínio residencial", localIndef),
-      "6": sitP("M9.P02", (x) => x === "Ainda não"),
-      "7a": nivelSt(1), "7b": nivelSt(2), "7c": nivelSt(3),
-      "8": local === "Sem local fixo (digital, na casa do cliente ou ambulante)" || localIndef ? "confirmar" : "aplica-se",
-      "9": tri(sanit, sanitIndef),
-      "10": tri(sanit && casa, (sanit && localIndef) || (sanitIndef && casa)),
-      "11": sitP("M9.P17", (x) => x === "Sim"),
-      "12": sitP("M9.P16", (x) => x === "Sim"),
-      "13": sitP("M9.P18", (x) => x.startsWith("Sim"), (x) => x === "Só pequenos reparos"),
-      "14": "aplica-se",
-    };
-    return M.D.instrumentos.I01.filter((l) => l.etapa).map((l) => Object.assign({}, l, { situacao: st[l.etapa] || "confirmar" }));
-  }
-
-  /* ---- M9.I03: só os órgãos acionados pelas respostas ---- */
-  function orgaos(M, R, lista) {
-    const s = {}; lista.forEach((l) => (s[l.etapa] = l.situacao));
-    const ativo = (k) => s[k] && s[k] !== "não se aplica";
-    const enc = new Set(regrasTodas(M, R).map((r) => r.encaminhamento));
-    const p02 = valor(R, "M9.P02");
-    const quer = [
-      true, true,                                        // Sala do Empreendedor, Redesim-MG
-      p02 === "Ainda não" || p02 === NS,                 // Portal do Empreendedor
-      ativo("9") && aplicaJF(R),                         // Vigilância Sanitária de JF
-      ativo("9") && !aplicaJF(R),                        // SES-MG
-      ativo("8"),                                        // CBMMG
-      ativo("11") || ativo("13"),                        // SESMAUR
-      ativo("11"),                                       // SEMAD-MG
-      ativo("12"),                                       // Conselho profissional
-      enc.has("Contador"),                               // Contador
-      enc.has("Sebrae"),                                 // Sebrae
+  /* ---------- cruzamentos entre respostas (tabela do documento, na mesma ordem) ---------- */
+  function cruzamentos(D, R, X) {
+    const L = local(R), C = D.resumo.cruzamentos;
+    X = X || {};
+    const lista = [
+      { i: 0, cod: "M9-02", ok: X.m4Regulada && op(R, "M9-02") === "Não" },
+      { i: 1, cod: "M9-12", ok: X.m6SemReforma && op(R, "M9-12") === O.obra },
+      { i: 2, cod: "M9-06", ok: L.casaOuApto && sim(op(R, "M9-06")) },
+      { i: 3, cod: "M9-03", ok: op(R, "M9-03") === O.naoEscolhi && X.semCnpj },
+      { i: 4, cod: "M9-10", ok: op(R, "M9-10") === "Sim" && X.poucaExperiencia },
+      { i: 5, cod: "M9-03a", ok: L.forma === "rua" && op(R, "M9-02") === O.alimentos },
+      { i: 6, cod: "M9-07", ok: op(R, "M9-07") === O.revenda && X.semCnpj },
+      { i: 7, cod: "M9-07b", ok: op(R, "M9-07b") === O.dentro && publico(R) },
+      { i: 8, cod: "M9-07", ok: X.m7Gas && op(R, "M9-07") === O.gasNao },
     ];
-    return M.D.instrumentos.I03.filter((l, i) => l.orgao && quer[i]);
+    const seq = sequencia(R);
+    return lista.filter((x) => x.ok && seq.includes(x.cod)).map((x) => Object.assign({ cod: x.cod, i: x.i }, C[x.i]));
   }
 
-  /* ---- M9.I04: perguntas para levar, pela coluna "Quando incluir" ---- */
-  function roteiro(M, R) {
-    const v = (c) => valor(R, c);
-    const p05 = v("M9.P05"), p07 = v("M9.P07");
-    /* uma linha por linha da aba M9.I04, coluna "Quando incluir" */
-    const testes = [
-      () => ["Ainda não fiz", NS].includes(v("M9.P10")),                                   // M9.P10 = Ainda não fiz ou Não sei
-      () => p05 !== undefined && p05 !== NS && p05 !== "",                                 // M9.P05 informado
-      () => v("M9.P08") === "Na minha casa",                                               // M9.P08 = Na minha casa
-      () => v("M9.P08") === "Em apartamento ou condomínio residencial",                    // M9.P08 = Em apartamento...
-      () => p07 !== undefined && p07 !== "Não",                                            // M9.P07 ≠ Não
-      () => v("M9.P12") === "Sim, mais de 20 pessoas" || /^Sim, (mais que isso|líquidos)/.test(v("M9.P13") || ""), // P12 ou P13 com valores altos
-      () => ["Sim", NS].includes(v("M9.P17")),                                             // M9.P17 = Sim ou Não sei
-      () => ["Sim", NS].includes(v("M9.P16")),                                             // M9.P16 = Sim ou Não sei
-      () => /^Sim/.test(v("M9.P18") || "") || v("M9.P18") === NS,                          // M9.P18 = Sim ou Não sei
-      () => true,                                                                          // Sempre
-    ];
-    return M.D.instrumentos.I04.filter((l, i) => l.tema && testes[i] && testes[i]());
+  /* ---------- resumo: no máximo 3 alertas, 3 próximos passos e 1 encaminhamento ---------- */
+  const ATENCAO = "⚠ Atenção: ";
+  const LIMITE = { alertas: 3, proximos: 3, encaminhamentos: 1 };
+  function alertas(D, R, X) {
+    const L = local(R), seq = sequencia(R), out = [];
+    const txt = (cod, o) => (caminho(D, cod, o) || {}).texto;
+    /* regras "Alerta no resumo" */
+    if (seq.includes("M9-07") && op(R, "M9-07") === O.revenda) out.push(txt("M9-07", O.revenda));
+    const a7 = op(R, "M9-07a");
+    if (seq.includes("M9-07a") && (a7 === O.tres || a7 === O.cilindros)) out.push(txt("M9-07a", a7));
+    if (seq.includes("M9-07b") && op(R, "M9-07b") === O.dentro) out.push(txt("M9-07b", O.dentro));
+    /* cruzamentos de atenção (as perguntas gentis aparecem na própria pergunta) */
+    const cz = cruzamentos(D, R, X);
+    cz.filter((c) => c.forma === "Atenção").forEach((c) => out.push(c.mensagem));
+    /* local não definido: voltar a esta etapa antes de alugar */
+    if (op(R, "M9-03b") === O.pIdeia && seq.includes("M9-03b")) out.push(txt("M9-03b", O.pIdeia));
+    else if (L.forma === "indefinido") out.push(ATENCAO + avisoNS(D, "M9-03a"));
+    /* "Não sei" seguido sem responder: o aviso de cuidado, marcado com ⚠ como no documento */
+    seq.filter((c) => AVISO_NS.includes(c) && c !== "M9-03a" && ns(R, c)).forEach((c) => out.push(ATENCAO + avisoNS(D, c)));
+    cz.filter((c) => c.forma === "Dica").forEach((c) => out.push(c.mensagem));
+    return out.filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).slice(0, LIMITE.alertas);
+  }
+  function proximos(D, R, itens) {
+    const L = local(R), P = D.resumo.proximos.map((x) => x.mensagem), o4 = op(R, "M9-04"), seq = sequencia(R), out = [];
+    if (o4 === O.naoFiz || o4 === NS) out.push(P[0].replace("[link do estado]", linkEstado(D, R)));
+    if (o4 === O.negada) out.push(P[1]);
+    if (itens.some((i) => i.sit === SIT.conf)) out.push(P[2]);
+    if (L.indefinido) out.push(P[3]);
+    if (L.forma === "rua") out.push(P[4]);
+    if (seq.includes("M9-07") && op(R, "M9-07") === O.revenda) out.push(P[5]);
+    const a7 = seq.includes("M9-07a") ? op(R, "M9-07a") : null;
+    if (a7 === O.tres || a7 === O.cilindros || (seq.includes("M9-07b") && op(R, "M9-07b") === O.dentro)) out.push(P[6]);
+    if (!itens.some((i) => i.sit === SIT.conf)) out.push(P[7]);
+    return out.slice(0, LIMITE.proximos);
+  }
+  /* encaminhamento: o órgão do primeiro item pendente do checklist (escolha do app; o documento não traz tabela) */
+  function encaminhamento(itens) {
+    const i = itens.find((x) => x.sit === SIT.fazer || x.sit === SIT.conf);
+    return i ? { item: i.nome, orgao: i.orgaos[0] } : null;
+  }
+  /* órgãos acesos pelo checklist (itens que não ficaram "não se aplica") */
+  function orgaos(itens) {
+    const acesos = new Set();
+    itens.filter((i) => i.sit !== SIT.na).forEach((i) => i.orgaos.forEach((o) => acesos.add(o)));
+    return Object.keys(ORGAOS).filter((k) => acesos.has(k));
   }
 
-  const semVazio = (rs, campo, nada) => [...new Set(rs.map((r) => r[campo]).filter((x) => x && x !== nada))];
-  const lacunas = (rs) => semVazio(rs, "lacuna", "Nenhuma");
-  const encaminhamentos = (rs) => semVazio(rs, "encaminhamento", "Nenhum");
-  const alertas = (rs) => semVazio(rs, "alerta", "Nenhum");
+  /* linha-resumo: fato, hipótese e o que falta (tabela "Situação de cada dado") */
+  function linhaResumo(D, R, itens) {
+    const L = local(R), o1 = op(R, "M9-01"), o4 = op(R, "M9-04"), p = [];
+    p.push(o1 && o1 !== NS ? `Estado: ${o1} (fato)` : "Estado não definido (hipótese)");
+    const nomeLocal = { casa: "casa", apto: "apartamento ou condomínio", loja: "loja ou sala comercial" }[L.tipo];
+    if (L.tipo && !L.planejado) p.push(`local: ${nomeLocal} (fato)`);
+    else if (L.tipo) p.push(`local pretendido: ${nomeLocal} (hipótese)`);
+    else if (L.forma === "remoto" || L.forma === "rua") p.push("sem local fixo (fato)");
+    else p.push("local não definido (hipótese)");
+    p.push(o4 === O.aprovada ? "viabilidade aprovada (fato)" : o4 === O.negada ? "viabilidade negada (fato)" : "viabilidade ainda não confirmada (hipótese)");
+    p.push("nível de risco provável a confirmar na consulta de viabilidade (hipótese)");
+    const n = itens.filter((i) => i.sit === SIT.conf).length, f = itens.filter((i) => i.sit === SIT.fazer).length;
+    p.push(`${n} ${n === 1 ? "item" : "itens"} a confirmar e ${f} a fazer no checklist (falta)`);
+    return p.join("; ") + ".";
+  }
 
-  const API = { montar, valor, campo, temNaoSei, cnaes, nivel, aplicaJF, avaliar, proxima, regrasAgora, regrasTodas,
-                checklist, orgaos, roteiro, lacunas, encaminhamentos, alertas, NS };
-  if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
-})(this);
+  const api = { NS, O, AVISO_NS, LIMITE, SIT, ORGAOS, ITENS, op, ns, local, sanitario, publico, sequencia, caminho, partesAviso, avisoNS, linkEstado, checklist, cruzamentos, alertas, proximos, encaminhamento, orgaos, linhaResumo };
+  raiz.Motor9 = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+})(typeof window !== "undefined" ? window : globalThis);

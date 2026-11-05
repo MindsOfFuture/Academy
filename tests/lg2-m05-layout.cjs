@@ -22,6 +22,9 @@ const server = http.createServer(async (req, res) => {
   await page.goto(`http://127.0.0.1:${server.address().port}/lg2/turma-a/m05/index.html`);
   await page.evaluate(() => localStorage.clear()); await page.reload();
   await page.click('#ir');
+  assert.equal((await st()).hist.at(-1), 'M5.P00', 'começa pela pergunta 1 do Módulo 1');
+  assert.equal(await page.locator('.etapas').count(), 0, 'P00 sem etapas');
+  await esc('Já vendo sempre');
   assert.equal(await page.locator('.etapas').count(), 0, 'P01 sem etapas (como o mockup)');
   await esc('Mercadoria');
   assert.equal(await etapaAtual(), 1); assert.match(await page.textContent('.contexto'), /Tipo escolhido: Mercadoria/);
@@ -29,13 +32,14 @@ const server = http.createServer(async (req, res) => {
   assert.match(await page.textContent('.contexto .chip'), /^Mercadoria: Camiseta$/);
   await fill(['200']); await fill(['10']); await esc('Não'); await esc('Não');
   assert.equal(await etapaAtual(), 2, 'gastos fixos = etapa 2');
-  assert.equal((await st()).hist.at(-1), 'M5.P24');
+  assert.equal((await st()).hist.at(-1), 'M5.PG', 'formas de pagamento abrem os gastos');
   // Alterar volta à pergunta do nome, com o nome preenchido
   await page.click('.alterar');
   assert.equal((await st()).hist.at(-1), 'M5.P10');
   assert.equal(await page.inputValue('#ent input'), 'Camiseta');
-  assert.deepEqual((await st()).hist, ['M5.P01', 'M5.P10']);
+  assert.deepEqual((await st()).hist, ['M5.P00', 'M5.P01', 'M5.P10']);
   await fill(['Camiseta lisa']); await fill(['200']); await fill(['10']); await esc('Não'); await esc('Não');
+  await esc('Dinheiro');
   for (let i = 0; i < 6; i++) await esc('Não');
   assert.equal(await etapaAtual(), 3, 'quantidade = etapa 3');
   await fill(['50']);
@@ -48,7 +52,7 @@ const server = http.createServer(async (req, res) => {
   await page.reload(); await page.click('#ir');                     // reabrir o resultado não duplica
   assert.equal((await hist()).length, 1);
   await page.click('#novo');
-  await esc('Serviço'); await fill(['Corte']);
+  await esc('Já vendo sempre'); await esc('Serviço'); await fill(['Corte']);
   await page.click('[data-inicio]'); await page.click('#minhas');
   assert.equal(await page.locator('.analise-item').count(), 1);
   await page.click('[data-abrir]');                                 // abre a salva (aceita o aviso)
