@@ -25,7 +25,7 @@ h1{font-size:19px;line-height:1.15;color:var(--m-yellow)}
 .trilha .breve button{background:transparent;color:rgba(255,255,255,.5);border:2px dashed rgba(255,255,255,.4);cursor:default}
 .trilha .atual button{border-color:var(--m-yellow);box-shadow:0 0 0 2px var(--m-purple),0 0 0 4px var(--m-yellow)}
 .aviso{max-width:960px;margin:2px auto 0;font-size:14px;min-height:20px;color:var(--m-yellow-soft)}
-.palco{flex:1 1 auto;display:flex;min-height:0}
+.palco{flex:1 1 auto;display:flex;min-height:0;overflow-y:auto}
 #modulo{flex:1;width:100%;border:0;background:#fff;min-height:0}
 .fim{margin:auto;width:calc(100% - 32px);max-width:460px;background:#fff;border-radius:14px;padding:28px 22px;text-align:center;box-shadow:0 6px 22px rgba(104,74,151,.10)}
 .fim h2{color:var(--m-purple);font-size:24px;margin-bottom:10px}
@@ -33,3 +33,9 @@ h1{font-size:19px;line-height:1.15;color:var(--m-yellow)}
 .btn{display:inline-block;background:var(--m-purple);color:#fff;font-weight:700;border-radius:999px;padding:12px 22px;text-decoration:none}
 .logos{display:flex;justify-content:center;align-items:center;gap:18px;margin-top:24px;padding-top:16px;border-top:1px solid var(--m-lavender-mid)}
 .logos img{height:30px;width:auto}
+.palco>.fim{align-self:flex-start;margin:auto}
+.palco:has(>.fim:not([hidden])){padding:16px 0}
+.resumo{text-align:left;background:#fff;border:2px solid var(--m-lavender);border-left:6px solid var(--m-purple);border-radius:12px;padding:14px 16px;margin:0 0 20px}
+.resumo h3{color:var(--m-purple);font-size:18px;margin-bottom:6px}
+.fim .resumo p{margin-bottom:8px;line-height:1.55;font-size:16px}
+.fim .resumo .resumo-nota{font-size:13.5px;color:#676565;margin-bottom:0}

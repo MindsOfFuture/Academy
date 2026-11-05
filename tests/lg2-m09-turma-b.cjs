@@ -814,6 +814,100 @@ const server = http.createServer(async (req, res) => {
   /* nunca escreve nas chaves dos outros módulos */
   assert.deepEqual(JSON.parse(await page.evaluate(() => localStorage.getItem('lg2-turma-b-m08'))), OUTROS['lg2-turma-b-m08']);
 
+  /* ---------- 8b. herança do Módulo 8 (onde funciona, profissional formado) e do Módulo 4 (saúde) ---------- */
+  const m8 = (extra) => ({ 'lg2-turma-b-m08': { R: Object.assign({ 'M8.P01': { estado: 'valor', valor: 'Lavagem de carros na casa do cliente' } }, extra) } });
+  const opc = (o) => ({ estado: 'opcao', opcao: o });
+  const selAtual = async () => norm(await page.textContent('#ent .opcao.sel'));
+  const veioAtual = async () => norm(await page.textContent('#ent .veio-linha'));
+  const ATE3 = { 'M9-01': 'Minas Gerais', 'M9-02': 'Não' };
+  for (const [l8, l9, f9] of [['Minha casa', O.casa, null], ['Ponto comercial', O.loja, null], ['Atendimento externo', O.sem, O.cliente], ['Online', O.sem, O.internet]]) {
+    await abrir({ v: 2, R: R_(ATE3), feitos: {} }, m8({ 'M8.P03': opc(l8) }));
+    await page.click('#ir');
+    assert.equal(await codAtual(), 'M9-03', 'M9-03 não é pulada (opções diferentes do Módulo 8)');
+    assert.equal(await selAtual(), norm(l9), 'M9-03 pré-marcada: ' + l8);
+    assert.equal(await veioAtual(), 'Veio do Módulo 8 Confira e ajuste se quiser.');
+    assert.ok(norm(await retorno()).length > 0, 'retorno da opção herdada aparece');
+    await page.click('#ok');
+    if (f9) {
+      assert.equal(await codAtual(), 'M9-03a', 'sem local fixo continua pedindo a forma');
+      assert.equal(await selAtual(), norm(f9), 'M9-03a pré-marcada: ' + l8);
+      assert.equal(norm(await page.textContent('#ent .veio')), 'Veio do Módulo 8');
+      await page.click('#ok');
+    }
+    assert.equal(await codAtual(), 'M9-04', 'fluxo segue as condições');
+    const R9 = (await st()).R;
+    assert.deepEqual(R9['M9-03'], opc(l9), 'herança gravada só depois de confirmar');
+    if (f9) assert.deepEqual(R9['M9-03a'], opc(f9)); else assert.equal(R9['M9-03a'], undefined);
+  }
+  /* trocar a opção herdada vale (ajuste): M8 = Atendimento externo, pessoa muda para loja => sem M9-03a */
+  await abrir({ v: 2, R: R_(ATE3), feitos: {} }, m8({ 'M8.P03': opc('Atendimento externo') }));
+  await page.click('#ir'); await tocar(O.loja); await page.click('#ok');
+  assert.equal(await codAtual(), 'M9-04', 'ajustar a herança refaz o caminho');
+  /* M9-03a não herda se a pessoa disse outra coisa na M9-03 (ex.: ainda não escolheu e pretende sem local fixo) */
+  await abrir({ v: 2, R: R_(Object.assign({}, ATE3, { 'M9-03': O.naoEsc, 'M9-03b': O.pSem })), feitos: {} }, m8({ 'M8.P03': opc('Online') }));
+  await page.click('#ir'); assert.equal(await codAtual(), 'M9-03a');
+  assert.equal(await page.locator('#ent .opcao.sel').count(), 0, 'M9-03a só herda quando a M9-03 é sem local fixo');
+  /* "Não sei" ou vazio no Módulo 8 não conta */
+  await abrir({ v: 2, R: R_(ATE3), feitos: {} }, m8({ 'M8.P03': { estado: 'naosei' } }));
+  await page.click('#ir'); assert.equal(await page.locator('#ent .opcao.sel').count(), 0); assert.equal(await page.locator('#ent .veio').count(), 0);
+  /* M9-10 <- M8.P08 */
+  const ATE10 = { 'M9-01': 'Minas Gerais', 'M9-02': 'Não', 'M9-03': O.sem, 'M9-03a': O.cliente, 'M9-04': 'Ainda não fiz' };
+  for (const v of ['Sim', 'Não']) {
+    await abrir({ v: 2, R: R_(ATE10), feitos: {} }, m8({ 'M8.P08': opc(v) }));
+    await page.click('#ir');
+    assert.equal(await codAtual(), 'M9-10');
+    assert.equal(await selAtual(), v, 'M9-10 pré-marcada pelo Módulo 8');
+    assert.equal(norm(await page.textContent('#ent .veio')), 'Veio do Módulo 8');
+    if (SHOTS && v === 'Sim') { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm09_heranca_m9-10.png') }); }
+    await page.click('#ok');
+    assert.equal(await codAtual(), 'M9-11');
+    assert.deepEqual((await st()).R['M9-10'], opc(v));
+  }
+  await abrir({ v: 2, R: R_(ATE10), feitos: {} }, m8({ 'M8.P08': { estado: 'naosei' } }));
+  await page.click('#ir'); assert.equal(await page.locator('#ent .opcao.sel').count(), 0, 'Não sei do Módulo 8 não é herdado');
+  /* M9-02 <- M4.P15 = Sim + o que vende: opção sugerida; sem pista, só o lembrete */
+  await abrir({ v: 2, R: R_({ 'M9-01': 'Acre' }), feitos: {} }, Object.assign({ 'lg2-turma-a-m04': { R: { 'M4.P15': opc('Sim') } } }, { 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Bolos caseiros por encomenda' } } } }));
+  await page.click('#ir');
+  assert.equal(await selAtual(), 'Sim, alimentos ou bebidas', 'M9-02 sugerida pelo Módulo 4 + o que vende');
+  assert.equal(norm(await page.textContent('#ent .veio')), 'Veio do Módulo 4');
+  await abrir({ v: 2, R: R_({ 'M9-01': 'Acre' }), feitos: {} }, { 'lg2-turma-a-m04': { R: { 'M4.P15': opc('Sim') } }, 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Lavagem de carros' } } } });
+  await page.click('#ir');
+  assert.equal(await page.locator('#ent .opcao.sel').count(), 0, 'sem pista do tipo, nada pré-marcado');
+  assert.ok((await veioAtual()).includes('regras específicas'), 'lembrete do Módulo 4');
+  if (SHOTS) {
+    await abrir({ v: 2, R: R_(ATE3), feitos: {} }, m8({ 'M8.P03': opc('Atendimento externo') }));
+    await page.click('#ir'); await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(SHOTS, 'm09_heranca_m9-03.png') });
+  }
+
+  /* ---------- 8c. "O que entendemos até aqui" no resultado, acima do checklist ---------- */
+  const LAVA = { 'M9-01': 'Minas Gerais', 'M9-02': 'Não', 'M9-03': O.sem, 'M9-03a': O.cliente, 'M9-04': 'Ainda não fiz', 'M9-10': 'Não', 'M9-11': 'Sim', 'M9-13': '' };
+  const M1LAVA = { 'lg2-turma-a-m01': { R: { 'M1.P01': opc('Ainda está só na minha cabeça'), 'M1.P03': { estado: 'valor', valor: 'Lava-jato em domicílio' }, 'M1.P03A': opc('Serviço: meu cliente paga pelo trabalho que realizo') } } };
+  await abrir({ v: 2, R: Object.assign(R_(LAVA), { 'M9-13': { estado: 'valor', valor: '' } }), feitos: {} }, M1LAVA);
+  await page.click('#ir');
+  assert.equal(norm(await page.textContent('.passo')), 'Resultado');
+  const fr = await page.$$eval('#entendemos p', (ps) => ps.map((p) => p.innerText.replace(/\s+/g, ' ').trim()));
+  assert.equal(norm(await page.textContent('#entendemos h3')), 'O que entendemos até aqui');
+  assert.ok(fr.length >= 3 && fr.length <= 6, 'de 3 a 6 frases: ' + fr.length);
+  const itLava = Mo.checklist(D, R_(LAVA));
+  const nf = itLava.filter((i) => i.sit === 'a fazer').length, nc = itLava.filter((i) => i.sit === 'a confirmar').length;
+  assert.deepEqual(fr.slice(0, 4), [
+    'Seu negócio é “Lava-jato em domicílio”, um serviço (o cliente paga pelo seu trabalho), e você ainda não começou a vender.',
+    'Você não terá local fixo: vai atender na casa ou na empresa do cliente (Minas Gerais).',
+    'Pelo que você respondeu, o que você faz não afeta a saúde de quem compra, então a Vigilância Sanitária não entra no seu caminho.',
+    'Ainda falta confirmar com a prefeitura se a atividade pode funcionar no endereço que você vai usar.',
+  ]);
+  assert.ok(fr[4].startsWith(`No seu checklist há ${nf} ${nf === 1 ? 'passo' : 'passos'} a fazer e ${nc} ${nc === 1 ? 'item' : 'itens'} a confirmar`), fr[4]);
+  const ordem = await page.evaluate(() => { const e = document.querySelector('#entendemos'), c = document.querySelector('#checklist'), l = document.querySelector('#linha-resumo'); return [!!(e.compareDocumentPosition(c) & 4), !!(e.compareDocumentPosition(l) & 4)]; });
+  assert.deepEqual(ordem, [true, true], 'caixa acima do resumo e do checklist');
+  if (SHOTS) { await page.waitForTimeout(400); await page.evaluate(() => document.querySelector('.concluido').scrollIntoView()); await page.screenshot({ path: path.join(SHOTS, 'm09_entendemos.png') }); }
+  /* sem nada dos outros módulos, a caixa ainda aparece (só com o que foi respondido aqui) */
+  await abrir({ v: 2, R: Object.assign(R_(LAVA), { 'M9-13': { estado: 'valor', valor: '' } }), feitos: {} });
+  await page.click('#ir');
+  const fr2 = await page.$$eval('#entendemos p', (ps) => ps.length);
+  assert.ok(fr2 >= 3 && fr2 <= 6);
+  assert.ok(!norm(await page.textContent('#entendemos')).includes('Seu negócio'), 'sem frase de negócio sem dado');
+
   /* ---------- 9. botão do próximo módulo: marcação exata ---------- */
   const app = fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8');
   const blocos = app.match(/<div class="acoes lg2-proximo">.*?<\/div>/g) || [];

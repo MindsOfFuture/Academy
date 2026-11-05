@@ -171,3 +171,18 @@ textarea.campo{resize:vertical;font-family:inherit}
   .acoes,.voltar,.reinicio,.barra-topo,.etapas,.preencher{display:none!important}
   .heroi,.res-num,.bloco-titulo{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* correções do testador (nov/2026): selo de resposta trazida, duas perguntas na mesma tela, marcadores do perfil, "O que entendemos" */
+.selo-m{display:inline-block;background:var(--m-lavender);color:var(--m-purple);border-radius:var(--m-pill);padding:4px 12px;font-size:16px;margin:8px 0 4px}
+.pergunta-par+.pergunta-par{margin-top:22px;padding-top:18px;border-top:2px solid var(--m-lavender)}
+.pergunta-par .alt{margin-top:8px}
+.btn-alt.sel{background:var(--m-lavender);border-color:var(--m-purple)}
+.item-marcar{margin-bottom:12px}
+.item-marcar .marcar{margin:4px 0 0}
+.entendemos{background:#fff;border:2px solid var(--m-lavender);border-left:6px solid var(--m-purple);border-radius:var(--m-radius);padding:14px 16px;margin:14px 0}
+.entendemos h2{color:var(--m-purple);font-size:18px;margin-bottom:6px}
+.entendemos p{font-size:16px;color:#3d3650;margin-top:6px}
+.respostas{margin:18px 0}
+.respostas>summary{cursor:pointer;font-weight:700;color:var(--m-purple);font-size:16px;border:2px solid var(--m-lavender);border-radius:var(--m-pill);padding:10px 16px;list-style-position:inside}
+.etapa .ajustar{margin-top:8px}
+@media print{.respostas>summary{display:none}}

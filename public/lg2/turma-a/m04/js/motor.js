@@ -25,8 +25,8 @@
   /* versão da pergunta que vale para as respostas atuais (M4.P14 tem uma versão para serviço) */
   function versao(M, R, q) {
     const v = (q.variantes || []).find((x) => avaliar(M, R, x.condicao_app) === true);
-    return v ? { pergunta: v.pergunta, opcoesLista: v.opcoesLista, variante: true }
-             : { pergunta: q.pergunta, opcoesLista: q.opcoesLista, variante: false };
+    return v ? { pergunta: v.pergunta, ajuda: v.ajuda || q.ajuda, opcoesLista: v.opcoesLista, variante: true }
+             : { pergunta: q.pergunta, ajuda: q.ajuda, opcoesLista: q.opcoesLista, variante: false };
   }
 
   function valor(R, cod) {

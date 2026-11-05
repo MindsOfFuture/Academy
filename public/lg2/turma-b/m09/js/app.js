@@ -46,8 +46,30 @@
     const nomes = D.viabilidade.estados.map((e) => e.estado);
     return nomes.find((n) => t.toLowerCase().includes(n.toLowerCase())) || null;
   }
+  /* quando o Módulo 4 disse "atividade com regras específicas": qual opção do M9-02, pelo que a pessoa vende */
+  function tipoSaude(t) {
+    if (!t) return null;
+    if (/\bpets?\b|cachorr|\bc[aã]es\b|gatos?\b|animal|animais|banho e tosa|ra[cç][aã]o/i.test(t)) return "Sim, animais";
+    if (/cabel|unha|manicure|pedicure|est[eé]tic|massag|sobrancelh|depila|tatua|maquiador|cuidador|enferm|barbe/i.test(t)) return "Sim, procedimentos no corpo ou cuidado com pessoas";
+    if (/cosm[eé]t|sabonete|perfum|hidratante|saneante|desinfetante|rem[eé]dio|medicament/i.test(t)) return "Sim, cosméticos, saneantes, medicamentos ou produtos para a saúde";
+    if (/bolo|doce|salgad|comida|marmit|lanche|aliment|bebida|suco|caf[eé]\b|\bp[aã]es?\b|torta|brigadeiro|pizza|hamb[uú]rg|sorvete|geleia|cerveja|quitut|refei[cç]|confeit|padaria/i.test(t)) return "Sim, alimentos ou bebidas";
+    return null;
+  }
+  /* respostas que já vieram de outro módulo: pré-marcadas com selo (a pessoa confere e toca Continuar) */
+  const LOCAL8 = { "Minha casa": "Na minha casa", "Ponto comercial": "Em loja ou sala comercial", "Atendimento externo": "Sem local fixo (digital, na casa do cliente ou ambulante)", "Online": "Sem local fixo (digital, na casa do cliente ou ambulante)" };
+  const FORMA8 = { "Atendimento externo": "Na casa ou na empresa do cliente", "Online": "Só pela internet ou por telefone" };
+  function herdado(cod, X, R) {
+    if (cod === "M9-02") {
+      if (X.m4NaoRegulada) return { op: "Não", m: 4 };
+      if (X.m4Regulada && X.saudeTipo) return { op: X.saudeTipo, m: 4 };
+    }
+    if (cod === "M9-03" && X.m8Local) return { op: LOCAL8[X.m8Local], m: 8 };
+    if (cod === "M9-03a" && FORMA8[X.m8Local] && Mo.op(R, "M9-03") === Mo.O.semLocal) return { op: FORMA8[X.m8Local], m: 8 };
+    if (cod === "M9-10" && X.m8Tecnico) return { op: X.m8Tecnico, m: 8 };
+    return null;
+  }
   function contexto() {
-    const m1 = lerR("lg2-turma-a-m01"), m3 = lerR("lg2-turma-a-m03"), m4 = lerR("lg2-turma-a-m04"), m6 = lerR("lg2-turma-b-m06"), m8 = lerR("lg2-turma-b-m08");
+    const m1 = lerR("lg2-turma-a-m01"), m3 = lerR("lg2-turma-a-m03"), m4 = lerR("lg2-turma-a-m04"), m5 = lerR("lg2-turma-a-m05"), m6 = lerR("lg2-turma-b-m06"), m8 = lerR("lg2-turma-b-m08");
     const e7 = lerEstado("lg2-turma-b-m07");
     const reg4 = valor(m4["M4-11"]) || valor(m4["M4.P15"]);
     const cnpj = valor(m8["M8-02"]) || valor(m8["M8.P05"]);
@@ -56,7 +78,21 @@
     const itens6 = ["M6-01", "M6.P01", "M6.P10", "M6.P13"].map((c) => texto(m6[c])).filter(Boolean).join(" ");
     const texto7 = JSON.stringify([e7.mapa || [], e7.R || {}, e7.ini || {}]);
     const cidade = primeiro(m3, ["M3-08"]);
+    const ideia = primeiro(m1, ["M1.P03", "M1-01"]) || primeiro(m3, ["M3.P01"]) || primeiro(m4, ["M4.P01"]) || primeiro(m8, ["M8.P01", "M8-01"]);
+    /* tipo de oferta: Módulo 1 (nova pergunta), depois 5, 4 e 8; vale a palavra inicial */
+    let tipo = null, tipoDe = null;
+    for (const [r, m] of [[m1["M1.P03A"], 1], [m5["M5.P01"], 5], [m4["M4.P02"], 4], [m8["M8.P02"], 8]]) {
+      const w = (texto(r) || "").split(/[:+\s]/)[0];
+      if (["Produto", "Mercadoria", "Serviço"].includes(w)) { tipo = w; tipoDe = m; break; }
+    }
+    const est1 = texto(m1["M1.P01"]);
+    const estagio = !est1 ? null : est1.startsWith("Ainda está") ? "ideia" : est1.startsWith("Já fiz") ? "testes" : est1.startsWith("Já vend") ? "vende" : null;
+    const loc8 = texto(m8["M8.P03"]), tec8 = texto(m8["M8.P08"]);
     return {
+      ideia, tipo, tipoDe, estagio,
+      m8Local: ["Minha casa", "Ponto comercial", "Atendimento externo", "Online"].includes(loc8) ? loc8 : null,
+      m8Tecnico: tec8 === "Sim" || tec8 === "Não" ? tec8 : null,
+      saudeTipo: tipoSaude([ideia, primeiro(m8, ["M8.P01", "M8-01"]), primeiro(m4, ["M4.P01"])].filter(Boolean).join(" ")),
       descricao: primeiro(m8, ["M8-01", "M8.P01"]),
       oferta: primeiro(m1, ["M1-01", "M1.P03"]),
       cnpj: cnpj && cnpj !== NS ? cnpj : null,
@@ -250,7 +286,7 @@
     }
     /* cruzamentos com a opção marcada agora */
     const cruzAgora = (r0) => Mo.cruzamentos(D, Object.assign({}, S.R, { [cod]: r0 }), X).filter((c) => c.cod === cod).map(cruzBox).join("");
-    const veio = (m) => `<p class="veio-linha"><span class="veio">Veio do Módulo ${m}</span></p>`;
+    const veio = (m) => `<p class="veio-linha"><span class="veio">Veio do Módulo ${m}</span> Confira e ajuste se quiser.</p>`;
     let coletar = null;
 
     if (cod === "M9-01") {
@@ -300,8 +336,8 @@
     } else {
       /* escolha única com retorno ao tocar */
       const ops = q.caminhos.flatMap((c) => c.opcoes);
-      let pre = null;
-      if (!resp && cod === "M9-02" && X.m4NaoRegulada) pre = "Não";
+      const h = resp ? null : herdado(cod, X, S.R);
+      const pre = h && ops.includes(h.op) ? h.op : null;
       let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : pre;
       let avisando = false;
       const wrap = el(`<div class="opcoes"></div>`);
@@ -316,7 +352,8 @@
         const jv = box.querySelector("#verifiquei");
         if (jv) jv.onclick = () => { op = null; pintar(); ret(); p.querySelector("#pergunta").scrollIntoView({ block: "start" }); };
       };
-      if (pre) ent.appendChild(el(veio(4)));
+      if (pre) ent.appendChild(el(veio(h.m)));
+      else if (!resp && cod === "M9-02" && X.m4Regulada) ent.appendChild(el(`<p class="veio-linha"><span class="veio">Veio do Módulo 4</span> Lá você disse que sua oferta tem regras específicas para vender. Escolha abaixo qual é o seu caso.</p>`));
       ops.forEach((o) => {
         const b = el(`<button class="opcao" data-v="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`);
         b.onclick = () => { op = o; pintar(); ret(); };
@@ -332,6 +369,33 @@
     }
     ok.onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };
     return p;
+  }
+
+  /* ================= "O que entendemos até aqui": frases por regra, juntando este módulo e os anteriores ================= */
+  function entendemos(X, R, itens, enc) {
+    const f = [], L = Mo.local(R), o1 = Mo.op(R, "M9-01"), o2 = Mo.op(R, "M9-02"), o3a = Mo.op(R, "M9-03a"), o4 = Mo.op(R, "M9-04");
+    const TIPO = { "Serviço": "um serviço (o cliente paga pelo seu trabalho)", "Produto": "um produto que você mesmo faz", "Mercadoria": "mercadoria que você compra pronta para revender" };
+    const EST = { ideia: "você ainda não começou a vender", testes: "você já fez testes ou amostras", vende: "você já vende" };
+    if (X.ideia) f.push(`Seu negócio é “${X.ideia}”${X.tipo ? `, ${TIPO[X.tipo]}` : ""}${X.estagio ? `, e ${EST[X.estagio]}` : ""}.`);
+    else if (X.tipo || X.estagio) f.push(cap1([X.tipo ? `seu negócio é ${TIPO[X.tipo]}` : "", X.estagio ? EST[X.estagio] : ""].filter(Boolean).join(", e ")) + ".");
+    const uf = o1 && o1 !== NS ? ` (${o1})` : "";
+    const NOME = { casa: "na sua casa", apto: "num apartamento ou condomínio", loja: "numa loja ou sala comercial" };
+    if (L.tipo) f.push(`Você ${L.planejado ? "pretende trabalhar" : "vai trabalhar"} ${NOME[L.tipo]}${uf}.`);
+    else if (L.forma === "remoto") f.push(`Você não terá local fixo: ${o3a === Mo.O.cliente ? "vai atender na casa ou na empresa do cliente" : "vai atender pela internet ou por telefone"}${uf}.`);
+    else if (L.forma === "rua") f.push(`Você vai trabalhar na rua, em feiras ou eventos${uf}.`);
+    else f.push(`O lugar onde você vai trabalhar ainda não está definido${uf}.`);
+    if (Mo.sanitario(R)) f.push("Como o que você faz pode afetar a saúde de quem compra ou é atendido, a Vigilância Sanitária faz parte do seu caminho.");
+    else if (o2 === "Não") f.push("Pelo que você respondeu, o que você faz não afeta a saúde de quem compra, então a Vigilância Sanitária não entra no seu caminho.");
+    else f.push("Ainda falta saber se o que você faz pode afetar a saúde de quem compra ou é atendido.");
+    if (Mo.op(R, "M9-10") === "Sim") f.push("Sua atividade precisa de um profissional formado e registrado em conselho.");
+    f.push(o4 === Mo.O.aprovada ? "A prefeitura já confirmou que a atividade pode funcionar no endereço."
+      : o4 === Mo.O.negada ? "A prefeitura não liberou a atividade nesse endereço, então será preciso pensar em outro local."
+        : "Ainda falta confirmar com a prefeitura se a atividade pode funcionar no endereço que você vai usar.");
+    const nf = itens.filter((i) => i.sit === Mo.SIT.fazer).length, nc = itens.filter((i) => i.sit === Mo.SIT.conf).length;
+    const pl = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+    f.push(nf + nc === 0 ? "Pelo que você respondeu, não há nenhum passo pendente no seu checklist."
+      : `No seu checklist há ${pl(nf, "passo", "passos")} a fazer e ${pl(nc, "item", "itens")} a confirmar${enc ? `; comece por: ${enc.item.toLowerCase()} (${Mo.ORGAOS[enc.orgao].nome})` : ""}.`);
+    return f.slice(0, 6);
   }
 
   /* ================= resultado: checklist e resumo (tela M9-14) ================= */
@@ -364,6 +428,7 @@
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo 9</h2><p>Veja abaixo o resultado pelas suas respostas.</p></div></div>
         </section>
+        <section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>${entendemos(X, R, itens, enc).map((f) => `<p>${esc(f)}</p>`).join("")}</section>
         <section class="cartao" id="linha-resumo"><h3>Em uma linha</h3><p>${esc(Mo.linhaResumo(D, R, itens))}</p><p class="aviso-inst">${esc(I4.aviso)}</p></section>
         <section class="cartao" id="risco"><h3>Nível de risco provável</h3>
           <p class="diag-r"><b>A confirmar na consulta de viabilidade.</b></p>

@@ -203,26 +203,47 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await page.evaluate(() => {
     localStorage.clear();
     localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 9, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Pão caseiro' }, 'M1.P08': { estado: 'opcao', opcao: 'Ainda não sei fazer direito' } } }));
-    localStorage.setItem('lg2-turma-a-m04', JSON.stringify({ R: { 'M4.P15': { estado: 'opcao', opcao: 'Sim' }, 'M4.P19': { estado: 'valor', valor: '60' }, 'M4.P20': { estado: 'valor', valor: '7' } } }));
-    localStorage.setItem('lg2-turma-a-m05', JSON.stringify({ versao: 9, R: { 'M5.P01': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' }, 'M5.P02': { estado: 'valor', valor: 'Pão de fermentação natural' }, 'M5.P03': { estado: 'valor', valor: ['Farinha', 'Sal'] }, 'M5.P26': { estado: 'opcao', opcao: 'Sim' }, 'M5.P37': { estado: 'valor', valor: '200' } } }));
+    localStorage.setItem('lg2-turma-a-m04', JSON.stringify({ R: { 'M4.P15': { estado: 'opcao', opcao: 'Sim' }, 'M4.P19': { estado: 'valor', valor: '60 pedidos' }, 'M4.P20': { estado: 'valor', valor: '7' } } }));
+    localStorage.setItem('lg2-turma-a-m05', JSON.stringify({ versao: 9, R: { 'M5.P01': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' }, 'M5.P02': { estado: 'valor', valor: 'Pão de fermentação natural' }, 'M5.P03': { estado: 'valor', valor: ['Farinha', 'Sal'] }, 'M5.P06': { estado: 'valor', valor: [{ q: '1', u: 'kg' }, { q: '20', u: 'g' }] }, 'M5.P07': { estado: 'valor', valor: '10' }, 'M5.P26': { estado: 'opcao', opcao: 'Sim' }, 'M5.P37': { estado: 'valor', valor: '200' } } }));
   });
   await page.goto(URL);
   await page.click('#ir');
   const partida = nrm(await page.innerText('body'));
   check('Partida traz a oferta do Módulo 5', (await page.inputValue('#f-oferta')) === 'Pão de fermentação natural');
   check('Partida marca o tipo e o estágio herdados e mostra "Veio do Módulo"', /Veio do Módulo 5/.test(partida) && /Veio do Módulo 1/.test(partida) && await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Produto')));
-  check('Partida traz volume, item e teste herdados', (await page.inputValue('#f-volume')) === '200' && (await page.inputValue('#f-item')) === 'Farinha' && (await page.inputValue('#f-testeN')) === '60');
+  check('Partida traz volume, item e teste herdados (só o número de "60 pedidos")', (await page.inputValue('#f-volume')) === '200' && (await page.inputValue('#f-item')) === 'Farinha' && (await page.inputValue('#f-testeN')) === '60');
+  check('Herança: quantidade da farinha por unidade = 1 kg ÷ 10 pães = 0,1 (em kg), com selo', (await page.inputValue('#f-uso')) === '0,1' && /\(em kg\)\s*Veio do Módulo 5/.test(nrm(await page.innerText('label[for="f-uso"]'))), nrm(await page.innerText('label[for="f-uso"]')));
+  await page.fill('#f-item', 'Sal'); await page.dispatchEvent('#f-item', 'change');
+  check('Trocar o item para outro material do Módulo 5 traz a quantidade dele (20 g ÷ 10 = 2 g)', (await page.inputValue('#f-uso')) === '2' && /\(em g\)/.test(await page.innerText('label[for="f-uso"]')));
+  await page.fill('#f-item', 'Farinha'); await page.dispatchEvent('#f-item', 'change');
   await foto('m07_02_partida');
   await tocar('Até 10 h');
   await preenche('#f-uso', '0,5');
   await tocar('Toda semana');
-  await preenche('#f-perda', '5');
+  /* bug do testador: perda em branco ("deixe em branco se não sabe") tem de passar */
+  await preenche('#f-perda', '-2');
+  await ok();
+  const errPerda = nrm(await page.innerText('#e-perda'));
+  check('Perda inválida: mensagem simples ao lado do campo (sem "do teste")', errPerda === 'Use um número de 0 a 99, ou deixe em branco.' && !/do teste/.test(nrm(await page.innerText('body'))), errPerda);
+  await preenche('#f-testeN', 'muitos');
+  await preenche('#f-perda', '');
+  await ok();
+  check('Número do teste inválido: "Use só números iguais ou maiores que zero" no próprio campo', nrm(await page.innerText('#e-testeN')) === 'Use só números iguais ou maiores que zero, ou deixe em branco.' && await page.isHidden('#e-perda'));
+  await foto('m07_08_erro_campo');
+  await preenche('#f-testeN', '60');
+  await ok();
+  check('Perda em branco é aceita (vira "não sei")', !!(await page.$('#pergunta')));
+  /* volta e põe a perda de 5% para a conta da compra */
+  await page.click('#v');
+  await preenche('#f-perda', '5%');
   await ok();
   check('Primeira pergunta = mapa do processo com o modelo de fabricação', /Este é o caminho de Pão de fermentação natural/.test(nrm(await page.innerText('#pergunta'))) && (await page.locator('.etapa-ed').count()) === 8);
   await foto('m07_03_mapa');
   await ok(); await ok();
-  await preenche('#th', '0'); await preenche('#tm', '10'); await ok();
+  check('M7-02: unidades por vez vêm do rendimento da receita (Módulo 5), com selo', (await page.inputValue('#un')) === '10' && /Veio do Módulo 5/.test(await page.innerText('#ent')) && /Confira e ajuste se quiser/.test(await page.innerText('#ent')));
   await foto('m07_04_tempo');
+  await preenche('#un', '1');
+  await preenche('#th', '0'); await preenche('#tm', '10'); await ok();
   check('M7-02 mostra "Anotado: cerca de 10 min por unidade"', /Anotado: cerca de 10 min por unidade/.test(await caixa()), await caixa());
   await ok();
   await tocar('Até 2 h'); await ok();
@@ -256,6 +277,12 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Resumo: compra do mês com perda de 5% = 106', /perda de 5%: 106/.test(res));
   check('Resumo: checklist tem fornecedor único, prazo longo, validade curta e atividade regulada', ['Depender de um só fornecedor', 'Prazo de entrega do fornecedor acima de 7 dias', 'Itens que estragam em poucos dias', 'Atividade com regras próprias'].every((x) => res.includes(x)));
   check('Resumo: avisos dos instrumentos', D.instrumentos.every((i) => res.includes(nrm(i.avisos[0]).replace('[fizer] [oferta em foco]', 'fizer Pão de fermentação natural'))), D.instrumentos.map((i) => i.avisos[0]).filter((a) => !res.includes(a)));
+  const ent = nrm(await page.innerText('#entendemos'));
+  check('Resultado: caixa "O que entendemos até aqui" acima do retrato', await page.evaluate(() => { const a = document.querySelector('#entendemos'), b = document.querySelector('.concluido'); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }));
+  check('Entendemos: oferta, tipo e estágio', ent.includes('Você oferece Pão de fermentação natural, um produto que você mesmo faz, e já vende.'), ent);
+  check('Entendemos: capacidade e volume', ent.includes('Com até 10 horas por semana e cerca de 10 min para fazer cada um, cabem no máximo 164 por mês.') && ent.includes('Você quer vender 200 por mês, mais do que cabe hoje'), ent);
+  check('Entendemos: gargalo e fornecedor único', ent.includes('O que mais segura o seu ritmo hoje é um equipamento ou o espaço.') && ent.includes('Você depende de um só fornecedor para Farinha'), ent);
+  check('Entendemos: de 3 a 6 frases', (await page.locator('#entendemos p').count()) >= 3 && (await page.locator('#entendemos p').count()) <= 6);
   check('Sem código interno na tela (M7-, M4-, M5-)', !/\bM\d-\d/.test(res), (res.match(/.{20}\bM\d-\d.{20}/) || [])[0]);
   await foto('m07_07_resumo');
   /* instrumento: quadro de fornecedores conta critérios sem voltar ao topo */
@@ -283,6 +310,28 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Serviço sem material: barra com 3 fases', fs3.length === 3 && !fs3.includes('Fornecedores e estoque'), fs3);
   await ok(); await ok();
   check('Serviço: a pergunta de tempo usa "atender"', /Quanto tempo você leva para atender Manicure\?/.test(await page.innerText('#pergunta')), await page.innerText('#pergunta'));
+  /* serviço (lava-jato do testador): tipo do Módulo 1, volume, material e tempo do Módulo 5 */
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ R: { 'M1.P01': { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' }, 'M1.P03': { estado: 'valor', valor: 'Lavagem de carro em casa' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } }));
+    localStorage.setItem('lg2-turma-a-m03', JSON.stringify({ R: { 'M3.P11': { estado: 'valor', valor: 'Falta de tempo para levar o carro ao lava-jato' } } }));
+    localStorage.setItem('lg2-turma-a-m05', JSON.stringify({ versao: 3, R: { 'M5.P18': { estado: 'opcao', opcao: 'Sim' }, 'M5.P19': { estado: 'valor', valor: ['Shampoo automotivo', 'Cera'] }, 'M5.P22': { estado: 'valor', valor: [{ q: '200', u: 'ml' }, { q: '50', u: 'g' }] }, 'M5.P23': { estado: 'valor', valor: { h: '1', m: '30' } }, 'M5.P37': { estado: 'valor', valor: '40' } } }));
+  });
+  await page.goto(URL);
+  await page.click('#ir');
+  check('Serviço: tipo vem do Módulo 1 (nova pergunta do tipo)', await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Serviço')) && /Veio do Módulo 1/.test(await page.innerText('[data-campo="tipo"] legend')));
+  check('Serviço: volume 40, material, item e quantidade por atendimento (200 ml) herdados do Módulo 5', (await page.inputValue('#f-volume')) === '40' && (await page.inputValue('#f-item')) === 'Shampoo automotivo' && (await page.inputValue('#f-uso')) === '200' && /\(em ml\)/.test(await page.innerText('label[for="f-uso"]')) && /Veio do Módulo 5/.test(await page.innerText('label[for="f-volume"]')));
+  check('Serviço: tempo de 90 min herdado do Módulo 5', (await page.inputValue('#f-minUn')) === '90');
+  await foto('m07_09_partida_servico');
+  await tocar('Até 10 h');
+  await ok();
+  check('Serviço com tempo herdado: pula a pergunta de tempo', !/Quanto tempo você leva/.test(await page.innerText('body')));
+  await page.evaluate(([k]) => { const s = JSON.parse(localStorage.getItem(k)); s.R = { 'M7-01': { estado: 'opcao', opcao: 'Sim, está parecido' }, 'M7-03': { estado: 'opcao', opcao: 'Até 2 h' }, 'M7-04': { estado: 'opcao', opcao: 'Não, faço sozinho(a)', horas: 0 }, 'M7-05': { estado: 'opcao', opcao: 'Meu tempo' }, 'M7-06': { estado: 'partes', p1: 'Dois ou mais', p2: 'De 1 a 3 dias', dias: '' }, 'M7-07': { estado: 'multi', opcoes: ['Prazo de entrega'] }, 'M7-08': { estado: 'opcao', opcao: 'Não' }, 'M7-09': { estado: 'opcao', opcao: 'Confiro no olho ou provando, sem nada anotado' }, 'M7-10': { estado: 'multi', opcoes: ['Errar o pedido'] }, 'M7-11': { estado: 'multi', opcoes: ['Pedidos entregues no prazo'] }, 'M7-12': { estado: 'vazio' } }; localStorage.setItem(k, JSON.stringify(s)); }, [CHAVE]);
+  await page.goto(URL); await page.click('#ir');
+  const entS = nrm(await page.innerText('#entendemos'));
+  check('Entendemos (serviço): ideia, cliente, capacidade e volume', entS.includes('Você oferece Lavagem de carro em casa, um serviço, e ainda está na fase da ideia.') && entS.includes('Seu cliente procura você por isto: Falta de tempo para levar o carro ao lava-jato.') && entS.includes('cerca de 1 h 30 min para atender cada um, cabem no máximo 23 por mês') && entS.includes('Você quer vender 40 por mês, mais do que cabe hoje'), entS);
+  check('Serviço: botão final continua escondido até "Sim, pode seguir"', await page.isHidden('.lg2-proximo'));
+  await foto('m07_10_entendemos');
   check('Sem erros de página', !erros.length, erros);
   await browser.close();
   servidor.close();

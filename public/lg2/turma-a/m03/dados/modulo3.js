@@ -216,7 +216,12 @@ window.MODULO3 = {
      "texto": "Mercado é o lugar, na rua ou na internet, onde quem vende encontra quem quer comprar. Prompt: \"Eu [descreva o que faz]. Me ajude a explicar em uma frase, em linguagem simples, em que ramo eu trabalho. Dê 3 exemplos de como outras pessoas descrevem esse ramo.\" Confira se a frase combina com o que você realmente faz."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Com suas palavras, em que ramo você quer trabalhar e o que você quer vender? (Ex.: \"Quero vender marmitas para trabalhadores do bairro\")"
+    }
+   }
   },
   {
    "codigo": "M3.P02",
@@ -240,7 +245,12 @@ window.MODULO3 = {
     "Sim",
     "Não"
    ],
-   "naosei": false
+   "naosei": false,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Você quer pensar agora em oportunidades para a sua ideia dar certo e crescer?"
+    }
+   }
   },
   {
    "codigo": "M3.P03",
@@ -290,7 +300,12 @@ window.MODULO3 = {
      "texto": "Onde olhar: converse com clientes, veja as redes sociais e as novidades do bairro. Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Que mudanças recentes (jeito de comprar, tecnologia, eventos) podem ajudar quem vende isso? Separe o que é fato do que é suposição.\" Confira em fonte confiável ou pergunte a clientes."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Você viu alguma novidade ou mudança recente que pode ajudar a sua ideia a vender? (Ex.: mais gente comprando pelo WhatsApp, uma obra ou um evento novo perto de você)"
+    }
+   }
   },
   {
    "codigo": "M3.P05",
@@ -315,7 +330,12 @@ window.MODULO3 = {
      "texto": "Prompt: \"Minha ideia é [descreva a ideia]. Me faça 5 perguntas simples para eu descobrir se ela pode dar certo: se tem gente que compra, quanto custa começar e o que eu preciso ter.\" Responda cada pergunta com dados reais (clientes, preços, custos)."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Por que você acredita que essa ideia pode dar certo?"
+    }
+   }
   },
   {
    "codigo": "M3.P06",
@@ -371,7 +391,12 @@ window.MODULO3 = {
     "queda nas vendas em certa época",
     "mudança de regra"
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Existe alguma coisa que pode atrapalhar suas vendas quando você começar? (Ex.: concorrente novo, preço dos insumos subindo, mudança de regra)"
+    }
+   }
   },
   {
    "codigo": "M3.P08",
@@ -396,7 +421,12 @@ window.MODULO3 = {
      "texto": "Prompt: \"Quais mudanças (tecnologia, jeito de comprar, regras) podem afetar quem vende [produto ou serviço] nos próximos anos? Explique de forma simples e diga o que é suposição.\" Confirme em fontes confiáveis, como o portal do Sebrae."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Nos próximos anos, o que você acha que vai mudar na forma como as pessoas compram o que você quer vender? (Ex.: mais pedidos pelo celular, pagamento por Pix, novas regras)"
+    }
+   }
   },
   {
    "codigo": "M3.P09",
@@ -432,7 +462,15 @@ window.MODULO3 = {
     "No Brasil todo",
     "Também fora do Brasil"
    ],
-   "naosei": false
+   "naosei": false,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Até onde você pretende vender? No seu bairro ou cidade, na sua região, no Brasil todo ou até fora do país?"
+    },
+    "comecando": {
+     "pergunta": "Até onde você vende ou pretende vender? No seu bairro ou cidade, na sua região, no Brasil todo ou até fora do país?"
+    }
+   }
   },
   {
    "codigo": "M3.P10",
@@ -481,7 +519,61 @@ window.MODULO3 = {
      "Local"
     ]
    },
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Quem você gostaria que comprasse de você? São pessoas comuns ou empresas?"
+    }
+   },
+   "marcadores": {
+    "Idade": [
+     "Até 17 anos",
+     "18 a 29 anos",
+     "30 a 44 anos",
+     "45 a 59 anos",
+     "60 anos ou mais",
+     "Não sei"
+    ],
+    "Renda": [
+     "Até 1 salário mínimo",
+     "De 1 a 3 salários mínimos",
+     "De 3 a 6 salários mínimos",
+     "Mais de 6 salários mínimos",
+     "Não sei"
+    ],
+    "Ocupação": [
+     "Estudantes",
+     "Trabalhadores com carteira assinada",
+     "Autônomos e trabalhadores por conta própria",
+     "Servidores públicos",
+     "Aposentados",
+     "Donas e donos de casa",
+     "Não sei"
+    ],
+    "Ramo": [
+     "Comércio (lojas, mercados)",
+     "Restaurantes e alimentação",
+     "Serviços (salões, oficinas, escritórios)",
+     "Indústria ou fábrica",
+     "Construção",
+     "Escolas, órgãos públicos e associações",
+     "Não sei"
+    ],
+    "Tamanho": [
+     "Microempreendedor (MEI)",
+     "Micro ou pequena empresa",
+     "Média empresa",
+     "Grande empresa",
+     "Não sei"
+    ],
+    "Equipe": [
+     "Só o dono",
+     "2 a 9 pessoas",
+     "10 a 49 pessoas",
+     "50 pessoas ou mais",
+     "Não sei"
+    ]
+   }
   },
   {
    "codigo": "M3.P11",
@@ -506,7 +598,12 @@ window.MODULO3 = {
      "texto": "Prompt: \"Eu vendo [produto ou serviço]. Que problemas ou vontades do cliente isso resolve? Dê exemplos do dia a dia, em linguagem simples.\" Pergunte a clientes se isso faz sentido para eles."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Que problema ou vontade do seu cliente você vai resolver? (Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa)"
+    }
+   }
   },
   {
    "codigo": "M3.P12",
@@ -538,7 +635,12 @@ window.MODULO3 = {
     "o meu nome já é conhecido",
     "clientes fiéis"
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Quando o seu negócio começar, seria difícil para outra pessoa abrir um igual e vender como você? O que dificultaria? (Ex.: precisa de muito dinheiro, de licença, de máquina cara, ou o seu nome já é conhecido)"
+    }
+   }
   },
   {
    "codigo": "M3.P13",
@@ -591,7 +693,15 @@ window.MODULO3 = {
     "Outro",
     "Não sei"
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Onde você imagina que o seu cliente vai encontrar você e comprar de você? Na loja, no WhatsApp, no Instagram, em site ou aplicativo?",
+     "caminhos": {
+      "Outro": "Escreva onde mais o cliente vai poder encontrar e comprar de você."
+     }
+    }
+   }
   },
   {
    "codigo": "M3.P14",
@@ -620,7 +730,19 @@ window.MODULO3 = {
     "O que meu negócio faz de melhor",
     "O que ainda preciso melhorar"
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "O que você imagina que o seu negócio vai fazer de melhor? E o que você ainda precisa aprender ou melhorar?",
+     "campos": {
+      "O que meu negócio faz de melhor": "O que imagino que meu negócio vai fazer de melhor",
+      "O que ainda preciso melhorar": "O que ainda preciso aprender ou melhorar"
+     },
+     "caminhos": {
+      "Não sei": "Pense no que você já faz bem e no que os clientes costumam elogiar ou reclamar em negócios parecidos com o seu."
+     }
+    }
+   }
   },
   {
    "codigo": "M3.P15",
@@ -645,7 +767,12 @@ window.MODULO3 = {
      "texto": "Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Me explique como encontrar quem vende o mesmo, só com o celular. Não invente nomes de lojas.\" Confirme cada nome encontrado no Google Maps ou no Instagram."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Quem já vende o mesmo que você quer vender, ou algo muito parecido? Cite lojas, pessoas ou perfis que você conhece."
+    }
+   }
   },
   {
    "codigo": "M3.P16",
@@ -695,7 +822,12 @@ window.MODULO3 = {
      "texto": "1. Abra o Google Maps e busque o que você vende (ex.: \"bolos perto de mim\"). 2. No Instagram, busque palavras do seu ramo e o nome da sua cidade. 3. Veja se há anúncios no Mercado Livre, Shopee ou OLX. 4. Pergunte a clientes onde mais já compraram. 5. Anote os nomes que mais aparecem."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Você sabe como descobrir quem vende o mesmo que você quer vender? (Ex.: procurar no Google Maps, no Instagram ou perguntando aos clientes)"
+    }
+   }
   },
   {
    "codigo": "M3.P18",
@@ -761,7 +893,12 @@ window.MODULO3 = {
     "Igual",
     "Pior"
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Se você imaginar o seu negócio ao lado dos outros, como acha que vai se sair? Pense em preço, qualidade, atendimento e prazo."
+    }
+   }
   },
   {
    "codigo": "M3.P20",
@@ -786,7 +923,15 @@ window.MODULO3 = {
      "texto": "1. Escolha 3 concorrentes. 2. Veja o preço de algo parecido com o seu no Instagram, no WhatsApp (peça um orçamento) ou nos marketplaces. 3. Anote os valores. 4. Some os preços e divida por 3 para ter o preço médio."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Quanto os outros costumam cobrar por algo parecido com o que você quer vender?",
+     "caminhos": {
+      "Informou valores": "Os outros costumam cobrar em torno de R$ [valor]. Use esse valor como referência para definir o seu preço."
+     }
+    }
+   }
   },
   {
    "codigo": "M3.P21",
@@ -808,10 +953,18 @@ window.MODULO3 = {
     {
      "opcao": "Não sei",
      "tipo": "Dica",
-     "texto": "Pense no que os clientes elogiam em você. Volte aqui depois de responder as perguntas 19 e 22."
+     "texto": "Pense no que os clientes elogiam em você. Volte aqui depois de se comparar com os outros e ver o que eles fazem bem e onde deixam a desejar."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "O que o seu cliente vai ganhar comprando com você e não com o vizinho?",
+     "caminhos": {
+      "Não sei": "Pense no que você vai fazer diferente dos outros. Volte aqui depois de se comparar com os outros e ver o que eles fazem bem e onde deixam a desejar."
+     }
+    }
+   }
   },
   {
    "codigo": "M3.P22",

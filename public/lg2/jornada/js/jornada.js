@@ -115,7 +115,17 @@
     estado.atual = null; gravar();
     iframe.hidden = true; iframe.removeAttribute('src'); fim.hidden = false;
     aviso.textContent = '';
+    mostrarResumo();
     desenhar();
+  }
+
+  // Resumo do negócio no fim da jornada: texto montado com as respostas dos módulos (só leitura).
+  function mostrarResumo() {
+    var caixa = document.getElementById('resumo-negocio');
+    var frases = [];
+    try { frases = window.ResumoNegocio ? window.ResumoNegocio.frases() : []; } catch (e) { frases = []; }
+    document.getElementById('resumo-texto').textContent = frases.join(' ');
+    caixa.hidden = !frases.length;
   }
 
   // O resultado de cada módulo tem a caixa ".lg2-proximo". Quando ela aparece, o módulo está concluído.

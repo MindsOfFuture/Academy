@@ -7,6 +7,9 @@
    "Não sei dizer" só na 5A e na 7A (última opção), sem "Ainda não sei" na Pergunta 3, card de vídeo
    das Perguntas 3 e 7 escondido enquanto não houver vídeo (e, com um vídeo de teste, abre por cima e
    volta para a mesma pergunta sem resposta) e a migração das respostas da versão anterior.
+   Lote do testador (05/11/2026): Pergunta 3A nova (Produto/Mercadoria/Serviço), Pergunta 8 com várias
+   respostas (e migração da resposta única antiga para lista), caixa "O que entendemos até aqui" no
+   resultado com as respostas recolhidas em "Ver suas respostas".
    Inclui teste de sabotagem dos próprios conferidores. Sai com código != 0 se falhar. */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -75,6 +78,17 @@ const EXP = {
   "placeholder": "Ex.: bolo de pote, conserto de celular, unha de gel",
   "video": true,
   "ajuda": false
+ },
+ "M1.P03A": {
+  "pergunta": "O que você oferece aos seus clientes?",
+  "apoio": "Escolha a opção que mais combina com o que você vende.",
+  "opcoes": [
+   ["Produto: eu compro materiais e faço o que vendo", null],
+   ["Mercadoria: compro pronto para revender", null],
+   ["Serviço: meu cliente paga pelo trabalho que realizo", null]
+  ],
+  "ajuda": true,
+  "ajuda_texto": "Produto é algo que você mesmo faz com materiais que compra. Mercadoria é algo que você compra pronto e vende sem mudar. Serviço é quando o cliente paga pelo seu trabalho, e não por uma coisa."
  },
  "M1.P04": {
   "pergunta": "Você já sabe fazer isso?",
@@ -216,7 +230,8 @@ const EXP = {
  },
  "M1.P08": {
   "pergunta": "O que mais te preocupa agora?",
-  "apoio": "Escolha só uma opção.",
+  "apoio": "Pode marcar mais de uma opção.",
+  "multi": true,
   "opcoes": [
    [
     "Ainda não sei fazer direito",
@@ -242,7 +257,7 @@ const EXP = {
   "ajuda": false
  }
 };
-const ORDEM = ['M1.P01', 'M1.P02', 'M1.P03', 'M1.P04', 'M1.P05', 'M1.P05A', 'M1.P06', 'M1.P07', 'M1.P07A', 'M1.P08'];
+const ORDEM = ['M1.P01', 'M1.P02', 'M1.P03', 'M1.P03A', 'M1.P04', 'M1.P05', 'M1.P05A', 'M1.P06', 'M1.P07', 'M1.P07A', 'M1.P08'];
 /* fluxo do documento, escrito à parte do motor do app */
 function esperado(R) {
   return ORDEM.filter((c) => {
@@ -386,6 +401,11 @@ async function servidor() {
     const d = await page.evaluate(() => [...document.querySelectorAll('details')].map((x) => [x.open, x.querySelector('summary').textContent]));
     ok(e.ajuda ? d.length === 1 && d[0][0] === false && d[0][1] === 'O que quer dizer isso?' : d.length === 0, `${c}: caixa de ajuda (fechada, título)`);
     if (e.ajuda) ok(t.includes('O que quer dizer isso?') && !/Fonte/i.test(t), `${c}: ajuda sem fonte`);
+    if (e.ajuda) ok(await page.evaluate(() => document.querySelector('.ajuda-box p').textContent) === e.ajuda_texto, `${c}: texto da ajuda`);
+    if (e.multi) {
+      ok(!t.includes('Escolha só uma opção'), `${c}: não pode dizer "Escolha só uma opção"`);
+      ok(await page.evaluate(() => getComputedStyle(document.querySelector('.opcao .radio')).borderRadius === '6px'), `${c}: quadradinho (várias respostas), não bolinha`);
+    }
     await regrasGerais(c);
     ok(!/Não sei dizer|Ainda não sei\b(?! fazer)/.test(t.replace(/Não sei dizer/g, COM_NAOSEI.includes(c) ? '' : 'Não sei dizer')), `${c}: "Não sei" fora da 5A/7A`);
     ok(await page.evaluate(() => !document.querySelector('#ns, .video-card, .video-fundo')), `${c}: sem botão Não sei e sem card de vídeo (vídeo ainda não chegou)`);
@@ -396,7 +416,21 @@ async function servidor() {
       if (COM_NAOSEI.includes(c)) ok(ops.length && ops[ops.length - 1].t === 'Não sei dizer', `${c}: "Não sei dizer" deve ser a última`);
       else ok(!ops.some((o) => o.t === 'Não sei dizer'), `${c}: "Não sei dizer" não pode aparecer`);
       if (R.__novo) ok((await msgAgora()) === null, `${c}: sem mensagem antes de responder`);
-      if (todasMsgs) for (const [op, m] of e.opcoes) {
+      if (todasMsgs && e.multi) {
+        /* várias respostas: cada toque acrescenta; tocar de novo tira */
+        const marcadas = [];
+        for (const [op] of e.opcoes) {
+          await opcao(op); marcadas.push(op);
+          const st = await estadoOpcoes();
+          ok(st.every((x) => marcadas.includes(x.t) === x.sel && x.sel === x.check), `${c} / ${op}: ✓ em todas as marcadas (${marcadas.length})`);
+          ok((await continuarDesligado()) === (op === 'Outra coisa'), `${c} / ${op}: Continuar ${op === 'Outra coisa' ? 'apagado até escrever a outra coisa' : 'aceso'}`);
+        }
+        const salvoP8 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R['M1.P08']);
+        ok(JSON.stringify(salvoP8.opcoes) === JSON.stringify(e.opcoes.map((o) => o[0])) && salvoP8.opcao === e.opcoes[0][0] && salvoP8.estado === 'opcao', `${c}: grava a lista na ordem e a 1ª em "opcao": ${JSON.stringify(salvoP8)}`);
+        for (const [op] of e.opcoes) await opcao(op);
+        ok((await estadoOpcoes()).every((x) => !x.sel) && (await continuarDesligado()) === true, `${c}: tocar de novo desmarca; sem nada marcado, Continuar apagado`);
+        ok(await page.evaluate(() => !JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R['M1.P08']), `${c}: sem nada marcado não guarda resposta`);
+      } else if (todasMsgs) for (const [op, m] of e.opcoes) {
         await opcao(op);
         ok((await msgAgora()) === m, `${c} / ${op}: mensagem "${await msgAgora()}" != "${m}"`);
         const st = await estadoOpcoes();
@@ -416,6 +450,14 @@ async function servidor() {
       ok(await continuarDesligado() === true, 'P3: Continuar apagado sem texto');
       await page.fill('#txt', v);
       ok((await msgAgora()) === null, 'P3: sem mensagem ao escrever');
+    } else if (Array.isArray(v)) {
+      for (const x of v) ok(await opcao(x), `${c}: opção "${x}" não encontrada`);
+      ok((await estadoOpcoes()).filter((o) => o.sel).length === v.length, `${c}: ${v.length} marcadas`);
+      if (v.includes('Outra coisa')) {
+        ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return o && !o.hidden && !!o.querySelector('textarea'); }), 'P8: "Outra coisa" abre campo de texto');
+        ok(await continuarDesligado() === true, 'P8: Continuar apagado com "Outra coisa" sem texto');
+        await page.fill('.outra textarea', R.__outra);
+      } else ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return !o || o.hidden; }), 'P8: campo de "Outra coisa" fechado sem essa opção');
     } else {
       ok(await opcao(v), `${c}: opção "${v}" não encontrada`);
       if (v === 'Outra coisa') {
@@ -440,7 +482,7 @@ async function servidor() {
     await inicio();
     await clicarTexto('button', 'Começar');
     const seq = [];
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 16; i++) {
       const c = await cod();
       if (!c || c === 'RESULTADO') break;
       seq.push(c);
@@ -456,8 +498,9 @@ async function servidor() {
   }
 
   const base = { 'M1.P01': 'Já vendi algumas vezes', 'M1.P02': 'Quero ganhar um dinheiro a mais', 'M1.P03': 'Bolo de pote', __p4: 'bolo de pote',
+    'M1.P03A': 'Produto: eu compro materiais e faço o que vendo',
     'M1.P04': 'Sim, já faço bem', 'M1.P05': 'De 1 a 3 horas por dia', 'M1.P05A': 'Sim, consigo arrumar mais tempo',
-    'M1.P06': 'Sim, tenho tudo', 'M1.P07': 'Entre R$ 100 e R$ 500', 'M1.P07A': 'Juntando dinheiro primeiro', 'M1.P08': 'Ainda não sei fazer direito' };
+    'M1.P06': 'Sim, tenho tudo', 'M1.P07': 'Entre R$ 100 e R$ 500', 'M1.P07A': 'Juntando dinheiro primeiro', 'M1.P08': ['Ainda não sei fazer direito'] };
   const com = (x) => Object.assign({}, base, x);
 
   /* ---------- tela inicial e "O que esta parte não faz" ---------- */
@@ -491,7 +534,7 @@ async function servidor() {
 
   /* ---------- caminhos ---------- */
   // 1: todas as mensagens, 5A e 7A pelos gatilhos P5 = "Até 1 hora por dia" e P7 = "Nada por enquanto"
-  await caminho('A (mensagens, 5A, 7A por P7)', com({ 'M1.P05': 'Até 1 hora por dia', 'M1.P07': 'Nada por enquanto', 'M1.P08': 'Outra coisa', __outra: 'Medo de não vender' }), {
+  await caminho('A (mensagens, 5A, 7A por P7)', com({ 'M1.P05': 'Até 1 hora por dia', 'M1.P07': 'Nada por enquanto', 'M1.P08': ['Conheço poucas pessoas para vender ou me ajudar', 'Outra coisa'], __outra: 'Medo de não vender' }), {
     todasMsgs: true,
     shots: {
       'M1.P01': async () => { await opcao('Já fiz um pouco para testar ou dar de amostra'); await shot('03-pergunta-dica-check'); },
@@ -499,12 +542,30 @@ async function servidor() {
       'M1.P07': async () => { await opcao('Até R$ 100'); await shot('05-p7-faixas'); },
     },
   });
+  /* caixa "O que entendemos até aqui" em cima; respostas recolhidas em "Ver suas respostas" */
+  const entendemos = () => page.evaluate(() => { const e = document.querySelector('.entendemos'); return e ? [...e.querySelectorAll('p')].map((x) => x.textContent) : null; });
+  ok(JSON.stringify(await entendemos()) === JSON.stringify([
+    'Você vende bolo de pote, um produto: você compra os materiais e faz o que vende.',
+    'Você já vendeu algumas vezes, então já sabe que tem gente que compra.',
+    'Você já sabe fazer isso bem e tem até 1 hora por dia para o negócio, e consegue arrumar mais tempo se ele crescer.',
+    'Por enquanto, você não tem dinheiro para colocar no negócio e já tem tudo o que precisa para trabalhar; você pensa em começar juntando dinheiro primeiro.',
+    'O que mais te preocupa agora: conhecer poucas pessoas para vender ou te ajudar e medo de não vender.',
+  ]), 'resultado: "O que entendemos até aqui" ' + JSON.stringify(await entendemos()));
+  ok(await page.evaluate(() => { const e = document.querySelector('.entendemos'), d = document.querySelector('details.respostas');
+    return e.querySelector('h3').textContent === 'O que entendemos até aqui' && e.getBoundingClientRect().top < innerHeight && !!d && !d.open && d.querySelector('summary').textContent === 'Ver suas respostas' && (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING); }),
+    'resultado: caixa no topo (visível sem rolar) e respostas recolhidas abaixo dela');
+  ok(!(await texto()).includes('Você já sabe fazer bolo de pote?'), 'resultado: lista de respostas começa recolhida');
+  await shot('06-resultado');
+  await page.evaluate(() => { document.querySelector('details.respostas').open = true; });
   t = await texto();
   ok(t.includes('Outra coisa: Medo de não vender'), 'resultado: mostra o texto de "Outra coisa"');
+  ok(await page.evaluate(() => { const c = [...document.querySelectorAll('.resp')].find((x) => x.textContent.includes('O que mais te preocupa agora?')); return c ? [...c.querySelectorAll('li')].map((l) => l.textContent).join('|') : ''; }) ===
+    'Conheço poucas pessoas para vender ou me ajudar|Outra coisa: Medo de não vender', 'resultado: Pergunta 8 lista as duas preocupações');
+  ok(t.includes('O que você oferece aos seus clientes?') && t.includes('Produto: eu compro materiais e faço o que vendo'), 'resultado: resposta da 3A');
   ok(t.includes('Você já sabe fazer bolo de pote?') && t.includes('Bolo de pote'), 'resultado: resumo com P3/P4');
-  ok(/Suas respostas/i.test(t) && /Para onde seguem estas informações/i.test(t), 'resultado: resumo + textos do Mapa');
+  ok(/Ver suas respostas/i.test(t) && /Para onde seguem estas informações/i.test(t), 'resultado: resumo + textos do Mapa');
   await regrasGerais('resultado');
-  await shot('06-resultado');
+  await shot('06b-resultado-respostas');
 
   // 5A para cada opção da Pergunta 5
   for (const op of EXP['M1.P05'].opcoes.map((o) => o[0]))
@@ -518,6 +579,26 @@ async function servidor() {
   t = await texto();
   ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna li')].map((l) => l.textContent).join('|')) ===
     'Se o negócio crescer, você consegue arrumar mais tempo para ele?|Como você pensa em começar sem dinheiro ou sem material?', 'resultado: lacunas = 5A e 7A');
+  {
+    const f = (await entendemos()) || [];
+    ok(f.includes('Você já sabe fazer isso bem e só tem os fins de semana para o negócio, e ainda não sabe se consegue arrumar mais tempo.') &&
+      f.includes('Você pode usar entre R$ 100 e R$ 500 sem faltar para as contas da casa, e ainda não tem o que precisa para trabalhar.') &&
+      f.includes('O que mais te preocupa agora é: ainda não saber fazer direito.'), 'entendemos: "Não sei dizer" da 5A/7A e preocupação única ' + JSON.stringify(f));
+  }
+  // serviço, ideia ainda só na cabeça e todas as preocupações
+  await caminho('serviço só na cabeça', com({ 'M1.P01': 'Ainda está só na minha cabeça', 'M1.P03': 'Lavagem de carro em domicílio.', __p4: 'lavagem de carro em domicílio',
+    'M1.P03A': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M1.P04': 'Ainda não sei fazer', 'M1.P05': 'Mais de 3 horas por dia', 'M1.P06': 'Tenho só uma parte', 'M1.P07': 'Até R$ 100',
+    'M1.P08': EXP['M1.P08'].opcoes.map((o) => o[0]), __outra: 'Chuva' }));
+  ok(JSON.stringify(await entendemos()) === JSON.stringify([
+    'Você quer vender lavagem de carro em domicílio, um serviço: o cliente paga pelo trabalho que você faz.',
+    'Por enquanto, a ideia está só na sua cabeça. O melhor agora é testar com pouca coisa antes de gastar.',
+    'Você ainda precisa aprender a fazer isso e tem mais de 3 horas por dia para o negócio.',
+    'Você pode usar até R$ 100 sem faltar para as contas da casa e já tem uma parte do que precisa para trabalhar.',
+    'O que mais te preocupa agora: ainda não saber fazer direito, a falta de lugar ou equipamento, conhecer poucas pessoas para vender ou te ajudar, a dificuldade com celular, internet ou redes sociais e chuva.',
+  ]), 'entendemos (serviço): ' + JSON.stringify(await entendemos()));
+  // mercadoria
+  await caminho('mercadoria', com({ 'M1.P01': 'Já fiz um pouco para testar ou dar de amostra', 'M1.P03A': 'Mercadoria: compro pronto para revender' }));
+  ok(((await entendemos()) || []).slice(0, 2).join(' ') === 'Você quer vender bolo de pote, uma mercadoria: você compra pronto para revender. Você já fez um pouco para testar ou dar de amostra. É hora de ouvir quem provou: compraria? Por quanto?', 'entendemos (mercadoria)');
   // sem nenhum "Não sei", não há bloco de lacunas
   await caminho('sem Não sei', com({}));
   ok(await page.evaluate(() => !document.querySelector('.b-lacuna')), 'resultado: sem lacunas quando tudo foi respondido');
@@ -539,6 +620,8 @@ async function servidor() {
   await continuar();
   await opcao('Quero trabalhar por conta própria'); await continuar();
   await page.fill('#txt', 'Conserto de celular'); await continuar();
+  ok(await cod() === 'M1.P03A', 'P3A logo depois da P3');
+  await opcao('Serviço: meu cliente paga pelo trabalho que realizo'); await continuar();
   await opcao('Ainda não sei fazer'); await continuar();
   await opcao('Só nos fins de semana'); await continuar();
   ok(await cod() === 'M1.P05A', 'persistência: 5A depois de "Só nos fins de semana"');
@@ -608,8 +691,51 @@ async function servidor() {
   await clicarTexto('button', 'Começar');
   ok(await cod() === 'M1.P02' && (await estadoOpcoes()).every((o) => !o.sel), 'v2: volta para a P2, que perdeu o "Não sei dizer"');
   const mig = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')));
-  ok(mig.v === 3 && JSON.stringify(Object.keys(mig.R).sort()) === JSON.stringify(['M1.P01', 'M1.P04', 'M1.P05', 'M1.P05A']) && mig.R['M1.P05A'].opcao === 'Não sei dizer',
+  ok(mig.v === 4 && JSON.stringify(Object.keys(mig.R).sort()) === JSON.stringify(['M1.P01', 'M1.P04', 'M1.P05', 'M1.P05A']) && mig.R['M1.P05A'].opcao === 'Não sei dizer',
     'v2: tira só "Não sei dizer" da P2 e "Ainda não sei" da P3, guarda o resto (inclusive o da 5A): ' + JSON.stringify(mig));
+
+  /* ---------- respostas da v3 (Pergunta 8 com uma resposta só, sem a 3A) ---------- */
+  const v3R = { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P02': { estado: 'opcao', opcao: 'Quero trabalhar por conta própria' },
+    'M1.P03': { estado: 'valor', valor: 'Lavagem de carro' }, 'M1.P04': { estado: 'opcao', opcao: 'Sim, já faço bem' },
+    'M1.P05': { estado: 'opcao', opcao: 'Mais de 3 horas por dia' }, 'M1.P06': { estado: 'opcao', opcao: 'Sim, tenho tudo' },
+    'M1.P07': { estado: 'opcao', opcao: 'Até R$ 100' }, 'M1.P08': { estado: 'opcao', opcao: 'Outra coisa', detalhe: 'Chuva' } };
+  await page.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 3, atual: 'M1.P08', R })), v3R);
+  await page.reload(); await page.waitForSelector('#ir');
+  await clicarTexto('button', 'Começar');
+  ok(await cod() === 'M1.P08', 'v3: volta para a P8 onde estava');
+  ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Outra coisa"]' && await page.evaluate(() => document.querySelector('.outra textarea').value) === 'Chuva',
+    'v3: a resposta única da P8 vira lista, com o texto de "Outra coisa"');
+  ok(JSON.stringify((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))).R['M1.P08']) === JSON.stringify({ estado: 'opcao', opcao: 'Outra coisa', detalhe: 'Chuva', opcoes: ['Outra coisa'] }), 'v3: P8 migrada no formato novo');
+  await opcao('Me falta lugar ou equipamento'); await continuar();
+  ok(await cod() === 'M1.P03A', 'v3: sem a 3A, o Continuar da última pergunta leva para a 3A (não para o resultado)');
+  await opcao('Serviço: meu cliente paga pelo trabalho que realizo');
+  for (let i = 0; i < 10 && (await cod()) !== 'RESULTADO'; i++) await continuar();
+  ok(await cod() === 'RESULTADO' && ((await entendemos()) || [])[0] === 'Você vende lavagem de carro, um serviço: o cliente paga pelo trabalho que você faz.', 'v3: chega ao resultado com o tipo');
+  await page.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 3, atual: 'RESULTADO', R })), v3R);
+  await page.reload(); await page.waitForSelector('#ir');
+  await clicarTexto('button', 'Começar');
+  ok(await cod() === 'M1.P03A', 'v3 terminado: Começar leva para a 3A nova');
+
+  /* ---------- caixas de dica por opção na P8: aparecem as de todas as marcadas ---------- */
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const pd = await ctx.newPage();
+    pd.on('pageerror', (e) => erros.push('dicas P8: ' + e.message));
+    await pd.route('**/dados/modulo1.js', (rt) => rt.fulfill({ contentType: 'text/javascript',
+      body: dados.replace('"texto": "Ainda não sei fazer direito",\n     "mensagem": null', '"texto": "Ainda não sei fazer direito",\n     "mensagem": {"titulo": "Dica", "texto": "DICA-A"}')
+        .replace('"texto": "Me falta lugar ou equipamento",\n     "mensagem": null', '"texto": "Me falta lugar ou equipamento",\n     "mensagem": {"titulo": "Dica", "texto": "DICA-B"}') }));
+    await pd.goto(srv.url);
+    await pd.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'M1.P08', R: Object.assign({}, R, { 'M1.P03A': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' } }) })), Object.assign({}, v3R, { 'M1.P08': undefined }));
+    await pd.reload(); await pd.waitForSelector('#ir');
+    const clica = (t) => pd.evaluate((t) => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.replace('✓', '').trim() === t); if (b) b.click(); return !!b; }, t);
+    const dicas = () => pd.evaluate(() => [...document.querySelectorAll('#msg .msg p')].map((p) => p.textContent).join('|'));
+    await clica('Começar');
+    await clica('Ainda não sei fazer direito'); await clica('Me falta lugar ou equipamento');
+    ok(await dicas() === 'DICA-A|DICA-B', 'P8: mostra a dica de cada opção marcada: ' + await dicas());
+    await clica('Ainda não sei fazer direito');
+    ok(await dicas() === 'DICA-B', 'P8: desmarcar tira a dica daquela opção');
+    await ctx.close();
+  }
 
   /* ---------- respostas da versão antiga são descartadas ---------- */
   await page.evaluate(() => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ R: { 'M1.P01': { estado: 'opcao', opcao: '1. Só na cabeça' } }, hist: ['M1.P01', 'M1.P02'] })));
@@ -622,5 +748,5 @@ async function servidor() {
   ok(erros.length === 0, 'erros na página: ' + erros.join(' | '));
   await browser.close(); srv.close();
   if (falhas.length) { console.log(`FAIL ${falhas.length} de ${checks} checagens`); falhas.forEach((f) => console.log(' - ' + f)); process.exit(1); }
-  console.log(`PASS ${checks} checagens · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
+  console.log(`PASS ${checks} checagens · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

@@ -23,10 +23,33 @@
     try { const s = JSON.parse(localStorage.getItem(chave)); const r = s && s.R && s.R[cod]; return r || null; } catch { return null; }
   }
   const doM1 = (cod) => lerOutro("lg2-turma-a-m01", cod);
+  function ideiaM1() {
+    const r = lerOutro("lg2-turma-a-m01", "M1.P03");
+    return r && r.estado === "valor" && r.valor && String(r.valor).trim() ? String(r.valor) : null;
+  }
   function faixaM3() {
     const r = lerOutro("lg2-turma-a-m03", "M3.P20");
     return r && r.estado === "valor" ? r.valor : null;
   }
+  /* Herança do Módulo 1 (relatório do testador, 05/11): "como está a ideia" (M1.P01) e
+     "o que oferece" (M1.P03A, mesmas 3 opções da P01) entram prontos e as telas são puladas;
+     o cartão "Seu negócio" mostra o que veio, com selo e "Trocar". Formato da resposta igual
+     ao de antes ({estado, opcao}) + marca herdado:"M1" — quem lê a P01 em outro módulo não muda. */
+  function herdar() {
+    const est = Motor.herdarEstagio(M, doM1("M1.P01"));
+    if (est && !S.R[PRIMEIRA]) S.R[PRIMEIRA] = { estado: "opcao", opcao: est, herdado: "M1" };
+    const tipo = Motor.herdarTipo(M, doM1("M1.P03A"));
+    if (tipo && !S.R["M5.P01"]) S.R["M5.P01"] = { estado: "opcao", opcao: tipo, herdado: "M1" };
+    salvar();
+  }
+  const herdado = (cod) => !!(S.R[cod] && S.R[cod].herdado);
+  /* primeira tela que realmente pergunta algo (pula as respostas que vieram do Módulo 1) */
+  function pularHerdadas(cod) {
+    if (cod === PRIMEIRA && herdado(PRIMEIRA)) cod = "M5.P01";
+    if (cod === "M5.P01" && herdado("M5.P01")) cod = TIPOS[tipoAtual()].nome;
+    return cod;
+  }
+  function comecar() { herdar(); ir(telaPergunta, pularHerdadas(PRIMEIRA)); }
   let S = carregar();               // { versao, R: respostas, hist: [códigos], lucro? }
   function carregar() {
     try {
@@ -41,7 +64,7 @@
     S = novo();
     salvar();
     try { localStorage.removeItem(CHAVE_ATUAL); } catch {}
-    ir(telaPergunta, PRIMEIRA);
+    comecar();
   }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -123,6 +146,33 @@
     salvar();
     ir(telaPergunta, cod);
   }
+  /* "Trocar" uma resposta que veio do Módulo 1: abre a tela pulada no lugar da tela atual */
+  function trocar(cod) {
+    const ordem = (c) => c === PRIMEIRA ? 0 : c === "M5.P01" ? 1 : 2;   // P00 < P01 < demais telas
+    const atual = S.hist[S.hist.length - 1];
+    if (atual && atual !== cod && ordem(atual) > ordem(cod)) S.hist.pop();
+    salvar();
+    ir(telaPergunta, cod);
+  }
+  const seloMini = () => `<span class="selo-mini">Veio do Módulo 1</span>`;
+  /* cartão "Seu negócio: <ideia> · <tipo>" no topo das primeiras perguntas (substitui a antiga tela
+     que só repetia a resposta do Módulo 1). Só aparece quando há algo vindo do Módulo 1. */
+  function cartaoNegocio(cod) {
+    const r3 = doM1("M1.P03");
+    const ideia = r3 && r3.estado === "valor" && !vazio(r3.valor) ? String(r3.valor).trim() : null;
+    const tipo = tipoAtual();
+    const mostraTipo = tipo && cod !== "M5.P01";
+    const mostraEst = S.R[PRIMEIRA] && S.R[PRIMEIRA].estado === "opcao" && cod !== PRIMEIRA;
+    if (!ideia && !herdado(PRIMEIRA) && !herdado("M5.P01")) return "";
+    if (!ideia && !mostraTipo && !mostraEst) return "";
+    const cab = [ideia, mostraTipo ? tipo : null].filter(Boolean).join(" · ");
+    return `<div class="negocio" id="seu-negocio">
+      <div class="neg-cab"><span class="neg-rot">Seu negócio:</span> <b>${esc(cab || "—")}</b></div>
+      ${mostraTipo ? `<div class="neg-linha" id="neg-tipo"><span>Tipo: <b>${esc(tipo)}</b></span>${herdado("M5.P01") ? seloMini() : ""}<button class="alterar" data-trocar="M5.P01">Trocar</button></div>` : ""}
+      ${mostraEst ? `<div class="neg-linha" id="neg-estagio"><span>Hoje: <b>${esc(S.R[PRIMEIRA].opcao)}</b></span>${herdado(PRIMEIRA) ? seloMini() : ""}<button class="alterar" data-trocar="${PRIMEIRA}">Trocar</button></div>` : ""}
+      ${herdado(PRIMEIRA) || herdado("M5.P01") ? `<p class="neg-nota">Confira e ajuste se quiser.</p>` : ""}
+    </div>`;
+  }
   function dica(texto, img) {
     if (vazio(texto)) return "";
     return `<aside class="dica">${img ? `<img src="assets/${img}" alt="">` : ""}<div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
@@ -138,6 +188,7 @@
   function ligar(p) {
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
     p.querySelectorAll("[data-alterar]").forEach((b) => { b.onclick = () => voltarPara(b.dataset.alterar); });
+    p.querySelectorAll("[data-trocar]").forEach((b) => { b.onclick = () => trocar(b.dataset.trocar); });
     const n = p.querySelector("#novo");
     if (n) n.onclick = reiniciar;
   }
@@ -217,7 +268,7 @@
     ligar(p);
     p.querySelector("#ir").onclick = () => {
       const atual = S.hist[S.hist.length - 1];
-      if (atual) abrir(atual); else ir(telaPergunta, PRIMEIRA);
+      if (atual) abrir(atual); else comecar();
     };
     const z = p.querySelector("#zerar");
     if (z) z.onclick = reiniciar;
@@ -269,6 +320,8 @@
     }
     const n = etapa(cod);
     const t = infoTipo();
+    const neg = (inicial || (t && cod === t.nome)) ? cartaoNegocio(cod) : "";
+    const seloHerdado = inicial && resp && resp.herdado;
 
     const p = el(`
       <div class="pag">
@@ -277,13 +330,13 @@
         ${inicial ? "" : etapas(n)}
         <main class="corpo">
           <div class="cartao-q pergunta">
-            ${inicial ? `<div class="kicker-q">Vamos conhecer seu negócio</div>` : contexto(cod)}
+            ${inicial ? `<div class="kicker-q">Vamos conhecer seu negócio</div>${neg}` : neg || contexto(cod)}
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${inicial ? `<p class="sub-q">${esc(q.ajuda)}</p>` : ""}
             ${obs(q.observacao)}
             ${notas(q)}
             ${ajudaNS ? "" : blocoVideo(q.video)}
-            ${veioM1 || nomeM1 ? selo(1) : ""}
+            ${veioM1 || nomeM1 || seloHerdado ? selo(1) : ""}
             <div class="entrada" id="ent"></div>
             ${cartoesTipo ? `<p class="nota-info">Trabalha com mais de um tipo? Comece por um deles.</p>` : ""}
             ${alt.length ? `<div class="alt" id="alt"></div>` : ""}
@@ -370,9 +423,10 @@
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
+      if (resp && resp.herdado && r0.estado === "opcao" && r0.opcao === resp.opcao) r0 = Object.assign({}, r0, { herdado: resp.herdado });
       S.R[cod] = r0;
       const r = Motor.regra(M, q, r0);
-      const prox = Motor.proxima(M, q, r0, r);
+      const prox = cod === PRIMEIRA ? pularHerdadas(Motor.proxima(M, q, r0, r)) : Motor.proxima(M, q, r0, r);
       salvar();
       mostrarRetorno(r, prox);
     }
@@ -711,7 +765,7 @@
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a análise deste item!</h2><p>Agora você pode analisar outro produto, serviço ou mercadoria.</p></div></div>
             <div class="item-salvo">
               ${t ? `<img src="assets/${t.card}" alt="">` : ""}
-              <div class="is-txt"><b>${esc(c.nome || "Seu negócio")}</b>${c.tipo ? `<span class="chip">${esc(c.tipo)}</span>` : ""}</div>
+              <div class="is-txt"><b>${esc(c.nome || "Seu negócio")}</b>${c.tipo ? `<span class="chip">${esc(c.tipo)}</span>` : ""}${c.tipo && herdado("M5.P01") ? ` ${seloMini()} <button class="alterar" data-trocar="M5.P01">Trocar</button>` : ""}</div>
               <div class="is-rodape"><span class="salvo">Análise salva</span><a href="#numeros" class="ver" id="ver">Ver análise ↓</a></div>
             </div>
             <div class="outra">
@@ -724,6 +778,9 @@
           </section>
 
           <div id="numeros" class="numeros">
+          <section class="entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>
+            ${Motor.entendemos(S.R, c, ideiaM1()).map((f) => `<p>${esc(f)}</p>`).join("")}
+          </section>
           ${c.simulacao ? `<div class="bloco b-simulacao" id="simulacao"><b>Simulação</b>${esc(Motor.MSG_SIMULACAO)}</div>` : ""}
           ${temCusto && regraFinal ? `
             <div class="res-num">
@@ -820,7 +877,7 @@
       box.innerHTML = `<div class="mini-cards">${card("Sobra em cada venda", brl(r.sobra))}${card(bt("12").conceito || "Resultado", brl(r.resultado))}${r.pe !== null ? card(bt("13").conceito || "Ponto de equilíbrio", String(r.pe)) : ""}</div>
         ${r.semSobra ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(Motor.MSG_SEM_SOBRA)}</div>` : ""}`;
     };
-    p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, PRIMEIRA); };
+    p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, pularHerdadas(PRIMEIRA)); };
     p.querySelector("#minhas").onclick = () => ir(telaAnalises, telaResultado);
     p.querySelector("#ver").onclick = (e) => { e.preventDefault(); p.querySelector("#numeros").scrollIntoView({ behavior: "smooth", block: "start" }); };
     return p;

@@ -125,6 +125,18 @@ body.com-video{overflow:hidden}
 .bloco b{display:block;font-size:16px;margin-bottom:3px}
 .b-lacuna{background:#fff;border:2px solid var(--m-lavender);color:#3d3650}
 .b-lacuna ul{padding-left:18px}
+/* Pergunta 8 (várias respostas): quadradinho no lugar da bolinha */
+.multi .radio,.multi .opcao .check{border-radius:6px}
+/* resultado: o que o app entendeu da ideia, em cima; respostas recolhidas */
+.entendemos{background:var(--m-lavender);border-left:5px solid var(--m-purple);border-radius:var(--m-radius);padding:14px 16px;margin:14px 0}
+.entendemos h3{color:var(--m-purple);font-size:18px;margin-bottom:6px}
+.entendemos p{font-size:16px;color:#2b2340;margin-top:6px;line-height:1.45}
+.respostas{margin:4px 0 14px}
+.respostas .respostas-lista{margin-top:10px}
+.respostas .cartao{background:#fff}
+.resp-itens{padding-left:20px;font-size:16px;color:var(--m-purple);font-weight:700}
+.resp-itens li{margin:2px 0}
+@media print{.respostas>summary{display:none}}
 
 /* botões */
 .acoes{display:flex;flex-direction:column;gap:10px;margin-top:20px}

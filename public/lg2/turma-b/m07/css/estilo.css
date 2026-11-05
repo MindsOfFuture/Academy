@@ -238,3 +238,10 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 .corr-item{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--m-lavender);padding:10px 0}
 #q13{margin-top:16px}
 @media print{.reinicio,.chip-alterar,.btn-mais,.corr-item .btn,#q13 .opcoes{display:none!important}}
+
+/* campo de número com valor que não dá para usar */
+.erro-campo{color:#a13229;font-size:14px;margin:4px 0 0}
+.campo[aria-invalid="true"]{border-color:var(--m-coral)}
+/* "O que entendemos até aqui" no topo do resultado */
+.entendemos{border-left:5px solid var(--m-purple)}
+.entendemos p{margin:6px 0;line-height:1.45}

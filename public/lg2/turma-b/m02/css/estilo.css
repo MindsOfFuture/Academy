@@ -175,3 +175,15 @@ label.mini-info{display:block;margin-top:10px;margin-bottom:4px;font-weight:700;
 #grupos .opcoes.mini .opcao.sel{background:var(--m-purple);color:#fff;border-color:var(--m-purple)}
 #grupos .item{margin:10px 0 14px}
 .saiba+.cartao{margin-top:12px}
+/* herança e resumo (05/11/2026) */
+.veio{display:inline-block;font-size:12px;font-weight:700;color:var(--m-purple);background:var(--m-lavender);border-radius:var(--m-pill);padding:1px 8px;margin-left:2px;vertical-align:middle}
+.contexto{font-size:15px;color:var(--m-gray);margin:0 0 8px;line-height:1.4}
+.contexto b{color:#2b2340}
+.herdado{font-size:15px;color:#3d3650;background:var(--m-lavender);border-radius:12px;padding:8px 10px;margin:0 0 10px}
+.herdado .veio{background:#fff;margin:0 4px 0 0}
+.entendemos{background:#fff;border:2px solid var(--m-lavender);border-left:6px solid var(--m-purple);border-radius:16px;padding:16px;margin-bottom:14px}
+.entendemos h2{color:var(--m-purple);font-size:20px;margin:0 0 8px}
+.entendemos p{font-size:16px;line-height:1.45;color:#2b2340;margin:0 0 8px}
+.entendemos .mini-info{font-size:13px;color:var(--m-gray);margin:6px 0 0}
+#suas-respostas{margin:6px 0 14px}
+#suas-respostas .cartao{margin-top:10px}

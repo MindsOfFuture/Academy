@@ -95,6 +95,17 @@ p.ajuda{font-size:15px;color:var(--m-gray);margin-bottom:8px}
 /* termos */
 .saiba{margin-top:16px;border:2px solid var(--m-lavender);border-radius:var(--m-radius);padding:10px 14px}
 .saiba summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:15px}
+/* resposta trazida de outro módulo */
+.selo-m{display:inline-block;background:var(--m-lavender);color:var(--m-purple);border-radius:var(--m-pill);padding:4px 12px;font-size:14px;margin:8px 0 4px}
+.op-sub{display:block;font-size:14px;color:var(--m-gray);margin-top:3px;line-height:1.35}
+/* "O que entendemos até aqui" no topo do resultado */
+.entendemos{border:2px solid var(--m-purple);border-radius:var(--m-radius);padding:16px 18px;margin:14px 0}
+.entendemos h2{color:var(--m-purple);font-size:19px;margin-bottom:8px}
+.entendemos p{font-size:15.5px;margin-bottom:8px;line-height:1.45}
+.entendemos p:last-child{margin-bottom:0}
+.respostas{margin-top:18px;border:2px solid var(--m-lavender);border-radius:var(--m-radius);padding:10px 14px}
+.respostas summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:15px}
+.respostas[open] summary{margin-bottom:10px}
 .conceito{border-top:1px solid var(--m-lavender);padding-top:10px;margin-top:10px;font-size:14.5px}
 .conceito b{color:var(--m-purple)}
 .conceito .ex{color:var(--m-gray);font-style:italic;margin-top:4px}
