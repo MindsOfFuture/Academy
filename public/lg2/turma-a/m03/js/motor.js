@@ -30,12 +30,41 @@
 
   const visivel = (q, R) => !(DESVIO.pula.includes(q.codigo) && R[DESVIO.de] && R[DESVIO.de].opcao === DESVIO.se);
   const visiveis = (M, R) => M.perguntas.filter((q) => visivel(q, R));
-  function proxima(M, R, cod) {
-    const lista = M.perguntas;
-    const i = cod ? lista.findIndex((p) => p.codigo === cod) : -1;
-    for (let j = i + 1; j < lista.length; j++) if (visivel(lista[j], R)) return lista[j].codigo;
-    return "RESULTADO";
+
+  /* ---- telas: perguntas puladas por já terem resposta e perguntas que dividem a mesma tela ----
+     H = o que veio de outros módulos ({ ideia, tipo, estagio }), montado pelo app. */
+  const PESSOAS = "Pessoas comuns (consumidor final)", DOR = "O que precisa resolver (a dor)";
+  /* concorrentes: duas perguntas curtas na mesma tela (cada uma guarda a sua resposta) */
+  const PARES = [["M3.P15", "M3.P16"], ["M3.P17", "M3.P18"]];
+  function dorDoPerfil(R) {
+    const r = R["M3.P10"];
+    const d = r && r.estado === "opcao" && r.opcao === PESSOAS && r.campos ? String(r.campos[DOR] || "").trim() : "";
+    return d || null;
   }
+  /* o que vende já veio do Módulo 1; a dor já foi escrita no perfil do cliente */
+  function pulada(q, R, H) {
+    if (q.codigo === "M3.P01") return !!(H && H.ideia);
+    if (q.codigo === "M3.P11") return !!dorDoPerfil(R);
+    return false;
+  }
+  function telas(M, R, H) {
+    const lista = M.perguntas.filter((q) => visivel(q, R) && !pulada(q, R, H)).map((q) => q.codigo);
+    const out = [];
+    for (let i = 0; i < lista.length; i++) {
+      const par = PARES.find((p) => p[0] === lista[i]);
+      if (par && lista[i + 1] === par[1]) { out.push(par.slice()); i++; } else out.push([lista[i]]);
+    }
+    return out;
+  }
+  const tela = (M, R, H, cod) => telas(M, R, H).find((t) => t.includes(cod)) || [cod];
+  function proxima(M, R, cod, H) {
+    const idx = (c) => M.perguntas.findIndex((p) => p.codigo === c);
+    const i = cod ? idx(cod) : -1;
+    const t = telas(M, R, H).find((t) => t.some((c) => idx(c) > i) && !t.some((c) => idx(c) === i) && idx(t[0]) > i);
+    return t ? t[0] : "RESULTADO";
+  }
+  /* textos da versão "o que você imagina" (quem ainda não começou) */
+  const variante = (q, est) => (est && q.variantes && q.variantes[est]) || {};
 
   /* ---- leitura das respostas ---- */
   const curta = (v) => String(v || "").trim().length < 10;
@@ -63,17 +92,20 @@
   const reais = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const piores = (tab) => Object.values(tab || {}).filter((v) => v === "Pior").length;
 
-  function linha(q, opcao, troca) {
+  function linhaE(q, opcao, troca, est) {
     const c = (q.caminhos || []).find((x) => x.opcao === opcao);
     if (!c) return null;
-    return { opcao: c.opcao, tipo: c.tipo, texto: troca ? c.texto.replace(/\[valor\]/g, troca) : c.texto };
+    const t = (variante(q, est).caminhos || {})[c.opcao] || c.texto;
+    return { opcao: c.opcao, tipo: c.tipo, texto: troca ? t.replace(/\[valor\]/g, troca) : t };
   }
+  const linha = linhaE;
   const linhaNaoSei = (q) => (q.caminhos || []).find((x) => /^Não sei/.test(x.opcao));
 
   /* linhas da aba 2 que valem para a resposta r (inclui as do tipo "Nenhum") */
-  function retornos(q, r) {
+  function retornos(q, r, est) {
     if (!r) return [];
     const tipo = campo(q);
+    const linha = (q, o, troca) => linhaE(q, o, troca, est);
     let lista = [];
     if (r.estado === "naosei") {
       const ns = linhaNaoSei(q);
@@ -104,7 +136,7 @@
     }
     return lista.filter(Boolean);
   }
-  const mostraveis = (q, r) => retornos(q, r).filter((c) => c.tipo !== "Nenhum");
+  const mostraveis = (q, r, est) => retornos(q, r, est).filter((c) => c.tipo !== "Nenhum");
   const bloqueia = (lista) => lista.some((c) => c.tipo === "Alerta");
   const corrigir = (lista) => lista.some((c) => CORRIGIR.has(c.opcao));
 
@@ -117,10 +149,11 @@
   const passos = (texto) => String(texto).split(/(?:^|\s)\d+\.\s+/).map((s) => s.trim()).filter(Boolean);
 
   const pendente = (r) => !!r && r.estado === "naosei";
-  function texto(q, r) {
+  function texto(q, r, est) {
     if (!r) return "";
     const tipo = campo(q);
-    const pares = (obj, nomes) => nomes.map((c) => `${c}: ${String((obj || {})[c] || "").trim() || "—"}`);
+    const rot = variante(q, est).campos || {};
+    const pares = (obj, nomes) => nomes.map((c) => `${rot[c] || c}: ${String((obj || {})[c] || "").trim() || "—"}`);
     if (r.estado === "naosei") {
       const extra = [];
       if (r.marcados && r.marcados.length) extra.push(r.marcados.join("; "));
@@ -141,7 +174,7 @@
     return !!String(r.valor || "").trim();
   }
 
-  const API = { montar, campo, visivel, visiveis, proxima, curta, generica, numeros, media, reais, piores, linha, retornos,
+  const API = { montar, campo, visivel, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
                 mostraveis, bloqueia, corrigir, partesPrompt, passos, pendente, texto, hipotese, NS, DESVIO };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

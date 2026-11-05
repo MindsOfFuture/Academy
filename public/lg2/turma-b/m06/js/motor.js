@@ -8,6 +8,10 @@
   const NS = "Não sei";
   const COD = /M6\.P\d{2}/g;
   const NEGOCIO = "Negócio";
+  const NEG_PERGUNTA = "Para seguir, diga o que você oferece aos seus clientes";
+  const NEG_AJUDA = "As próximas perguntas mudam conforme o seu tipo de negócio. Escolha o que mais parece com o que você vende.";
+  const NEG_DESCR = { "Serviço": "Seu cliente paga pelo trabalho que você realiza", "Produto": "Você compra materiais e faz o que vende",
+                      "Mercadoria": "Você compra pronto para revender" };
 
   /* Leituras do app para condições que citam algo que a planilha não tem (relatadas ao grupo):
      - "M01 ≠ Não sei" (M6.P17): a pergunta anterior da seção MERCADORIA é a M6.P16.
@@ -39,7 +43,9 @@
     const deps = perguntas.filter((p) => new RegExp("^" + NEGOCIO + "\\s*=").test(p.condicao || ""));
     if (deps.length) {
       const ops = [...new Set(deps.map((p) => p.condicao.split("=")[1].trim()))];
-      const neg = { codigo: NEGOCIO, pergunta: NEGOCIO, tipo: "Escolha", condicao: "sempre", opcoesLista: ops, app: true };
+      /* texto escrito pelo app (relatório do testador: o seletor "aparecia do nada") */
+      const neg = { codigo: NEGOCIO, pergunta: NEG_PERGUNTA, ajuda: NEG_AJUDA, tipo: "Escolha", condicao: "sempre",
+                    opcoesLista: ops, descricoes: NEG_DESCR, app: true };
       perguntas.splice(perguntas.indexOf(deps[0]), 0, neg);
     }
     const porCodigo = {};

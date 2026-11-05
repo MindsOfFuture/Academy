@@ -89,6 +89,9 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
           }
           const botoes = [...document.querySelectorAll('button, a.btn')].filter(vis);
           const txt = (b) => b.textContent.replace(/\s+/g, ' ').trim();
+          // Dica que deixa seguir sem completar (perfil do cliente no M3): segue.
+          const mesmo = botoes.find((b) => txt(b) === 'Continuar mesmo assim');
+          if (mesmo) { mesmo.click(); return 'avancou:Continuar mesmo assim'; }
           // A tela não mudou depois de avançar: falta escolher. Toca uma opção (alterna entre elas).
           if (forcar) {
             // Cada grupo de opções ainda sem escolha recebe a primeira opção (fora "Não sei").

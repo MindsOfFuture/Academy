@@ -20,6 +20,71 @@
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
   function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
 
+  /* ================= herança: o que já foi respondido em outros módulos (só leitura) =================
+     P01 atividade ← M1.P03 (depois M3.P01, M4.P01) · P02 tipo ← M1.P03A, M5.P01, M4.P02
+     P03 local ← M9-03 (+ M9-03a / M9-03b) · P04 faturamento ← M5.P36 × M5.P37.
+     A resposta herdada só pré-preenche a pergunta; a pessoa confere e toca Continuar. "Não sei" não conta. */
+  const NS = Motor.NS;
+  function lerR(chave) { try { const s = JSON.parse(localStorage.getItem(chave)); return (s && s.R) || {}; } catch { return {}; } }
+  const textoDe = (r) => { if (!r) return null; let v = r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : null; if (typeof v === "number") v = String(v); return typeof v === "string" && v.trim() && v.trim() !== NS ? v.trim() : null; };
+  function numero(v) {
+    let s = String(v ?? "").replace(/[R$\s]/g, "");
+    if (!s) return null;
+    if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+    const n = parseFloat(s);
+    return isFinite(n) ? n : null;
+  }
+  const reais = (n) => "R$\u00a0" + n.toLocaleString("pt-BR", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
+  const qtd = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  /* tipo por palavra inicial: Produto / Mercadoria (conta como Produto) / Serviço; combinações com serviço = os dois */
+  function tipoP02(t) {
+    if (!t) return null;
+    const temS = /servi[cç]o/i.test(t), temP = /produto|mercadoria/i.test(t);
+    return temS && temP ? "Produto e serviço" : temS ? "Serviço" : temP ? "Produto" : null;
+  }
+  function localP03(m9) {
+    const a = textoDe(m9["M9-03"]), sa = textoDe(m9["M9-03a"]), sb = textoDe(m9["M9-03b"]);
+    const casa = (x) => /casa|apartamento|condom/i.test(x || "") && !/cliente/i.test(x || "");
+    const loja = (x) => /loja|sala comercial/i.test(x || "");
+    const semFixo = () => /internet|telefone/i.test(sa || "") ? "Online" : sa ? "Atendimento externo" : null;
+    if (casa(a)) return "Minha casa";
+    if (loja(a)) return "Ponto comercial";
+    if (/sem local fixo/i.test(a || "")) return semFixo();
+    if (casa(sb)) return "Minha casa";
+    if (loja(sb)) return "Ponto comercial";
+    if (/sem local fixo/i.test(sb || "")) return semFixo();
+    return null;
+  }
+  /* devolve { r, de, nota } com a resposta já no formato deste módulo, ou null */
+  function herdado(cod) {
+    const m1 = lerR("lg2-turma-a-m01");
+    if (cod === "M8.P01") {
+      const fontes = [[m1, "M1.P03", 1], [lerR("lg2-turma-a-m03"), "M3.P01", 3], [lerR("lg2-turma-a-m04"), "M4.P01", 4]];
+      for (const [R, c, n] of fontes) { const t = textoDe(R[c]); if (t) return { r: { estado: "valor", valor: t }, de: n }; }
+    }
+    if (cod === "M8.P02") {
+      const fontes = [[m1, "M1.P03A", 1], [lerR("lg2-turma-a-m05"), "M5.P01", 5], [lerR("lg2-turma-a-m04"), "M4.P02", 4]];
+      for (const [R, c, n] of fontes) { const t = tipoP02(textoDe(R[c])); if (t) return { r: { estado: "opcao", opcao: t }, de: n }; }
+    }
+    if (cod === "M8.P03") {
+      const t = localP03(lerR("lg2-turma-b-m09"));
+      if (t) return { r: { estado: "opcao", opcao: t }, de: 9 };
+    }
+    if (cod === "M8.P04") {
+      const m5 = lerR("lg2-turma-a-m05");
+      const preco = numero(textoDe(m5["M5.P36"])), vendas = numero(textoDe(m5["M5.P37"]));
+      if (preco > 0 && vendas > 0) {
+        const total = Math.round(preco * vendas * 100) / 100;
+        return { r: { estado: "valor", valor: String(total).replace(".", ",") }, de: 5,
+                 nota: `${reais(preco)} por venda × ${qtd(vendas)} ${vendas === 1 ? "venda" : "vendas"} por mês = ${reais(total)} por mês` };
+      }
+    }
+    return null;
+  }
+  const mesmo = (a, b) => !!a && !!b && a.estado === b.estado && (a.opcao ?? a.valor) === (b.opcao ?? b.valor);
+  const selo = (de) => `<span class="veio">Veio do Módulo ${esc(de)}</span>`;
+
   /* conceitos da Base técnica ligados à pergunta: pela fonte citada na pergunta */
   function conceitosDe(q) {
     const f = String(q.fonte || "").split(",")[0].trim().toLowerCase();
@@ -186,8 +251,11 @@
     const q = M.porCodigo[cod];
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const tipo = Motor.campo(q);
-    const resp = S.R[cod] || null;
+    const H = S.R[cod] ? null : herdado(cod);       // pré-preenchimento só quando ainda não respondeu aqui
+    const resp = S.R[cod] || (H && H.r) || null;
     let escolhida = resp && resp.estado === "opcao" ? resp.opcao : null;
+    const deOnde = H ? H.de : S.R[cod] && S.R[cod].de;
+    const nota = H && H.nota ? H.nota : S.R[cod] && S.R[cod].nota;
 
     const p = el(`
       <div class="pag">
@@ -196,6 +264,7 @@
         <main class="corpo">
           <div class="cartao-q pergunta">
             <h2 class="q">${esc(q.pergunta)}</h2>
+            ${deOnde ? `<div class="herdou" id="herdou">${selo(deOnde)}<span>${H ? "Confira e ajuste se quiser." : "Você já conferiu esta resposta."}</span>${nota ? `<p class="conta">${esc(nota)}</p>` : ""}</div>` : ""}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
@@ -256,6 +325,9 @@
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
+      /* guarda de onde veio quando a pessoa manteve o valor herdado (aparece com o selo no resumo) */
+      const h = H || (S.R[cod] && S.R[cod].de ? S.R[cod] : null);
+      if (h && mesmo(r0, h.r || h)) { r0.de = h.de; if (h.nota) r0.nota = h.nota; }
       S.R[cod] = r0;
       /* respostas de perguntas que deixaram de aparecer são descartadas */
       limparInvisiveis();
@@ -327,6 +399,10 @@
           <section class="concluido">
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
           </section>
+          <section class="entendemos" id="entendemos">
+            <h3>O que entendemos até aqui</h3>
+            ${entendemos().map((f) => `<p>${esc(f)}</p>`).join("")}
+          </section>
           <div class="res-num">
             <div class="lbl">Perguntas respondidas</div>
             <div class="val">${resp.length}</div>
@@ -334,13 +410,15 @@
           </div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
 
-          <div class="secao-titulo">Suas respostas</div>
-          ${resp.map((q) => `
+          <details class="saiba respostas"><summary>Ver suas respostas</summary>
+          ${resp.map((q, i) => `
             <div class="etapa ${Motor.valor(S.R, q.codigo) === Motor.NS ? "e-conf" : "e-sim"}">
-              <div class="etapa-topo"><span class="etq">${esc(q.codigo.slice(3))}</span><b>${esc(q.pergunta)}</b></div>
-              <p>${esc(Motor.valor(S.R, q.codigo))}</p>
+              <div class="etapa-topo"><span class="etq">${i + 1}</span><b>${esc(q.pergunta)}</b></div>
+              <p>${esc(mostrar(q.codigo))}${S.R[q.codigo].de ? " " + selo(S.R[q.codigo].de) : ""}</p>
+              ${S.R[q.codigo].nota ? `<p class="mini-info">${esc(S.R[q.codigo].nota)}</p>` : ""}
               ${vazio(q.alerta) ? "" : `<p class="mini-info"><b>Atenção:</b> ${esc(q.alerta)}</p>`}
             </div>`).join("")}
+          </details>
           ${cnaes.map(blocoCnae).join("")}
 
           ${regras.length ? `<div class="secao-titulo">Orientações</div>${regras.map((r) => `<div class="cartao"><p>${esc(r.texto)}</p>
@@ -367,11 +445,57 @@
       </div>`);
     ligar(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
-    p.querySelector("#imp").onclick = () => window.print();
+    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details.respostas").forEach((d) => (d.open = true)); window.print(); };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); };
     p.querySelector("#base").onclick = () => ir(telaBase, () => ir(telaResultado));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar uma nova análise? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); } };
     return p;
+  }
+
+  /* valor mostrado no resumo (faturamento em reais) */
+  function mostrar(cod) {
+    const v = Motor.valor(S.R, cod);
+    if (cod === "M8.P04" && v !== NS && numero(v) != null) return reais(numero(v)) + " por mês";
+    return v;
+  }
+
+  /* "O que entendemos até aqui": frases montadas por regras com as respostas deste módulo
+     e o que já existe nos módulos anteriores (estágio do Módulo 1, cliente do Módulo 3) */
+  const LIMITE_MEI_ANO = 81000;   // "até R$ 81 mil/ano" (Base técnica, MEI)
+  function entendemos() {
+    const v = (c) => { const x = Motor.valor(S.R, c); return x && x !== NS ? x : null; };
+    const minus = (t) => t.charAt(0).toLowerCase() + t.slice(1);
+    const semPonto = (t) => String(t).trim().replace(/[.!]+$/, "");
+    const m1 = lerR("lg2-turma-a-m01"), m3 = lerR("lg2-turma-a-m03");
+    const f = [];
+    const ativ = v("M8.P01"), tipo = v("M8.P02");
+    const tipoTxt = { "Produto": "um produto", "Serviço": "um serviço", "Produto e serviço": "produto e serviço ao mesmo tempo" }[tipo];
+    if (ativ) f.push(`Sua atividade é: ${semPonto(ativ)}${tipoTxt ? ` — principalmente ${tipoTxt}` : ""}.`);
+    else if (tipoTxt) f.push(`Sua atividade envolve principalmente ${tipoTxt}.`);
+    const est = { "Ainda está só na minha cabeça": "Seu negócio ainda está no papel: você não começou a vender.",
+                  "Já fiz um pouco para testar ou dar de amostra": "Você está começando: já fez testes ou deu amostras.",
+                  "Já vendi algumas vezes": "Você já vende, ainda de vez em quando.",
+                  "Já vendo sempre": "Você já vende com frequência." }[textoDe(m1["M1.P01"])];
+    if (est) f.push(est);
+    const dor = textoDe(m3["M3.P11"]);
+    if (dor) f.push(`Para o seu cliente, você resolve: ${minus(semPonto(dor))}.`);
+    const local = { "Minha casa": "Você trabalha na sua casa", "Ponto comercial": "Você trabalha em um ponto comercial",
+                    "Atendimento externo": "Você atende fora, no local do cliente", "Online": "Você trabalha pela internet" }[v("M8.P03")];
+    if (local) f.push(local + (local.includes("internet") ? "." : ", e isso pode pedir licenças da prefeitura."));
+    const fat = numero(v("M8.P04"));
+    if (fat > 0) {
+      const ano = fat * 12;
+      f.push(`Você estima faturar ${reais(fat)} por mês, cerca de ${reais(Math.round(ano))} por ano — ${ano <= LIMITE_MEI_ANO
+        ? "dentro do limite do MEI (R$ 81 mil por ano), então o MEI pode ser um caminho se a sua ocupação for permitida."
+        : "acima do limite do MEI (R$ 81 mil por ano); converse com um contador sobre outras formas de abrir o CNPJ."}`);
+    }
+    const cnpj = v("M8.P05");
+    if (cnpj === "Não") f.push("Você ainda não tem CNPJ.");
+    else if (cnpj) f.push(`Você já tem CNPJ (${cnpj}).`);
+    const duv = v("M8.P10");
+    if (duv && f.length < 6) f.push(`Sua principal dúvida agora é: ${minus(duv)}.`);
+    if (!f.length) f.push("Você ainda não deu detalhes suficientes sobre o seu negócio. Volte às perguntas quando souber mais.");
+    return f.slice(0, 6);
   }
 
   function rodape() {

@@ -246,3 +246,10 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 .retrato{padding:.6rem 0;border-bottom:1px solid var(--m-lavender)}
 .retrato:last-of-type{border-bottom:0}
 .retrato a{color:var(--m-purple);font-weight:700}
+
+/* resumo do negócio ("O que entendemos até aqui") e selo de resposta herdada nas perguntas */
+.entendemos{border-color:var(--m-purple);border-left-width:6px}
+.entendemos h3{color:var(--m-purple)}
+.resumo-negocio{font-size:17px;line-height:1.6;margin:6px 0 8px}
+.herdado{font-size:14.5px;color:var(--m-gray);margin:0 0 10px;line-height:1.45}
+.herdado .veio{margin-right:6px}

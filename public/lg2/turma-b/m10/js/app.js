@@ -6,6 +6,8 @@
   "use strict";
   const D = window.MODULO10;
   const Mo = window.Motor10;
+  const RN = window.ResumoNegocio;
+  const PERG = window.PERGUNTAS_LG2 || {};
   const M7c = window.Motor7;
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-b-m10";
@@ -52,21 +54,42 @@
     const m1 = lerR(1), m3 = lerR(3), m4 = lerR(4), m5 = lerR(5), m6 = lerR(6);
     const ini = { de: {} };
     const pega = (campo, v, mod) => { if (v != null && v !== "" && ini[campo] == null) { ini[campo] = v; ini.de[campo] = mod; } };
+    /* o que vende: fonte principal = Módulo 1 (pergunta "O que você vende ou quer vender?") */
+    const sem = (t) => (t && !/^n[ãa]o sei/i.test(t) ? t : null);
+    pega("oferta", sem(textoDe(m1["M1.P03"])), 1);
+    pega("oferta", sem(textoDe(m4["M4.P01"])), 4);
     pega("oferta", textoDe(m5["M5.P02"]) || textoDe(m5["M5.P10"]) || textoDe(m5["M5.P17"]), 5);
-    pega("oferta", textoDe(m4["M4.P01"]), 4);
-    pega("oferta", textoDe(m1["M1.P03"]), 1);
     pega("grupo", textoDe(m4["M4.P08"]), 4);
     pega("proposta", textoDe(m4["M4.P12"]), 4);
     pega("diferencial", textoDe(m3["M3.P21"]), 3);
-    const canais = listaDe(m3["M3.P13"]);
-    pega("canais", canais.length ? canais.join(", ") : null, 3);
+    pega("canais", canaisM3().join(", ") || null, 3);
     const preco = Mo.num(textoDe(m5["M5.P36"]));
     pega("preco", preco > 0 ? textoDe(m5["M5.P36"]) : null, 5);
+    /* sem preço digitado no Módulo 5: o preço sugerido lá (custo + acréscimo escolhido) */
+    const c5 = RN.contaM5(lerEstado(5));
+    pega("preco", c5.preco > 0 ? String(Math.round(c5.preco * 100) / 100).replace(".", ",") : null, 5);
     const est = { "Ainda está só na minha cabeça": ESTAGIOS[0], "Já fiz um pouco para testar ou dar de amostra": ESTAGIOS[1], "Já vendi algumas vezes": ESTAGIOS[2], "Já vendo sempre": ESTAGIOS[2] }[textoDe(m1["M1.P01"])];
     pega("estagio", est, 1);
     const ent = textoDe(m4["M4.P04"]); pega("entrega", ent && ent !== NS ? ent : null, 4);
     const pag = listaDe(m6["M6.P04"]); pega("pagamento", pag.length ? pag.join(", ") : null, 6);
     return ini;
+  }
+
+  /* canais de venda do Módulo 3 por nome ("Outro" vira o que a pessoa escreveu) */
+  function canaisM3() {
+    const r = lerR(3)["M3.P13"];
+    return listaDe(r).map((x) => (x === "Outro" ? (r.detalhe || "").trim() : x)).filter(Boolean);
+  }
+  /* campos vazios do ponto de partida recebem o que já existe nos outros módulos (nunca apaga o que a pessoa escreveu) */
+  function completarIni() {
+    if (!S.ini) return;
+    const h = herdar();
+    let mudou = false;
+    Object.keys(h).forEach((k) => {
+      if (k === "de" || h[k] == null || h[k] === "") return;
+      if (S.ini[k] == null || String(S.ini[k]).trim() === "") { S.ini[k] = h[k]; S.ini.de = Object.assign({}, S.ini.de, { [k]: h.de[k] }); mudou = true; }
+    });
+    if (mudou) salvar();
   }
 
   /* contexto que não vira campo: lido na hora, para valer o que estiver salvo agora */
@@ -146,8 +169,8 @@
     if (!C.onde) s = s.replace(/: o Módulo 2 mostrou onde ele procura \(\[onde procuram\]\)/, "");
     if (!I().diferencial) s = s.replace(/\s*A mensagem pode partir do seu diferencial: \[diferencial do Módulo 3\]\./, "");
     const mapa = {
-      "[canais de venda do Módulo 3]": I().canais ? lc(I().canais) : "onde você vende",
-      "[canais de venda]": I().canais ? lc(I().canais) : "onde você vende",
+      "[canais de venda do Módulo 3]": I().canais ? canaisTxt() : "onde você vende",
+      "[canais de venda]": I().canais ? canaisTxt() : "onde você vende",
       "[onde procuram]": C.onde || "",
       "[pessoas ouvidas]": C.ouvidas != null ? Mo.fmt(C.ouvidas) : "",
       "[oferta em foco]": oferta() || "o que você vende",
@@ -199,7 +222,14 @@
     return seq;
   }
   const FASE = (cod) => (cod === SOCIO ? "Pessoas" : Q[cod].fase);
-  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : preencher(Q[cod].pergunta));
+  /* M10-01 sem canais de venda conhecidos: a pergunta não fala em "Além de …" */
+  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : cod === "M10-01" && !canaisVenda() ? "Por onde os clientes falam com você?" : preencher(Q[cod].pergunta));
+
+  /* ---------- M10-01: as opções não repetem os canais de venda que já aparecem na pergunta ---------- */
+  const canaisVenda = () => String(I().canais || "").trim();
+  const canaisTxt = () => { const xs = lc(canaisVenda()).split(/,\s*(?![^()]*\))/).map((x) => x.trim()).filter(Boolean); return xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs[xs.length - 1]; };
+  const JA_NA_PERGUNTA = { "WhatsApp": /redes sociais|whatsapp/i, "Instagram ou outra rede": /redes sociais|instagram|facebook|tiktok/i, "Telefone": /telefone|liga[çc][ãa]o/i, "Pessoalmente": /loja f[ií]sica|pessoalmente|feira|porta a porta/i, "E-mail": /e-?mail/i };
+  const ops01 = () => opcoesDe("M10-01").filter((o) => !(canaisVenda() && JA_NA_PERGUNTA[o] && JA_NA_PERGUNTA[o].test(canaisVenda())));
 
   /* ---------- lista de prioridades (M10-09): lacunas e alertas dos Módulos 1 a 10 ---------- */
   function itensPercurso() {
@@ -231,12 +261,24 @@
     if (opR("M10-05") === "Ainda não sei") add("Definir a divulgação", "media", 10);
     const r7 = S.R["M10-07"];
     if (r7 && r7.quem) Object.entries(r7.quem).forEach(([e, q]) => { if (q === "Ninguém ainda") add(`Definir quem cuida de: ${e}`, "media", 10); });
-    /* gravidade baixa: respostas "Não sei" que ficaram em cada módulo */
+    /* gravidade baixa: cada resposta "Não sei" dos módulos, dizendo o que falta fazer (texto curto da pergunta) */
     for (let n = 1; n <= 9; n++) {
-      const k = Object.values(lerR(n)).filter((r) => r && r.estado === "naosei").length;
-      if (k) add(`Completar ${k === 1 ? "a resposta" : `as ${k} respostas`} “Não sei” do Módulo ${n}`, "baixa", n);
+      const ab = abertas(n);
+      ab.nomes.forEach((t) => add(`${t} (Módulo ${n})`, "baixa", n));
+      if (ab.outras) add(`Rever ${ab.outras === 1 ? "uma resposta" : `${ab.outras} respostas`} “Não sei” do Módulo ${n}`, "baixa", n);
     }
     return it;
+  }
+  /* perguntas com "Não sei" num módulo; as que já viram um ponto próprio da lista não se repetem */
+  const JA_NA_LISTA = new Set(["M1.P04", "M4.P19", "M5.P00", "M5.P36", "M6.P07", "M7-02", "M9-04"]);
+  function abertas(n) {
+    const nomes = [];
+    let outras = 0;
+    Object.entries(lerR(n)).forEach(([k, r]) => {
+      if (!ehNS(r) || JA_NA_LISTA.has(k)) return;
+      if (PERG[k]) { if (!nomes.includes(PERG[k])) nomes.push(PERG[k]); } else outras++;
+    });
+    return { nomes, outras };
   }
   const listaPrioridades = () => Mo.prioridades(itensPercurso());
   function escolhidas() {
@@ -486,7 +528,8 @@
     }
 
     if (cod === "M10-01") {
-      const ops = opcoesDe(cod);
+      const ops = ops01();
+      if (canaisVenda() && I().de && I().de.canais) ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${I().de.canais}</span> Onde você vende já está na pergunta e não se repete nas opções. Confira e ajuste se quiser.</p>`));
       const EXC = ["Ainda não falo com clientes", NS];
       const marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.estado === "naosei" ? [NS] : resp && resp.opcao ? [resp.opcao] : [];
       const ret = () => mostrar(!marcadas.length ? "" : EXC.includes(marcadas[0]) ? caixa(caminho(cod, marcadas[0])) : caixa(Q[cod].caminhos[0]));
@@ -665,6 +708,11 @@
       /* escolha única com retorno ao tocar: M10-02, 04, 05, 06, 08 */
       let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
       const C = ctx();
+      /* M10-05 sem resposta: parte do que já foi dito (anúncio nos gastos do Módulo 5; redes sociais no Módulo 3) */
+      if (cod === "M10-05" && !resp) {
+        const sug = C.divulgacaoM5 ? ["Anúncio pago", 5] : canaisM3().some((x) => /redes sociais|instagram|facebook/i.test(x)) ? ["Redes sociais próprias", 3] : null;
+        if (sug) { op = sug[0]; ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${sug[1]}</span> Marcamos pelo que você já respondeu. Confira e ajuste se quiser.</p>`)); }
+      }
       const cruz = (o) => (cod === "M10-08" && o && o.startsWith("Sim") && C.cap7.cmp && C.cap7.cmp.tipo === "folga" ? cruzamento("Contratar e capacidade com folga (M7)", { "[folga]": Mo.fmt(C.cap7.cmp.n) }) : "");
       ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(caixa(caminho(cod, o)) + cruz(o)); }));
       if (op) mostrar(caixa(caminho(cod, op)) + cruz(op));
@@ -747,8 +795,9 @@
     return D.modulos.filter((x) => x.numero < 10).map((x) => {
       const R = lerR(x.numero);
       const feito = Object.keys(R).length > 0;
-      const falta = Object.values(R).filter((r) => r && r.estado === "naosei").length;
-      return { n: x.numero, nome: x.nome, feito, sabe: sabe[x.numero], hip: hip[x.numero], falta };
+      const ab = abertas(x.numero);
+      const falta = Object.entries(R).filter(([k, r]) => ehNS(r) && k !== "M5.P00").length;
+      return { n: x.numero, nome: x.nome, feito, sabe: sabe[x.numero], hip: hip[x.numero], falta, faltaNomes: ab.nomes };
     });
   }
 
@@ -763,9 +812,12 @@
     const plano = r11 && r11.estado === "plano" ? r11 : null;
     const cz = cruzamentos(), enc = encaminhamento(), passos = proximosPassos(), lac = lacunas(), ret = retrato();
     const r12 = S.R["M10-12"];
+    /* prioridade principal guardada para o resumo da jornada (que não refaz a ordem por urgência) */
+    if ((S.prioridade || null) !== (prios[0] || null)) { S.prioridade = prios[0] || null; salvar(); }
+    const entendemos = RN.frases(null, { ini: I(), R: S.R, prioridade: prios[0] || null });
     if (S.inst.mensagem == null) S.inst.mensagem = [I().proposta, I().diferencial].filter(Boolean).join(" ");
     const canais = S.R["M10-01"];
-    const canaisTxt = canais ? (canais.estado === "multi" ? canais.opcoes.join(", ") : canais.estado === "naosei" ? "Ainda não definido" : canais.opcao) : "";
+    const canaisTxt01 = canais ? (canais.estado === "multi" ? canais.opcoes.join(", ") : canais.estado === "naosei" ? "Ainda não definido" : canais.opcao) : "";
     const r7 = S.R["M10-07"], r8a = S.R["M10-08a"];
     const respostas = [["Seu ponto de partida", null]].concat(sequencia().map((k) => [TXT(k), k]));
     const linha = (rot, v) => v ? `<p class="diag-q">${esc(rot)}</p><p class="diag-r">${esc(v)}</p>` : "";
@@ -777,6 +829,7 @@
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao fim do percurso</h2><p>${esc(preencher(q12.apoio))}</p></div></div>
         </section>
+        ${entendemos.length ? `<section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3><p class="resumo-negocio">${esc(entendemos.join(" "))}</p><p class="aviso-inst">Este resumo junta o que você respondeu nos 10 módulos. Se algo não estiver certo, corrija a resposta e o texto muda.</p></section>` : ""}
         ${cz.length ? `<section class="cartao"><h3>Pontos para conferir</h3>${cz.map((a) => `<div class="bloco ${a.x.forma === "Pergunta gentil" ? "b-alerta" : "b-proximo"}"><b>${esc(a.x.forma)}</b><p>${esc(a.texto)}</p></div>`).join("")}</section>` : ""}
         <section class="cartao bloco-res"><h3>Seu plano</h3>
           ${prios.length ? `<ol class="lista-capa">${prios.map((t, i) => `<li>${i === 0 ? `<b>${esc(t)}</b>` : esc(t)}</li>`).join("")}</ol>` : `<p class="diag-r">Nenhuma prioridade escolhida.</p>`}
@@ -784,7 +837,8 @@
           ${avisoInst("Plano de ação")}
         </section>
         <section class="cartao bloco-res"><h3>Como você vende</h3>
-          ${linha("Por onde os clientes falam com você", canaisTxt)}
+          ${linha("Onde o cliente encontra você e compra", canaisVenda())}
+          ${linha(canaisVenda() ? "Por onde mais os clientes falam com você" : "Por onde os clientes falam com você", canaisTxt01)}
           ${linha("Tempo de resposta", opR("M10-02"))}
           ${linha("Divulgação principal", opR("M10-05"))}
           <h4>Roteiro de venda${opR("M10-03") === "Depende do cliente" ? " (base)" : opR("M10-03") === "Ainda não vendi" ? " (para testar)" : ""}</h4>
@@ -808,7 +862,7 @@
             ${!x.feito ? `<p class="diag-r">Ainda não feito neste aparelho. <a href="${LINK(x.n)}">Abrir o Módulo ${x.n}</a></p>` : `
             ${x.sabe ? `<p class="diag-r">Já se sabe: ${esc(x.sabe)}</p>` : ""}
             ${x.hip ? `<p class="diag-r">Hipótese: ${esc(x.hip)}</p>` : ""}
-            <p class="diag-r">${x.falta ? `Falta: ${x.falta === 1 ? "1 resposta" : `${x.falta} respostas`} “Não sei”` : "Sem respostas em aberto"} · <a href="${LINK(x.n)}">Abrir o Módulo ${x.n}</a></p>`}</div>`).join("")}
+            <p class="diag-r">${x.falta ? (x.faltaNomes.length ? `Falta: ${esc(x.faltaNomes.slice(0, 3).join("; ").toLowerCase())}${x.faltaNomes.length > 3 ? "…" : ""}` : `Falta: ${x.falta === 1 ? "1 resposta" : `${x.falta} respostas`} “Não sei”`) : "Sem respostas em aberto"} · <a href="${LINK(x.n)}">Abrir o Módulo ${x.n}</a></p>`}</div>`).join("")}
           ${avisoInst("Retrato final do percurso")}
         </section>
         ${enc ? `<section class="cartao"><h3>Encaminhamento</h3><div class="bloco b-enc"><p>${esc(enc)}</p></div></section>` : ""}
@@ -843,5 +897,6 @@
     return p;
   }
 
+  completarIni();
   ir(telaCapa);
 })();

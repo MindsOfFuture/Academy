@@ -107,7 +107,7 @@ async function servidor() {
     if (!b) return false; b.click(); return true;
   }, [sel, t]);
   const regrasNaTela = () => page.evaluate(() => [...document.querySelectorAll('.regra .r-texto')].map((x) => x.textContent));
-  const porTexto = new Map(D.regras.map((r) => [norm(r.texto), r.codigo]));
+  const porTexto = new Map(D.regras.map((r) => [norm(Motor.limpa(r.texto)), r.codigo]));
   const alcancadas = new Set();
 
   async function inicio() {
@@ -116,22 +116,28 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Começar');
   }
-  async function responder(cod, v) {
+  /* pos = posição esperada no caminho da pessoa (1, 2, 3…); total = tamanho do caminho, conferido na última */
+  async function responder(cod, v, pos, total) {
     const q = M.porCodigo[cod];
     const t = Motor.campo(q);
     const passo = await page.locator('.passo').textContent();
-    if (passo !== `Pergunta ${M.perguntas.indexOf(q) + 1} de ${nP}`) throw new Error(`esperava ${cod}, tela mostra "${passo}"`);
-    if (norm(await page.locator('h2.q').textContent()) !== norm(q.pergunta)) throw new Error(`texto de ${cod} difere da planilha`);
+    const m = passo.match(/^Pergunta (\d+) de (\d+)$/);
+    if (!m) throw new Error(`passo fora do formato em ${cod}: "${passo}"`);
+    if (pos && +m[1] !== pos) throw new Error(`esperava ${cod} como pergunta ${pos}, tela mostra "${passo}"`);
+    if (total && +m[2] !== total) throw new Error(`na última pergunta (${cod}) o total devia ser ${total}, tela mostra "${passo}"`);
+    if (cod !== 'M2.P21' && norm(await page.locator('h2.q').textContent()) !== norm(q.pergunta)) throw new Error(`texto de ${cod} difere da planilha`);
     if (t === 'escolha') { if (!(await clicarTexto('#ent .opcao', v))) throw new Error(`opção "${v}" não existe em ${cod}`); await page.click('#ok'); }
     else if (v === 'Não sei') await page.click('#ns');
     else { await page.fill('#ent input, #ent textarea', v === 'TEXTO' ? 'Texto de teste' : v); await page.click('#ok'); }
     await page.waitForSelector('#retorno .retorno');
+    const ret = await page.locator('#retorno').innerText();
+    if (/M2\.[PI]\d{2}/.test(ret)) falhas.push(`código interno aparece na tela de ${cod}: ${ret.match(/.{0,40}M2\.[PI]\d{2}.{0,20}/)[0]}`);
     for (const x of await regrasNaTela()) { const c = porTexto.get(norm(x)); if (c) alcancadas.add(c); }
   }
   async function percorrer(seq, aoResponder) {
     await inicio();
-    for (const [cod, v] of seq) {
-      await responder(cod, v);
+    for (const [i, [cod, v]] of seq.entries()) {
+      await responder(cod, v, i + 1, i === seq.length - 1 ? seq.length : 0);
       if (aoResponder) await aoResponder(cod, v);
       const fim = seq[seq.length - 1][0] === cod;
       await clicarTexto('#acoes .btn', fim ? 'Ver meu resumo' : 'Seguir');
@@ -184,7 +190,7 @@ async function servidor() {
         prox: [...document.querySelectorAll('.bloco.b-proximo li')].map((x) => x.textContent),
         enc: [...document.querySelectorAll('.bloco.b-enc')].map((x) => x.textContent.replace(/^Quem procurar/, '')),
       }));
-      const compoe = (esp, lista) => { const e = norm(esp); const usados = lista.map(norm).filter((t) => t && e.includes(t)); return usados.join(' ') === e; };
+      const compoe = (esp, lista) => { const e = norm(Motor.limpa(esp)); const usados = lista.map(norm).filter((t) => t && e.includes(t)); return usados.join(' ') === e; };
       const nada = (s) => /^Nenhum/i.test(norm(s));
       const ver = [
         ['texto', c.texto, R.regras, 'texto'],
@@ -261,10 +267,91 @@ async function servidor() {
     await page.fill('#ent textarea', 'Mães do bairro');
     await page.reload();
     await clicarTexto('button', 'Continuar de onde parei');
-    ok((await page.locator('.passo').textContent()) === 'Pergunta 2 de 21', 'recarregar volta à pergunta em que parou');
+    ok((await page.locator('.passo').textContent()) === 'Pergunta 2 de 14', 'recarregar volta à pergunta em que parou (caminho típico: 14 perguntas, não 21)');
     await page.click('#v');
     ok(await page.locator('#ent .opcao.sel').textContent() === 'Em parte', 'resposta anterior persiste após recarregar');
     ok(await page.evaluate(() => !!localStorage.getItem('lg2-turma-b-m02')), 'respostas gravadas na chave lg2-turma-b-m02');
+
+    /* 8) relatório do testador (05/11/2026) */
+    // 8a) P21 reescrita: linguagem simples, ponte com as conversas, ajuda explica elogio x problema
+    const q21 = M.porCodigo['M2.P21'];
+    ok(/elas contaram um problema que têm de verdade, ou só elogiaram a sua ideia\?$/.test(q21.pergunta), 'P21: enunciado novo');
+    ok(JSON.stringify(q21.opcoesLista) === JSON.stringify(['Contaram um problema de verdade', 'Só elogiaram a ideia', 'Não sei']), 'P21: opções novas');
+    ok(/que legal/.test(q21.ajuda) && /pergunta o preço/.test(q21.ajuda) && /reservar/.test(q21.ajuda), 'P21: ajuda explica elogio x problema de verdade');
+    ok(!/Problema confirmado|Só elogios/.test(JSON.stringify(D)), 'nenhuma regra depende das opções antigas da P21');
+    await percorrer(planejar({ 'M2.P04': 'Sim', 'M2.P18': '6', 'M2.P19': 'Sim', 'M2.P21': 'Contaram um problema de verdade' }), async (cod) => {
+      if (cod !== 'M2.P21') return;
+      ok(norm(await page.locator('h2.q').textContent()).startsWith('Pelo que você ouviu dessas 6 pessoas com quem você conversou'), 'P21 faz ponte com o número de pessoas da pergunta anterior');
+      ok((await page.locator('.dica .ajuda').textContent()).includes('que legal'), 'P21 mostra a ajuda nova');
+      await page.evaluate(() => { document.querySelector('#retorno').innerHTML = ''; window.scrollTo(0, 0); });
+      await shot('p21');
+    });
+    ok(alcancadas.has('M2.R89'), 'regra das respostas consistentes (R89) segue alcançável com a opção nova');
+    // 8b) ramo curto (não conversou com ninguém): P21 não aparece e o caminho fica com 7 perguntas
+    const curto = planejar({ 'M2.P01': 'Ainda não pensei nisso', 'M2.P04': 'Não', 'M2.P05': 'Um único grupo', 'M2.P08': 'Nenhuma muda muito' });
+    ok(curto.length === 7 && !curto.some(([c]) => c === 'M2.P21'), `ramo curto deveria ter 7 perguntas sem a P21 (obtido ${curto.map((s) => s[0]).join(',')})`);
+    await percorrer(curto);
+    // 8c) herança: M1 (ideia, tipo, estágio) e M3 (perfil P10 + P11) semeados
+    const M1 = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' }, 'M1.P03': { estado: 'valor', valor: 'Lavagem de carro em domicílio' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
+    const M3 = { v: 3, R: { 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', campos: { Idade: '30 a 55 anos', Renda: '', Ocupação: 'trabalha fora o dia todo', 'Onde mora': 'condomínios do bairro', 'O que precisa resolver (a dor)': '' } }, 'M3.P11': { estado: 'valor', valor: 'falta de tempo para levar o carro ao lava-jato' } } };
+    const semear = async (extra) => { await page.goto(srv.url + 'index.html'); await page.evaluate(([a, b, x]) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', a); localStorage.setItem('lg2-turma-a-m03', b); if (x) localStorage.setItem('lg2-turma-b-m02', x); }, [JSON.stringify(M1), JSON.stringify(M3), extra || null]); await page.reload(); };
+    await semear();
+    await clicarTexto('button', 'Começar');
+    ok(norm(await page.locator('#contexto').innerText()).startsWith('Seu negócio: Lavagem de carro em domicílio Veio do Módulo 1'), 'ideia do Módulo 1 aparece como contexto');
+    ok(norm(await page.locator('h2.q').textContent()) === 'Você já tem uma ideia de quem seria o principal comprador do seu serviço?', 'enunciado usa "serviço" (tipo vindo do Módulo 1)');
+    await clicarTexto('#ent .opcao', 'Sim'); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Seguir');
+    const p02 = await page.locator('#ent textarea').inputValue();
+    ok(p02 === 'Pessoas comuns (Idade: 30 a 55 anos; Ocupação: trabalha fora o dia todo; Onde mora: condomínios do bairro). Problema que você resolve: falta de tempo para levar o carro ao lava-jato', `P02 pré-preenchida com o perfil do Módulo 3 (obtido "${p02}")`);
+    ok(norm(await page.locator('#herdado').innerText()) === 'Veio do Módulo 3 Confira e ajuste se quiser.', 'P02 mostra o selo "Veio do Módulo 3"');
+    await shot('heranca_p02');
+    await page.click('#ok');
+    ok((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')).R['M2.P02'].veio)) === 3, 'P02 confirmada guarda a origem (Módulo 3)');
+    for (const [cod, v] of [['M2.P03', 'Experiência própria com esse público'], ['M2.P04', 'Sim'], ['M2.P05', 'Um único grupo']]) { await clicarTexto('#acoes .btn', 'Seguir'); await clicarTexto('#ent .opcao', v); await page.click('#ok'); }
+    await clicarTexto('#acoes .btn', 'Seguir');
+    ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P07'].pergunta, 'chegou na P07');
+    ok((await page.locator('#ent .opcao.sel').textContent()) === 'Pessoas' && (await page.locator('#herdado').count()) === 1, 'P07 vem marcada com "Pessoas" (Módulo 3) e selo');
+    await page.click('#ok');
+    ok(alcancadas.has('M2.R21') || (await regrasNaTela()).some((x) => norm(x) === norm(D.regras.find((r) => r.codigo === 'M2.R21').texto)), 'P07 herdada dispara a regra de "Pessoas"');
+    // segue até o fim com respostas típicas e confere a caixa "O que entendemos até aqui"
+    const resto = [['M2.P08', 'Hábitos de compra'], ['M2.P13', 'Praticidade/rapidez'], ['M2.P16', 'Em parte'], ['M2.P17', 'Todo mês'], ['M2.P18', '4'], ['M2.P19', 'Não'], ['M2.P20', 'Não sei'], ['M2.P21', 'Só elogiaram a ideia']];
+    for (const [cod, v] of resto) {
+      await clicarTexto('#acoes .btn', 'Seguir');
+      const q = M.porCodigo[cod];
+      if (Motor.campo(q) === 'escolha') { if (!(await clicarTexto('#ent .opcao', v))) throw new Error(`herança: opção ${v} ausente em ${cod}`); await page.click('#ok'); }
+      else if (v === 'Não sei') await page.click('#ns'); else { await page.fill('#ent input, #ent textarea', v); await page.click('#ok'); }
+    }
+    ok((await page.locator('.passo').textContent()) === 'Pergunta 14 de 14', 'caminho típico (lava-jato) termina em 14 de 14');
+    await clicarTexto('#acoes .btn', 'Ver meu resumo');
+    await page.waitForSelector('#entendemos');
+    const ent = await page.locator('#entendemos p:not(.mini-info)').allTextContents();
+    ok(ent.length >= 3 && ent.length <= 6, `caixa "O que entendemos" com 3–6 frases (obtido ${ent.length})`);
+    const entT = ent.join(' ');
+    for (const trecho of ['Você vende (ou quer vender) lavagem de carro em domicílio, que é um serviço, e você já começou a testar.', 'Seus clientes seriam principalmente pessoas que compram para si ou para a família', 'Você vê um único grupo de clientes; o que mais muda entre um cliente e outro é: hábitos de compra (praticidade/rapidez).', 'Cada cliente compraria todo mês, e você sabe em parte onde encontrar essas pessoas.', 'Você já conversou com 4 pessoas, mas ninguém fez nada concreto ainda. Por enquanto, o que você ouviu foi mais elogio do que um problema de verdade.'])
+      ok(entT.includes(trecho), `"O que entendemos" deveria trazer: ${trecho} (obtido: ${entT})`);
+    ok(await page.evaluate(() => { const c = document.querySelector('.corpo'); const e = document.querySelector('#entendemos'); const r = document.querySelector('.res-num'); return e.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING; }), 'caixa "O que entendemos" fica acima dos números do resultado');
+    ok(await page.evaluate(() => { const d = document.querySelector('details#suas-respostas'); return d && !d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }), 'lista de respostas recolhida em "Ver suas respostas"');
+    ok((await page.locator('#suas-respostas .veio').count()) === 2, 'respostas herdadas (P02 e P07) aparecem com selo na lista');
+    const corpoRes = await page.evaluate(() => { const c = document.querySelector('.corpo').cloneNode(true); c.querySelectorAll('details.saiba:not(#suas-respostas)').forEach((d) => d.remove()); return c.innerText; });
+    ok(!/M2\.[PI]\d{2}/.test(corpoRes), 'resultado sem códigos internos (M2.Pxx/M2.Ixx)');
+    await page.evaluate(() => document.querySelector('#entendemos').scrollIntoView());
+    await shot('resultado_entendemos');
+    const outros = await page.evaluate(() => [localStorage.getItem('lg2-turma-a-m01'), localStorage.getItem('lg2-turma-a-m03')]);
+    ok(outros[0] === JSON.stringify(M1) && outros[1] === JSON.stringify(M3), 'Módulos 1 e 3 não são alterados (só leitura)');
+    // 8d) "Não sei" no Módulo 3 não conta como herança
+    await page.goto(srv.url + 'index.html');
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m03', JSON.stringify({ v: 3, R: { 'M3.P10': { estado: 'naosei' } } })); });
+    await page.reload();
+    await clicarTexto('button', 'Começar');
+    ok((await page.locator('#contexto').count()) === 0, 'sem dado do Módulo 1, não mostra o contexto');
+    for (const [cod, v] of [['M2.P01', 'Ainda não pensei nisso'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo']]) { await clicarTexto('#ent .opcao', v); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Seguir'); }
+    ok((await page.locator('#ent .opcao.sel').count()) === 0 && (await page.locator('#herdado').count()) === 0, '"Não sei" do Módulo 3 não pré-marca a P07');
+    // 8e) estado salvo antes (opção antiga da P21) é convertido
+    await page.goto(srv.url + 'index.html');
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', JSON.stringify({ R: { 'M2.P04': { estado: 'opcao', opcao: 'Sim' }, 'M2.P21': { estado: 'opcao', opcao: 'Só elogios' } }, hist: [] })); });
+    await page.reload();
+    await clicarTexto('button', 'Começar');
+    const mig = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
+    ok(mig.v === 2 && mig.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'resposta antiga "Só elogios" convertida para a opção nova');
 
     /* 7) resultado (caso T06 do grupo) para o print */
     const t06 = D.casos.find((c) => c.codigo === 'M2.T06');
@@ -281,5 +368,5 @@ async function servidor() {
   console.log(`Casos da aba 8: ${D.casos.length} executados; divergências da planilha (não falham): ${div.length}`);
   div.forEach((d) => console.log('  DIVERGÊNCIA ' + d));
   if (falhas.length) { falhas.forEach((f) => console.log('  FALHA ' + f)); console.log(`FAIL (${falhas.length})`); process.exit(1); }
-  console.log(`PASS: ${alcancadas.size} de ${nR} regras alcançadas; ${nP} perguntas literais; M2.I04 e M2.I05 conferem com a aba 5; persistência ok · ${D.modulo.versao} ${D.modulo.data}`);
+  console.log(`PASS: ${alcancadas.size} de ${nR} regras alcançadas; ${nP} perguntas (P21 reescrita); herança M1/M3, progresso pelo caminho e "O que entendemos" conferidos; M2.I04 e M2.I05 conferem com a aba 5; persistência ok · ${D.modulo.versao} ${D.modulo.data}`);
 })();

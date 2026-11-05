@@ -1,4 +1,6 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao. */
+/* GERADO por ferramentas/extrair.py a partir da planilha do grupo.
+   Ajuste manual em 05/11/2026 (relatório de teste aprovado): M4.P14 reescrita (enunciado, ajuda,
+   opções e opcoes_explica) e condicao_app da M4.P15 com as novas opções. */
 window.MODULO4 = {
  "origem": "M04.xlsx",
  "modulo": {
@@ -376,11 +378,18 @@ window.MODULO4 = {
   {
    "codigo": "M4.P14",
    "modulo": "M4",
-   "pergunta": "Você consegue investir na produção de um produto teste? ",
-   "ajuda": "Escolha o teste conforme o tempo, a disposição e o investimento que você tem. Mostrar um protótipo a poucas pessoas ajuda a entender a ideia, mas não prova venda. Oferecer a clientes reais, com preço, mostra se pagam de verdade. Na pré-venda ou reserva, o cliente se compromete antes de o produto existir. ",
+   "pergunta": "Como você quer testar sua oferta pela primeira vez?",
+   "ajuda": "Escolha o caminho que cabe no seu tempo e no dinheiro que você tem hoje. Mostrar uma amostra sem cobrar ajuda a ouvir opiniões, mas não mostra se as pessoas pagariam. Vender pouca quantidade, já com preço, mostra se pagam de verdade. Aceitar encomenda ou reserva antes de fazer mostra que o cliente se compromete antes de você gastar com tudo.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Protótipo sem venda; Oferta mínima com preço; Pré-venda/reserva; Não sei ",
+   "opcoes": "Mostrar uma amostra sem cobrar; Vender pouca quantidade, já com preço; Aceitar encomenda ou reserva antes de fazer; Não sei",
+   "opcoes_explica": {
+    "Mostrar uma amostra sem cobrar": "Você faz um pouco e deixa algumas pessoas provarem ou verem. Ajuda a ouvir opiniões, mas não mostra se pagariam.",
+    "Vender pouca quantidade, já com preço": "Você faz pouco e vende de verdade. Mostra se as pessoas pagam o preço que você pensou.",
+    "Aceitar encomenda ou reserva antes de fazer": "Você anuncia e só faz depois que o cliente pede ou reserva. Assim você gasta menos antes de saber se vende.",
+    "Atender poucos clientes, já cobrando": "Você faz o serviço para poucas pessoas e cobra o preço que pensou. Mostra se pagam de verdade.",
+    "Aceitar agendamento ou reserva antes de atender": "Você divulga e marca horários antes de começar. Se a agenda encher, é sinal de que há procura."
+   },
    "resposta": "",
    "alerta": "Elogios de amigos e familiares não comprovam que haverá vendas. Pedidos, reservas e pagamentos são sinais mais fortes.",
    "proximo": "",
@@ -390,8 +399,9 @@ window.MODULO4 = {
    "variantes": [
     {
      "condicao_app": "M4.P02 = Serviço ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+ Serviço",
-     "pergunta": "Você consegue investir na oferta desse serviço como um teste?",
-     "opcoes": " Oferta mínima com preço; Pré-venda/reserva;"
+     "pergunta": "Como você quer testar sua oferta pela primeira vez?",
+     "ajuda": "Escolha o caminho que cabe no seu tempo e na sua agenda. Atender poucos clientes, já cobrando, mostra se as pessoas pagam o preço que você pensou. Aceitar agendamento ou reserva antes de atender mostra se há procura antes de você investir em material ou divulgação.",
+     "opcoes": "Atender poucos clientes, já cobrando; Aceitar agendamento ou reserva antes de atender"
     }
    ],
    "video": "Vídeo (conteúdo: explicar as opções, indicar o que é preciso para fazer cada uma, beneficios e pontos de atenção a serem levados em consideração)",
@@ -416,7 +426,7 @@ window.MODULO4 = {
     ],
     "texto": "Se a sua oferta envolve alimentos ou saúde, consulte a Anvisa (gov.br/anvisa). Se envolve produtos para crianças, consulte o Inmetro (gov.br/inmetro).Para tirar dúvidas acesse Sebrae.com.br . Para a regra da sua cidade, busque “[sua cidade] + Vigilância Sanitária”."
    },
-   "condicao_app": "M4.P14 = Oferta mínima com preço ou M4.P14 = Pré-venda/reserva"
+   "condicao_app": "M4.P14 = Vender pouca quantidade, já com preço ou M4.P14 = Aceitar encomenda ou reserva antes de fazer ou M4.P14 = Atender poucos clientes, já cobrando ou M4.P14 = Aceitar agendamento ou reserva antes de atender"
   },
   {
    "codigo": "M4.P16",
