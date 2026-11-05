@@ -38,14 +38,16 @@ const NA_PAGINA = {
   agir: (a) => {
     const opc = [...document.querySelectorAll('#ent .opcao')];
     const clicar = (v) => {
-      const b = opc.find((x) => x.textContent.trim() === v);
-      if (!b) throw new Error('opção inexistente: ' + v + ' em ' + opc.map((x) => x.textContent.trim()).join('|'));
+      const rot = (x) => (x.querySelector('.op-txt b') || x).textContent.trim();
+      const b = opc.find((x) => rot(x) === v);
+      if (!b) throw new Error('opção inexistente: ' + v + ' em ' + opc.map(rot).join('|'));
       b.click();
     };
     if (a.tipo === 'NS') { if (document.querySelector('#ns')) { document.querySelector('#ns').click(); return; } clicar('Não sei'); }
     else if (a.tipo === 'opcao') { clicar(a.v); if (a.detalhe !== undefined) document.querySelector('#detalhe').value = a.detalhe; }
     else if (a.tipo === 'multi') a.vs.forEach(clicar);
     else if (a.tipo === 'texto') document.querySelector('#ent input, #ent textarea').value = a.v;
+    /* 'manter': só toca Continuar (resposta pré-preenchida pela herança) */
     document.querySelector('#ok').click();
   },
   seguir: () => {
@@ -98,8 +100,8 @@ const NA_PAGINA = {
     if (/rafael/i.test(await page.evaluate(() => document.body.innerText))) telasComRafael.push(rotulo);
   }
   /* começa do zero; responde até chegar em `alvo` (ou ao resultado), usando `resp` ou valores neutros */
-  async function caminho(resp, alvo) {
-    await page.evaluate(() => localStorage.clear());
+  async function caminho(resp, alvo, semente) {
+    await page.evaluate((s) => { localStorage.clear(); Object.entries(s || {}).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v))); }, semente || null);
     await page.reload();
     await page.click('#ir');
     const vistas = [], textos = [];
@@ -133,11 +135,13 @@ const NA_PAGINA = {
     return { tipo: 'opcao', v: LEITURA_OPCAO[c] || c.trim() };
   }
   /* regras que, pela redação do grupo, valem junto com a regra-alvo (executadas como escritas) */
+  /* perguntas da seção do negócio que repetem P01/P02: só aparecem quando P01 = Não sei */
+  const REPETE_P01 = ['M6.P10', 'M6.P11', 'M6.P13', 'M6.P14'];
   const JUNTAS = { 'M6.R16': ['M6.R13'], 'M6.R18': ['M6.R17'] };
   const alcancadas = [], faltando = [];
   for (const r of R) {
     const a = acaoDaRegra(r);
-    const c = await caminho({}, r.pergunta);
+    const c = await caminho(REPETE_P01.includes(r.pergunta) ? { 'M6.P01': { tipo: 'NS' } } : {}, r.pergunta);
     if (c.cod !== r.pergunta) { faltando.push(`${r.codigo} (pergunta ${r.pergunta} não apareceu)`); continue; }
     await page.evaluate(NA_PAGINA.agir, a);
     const txt = nrm(await page.evaluate(NA_PAGINA.retorno));
@@ -156,7 +160,7 @@ const NA_PAGINA = {
   /* valores negativos e inválidos também param na regra "vazia, negativa ou inválida" */
   for (const [cod, v] of [['M6.P02', '-5'], ['M6.P02', 'abc'], ['M6.P05', '-1'], ['M6.P07', 'xyz'], ['M6.P11', '-2']]) {
     const r = R.find((x) => x.pergunta === cod && /inv[aá]lid/i.test(x.condicao));
-    await caminho({}, cod);
+    await caminho(REPETE_P01.includes(cod) ? { 'M6.P01': { tipo: 'NS' } } : {}, cod);
     await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v });
     const txt = nrm(await page.evaluate(NA_PAGINA.retorno));
     check(`${cod} = "${v}" mostra ${r.codigo} e não avança`, txt.includes(nrm(r.texto)) && (await page.evaluate(NA_PAGINA.atual)) === cod
@@ -168,7 +172,7 @@ const NA_PAGINA = {
     check('Negócio = Serviço mostra só P10..P12', JSON.stringify(c.vistas.slice(c.vistas.indexOf('Negócio') + 1)) === JSON.stringify(['M6.P10', 'M6.P11', 'M6.P12']), c.vistas); }
   { const c = await caminho({ 'Negócio': { tipo: 'opcao', v: 'Mercadoria' }, 'M6.P16': { tipo: 'NS' } }, null);
     check('"M01 ≠ Não sei" lido como P16 ≠ Não sei (P16 = Não sei esconde P17)', c.vistas.includes('M6.P16') && !c.vistas.includes('M6.P17') && c.vistas.includes('M6.P18'), c.vistas); }
-  { const c = await caminho({ 'Negócio': { tipo: 'opcao', v: 'Produto' }, 'M6.P13': { tipo: 'NS' } }, null);
+  { const c = await caminho({ 'M6.P01': { tipo: 'NS' }, 'Negócio': { tipo: 'opcao', v: 'Produto' }, 'M6.P13': { tipo: 'NS' } }, null);
     check('Negócio = Produto: P13 = Não sei esconde P14, mostra P15', c.vistas.includes('M6.P15') && !c.vistas.includes('M6.P14') && !c.vistas.includes('M6.P10'), c.vistas); }
 
   /* ---------- 2. casos de teste da aba 8 ---------- */
@@ -203,7 +207,8 @@ const NA_PAGINA = {
   { const e = reais(I['M6.I01'].ex_entrada), esp = reais(I['M6.I01'].ex_saida)[0];
     const m = await page.evaluate((e) => Motor.investimento({ 'M6.P02': { estado: 'valor', valor: String(e[0]) }, 'M6.P11': { estado: 'valor', valor: String(e[1]) }, 'M6.P14': { estado: 'valor', valor: String(e[2]) } }).valor, e);
     check(`I01 motor: ${e.join(' + ')} = ${esp} (saída esperada)`, m === esp, m);
-    await caminho({ 'M6.P02': { tipo: 'texto', v: String(e[0]) }, 'Negócio': { tipo: 'opcao', v: 'Serviço' }, 'M6.P11': { tipo: 'texto', v: String(e[1] + e[2]) } }, null);
+    /* P11/P14 (equipamentos do serviço/produto) não aparecem para quem já respondeu P01/P02: usa a P17 (mercadoria) */
+    await caminho({ 'M6.P02': { tipo: 'texto', v: String(e[0]) }, 'Negócio': { tipo: 'opcao', v: 'Mercadoria' }, 'M6.P17': { tipo: 'texto', v: String(e[1] + e[2]) } }, null);
     const v = await page.textContent('#i01-val');
     check(`I01 na tela: ${v} = ${brl(esp)}`, nrm(v) === nrm(brl(esp)), v); }
   { const e = reais(I['M6.I03'].ex_entrada), s = reais(I['M6.I03'].ex_saida), esp = s[1];
@@ -233,6 +238,95 @@ const NA_PAGINA = {
     await page.reload(); await page.click('#ir');
     const pr = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).prio);
     check(`I02: "${I['M6.I02'].ex_saida}" guardado após recarregar`, pr.Equipamento === 'essencial agora' && pr['decoração'] === 'desejável' && (await page.$$('#prio .opcao.sel')).length === 2, pr); }
+
+
+  /* ---------- 6. relatório do testador (05/11): tipo herdado, herança do Módulo 5, repetição, resumo ---------- */
+  const M1 = (r) => ({ versao: 3, R: r });
+  const SERV_M1 = 'Serviço: meu cliente paga pelo trabalho que realizo';
+  { // sem herança: o seletor continua, explicado
+    await caminho({}, 'Negócio');
+    const tx = nrm(await page.evaluate(() => document.querySelector('.cartao-q').innerText));
+    check('sem herança: seletor explicado ("Para seguir, diga o que você oferece") com descrição das 3 opções',
+      tx.includes('Para seguir, diga o que você oferece aos seus clientes') && tx.includes('Seu cliente paga pelo trabalho que você realiza')
+      && tx.includes('Você compra pronto para revender') && !(await page.$('.selo')), tx.slice(0, 300)); }
+  { // herança do tipo pelo M1.P03A: sem seletor, faixa com selo e "Trocar"
+    const c = await caminho({}, null, { 'lg2-turma-a-m01': M1({ 'M1.P03A': { estado: 'opcao', opcao: SERV_M1 } }) });
+    check('tipo herdado do Módulo 1: o seletor "Negócio" não aparece como pergunta', !c.vistas.includes('Negócio') && c.vistas.includes('M6.P12'), c.vistas);
+    const est = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['Negócio']);
+    check('tipo herdado gravado como Serviço com origem Módulo 1', est && est.opcao === 'Serviço' && est.herdado === 1, est);
+    check('M1 nunca é escrito pelo M6', (await page.evaluate(() => localStorage.getItem('lg2-turma-a-m01'))).includes('M1.P03A')
+      && !(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m01'))).includes('M6.')); }
+  { // a faixa na 1ª pergunta da seção e o botão Trocar
+    await caminho({}, 'M6.P12', { 'lg2-turma-a-m01': M1({ 'M1.P03A': { estado: 'opcao', opcao: SERV_M1 } }) });
+    const fx = nrm(await page.evaluate(() => (document.querySelector('.negocio-atual') || {}).innerText || ''));
+    check('faixa "Seu negócio: Serviço" + selo "Veio do Módulo 1" + Trocar', /Seu negócio: Serviço/.test(fx) && fx.includes('Veio do Módulo 1') && fx.includes('Trocar'), fx);
+    await page.click('#trocar');
+    check('Trocar abre o seletor com Serviço marcado', (await page.evaluate(NA_PAGINA.atual)) === 'Negócio'
+      && (await page.$$eval('#ent .opcao.sel b', (b) => b.map((x) => x.textContent))).join() === 'Serviço');
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'opcao', v: 'Mercadoria' }); await page.evaluate(NA_PAGINA.seguir);
+    const est = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R);
+    check('depois de trocar: vai para a seção Mercadoria, sem selo de herança e sem respostas do serviço',
+      (await page.evaluate(NA_PAGINA.atual)) === 'M6.P16' && est['Negócio'].opcao === 'Mercadoria' && !est['Negócio'].herdado && !est['M6.P12'], est); }
+  { // ordem de prioridade do tipo e "Não sei" não conta
+    const tipo = async (sem) => { await caminho({}, 'M6.P01', sem); return page.evaluate(() => (JSON.parse(localStorage.getItem('lg2-turma-b-m06') || '{}').R || {})['Negócio'] || null); };
+    const a = await tipo({ 'lg2-turma-a-m05': { versao: 3, R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' } } }, 'lg2-turma-a-m04': { R: { 'M4.P02': { estado: 'opcao', opcao: 'Serviço' } } } });
+    const b = await tipo({ 'lg2-turma-a-m04': { R: { 'M4.P02': { estado: 'opcao', opcao: 'Produto+ Serviço' } } } });
+    const c = await tipo({ 'lg2-turma-b-m08': { R: { 'M8.P02': { estado: 'opcao', opcao: 'Não sei' } } }, 'lg2-turma-a-m01': M1({ 'M1.P03A': { estado: 'naosei' } }) });
+    check('prioridade do tipo: M5 antes do M4; M4 "Produto+ Serviço" = Produto; "Não sei" não é herança',
+      a && a.opcao === 'Mercadoria' && a.herdado === 5 && b && b.opcao === 'Produto' && b.herdado === 4 && c === null, [a, b, c]); }
+
+  const M5 = { versao: 3, R: {
+    'M5.P01': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' },
+    'M5.P19': { estado: 'valor', valor: ['Shampoo automotivo', 'Cera'] }, 'M5.P20': { estado: 'valor', valor: ['30', '45,50'] },
+    'M5.P28': { estado: 'opcao', opcao: 'Sim' }, 'M5.P29': { estado: 'valor', valor: '800' },
+    'M5.P30': { estado: 'opcao', opcao: 'Sim' }, 'M5.P31': { estado: 'valor', valor: '150' },
+    'M5.P32': { estado: 'opcao', opcao: 'Sim' }, 'M5.P33': { estado: 'valor', valor: [{ nome: 'Internet', v: '100' }] },
+    'M5.PG': { estado: 'valor', valor: ['Pix', 'Dinheiro', 'Cartão de crédito'] },
+    'M5.P36': { estado: 'valor', valor: '50' }, 'M5.P37': { estado: 'valor', valor: '20' } } };
+  const semM5 = { 'lg2-turma-a-m05': M5 };
+  const tela = async () => page.evaluate(() => ({ selo: (document.querySelector('.herdado') || {}).innerText || '',
+    sel: [...document.querySelectorAll('#ent .opcao.sel b')].map((x) => x.textContent), campo: (document.querySelector('#ent input, #ent textarea') || {}).value }));
+  { await caminho({}, 'M6.P04', semM5); const x = await tela();
+    check('P04 pré-marcada com as formas do Módulo 5 (crédito → à vista) e selo "Veio do Módulo 5"',
+      x.sel.join('|') === 'Dinheiro|Pix|Cartão de crédito à vista' && x.selo.includes('Veio do Módulo 5') && x.selo.includes('Confira e ajuste se quiser') && x.selo.includes('parcelado'), x);
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'manter' });
+    const r = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P04']);
+    check('P04: só tocar Continuar grava as formas herdadas (com origem)', r && r.estado === 'multi' && r.opcoes.length === 3 && r.herdado === 5 && (await page.evaluate(NA_PAGINA.seguir)), r); }
+  { await caminho({}, 'M6.P05', semM5); const x = await tela();
+    check('P05 = preço × quantidade do Módulo 5 (50 × 20 = 1.000,00), com selo e a conta explicada', x.campo === '1.000,00' && x.selo.includes('R$ 50,00 por venda × 20 vendas'), x); }
+  { await caminho({}, 'M6.P06', semM5); const x = await tela();
+    check('P06 pré-preenchida com os gastos fixos do Módulo 5', x.campo === 'Aluguel: R$ 800,00; Água e luz: R$ 150,00; Internet: R$ 100,00' && x.selo.includes('R$ 1.050,00'), x); }
+  { const s2 = { 'lg2-turma-a-m05': { versao: 3, R: { ...M5.R, 'M5.P36': { estado: 'naosei' } } } };
+    await caminho({}, 'M6.P05', s2); const x = await tela();
+    check('"Não sei" no Módulo 5 não conta como herança (P05 vazia, sem selo)', x.campo === '' && !x.selo, x); }
+  { await caminho({ 'M6.P01': { tipo: 'NS' } }, 'M6.P10', semM5); const x = await tela();
+    check('P10 (P01 = Não sei) pré-preenchida com os itens do Módulo 5', x.campo === 'Shampoo automotivo, Cera' && x.selo.includes('Veio do Módulo 5'), x);
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'manter' }); await page.evaluate(NA_PAGINA.seguir);
+    const y = await tela();
+    check('P11 pré-preenchida com a soma dos preços do Módulo 5 (30 + 45,50 = 75,50)', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P11' && y.campo === '75,50', y); }
+  { // repetição dentro do módulo: P10/P11 repetem P01/P02
+    const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'Lavadora de alta pressão, aspirador' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'Negócio': { tipo: 'opcao', v: 'Serviço' } }, null);
+    check('quem respondeu P01/P02 não vê P10/P11 (mesma pergunta); P12 continua', !c.vistas.includes('M6.P10') && !c.vistas.includes('M6.P11') && c.vistas.includes('M6.P12'), c.vistas);
+    check('investimento não conta duas vezes (só P02 = R$ 3.000,00)', nrm(await page.textContent('#i01-val')) === nrm('R$ 3.000,00'));
+    const resumo = nrm(await page.evaluate(() => document.querySelector('details.respostas').textContent));
+    check('resumo: P10/P11 mostram "Respondido no começo" com a lista e o valor da P01/P02', resumo.includes('Respondido no começo Lavadora de alta pressão, aspirador') && resumo.includes('Respondido no começo 3000'), resumo.slice(0, 400));
+    const c2 = await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'Negócio': { tipo: 'opcao', v: 'Produto' } }, null);
+    check('o mesmo vale para Produto: P13/P14 pulam, P15 aparece', !c2.vistas.includes('M6.P13') && !c2.vistas.includes('M6.P14') && c2.vistas.includes('M6.P15'), c2.vistas); }
+  { // "O que entendemos até aqui"
+    const sem = { ...semM5, 'lg2-turma-a-m01': M1({ 'M1.P01': { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' }, 'M1.P03': { estado: 'valor', valor: 'Lavagem de carro em domicílio' }, 'M1.P03A': { estado: 'opcao', opcao: SERV_M1 } }) };
+    await caminho({ 'M6.P01': { tipo: 'texto', v: 'Lavadora' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P03': { tipo: 'opcao', v: 'À vista' }, 'M6.P04': { tipo: 'manter' }, 'M6.P05': { tipo: 'manter' }, 'M6.P06': { tipo: 'manter' },
+      'M6.P07': { tipo: 'texto', v: '500' }, 'M6.P08': { tipo: 'opcao', v: 'Até 7 dias' } }, null, sem);
+    const box = await page.evaluate(() => { const b = document.querySelector('#entendemos'); return b && { txt: b.innerText, n: b.querySelectorAll('p').length,
+      antes: !!(b.compareDocumentPosition(document.querySelector('#i01')) & Node.DOCUMENT_POSITION_FOLLOWING) }; });
+    const bt = nrm(box && box.txt);
+    check('resultado: caixa "O que entendemos até aqui" acima do caixa, 3–6 frases', box && box.antes && box.n >= 3 && box.n <= 6 && bt.startsWith('O que entendemos até aqui'), box);
+    check('caixa junta módulos anteriores e este (ideia, tipo, estágio, investimento, vendas, semana negativa)',
+      bt.includes('Você oferece um serviço: Lavagem de carro em domicílio.') && bt.includes('Você ainda não começou a vender.')
+      && bt.includes('Para começar, você estima gastar R$ 3.000,00, pagando à vista.') && bt.includes('Você espera vender cerca de R$ 1.000,00 por mês e receber o dinheiro em até 7 dias.')
+      && bt.includes('Começando com R$ 500,00 no caixa, o seu dinheiro fica negativo na semana 1'), bt);
+    check('lista de respostas recolhida em "Ver suas respostas"', await page.evaluate(() => { const d = document.querySelector('details.respostas'); return !!d && !d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }));
+    const resumo = nrm(await page.evaluate(() => document.querySelector('details.respostas').textContent));
+    check('resumo mostra o selo "Veio do Módulo 5" nas respostas herdadas e "Veio do Módulo 1" no tipo', /Veio do Módulo 5 Dinheiro; Pix/.test(resumo) && /Veio do Módulo 1 Serviço/.test(resumo), resumo.slice(0, 500)); }
 
   /* ---------- 4. persistência ---------- */
   await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno e balcão' } }, 'M6.P04');

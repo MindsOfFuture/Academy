@@ -268,3 +268,7 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 @media print{.etapa .chk{display:none!important}.etapa .sit,.etapa .hip{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 /* a fonte oficial não desenha o "²" (m²): só esse sinal vem de uma fonte do aparelho */
 @font-face{font-family:'Louis George Cafe';src:local('Quicksand'),local('Nunito'),local('Arial'),local('Helvetica'),local('DejaVu Sans'),local('Liberation Sans');unicode-range:U+00B2-00B3}
+.veio-linha{font-size:14px;color:var(--m-gray)}
+.veio-linha .veio{margin-left:0;margin-right:4px}
+.entendemos{border-color:var(--m-purple);border-left-width:6px}
+.entendemos p+p{margin-top:6px}

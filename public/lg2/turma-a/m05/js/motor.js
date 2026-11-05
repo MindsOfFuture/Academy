@@ -478,6 +478,58 @@
     return Object.assign(a, { preco, pct, margem, taxa, taxaPct, sobra, faixa, precoMinimo, nivel, negativo, mensagens });
   }
 
+  /* ---------------- herança do Módulo 1 (relatório do testador, 05/11) ----------------
+     M1.P01 (como está a ideia) = M5.P00; M1.P03A (o que oferece, mesmas 3 opções) = M5.P01.
+     Mapeia pela palavra inicial (Produto / Mercadoria / Serviço). "Não sei" não é herança. */
+  function herdarEstagio(M, r1) {
+    return r1 && r1.estado === "opcao" && M.porCodigo[P_INICIAL].opcoesLista.includes(r1.opcao) ? r1.opcao : null;
+  }
+  function herdarTipo(M, r1) {
+    if (!r1 || r1.estado !== "opcao" || !r1.opcao) return null;
+    const alvo = rotulo(r1.opcao).toLowerCase();
+    return M.porCodigo["M5.P01"].opcoesLista.find((o) => rotulo(o).toLowerCase() === alvo) || null;
+  }
+
+  /* ---------------- "O que entendemos até aqui" (texto por regras, sem IA) ---------------- */
+  const SEU_TIPO = { Produto: "o produto", Mercadoria: "a mercadoria", "Serviço": "o serviço" };
+  const UNID = { Produto: ["unidade", "unidades"], Mercadoria: ["unidade", "unidades"], "Serviço": ["atendimento", "atendimentos"] };
+  function brl(n) { return "R$\u00a0" + n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+  /* c = calcular(...); ideia = texto do Módulo 1 (M1.P03) ou null */
+  function entendemos(R, c, ideia) {
+    const fr = [];
+    const [un1, unN] = UNID[c.tipo] || ["venda", "vendas"];
+    const nome = c.nome && String(c.nome).trim();
+    const id = ideia && String(ideia).trim();
+    if (c.tipo) {
+      const item = nome ? `${SEU_TIPO[c.tipo]} “${nome}”` : SEU_TIPO[c.tipo];
+      fr.push(id && (!nome || id.toLowerCase() !== nome.toLowerCase())
+        ? `Seu negócio é “${id}” e, aqui, você analisou ${item}.`
+        : `Você analisou ${item}.`);
+    }
+    const est = R[P_INICIAL] && R[P_INICIAL].estado === "opcao" ? R[P_INICIAL].opcao : null;
+    const naoComecou = R["M5.P37"] && R["M5.P37"].estado === "opcao" && /^ainda n/i.test(R["M5.P37"].opcao);
+    if (est === OPCOES_M1[0] || naoComecou) fr.push("Você ainda não vende, então estes números são uma simulação feita com estimativas.");
+    else if (est === OPCOES_M1[1]) fr.push("Você está começando a vender, então alguns números ainda são estimativas.");
+    else if (est) fr.push("Você já vende, então os números partem do que acontece hoje no seu negócio.");
+    const COM = { Produto: "com materiais e embalagem", Mercadoria: "com a compra, o frete e a embalagem", "Serviço": "com os materiais que usa" };
+    if (c.custoUnidade > 0) fr.push(`Em cada ${un1}, você gasta cerca de ${brl(c.custoUnidade)} ${COM[c.tipo] || ""}.`.replace(" .", "."));
+    else if (c.tipo === "Serviço" && !c.faltas.length) fr.push("Seu serviço não gasta materiais a cada atendimento, então o custo de cada venda vem das taxas e dos gastos do mês.");
+    if (c.mensal > 0) fr.push(`Todo mês, o negócio precisa cobrir ${brl(c.mensal)} de gastos (contas, perdas e o valor do seu trabalho, quando informados).`);
+    else fr.push("Você não informou gastos do mês, como aluguel ou contas.");
+    if (c.mc !== null && c.preco !== null) {
+      const qual = c.precoInformado !== null ? "Cobrando" : "Com o preço possível de";
+      if (c.mc > 0) {
+        let f = `${qual} ${brl(c.preco)}, sobram ${brl(c.mc)} em cada ${un1}`;
+        if (c.pe !== null && c.mensal > 0) {
+          f += `, e você precisa de ${c.pe} ${c.pe === 1 ? un1 : unN} por mês para cobrir os gastos do mês`;
+          if (c.qtd > 0 && c.resultado !== null) f += c.resultado >= 0 ? `. Vendendo ${c.qtd} por mês, sobram ${brl(c.resultado)} no fim do mês` : `. Vendendo ${c.qtd} por mês, faltam ${brl(-c.resultado)} para fechar o mês`;
+        }
+        fr.push(f + ".");
+      } else fr.push(`${qual} ${brl(c.preco)}, cada ${un1} não deixa sobra depois do custo e das taxas: vale rever o preço ou os gastos.`);
+    }
+    return fr.slice(0, 6);
+  }
+
   /* Simulação de outro preço e outra quantidade de vendas (resultado). */
   function simular(M, R, preco, qtd) {
     const c = calcular(M, R);
@@ -497,7 +549,8 @@
   const API = { montar, ajudaNaoSei, analisarPreco, classificar, LUCRO_BAIXO, LUCRO_ALTO, MSG_PRECO, MSG_RESPONDA, PRECO, campo, opcoes, botoesAlternativos, regra, proxima, validar, calcular,
     itensDe, listaDeOrigem, num, compativel, valorCond, avisoQuantidade, faixaMercado, taxaMedia,
     P_INICIAL, P_FORMAS, OPCOES_M1, FORMAS, NOTA_CONSUMO, NOTA_LUZ_AGUA, MSG_QTD_ALTA, MSG_SOMA_PARTES, POUCAS_VENDAS,
-    MARGEM_X_ACRESCIMO, MSG_SEM_SOBRA, MSG_SIMULACAO, MSG_ACIMA_MERCADO, MSG_TEMPO, MSG_DESCONTADOS, HORAS_MES_M1, simular, tempoExcede };
+    MARGEM_X_ACRESCIMO, MSG_SEM_SOBRA, MSG_SIMULACAO, MSG_ACIMA_MERCADO, MSG_TEMPO, MSG_DESCONTADOS, HORAS_MES_M1, simular, tempoExcede,
+    herdarEstagio, herdarTipo, entendemos };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else raiz.Motor = API;
 })(typeof window !== "undefined" ? window : globalThis);

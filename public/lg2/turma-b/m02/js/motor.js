@@ -107,13 +107,38 @@
     }).sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
   }
 
+  /* ---- caminho estimado: as perguntas que a pessoa verá, assumindo a 1ª opção nas que ainda
+     não respondeu (é o caminho mais comum). Serve para o "Pergunta X de Y" mostrar o tamanho
+     real do percurso dela, e não as 21 perguntas de todos os ramos. ---- */
+  function caminho(M, R) {
+    const Rs = Object.assign({}, R), lista = [];
+    let cod = proxima(M, Rs, null);
+    while (cod !== "RESULTADO" && lista.length < M.perguntas.length) {
+      lista.push(cod);
+      if (Rs[cod] === undefined) {
+        const q = M.porCodigo[cod], t = campo(q);
+        Rs[cod] = t === "escolha" ? { estado: "opcao", opcao: q.opcoesLista[0] } : { estado: "valor", valor: t === "numero" ? "1" : "x" };
+      }
+      cod = proxima(M, Rs, cod);
+    }
+    return lista;
+  }
+
+  /* ---- textos na tela sem códigos internos ("(M2.I01)", "M2.P08"): a pessoa não sabe o que são ---- */
+  function limpa(t) {
+    return String(t ?? "")
+      .replace(/\s*\([^()]*M2\.[PI]\d{2}[^()]*\)/g, "")
+      .replace(/\bM2\.P\d{2}\b/g, "a próxima pergunta")
+      .replace(/\s+([.,;:])/g, "$1");
+  }
+
   const semVazio = (rs, campo, nada) => [...new Set(rs.map((r) => r[campo]).filter((x) => x && x !== nada))];
   const lacunas = (rs) => semVazio(rs, "lacuna", "Nenhuma");
   const encaminhamentos = (rs) => semVazio(rs, "encaminhamento", "Nenhum");
   const alertas = (rs) => semVazio(rs, "alerta", "Nenhum");
   const proximos = (rs) => semVazio(rs, "proximo", "Nenhum");
 
-  const API = { montar, valor, campo, temNaoSei, avaliar, proxima, regrasAgora, regrasTodas, quadro, segmentos, SINAIS,
+  const API = { montar, valor, campo, temNaoSei, avaliar, proxima, regrasAgora, regrasTodas, quadro, segmentos, SINAIS, caminho, limpa,
                 lacunas, encaminhamentos, alertas, proximos, NS };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

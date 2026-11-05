@@ -5,14 +5,15 @@
   const D = window.MODULO1, M = Motor.montar(D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-a-m01";
-  const VERSAO = 3;                  // muda quando o conjunto de perguntas muda: respostas antigas são descartadas
+  const VERSAO = 4;                  // muda quando o conjunto de perguntas muda (v4: nova Pergunta 3A e Pergunta 8 com várias respostas)
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
   let S = carregar();                // { v, R: respostas, atual: código da tela atual }
   function carregar() {
     try {
       const s = JSON.parse(localStorage.getItem(CHAVE));
-      if (s && s.v === 2 && s.R) return migrar2(s);
+      if (s && s.v === 2 && s.R) return migrar3(migrar2(s));
+      if (s && s.v === 3 && s.R) return migrar3(s);
       return s && s.v === VERSAO && s.R ? s : novo();
     }
     catch { return novo(); }
@@ -27,13 +28,25 @@
       const r = s.R[c];
       if (!q || !Motor.completa(q, r) || (r.estado === "naosei" && !q.botao_naosei)) { delete s.R[c]; tirou = true; }
     });
-    s.v = VERSAO;
+    s.v = 3;
     if (tirou) {
       const falta = Motor.caminho(M, s.R).find((c) => !Motor.completa(M.porCodigo[c], s.R[c]));
       s.atual = falta || "RESULTADO";
     }
     return s;
   }
+  /* v3 -> v4: a Pergunta 8 passou a aceitar várias respostas. A resposta única vira uma lista com ela
+     (nada é descartado). Entrou a Pergunta 3A: quem já tinha terminado volta para ela. */
+  function migrar3(s) {
+    const r = s.R["M1.P08"];
+    if (r && r.estado === "opcao" && !Array.isArray(r.opcoes)) r.opcoes = [r.opcao];
+    if (r && !Motor.completa(M.porCodigo["M1.P08"], r)) delete s.R["M1.P08"];
+    s.v = VERSAO;
+    if (s.atual === "RESULTADO") s.atual = faltando(s.R) || "RESULTADO";
+    return s;
+  }
+  /* primeira pergunta do caminho ainda sem resposta (ou null) */
+  function faltando(R) { return Motor.caminho(M, R).find((c) => !Motor.completa(M.porCodigo[c], R[c])) || null; }
   function novo() { return { v: VERSAO, R: {}, atual: null }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
@@ -272,7 +285,20 @@
       ok.disabled = !pronto;
       ok.setAttribute("aria-disabled", String(!pronto));
       let m = null;
-      if (q.tipo === "escolha") {
+      if (q.tipo === "multipla") {
+        const marc = r && Array.isArray(r.opcoes) ? r.opcoes : [];
+        ent.querySelectorAll(".opcao").forEach((b) => {
+          const sel = marc.includes(b.dataset.op);
+          b.classList.toggle("sel", sel);
+          b.setAttribute("aria-pressed", String(sel));
+        });
+        /* caixas de dica: uma para cada opção marcada que tiver */
+        const ms = q.opcoes.filter((o) => marc.includes(o.texto) && o.mensagem).map((o) => o.mensagem);
+        msg.innerHTML = ms.map(caixaMensagem).join("");
+        const extra = ent.querySelector(".outra");
+        if (extra) extra.hidden = !q.opcoes.some((o) => o.campo && marc.includes(o.texto));
+        return;
+      } else if (q.tipo === "escolha") {
         ent.querySelectorAll(".opcao").forEach((b) => {
           const sel = !!r && r.estado === "opcao" && r.opcao === b.dataset.op;
           b.classList.toggle("sel", sel);
@@ -297,7 +323,40 @@
       atualizar();
     }
 
-    if (q.tipo === "escolha") {
+    if (q.tipo === "multipla") {
+      ent.classList.add("opcoes", "multi");
+      const lista = (r) => (r && Array.isArray(r.opcoes) ? r.opcoes : []);
+      /* guarda as marcadas na ordem da lista; "opcao" = a primeira, para quem lê só uma resposta */
+      const guardar = (marc, detalhe) => {
+        const ord = q.opcoes.map((o) => o.texto).filter((t) => marc.includes(t));
+        if (!ord.length) return gravar(null);
+        const r = { estado: "opcao", opcao: ord[0], opcoes: ord };
+        if (detalhe && q.opcoes.some((o) => o.campo && ord.includes(o.texto))) r.detalhe = detalhe;
+        gravar(r);
+      };
+      q.opcoes.forEach((op) => {
+        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b data-ler>${esc(op.texto)}</b></span><span class="check" aria-hidden="true">✓</span></button>`);
+        b.onclick = () => {
+          const ant = S.R[cod];
+          const marc = lista(ant);
+          const novaLista = marc.includes(op.texto) ? marc.filter((t) => t !== op.texto) : marc.concat(op.texto);
+          guardar(novaLista, ant && ant.detalhe);
+          if (op.campo && novaLista.includes(op.texto)) { const t = ent.querySelector(".outra textarea"); if (t) t.focus(); }
+        };
+        ent.appendChild(b);
+        if (op.campo) {
+          const r0 = S.R[cod];
+          const box = el(`<div class="outra" hidden><textarea class="campo" rows="2" aria-label="${esc(op.texto)}">${esc(r0 && r0.detalhe ? r0.detalhe : "")}</textarea></div>`);
+          box.querySelector("textarea").oninput = (e) => {
+            const r = S.R[cod];
+            if (!r) return;
+            if (e.target.value) r.detalhe = e.target.value; else delete r.detalhe;
+            salvar(); atualizar();
+          };
+          ent.appendChild(box);
+        }
+      });
+    } else if (q.tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoes.forEach((op) => {
         const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b data-ler>${esc(op.texto)}</b></span><span class="check" aria-hidden="true">✓</span></button>`);
@@ -362,7 +421,8 @@
     if (cv) cv.onclick = () => abrirVideo(q.video, cv);
     ok.onclick = () => {
       if (!Motor.completa(q, S.R[cod])) return;
-      const prox = Motor.proxima(M, S.R, cod);
+      let prox = Motor.proxima(M, S.R, cod);
+      if (prox === "RESULTADO" && faltando(S.R)) prox = faltando(S.R);   // ex.: pergunta nova que ficou para trás
       if (prox === "RESULTADO") { S.atual = "RESULTADO"; salvar(); ir(telaResultado); }
       else ir(telaPergunta, prox);
     };
@@ -377,6 +437,7 @@
     const regras = Motor.regrasTodas(M, S.R);
     const naosei = lista.filter((x) => x.naosei);
     const mostra = (x) => x.detalhe ? `${x.valor}: ${x.detalhe}` : x.valor;
+    const entendemos = Motor.entendimento(M, S.R);
     const p = el(`
       <div class="pag">
         ${topo("Retrato inicial")}
@@ -385,14 +446,22 @@
           <section class="concluido">
             <div class="conc-topo"><span class="conc-check" aria-hidden="true"></span><div><h2 data-ler>Você concluiu a ${esc(PARTE)}</h2><p data-ler>Veja abaixo o seu retrato inicial.</p></div></div>
           </section>
+          ${entendemos.length ? `<section class="entendemos" data-ler>
+            <h3>O que entendemos até aqui</h3>
+            ${entendemos.map((f) => `<p>${esc(f)}</p>`).join("")}
+          </section>` : ""}
           <div class="cartao" data-ler><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
 
-          <div class="secao-titulo" data-ler>Suas respostas</div>
-          ${lista.map((x) => `
-            <div class="cartao resp ${x.naosei ? "resp-ns" : ""}" data-ler>
-              <p class="mini-info">${esc(x.pergunta)}</p>
-              <h3>${esc(mostra(x))}</h3>
-            </div>`).join("")}
+          <details class="ajuda-box respostas">
+            <summary data-ler>Ver suas respostas</summary>
+            <div class="respostas-lista" data-ler>
+            ${lista.map((x) => `
+              <div class="cartao resp ${x.naosei ? "resp-ns" : ""}">
+                <p class="mini-info">${esc(x.pergunta)}</p>
+                ${x.itens ? `<ul class="resp-itens">${x.itens.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>` : `<h3>${esc(mostra(x))}</h3>`}
+              </div>`).join("")}
+            </div>
+          </details>
 
           ${regras.map((r) => `<div class="regra"><p class="r-texto">${esc(r.texto)}</p></div>`).join("")}
 
@@ -415,7 +484,7 @@
         </main>
       </div>`);
     p.querySelector("#v").onclick = () => { const cam = Motor.caminho(M, S.R); ir(telaPergunta, cam[cam.length - 1]); };
-    p.querySelector("#imp").onclick = () => window.print();
+    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details.respostas").forEach((d) => { d.open = true; }); window.print(); };
     p.querySelector("#rev").onclick = () => ir(telaPergunta, Motor.proxima(M, {}, null));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaInicio); } };
     ligarInicio(p);

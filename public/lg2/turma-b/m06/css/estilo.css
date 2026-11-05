@@ -167,6 +167,19 @@ textarea.campo{resize:vertical;font-family:inherit}
 @media (max-width:360px){
   .heroi-tit{font-size:21px}
 }
+/* herança de outros módulos e tipo de negócio (lote 05/11) */
+.selo{display:inline-block;background:var(--m-purple);color:#fff;font-size:12px;font-weight:700;border-radius:var(--m-pill);padding:3px 10px;margin-right:6px;vertical-align:middle}
+.herdado{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--m-lavender);border-radius:12px;padding:9px 12px;margin:0 0 12px;font-size:14px;color:#3d2f5c}
+.herdado .mini-info{flex-basis:100%;margin-top:2px;color:#4a3d66}
+.negocio-atual{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border:2px solid var(--m-lavender);border-radius:12px;padding:8px 12px;margin-bottom:12px;font-size:14.5px}
+.negocio-atual > span:first-child{flex:1 1 auto}
+.negocio-atual .btn-alt{padding:5px 12px;font-size:13.5px}
+.op-desc{display:block;font-size:13.5px;color:var(--m-gray);margin-top:2px}
+.entendemos{border:2px solid var(--m-lavender);border-left:6px solid var(--m-purple);border-radius:var(--m-radius);padding:14px 16px;margin:14px 0}
+.entendemos h2{color:var(--m-purple);font-size:18px;margin-bottom:8px}
+.entendemos p{font-size:15px;color:#2b2340;margin-bottom:6px}
+.respostas .cartao{margin-top:10px}
+
 @media print{
   body{background:#fff}#tela{box-shadow:none;max-width:none}
   .acoes,.voltar,.barra-topo,.etapas,.heroi-prog,.alt{display:none!important}

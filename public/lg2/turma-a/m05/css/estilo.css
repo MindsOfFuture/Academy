@@ -231,6 +231,17 @@ a{color:var(--m-purple)}
 .nota-orienta b{display:block;color:var(--m-purple);font-size:16px;margin-bottom:2px}
 .nota-orienta p+p{margin-top:6px}
 .nota-orienta .ex b{display:inline}
+/* cartão "Seu negócio" (respostas que vieram do Módulo 1) e caixa "O que entendemos até aqui" */
+.negocio{border:1.5px solid var(--m-lavender-mid);border-radius:12px;padding:10px 14px;margin:0 0 12px;background:var(--m-paper);font-size:16px;color:#3d3650}
+.neg-cab{line-height:1.4}
+.neg-cab .neg-rot{color:var(--m-purple);font-weight:700}
+.neg-linha{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:6px;font-size:15px}
+.neg-nota{font-size:14px;color:var(--m-gray);margin-top:6px}
+.selo-mini{display:inline-block;background:var(--m-lavender);color:var(--m-purple);border-radius:var(--m-pill);padding:2px 10px;font-size:13px;font-weight:700;white-space:nowrap}
+.entendemos{background:var(--m-paper);border:1.5px solid var(--m-lavender-mid);border-left:5px solid var(--m-purple);border-radius:var(--m-radius);padding:14px 16px;margin:0 0 16px}
+.entendemos h3{color:var(--m-purple);font-size:18px;margin:0 0 6px}
+.entendemos p{font-size:16px;line-height:1.5;color:#3d3650}
+.entendemos p+p{margin-top:6px}
 .selo-m{display:inline-block;background:var(--m-lavender);color:var(--m-purple);border-radius:var(--m-pill);padding:4px 12px;font-size:14px;margin:8px 0 4px}
 .caixa{flex:0 0 22px;height:22px;border-radius:6px;border:2px solid var(--m-lavender-mid);background:#fff}
 .opcao.sel .caixa{border-color:var(--m-purple);background:var(--m-purple) var(--i-check) center/16px no-repeat}
@@ -246,7 +257,7 @@ a{color:var(--m-purple)}
 #numeros .nota{font-size:15px;color:var(--m-gray);margin:-4px 0 12px}
 @media print{
   body{background:#fff}#tela{box-shadow:none;max-width:none}
-  .acoes,.voltar,.reinicio,.barra-topo,.etapas,.contexto,.outra,#minhas,.ver{display:none!important}
+  .acoes,.voltar,.reinicio,.barra-topo,.etapas,.contexto,.outra,#minhas,.ver,.alterar{display:none!important}
   .heroi,.res-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .saiba{border:none}.saiba[open] summary{display:none}
 }

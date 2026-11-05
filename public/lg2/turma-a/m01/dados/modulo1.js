@@ -3,7 +3,8 @@
    "Módulo 1 – Textos do app em linguagem simples" (08/10/2026), que substitui a aba
    "3 Fluxo de perguntas". Ajuste "Módulo 1 – Ajuste do “Não sei” e vídeos": o "Não sei dizer"
    fica só nas Perguntas 5A e 7A; as Perguntas 3 e 7 têm o card de vídeo, que só aparece quando
-   "video.url" for preenchido (o "assunto" é o pedido do grupo, não vai para a tela). Textos literais. */
+   "video.url" for preenchido (o "assunto" é o pedido do grupo, não vai para a tela). Textos literais. Lote de correções do teste do app (05/11/2026): nova Pergunta 3A (tipo do que
+   vende) e Pergunta 8 com várias respostas. */
 window.MODULO1 = {
  "origem": "LG2_M01_planilha_do_grupo.xlsx",
  "modulo": {
@@ -295,6 +296,32 @@ window.MODULO1 = {
    }
   },
   {
+   "codigo": "M1.P03A",
+   "numero": "3A",
+   "condicao": "sempre",
+   "pergunta": "O que você oferece aos seus clientes?",
+   "apoio": "Escolha a opção que mais combina com o que você vende.",
+   "tipo": "escolha",
+   "opcoes": [
+    {
+     "texto": "Produto: eu compro materiais e faço o que vendo",
+     "mensagem": null
+    },
+    {
+     "texto": "Mercadoria: compro pronto para revender",
+     "mensagem": null
+    },
+    {
+     "texto": "Serviço: meu cliente paga pelo trabalho que realizo",
+     "mensagem": null
+    }
+   ],
+   "ajuda": {
+    "texto": "Produto é algo que você mesmo faz com materiais que compra. Mercadoria é algo que você compra pronto e vende sem mudar. Serviço é quando o cliente paga pelo seu trabalho, e não por uma coisa.",
+    "exemplo": "Exemplo: bolo de pote é produto; roupa comprada na fábrica para revender é mercadoria; lavar carro na casa do cliente é serviço."
+   }
+  },
+  {
    "codigo": "M1.P04",
    "numero": "4",
    "condicao": "sempre",
@@ -511,8 +538,8 @@ window.MODULO1 = {
    "numero": "8",
    "condicao": "sempre",
    "pergunta": "O que mais te preocupa agora?",
-   "apoio": "Escolha só uma opção.",
-   "tipo": "escolha",
+   "apoio": "Pode marcar mais de uma opção.",
+   "tipo": "multipla",
    "opcoes": [
     {
      "texto": "Ainda não sei fazer direito",

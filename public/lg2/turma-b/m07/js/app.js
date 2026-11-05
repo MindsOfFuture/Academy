@@ -34,6 +34,19 @@
     M5 = () => lerModulo("lg2-turma-a-m05");
   const valor = (r) => !r ? null : r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : null;
   const textoDe = (r) => { const x = valor(r); return typeof x === "string" && x.trim() ? x.trim() : null; };
+  /* primeiro número de um texto livre ("60 pedidos" → "60"); null se não houver */
+  const numDe = (t) => { if (t == null) return null; const m = /\d+(?:[.,]\d+)*/.exec(String(t)); return m ? m[0] : null; };
+  /* número digitado num campo de número: aceita "5%", "10 pedidos"; vazio = null; negativo/sem número = NaN */
+  function numCampo(t) {
+    const x = String(t ?? "").trim();
+    if (!x) return null;
+    if (/^-/.test(x)) return NaN;
+    const n = Mo.num(x.replace(/%$/, ""));
+    if (!isNaN(n)) return n;
+    const d = numDe(x);
+    return d == null ? NaN : Mo.num(d);
+  }
+  const UNID = { kg: "kg", g: "g", L: "litros", ml: "ml" };
 
   /* número para encaixar em "cabem cerca de [N]" */
   const nTexto = (c, campo) => c.modo === "max" ? Mo.fmt(c.hi[campo]) : c.modo === "min" ? `${Mo.fmt(c.lo[campo])} ou mais` : c.lo[campo] === c.hi[campo] ? Mo.fmt(c.hi[campo]) : `${Mo.fmt(c.lo[campo])} a ${Mo.fmt(c.hi[campo])}`;
@@ -51,24 +64,39 @@
     pega("oferta", textoDe(m5["M5.P02"]) || textoDe(m5["M5.P10"]) || textoDe(m5["M5.P17"]), 5);
     pega("oferta", textoDe(m4["M4.P01"]), 4);
     pega("oferta", textoDe(m1["M1.P03"]), 1);
-    const t5 = textoDe(m5["M5.P01"]), t4 = textoDe(m4["M4.P02"]);
+    const t1 = textoDe(m1["M1.P03A"]), t5 = textoDe(m5["M5.P01"]), t4 = textoDe(m4["M4.P02"]);
     const tipo = (t) => { const w = (t || "").split(/[:+]/)[0].trim(); return TIPOS.find((x) => x.startsWith(w + ":")) || null; };
-    pega("tipo", tipo(t5), 5); pega("tipo", tipo(t4), 4);
+    pega("tipo", tipo(t1), 1); pega("tipo", tipo(t5), 5); pega("tipo", tipo(t4), 4);
     const s18 = textoDe(m5["M5.P18"]); pega("material", SNN.includes(s18) ? s18 : null, 5);
     const est = { "Ainda está só na minha cabeça": ESTAGIOS[0], "Já fiz um pouco para testar ou dar de amostra": ESTAGIOS[1], "Já vendi algumas vezes": ESTAGIOS[2], "Já vendo sempre": ESTAGIOS[2] }[textoDe(m1["M1.P01"])];
     pega("estagio", est, 1);
-    const vol = Mo.num(textoDe(m5["M5.P37"])); pega("volume", vol > 0 ? String(textoDe(m5["M5.P37"])) : null, 5);
+    const vol = Mo.num(numDe(textoDe(m5["M5.P37"]))); pega("volume", vol > 0 ? numDe(textoDe(m5["M5.P37"])) : null, 5);
     const t23 = valor(m5["M5.P23"]);
     if (t23 && typeof t23 === "object") { const m = (Mo.num(t23.h) || 0) * 60 + (Mo.num(t23.m) || 0); if (m > 0) pega("minUn", m, 5); }
-    const itens = valor(m5["M5.P03"]) || valor(m5["M5.P19"]);
+    /* materiais do Módulo 5: produto = P03/P06 (receita) ÷ P07 (unidades que rende); serviço = P19/P22 (por atendimento) */
+    const prod = t5 ? t5.startsWith("Produto") : Array.isArray(valor(m5["M5.P03"]));
+    const itens = (prod ? valor(m5["M5.P03"]) : valor(m5["M5.P19"])) || [];
+    const usos = valor(m5[prod ? "M5.P06" : "M5.P22"]);
+    const rende = prod ? Mo.num(textoDe(m5["M5.P07"])) : 1;
+    ini.usoPor = {};
+    if (Array.isArray(itens) && Array.isArray(usos) && rende > 0) itens.forEach((nome, i) => {
+      const u = usos[i], q = u && Mo.num(u.q);
+      if (nome && q > 0) ini.usoPor[String(nome).trim()] = { q: String(Math.round((q / rende) * 100) / 100).replace(".", ","), u: UNID[u.u] || "" };
+    });
     pega("item", Array.isArray(itens) && itens[0] ? String(itens[0]) : null, 5);
+    const u0 = ini.item && ini.usoPor[ini.item];
+    if (u0) { pega("uso", u0.q, 5); ini.usoUn = u0.u; }
+    /* unidades que saem de uma vez (M7-02): o que a receita do Módulo 5 rende */
+    if (prod && rende > 0) { ini.unLote = String(rende); ini.de.unLote = 5; }
     const reg = textoDe(m4["M4.P15"]); pega("regulada", SNN.includes(reg) ? reg : null, 4);
-    pega("testeN", textoDe(m4["M4.P19"]), 4);
-    pega("testeDias", textoDe(m4["M4.P20"]), 4);
+    /* o Módulo 4 guarda texto livre ("60 pedidos"): fica só o número */
+    pega("testeN", numDe(textoDe(m4["M4.P19"])), 4);
+    pega("testeDias", numDe(textoDe(m4["M4.P20"])), 4);
     /* só contexto (não aparecem como campo) */
     ini.entrega = textoDe(m4["M4.P04"]); ini.variedade = textoDe(m4["M4.P05"]); ini.etapas4 = textoDe(m4["M4.P06"]);
     ini.riscos3 = textoDe(m3["M3.P07"]); ini.experiencia = textoDe(m1["M1.P04"]); ini.preocupacao = textoDe(m1["M1.P08"]);
     ini.perdas5 = textoDe(m5["M5.P26"]);
+    ini.dor = textoDe(m3["M3.P11"]);
     const g33 = valor(m5["M5.P33"]);
     ini.gastos5 = Array.isArray(g33) ? g33.map((x) => (x && x.nome) || "").join(" ") : null;
     ini.temGastos5 = m5["M5.P32"] != null;
@@ -266,7 +294,8 @@
     const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio do Módulo ${base.de[campo]}</span>` : "";
     const sel = (campo, ops, rot) => `<fieldset class="grupo" data-campo="${campo}"><legend>${esc(rot)} ${veio(campo)}</legend>
       <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div></fieldset>`;
-    const txt = (campo, rot, attrs) => `<label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${attrs || ""}>`;
+    const txt = (campo, rot, attrs) => `<label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${attrs || ""}><p class="erro-campo" id="e-${campo}" hidden></p>`;
+    const rotUso = () => `Quanto desse item vai em cada unidade ou atendimento? (em ${f.usoUn || "unidades do item"})`;
     const p = el(`<div class="pag">
       ${topo("Antes de começar")}
       ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nos módulos anteriores. Confira, corrija ou complete. Só o tipo é obrigatório." })}
@@ -299,10 +328,20 @@
       const fase3 = (f.tipo || "").startsWith("Produto") || (f.tipo || "").startsWith("Mercadoria") || (serv && f.material === "Sim");
       p.querySelector("#f3").innerHTML = !fase3 ? "" : `<h3 class="secao-titulo">Material principal</h3>
         ${txt("item", "Qual é o item que, se faltar, para tudo?")}
-        ${txt("uso", "Quanto desse item vai em cada unidade ou atendimento? (em unidades do item)", 'inputmode="decimal"')}
+        ${txt("uso", rotUso(), 'inputmode="decimal"')}
         ${sel("reposicao", REPOSICAO, "De quanto em quanto tempo você compra esse item?")}
         ${txt("perda", "Quanto você costuma perder dele, em %? (deixe em branco se não sabe)", 'inputmode="decimal"')}`;
       ligarCampos();
+      /* trocou o item principal por outro material do Módulo 5: traz a quantidade dele */
+      const it = p.querySelector("#f-item");
+      if (it) it.onchange = () => {
+        const u = (base.usoPor || {})[it.value.trim()], us = p.querySelector("#f-uso");
+        if (!u || !us) return;
+        const antes = Object.values(base.usoPor).some((x) => x.q === us.value.trim());
+        if (us.value.trim() && !antes) return;
+        us.value = u.q; f.usoUn = u.u;
+        p.querySelector('label[for="f-uso"]').firstChild.textContent = rotUso() + " ";
+      };
     }
     function ligarCampos() {
       p.querySelectorAll("fieldset[data-campo]").forEach((fs) => {
@@ -321,11 +360,26 @@
     p.querySelector("#ok").onclick = () => {
       lerTextos();
       const e = p.querySelector("#erro");
+      e.hidden = true;
+      p.querySelectorAll(".erro-campo").forEach((x) => { x.hidden = true; });
+      p.querySelectorAll("input[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
       if (!f.tipo) { e.textContent = "Escolha o tipo de oferta para continuar."; e.hidden = false; return; }
-      for (const [c, rot] of [["volume", "o volume por mês"], ["minUn", "o tempo por unidade"], ["testeN", "o número do teste"], ["testeDias", "os dias do teste"], ["uso", "a quantidade por unidade"], ["perda", "a perda"]]) {
-        const n = f[c] === "" || f[c] == null ? null : Mo.num(f[c]);
-        if (n !== null && (isNaN(n) || n < 0)) { e.textContent = `Confira ${rot}: use só números iguais ou maiores que zero.`; e.hidden = false; return; }
+      /* campos de número são opcionais: em branco = "não sei" e fica fora das contas */
+      let primeiro = null;
+      for (const c of ["volume", "minUn", "testeN", "testeDias", "uso", "perda"]) {
+        const inp = p.querySelector(`#f-${c}`);
+        if (!inp) continue;
+        const n = numCampo(f[c]);
+        if (n !== null && (isNaN(n) || n < 0 || (c === "perda" && n >= 100))) {
+          const ec = p.querySelector(`#e-${c}`);
+          ec.textContent = c === "perda" ? "Use um número de 0 a 99, ou deixe em branco." : "Use só números iguais ou maiores que zero, ou deixe em branco.";
+          ec.hidden = false; inp.setAttribute("aria-invalid", "true");
+          primeiro = primeiro || inp;
+        } else if (n === null) f[c] = "";
+        else { const limpo = String(f[c]).replace(/%$/, "").trim(); f[c] = isNaN(Mo.num(limpo)) ? String(n).replace(".", ",") : limpo; }
       }
+      if (primeiro) { e.textContent = "Confira o campo marcado acima."; e.hidden = false; primeiro.focus(); primeiro.scrollIntoView({ block: "center" }); return; }
+      delete f.usoPor;
       if (f.minUn !== undefined && f.minUn !== "" && !(Mo.num(f.minUn) > 0)) f.minUn = null;
       else if (f.minUn) f.minUn = Mo.num(f.minUn);
       f.de = Object.fromEntries(Object.entries(base.de || {}).filter(([k]) => String(f[k] ?? "") === String(base[k] ?? "")));
@@ -483,8 +537,10 @@
       };
     } else if (cod === "M7-02") {
       const v = resp && resp.estado === "valor" ? resp : null;
+      const herdaUn = !v && I().unLote && tipoChave() === "fab";
       ent.appendChild(el(`<div><label class="rot-campo">Tempo</label>${tempoCampos("t", v)}
-        <label class="rot-campo" for="un">Unidades que saem de uma vez</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : "1")}"></div>`));
+        <label class="rot-campo" for="un">Unidades que saem de uma vez ${herdaUn ? `<span class="veio">Veio do Módulo 5</span>` : ""}</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : herdaUn ? I().unLote : "1")}">
+        ${herdaUn ? `<p class="ajuda">É quanto rende a sua receita, como você contou no Módulo 5. Confira e ajuste se quiser.</p>` : ""}</div>`));
       ent.appendChild(btnNaoSei(() => { mostrar(caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
       let confirmouAlto = false;
       coletar = () => {
@@ -735,6 +791,29 @@
   const INST = Object.fromEntries(D.instrumentos.map((x) => [x.nome, x]));
   const avisoInst = (nome, i) => `<p class="aviso-inst">${esc(preencher(INST[nome].avisos[i || 0]))}</p>`;
   const termoBox = (nomes) => { const ts = TERMO.filter((t) => nomes.includes(t.termo)); return !ts.length ? "" : `<details class="saiba"><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.termo)}</b><p>${esc(t.explicacao)}</p><p class="ex">${esc(t.exemplo)}</p></div>`).join("")}</details>`; };
+  /* "O que entendemos até aqui": frases montadas por regra com este módulo + os anteriores */
+  function entendemos(c) {
+    const fr = [];
+    const o = oferta();
+    const tipoTxt = { fab: "um produto que você mesmo faz", rev: "uma mercadoria que você compra pronta para revender", serv: "um serviço" }[tipoChave()];
+    const est = { [ESTAGIOS[0]]: "ainda está na fase da ideia", [ESTAGIOS[1]]: "já fez testes ou amostras", [ESTAGIOS[2]]: "já vende" }[I().estagio];
+    if (o || tipoTxt) fr.push(`Você ${o ? `oferece ${o}` : "tem uma oferta"}${tipoTxt ? `, ${tipoTxt}` : ""}${est ? `, e ${est}` : ""}.`);
+    if (I().dor) fr.push(`Seu cliente procura você por isto: ${I().dor.replace(/[.!]+$/, "")}.`);
+    const mu = minUnAtual();
+    const hs = I().horas && I().horas !== NS ? I().horas.replace("Até", "até").replace("De", "de").replace("Mais", "mais").replace(" h", " horas") : null;
+    if (c.estado === "ok") fr.push(`Com ${hs} por semana${mu ? ` e cerca de ${fmtMin(mu)} para ${verbo()} cada um` : ""}, cabem ${Mo.texto(c, "mes")} por mês.`);
+    else if (c.estado === "sem-producao") fr.push("As tarefas de apoio (clientes, compras, entregas) tomam todo o tempo que você tem, então ainda não sobra tempo para produzir.");
+    else fr.push(`Ainda falta ${!hs ? "saber quantas horas por semana você tem" : "medir quanto tempo leva cada unidade ou atendimento"} para calcular quanto cabe por mês.`);
+    const vol = volume(), cmp = Mo.comparar(c, vol);
+    if (vol && cmp) fr.push(cmp.tipo === "falta" ? `Você quer vender ${Mo.fmt(vol)} por mês, mais do que cabe hoje: vale rever o tempo, pedir ajuda ou ajustar a meta.` : `Você quer vender ${Mo.fmt(vol)} por mês, e isso cabe no seu tempo.`);
+    const g = opR("M7-05"), r5 = S.R["M7-05"];
+    if (g && g !== NS) fr.push(`O que mais segura o seu ritmo hoje é ${g === "Uma etapa que demora ou acumula" && r5.etapa ? `a etapa “${r5.etapa}”` : g.charAt(0).toLowerCase() + g.slice(1)}.`);
+    const r6 = S.R["M7-06"];
+    if (temFase3() && I().item && r6 && r6.estado === "partes" && r6.p1 === "Só um") fr.push(`Você depende de um só fornecedor para ${I().item}: ter um segundo nome anotado evita parar se faltar.`);
+    else { const q9 = opR("M7-09"); if (q9 && q9 !== NS) fr.push(q9 === "Sigo um padrão ou receita anotada" ? "Você já segue um padrão anotado para a qualidade, o que ajuda a entregar sempre igual." : "Anotar um padrão de qualidade simples ajuda a entregar sempre igual."); }
+    return fr.slice(0, 6);
+  }
+  const fmtMin = (min) => { const h = Math.floor(min / 60), m = Math.round(min - h * 60); return h && m ? `${h} h ${m} min` : h ? `${h} h` : `${Mo.fmt(min, min % 1 ? 1 : 0)} min`; };
   function telaResultado() {
     if (S.hist[S.hist.length - 1] !== "RESULTADO") { S.hist.push("RESULTADO"); salvar(); }
     const c = calc();
@@ -782,10 +861,10 @@
       fornHtml = `<section class="cartao bloco-res"><h3>Fornecedores e estoque</h3>
         ${r6 && r6.estado === "partes" ? `<p class="diag-q">Fornecedores do item principal</p><p class="diag-r">${esc(r6.p1)} · chega: ${esc(r6.p2.toLowerCase())}${r6.dias ? ` (${esc(r6.dias)} dias)` : ""}</p>` : ""}
         <h4>Lembrete de reposição${I().item ? ` · ${esc(I().item)}` : ""}</h4>
-        ${ponto != null ? `<div class="res-num"><div class="lbl">Peça de novo quando restarem</div><div class="val">${esc(Mo.fmt(ponto))}</div><div class="sub">consumo de ${esc(Mo.fmt(Mo.consumoDia(vol, uso), 1))} por dia × ${esc(Mo.fmt(prazo))} dias de prazo${folga ? ` + folga de ${esc(Mo.fmt(folga))}` : ""}</div></div>`
+        ${ponto != null ? `<div class="res-num"><div class="lbl">Peça de novo quando restarem</div><div class="val">${esc(Mo.fmt(ponto))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}</div><div class="sub">consumo de ${esc(Mo.fmt(Mo.consumoDia(vol, uso), 1))} por dia × ${esc(Mo.fmt(prazo))} dias de prazo${folga ? ` + folga de ${esc(Mo.fmt(folga))}` : ""}</div></div>`
           : `<p class="diag-r">Para calcular, faltam ${[!vol && "o volume por mês", !(uso > 0) && "a quantidade do item por unidade", prazo == null && "o prazo de entrega"].filter(Boolean).join(", ")}. Complete em “Seu ponto de partida”.</p>`}
         <label class="rot-campo" for="folga">Folga que você quer manter (unidades a mais)</label><input class="campo" id="folga" inputmode="numeric" value="${esc(S.inst.folga)}">
-        ${compra ? `<p class="diag-r">Compra do mês${perda > 0 ? `, já contando a perda de ${esc(Mo.fmt(perda, perda % 1 ? 1 : 0))}%` : ""}: ${esc(Mo.fmt(compra))}.</p>` : ""}
+        ${compra ? `<p class="diag-r">Compra do mês${perda > 0 ? `, já contando a perda de ${esc(Mo.fmt(perda, perda % 1 ? 1 : 0))}%` : ""}: ${esc(Mo.fmt(compra))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}.</p>` : ""}
         ${avisoInst("Lembrete de reposição")}
         <h4>Quadro de fornecedores</h4>
         ${forn.map((f, i) => {
@@ -822,6 +901,7 @@
       ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: preencher(q13.pergunta), extra: chipOferta() })}
       <main class="corpo">
         ${barraFases(null, true)}
+        <section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>${entendemos(c).map((x) => `<p>${esc(x)}</p>`).join("")}</section>
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao retrato da sua operação</h2><p>${esc(preencher(q13.apoio))}</p></div></div>
         </section>

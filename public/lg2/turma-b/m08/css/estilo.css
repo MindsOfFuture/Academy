@@ -190,3 +190,13 @@ textarea.campo{resize:vertical;font-family:inherit}
 .e-sim{border-color:var(--m-purple)}
 .e-conf{border-color:var(--m-yellow-soft);background:#fffbef}
 #busca{margin-top:4px}
+/* herança de outros módulos e "O que entendemos até aqui" */
+.veio{display:inline-block;font-size:12px;font-weight:700;color:var(--m-purple);background:var(--m-lavender);border-radius:var(--m-pill);padding:1px 8px;margin-left:4px;vertical-align:middle}
+.herdou{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-4px 0 12px;font-size:13.5px;color:var(--m-gray)}
+.herdou .veio{margin-left:0}
+.herdou .conta{flex-basis:100%;margin:2px 0 0;padding:8px 12px;border-radius:10px;background:var(--m-lavender);color:#3d2f5c;font-size:14px;font-weight:700}
+.entendemos{border:2px solid var(--m-purple);border-radius:var(--m-radius);padding:14px 16px;margin:14px 0 6px;background:#fff}
+.entendemos h3{color:var(--m-purple);font-size:17px;margin:0 0 8px}
+.entendemos p{margin:0 0 6px;line-height:1.45}
+.entendemos p:last-child{margin-bottom:0}
+.respostas .etapa:first-of-type{margin-top:10px}

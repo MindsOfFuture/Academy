@@ -72,6 +72,11 @@ ok(Motor.validar(M, M.porCodigo['M5.P02'], '', {}) === 'Preencha o nome para con
   ok(f && f.min === 40 && f.max === 60, 'faixa do Módulo 3 lida do texto livre');
   ok(Motor.faixaMercado('não sei') === null, 'faixa sem número = sem comparação');
 }
+/* herança do Módulo 1 (relatório do testador 05/11): M1.P03A -> M5.P01 e M1.P01 -> M5.P00 */
+ok(Motor.herdarTipo(M, { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' }) === 'Serviço: meu cliente paga pelo trabalho que realizo', 'M1.P03A Serviço -> opção Serviço da P01');
+ok(Motor.herdarTipo(M, { estado: 'opcao', opcao: 'Mercadoria' }) === 'Mercadoria: compro pronto para revender', 'M1.P03A mapeado pela palavra inicial');
+ok(Motor.herdarTipo(M, { estado: 'naosei' }) === null && Motor.herdarTipo(M, null) === null, 'M1.P03A "Não sei"/ausente não é herança');
+ok(Motor.herdarEstagio(M, { estado: 'opcao', opcao: 'Não sei dizer' }) === null && Motor.herdarEstagio(M, { estado: 'opcao', opcao: 'Já vendo sempre' }) === 'Já vendo sempre', 'M1.P01 "Não sei dizer" não é herança');
 /* conta do motor contra a conta à mão (unidade) */
 ok(Motor.classificar(19.9) === 'baixo' && Motor.classificar(20) === null && Motor.classificar(100) === null && Motor.classificar(100.1) === 'alto', 'faixas 20/100 no classificar');
 
@@ -178,6 +183,7 @@ const server = http.createServer(async (req, res) => {
       await page.evaluate((m1) => { localStorage.clear(); if (m1) localStorage.setItem('lg2-turma-a-m01', JSON.stringify(m1)); }, m1 || null);
       await page.reload();
       ok(await clicar('#ir', 'Começar'), 'Começar');
+      if (m1 && m1.R['M1.P01']) return;            // estágio herdado do Módulo 1: a tela P00 é pulada (testado à parte)
       ok(await atual() === 'M5.P00', 'primeira tela = pergunta 1 do Módulo 1');
       ok((await texto('h2.q')) === 'Como está a sua ideia hoje?', 'P00: texto da pergunta 1 do Módulo 1');
       ok(await page.locator('#naosei').count() === 1, 'P00: botão de ajuda "Não sei" já no começo');
@@ -329,6 +335,14 @@ const server = http.createServer(async (req, res) => {
     ok((await texto('#tab-formas')).includes('Pix (60% das vendas)') && (await texto('#tab-formas')).includes('recebe em 30 dias') && (await texto('#tab-formas')).includes('2,0%'), 'resultado: taxa e prazo por forma + taxa média 2,0%');
     ok((await texto('#margem-x-acrescimo')).includes(Motor.MARGEM_X_ACRESCIMO.exemplo), 'resultado: explicação acréscimo x margem');
     ok(await page.locator('#simulacao').count() === 0, 'quem já vende sempre: sem aviso de simulação');
+    {
+      const ent = await texto('#entendemos');
+      const nfr = await page.locator('#entendemos p').count();
+      ok(nfr >= 3 && nfr <= 6, `"O que entendemos até aqui": 3 a 6 frases (${nfr})`);
+      ok(ent.startsWith('O que entendemos até aqui') && ent.includes('o produto “Bolo de pote”') && ent.includes('Você já vende') && ent.includes('R$ 3,10') && ent.includes('R$ 2.050,00') && ent.includes('1408 unidades por mês'), 'entendemos (Produto): item, estágio, custo, gastos do mês e vendas para cobrir: ' + ent);
+      ok(await page.evaluate(() => { const e = document.getElementById('entendemos'), r = document.querySelector('#numeros .res-num'); return !!e && !!r && (e.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }), 'entendemos fica acima das contas de custo/preço');
+      ok(!/M5\.|M1\.|Módulo \d, pergunta/.test(ent), 'entendemos sem códigos de pergunta');
+    }
     ok((await texto('#descontados')).includes('o valor que você separa pelo seu trabalho'), 'resultado: explica o que já foi descontado (inclui a remuneração)');
     await semNaN('resultado Produto');
     await shot('06-resultado-produto.png');
@@ -402,11 +416,17 @@ const server = http.createServer(async (req, res) => {
     /* ===== 3. Serviço: com materiais, mistura Sim/Não, "Ainda não comecei" e "Não sei" no preço ===== */
     const m1 = { v: 2, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendi algumas vezes' }, 'M1.P03': { estado: 'valor', valor: 'Corte de cabelo' } } };
     await inicio(m1);
-    ok(await page.locator('#ent .opcao.sel').count() === 1 && (await texto('#ent .opcao.sel')) === 'Já vendi algumas vezes', 'P00: resposta do Módulo 1 vem marcada');
-    ok((await texto('.selo-m')).includes('Veio do Módulo 1'), 'P00: selo "Veio do Módulo 1"');
-    await shot('m05_P00_modulo1.png');
+    /* relatório 05/11: a tela que só repetia a resposta do Módulo 1 vira contexto no topo da 1ª pergunta real */
+    ok(await atual() === 'M5.P01' && !(await state()).hist.includes('M5.P00'), 'estágio do Módulo 1: tela P00 pulada, abre direto em P01');
+    ok((await state()).R['M5.P00'].opcao === 'Já vendi algumas vezes' && (await state()).R['M5.P00'].estado === 'opcao', 'P00 gravada no Módulo 5 (herdada)');
+    ok((await texto('#seu-negocio')).includes('Seu negócio: Corte de cabelo') && (await texto('#neg-estagio')).includes('Já vendi algumas vezes') && (await texto('#neg-estagio')).includes('Veio do Módulo 1'), 'P01: cartão "Seu negócio" com ideia e estágio do Módulo 1');
+    ok(await page.locator('#ent .opcao').count() === 3 && await page.locator('#ent .opcao.sel').count() === 0, 'sem M1.P03A: P01 pergunta como antes (3 opções, nada marcado)');
+    await shot('m05_P01_cartao_negocio.png');
+    /* Trocar o estágio: abre a P00 com a resposta herdada marcada e o selo */
+    ok(await clicar('#neg-estagio .alterar', 'Trocar') && await atual() === 'M5.P00', 'Trocar estágio abre a P00');
+    ok((await texto('#ent .opcao.sel')) === 'Já vendi algumas vezes' && (await texto('.selo-m')).includes('Veio do Módulo 1'), 'P00 aberta pelo Trocar: resposta herdada marcada + selo');
     await continuar(); await seguir();
-    ok((await state()).R['M5.P00'].opcao === 'Já vendi algumas vezes', 'P00 gravada no Módulo 5');
+    ok(await atual() === 'M5.P01' && (await state()).R['M5.P00'].herdado === 'M1', 'confirmar o mesmo estágio mantém a marca de herança e volta à P01');
     await escolher('Serviço');
     ok(await page.inputValue('#ent input') === 'Corte de cabelo' && (await texto('.selo-m')).includes('Módulo 1'), 'P17: nome trazido do Módulo 1 (pergunta 3)');
     await continuar(); await seguir();      // P17
@@ -483,6 +503,54 @@ const server = http.createServer(async (req, res) => {
     await page.evaluate(() => document.getElementById('numeros').scrollIntoView());
     await shot('m05_resultado_sem_sobra.png');
     console.log('PASS-stage: sem sobra + simulação');
+
+    /* ===== 6. Herança completa do Módulo 1 (lava-jato em domicílio): estágio + tipo -> pula P00 e P01 ===== */
+    const m1b = { v: 2, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Lava-jato em domicílio' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
+    await inicio(m1b);
+    ok(await atual() === 'M5.P17' && JSON.stringify((await state()).hist) === '["M5.P17"]', 'tipo do Módulo 1: P00 e P01 puladas, abre no nome do serviço');
+    {
+      const r01 = (await state()).R['M5.P01'];
+      ok(r01.estado === 'opcao' && r01.opcao === 'Serviço: meu cliente paga pelo trabalho que realizo' && r01.herdado === 'M1', 'M5.P01 gravada no mesmo formato ({estado, opcao}) + marca de herança');
+    }
+    ok((await texto('#seu-negocio')).includes('Seu negócio: Lava-jato em domicílio · Serviço'), 'cartão "Seu negócio: <ideia> · <tipo>"');
+    ok((await texto('#neg-tipo')).includes('Veio do Módulo 1') && (await texto('#neg-tipo .alterar')) === 'Trocar', 'tipo herdado com selo e Trocar');
+    ok((await texto('#seu-negocio')).includes('Confira e ajuste se quiser'), 'cartão pede para conferir');
+    ok(await page.locator('.contexto').count() === 0, 'cartão substitui a etiqueta "Tipo escolhido"');
+    ok(await page.inputValue('#ent input') === 'Lava-jato em domicílio', 'nome do serviço vem do Módulo 1');
+    await shot('m05_herdado_nome_servico.png');
+    await continuar(); await seguir();      // P17
+    await escolher('Não');                  // P18 -> P23
+    await preencher(['1', '0']);            // P23
+    await formas(['Pix']);
+    await escolher('Não');                  // P24
+    await escolher('Não');                  // P26
+    await escolher('Sim'); await preencher(['200']);   // P28/P29
+    await escolher('Não'); await escolher('Não'); await escolher('Não');
+    await preencher(['40']);                // P37
+    await preencher(['60']);                // P36
+    ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (herdado)');
+    {
+      const ent = await texto('#entendemos');
+      ok(ent.includes('Seu negócio é “Lava-jato em domicílio” e, aqui, você analisou o serviço “Lava-jato em domicílio”') === false && ent.includes('Você analisou o serviço “Lava-jato em domicílio”'), 'entendemos: nome igual à ideia não se repete');
+      ok(ent.includes('Você já vende') && ent.includes('R$ 200,00') && ent.includes('Cobrando R$ 60,00, sobram R$ 60,00 em cada atendimento') && ent.includes('4 atendimentos por mês') && ent.includes('Vendendo 40 por mês, sobram R$ 2.200,00'), 'entendemos (Serviço herdado): estágio, gastos, sobra, vendas para cobrir e o mês: ' + ent);
+      ok((await texto('.is-txt')).includes('Veio do Módulo 1') && await page.locator('.is-txt [data-trocar="M5.P01"]').count() === 1, 'resultado: tipo herdado com selo e Trocar');
+      await semNaN('resultado herdado');
+      await page.locator('#entendemos').scrollIntoViewIfNeeded();
+      await shot('m05_resultado_entendemos.png');
+    }
+    /* Trocar o tipo a partir do resultado: abre a P01 com o tipo herdado marcado */
+    ok(await clicar('.is-txt .alterar', 'Trocar') && await atual() === 'M5.P01', 'Trocar (resultado) abre a pergunta do tipo');
+    ok((await texto('#ent .opcao.sel b')) === 'Serviço' && (await texto('.selo-m')).includes('Veio do Módulo 1'), 'P01 aberta pelo Trocar: tipo herdado marcado + selo');
+    ok(!(await state()).hist.includes('RESULTADO'), 'Trocar tira o resultado do histórico');
+    await escolher('Mercadoria');
+    ok(await atual() === 'M5.P10' && !(await state()).R['M5.P01'].herdado, 'trocar para Mercadoria: segue o fluxo da mercadoria, sem marca de herança');
+    ok(!(await texto('#neg-tipo')).includes('Veio do Módulo 1') && (await texto('#neg-tipo')).includes('Mercadoria'), 'cartão mostra o tipo trocado, sem selo');
+    ok(await clicar('#neg-tipo .alterar', 'Trocar') && await atual() === 'M5.P01' && JSON.stringify((await state()).hist.slice(-2)) !== '["M5.P10","M5.P01"]', 'Trocar no cartão substitui a tela do nome no histórico');
+    ok(JSON.stringify(await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))) === JSON.stringify(m1b), 'Módulo 1 só lido, nunca alterado (herança completa)');
+    /* M1.P03A "Não sei": não conta como herança, P01 pergunta como antes */
+    await inicio({ v: 2, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03A': { estado: 'naosei' } } });
+    ok(await atual() === 'M5.P01' && !(await state()).R['M5.P01'], 'M1.P03A "Não sei": P01 pergunta normalmente');
+    console.log('PASS-stage: herança do Módulo 1');
 
     ok(errors.length === 0, 'sem erros de JavaScript: ' + errors.join(' | '));
   } catch (e) {
