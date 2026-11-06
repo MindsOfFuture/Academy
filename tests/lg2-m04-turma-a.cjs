@@ -442,6 +442,41 @@ async function caminho(page, respostas, outros) {
     check('tipo Produto: resumo mostra a ficha técnica do produto, sem a do serviço', p.finalTodo.includes('Ficha técnica do produto') && !p.finalTodo.includes('Ficha técnica do serviço'));
   }
   {
+    /* 4º lote (Alicia: brownies; Levi: hamburgueria): produto de ALIMENTO tem ficha técnica da receita */
+    const AL = P['M4.P03'].por_tipo && P['M4.P03'].por_tipo.Alimento, so = (s) => s.replace(/\s+/g, ' ');
+    const GEN1 = P['M4.P03'].prompt_ia.split('\n')[0], AL1 = AL && AL.prompt_ia.split('\n')[0];
+    check('alimento: dados têm a variante Alimento da P03 e do conceito M4.BT09', !!AL && !!D.base.find((b) => b.codigo === 'M4.BT09').por_tipo.Alimento);
+    const ITENS = [/gramas ou ml/, /rende/, /[Pp]erd[ae] no preparo/, /[Ee]mbalagem de cada unidade/, /[Vv]alidade e como guardar/, /[Tt]empo de preparo de cada fornada ou pedido/, /custo da receita ÷/];
+    check('alimento: texto de IA pede quantidades, rendimento, perda, embalagem, validade, tempo e custo por unidade', ITENS.every((r) => r.test(AL.prompt_ia)) && /brownie/.test(AL.prompt_ia) && /R\$ 30 ÷ 10 = R\$ 3,00/.test(AL.prompt_ia), ITENS.filter((r) => !r.test(AL.prompt_ia)).map(String));
+    check('alimento: ajuda pede os mesmos 7 pontos, com exemplo de brownie e conta simples', ITENS.slice(0, 6).every((r) => r.test(AL.ajuda)) && /Custo por unidade = custo da receita ÷ rendimento, mais a embalagem/.test(AL.ajuda) && /brownie/.test(AL.ajuda_exemplo.titulo) && /R\$ 30 ÷ 10 = R\$ 3,00 \+ R\$ 0,50 da embalagem = R\$ 3,50/.test(AL.ajuda_exemplo.texto));
+    const M1_IDEIA = (ideia) => ({ 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: ideia }, 'M1.P03A': { estado: 'opcao', opcao: 'Produto: eu faço o que vendo' } } } });
+    /* ideia do Módulo 1 = brownies artesanais (a pergunta 1 respondida com texto neutro: vale a ideia do Módulo 1) */
+    const b = await caminho(page, { 'M4.P02': 'Produto', 'M4.P03': 'NS', 'M4.P05': '2' }, M1_IDEIA('brownies artesanais'));
+    const t3 = so(b.telas['M4.P03'].corpo);
+    check('alimento (M1 = brownies artesanais): P03 pergunta pela receita e rendimento', b.telas['M4.P03'].pergunta === AL.pergunta, b.telas['M4.P03'].pergunta);
+    check('alimento (M1 = brownies artesanais): ajuda da receita na tela, sem o exemplo genérico', t3.includes(so(AL.ajuda)) && /Ver um exemplo com brownie/.test(t3) && !t3.includes('Ex.: farinha, ovos, açúcar, embalagem.'));
+    check('alimento (M1 = brownies artesanais): "Não sei" dá o texto de IA de alimento, com Copiar', t3.includes(AL1) && !t3.includes(GEN1) && /Copiar texto/.test(t3) && t3.includes('Perda no preparo'));
+    check('alimento: conceito da ficha técnica com exemplo de brownie', t3.includes('Ficha técnica do produto') && /Brownie: 200 g de chocolate/.test(t3));
+    check('alimento: resumo mostra a ficha técnica da receita', b.finalTodo.includes(D.base.find((x) => x.codigo === 'M4.BT09').por_tipo.Alimento.definicao));
+    await abrirEm('M4.P03', { 'M4.P02': 'Produto', 'M4.P05': '2' }, M1_IDEIA('brownies artesanais'));
+    const ex = await page.evaluate(() => { const d = document.querySelector('.dica .dica-mais'), ok = document.querySelector('#ok').getBoundingClientRect(); const fechado = !!d && !d.open; if (d) d.open = true; return { fechado, texto: d ? d.innerText : '', okTop: ok.top + window.scrollY }; });
+    check('alimento: exemplo do brownie recolhido na dica (o campo fica perto) e com a conta ao abrir', ex.fechado && /R\$ 30 ÷ 10 = R\$ 3,00/.test(ex.texto) && /12 pedaços/.test(ex.texto), ex);
+    /* sem Módulo 1: a própria resposta da pergunta 1 (hamburgueria) */
+    const h = await caminho(page, { 'M4.P01': 'Hambúrguer artesanal no bairro', 'M4.P02': 'Produto', 'M4.P03': 'NS', 'M4.P05': '2' });
+    check('alimento (pergunta 1 = hambúrguer): P03 com ficha da receita e IA de alimento', h.telas['M4.P03'].pergunta === AL.pergunta && so(h.telas['M4.P03'].corpo).includes(AL1));
+    /* não é alimento: velas aromáticas = ficha atual */
+    const v = await caminho(page, { 'M4.P02': 'Produto', 'M4.P03': 'NS', 'M4.P05': '2' }, M1_IDEIA('velas aromáticas'));
+    const tv = so(v.telas['M4.P03'].corpo);
+    check('não alimento (velas aromáticas): P03 com a pergunta, a ajuda e a IA genéricas', v.telas['M4.P03'].pergunta === P['M4.P03'].pergunta && tv.includes('Ex.: farinha, ovos, açúcar, embalagem.') && tv.includes(GEN1) && !tv.includes(AL1) && !/Brownie: 200 g/.test(tv));
+    check('não alimento: resumo com a ficha técnica genérica do produto', v.finalTodo.includes(D.base.find((x) => x.codigo === 'M4.BT09').definicao));
+    /* Produto + Serviço de alimento: a parte do produto vira receita; a ficha do serviço não muda */
+    const ps = await caminho(page, { 'M4.P02': 'Produto+ Serviço', 'M4.P06': 'NS', 'M4.P14': 'Aceitar agendamento ou reserva antes de atender' }, M1_IDEIA('brownies artesanais'));
+    check('alimento + serviço: P03 de receita e P06 com a ficha do serviço de antes', ps.telas['M4.P03'].pergunta === AL.pergunta && so(ps.telas['M4.P06'].corpo).includes(P['M4.P06'].prompt_ia.split('\n')[0]) && /ficha técnica do seu atendimento/.test(ps.telas['M4.P06'].corpo));
+    /* Mercadoria de comida (compra pronta): continua a ficha de mercadoria */
+    const mc = await caminho(page, { 'M4.P01': 'Revenda de chocolates', 'M4.P02': 'Mercadoria' });
+    check('alimento comprado pronto (Mercadoria): continua a lista de mercadorias', /comprar prontas para revender/.test(mc.telas['M4.P03'].pergunta));
+  }
+  {
     /* estado da versão 2: opção antiga da pergunta 4 é traduzida */
     await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m04', JSON.stringify({ v: 2, R: { 'M4.P01': { estado: 'valor', valor: 'Bolo' }, 'M4.P02': { estado: 'opcao', opcao: 'Produto' }, 'M4.P03': { estado: 'valor', valor: 'farinha' }, 'M4.P04': { estado: 'opcao', opcao: 'Plataformas (ifood)' } }, hist: ['M4.P01', 'M4.P02', 'M4.P03', 'M4.P04'] })); });
     await page.reload(); await page.click('#ir');

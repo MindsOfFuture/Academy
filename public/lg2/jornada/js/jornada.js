@@ -134,6 +134,88 @@
     caixa.hidden = !frases.length;
   }
 
+  // Painel "Seu negócio até aqui": o resumo e o estado de cada módulo, a qualquer momento da jornada.
+  // Só lê as respostas guardadas neste aparelho; é montado de novo cada vez que abre.
+  var painel = document.getElementById('painel');
+  var abrePainel = document.getElementById('abre-painel');
+  var fechaPainel = document.getElementById('fecha-painel');
+  function lerModulo(n) {
+    var R = window.ResumoNegocio;
+    try { return R && R.lerLocal ? R.lerLocal(n) : null; } catch (e) { return null; }
+  }
+  function comecou(n) {
+    var s = lerModulo(n);
+    return !!(s && ((s.R && typeof s.R === 'object' && Object.keys(s.R).length) || s.ini));
+  }
+  function andamento(m) {
+    if (!m.caminho) return 'breve';
+    if (feito(m.n)) return 'feito';
+    return comecou(m.n) ? 'andamento' : 'nada';
+  }
+  function montarPainel() {
+    var pars = [];
+    try {
+      var R = window.ResumoNegocio;
+      pars = R ? (R.paragrafos ? R.paragrafos() : [R.frases().join(' ')]) : [];
+    } catch (e) { pars = []; }
+    pars = pars.filter(Boolean);
+    var algum = estado.feitos.length > 0 || prontos.some(function (m) { return comecou(m.n); });
+    var alvo = document.getElementById('painel-resumo');
+    alvo.textContent = '';
+    if (pars.length) {
+      pars.forEach(function (t) { var p = document.createElement('p'); p.textContent = t; alvo.appendChild(p); });
+    } else {
+      var v = document.createElement('p'); v.className = 'vazio';
+      v.textContent = algum
+        ? 'Ainda não dá para montar o resumo. Continue respondendo os módulos e ele vai aparecer aqui.'
+        : 'Você ainda não respondeu nenhuma pergunta. Comece pelo Módulo 1 e o resumo do seu negócio vai aparecer aqui.';
+      alvo.appendChild(v);
+    }
+    document.getElementById('painel-nota').hidden = !pars.length;
+    var lista = document.getElementById('painel-lista');
+    lista.textContent = '';
+    MODULOS.forEach(function (m) {
+      var st = andamento(m);
+      var li = document.createElement('li');
+      li.setAttribute('data-modulo', m.n);
+      var nome = document.createElement('span'); nome.className = 'mod-nome';
+      var b = document.createElement('b'); b.textContent = 'Módulo ' + m.n;
+      nome.appendChild(b); nome.appendChild(document.createTextNode(' · ' + m.nome));
+      li.appendChild(nome);
+      var chip = document.createElement('span'); chip.className = 'estado ' + st;
+      chip.textContent = { feito: 'Feito', andamento: 'Em andamento', nada: 'Não começado', breve: 'Em breve' }[st];
+      li.appendChild(chip);
+      if (m.caminho && (liberado(m.n) || feito(m.n))) {
+        var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'revisar';
+        bt.textContent = 'Abrir para revisar';
+        bt.setAttribute('aria-label', 'Abrir o Módulo ' + m.n + ' para revisar');
+        bt.addEventListener('click', function () { fecharPainel(); abrir(m.n); });
+        li.appendChild(bt);
+      } else if (m.caminho) {
+        var ant = prontos[prontos.findIndex(function (x) { return x.n === m.n; }) - 1];
+        var t = document.createElement('span'); t.className = 'trava';
+        t.textContent = 'Abre depois do Módulo ' + ant.n;
+        li.appendChild(t);
+      }
+      lista.appendChild(li);
+    });
+  }
+  function abrirPainel() {
+    montarPainel();
+    painel.hidden = false;
+    painel.querySelector('.painel-corpo').scrollTop = 0;
+    fechaPainel.focus();
+  }
+  function fecharPainel() {
+    if (painel.hidden) return;
+    painel.hidden = true;
+    abrePainel.focus();
+  }
+  abrePainel.addEventListener('click', abrirPainel);
+  fechaPainel.addEventListener('click', fecharPainel);
+  painel.addEventListener('click', function (ev) { if (ev.target === painel) fecharPainel(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') fecharPainel(); });
+
   // O resultado de cada módulo tem a caixa ".lg2-proximo". Quando ela aparece, o módulo está concluído.
   // O botão dela ("Ir para o Módulo N" / "Voltar aos módulos") passa a seguir a jornada.
   var vigia = null;
@@ -150,6 +232,7 @@
       return;
     }
     if (estado.atual !== m.n) { estado.atual = m.n; gravar(); desenhar(); }
+    doc.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') fecharPainel(); });
     doc.addEventListener('click', function (ev) {
       var a = ev.target && ev.target.closest && ev.target.closest('.lg2-proximo a');
       if (!a) return;
