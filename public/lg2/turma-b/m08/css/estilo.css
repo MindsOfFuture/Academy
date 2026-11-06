@@ -200,3 +200,15 @@ textarea.campo{resize:vertical;font-family:inherit}
 .entendemos p{margin:0 0 6px;line-height:1.45}
 .entendemos p:last-child{margin-bottom:0}
 .respostas .etapa:first-of-type{margin-top:10px}
+/* alerta forte (faturamento acima do limite do MEI) e aviso que não trava */
+.alerta-forte{background:#fdeceb;border:2px solid var(--m-coral);border-radius:14px;padding:14px 16px;margin:14px 0;color:#2b2340;font-size:15px}
+.alerta-forte .af-tit{display:block;color:#a13229;font-size:17px;margin-bottom:6px}
+.alerta-forte p{margin:6px 0}
+.alerta-forte .num{color:#a13229}
+.erro.erro-aviso{background:#fff7e0;color:#6b5200;border-left:4px solid var(--m-yellow-soft)}
+.sugestoes>p{font-size:15px;margin:6px 0}
+#ok{scroll-margin:16px}
+
+/* "Não sei" numa pergunta necessária */
+#ns-ajuda{margin-top:12px}
+#ns-ajuda .ns-pede{margin:8px 0 0;font-weight:700}

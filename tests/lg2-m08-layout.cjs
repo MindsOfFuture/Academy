@@ -107,7 +107,10 @@ const K = 'lg2-turma-b-m08';
   /* "O que entendemos até aqui" no topo; a lista de respostas fica recolhida */
   assert.equal(nrm(await page.textContent('#entendemos h3')), 'O que entendemos até aqui');
   const fr0 = await page.$$eval('#entendemos p', (x) => x.map((e) => e.textContent));
-  assert.ok(fr0.length >= 3 && fr0.length <= 6, `entendemos com 3 a 6 frases (${fr0.length})`);
+  /* texto corrido (relatório do Bento): 1 a 3 parágrafos, sem lista */
+  assert.ok(fr0.length >= 1 && fr0.length <= 3, `entendemos em 1 a 3 parágrafos (${fr0.length})`);
+  assert.ok(await page.$eval('#entendemos', (e) => !e.querySelector('ul, ol, li') && e.querySelectorAll('p').length >= 1), 'entendemos sem <li> e com pelo menos um <p>');
+  assert.ok(fr0.join(' ').split(/(?<=[.!?])\s+(?=[A-ZÀ-Ú])/).length >= 3, 'entendemos continua com 3 ou mais frases');
   assert.ok(nrm(fr0.join(' ')).includes('Faço bolos por encomenda') && nrm(fr0.join(' ')).includes('R$ 5.000 por mês'), 'entendemos usa as respostas deste módulo');
   assert.ok(await page.evaluate(() => document.querySelector('#entendemos').compareDocumentPosition(document.querySelector('details.respostas')) & 4), 'caixa acima da lista');
   assert.equal(nrm(await page.textContent('details.respostas summary')), 'Ver suas respostas');
@@ -170,7 +173,7 @@ const K = 'lg2-turma-b-m08';
   await page.fill('#ent textarea', 'Lavo carros na garagem do cliente'); await btn('Continuar').click();
   assert.equal((await st()).R['M8.P01'].de, undefined, 'resposta alterada perde o selo');
 
-  /* "Não sei" herdado não conta; Mercadoria conta como Produto; sem preço x quantidade nada é preenchido */
+  /* "Não sei" herdado não conta; Mercadoria chega como Mercadoria; sem preço x quantidade nada é preenchido */
   await semear({
     'lg2-turma-a-m01': { v: 3, R: { 'M1.P03': { estado: 'naosei' }, 'M1.P03A': { estado: 'naosei' } } },
     'lg2-turma-a-m05': { versao: 3, R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P37': { estado: 'opcao', opcao: 'Ainda não comecei a vender' } } },
@@ -179,7 +182,7 @@ const K = 'lg2-turma-b-m08';
   assert.equal(await page.locator('#herdou').count(), 0, 'P01: "Não sei" do Módulo 1 não é herdado');
   assert.equal(await page.inputValue('#ent textarea'), '');
   await page.fill('#ent textarea', 'Revendo cosméticos'); await btn('Continuar').click(); await page.locator('#acoes .btn-primario').first().click();
-  assert.equal(nrm(await page.textContent('#ent .opcao.sel')), 'Produto', 'P02: Mercadoria vira Produto');
+  assert.equal(nrm(await page.textContent('#ent .opcao.sel')), 'Mercadoria', 'P02: Mercadoria do Módulo 5 chega como Mercadoria');
   assert.equal(nrm(await page.textContent('#herdou .veio')), 'Veio do Módulo 5');
   await btn('Continuar').click(); await page.locator('#acoes .btn-primario').first().click();
   assert.equal(await page.locator('#herdou').count(), 0, 'P03: sem Módulo 9, sem herança');

@@ -77,6 +77,42 @@ ok(Motor.herdarTipo(M, { estado: 'opcao', opcao: 'Serviço: meu cliente paga pel
 ok(Motor.herdarTipo(M, { estado: 'opcao', opcao: 'Mercadoria' }) === 'Mercadoria: compro pronto para revender', 'M1.P03A mapeado pela palavra inicial');
 ok(Motor.herdarTipo(M, { estado: 'naosei' }) === null && Motor.herdarTipo(M, null) === null, 'M1.P03A "Não sei"/ausente não é herança');
 ok(Motor.herdarEstagio(M, { estado: 'opcao', opcao: 'Não sei dizer' }) === null && Motor.herdarEstagio(M, { estado: 'opcao', opcao: 'Já vendo sempre' }) === 'Já vendo sempre', 'M1.P01 "Não sei dizer" não é herança');
+/* relatório dos testadores 05/11 */
+{
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  ok(/content="width=device-width, initial-scale=1, interactive-widget=resizes-content"/.test(html), 'receita A: viewport com interactive-widget=resizes-content');
+  ok((app.match(/addEventListener\("focusin"/g) || []).length === 1 && /visualViewport/.test(app) && /scrollIntoView\(\{ block: "center" \}\)/.test(app) && !/scrollTo\(0, ?0\)[^;]*focus/.test(app), 'receita A: um listener focusin + visualViewport, centraliza o campo');
+  ok(/const LIMITE_ACRESCIMO = 500;/.test(motorSrc) && /const LIMITE_FATURAMENTO = 100000;/.test(motorSrc), 'limites nomeados: acréscimo 500% e faturamento R$ 100 mil/mês');
+  /* receita B: texto em campo numérico não passa */
+  ok(Motor.num('abc') === null && Motor.num('12abc') === null && Motor.num('1e5') === null && Motor.num('12,50') === 12.5 && Motor.num('0.5') === 0.5 && Motor.num('1.500') === 1500 && Motor.num('1.500,75') === 1500.75 && Motor.num('R$ 30') === 30, 'num(): texto não é número; "1.500" = 1500; vírgula e ponto decimal');
+  const V = (c, v, R = {}) => Motor.validar(M, M.porCodigo[c], v, R);
+  ok(V('M5.P07', 'dez') === Motor.MSG_NUMERO && V('M5.P29', 'quinhentos') === Motor.MSG_NUMERO && V('M5.P36', 'caro') === Motor.MSG_NUMERO && V('M5.P37', '10 bolos') === Motor.MSG_NUMERO, 'número/R$: texto rejeitado com "Digite só números"');
+  ok(V('M5.P04', ['10', 'doze']) === Motor.MSG_NUMERO, 'preço por item: texto rejeitado');
+  ok(V('M5.P05', [{ q: 'um', u: 'kg' }]) === Motor.MSG_NUMERO, 'quantidade + unidade: texto rejeitado');
+  ok(V('M5.P09', { preco: 'vinte', qtd: '10' }) === Motor.MSG_NUMERO && V('M5.P09', { preco: '20', qtd: 'dez' }) === Motor.MSG_NUMERO, 'pacote: texto rejeitado');
+  ok(V('M5.P33', [{ nome: 'Internet', v: 'cem' }]) === Motor.MSG_NUMERO, 'lista de contas: texto no valor rejeitado');
+  ok(V('M5.P23', { h: 'uma', m: '' }) === Motor.MSG_NUMERO, 'tempo: texto rejeitado');
+  ok(V('M5.P25', [{ forma: 'Pix', taxa: 'zero', prazo: '' }]) === Motor.MSG_NUMERO && V('M5.P25', [{ forma: 'Pix', taxa: '0', prazo: 'trinta' }]) === Motor.MSG_NUMERO, 'taxas por forma: texto rejeitado');
+  ok(V('M5.P29', '500') === null && V('M5.P04', ['10', '12,5']) === null, 'números válidos continuam passando');
+  /* valores absurdos: aviso (não trava) */
+  const Rm = { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P11': { estado: 'valor', valor: '1500' }, 'M5.P12': { estado: 'valor', valor: '1500' }, 'M5.P13': { estado: 'opcao', opcao: 'Não' }, 'M5.P15': { estado: 'opcao', opcao: 'Não' } };
+  ok(Motor.avisoValor(M, M.porCodigo['M5.P36'], '1500', Rm) === 'Seu preço está 1.500 vezes o custo. Confira se o custo ou o preço estão certos.', 'P36: custo 1 x preço 1.500 -> "1.500 vezes o custo"');
+  ok(Motor.avisoValor(M, M.porCodigo['M5.P36'], '6', Rm) === null && Motor.avisoValor(M, M.porCodigo['M5.P36'], '6,01', Rm) !== null, 'P36: limite em 500% (6 vezes o custo não avisa; 6,01 avisa)');
+  ok(Motor.msgVezes(7.5, 1).includes('7,5 vezes'), 'vezes com uma casa abaixo de 10');
+  /* gasto inicial x Módulo 1 (pergunta 7) */
+  ok(Motor.gastoInicial(M, Rm) === 1500, 'gasto inicial Mercadoria = compra 1.500');
+  const inv = Motor.avisoInvestimento(M, Rm, { estado: 'opcao', opcao: 'Até R$ 100' });
+  ok(inv && inv.teto === 100 && inv.texto.includes('“Até R$ 100”') && inv.texto.includes('R$\u00a01.500,00'), 'aviso: compra R$ 1.500 acima de "Até R$ 100" do Módulo 1');
+  ok(Motor.avisoInvestimento(M, Rm, { estado: 'opcao', opcao: 'Mais de R$ 1.000' }) === null && Motor.avisoInvestimento(M, Rm, { estado: 'opcao', opcao: 'Entre R$ 500 e R$ 1.000' }) !== null && Motor.avisoInvestimento(M, Rm, null) === null, 'tetos 0/100/500/1000/sem teto');
+  const Rp = { 'M5.P01': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' }, 'M5.P04': { estado: 'valor', valor: ['10', '12'] }, 'M5.P08': { estado: 'opcao', opcao: 'Sim' }, 'M5.P09': { estado: 'valor', valor: { preco: '20', qtd: '10' } } };
+  ok(Motor.gastoInicial(M, Rp) === 42 && Motor.avisoInvestimento(M, Rp, { estado: 'opcao', opcao: 'Nada por enquanto' }) !== null && Motor.avisoInvestimento(M, Rp, { estado: 'opcao', opcao: 'Até R$ 100' }) === null, 'gasto inicial Produto = materiais 10 + 12 + embalagens 20 = 42');
+  /* ponto de equilíbrio: o que falta quando não dá para calcular */
+  ok(/falta informar os gastos fixos do mês/.test(Motor.calcular(M, Object.assign({ 'M5.P36': { estado: 'valor', valor: '30' } }, Rm)).peFalta), 'sem gastos do mês: diz o que falta');
+  ok(/falta informar o preço de venda e os gastos fixos/.test(Motor.calcular(M, Rm).peFalta), 'sem preço e sem gastos: diz os dois');
+  /* exemplos por tipo */
+  ok(M.porCodigo['M5.P03'].notaConsumo.exemplo === Motor.NOTA_CONSUMO.exemploProduto && M.porCodigo['M5.P19'].notaConsumo.exemplo === Motor.NOTA_CONSUMO.exemplo, 'nota de consumo: exemplo de produto na P03 e de serviço na P19');
+  ok(Motor.exemploConceito(M.conceito['M5.BT04'], 'Serviço').includes('manicure') && Motor.exemploConceito(M.conceito['M5.BT04'], 'Produto') === M.conceito['M5.BT04'].exemplo && Motor.exemploConceito(M.conceito['M5.BT07'], 'Mercadoria').includes('revende'), 'exemplos dos conceitos por tipo (perdas, trabalho)');
+}
 /* conta do motor contra a conta à mão (unidade) */
 ok(Motor.classificar(19.9) === 'baixo' && Motor.classificar(20) === null && Motor.classificar(100) === null && Motor.classificar(100.1) === 'alto', 'faixas 20/100 no classificar');
 
@@ -178,6 +214,16 @@ const server = http.createServer(async (req, res) => {
       const fs_ = await page.evaluate((s) => [...document.querySelectorAll(s)].filter((e) => e.offsetParent !== null).map((e) => parseFloat(getComputedStyle(e).fontSize)), sel);
       ok(fs_.length > 0 && fs_.every((f) => f >= 16), `fonte >= 16px em ${sel} (${fs_.join(',')})`);
     };
+    /* receita A: campo em foco + teclado (viewport 390x450): campo e Continuar dentro da janela */
+    const teclado = async (onde) => {
+      await page.locator('#ent input').first().focus();
+      await page.setViewportSize({ width: 390, height: 450 });
+      await page.waitForTimeout(500);
+      const bi = await page.locator('#ent input').first().boundingBox(), bo = await page.locator('#ok').boundingBox();
+      ok(bi && bo && bi.y >= 0 && bi.y + bi.height <= 450 && bo.y >= 0 && bo.y + bo.height <= 450, `${onde}: com o teclado aberto, campo (${bi && Math.round(bi.y)}) e Continuar (${bo && Math.round(bo.y)}) visíveis`);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(100);
+    };
     const inicio = async (m1, ideia = 'Já vendo sempre') => {
       await page.goto(URL0);
       await page.evaluate((m1) => { localStorage.clear(); if (m1) localStorage.setItem('lg2-turma-a-m01', JSON.stringify(m1)); }, m1 || null);
@@ -223,13 +269,22 @@ const server = http.createServer(async (req, res) => {
     /* ===== 1. Produto: todos os gastos fixos "Sim", preço ainda não definido (a) ===== */
     await inicio();
     await escolher('Produto');
+    await teclado('P02');
     await preencher(['Bolo de pote']);                               // P02
-    ok((await texto('#nota-consumo')).includes(norm(Motor.NOTA_CONSUMO.exemplo)) && (await texto('#nota-consumo')).includes('formas, panelas, máquinas e tesouras'), 'P03: explica consumo x equipamento com o exemplo do cabeleireiro');
+    ok((await texto('#nota-consumo')).includes(norm(Motor.NOTA_CONSUMO.exemploProduto)) && !(await texto('#nota-consumo')).includes('cabeleireiro') && (await texto('#nota-consumo')).includes('formas, panelas, máquinas e tesouras'), 'P03: explica consumo x equipamento com exemplo de produto (bolo), não de cabeleireiro');
     ok((await texto('#nota-luz')).includes(Motor.NOTA_LUZ_AGUA), 'P03: aviso para não colocar conta de luz nem de água');
     await fonte16('.nota-orienta p');
     await shot('m05_materiais_P03.png');
     await ajudaTraz(M.regrasDe['M5.P03'].find((r) => /n[ãa]o sab/i.test(r.condicao)).texto, 'P03');
     await preencher(['Farinha', 'Ovo']);                            // P03
+    {
+      await teclado('P04');
+      const ins = await page.locator('#ent input').all();
+      await ins[0].fill('dez'); await ins[1].fill('12');
+      await continuar();
+      ok(await erroVisivel() && (await texto('#erro')) === Motor.MSG_NUMERO && await atual() === 'M5.P04' && !(await state()).R['M5.P04'], 'P04: texto no campo de R$ -> "Digite só números", não grava');
+      ok(await page.locator('#ent input').first().getAttribute('inputmode') === 'decimal', 'P04: teclado numérico (inputmode decimal)');
+    }
     await preencher(['10', '12']);                                  // P04 preço pago
     await preencher(['1', '12'], ['kg', 'unidade']);                // P05 quanto vem
     /* P06: 2 kg usados de um pacote de 1 kg -> aviso para conferir (não trava de vez) */
@@ -273,6 +328,7 @@ const server = http.createServer(async (req, res) => {
     ok((await texto('.obs')).includes('Se o seu negócio funciona dentro da sua casa, não coloque o valor total do aluguel. Coloque só a parte que o negócio usa.'), 'P29: observação do aluguel');
     await fonte16('.obs'); await fonte16('.btn-ajuda'); await fonte16('#painel p');
     await page.click('#naosei');                                    // fecha o painel para o print
+    await teclado('P29');
     await shot('03-aluguel-observacao-P29.png');
     await preencher(['500']);
     await checarFixo(false); await escolher('Sim');                 // P30
@@ -315,6 +371,12 @@ const server = http.createServer(async (req, res) => {
     ok(t.includes(brl(custoProd * 1.5)) && brl(custoProd * 1.5) === 'R$ 4,65', `50% -> preço possível R$ 4,65 (tela: ${t.slice(0, 80)})`);
     // preço que cobre custo + parcela do mês + taxa: (3,10 + 20,50) / (1 - 2%) = 24,08
     ok((await texto('#preco-minimo')).includes('R$ 24,08'), 'preço mínimo com custo, taxa e parcela dos gastos do mês: R$ 24,08');
+    /* "Como calculamos" embaixo dos números do passo do preço (relato das alunas, 05/11) */
+    ok((await texto('#como-preco')) === 'Como calculamos: R$ 3,10 de custo + 50,0% de R$ 3,10 (R$ 1,55) = R$ 4,65.', 'como calculamos o preço possível: ' + await texto('#como-preco'));
+    ok((await texto('#como-sobra')) === 'Como calculamos: R$ 4,65 de preço − R$ 3,10 de custo − R$ 0,09 de taxas = R$ 1,46 que sobram em cada venda; R$ 1,46 ÷ R$ 4,65 = 31,3% do preço.', 'como calculamos a sobra e a margem: ' + await texto('#como-sobra'));
+    ok((await texto('#como-minimo')).startsWith('Como calculamos: R$ 3,10 de custo + R$ 20,50 dos gastos do mês em cada venda, divididos por 98,0%') && (await texto('#como-minimo')).endsWith('= R$ 24,08.'), 'como calculamos o preço mínimo: ' + await texto('#como-minimo'));
+    ok(await page.evaluate(() => { const c = document.querySelector('#como-preco'), n = document.querySelector('#analise .nota'); return parseFloat(getComputedStyle(c).fontSize) < parseFloat(getComputedStyle(n).fontSize); }), 'como calculamos: fonte menor que a nota (discreta)');
+    await shot('m05b_como_calculamos_preco.png');
     ok(!t.includes(MSG.sugerido.baixo) && !t.includes(MSG.sugerido.alto), '50%: sem aviso');
     t = await lucro(10);
     ok(t.includes(brl(custoProd * 1.1)) && t.includes(MSG.sugerido.baixo) && !t.includes(MSG.sugerido.alto), '10%: aviso de lucro baixo (a)');
@@ -332,13 +394,27 @@ const server = http.createServer(async (req, res) => {
     ok(tr.includes('R$ 950,00') && tr.includes('R$ 2.050,00'), 'resultado Produto: gastos do mês 950 / total 2.050');
     // sem preço informado o resultado usa o preço possível: sobra = 4,65 - 3,10 - 2% de 4,65 = 1,457 -> 2.050 / 1,457 = 1.407,0007 -> 1408 (para cima)
     ok(/Ponto de equilíbrio\s*1408\b/.test(tr) && tr.includes('Preço possível (simulação)'), 'resultado Produto: vendas para cobrir o mês arredondadas para cima (1408)');
+    {
+      const sobraMao = 4.65 - 3.10 - 0.02 * 4.65;           // 1,457
+      const peMao = Math.ceil(2050 / sobraMao);               // 2050 / 1,457 = 1407,0007 -> 1408
+      const conta = await texto('#pe-conta');
+      ok(conta.startsWith('Como calculamos: R$ 2.050,00 de gastos do mês ÷ R$ 1,46 que sobram em cada venda = 1.407,0.') && conta.endsWith('1408 vendas.'), 'ponto de equilíbrio: linha "Como calculamos" com os valores da pessoa: ' + conta);
+      const custoTxt = await texto('#como-custo');
+      ok(custoTxt.startsWith('Como calculamos: somamos o que vai em cada unidade: Farinha R$ ') && custoTxt.includes(' + Ovo R$ ') && custoTxt.endsWith('= R$ 3,10.'), 'custo por unidade: linha "Como calculamos" com a soma dos itens: ' + custoTxt);
+      if (SHOTS) { await page.evaluate(() => document.querySelector('#como-custo').scrollIntoView({ block: 'start' })); await shot('m05b_como_calculamos_resultado.png'); await page.evaluate(() => document.querySelector('#pe-conta').scrollIntoView({ block: 'center' })); await shot('m05b_como_calculamos_equilibrio.png'); }
+      ok((await texto('#como-margem')).startsWith('Como calculamos: R$ 4,65 de preço − R$ 3,10 de custo − R$ 0,09 de taxas = R$ 1,46 que sobram em cada venda'), 'margem: linha "Como calculamos": ' + await texto('#como-margem'));
+      ok(peMao === 1408 && conta.includes('R$ 2.050,00') && conta.includes('R$ 1,46') && conta.includes('1.407,0') && conta.includes('1408') && await page.locator('#pe-falta').count() === 0, 'ponto de equilíbrio explicado com a conta (2.050 ÷ 1,457 = 1.407,0 -> 1408): ' + conta);
+    }
     ok((await texto('#tab-formas')).includes('Pix (60% das vendas)') && (await texto('#tab-formas')).includes('recebe em 30 dias') && (await texto('#tab-formas')).includes('2,0%'), 'resultado: taxa e prazo por forma + taxa média 2,0%');
     ok((await texto('#margem-x-acrescimo')).includes(Motor.MARGEM_X_ACRESCIMO.exemplo), 'resultado: explicação acréscimo x margem');
     ok(await page.locator('#simulacao').count() === 0, 'quem já vende sempre: sem aviso de simulação');
     {
       const ent = await texto('#entendemos');
       const nfr = await page.locator('#entendemos p').count();
-      ok(nfr >= 3 && nfr <= 6, `"O que entendemos até aqui": 3 a 6 frases (${nfr})`);
+      /* texto corrido (relatório do Bento): 1 a 3 parágrafos, sem lista */
+      ok(nfr >= 1 && nfr <= 3, `"O que entendemos até aqui": 1 a 3 parágrafos (${nfr})`);
+      ok(await page.evaluate(() => { const e = document.getElementById('entendemos'); return !e.querySelector('ul, ol, li') && e.querySelectorAll('p').length >= 1; }), '"O que entendemos até aqui" em texto corrido (sem <li>, com <p>)');
+      ok((await page.evaluate(() => document.querySelector('#entendemos p').textContent)).includes('Você já vende'), '1º parágrafo junta o que analisou e o estágio');
       ok(ent.startsWith('O que entendemos até aqui') && ent.includes('o produto “Bolo de pote”') && ent.includes('Você já vende') && ent.includes('R$ 3,10') && ent.includes('R$ 2.050,00') && ent.includes('1408 unidades por mês'), 'entendemos (Produto): item, estágio, custo, gastos do mês e vendas para cobrir: ' + ent);
       ok(await page.evaluate(() => { const e = document.getElementById('entendemos'), r = document.querySelector('#numeros .res-num'); return !!e && !!r && (e.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }), 'entendemos fica acima das contas de custo/preço');
       ok(!/M5\.|M1\.|Módulo \d, pergunta/.test(ent), 'entendemos sem códigos de pergunta');
@@ -410,6 +486,9 @@ const server = http.createServer(async (req, res) => {
     ok((await texto('#sim-res')).includes('R$ 5,00') && (await texto('#sim-res')).includes('R$ 50,00'), 'simular R$ 25 x 10 vendas: sobra R$ 5,00, resultado R$ 50,00');
     ok((await state()).R['M5.P36'].valor === '30', 'simular não muda as respostas');
     ok(tr.includes('R$ 1.500,00'), 'resultado Mercadoria: faturamento 50 x 30 = 1.500');
+    ok(await page.evaluate(() => [...document.querySelectorAll('#numeros .secao-titulo, #numeros .lbl')].filter((e) => /^acréscimo sobre o custo$/i.test(e.textContent.trim())).length) === 1, 'rótulo "Acréscimo sobre o custo" uma vez só no resultado');
+    ok(await page.locator('#aviso-acrescimo, #fat-alto, #aviso-investimento').count() === 0, 'valores comuns: sem avisos de valor fora do comum');
+    ok((await texto('#pe-falta')).includes('falta informar os gastos fixos do mês'), 'Mercadoria sem gastos do mês: diz o que falta para o ponto de equilíbrio');
     await semNaN('resultado Mercadoria');
     console.log('PASS-stage: Mercadoria + lucro reverso');
 
@@ -441,6 +520,8 @@ const server = http.createServer(async (req, res) => {
     await checarFixo(false); await escolher('Sim');
     ok(await page.locator('#ent .forma').count() === 1 && await page.locator('#ent .parte').count() === 0, 'P25: uma forma só, sem pedir a parte das vendas');
     await preencher(['3']);                 // P24/P25
+    await page.click('#naosei');
+    ok((await texto('#painel')).includes(Motor.EXEMPLO_TIPO['M5.BT04']['Serviço']) && !(await texto('#painel')).includes('confeitaria'), 'P26 (serviço): exemplo de perda de serviço, não de confeitaria');
     await escolher('Não');                  // P26
     await escolher('Sim'); await preencher(['300']);                          // P28/P29
     await escolher('Não');                  // P30
@@ -481,6 +562,7 @@ const server = http.createServer(async (req, res) => {
     ok((await texto('#tempo-alto')).includes(Motor.MSG_TEMPO) && (await texto('#tempo-alto')).includes('31,5 horas'), 'Serviço: aviso de tempo maior que o disponível no Módulo 1');
     await page.locator('#tempo-alto').scrollIntoViewIfNeeded();
     await shot('m05_tempo_servico.png');
+    ok((await texto('#pe-falta')).startsWith('Para calcular quantas vendas cobrem seus gastos fixos, falta informar os gastos fixos'), 'sem gastos do mês: frase do que falta para o ponto de equilíbrio');
     ok(await clicar('#tempo-alto button', 'Conferir a quantidade') && await atual() === 'M5.P37', 'aviso de tempo leva à quantidade para revisar');
     console.log('PASS-stage: sem custo por unidade');
 
@@ -551,6 +633,39 @@ const server = http.createServer(async (req, res) => {
     await inicio({ v: 2, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03A': { estado: 'naosei' } } });
     ok(await atual() === 'M5.P01' && !(await state()).R['M5.P01'], 'M1.P03A "Não sei": P01 pergunta normalmente');
     console.log('PASS-stage: herança do Módulo 1');
+
+    /* ===== 7. Números exagerados do testador: custo R$ 1, preço R$ 1.500, 1.500 vendas, "Até R$ 100" no Módulo 1 ===== */
+    await inicio({ v: 2, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P07': { estado: 'opcao', opcao: 'Até R$ 100' } } });
+    await escolher('Mercadoria');
+    await preencher(['Bolo de pote']); await preencher(['1500']); await preencher(['1500']);   // custo 1,00
+    await escolher('Não'); await escolher('Não');
+    await formas(['Pix']);
+    for (let i = 0; i < 6; i++) await escolher('Não');
+    await preencher(['1500']);                                     // P37
+    {
+      await page.locator('#ent input').fill('1500');
+      await continuar();
+      ok(await erroVisivel() && (await texto('#erro')).includes('Seu preço está 1.500 vezes o custo. Confira se o custo ou o preço estão certos.') && await atual() === 'M5.P36', 'P36: preço 1.500 vezes o custo -> aviso no 1º Continuar');
+      await shot('m05_aviso_preco_vezes_custo.png');
+      await continuar();
+      ok(!(await erroVisivel()), 'P36: 2º Continuar com o mesmo valor segue (não trava)');
+      await seguir();
+    }
+    ok(await atual() === 'PRECO' && (await texto('#aviso-acrescimo')).includes('1.500 vezes o custo'), 'passo do preço: aviso em destaque');
+    ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (números exagerados)');
+    tr = await texto('#tela');
+    ok(tr.includes('149.900,0%') && (await texto('#aviso-acrescimo')).includes('1.500 vezes o custo'), 'resultado: acréscimo 149.900% com aviso claro');
+    ok(await page.evaluate(() => [...document.querySelectorAll('#numeros .secao-titulo, #numeros .lbl')].filter((e) => /^acréscimo sobre o custo$/i.test(e.textContent.trim())).length) === 1, 'resultado: "Acréscimo sobre o custo" uma vez só');
+    ok(tr.includes('R$ 2.250.000,00') && (await texto('#fat-alto')).includes(Motor.MSG_FAT_ALTO), 'faturamento R$ 2,25 milhões/mês: aviso de valor alto para negócio caseiro');
+    ok((await texto('#aviso-investimento')).includes('“Até R$ 100”') && (await texto('#aviso-investimento')).includes('R$ 1.500,00') && (await texto('#aviso-investimento')).includes('Veio do Módulo 1'), 'compra R$ 1.500 acima do "Até R$ 100" do Módulo 1: aviso citando o Módulo 1');
+    ok((await texto('#pe-falta')).includes('falta informar os gastos fixos do mês'), 'sem gastos do mês: explica o que falta para o ponto de equilíbrio');
+    ok(await page.locator('.lg2-proximo').count() === 1, 'avisos não travam: botão do próximo módulo presente');
+    await semNaN('resultado números exagerados');
+    await page.locator('#aviso-acrescimo').scrollIntoViewIfNeeded();
+    await shot('m05_resultado_avisos_valores.png');
+    await page.locator('#fat-alto').scrollIntoViewIfNeeded();
+    await shot('m05_resultado_faturamento_m1.png');
+    console.log('PASS-stage: números exagerados (avisos que não travam)');
 
     ok(errors.length === 0, 'sem erros de JavaScript: ' + errors.join(' | '));
   } catch (e) {

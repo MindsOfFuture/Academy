@@ -4,7 +4,9 @@
    "3 Fluxo de perguntas". Ajuste "Módulo 1 – Ajuste do “Não sei” e vídeos": o "Não sei dizer"
    fica só nas Perguntas 5A e 7A; as Perguntas 3 e 7 têm o card de vídeo, que só aparece quando
    "video.url" for preenchido (o "assunto" é o pedido do grupo, não vai para a tela). Textos literais. Lote de correções do teste do app (05/11/2026): nova Pergunta 3A (tipo do que
-   vende) e Pergunta 8 com várias respostas. */
+   vende) e Pergunta 8 com várias respostas. Lote 05/11 (b): textos dirigidos aos grupos reescritos para quem usa o app,
+   sem citar renda (não é perguntada) e "por_tipo": enunciado, opções ou exemplo trocados conforme a
+   resposta da Pergunta 3A (Mercadoria não pergunta se sabe FAZER; exemplos de serviço e de revenda). */
 window.MODULO1 = {
  "origem": "LG2_M01_planilha_do_grupo.xlsx",
  "modulo": {
@@ -28,7 +30,7 @@ window.MODULO1 = {
   "nao_faz": "Não garantir que a ideia dará certo ou atestar viabilidade definitiva.\nNão afirmar ou prometer que haverá lucro, vendas ou rentabilidade específica.\nNão concluir automaticamente que o usuário deve abrir o negócio, contratar pessoas ou tomar crédito.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
   "ter_em_maos": "Uma ideia de produto ou serviço a ser vendido. \nNoção do tempo disponível por semana que pode dedicar ao negócio.\nConhecimento dos recursos e habilidades que já possui.\nUma estimativa do valor financeiro máximo que está disposto a arriscar sem comprometer a sobrevivência (limite de investimento). ",
-  "entrega": "Retrato inicial: Um resumo do perfil, estágio e objetivo de renda do empreendedor.\nSíntese da ideia: Uma descrição da ideia, separando o que são fatos comprovados do que são hipóteses a serem testadas.\nLacunas: Identificação das informações que ainda faltam. \nPróximo passo: Uma ação prática e imediata sugerida ao usuário.",
+  "entrega": "Retrato inicial: um resumo sobre você, o estágio da sua ideia e o que motiva você.\nSíntese da ideia: uma descrição da ideia, separando o que você já sabe do que ainda precisa testar.\nO que falta descobrir: as informações que ainda faltam.\nPróximo passo: uma tarefa fácil para fazer já.",
   "encaminhamentos": "Se o limite de investimento sugerir a necessidade de empréstimos fora do padrão familiar, um consultor financeiro pode ser indicado para validar o risco e as taxas de juros.\nSe a ideia esbarrar em produtos alimentícios de alto risco ou procedimentos de saúde, deve haver um encaminhamento para checagem com um responsável técnico sobre viabilidade.",
   "caso_real": "As conversas e o acompanhamento do caso real testarão as opções de resposta e a clareza das perguntas (ex: ver se o tom está amigável ou intimidador).  \nIdentificarão os \"pontos cegos\" habituais dos empreendedores no estágio inicial, fornecendo dúvidas recorrentes para compor as caixas educativas e o roteiro dos vídeos.\nPermitirão a construção dos \"casos de teste\" obrigatórios, ajudando a simular caminhos contraditórios (ex: \"só na cabeça\" vs. \"já é renda\").",
   "riscos": "Risco 1: Transmitir ao usuário, através das perguntas, que ele deve pedir demissão de seu atual emprego ou tomar crédito imediato baseado apenas em sua motivação.\nComo evitar: Criar um ambiente educacional que reforce limites. A interface usará verbos como \"planejar\", \"estimar\" e \"projetar\", não \"garantir\". A equipe aplicará testes rigorosos sobre a \"lógica condicional\" para garantir que nenhum cenário sugira ao usuário ações imprudentes de vida e carreira.\n\nRisco 2: Afirmar categoricamente que o negócio é \"viável\" ou rentável após ele fornecer as estimativas.\nComo evitar: Limitar as entregas do Módulo 1 a um mapeamento descritivo, sem emitir laudos de viabilidade. O encaminhamento sugerido não deve ser \"abra o negócio\", mas sim a próxima etapa de investigação no aplicativo. As palavras \"bom\" e \"mau\" negócio devem ser evitadas."
@@ -38,33 +40,33 @@ window.MODULO1 = {
    "modulo": "2.0",
    "nome": "Clientes, necessidades e comportamento de compra",
    "recebe": "Nenhum dado (fluxo de entrada)",
-   "envia": "Síntese da ideia e descrição inicial do produto ou serviço.",
+   "envia": "Sua ideia e uma primeira descrição do que você vende.",
    "combinado": "Não",
-   "obs": "O Grupo 2 usará a ideia base para investigar os possíveis públicos reais."
+   "obs": "No Módulo 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes."
   },
   {
    "modulo": "4.0",
    "nome": "Produto, proposta de valor e teste da ideia",
    "recebe": "Nenhum dado (fluxo de entrada)",
-   "envia": "Separação de fatos e hipóteses da ideia, além do tempo e recursos disponíveis.",
+   "envia": "O que você já sabe e o que ainda precisa testar na sua ideia, além do seu tempo e do que você já tem.",
    "combinado": "Não",
-   "obs": "O Grupo 4 usará esses dados para delimitar a oferta mínima e o teste de baixo custo."
+   "obs": "No Módulo 4 você vai usar essas informações para montar uma primeira oferta simples e testar a ideia gastando pouco."
   },
   {
    "modulo": "6.0",
    "nome": "Investimento, capital de giro e fluxo de caixa",
    "recebe": "Nenhum dado (fluxo de entrada)",
-   "envia": "Limite de investimento estipulado pelo usuário e recursos que ele já possui.",
+   "envia": "Quanto dinheiro você pode usar e o que você já tem para trabalhar.",
    "combinado": "Não",
-   "obs": "Base fundamental para o Grupo 6 calcular o cenário de investimento inicial seguro."
+   "obs": "No Módulo 6 você vai usar esse valor para planejar quanto investir no começo sem se arriscar."
   },
   {
    "modulo": "10.0",
    "nome": "Comunicação, vendas, pessoas e plano de ação",
    "recebe": "Nenhum dado (fluxo de entrada)",
-   "envia": "Retrato inicial do empreendedor (tempo disponível, restrições, motivação e objetivo de renda).",
+   "envia": "Seu retrato inicial: o tempo que você tem, o que limita você e o que motiva você.",
    "combinado": "Não",
-   "obs": "O ritmo e as prioridades do plano de ação de 90 dias do Grupo 10 dependerão do tempo e restrições mapeados por vocês."
+   "obs": "No Módulo 10, o seu tempo e o que limita você vão ajudar a definir o ritmo e as prioridades do seu plano de 90 dias."
   }
  ],
  "base": [
@@ -179,7 +181,8 @@ window.MODULO1 = {
     ]
    }
   ],
-  "tempo": "Leva uns 10 minutos",
+  "tempo": "Este módulo leva uns 10 minutos",
+  "jornada": "Este é o Módulo 1 de 10. A jornada completa, com os 10 módulos, leva de 3 a 5 horas no total. Você não precisa fazer tudo de uma vez: dá para fazer em vários dias, e suas respostas ficam salvas neste aparelho.",
   "botao": "Começar",
   "link": "O que esta parte não faz"
  },
@@ -213,7 +216,7 @@ window.MODULO1 = {
    }
   ],
   "aviso": "O app ajuda você a pensar e se organizar. Os resultados dependem das suas respostas e não são garantidos. Regras de impostos, registro e licenças devem ser confirmadas em sites do governo e com profissionais.",
-  "rodape": "Feito pelo Grupo 1 · Laboratório de Gestão II · FACC/UFJF"
+  "rodape": "Laboratório de Gestão II · FACC/UFJF"
  },
  "perguntas": [
   {
@@ -355,6 +358,46 @@ window.MODULO1 = {
    "ajuda": {
     "texto": "Queremos saber se você já fez esse tipo de trabalho antes. Quem já sabe fazer começa com mais facilidade.",
     "exemplo": "Exemplo: Maria trabalhou 5 anos como costureira numa fábrica. Agora ela faz consertos de roupa em casa."
+   },
+   "por_tipo": {
+    "Produto": {
+     "ajuda": {
+      "texto": "Queremos saber se você já fez esse tipo de trabalho antes. Quem já sabe fazer começa com mais facilidade.",
+      "exemplo": "Exemplo: Joana faz bolo para a família há anos. Agora ela vende bolo de pote para os vizinhos."
+     }
+    },
+    "Mercadoria": {
+     "pergunta": "Você já conhece bem o que vai revender?",
+     "apoio": "Pense na qualidade, no preço e em onde comprar.",
+     "pergunta_com_resposta": {
+      "de": "M1.P03",
+      "modelo": "Você já conhece bem {resposta} e sabe onde comprar?"
+     },
+     "opcoes": [
+      {
+       "texto": "Sim, conheço bem o produto e onde comprar",
+       "mensagem": null
+      },
+      {
+       "texto": "Conheço um pouco, ainda estou pesquisando",
+       "mensagem": {
+        "titulo": "Dica",
+        "texto": "Compare preço e qualidade em mais de um fornecedor antes de comprar muito."
+       }
+      },
+      {
+       "texto": "Ainda não conheço",
+       "mensagem": {
+        "titulo": "Dica",
+        "texto": "Tudo bem começar do zero. Compre pouco no começo e pesquise pelo menos 2 fornecedores."
+       }
+      }
+     ],
+     "ajuda": {
+      "texto": "Queremos saber se você conhece o que vai revender: a qualidade, o preço e onde comprar. Quem conhece o produto e os fornecedores começa com mais segurança.",
+      "exemplo": "Exemplo: Ana sempre comprou roupas numa fábrica para ela mesma. Agora ela compra lá e revende para as vizinhas."
+     }
+    }
    }
   },
   {
@@ -391,6 +434,20 @@ window.MODULO1 = {
    "ajuda": {
     "texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar.",
     "exemplo": "Exemplo: \"Trabalho de segunda a sexta. Só posso fazer meus doces no sábado.\""
+   },
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": {
+      "texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar.",
+      "exemplo": "Exemplo: \"Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.\""
+     }
+    },
+    "Mercadoria": {
+     "ajuda": {
+      "texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar.",
+      "exemplo": "Exemplo: \"Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.\""
+     }
+    }
    }
   },
   {
@@ -447,7 +504,15 @@ window.MODULO1 = {
       "texto": "Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."
      }
     }
-   ]
+   ],
+   "por_tipo": {
+    "Serviço": {
+     "apoio": "Por exemplo: ferramentas, materiais de trabalho ou um espaço para atender."
+    },
+    "Mercadoria": {
+     "apoio": "Por exemplo: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar."
+    }
+   }
   },
   {
    "codigo": "M1.P07",
@@ -495,6 +560,20 @@ window.MODULO1 = {
     "texto": "Não sabe ou não entendeu? Assista ao vídeo",
     "assunto": "Antes de abrir: como descobrir quanto dinheiro você pode usar sem faltar nada em casa (olhar o que sobra no fim do mês, separar as contas fixas, não contar com empréstimo).",
     "url": null
+   },
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": {
+      "texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa.",
+      "exemplo": "Exemplo: \"Tenho R$ 300 guardados para comprar esmaltes e alicates. Se eu não tiver clientes, não vai faltar comida em casa.\""
+     }
+    },
+    "Mercadoria": {
+     "ajuda": {
+      "texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa.",
+      "exemplo": "Exemplo: \"Tenho R$ 500 guardados para comprar as primeiras peças para revender. Se eu não vender nada, não vai faltar comida em casa.\""
+     }
+    }
    }
   },
   {
@@ -562,7 +641,34 @@ window.MODULO1 = {
      "mensagem": null,
      "campo": true
     }
-   ]
+   ],
+   "por_tipo": {
+    "Mercadoria": {
+     "opcoes": [
+      {
+       "texto": "Ainda não conheço bem o produto ou os fornecedores",
+       "mensagem": null
+      },
+      {
+       "texto": "Me falta lugar ou equipamento",
+       "mensagem": null
+      },
+      {
+       "texto": "Conheço poucas pessoas para vender ou me ajudar",
+       "mensagem": null
+      },
+      {
+       "texto": "Tenho dificuldade com celular, internet ou redes sociais",
+       "mensagem": null
+      },
+      {
+       "texto": "Outra coisa",
+       "mensagem": null,
+       "campo": true
+      }
+     ]
+    }
+   }
   }
  ],
  "regras": [],

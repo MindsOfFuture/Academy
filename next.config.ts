@@ -26,6 +26,8 @@ const securityHeaders = [
 const lg2FrameHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" },
+  // O botão "Falar" do LG2 usa o microfone (ditado do navegador): liberado só para o próprio site.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
 ];
 
 const nextConfig: NextConfig = {

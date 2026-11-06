@@ -28,6 +28,29 @@
   /* redesenha sem voltar ao topo (instrumentos que mudam a cada toque) */
   function redesenhar(f, a) { const y = window.scrollY; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, y); }
 
+  /* teclado do celular: o campo em foco vai para o meio da parte visível da tela. Um só listener;
+     roda ~300 ms depois do foco (tempo de o teclado abrir) e a cada mudança do tamanho visível
+     (visualViewport) enquanto o foco estiver no campo. */
+  const CAMPO = "input, textarea, select";
+  const ESPERA_TECLADO = 300;
+  function centralizar() {
+    const a = document.activeElement;
+    if (!(a && a.matches && a.matches(CAMPO))) return;
+    a.scrollIntoView({ block: "center" });
+    /* se o Continuar ficou abaixo da parte visível e cabe junto com o campo, sobe só o necessário */
+    const ok = document.getElementById("ok");
+    if (!ok) return;
+    const alt = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const rc = a.getBoundingClientRect(), ro = ok.getBoundingClientRect();
+    if (ro.top > rc.top && ro.bottom > alt - 8 && ro.bottom - rc.top < alt - 16) window.scrollBy(0, Math.min(ro.bottom - alt + 8, rc.top - 8));
+  }
+  document.addEventListener("focusin", (e) => {
+    if (e.target && e.target.matches && e.target.matches(CAMPO)) setTimeout(centralizar, ESPERA_TECLADO);
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", centralizar);
+  /* ao imprimir, abre as caixas fechadas para o conteúdo sair no papel */
+  window.addEventListener("beforeprint", () => document.querySelectorAll("details").forEach((d) => { d.open = true; }));
+
   /* ---------- respostas dos Módulos 1 a 6 salvas neste navegador ---------- */
   function lerModulo(chave) { try { const s = JSON.parse(localStorage.getItem(chave)); return (s && s.R) || {}; } catch (e) { return {}; } }
   const M1 = () => lerModulo("lg2-turma-a-m01"), M3 = () => lerModulo("lg2-turma-a-m03"), M4 = () => lerModulo("lg2-turma-a-m04"),
@@ -36,15 +59,12 @@
   const textoDe = (r) => { const x = valor(r); return typeof x === "string" && x.trim() ? x.trim() : null; };
   /* primeiro número de um texto livre ("60 pedidos" → "60"); null se não houver */
   const numDe = (t) => { if (t == null) return null; const m = /\d+(?:[.,]\d+)*/.exec(String(t)); return m ? m[0] : null; };
-  /* número digitado num campo de número: aceita "5%", "10 pedidos"; vazio = null; negativo/sem número = NaN */
+  /* número digitado num campo de número: aceita "5%", "12,50", "1.500"; vazio = null; negativo ou texto = NaN */
   function numCampo(t) {
     const x = String(t ?? "").trim();
     if (!x) return null;
     if (/^-/.test(x)) return NaN;
-    const n = Mo.num(x.replace(/%$/, ""));
-    if (!isNaN(n)) return n;
-    const d = numDe(x);
-    return d == null ? NaN : Mo.num(d);
+    return Mo.num(x.replace(/\s*%$/, ""));
   }
   const UNID = { kg: "kg", g: "g", L: "litros", ml: "ml" };
 
@@ -322,6 +342,7 @@
         ${rodape()}
       </main>
     </div>`);
+    let avisou = null;
     function desenharCond() {
       const serv = (f.tipo || "").startsWith("Serviço");
       p.querySelector("#mat").innerHTML = serv ? sel("material", SNN, "Você usa algum produto ou material para atender?") : "";
@@ -361,7 +382,8 @@
       lerTextos();
       const e = p.querySelector("#erro");
       e.hidden = true;
-      p.querySelectorAll(".erro-campo").forEach((x) => { x.hidden = true; });
+      e.classList.remove("aviso-valor");
+      p.querySelectorAll(".erro-campo").forEach((x) => { x.hidden = true; x.classList.remove("aviso-campo"); });
       p.querySelectorAll("input[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
       if (!f.tipo) { e.textContent = "Escolha o tipo de oferta para continuar."; e.hidden = false; return; }
       /* campos de número são opcionais: em branco = "não sei" e fica fora das contas */
@@ -379,6 +401,21 @@
         else { const limpo = String(f[c]).replace(/%$/, "").trim(); f[c] = isNaN(Mo.num(limpo)) ? String(n).replace(".", ",") : limpo; }
       }
       if (primeiro) { e.textContent = "Confira o campo marcado acima."; e.hidden = false; primeiro.focus(); primeiro.scrollIntoView({ block: "center" }); return; }
+      /* valores fora do comum: avisa uma vez; o segundo toque com os mesmos valores segue */
+      const avisos = [];
+      const mu = numCampo(f.minUn), vo = numCampo(f.volume);
+      if (p.querySelector("#f-minUn") && mu > Mo.LIMITE.minUnAlto) avisos.push(["minUn", `${fmtMin(mu)} para cada unidade ou atendimento parece muito tempo. Com esse tempo, quase nada cabe na sua semana. Confira se não são minutos.`]);
+      if (vo > Mo.LIMITE.volumeAlto) avisos.push(["volume", `${Mo.fmt(vo)} por mês é cerca de ${Mo.fmt(Mo.vendasDia(vo))} por dia. Esse número parece alto para um negócio pequeno; confira.`]);
+      const chave = JSON.stringify([f.minUn, f.volume]);
+      if (avisos.length && avisou !== chave) {
+        avisou = chave;
+        avisos.forEach(([c, t]) => { const ec = p.querySelector(`#e-${c}`); ec.textContent = t; ec.hidden = false; ec.classList.add("aviso-campo"); });
+        e.textContent = "Confira o aviso acima. Se estiver certo, toque em “Continuar mesmo assim”.";
+        e.hidden = false; e.classList.add("aviso-valor");
+        p.querySelector("#ok").textContent = "Continuar mesmo assim";
+        const alvo = p.querySelector(`#f-${avisos[0][0]}`); alvo.scrollIntoView({ block: "center" });
+        return;
+      }
       delete f.usoPor;
       if (f.minUn !== undefined && f.minUn !== "" && !(Mo.num(f.minUn) > 0)) f.minUn = null;
       else if (f.minUn) f.minUn = Mo.num(f.minUn);
@@ -428,8 +465,10 @@
     </div>`);
     const ent = p.querySelector("#ent"), box = p.querySelector("#retorno"), err = p.querySelector("#erro");
     const mostrar = (html) => { box.innerHTML = html || ""; err.hidden = true; };
-    const erro = (t) => { err.textContent = t; err.hidden = false; };
+    const erro = (t) => { err.classList.remove("aviso-valor"); err.textContent = t; err.hidden = false; };
     const junto = (html) => { p.querySelector("#junto").innerHTML = html || ""; };
+    /* aviso que não trava: o próximo Continuar com o mesmo valor segue */
+    const aviso_ = (t) => { err.textContent = t; err.hidden = false; err.classList.add("aviso-valor"); p.querySelector("#ok").textContent = "Continuar mesmo assim"; };
     p.querySelector("#v").onclick = () => {
       S.hist.pop();
       const ant = S.hist.pop();
@@ -494,24 +533,37 @@
         if (lista.filter((x) => x.trim()).length > 8) htmls.push(caixa(caminho(cod, "Mais de 8 etapas")));
         mostrar(htmls.join(""));
       };
+      /* etapa móvel: ▲/▼ em cada linha (funcionam por toque e por teclado); a etapa recém-incluída
+         ganha um lembrete de que pode subir até o lugar certo */
+      let nova = -1, focoDepois = null;
       const desenhar = () => {
-        wrap.innerHTML = "";
+        wrap.innerHTML = `<p class="ajuda dica-ordem" id="dica-ordem">Você pode mudar a ordem: use as setas para subir ou descer a etapa.</p>`;
         lista.forEach((nome, i) => {
-          const l = el(`<div class="etapa-ed"><span class="num">${i + 1}</span><input class="campo" aria-label="Etapa ${i + 1}" value="${esc(nome)}">
-            <button class="mini-b" data-a="sobe" aria-label="Subir etapa ${i + 1}" ${i === 0 ? "disabled" : ""}>↑</button><button class="mini-b" data-a="desce" aria-label="Descer etapa ${i + 1}" ${i === lista.length - 1 ? "disabled" : ""}>↓</button><button class="mini-b x" data-a="tira" aria-label="Retirar etapa ${i + 1}">×</button></div>`);
+          const l = el(`<div class="etapa-ed${i === nova ? " nova" : ""}"><span class="num" aria-hidden="true">${i + 1}</span><input class="campo" id="etapa-${i}" aria-label="Etapa ${i + 1}" value="${esc(nome)}">
+            <button type="button" class="mini-b mover" data-a="sobe" aria-label="Subir etapa" aria-describedby="etapa-${i}" title="Subir etapa" ${i === 0 ? "disabled" : ""}>▲</button><button type="button" class="mini-b mover" data-a="desce" aria-label="Descer etapa" aria-describedby="etapa-${i}" title="Descer etapa" ${i === lista.length - 1 ? "disabled" : ""}>▼</button><button type="button" class="mini-b x" data-a="tira" aria-label="Retirar etapa ${i + 1}">×</button></div>`);
           l.querySelector("input").oninput = (e) => { lista[i] = e.target.value; };
           l.querySelectorAll("[data-a]").forEach((b) => (b.onclick = () => {
             const a = b.dataset.a;
-            if (a === "tira") lista.splice(i, 1);
-            if (a === "sobe") [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]];
-            if (a === "desce") [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]];
+            let alvo = null;
+            if (a === "tira") { lista.splice(i, 1); nova = -1; }
+            if (a === "sobe") { [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; alvo = i - 1; }
+            if (a === "desce") { [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; alvo = i + 1; }
+            if (alvo !== null) { if (nova === i) nova = alvo; else if (nova === alvo) nova = i; focoDepois = [alvo, a]; }
             desenhar(); nota();
           }));
           wrap.appendChild(l);
+          if (i === nova) wrap.appendChild(el(`<p class="dica-mover" aria-live="polite">Etapa incluída no fim. Toque em ▲ para levá-la ao lugar certo no seu caminho.</p>`));
         });
-        const add = el(`<button class="btn-mais" id="mais">+ Incluir etapa</button>`);
-        add.onclick = () => { lista.push(""); desenhar(); nota(); const ins = wrap.querySelectorAll("input"); ins[ins.length - 1].focus(); };
+        const add = el(`<button type="button" class="btn-mais" id="mais">+ Incluir etapa</button>`);
+        add.onclick = () => { lista.push(""); nova = lista.length - 1; desenhar(); nota(); const ins = wrap.querySelectorAll("input"); ins[ins.length - 1].focus(); };
         wrap.appendChild(add);
+        /* depois de mover, o foco acompanha a etapa (quem usa teclado ou leitor de tela não se perde) */
+        if (focoDepois) {
+          const [k, a] = focoDepois; focoDepois = null;
+          const linhaK = wrap.querySelectorAll(".etapa-ed")[k];
+          const b = linhaK && (linhaK.querySelector(`[data-a="${a}"]:not([disabled])`) || linhaK.querySelector(".mover:not([disabled])"));
+          if (b) b.focus({ preventScroll: true });
+        }
       };
       desenhar();
       ent.appendChild(wrap);
@@ -551,6 +603,7 @@
         return { estado: "valor", h: t.h, m: t.m, un: String(un), min: t.min, minUn: porUn };
       };
     } else if (cod === "M7-04") {
+      let avisouAjuda = null;
       let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
       const horas = el(`<div id="hw" ${op && op.startsWith("Sim") ? "" : "hidden"}><label class="rot-campo" for="hajuda">Horas de ajuda por semana</label><input class="campo" id="hajuda" inputmode="decimal" value="${esc(resp && resp.horas != null ? resp.horas : "")}"></div>`);
       ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; horas.hidden = !o.startsWith("Sim"); mostrar(caixa(caminho(cod, o))); }));
@@ -562,6 +615,8 @@
         if (!op.startsWith("Sim")) return { estado: "opcao", opcao: op, horas: 0 };
         const h = Mo.num(p.querySelector("#hajuda").value);
         if (h === null || isNaN(h) || h < 0) { mostrar(caixa(caminho(cod, "Horas inválidas (negativo ou texto)"))); return null; }
+        if (h > Mo.LIMITE.ajudaMax) { erro(`Uma semana tem ${Mo.LIMITE.ajudaMax} horas. Informe quantas horas por semana a ajuda trabalha no preparo e na produção.`); return null; }
+        if (h > Mo.LIMITE.ajudaAviso && avisouAjuda !== h) { avisouAjuda = h; aviso_(`${Mo.fmt(h, h % 1 ? 1 : 0)} horas de ajuda por semana é mais que uma jornada inteira de trabalho. Confira; se estiver certo, toque em “Continuar mesmo assim”.`); return null; }
         return { estado: "opcao", opcao: op, horas: h };
       };
     } else if (cod === "M7-05") {
@@ -712,7 +767,9 @@
     const ap = S.R["M7-03"]; const apoio = ap ? (ap.estado === "naosei" ? NS : ap.opcao) : null;
     return Mo.capacidade({ horas: I().horas, apoio, ajuda: o && o.semAjuda ? 0 : ajuda, minUn: o && o.equipOnly ? null : minUnAtual(), equip });
   }
-  const ajudaGratis = () => { const r = S.R["M7-04"]; return r && r.estado === "opcao" && r.opcao.startsWith("Sim, sem pagamento") && r.horas > 0; };
+  const ajudaGratis = () => { const r = S.R["M7-04"]; return r && r.estado === "opcao" && r.opcao.startsWith("Sim, sem pagamento") && r.horas > 0 && r.horas <= Mo.LIMITE.ajudaMax; };
+  /* capacidade só com o seu tempo, quando há ajuda sem pagamento (mesma regra na tabela e no resumo) */
+  const semAjuda = (c) => { if (!c || c.estado !== "ok" || !ajudaGratis()) return null; const s = calc({ semAjuda: true }); return s.estado === "ok" ? s : null; };
   const volume = () => { const n = Mo.num(I().volume); return n > 0 ? n : null; };
   function prazoDias() {
     const r = S.R["M7-06"]; if (!r || r.estado !== "partes") return null;
@@ -792,6 +849,8 @@
   const avisoInst = (nome, i) => `<p class="aviso-inst">${esc(preencher(INST[nome].avisos[i || 0]))}</p>`;
   const termoBox = (nomes) => { const ts = TERMO.filter((t) => nomes.includes(t.termo)); return !ts.length ? "" : `<details class="saiba"><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.termo)}</b><p>${esc(t.explicacao)}</p><p class="ex">${esc(t.exemplo)}</p></div>`).join("")}</details>`; };
   /* "O que entendemos até aqui": frases montadas por regra com este módulo + os anteriores */
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function entendemos(c) {
     const fr = [];
     const o = oferta();
@@ -799,21 +858,49 @@
     const est = { [ESTAGIOS[0]]: "ainda está na fase da ideia", [ESTAGIOS[1]]: "já fez testes ou amostras", [ESTAGIOS[2]]: "já vende" }[I().estagio];
     if (o || tipoTxt) fr.push(`Você ${o ? `oferece ${o}` : "tem uma oferta"}${tipoTxt ? `, ${tipoTxt}` : ""}${est ? `, e ${est}` : ""}.`);
     if (I().dor) fr.push(`Seu cliente procura você por isto: ${I().dor.replace(/[.!]+$/, "")}.`);
+    const c1 = fr.length;   // 1º parágrafo: a oferta e o cliente
     const mu = minUnAtual();
     const hs = I().horas && I().horas !== NS ? I().horas.replace("Até", "até").replace("De", "de").replace("Mais", "mais").replace(" h", " horas") : null;
-    if (c.estado === "ok") fr.push(`Com ${hs} por semana${mu ? ` e cerca de ${fmtMin(mu)} para ${verbo()} cada um` : ""}, cabem ${Mo.texto(c, "mes")} por mês.`);
+    const sem = semAjuda(c);
+    if (c.estado === "ok") fr.push(`Com ${hs} por semana${mu ? ` e cerca de ${fmtMin(mu)} para ${verbo()} cada um` : ""}, cabem ${sem ? `${Mo.texto(sem, "mes")} por mês sem ajuda e ${Mo.texto(c, "mes")} por mês com a ajuda que você contou` : `${Mo.texto(c, "mes")} por mês`}.`);
     else if (c.estado === "sem-producao") fr.push("As tarefas de apoio (clientes, compras, entregas) tomam todo o tempo que você tem, então ainda não sobra tempo para produzir.");
     else fr.push(`Ainda falta ${!hs ? "saber quantas horas por semana você tem" : "medir quanto tempo leva cada unidade ou atendimento"} para calcular quanto cabe por mês.`);
     const vol = volume(), cmp = Mo.comparar(c, vol);
     if (vol && cmp) fr.push(cmp.tipo === "falta" ? `Você quer vender ${Mo.fmt(vol)} por mês, mais do que cabe hoje: vale rever o tempo, pedir ajuda ou ajustar a meta.` : `Você quer vender ${Mo.fmt(vol)} por mês, e isso cabe no seu tempo.`);
+    const c2 = fr.length;   // 2º: quanto cabe e a meta; 3º: o que segura o ritmo
     const g = opR("M7-05"), r5 = S.R["M7-05"];
     if (g && g !== NS) fr.push(`O que mais segura o seu ritmo hoje é ${g === "Uma etapa que demora ou acumula" && r5.etapa ? `a etapa “${r5.etapa}”` : g.charAt(0).toLowerCase() + g.slice(1)}.`);
     const r6 = S.R["M7-06"];
     if (temFase3() && I().item && r6 && r6.estado === "partes" && r6.p1 === "Só um") fr.push(`Você depende de um só fornecedor para ${I().item}: ter um segundo nome anotado evita parar se faltar.`);
     else { const q9 = opR("M7-09"); if (q9 && q9 !== NS) fr.push(q9 === "Sigo um padrão ou receita anotada" ? "Você já segue um padrão anotado para a qualidade, o que ajuda a entregar sempre igual." : "Anotar um padrão de qualidade simples ajuda a entregar sempre igual."); }
-    return fr.slice(0, 6);
+    return emParagrafos(fr.slice(0, 6), c1, c2);
   }
   const fmtMin = (min) => { const h = Math.floor(min / 60), m = Math.round(min - h * 60); return h && m ? `${h} h ${m} min` : h ? `${h} h` : `${Mo.fmt(min, min % 1 ? 1 : 0)} min`; };
+  /* "Como calculamos: …": a conta de cada número do resultado em linguagem simples, com os valores da pessoa */
+  const comoCalc = (t, id) => `<p class="como-calc"${id ? ` id="${id}"` : ""}>Como calculamos: ${esc(t)}</p>`;
+  const fmt1 = (n) => Mo.fmt(n, n % 1 ? 1 : 0);
+  function comoCapacidade(c) {
+    if (!c || c.estado !== "ok") return "";
+    const f = Mo.HORAS[I().horas];
+    const ap = S.R["M7-03"], apoioOp = ap ? (ap.estado === "naosei" ? NS : ap.opcao) : null;
+    const apoio = Mo.APOIO[apoioOp] ?? 0;
+    const r4 = S.R["M7-04"], ajuda = r4 && r4.estado === "opcao" && r4.horas > 0 && r4.horas <= Mo.LIMITE.ajudaMax ? r4.horas : 0;
+    const mu = minUnAtual(), r5a = S.R["M7-05a"];
+    const umaConta = (h, b) => {
+      let t = `${fmt1(h)} h por semana`;
+      if (apoio) t += ` − ${fmt1(apoio)} h de tarefas de apoio${apoioOp === NS ? " (estimativa)" : ""}`;
+      if (ajuda) t += ` + ${fmt1(ajuda)} h de ajuda`;
+      t += ` = ${Mo.fmt(b.minProd)} min para ${verbo()}`;
+      if (b.limite === "equipamento" && r5a && r5a.estado === "valor") {
+        const vezes = Math.floor(b.minProd / r5a.minVez + 1e-9);
+        return `${t}; ${Mo.fmt(b.minProd)} min ÷ ${fmtMin(r5a.minVez)} por vez = ${Mo.fmt(vezes)} vezes × ${r5a.un} por vez = ${Mo.fmt(b.semana)} por semana. No mês (${Mo.fmt(Mo.SEMANAS_MES, 2)} semanas) = ${Mo.fmt(b.mes)}.`;
+      }
+      return `${t} ÷ ${fmtMin(mu)} cada um = ${Mo.fmt(b.semana)} por semana. No mês: ${Mo.fmt(b.minProd)} min × ${Mo.fmt(Mo.SEMANAS_MES, 2)} semanas ÷ ${fmtMin(mu)} = ${Mo.fmt(b.mes)} (sempre arredondado para baixo).`;
+    };
+    if (c.modo === "faixa" && c.lo !== c.hi) return comoCalc(`com ${fmt1(f.lo)} h: ${umaConta(f.lo, c.lo)} Com ${fmt1(f.hi)} h: ${umaConta(f.hi, c.hi)}`, "como-capacidade");
+    const b = c.modo === "min" ? c.lo : c.hi;
+    return comoCalc(umaConta(c.modo === "min" ? f.lo : f.hi, b), "como-capacidade");
+  }
   function telaResultado() {
     if (S.hist[S.hist.length - 1] !== "RESULTADO") { S.hist.push("RESULTADO"); salvar(); }
     const c = calc();
@@ -830,14 +917,17 @@
     let capHtml;
     if (c.estado === "ok") {
       const cmp = Mo.comparar(c, volume());
-      const sem = ajudaGratis() ? calc({ semAjuda: true }) : null;
+      const sem = semAjuda(c);
+      const mu = minUnAtual();
       const n4 = Mo.num(I().testeN), d4 = Mo.num(I().testeDias);
       capHtml = `<div class="res-dupla">
           <div class="res-num"><div class="lbl">Por semana</div><div class="val">${esc(Mo.texto(c, "semana"))}</div></div>
-          <div class="res-num"><div class="lbl">Por mês</div><div class="val">${esc(Mo.texto(c, "mes"))}</div></div>
+          <div class="res-num"><div class="lbl">Por mês</div><div class="val">${esc(Mo.texto(c, "mes"))}</div>${sem ? `<div class="sub">com a ajuda que você contou</div>` : ""}</div>
         </div>
+        ${comoCapacidade(c)}
         <p class="diag-r">Limite usado na conta: ${c.limite === "equipamento" ? "o equipamento ou espaço" : "o tempo de trabalho"}.</p>
-        ${sem && sem.estado === "ok" ? `<p class="diag-r">Por mês, sem ajuda: ${esc(Mo.texto(sem, "mes"))}; com ajuda: ${esc(Mo.texto(c, "mes"))}.</p>` : ""}
+        ${sem ? `<p class="diag-r" id="sem-com">Por mês, sem ajuda: ${esc(Mo.texto(sem, "mes"))}; com ajuda: ${esc(Mo.texto(c, "mes"))}.</p>` : ""}
+        ${mu > Mo.LIMITE.minUnAlto ? `<div class="bloco b-alerta" id="aviso-tempo"><b>Atenção</b><p>Você informou ${esc(fmtMin(mu))} para ${esc(verbo())} cada unidade. Esse tempo parece muito alto e deixa quase nada caber na semana. Confira em “Seu ponto de partida” ou na pergunta do tempo.</p></div>` : ""}
         ${volume() ? `<p class="diag-r">Você pretende ${esc(Mo.fmt(volume()))} por mês. ${cmp.tipo === "falta" ? (c.modo === "faixa" ? `Passa do máximo em pelo menos ${esc(Mo.fmt(cmp.n))}.` : `Faltam cerca de ${esc(Mo.fmt(cmp.n))} por mês.`) : cmp.tipo === "folga" ? `Cabe, com folga de ${esc(Mo.fmt(cmp.n))} por mês.` : "Fica dentro da faixa estimada."}</p>` : ""}
         ${n4 > 0 && d4 > 0 ? `<p class="diag-r">Teste da ideia: ${esc(Mo.fmt(n4))} em ${esc(Mo.fmt(d4))} dias.</p>` : ""}
         ${avisoInst("Calculadora de capacidade")}`;
@@ -858,22 +948,33 @@
       const ponto = prazo != null ? Mo.pontoDePedido(vol, uso, prazo, folga) : null;
       const compra = vol && uso > 0 ? Mo.compraComPerda(vol * uso, perda) : null;
       const OPS = ["atende", "não atende", "não sei"];
+      const un = I().usoUn || "", nomeItem = I().item || "O item principal";
+      const fmt1 = (n) => Mo.fmt(n, n % 1 ? 1 : 0);
       fornHtml = `<section class="cartao bloco-res"><h3>Fornecedores e estoque</h3>
         ${r6 && r6.estado === "partes" ? `<p class="diag-q">Fornecedores do item principal</p><p class="diag-r">${esc(r6.p1)} · chega: ${esc(r6.p2.toLowerCase())}${r6.dias ? ` (${esc(r6.dias)} dias)` : ""}</p>` : ""}
         <h4>Lembrete de reposição${I().item ? ` · ${esc(I().item)}` : ""}</h4>
-        ${ponto != null ? `<div class="res-num"><div class="lbl">Peça de novo quando restarem</div><div class="val">${esc(Mo.fmt(ponto))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}</div><div class="sub">consumo de ${esc(Mo.fmt(Mo.consumoDia(vol, uso), 1))} por dia × ${esc(Mo.fmt(prazo))} dias de prazo${folga ? ` + folga de ${esc(Mo.fmt(folga))}` : ""}</div></div>`
+        ${ponto != null ? `<div class="res-num"><div class="lbl">Peça de novo quando restarem</div><div class="val">${esc(Mo.fmt(ponto))}${un ? ` ${esc(un)}` : ""}</div><div class="sub">${esc(nomeItem)} que você usa durante ${esc(Mo.fmt(prazo))} dias de prazo${folga ? `, mais a folga de ${esc(Mo.fmt(folga))}` : ""}</div></div>
+          <ul class="reposicao-conta" id="conta-reposicao">
+            <li>Vendas por dia: ${esc(Mo.fmt(vol))} por mês ÷ ${Mo.DIAS_MES} dias = cerca de ${esc(fmt1(Mo.vendasDia(vol)))} por dia.</li>
+            ${uso !== 1 || un ? `<li>Uso de ${esc(nomeItem.toLowerCase())} por dia: ${esc(fmt1(Mo.vendasDia(vol)))} × ${esc(fmt1(uso))}${un ? ` ${esc(un)}` : ""} em cada unidade = ${esc(fmt1(Mo.consumoDia(vol, uso)))}${un ? ` ${esc(un)}` : ""} por dia.</li>` : ""}
+            <li>No prazo de ${esc(Mo.fmt(prazo))} dias: ${esc(fmt1(Mo.consumoDia(vol, uso)))} × ${esc(Mo.fmt(prazo))} = ${esc(Mo.fmt(ponto - folga))}${un ? ` ${esc(un)}` : ""}${folga ? ` + folga de ${esc(Mo.fmt(folga))}` : ""}.</li>
+          </ul>
+          ${comoCalc(`${fmt1(Mo.consumoDia(vol, uso))}${un ? ` ${un}` : ""} por dia × ${Mo.fmt(prazo)} dias de prazo do fornecedor = ${Mo.fmt(ponto - folga)}${un ? ` ${un}` : ""}${folga ? ` + ${Mo.fmt(folga)} de folga = ${Mo.fmt(ponto)}` : ""} (arredondado para cima).`, "como-reposicao")}`
           : `<p class="diag-r">Para calcular, faltam ${[!vol && "o volume por mês", !(uso > 0) && "a quantidade do item por unidade", prazo == null && "o prazo de entrega"].filter(Boolean).join(", ")}. Complete em “Seu ponto de partida”.</p>`}
         <label class="rot-campo" for="folga">Folga que você quer manter (unidades a mais)</label><input class="campo" id="folga" inputmode="numeric" value="${esc(S.inst.folga)}">
-        ${compra ? `<p class="diag-r">Compra do mês${perda > 0 ? `, já contando a perda de ${esc(Mo.fmt(perda, perda % 1 ? 1 : 0))}%` : ""}: ${esc(Mo.fmt(compra))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}.</p>` : ""}
+        ${compra ? `<p class="diag-r">Compra do mês${perda > 0 ? `, já contando a perda de ${esc(Mo.fmt(perda, perda % 1 ? 1 : 0))}%` : ""}: ${esc(Mo.fmt(compra))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}.</p>${comoCalc(`${Mo.fmt(vol)} por mês × ${fmt1(uso)}${un ? ` ${un}` : ""} em cada um = ${fmt1(vol * uso)}${un ? ` ${un}` : ""}${perda > 0 ? `; com a perda de ${fmt1(perda)}%, dividimos por ${Mo.fmt(100 - perda, perda % 1 ? 1 : 0)}% (o que sobra depois da perda) = ${Mo.fmt(compra)}` : ""} (arredondado para cima).`, "como-compra")}` : ""}
         ${avisoInst("Lembrete de reposição")}
         <h4>Quadro de fornecedores</h4>
         ${forn.map((f, i) => {
-          const conta = colunas.slice(1).filter((k) => f.v[k] === "atende").length;
+          const crits = colunas.slice(1), conta = crits.filter((k) => f.v[k] === "atende").length, marcou = crits.some((k) => f.v[k]);
+          const contaHtml = !crits.length ? `<p class="conta-forn vazia">Nenhum critério escolhido.</p>`
+            : !marcou ? `<p class="conta-forn vazia">Marque se este fornecedor atende ${crits.length === 1 ? "o critério" : "cada critério"}.</p>`
+            : `<p class="conta-forn">Atende ${conta} de ${crits.length} ${crits.length === 1 ? "critério" : "critérios"}</p>`;
           return `<div class="forn" data-i="${i}"><label class="rot-campo" for="fn${i}">Fornecedor ${i + 1}</label><input class="campo" id="fn${i}" data-f="nome" value="${esc(f.nome)}" placeholder="Nome que você pesquisou">
             <div class="linha"><span class="lbl">Preço</span><input class="campo" data-f="preco" value="${esc(f.preco || "")}" inputmode="decimal" aria-label="Preço do fornecedor ${i + 1}"></div>
             ${colunas.slice(1).map((k) => `<div class="linha crit"><span class="lbl">${esc(k)}</span><select class="campo" data-k="${esc(k)}" aria-label="${esc(k)} – fornecedor ${i + 1}"><option value=""></option>${OPS.map((o) => `<option ${f.v[k] === o ? "selected" : ""}>${o}</option>`).join("")}</select></div>`).join("")}
             <label class="rot-campo" for="fd${i}">Data da pesquisa</label><input class="campo" id="fd${i}" data-f="data" value="${esc(f.data || "")}">
-            ${colunas.length > 1 ? `<p class="conta-forn">Atende ${conta} de ${colunas.length - 1} critério(s)</p>` : ""}</div>`;
+            ${contaHtml}</div>`;
         }).join("")}
         ${avisoInst("Quadro de fornecedores")}
         ${termoBox(["Prazo de entrega do fornecedor", "Ponto de pedido", "Perda"])}
@@ -894,7 +995,8 @@
     const passos = proximosPassos(c);
     const lac = lacunas();
     const r13 = S.R["M7-13"];
-    const IA = D.pedidos_ia;
+    /* o item sobre fornecedores só vale quando a fase de fornecedores aparece */
+    const IA = D.pedidos_ia.filter((x) => (x.texto || "").trim() && (temFase3() || x.pedido !== "Fornecedores"));
     const respostas = [["Seu ponto de partida", null]].concat(sequencia().map((k) => [preencher(Q[k].pergunta), k]));
     const p = el(`<div class="pag">
       ${topo("Resultado")}
@@ -932,10 +1034,10 @@
         ${lac.length ? `<section class="cartao"><h3>O que ainda falta definir</h3><ul class="lista-capa">${lac.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>` : ""}
         ${passos.length ? `<section class="cartao"><h3>Próximos passos</h3><ol class="lista-capa">${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></section>` : ""}
         ${S.R["M7-12"] && S.R["M7-12"].texto ? `<section class="cartao"><h3>Ideias para depois</h3><p>${esc(S.R["M7-12"].texto)}</p></section>` : ""}
-        <details class="saiba"><summary><span>Pedidos para ferramentas de IA (só para organizar)</span></summary>
+        ${IA.length ? `<section class="cartao" id="pedidos-ia"><h3>Pedidos para ferramentas de IA (só para organizar)</h3>
           ${IA.map((x) => { const t = preencher(x.texto, { "[cole aqui as etapas]": etapas().join(", ") }); const copia = !/^Não há pedido/.test(x.texto);
             return `<div class="caixa caixa-ia"><b>${esc(x.pedido)}</b>${copia ? `<div class="prompt"><p>${esc(t)}</p><button class="btn-copiar" data-t="${esc(t)}">Copiar texto</button></div>` : `<p>${esc(t)}</p>`}<p class="ex">${esc(x.conferir)}</p><p class="ex">${esc(x.obs)}</p></div>`; }).join("")}
-        </details>
+        </section>` : ""}
         <section class="cartao-q pergunta" id="q13">
           <h2 class="q">${esc(preencher(q13.pergunta))}</h2>
           <div class="opcoes" id="op13">${opcoesDe("M7-13").map((o) => `<button class="opcao ${r13 && r13.opcao === o ? "sel" : ""}" data-o="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`).join("")}</div>

@@ -205,3 +205,17 @@ table.fluxo th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 #prio .opcoes.mini{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;margin-top:6px}
 #prio .opcoes.mini .opcao{width:auto;flex:0 0 auto;padding:6px 12px;font-size:13px;border-radius:var(--m-pill)}
 #prio .opcoes.mini .opcao.sel{background:var(--m-purple);color:#fff;border-color:var(--m-purple)}
+/* Módulo 6 (05/11): como a tabela foi montada, dicas gerais e aviso de valor alto */
+.como-conta{padding-left:18px;margin:8px 0}
+.como-conta li{margin:3px 0}
+.dicas-gerais{padding-left:20px;font-size:14px;color:#4a3d66;margin:6px 0 14px}
+.dicas-gerais li{margin:4px 0}
+#erro.aviso{margin-top:12px}
+#aviso-m1 .selo{margin-right:6px}
+.b-enc ul,.b-lacuna ul{padding-left:20px;margin:4px 0}
+.como{font-size:13px;color:#4a3d66;margin:6px 0 10px}
+.como b{color:var(--m-purple)}
+.item-topo{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.item-topo .btn-alt{font-size:12.5px;padding:4px 10px}
+.b-alerta ul{padding-left:18px;margin:4px 0}
+.b-alerta li{margin:4px 0}

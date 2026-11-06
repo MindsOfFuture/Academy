@@ -10,6 +10,8 @@
    Lote do testador (05/11/2026): Pergunta 3A nova (Produto/Mercadoria/Serviço), Pergunta 8 com várias
    respostas (e migração da resposta única antiga para lista), caixa "O que entendemos até aqui" no
    resultado com as respostas recolhidas em "Ver suas respostas".
+   Lote 05/11 (b): teclado do celular, "O que ainda falta descobrir" e "Sua tarefa para fazer já" gerados no
+   resultado, P4/P8 adaptadas para Mercadoria, exemplos por tipo, aviso de combinação, sem texto aos grupos.
    Inclui teste de sabotagem dos próprios conferidores. Sai com código != 0 se falhar. */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -257,6 +259,38 @@ const EXP = {
   "ajuda": false
  }
 };
+/* lote 05/11 (b): o que muda conforme o tipo da 3A (Mercadoria não pergunta se sabe FAZER; exemplos de
+   serviço e de revenda). Só os campos listados trocam; o resto vem de EXP. */
+const EX_P05 = 'Exemplo: "Trabalho de segunda a sexta. Só posso fazer meus doces no sábado."';
+const EX_P07 = 'Exemplo: "Tenho R$ 500 guardados para comprar ingredientes. Se eu não vender nada, não vai faltar comida em casa."';
+const OPS_P08_MERC = ['Ainda não conheço bem o produto ou os fornecedores', 'Me falta lugar ou equipamento', 'Conheço poucas pessoas para vender ou me ajudar',
+  'Tenho dificuldade com celular, internet ou redes sociais', 'Outra coisa'].map((t) => [t, null]);
+const EXP_TIPO = {
+  Produto: {
+    'M1.P04': { exemplo: 'Exemplo: Joana faz bolo para a família há anos. Agora ela vende bolo de pote para os vizinhos.' },
+    'M1.P05': { exemplo: EX_P05 }, 'M1.P07': { exemplo: EX_P07 },
+  },
+  Mercadoria: {
+    'M1.P04': { pergunta: 'Você já conhece bem o que vai revender?', apoio: 'Pense na qualidade, no preço e em onde comprar.',
+      opcoes: [['Sim, conheço bem o produto e onde comprar', null],
+        ['Conheço um pouco, ainda estou pesquisando', 'Dica: Compare preço e qualidade em mais de um fornecedor antes de comprar muito.'],
+        ['Ainda não conheço', 'Dica: Tudo bem começar do zero. Compre pouco no começo e pesquise pelo menos 2 fornecedores.']],
+      ajuda_texto: 'Queremos saber se você conhece o que vai revender: a qualidade, o preço e onde comprar. Quem conhece o produto e os fornecedores começa com mais segurança.',
+      exemplo: 'Exemplo: Ana sempre comprou roupas numa fábrica para ela mesma. Agora ela compra lá e revende para as vizinhas.' },
+    'M1.P05': { exemplo: 'Exemplo: "Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado."' },
+    'M1.P06': { apoio: 'Por exemplo: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar.' },
+    'M1.P07': { exemplo: 'Exemplo: "Tenho R$ 500 guardados para comprar as primeiras peças para revender. Se eu não vender nada, não vai faltar comida em casa."' },
+    'M1.P08': { opcoes: OPS_P08_MERC },
+  },
+  'Serviço': {
+    'M1.P04': { exemplo: 'Exemplo: Maria trabalhou 5 anos como costureira numa fábrica. Agora ela faz consertos de roupa em casa.' },
+    'M1.P05': { exemplo: 'Exemplo: "Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado."' },
+    'M1.P06': { apoio: 'Por exemplo: ferramentas, materiais de trabalho ou um espaço para atender.' },
+    'M1.P07': { exemplo: 'Exemplo: "Tenho R$ 300 guardados para comprar esmaltes e alicates. Se eu não tiver clientes, não vai faltar comida em casa."' },
+  },
+};
+const tipoDe = (R) => (String(R['M1.P03A'] || '').match(/^(Produto|Mercadoria|Serviço)/) || [])[1] || null;
+const expDe = (c, R) => Object.assign({}, EXP[c], (EXP_TIPO[tipoDe(R)] || {})[c] || {});
 const ORDEM = ['M1.P01', 'M1.P02', 'M1.P03', 'M1.P03A', 'M1.P04', 'M1.P05', 'M1.P05A', 'M1.P06', 'M1.P07', 'M1.P07A', 'M1.P08'];
 /* fluxo do documento, escrito à parte do motor do app */
 function esperado(R) {
@@ -372,6 +406,8 @@ async function servidor() {
     ok(!/aten[çc][ãa]o/i.test(t), `${onde}: texto ATENÇÃO`);
     ok(!/\bSeguir\b/.test(t) && !/Corrigir/.test(t), `${onde}: Seguir/Corrigir`);
     ok(!/BT\d{2}|M1\.P\d|rafael/i.test(t), `${onde}: código ou nome interno na tela`);
+    ok(!/\bGrupo\s*\d|pr[óo]ximos grupos|M[óo]dulo\s*\d+\s+usar[áa]|mapeados por voc[êe]s/i.test(t), `${onde}: texto dirigido aos grupos na tela`);
+    ok(!/objetivo de renda/i.test(t), `${onde}: cita "objetivo de renda", que não é perguntado`);
     const menor = await page.evaluate(() => {
       let m = 99, qual = '';
       document.querySelectorAll('#tela *').forEach((e) => {
@@ -389,11 +425,12 @@ async function servidor() {
 
   /* checagens de uma pergunta antes de responder */
   async function conferirPergunta(c, R, todasMsgs) {
-    const e = EXP[c];
+    const e = expDe(c, R);
     const t = await texto();
     const q = await page.evaluate(() => document.querySelector('.q').textContent);
     let qEsp = e.pergunta;
-    if (c === 'M1.P04' && R['M1.P03']) qEsp = `Você já sabe fazer ${R.__p4}?`;
+    if (c === 'M1.P04' && R['M1.P03'] && !R.__vaga) qEsp = tipoDe(R) === 'Mercadoria' ? `Você já conhece bem ${R.__p4} e sabe onde comprar?` : `Você já sabe fazer ${R.__p4}?`;
+    if (e.exemplo) ok(await page.evaluate(() => (document.querySelector('.ajuda-box .ex') || {}).textContent) === e.exemplo, `${c} (${tipoDe(R)}): exemplo da ajuda conforme o tipo`);
     ok(q === qEsp, `${c}: pergunta "${q}" != "${qEsp}"`);
     ok(t.includes(e.apoio), `${c}: apoio`);
     ok(await page.evaluate(() => [...document.querySelectorAll('.topo button')].some((b) => b.textContent.trim() === '< Voltar')), `${c}: "< Voltar" no topo`);
@@ -507,10 +544,14 @@ async function servidor() {
   await inicio();
   let t = await texto();
   for (const s of ['PARTE 1', 'Você e a sua ideia', 'Vamos conversar sobre você e sobre o que você quer vender. Não existe resposta certa ou errada.',
-    'Isso é para você se:', 'Antes de começar, pense nisto:', 'No final, você vai ter:', 'Leva uns 10 minutos', 'O que esta parte não faz',
+    'Isso é para você se:', 'Antes de começar, pense nisto:', 'No final, você vai ter:', 'Este módulo leva uns 10 minutos', 'O que esta parte não faz',
     'Quanto dinheiro você pode usar sem faltar para as contas da casa', 'Uma tarefa fácil para fazer já'])
     ok(t.includes(s), `início: falta "${s}"`);
   ok(!t.includes('confirmar o tempo'), 'início: nota "(confirmar o tempo real)" não pode aparecer');
+  // item novo (Júlia): os ~10 min são deste módulo; a jornada inteira leva horas e fica salva no aparelho
+  ok(t.includes('Este é o Módulo 1 de 10. A jornada completa, com os 10 módulos, leva de 3 a 5 horas no total.'), 'início: falta o tempo da jornada completa');
+  ok(t.includes('dá para fazer em vários dias, e suas respostas ficam salvas neste aparelho'), 'início: falta o aviso de que as respostas ficam salvas');
+  ok(!/(^|\n)Leva uns 10 minutos/.test(t), 'início: "Leva uns 10 minutos" sozinho parece o tempo da jornada inteira');
   ok(await page.evaluate(() => document.querySelectorAll('.bloco-lista li').length === 11 && [...document.querySelectorAll('.bloco-lista li')].every((l) => l.querySelector('svg'))), 'início: 11 linhas, cada uma com ícone');
   ok(await page.evaluate(() => { const b = document.querySelector('#ir'); const r = b.getBoundingClientRect(); return b.textContent === 'Começar' && r.bottom <= innerHeight && getComputedStyle(b.parentElement).position === 'sticky'; }), 'início: Começar fixo no rodapé e visível');
   await regrasGerais('início');
@@ -523,7 +564,7 @@ async function servidor() {
   t = await texto();
   for (const s of ['O que você pode esperar', 'O app não faz:', 'Não promete lucro nem vendas', 'O app te ajuda a:', 'Escolher um próximo passo fácil',
     'Quando pedir ajuda a um profissional', 'O app ajuda você a pensar e se organizar. Os resultados dependem das suas respostas e não são garantidos. Regras de impostos, registro e licenças devem ser confirmadas em sites do governo e com profissionais.',
-    'Feito pelo Grupo 1 · Laboratório de Gestão II · FACC/UFJF'])
+    'Laboratório de Gestão II · FACC/UFJF'])
     ok(t.includes(s), `limites: falta "${s}"`);
   ok(!/vers[ãa]o|v0\.|sem versão|internas/i.test(t), 'limites: sem versão/data');
   ok(await page.evaluate(() => getComputedStyle(document.querySelector('.aviso-roxo')).backgroundColor === 'rgb(104, 74, 151)'), 'limites: caixa roxa');
@@ -544,13 +585,17 @@ async function servidor() {
   });
   /* caixa "O que entendemos até aqui" em cima; respostas recolhidas em "Ver suas respostas" */
   const entendemos = () => page.evaluate(() => { const e = document.querySelector('.entendemos'); return e ? [...e.querySelectorAll('p')].map((x) => x.textContent) : null; });
+  const tarefaAgora = () => page.evaluate(() => { const e = document.querySelectorAll('.tarefa'); return e.length === 1 && e[0].querySelector('b').textContent === 'Sua tarefa para fazer já' ? e[0].querySelector('p').textContent : null; });
+  const faltaAgora = () => page.evaluate(() => [...document.querySelectorAll('.b-lacuna li')].map((l) => l.textContent));
+  const avisosAgora = () => page.evaluate(() => [...document.querySelectorAll('.b-aviso p')].map((l) => l.textContent));
+  /* texto corrido (relatório do Bento): frases agrupadas por assunto em 1 a 3 parágrafos, sem lista */
   ok(JSON.stringify(await entendemos()) === JSON.stringify([
-    'Você vende bolo de pote, um produto: você compra os materiais e faz o que vende.',
-    'Você já vendeu algumas vezes, então já sabe que tem gente que compra.',
-    'Você já sabe fazer isso bem e tem até 1 hora por dia para o negócio, e consegue arrumar mais tempo se ele crescer.',
-    'Por enquanto, você não tem dinheiro para colocar no negócio e já tem tudo o que precisa para trabalhar; você pensa em começar juntando dinheiro primeiro.',
+    'Você vende bolo de pote, um produto: você compra os materiais e faz o que vende. Você já vendeu algumas vezes, então já sabe que tem gente que compra.',
+    'Você já sabe fazer isso bem e tem até 1 hora por dia para o negócio, e consegue arrumar mais tempo se ele crescer. Por enquanto, você não tem dinheiro para colocar no negócio e já tem tudo o que precisa para trabalhar; você pensa em começar juntando dinheiro primeiro.',
     'O que mais te preocupa agora: conhecer poucas pessoas para vender ou te ajudar e medo de não vender.',
-  ]), 'resultado: "O que entendemos até aqui" ' + JSON.stringify(await entendemos()));
+  ]), 'resultado: "O que entendemos até aqui" em 3 parágrafos ' + JSON.stringify(await entendemos()));
+  ok(await page.evaluate(() => { const e = document.querySelector('.entendemos'); const n = e.querySelectorAll('p').length; return !e.querySelector('ul, ol, li') && n >= 1 && n <= 3; }),
+    'resultado: "O que entendemos" em texto corrido (sem <li>, 1 a 3 <p>)');
   ok(await page.evaluate(() => { const e = document.querySelector('.entendemos'), d = document.querySelector('details.respostas');
     return e.querySelector('h3').textContent === 'O que entendemos até aqui' && e.getBoundingClientRect().top < innerHeight && !!d && !d.open && d.querySelector('summary').textContent === 'Ver suas respostas' && (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING); }),
     'resultado: caixa no topo (visível sem rolar) e respostas recolhidas abaixo dela');
@@ -578,30 +623,68 @@ async function servidor() {
   await caminho('Não sei na 5A e na 7A', com({ 'M1.P05': 'Só nos fins de semana', 'M1.P05A': 'Não sei dizer', 'M1.P06': 'Não tenho nada ainda', 'M1.P07A': 'Não sei dizer' }));
   t = await texto();
   ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna li')].map((l) => l.textContent).join('|')) ===
-    'Se o negócio crescer, você consegue arrumar mais tempo para ele?|Como você pensa em começar sem dinheiro ou sem material?', 'resultado: lacunas = 5A e 7A');
+    'Ainda falta saber: se você consegue arrumar mais tempo quando o negócio crescer.|Ainda falta saber: como você vai começar sem dinheiro ou sem material.', 'resultado: o que falta descobrir = 5A e 7A, em linguagem simples');
+  ok(await page.evaluate(() => document.querySelector('.b-lacuna b').textContent) === 'O que ainda falta descobrir', 'resultado: título "O que ainda falta descobrir"');
   {
-    const f = (await entendemos()) || [];
-    ok(f.includes('Você já sabe fazer isso bem e só tem os fins de semana para o negócio, e ainda não sabe se consegue arrumar mais tempo.') &&
-      f.includes('Você pode usar entre R$ 100 e R$ 500 sem faltar para as contas da casa, e ainda não tem o que precisa para trabalhar.') &&
-      f.includes('O que mais te preocupa agora é: ainda não saber fazer direito.'), 'entendemos: "Não sei dizer" da 5A/7A e preocupação única ' + JSON.stringify(f));
+    const f = [((await entendemos()) || []).join(' ')];
+    ok(f[0].includes('Você já sabe fazer isso bem e só tem os fins de semana para o negócio, e ainda não sabe se consegue arrumar mais tempo.') &&
+      f[0].includes('Você pode usar entre R$ 100 e R$ 500 sem faltar para as contas da casa, e ainda não tem o que precisa para trabalhar.') &&
+      f[0].includes('O que mais te preocupa agora é: ainda não saber fazer direito.'), 'entendemos: "Não sei dizer" da 5A/7A e preocupação única ' + JSON.stringify(f));
   }
   // serviço, ideia ainda só na cabeça e todas as preocupações
   await caminho('serviço só na cabeça', com({ 'M1.P01': 'Ainda está só na minha cabeça', 'M1.P03': 'Lavagem de carro em domicílio.', __p4: 'lavagem de carro em domicílio',
     'M1.P03A': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M1.P04': 'Ainda não sei fazer', 'M1.P05': 'Mais de 3 horas por dia', 'M1.P06': 'Tenho só uma parte', 'M1.P07': 'Até R$ 100',
     'M1.P08': EXP['M1.P08'].opcoes.map((o) => o[0]), __outra: 'Chuva' }));
   ok(JSON.stringify(await entendemos()) === JSON.stringify([
-    'Você quer vender lavagem de carro em domicílio, um serviço: o cliente paga pelo trabalho que você faz.',
-    'Por enquanto, a ideia está só na sua cabeça. O melhor agora é testar com pouca coisa antes de gastar.',
-    'Você ainda precisa aprender a fazer isso e tem mais de 3 horas por dia para o negócio.',
-    'Você pode usar até R$ 100 sem faltar para as contas da casa e já tem uma parte do que precisa para trabalhar.',
+    'Você quer vender lavagem de carro em domicílio, um serviço: o cliente paga pelo trabalho que você faz. Por enquanto, a ideia está só na sua cabeça. O melhor agora é testar com pouca coisa antes de gastar.',
+    'Você ainda precisa aprender a fazer isso e tem mais de 3 horas por dia para o negócio. Você pode usar até R$ 100 sem faltar para as contas da casa e já tem uma parte do que precisa para trabalhar.',
     'O que mais te preocupa agora: ainda não saber fazer direito, a falta de lugar ou equipamento, conhecer poucas pessoas para vender ou te ajudar, a dificuldade com celular, internet ou redes sociais e chuva.',
   ]), 'entendemos (serviço): ' + JSON.stringify(await entendemos()));
-  // mercadoria
-  await caminho('mercadoria', com({ 'M1.P01': 'Já fiz um pouco para testar ou dar de amostra', 'M1.P03A': 'Mercadoria: compro pronto para revender' }));
-  ok(((await entendemos()) || []).slice(0, 2).join(' ') === 'Você quer vender bolo de pote, uma mercadoria: você compra pronto para revender. Você já fez um pouco para testar ou dar de amostra. É hora de ouvir quem provou: compraria? Por quanto?', 'entendemos (mercadoria)');
+  ok(await tarefaAgora() === 'Pergunte a 3 pessoas próximas se comprariam lavagem de carro em domicílio e por quanto.', 'tarefa (só na cabeça): ' + await tarefaAgora());
+  ok(JSON.stringify(await faltaAgora()) === '[]' && JSON.stringify(await avisosAgora()) === '[]', 'serviço só na cabeça: nada falta, sem aviso');
+  // mercadoria: a Pergunta 4 fala de conhecer o produto e onde comprar (não de saber fazer)
+  const MERC = { 'M1.P03A': 'Mercadoria: compro pronto para revender', 'M1.P04': 'Conheço um pouco, ainda estou pesquisando', 'M1.P08': ['Ainda não conheço bem o produto ou os fornecedores'] };
+  await caminho('mercadoria', com(Object.assign({ 'M1.P01': 'Já fiz um pouco para testar ou dar de amostra' }, MERC)));
+  ok(((await entendemos()) || [])[0] === 'Você quer vender bolo de pote, uma mercadoria: você compra pronto para revender. Você já fez um pouco para testar ou dar de amostra. É hora de ouvir quem provou: compraria? Por quanto?', 'entendemos (mercadoria)');
+  ok(await tarefaAgora() === 'Pergunte a 3 pessoas que já experimentaram se comprariam bolo de pote e por quanto.', 'tarefa (amostra): ' + await tarefaAgora());
+  await caminho('mercadoria já vende (todas as mensagens)', com(Object.assign({ 'M1.P01': 'Já vendo sempre', 'M1.P03': 'Roupas femininas', __p4: 'roupas femininas',
+    'M1.P08': ['Ainda não conheço bem o produto ou os fornecedores', 'Me falta lugar ou equipamento'] }, MERC, { 'M1.P08': OPS_P08_MERC.slice(0, 2).map((o) => o[0]) })), { todasMsgs: true });
+  {
+    const f = [((await entendemos()) || []).join(' ')];
+    ok(f[0].includes('Você ainda está conhecendo o que vai revender e onde comprar e tem de 1 a 3 horas por dia para o negócio.') &&
+      f[0].includes('O que mais te preocupa agora: ainda não conhecer bem o produto ou os fornecedores e a falta de lugar ou equipamento.') &&
+      !f.join(' ').includes('aprendendo a fazer'), 'entendemos (mercadoria): fala de conhecer o produto, não de saber fazer ' + JSON.stringify(f));
+    ok(await tarefaAgora() === 'Pesquise o preço de compra de roupas femininas em 2 fornecedores.', 'tarefa (mercadoria): ' + await tarefaAgora());
+    await shot('m01-resultado-mercadoria');
+  }
+  // serviço que já vende mas "ainda não sabe fazer": aviso que não trava
+  await caminho('serviço manicure com aviso', com({ 'M1.P03': 'Manicure', __p4: 'manicure', 'M1.P03A': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M1.P04': 'Ainda não sei fazer' }));
+  ok(await tarefaAgora() === 'Anote quanto tempo leva um atendimento, do começo ao fim.', 'tarefa (serviço): ' + await tarefaAgora());
+  ok(JSON.stringify(await avisosAgora()) === JSON.stringify(['Você disse que já vende, mas também que ainda não sabe fazer o que vende. Se outra pessoa faz para você e você só revende, talvez a resposta sobre o que você oferece seja "Mercadoria". Confira suas respostas.']),
+    'aviso: já vende + ainda não sabe fazer ' + JSON.stringify(await avisosAgora()));
+  ok(await page.evaluate(() => !!document.querySelector('.lg2-proximo')), 'aviso não trava: o resultado chega ao botão do próximo módulo');
+  // ideia vaga na Pergunta 3: entra no que falta descobrir e a tarefa pede para definir a ideia
+  await caminho('ideia vaga', com({ 'M1.P03': 'não sei', __vaga: true, 'M1.P05': 'Até 1 hora por dia', 'M1.P05A': 'Não sei dizer' }));
+  ok(JSON.stringify(await faltaAgora()) === JSON.stringify(['Ainda falta saber: o que exatamente você vai vender.', 'Ainda falta saber: se você consegue arrumar mais tempo quando o negócio crescer.']), 'falta descobrir (ideia vaga + 5A): ' + JSON.stringify(await faltaAgora()));
+  ok(await tarefaAgora() === 'Escreva em uma frase o que você quer vender e para quem.', 'tarefa (ideia vaga): ' + await tarefaAgora());
+  ok(!((await entendemos()) || []).join(' ').includes('não sei'), 'entendemos: não repete a ideia vaga');
+  await shot('m01-resultado-falta-e-tarefa');
   // sem nenhum "Não sei", não há bloco de lacunas
   await caminho('sem Não sei', com({}));
-  ok(await page.evaluate(() => !document.querySelector('.b-lacuna')), 'resultado: sem lacunas quando tudo foi respondido');
+  ok(await page.evaluate(() => !document.querySelector('.b-lacuna li') && (document.querySelector('.b-lacuna .nada-falta') || {}).textContent ===
+    'Você respondeu tudo com clareza. Por enquanto, não falta descobrir nada nesta parte.'), 'resultado: sem nada para descobrir, diz isso');
+  ok(await tarefaAgora() === 'Anote quanto você gasta de material para fazer uma unidade de bolo de pote.', 'tarefa (produto, já vende): ' + await tarefaAgora());
+  ok(await page.evaluate(() => !document.querySelector('.b-aviso')), 'resultado: sem aviso quando não há combinação estranha');
+  {
+    const t2 = await texto();
+    ok(!/O que você recebe no final/.test(t2), 'resultado: sai o cartão que só descrevia a entrega');
+    for (const s of ['No Módulo 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes.',
+      'No Módulo 4 você vai usar essas informações para montar uma primeira oferta simples e testar a ideia gastando pouco.',
+      'No Módulo 6 você vai usar esse valor para planejar quanto investir no começo sem se arriscar.',
+      'No Módulo 10, o seu tempo e o que limita você vão ajudar a definir o ritmo e as prioridades do seu plano de 90 dias.',
+      'Seu retrato inicial: o tempo que você tem, o que limita você e o que motiva você.'])
+      ok(t2.includes(s), `resultado: falta "${s}"`);
+  }
 
   /* ---------- Voltar ---------- */
   await inicio();
@@ -710,7 +793,7 @@ async function servidor() {
   ok(await cod() === 'M1.P03A', 'v3: sem a 3A, o Continuar da última pergunta leva para a 3A (não para o resultado)');
   await opcao('Serviço: meu cliente paga pelo trabalho que realizo');
   for (let i = 0; i < 10 && (await cod()) !== 'RESULTADO'; i++) await continuar();
-  ok(await cod() === 'RESULTADO' && ((await entendemos()) || [])[0] === 'Você vende lavagem de carro, um serviço: o cliente paga pelo trabalho que você faz.', 'v3: chega ao resultado com o tipo');
+  ok(await cod() === 'RESULTADO' && ((await entendemos()) || [])[0].startsWith('Você vende lavagem de carro, um serviço: o cliente paga pelo trabalho que você faz.'), 'v3: chega ao resultado com o tipo');
   await page.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 3, atual: 'RESULTADO', R })), v3R);
   await page.reload(); await page.waitForSelector('#ir');
   await clicarTexto('button', 'Começar');
@@ -725,7 +808,7 @@ async function servidor() {
       body: dados.replace('"texto": "Ainda não sei fazer direito",\n     "mensagem": null', '"texto": "Ainda não sei fazer direito",\n     "mensagem": {"titulo": "Dica", "texto": "DICA-A"}')
         .replace('"texto": "Me falta lugar ou equipamento",\n     "mensagem": null', '"texto": "Me falta lugar ou equipamento",\n     "mensagem": {"titulo": "Dica", "texto": "DICA-B"}') }));
     await pd.goto(srv.url);
-    await pd.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'M1.P08', R: Object.assign({}, R, { 'M1.P03A': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' } }) })), Object.assign({}, v3R, { 'M1.P08': undefined }));
+    await pd.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'M1.P08', R: Object.assign({}, R, { 'M1.P03A': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' } }) })), Object.assign({}, v3R, { 'M1.P08': undefined }));
     await pd.reload(); await pd.waitForSelector('#ir');
     const clica = (t) => pd.evaluate((t) => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.replace('✓', '').trim() === t); if (b) b.click(); return !!b; }, t);
     const dicas = () => pd.evaluate(() => [...document.querySelectorAll('#msg .msg p')].map((p) => p.textContent).join('|'));
@@ -735,6 +818,59 @@ async function servidor() {
     await clica('Ainda não sei fazer direito');
     ok(await dicas() === 'DICA-B', 'P8: desmarcar tira a dica daquela opção');
     await ctx.close();
+  }
+
+  /* ---------- trocar o tipo na 3A: a P4 vira a pergunta de revenda e a resposta acompanha ---------- */
+  {
+    await inicio();
+    await clicarTexto('button', 'Começar');
+    await opcao('Já vendo sempre'); await continuar();
+    await opcao('Quero ganhar um dinheiro a mais'); await continuar();
+    await page.fill('#txt', 'Roupas'); await continuar();
+    await opcao('Produto: eu compro materiais e faço o que vendo'); await continuar();
+    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já sabe fazer roupas?', 'troca de tipo: P4 de produto');
+    await opcao('Sim, já faço bem');
+    await clicarTexto('button', '< Voltar');
+    await opcao('Mercadoria: compro pronto para revender');
+    ok(JSON.stringify((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))).R['M1.P03A']) === JSON.stringify({ estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }), 'troca de tipo: 3A no mesmo formato');
+    await continuar();
+    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já conhece bem roupas e sabe onde comprar?', 'troca de tipo: P4 de revenda');
+    ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Sim, conheço bem o produto e onde comprar"]' && (await continuarDesligado()) === false,
+      'troca de tipo: a resposta da P4 passa para a opção equivalente, Continuar aceso');
+    ok(!(await texto()).includes('ainda estou aprendendo'), 'troca de tipo: sem opção de "aprender a fazer" na revenda');
+    await page.evaluate(() => { document.querySelector('details').open = true; });
+    await shot('m01-p4-mercadoria');
+    await clicarTexto('button', '< Voltar');
+    await opcao('Serviço: meu cliente paga pelo trabalho que realizo'); await continuar();
+    ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Sim, já faço bem"]', 'troca de tipo: voltar para serviço restaura a opção de saber fazer');
+  }
+
+  /* ---------- teclado do celular (receita A): campo e Continuar visíveis com o teclado aberto ---------- */
+  {
+    const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+    ok(/<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">/.test(html), 'teclado: meta viewport com interactive-widget=resizes-content');
+    ok((app.match(/addEventListener\("focusin"/g) || []).length === 1 && /scrollIntoView\(\{ block: "center" \}\)/.test(app) && /visualViewport\.addEventListener\("resize"/.test(app) && !/scrollTo\(0,\s*0\)[^;]*focus/.test(app), 'teclado: um listener focusin que centraliza o campo (também no resize do visualViewport)');
+    const kb = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    kb.on('pageerror', (e) => erros.push('teclado: ' + e.message));
+    await kb.goto(srv.url);
+    const dentro = (sel) => kb.evaluate((sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }, sel);
+    const okBtn = () => kb.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+    for (const [nome, R, sel] of [
+      ['P3', { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P02': { estado: 'opcao', opcao: 'Quero ganhar um dinheiro a mais' } }, '#txt'],
+      ['P8 (Outra coisa)', null, '.outra textarea'],
+    ]) {
+      await kb.setViewportSize({ width: 390, height: 844 });
+      if (R) await kb.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'M1.P03', R })), R);
+      else await kb.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'M1.P08', R })), Object.assign({}, v3R, { 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' }, 'M1.P08': { estado: 'opcao', opcao: 'Outra coisa', opcoes: ['Outra coisa'] } }));
+      await kb.reload(); await kb.waitForSelector('#ir');
+      await kb.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Começar').click());
+      await kb.waitForSelector(sel);
+      await kb.focus(sel);
+      await kb.setViewportSize({ width: 390, height: 450 });   // teclado aberto
+      await kb.waitForTimeout(450);
+      ok(await dentro(sel) && await okBtn(), `teclado (${nome}): campo e Continuar dentro da janela 390x450`);
+    }
+    await kb.close();
   }
 
   /* ---------- respostas da versão antiga são descartadas ---------- */
@@ -748,5 +884,5 @@ async function servidor() {
   ok(erros.length === 0, 'erros na página: ' + erros.join(' | '));
   await browser.close(); srv.close();
   if (falhas.length) { console.log(`FAIL ${falhas.length} de ${checks} checagens`); falhas.forEach((f) => console.log(' - ' + f)); process.exit(1); }
-  console.log(`PASS ${checks} checagens · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
+  console.log(`PASS ${checks} checagens · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

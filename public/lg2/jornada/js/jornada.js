@@ -123,8 +123,14 @@
   function mostrarResumo() {
     var caixa = document.getElementById('resumo-negocio');
     var frases = [];
-    try { frases = window.ResumoNegocio ? window.ResumoNegocio.frases() : []; } catch (e) { frases = []; }
-    document.getElementById('resumo-texto').textContent = frases.join(' ');
+    try {
+      var R = window.ResumoNegocio;
+      frases = R ? (R.paragrafos ? R.paragrafos() : [R.frases().join(' ')]) : [];
+    } catch (e) { frases = []; }
+    frases = frases.filter(Boolean);
+    var alvo = document.getElementById('resumo-texto');
+    alvo.textContent = '';
+    frases.forEach(function (t) { var p = document.createElement('p'); p.textContent = t; alvo.appendChild(p); });
     caixa.hidden = !frases.length;
   }
 
