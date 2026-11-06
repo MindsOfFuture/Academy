@@ -53,6 +53,7 @@ a{color:var(--m-purple)}
 .dica b{display:block;color:var(--m-purple);font-size:16px;margin-bottom:2px}
 p.ajuda{font-size:15px;color:var(--m-gray);margin-bottom:8px}
 .dica .ajuda{font-size:15px;color:#3d3650;line-height:1.4;margin:0}
+.dica-mais{margin-top:8px}.dica-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:15px}.dica-mais[open] summary{margin-bottom:6px}
 
 /* cartões e textos */
 .cartao{border:2px solid var(--m-lavender);border-radius:var(--m-radius);padding:14px 16px;margin-bottom:12px}
