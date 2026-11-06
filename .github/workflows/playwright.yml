@@ -17,6 +17,10 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
       options: --user 1001
+    # No container o shell padrão é sh; o passo de segredos usa ${!v}, que é bash.
+    defaults:
+      run:
+        shell: bash
     steps:
     - uses: actions/checkout@v4
     # Sem estes segredos o middleware responde 503 e o servidor de teste nunca fica pronto
