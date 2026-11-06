@@ -6,6 +6,7 @@ import { GlobalAnalytics } from "./GlobalAnalytics";
 import { LearningPathAnalytics } from "./LearningPathAnalytics";
 import { CourseAnalytics } from "./CourseAnalytics";
 import { StudentAnalytics } from "./StudentAnalytics";
+import { SiteMetrics } from "./SiteMetrics";
 import type { CourseSummary, LearningPathSummary } from "@/lib/api/types";
 
 type AnalyticsLevel = "global" | "path" | "course" | "student";
@@ -82,7 +83,12 @@ export default function AnalyticsTab({ isAdmin, courses, paths, users }: Analyti
 
       {/* Renderização Condicional do Nível */}
       <div className="animate-in fade-in duration-300">
-        {level === "global" && <GlobalAnalytics filter={dateFilter} courses={courses} />}
+        {level === "global" && (
+          <div className="space-y-6">
+            <SiteMetrics filter={dateFilter} />
+            <GlobalAnalytics filter={dateFilter} courses={courses} />
+          </div>
+        )}
         {level === "path" && <LearningPathAnalytics paths={paths} />}
         {level === "course" && <CourseAnalytics courses={courses} />}
         {level === "student" && <StudentAnalytics students={users} />}

@@ -120,7 +120,12 @@
   }
 
   // Resumo do negócio no fim da jornada: texto montado com as respostas dos módulos (só leitura).
+  var jornadaAvisada = false;
   function mostrarResumo() {
+    if (!jornadaAvisada) {
+      jornadaAvisada = true;
+      try { if (window.LG2Metricas) window.LG2Metricas.enviar('lg2_journey_completed', '/lg2/jornada', {}); } catch { /* sem métricas */ }
+    }
     var caixa = document.getElementById('resumo-negocio');
     var frases = [];
     try {

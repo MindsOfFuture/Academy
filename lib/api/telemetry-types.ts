@@ -85,6 +85,9 @@ export const LEARNING_EVENT_NAMES = [
   "assignment_submitted",
   "chat_message_sent",
   "certificate_generated",
+  "lg2_module_opened",
+  "lg2_module_completed",
+  "lg2_journey_completed",
 ] as const;
 
 export type LearningEventName = (typeof LEARNING_EVENT_NAMES)[number];
@@ -103,6 +106,9 @@ export const LEARNING_EVENT_LABELS: Record<LearningEventName, string> = {
   assignment_submitted: "Atividade entregue",
   chat_message_sent: "Mensagem enviada",
   certificate_generated: "Certificado emitido",
+  lg2_module_opened: "Módulo do Lab. de Gestão aberto",
+  lg2_module_completed: "Módulo do Lab. de Gestão concluído",
+  lg2_journey_completed: "Jornada do Lab. de Gestão concluída",
 };
 
 export interface LearningEventInput {
