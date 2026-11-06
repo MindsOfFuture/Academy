@@ -40,6 +40,12 @@ async function lancarEncontro(
   page: Page,
   e: { inicio: string; fim: string; escola: string; atividade: string; equipe: string[] },
 ) {
+  // A checagem de horário só existe depois da hidratação (onSubmit do React). Clicar antes
+  // envia o formulário direto ao servidor, sem aviso — corrida que derrubava o teste no CI.
+  await page.waitForFunction(() => {
+    const form = [...document.querySelectorAll('form')].find((f) => f.querySelector('h3')?.textContent === 'Lançar encontro');
+    return !!form && Object.keys(form).some((k) => k.startsWith('__reactProps'));
+  });
   await page.getByLabel('Data').fill(DIA);
   await page.getByLabel('Início').fill(e.inicio);
   await page.getByLabel('Fim').fill(e.fim);
@@ -119,7 +125,6 @@ test('exceção: bolsista em duas escolas no mesmo horário é avisado antes de 
   await page.reload();
   await lancarEncontro(page, { inicio: '09:00', fim: '11:00', escola: ESCOLA_2, atividade: tarde, equipe: [BOLSISTA_A] });
   const aviso = sobreposicao(page);
-  // A checagem de conflito roda no servidor antes do aviso; 5s padrão não bastam no CI.
   await expect(aviso).toBeVisible({ timeout: 20_000 });
   await expect(aviso.getByRole('listitem').filter({ hasText: manha })).toContainText(BOLSISTA_A);
 
