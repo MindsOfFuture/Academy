@@ -190,7 +190,7 @@ window.MODULO8 = {
    "ajuda": "Escolha o local principal.",
    "tipo": "Escolha",
    "condicao": "Sempre",
-   "opcoes": "Minha casa; Ponto comercial; Atendimento externo; Online; Não sei",
+   "opcoes": "Minha casa; Ponto comercial; Na casa do cliente (atendimento em domicílio); Atendimento externo; Online; Não sei",
    "resposta": "-",
    "alerta": "O local pode exigir licenças municipais ou sanitárias."
   },

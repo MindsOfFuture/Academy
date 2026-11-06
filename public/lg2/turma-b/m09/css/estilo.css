@@ -273,3 +273,9 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 .entendemos{border-color:var(--m-purple);border-left-width:6px}
 .entendemos p+p{margin-top:6px}
 .bloco p+p,#nota-casa p+p{margin-top:6px}
+/* lote 3 (nov/2026): Voltar no topo, "Ver mais", campo de "Outra atividade" */
+.voltar-topo{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--m-purple);font:inherit;font-weight:700;font-size:16px;padding:6px 2px;margin:-4px 0 6px;cursor:pointer;min-height:40px}
+.corpo>.voltar-topo{margin:4px 0 4px}
+details.mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:14px;margin-top:4px}
+details.mais[open] summary{display:none}
+.outra-box{margin-top:10px}

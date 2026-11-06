@@ -212,28 +212,28 @@ const LINHAS = [
  },
  {
   "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? São pessoas comuns ou empresas?",
+  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
   "opcao": "Pessoas comuns (consumidor final)",
   "tipo": "Nenhum",
   "texto": "—"
  },
  {
   "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? São pessoas comuns ou empresas?",
+  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
   "opcao": "Empresas",
   "tipo": "Nenhum",
   "texto": "—"
  },
  {
   "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? São pessoas comuns ou empresas?",
+  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
   "opcao": "Campos complementares incompletos",
   "tipo": "Dica",
   "texto": "Preencha o que você já sabe. O que ficar de fora dá para completar depois."
  },
  {
   "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? São pessoas comuns ou empresas?",
+  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
   "opcao": "Não sei",
   "tipo": "Prompt de IA",
   "texto": "Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Me ajude a descrever quem seria o meu cliente ideal: idade, renda, profissão, onde mora e o que ele precisa resolver.\""
@@ -587,7 +587,7 @@ const PERGUNTAS = [
  },
  {
   "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? São pessoas comuns ou empresas?"
+  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?"
  },
  {
   "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
@@ -913,11 +913,31 @@ function esperado(l, valor) {
   check(R['M3.P11'] && R['M3.P11'].valor === 'Lavar o carro sem sair de casa' && R['M3.P11'].doPerfil, 'P10 dor: vira a resposta da pergunta seguinte');
   check(norm(await titulo()) === norm(P(12).pergunta), 'P10 com a dor escrita: pula a pergunta repetida (vai para a 12)');
   /* voltar ao perfil mostra as marcas */
-  await clicar('#v', '‹ voltar'); await espera();
+  await clicar('#v', 'Voltar'); await espera();
   check(norm(await titulo()) === norm(P(10).pergunta), 'voltar da 12 abre o perfil (a 11 foi pulada)');
   const selVolta = await page.evaluate(() => [...document.querySelectorAll('.campos .chip.sel')].map((c) => c.textContent));
   check(JSON.stringify(selVolta) === '["18 a 29 anos","30 a 44 anos","De 1 a 3 salários mínimos","Não sei"]', 'P10: marcas voltam ao reabrir');
+  /* lote 3: pessoas comuns e empresas podem ser marcadas juntas (caixinhas, não bolinhas) */
+  check(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].every((b) => b.getAttribute('role') === 'checkbox') && document.querySelector('#ent').getAttribute('role') === 'group'), 'P10: opções do perfil são de marcar mais de uma');
+  check(/Você pode marcar mais de uma opção/.test(await tela()), 'P10: avisa que dá para marcar mais de uma');
   await clicar('.opcao', 'Empresas'); await espera();
+  const doisGrupos = await page.evaluate(() => ({ sel: [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op), tit: [...document.querySelectorAll('.campos .grupo-campos')].map((x) => x.textContent),
+    rot: [...document.querySelectorAll('.campos .item > span')].map((s) => s.textContent), onde: (document.querySelector('.campos input[data-c="Onde mora"]') || {}).value }));
+  check(JSON.stringify(doisGrupos.sel) === '["Pessoas comuns (consumidor final)","Empresas"]' && JSON.stringify(doisGrupos.tit) === '["Pessoas comuns","Empresas"]', `P10: as duas opções marcadas, cada uma com o seu grupo de campos (${JSON.stringify(doisGrupos)})`);
+  check(doisGrupos.rot.length === 9 && doisGrupos.onde === 'Centro', 'P10: marcar Empresas mantém o que já estava escrito em Pessoas comuns');
+  await clicar('.chip', 'Comércio (lojas, mercados)');
+  await shot('03c-p10-os-dois');
+  await clicar('#ok', 'Continuar'); await espera();
+  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
+  check(R['M3.P10'].opcao === 'Pessoas comuns (consumidor final)' && JSON.stringify(R['M3.P10'].opcoes) === '["Pessoas comuns (consumidor final)","Empresas"]' && R['M3.P10'].campos.Ramo === 'Comércio (lojas, mercados)' && R['M3.P10'].campos['Onde mora'] === 'Centro',
+    'P10 os dois: guarda a lista e a 1ª opção no formato que os outros módulos leem');
+  check(R['M3.P11'] && R['M3.P11'].doPerfil, 'P10 os dois: a dor das pessoas comuns continua indo para a pergunta seguinte');
+  await clicar('#ok', 'Continuar mesmo assim'); await espera();
+  if (norm(await titulo()) !== norm(P(10).pergunta)) { await clicar('#v', 'Voltar'); await espera(); }
+  check(norm(await titulo()) === norm(P(10).pergunta), 'volta ao perfil');
+  /* desmarca Pessoas comuns: fica só Empresas */
+  await clicar('.opcao', 'Pessoas comuns (consumidor final)'); await espera();
+  await page.evaluate(() => { const b = [...document.querySelectorAll('.chip.sel')].find((c) => c.textContent === 'Comércio (lojas, mercados)'); if (b) b.click(); });
   const rotPJ = await page.evaluate(() => [...document.querySelectorAll('.campos .item span')].map((s) => s.textContent));
   check(JSON.stringify(rotPJ) === JSON.stringify(['Ramo', 'Tamanho', 'Equipe', 'Local']), 'P10 Empresas: 4 campos');
   const gruposPJ = await page.evaluate(() => [...document.querySelectorAll('.campos .item-marcar')].map((g) => g.dataset.c));
@@ -963,7 +983,16 @@ function esperado(l, valor) {
   check(JSON.stringify(sel13) === JSON.stringify(['WhatsApp (WhatsApp Business)', 'Instagram e outras redes sociais (catálogo)', 'Atendimento direto ou presencial (loja, feira, ponto)', 'Outro']), `versão 4: canais antigos migrados (${sel13.join(' | ')})`);
   await clicar('#ok', 'Continuar'); await espera();
   const mig2 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
-  check(mig2.v === 5 && mig2.R['M3.P13'].detalhe === 'Feira', 'versão 4: estado migrado para a versão 5, sem perder o "Outro"');
+  check(mig2.v === 6 && mig2.R['M3.P13'].detalhe === 'Feira', 'versão 4: estado migrado para a versão atual (6), sem perder o "Outro"');
+  /* lote 3: o M10 lê os canais (M3.P13) como lista de opções + "detalhe" do Outro; o formato continua o mesmo */
+  check(mig2.R['M3.P13'].estado === 'opcoes' && Array.isArray(mig2.R['M3.P13'].opcoes) && mig2.R['M3.P13'].opcoes.includes('Outro'), 'canais: mesmo formato que o Módulo 10 lê (estado "opcoes", lista e detalhe)');
+  /* lote 3: perfil do cliente da versão 5 (só "opcao") ganha a lista "opcoes" */
+  await page.goto(URL);
+  await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 5, R: { 'M3.P10': { estado: 'opcao', opcao: 'Empresas', campos: { Ramo: 'Construção', Tamanho: '', Equipe: '', Local: 'Centro' } } }, hist: ['M3.P10'] })); }, CHAVE);
+  await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
+  const mig5 = await page.evaluate((k) => ({ s: JSON.parse(localStorage.getItem(k)), sel: [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op), ramo: (document.querySelector('.item-marcar[data-c="Ramo"]') || {}).dataset }), CHAVE);
+  check(norm(await titulo()) === norm(P(10).pergunta) && JSON.stringify(mig5.sel) === '["Empresas"]' && mig5.ramo && mig5.ramo.val === 'Construção', 'versão 5: perfil antigo reabre com a mesma opção e campos');
+  check(mig5.s.v === 6 && JSON.stringify(mig5.s.R['M3.P10'].opcoes) === '["Empresas"]' && mig5.s.R['M3.P10'].opcao === 'Empresas', 'versão 5: perfil migrado (opcoes = [opcao])');
 
   /* ============ 5. P19 tabela + 3 Pior; P20 média ============ */
   await abrir(19);
@@ -1109,7 +1138,9 @@ function esperado(l, valor) {
   check(res.fechado && /Ver suas respostas/.test(res.texto), 'resumo: respostas recolhidas em "Ver suas respostas"');
   check(res.entendemos.some((t) => t.includes('R$ 50,00')) && res.entendemos.some((t) => /falta de tempo/.test(t)) && res.entendemos.some((t) => /3 perguntas|4 perguntas/.test(t)), 'resumo: caixa junta preço, dor e pendências');
   const D3 = await page.evaluate(() => window.MODULO3.mapa);
-  for (const k of ['entrega', 'encaminhamentos', 'mensagem_limite']) check(norm(res.texto).includes(norm(D3[k])), `resumo: texto do Mapa (${k})`);
+  for (const k of ['entrega', 'mensagem_limite']) check(norm(res.texto).includes(norm(D3[k])), `resumo: texto do Mapa (${k})`);
+  /* lote 3: nenhuma regra deste módulo encaminha a um profissional, então o quadro não aparece */
+  check(!/Quando procurar um profissional/.test(res.texto) && !norm(res.texto).includes(norm(D3.encaminhamentos)) && await page.evaluate(() => !document.querySelector('.encaminha')), 'resumo: sem o quadro "Quando procurar um profissional"');
   check(res.logos.join() === 'FACC,UFJF,Governo de Minas Gerais', 'rodapé com FACC/UFJF/MG');
   await shot('06-resultado');
   /* voltar e preencher um pendente */
@@ -1135,7 +1166,7 @@ function esperado(l, valor) {
   const DADOS = await page.evaluate(() => window.MODULO3.perguntas);
   const VAR = (n, est = 'ideia') => DADOS[n - 1].variantes[est];
   /* o Módulo 1 de teste é de serviço: os exemplos de produto físico trocam (item 7) */
-  const SERVX = (x) => x.split('Quero vender marmitas para trabalhadores do bairro').join('Quero fazer unhas em domicílio para mulheres do bairro').split('preço dos insumos subindo').join('preço do material de trabalho subindo');
+  const SERVX = (x) => x.split('quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote').join('quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha').split('Quero vender marmitas para trabalhadores do bairro').join('Quero fazer unhas em domicílio para mulheres do bairro').split('preço dos insumos subindo').join('preço do material de trabalho subindo');
   const SO_CABECA = { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' };
   const M1 = (p01, extra = {}) => ({ v: 3, R: Object.assign({ 'M1.P01': p01, 'M1.P03': { estado: 'valor', valor: 'lavagem de carro em casa' },
     'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } }, extra) });
@@ -1341,8 +1372,8 @@ function esperado(l, valor) {
     check((await page.locator('.passo').textContent()).startsWith('Pergunta 1 de') && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.dataset.op))) === '["Sim","Não"]', 'Sim/Não: com o Módulo 1 feito, é a 1ª tela');
     await page.locator('#ent .opcao[data-op="Sim"]').click(); await page.locator('#ent .opcao[data-op="Não"]').click();
     check(JSON.stringify(await marcadas()) === '["Não"]', 'Sim/Não (Módulo 1 feito): só uma marcada');
-    /* as outras escolhas únicas do módulo: alcance e perfil do cliente (com "Não sei" exclusivo) */
-    for (const n of [9, 10]) {
+    /* a outra escolha única do módulo: alcance (o perfil do cliente virou de marcar mais de uma no lote 3) */
+    for (const n of [9, 10].filter((n) => n !== 10)) {
       await abrir(n, {});
       const ops = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.dataset.op));
       let tudoUm = true;
@@ -1356,6 +1387,86 @@ function esperado(l, valor) {
       }
     }
   }
+
+  /* ============ lote 3 (nov/2026) ============ */
+  const selOps = () => page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op));
+  /* P10 com as duas marcadas: "Não sei" desmarca as duas */
+  await abrir(10, {});
+  await clicar('.opcao', 'Pessoas comuns (consumidor final)'); await clicar('.opcao', 'Empresas'); await espera();
+  check(JSON.stringify(await selOps()) === '["Pessoas comuns (consumidor final)","Empresas"]', 'P10: tocar nas duas deixa as duas marcadas');
+  await page.locator('#ns').click(); await espera();
+  check((await selOps()).length === 0 && await page.evaluate(() => !document.querySelector('.campos .item')), 'P10: "Não sei" desmarca as duas e fecha os campos');
+  await clicar('.opcao', 'Empresas'); await espera();
+  check(JSON.stringify(await selOps()) === '["Empresas"]', 'P10: escolher depois do "Não sei" deixa só a opção');
+  /* alcance continua escolha única (as opções vão do mais perto ao mais longe), com uma ajuda curta */
+  await abrir(9, {});
+  check(/escolha o mais distante/.test(await tela()) && await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'radiogroup'), 'P09: escolha única com a ajuda "escolha o mais distante"');
+
+  /* Receita C: "Voltar" no topo do cartão, à esquerda, acima da pergunta; nenhum Voltar embaixo */
+  for (const n of [2, 10, 15]) {
+    await abrir(n, {});
+    const v = await page.evaluate(() => {
+      const b = document.querySelector('#v'), q = document.querySelector('.cartao-q h2.q'), ok = document.querySelector('#ok');
+      const rb = b.getBoundingClientRect(), rq = q.getBoundingClientRect(), rc = document.querySelector('.cartao-q').getBoundingClientRect();
+      return { n: document.querySelectorAll('#v, .acoes-voltar').length, txt: b.textContent.trim(), dentro: !!b.closest('.cartao-q'), acima: rb.bottom <= rq.top + 1, esq: rb.left - rc.left < 40,
+        okDepois: !!ok && rb.top < ok.getBoundingClientRect().top };
+    });
+    check(v.n === 1 && v.txt === 'Voltar' && v.dentro && v.acima && v.esq && v.okDepois, `Voltar no topo do cartão, acima da pergunta (tela ${n}: ${JSON.stringify(v)})`);
+  }
+  await shot('l3-voltar-topo');
+  /* na 1ª pergunta, o Voltar volta para a capa */
+  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
+  await clicar('button', 'Começar'); await espera();
+  await clicar('#v', 'Voltar'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#ir') && !document.querySelector('h2.q')), 'Voltar na 1ª pergunta abre a capa');
+  /* tela de limites: Voltar no topo e sem o quadro de profissional */
+  await clicar('#limites', 'O que este módulo não faz'); await espera();
+  const lim = await page.evaluate(() => ({ topo: document.querySelector('main.corpo').firstElementChild.contains(document.querySelector('#v')), prof: /Quando procurar um profissional/.test(document.body.innerText) }));
+  check(lim.topo && !lim.prof, `limites: Voltar no topo e sem o quadro de profissional (${JSON.stringify(lim)})`);
+  await clicar('#v', 'Voltar'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#ir')), 'limites: Voltar abre a capa');
+
+  /* Receita D: ajuda longa mostra a 1ª parte; o resto fica em "Ver mais" (fechado), sem esconder campo nem Continuar */
+  await abrir(17, {});
+  await page.locator('.pergunta-par .ns').first().click(); await espera();
+  const vm = await page.evaluate(() => { const b = document.querySelector('.b-passos'); const d = b && b.querySelector('details.ver-mais');
+    return b && { vis: [...b.querySelectorAll(':scope > ol li')].length, det: !!d && !d.open, sum: d && d.querySelector('summary').textContent, esc: d ? d.querySelectorAll('li').length : 0, ok: !!document.querySelector('#ok') && document.querySelector('#ok').offsetParent !== null }; });
+  check(vm && vm.vis === 2 && vm.det && vm.sum === 'Ver mais' && vm.esc === 3 && vm.ok, `passo a passo longo: 2 passos à vista e o resto em "Ver mais" (${JSON.stringify(vm)})`);
+  await page.locator('.b-passos details.ver-mais summary').click(); await espera();
+  check(await page.evaluate(() => [...document.querySelectorAll('.b-passos li')].every((l) => l.offsetParent !== null)), '"Ver mais" abre os outros passos');
+  await page.evaluate(() => document.querySelector('.b-passos').scrollIntoView({ block: 'center' }));
+  await shot('l3-ver-mais-passos');
+  /* capa: textos longos recolhidos */
+  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
+  const capa = await page.evaluate(() => [...document.querySelectorAll('.cartao')].map((c) => ({ h: c.querySelector('h3').textContent, det: !!c.querySelector('details.ver-mais:not([open])'), vis: c.querySelector(':scope > p').textContent.length })));
+  check(capa.filter((c) => c.det).map((c) => c.h).join('|') === 'O que ter em mãos|O que você recebe no final' && capa.every((c) => c.vis <= 220), `capa: textos longos com "Ver mais" (${JSON.stringify(capa)})`);
+  check(await page.evaluate(() => document.querySelector('#ir').offsetParent !== null), 'capa: Começar visível');
+  await shot('l3-capa-ver-mais');
+
+  /* Nayara: quem "já fez um pouco para testar" também ainda não vende: vê a versão "o que você imagina" */
+  const TESTANDO = { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' };
+  for (const q of DADOS.filter((q) => q.variantes && q.variantes.ideia && !q.variantes.comecando && q.codigo !== 'M3.P01')) {
+    const n = +q.codigo.slice(4);
+    await abrir(n, {}, M1(TESTANDO), SERVX(q.variantes.ideia.pergunta));
+  }
+  check(['M3.P03', 'M3.P10', 'M3.P16'].every((c) => DADOS.find((q) => q.codigo === c).variantes.ideia.pergunta), 'ainda não vende: versões novas nas perguntas 3, 10 e 16');
+  await abrir(10, {}, M1(TESTANDO), VAR(10).pergunta);
+  check(norm(await titulo()) === 'Quem você imagina que compraria de você? Pessoas comuns, empresas ou os dois?', 'P10 de quem ainda não vende: "quem você imagina que compraria"');
+  await shot('l3-p10-ainda-nao-vende');
+  await abrir(12, {}, M1(TESTANDO), VAR(12).pergunta);
+  await digitar('pouco'); await clicar('#ok', 'Continuar'); await espera();
+  const d12n = (await caixas())[0];
+  check(d12n && /começando do zero/.test(d12n.txt) && !/clientes que voltam/.test(d12n.txt), `P12 de quem ainda não vende: dica sem "clientes que voltam" (${d12n && d12n.txt})`);
+  await abrir(17, {}, M1(TESTANDO), SERVX(VAR(17).pergunta));
+  check(/perguntando a conhecidos/.test(await titulo()), 'P17 de quem ainda não vende: sem "perguntando aos clientes"');
+  /* resumo de quem está testando: "quer vender" e "os clientes que você imagina" */
+  await page.goto(URL);
+  await page.evaluate(([k, s, m1]) => { localStorage.clear(); localStorage.setItem(k, s); localStorage.setItem('lg2-turma-a-m01', m1); },
+    [CHAVE, JSON.stringify({ v: 6, R: { 'M3.P02': { estado: 'opcao', opcao: 'Não' }, 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', opcoes: ['Pessoas comuns (consumidor final)', 'Empresas'], campos: { Idade: '30 a 44 anos', Ramo: 'Construção' } } }, hist: ['RESULTADO'] }), JSON.stringify(M1(TESTANDO))]);
+  await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
+  const entN = (await page.evaluate(() => [...document.querySelectorAll('#entendemos p')].map((x) => x.textContent))).join(' ');
+  check(/Você quer vender “lavagem de carro em casa”/.test(entN) && /os clientes que você imagina são pessoas comuns \(idade: 30 a 44 anos\) e empresas \(ramo: construção\)/i.test(entN), `resumo de quem testa: "quer vender" e pessoas + empresas (${entN})`);
+  check(await page.evaluate(() => { const v = document.querySelector('#v'); return document.querySelector('main.corpo').firstElementChild.contains(v) && document.querySelectorAll('#v').length === 1; }), 'resultado: Voltar no topo');
 
   /* capa */
   await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();

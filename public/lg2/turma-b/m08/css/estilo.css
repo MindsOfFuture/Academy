@@ -212,3 +212,21 @@ textarea.campo{resize:vertical;font-family:inherit}
 /* "Não sei" numa pergunta necessária */
 #ns-ajuda{margin-top:12px}
 #ns-ajuda .ns-pede{margin:8px 0 0;font-weight:700}
+/* lote 3 (nov/2026): Voltar no topo, "Ver mais", CNAE copiar/escolher, quem pode ser MEI, fontes de dúvidas */
+.voltar-topo{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--m-purple);font:inherit;font-weight:700;font-size:16px;padding:6px 2px;margin:-4px 0 6px;cursor:pointer;min-height:40px}
+.corpo>.voltar-topo{margin:4px 0 4px}
+details.mais{display:inline}
+details.mais summary{display:inline;cursor:pointer;color:var(--m-purple);font-weight:700;list-style:none}
+details.mais summary::-webkit-details-marker{display:none}
+details.mais[open] summary{display:none}
+.cnae-acoes{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.btn-mini{background:#fff;color:var(--m-purple);border:2px solid var(--m-purple);border-radius:var(--m-pill);font:inherit;font-weight:700;font-size:14px;padding:6px 14px;cursor:pointer;min-height:38px}
+.btn-escolher[aria-pressed="true"]{background:var(--m-purple);color:#fff}
+.cnae-escolhido{border-color:var(--m-purple)}
+.cnae-esc{border-color:var(--m-purple)}
+.criterios{margin:6px 0 8px 20px;padding:0}
+.criterios li{margin-bottom:4px}
+.quem-mei p{margin-top:4px}
+.fontes{margin-top:12px}
+.fontes .criterios a{word-break:break-word}
+@media print{.cnae-acoes{display:none!important}}

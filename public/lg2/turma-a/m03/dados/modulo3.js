@@ -275,7 +275,12 @@ window.MODULO3 = {
      "texto": "Tudo bem. Pense em onde o cliente compraria se você não existisse. Você pode voltar e preencher depois."
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Se a pessoa que você imagina como cliente não comprar de você, o que ela pode comprar no lugar? (Ex.: quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote)"
+    }
+   }
   },
   {
    "codigo": "M3.P04",
@@ -333,7 +338,10 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Por que você acredita que essa ideia pode dar certo?"
+     "pergunta": "Por que você acredita que essa ideia pode dar certo?",
+     "caminhos": {
+      "Resposta vazia ou muito curta": "Conte o motivo: já tem gente pedindo? Já viu essa ideia dar certo? Quanto custa começar?"
+     }
     }
    }
   },
@@ -476,8 +484,8 @@ window.MODULO3 = {
    "codigo": "M3.P10",
    "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
    "titulo": "Perfil de Clientes",
-   "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? São pessoas comuns ou empresas?",
-   "tipo": "Seleção única + campos",
+   "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
+   "tipo": "Seleção múltipla + campos",
    "caminhos": [
     {
      "opcao": "Pessoas comuns (consumidor final)",
@@ -522,7 +530,7 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Quem você gostaria que comprasse de você? São pessoas comuns ou empresas?"
+     "pergunta": "Quem você imagina que compraria de você? Pessoas comuns, empresas ou os dois?"
     }
    },
    "marcadores": {
@@ -601,7 +609,10 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Que problema ou vontade do seu cliente você vai resolver? (Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa)"
+     "pergunta": "Que problema ou vontade do seu cliente você vai resolver? (Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa)",
+     "caminhos": {
+      "Não sei": "Prompt: \"Eu vendo [produto ou serviço]. Que problemas ou vontades do cliente isso resolve? Dê exemplos do dia a dia, em linguagem simples.\" Pergunte a pessoas que comprariam de você se isso faz sentido para elas."
+     }
     }
    }
   },
@@ -638,7 +649,10 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Quando o seu negócio começar, seria difícil para outra pessoa abrir um igual e vender como você? O que dificultaria? (Ex.: precisa de muito dinheiro, de licença, de máquina cara, ou o seu nome já é conhecido)"
+     "pergunta": "Quando o seu negócio começar, seria difícil para outra pessoa abrir um igual e vender como você? O que dificultaria? (Ex.: precisa de muito dinheiro, de licença, de máquina cara, ou o seu nome já é conhecido)",
+     "caminhos": {
+      "Resposta vazia ou muito curta": "Pense no que você já tem e que alguém começando do zero não teria: uma receita ou técnica sua, um fornecedor bom, gente que já conhece o seu trabalho, o lugar onde você está. Isso ajuda a ver o que pode proteger o seu negócio."
+     }
     }
    }
   },
@@ -821,7 +835,12 @@ window.MODULO3 = {
      "texto": "Prompt: \"Eu vendo [produto ou serviço] para [tipo de cliente]. O que faz alguém ser meu concorrente de verdade? Dê exemplos simples, como mesmo produto, mesmo público e mesma região.\""
     }
    ],
-   "naosei": true
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Para você, quem é \"concorrente de verdade\"? O que essa pessoa ou loja tem que ter para tirar de você os clientes que você quer conquistar?"
+    }
+   }
   },
   {
    "codigo": "M3.P17",
@@ -849,7 +868,10 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Você sabe como descobrir quem vende o mesmo que você quer vender? (Ex.: procurar no Google Maps, no Instagram ou perguntando aos clientes)"
+     "pergunta": "Você sabe como descobrir quem vende o mesmo que você quer vender? (Ex.: procurar no Google Maps, no Instagram ou perguntando a conhecidos)",
+     "caminhos": {
+      "Não sei": "Tudo bem, dá para aprender rápido. Quando tiver um tempo, um jeito simples de descobrir é: 1. Buscar no Google Maps o que você vende (ex.: \"bolos perto de mim\"). 2. No Instagram, buscar palavras do seu ramo e o nome da sua cidade. 3. Ver se há anúncios no Mercado Livre, Shopee ou OLX. 4. Perguntar a pessoas que comprariam de você onde elas compram hoje. 5. Anotar os nomes que mais aparecem (esses passos também ficam no roteiro de pesquisa do seu resultado)."
+     }
     }
    }
   },

@@ -536,7 +536,13 @@ assert.equal(TOTAL, 65);
 assert.equal((fs.readFileSync(path.join(DIR, 'dados/modulo9.js'), 'utf8').match(/rafael/gi) || []).length, 0, 'nome do implementador nos dados');
 /* toda opção citada nas regras do motor existe no documento */
 const todas = new Set(ESPERADO.perguntas.flatMap((q) => q.caminhos.flatMap((c) => opcoesDaLinha(c[0]))));
-Object.entries(Mo.O).forEach(([k, v]) => assert.ok(todas.has(v), `opção do motor fora do documento: ${k}=${v}`));
+/* opções criadas pelo app no lote 3 (relatórios de Nayara e Gaby, 05/11/2026): fora do documento, inseridas depois de uma opção dele */
+const OUTRA = 'Outra atividade', DOMIC = 'Na casa do cliente (atendimento em domicílio)';
+const EXTRAS_APP = { 'M9-02': [['Não', OUTRA]], 'M9-03': [['Em loja ou sala comercial', DOMIC]] };
+Object.entries(Mo.O).forEach(([k, v]) => assert.ok(todas.has(v) || [OUTRA, DOMIC].includes(v), `opção do motor fora do documento: ${k}=${v}`));
+const opcoesTela = (cod) => { const l = EP[cod].caminhos.flatMap((c) => opcoesDaLinha(c[0])); (EXTRAS_APP[cod] || []).forEach(([dep, o]) => l.splice(l.indexOf(dep) + 1, 0, o)); return l; };
+assert.deepEqual(Mo.opcoes(D, 'M9-02'), ['Sim, alimentos ou bebidas', 'Sim, cosméticos, saneantes, medicamentos ou produtos para a saúde', 'Sim, procedimentos no corpo ou cuidado com pessoas', 'Sim, animais', 'Não', OUTRA, NS]);
+assert.deepEqual(Mo.opcoes(D, 'M9-03'), ['Na minha casa', 'Em apartamento ou condomínio residencial', 'Em loja ou sala comercial', DOMIC, 'Sem local fixo (digital, na casa do cliente ou ambulante)', 'Ainda não escolhi', NS]);
 
 /* ---------- 2. "Aparece quando": fluxo esperado reescrito a partir do documento ---------- */
 const O = { casa: 'Na minha casa', apto: 'Em apartamento ou condomínio residencial', loja: 'Em loja ou sala comercial', sem: 'Sem local fixo (digital, na casa do cliente ou ambulante)', naoEsc: 'Ainda não escolhi',
@@ -610,6 +616,23 @@ assert.deepEqual(Mo.proximos(D, R_(GAS), Mo.checklist(D, R_(GAS))), [ESPERADO.pr
 assert.equal(Mo.checklist(D, R_(BASE_REMOTO), undefined, { alimento: true }).find((i) => i.id === 'vigilancia').sit, 'a confirmar');
 assert.equal(Mo.checklist(D, R_(BASE_REMOTO), undefined, { alimento: false }).find((i) => i.id === 'vigilancia').sit, 'não se aplica');
 assert.equal(Mo.checklist(D, R_(Object.assign({}, BASE_REMOTO, { 'M9-02': NS })), undefined, { alimento: true }).find((i) => i.id === 'vigilancia').sit, 'a confirmar');
+/* lote 3: domicílio = sem local fixo sem perguntar a forma; "Outra atividade" = Vigilância "a confirmar" */
+{
+  const DOM = { 'M9-01': 'Minas Gerais', 'M9-02': 'Sim, procedimentos no corpo ou cuidado com pessoas', 'M9-03': DOMIC, 'M9-04': 'Ainda não fiz', 'M9-10': 'Não', 'M9-11': 'Não' };
+  assert.deepEqual(Mo.sequencia(R_(DOM)), ['M9-01', 'M9-02', 'M9-03', 'M9-04', 'M9-10', 'M9-11', 'M9-13'], 'domicílio: sem perguntas do imóvel nem da forma');
+  assert.deepEqual(Mo.sequencia(R_(DOM)), esperadoSeq(DOM));
+  const sd = sits(DOM);
+  assert.deepEqual(sd, { viabilidade: 'a confirmar', local: 'não se aplica', gas: 'não se aplica', bombeiros: 'não se aplica', vigilancia: 'a fazer', ambulante: 'não se aplica', conselho: 'não se aplica', ambiente: 'não se aplica', obra: 'não se aplica' }, 'domicílio: sem itens do ponto; a licença da atividade continua');
+  assert.equal(Mo.checklist(D, R_(DOM)).find((i) => i.id === 'local').motivo, 'Atende na casa do cliente');
+  assert.ok(Mo.linhaResumo(D, R_(DOM), Mo.checklist(D, R_(DOM))).includes('atendimento na casa do cliente (fato)'));
+  assert.ok(Mo.caminho(D, 'M9-03', DOMIC).texto.includes('não precisa de alvará para um ponto próprio') && Mo.caminho(D, 'M9-03', DOMIC).texto.includes('confira na prefeitura'));
+  const OUT = Object.assign({}, BASE_REMOTO, { 'M9-02': OUTRA });
+  const ROUT = R_(OUT); ROUT['M9-02'].detalhe = 'Revenda de joias';
+  const vg = Mo.checklist(D, ROUT).find((i) => i.id === 'vigilancia');
+  assert.equal(vg.sit, 'a confirmar', '"Outra atividade": Vigilância a confirmar');
+  assert.ok(vg.motivo.includes('Revenda de joias') && vg.motivo.includes('confira'), vg.motivo);
+  assert.ok(!Mo.sequencia(ROUT).includes('M9-09') && !Mo.sanitario(ROUT), '"Outra atividade" não conta como atividade de saúde');
+}
 console.log(`motor: ${combos} combinações de respostas com o fluxo esperado; situações da tabela "sem local fixo" conferidas`);
 
 /* ---------- servidor (serve o motor sabotado quando pedido) ---------- */
@@ -635,7 +658,8 @@ const server = http.createServer(async (req, res) => {
   const titulo = async () => norm(await page.textContent('#pergunta'));
   const codAtual = async () => { const t = await titulo(); return ESPERADO.perguntas.find((q) => norm(q.pergunta) === t).codigo; };
   const tocar = (t) => page.evaluate((t) => { const b = [...document.querySelectorAll('.opcao')].find((x) => x.textContent.replace(/\s+/g, ' ').trim() === t); if (!b) throw new Error('opção ausente: ' + t); b.click(); }, t);
-  const retorno = (sel) => page.evaluate((sel) => [...document.querySelectorAll(sel + ' .bloco:not(.cruz):not(.extra) p')].map((p) => p.innerText).join(' '), sel || '#retorno');
+  /* textContent: o resto do texto longo fica em "Ver mais" fechado (lote 3), mas continua sendo o texto literal */
+  const retorno = (sel) => page.evaluate((sel) => [...document.querySelectorAll(sel + ' .bloco:not(.cruz):not(.extra) p')].map((p) => p.textContent).join(' '), sel || '#retorno');
   const cruzes = () => page.evaluate(() => [...document.querySelectorAll('#retorno .cruz p')].map((p) => p.innerText.replace(/\s+/g, ' ').trim()));
   const esperadoVisivel = (t) => norm(t.replace('⚠ Atenção:', '').replace(/^Atenção: /, ''));
   async function abrir(estado, outros) {
@@ -676,7 +700,7 @@ const server = http.createServer(async (req, res) => {
     assert.equal(await codAtual(), cod, 'abre a 1ª pergunta sem resposta');
     const botoes = await page.$$eval('#ent .opcao', (bs) => bs.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
     /* M9-01: o estado não tem mais "Não sei" (relatório da Júlia, 05/11) */
-    assert.deepEqual(botoes, cod === 'M9-01' ? [] : q.caminhos.flatMap((c) => opcoesDaLinha(c[0])), `opções de ${cod}`);
+    assert.deepEqual(botoes, cod === 'M9-01' ? [] : opcoesTela(cod), `opções de ${cod}`);
     for (let i = 0; i < q.caminhos.length; i++) {
       const [linha, txt] = q.caminhos[i];
       if (cod === 'M9-01' && opcoesDaLinha(linha).includes(NS)) { assert.equal(await page.locator('#ent .opcao').count(), 0, 'M9-01 sem botão Não sei'); marca(cod, i); continue; }
@@ -1019,6 +1043,58 @@ const server = http.createServer(async (req, res) => {
     if (SHOTS && sel === '#area') await page.screenshot({ path: path.join(SHOTS, 'm09_teclado.png') });
   }
   await page.setViewportSize({ width: 390, height: 844 });
+
+  /* ---------- 8g. lote 3: Voltar no topo, "Outra atividade" com campo, domicílio, "Ver mais", termos embaixo do Continuar ---------- */
+  await abrir({ v: 2, R: R_({ 'M9-01': 'Minas Gerais' }), feitos: {} }, { 'lg2-turma-a-m03': { R: { 'M3-08': { estado: 'valor', valor: 'Juiz de Fora - MG' } } } });
+  await page.click('#ir'); assert.equal(await codAtual(), 'M9-02');
+  assert.ok(await page.evaluate(() => { const c = document.querySelector('.cartao-q'), v = c.querySelector('#v'), q = c.querySelector('#pergunta'); return c.firstElementChild === v && v.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1; }), 'Voltar no topo do cartão, acima da pergunta');
+  assert.equal(await page.getByRole('button', { name: 'Voltar', exact: true }).count(), 1, 'um só Voltar');
+  assert.ok(await page.evaluate(() => { const a = document.querySelector('#acoes'), t = document.querySelector('.cartao-q .saiba'); return !t || !!(a.compareDocumentPosition(t) & 4); }), 'Entenda os termos embaixo do Continuar');
+  assert.equal(await page.locator('#outra-box').isVisible(), false, 'campo da outra atividade escondido');
+  await tocar(OUTRA);
+  assert.ok(await page.locator('#outra').isVisible(), '"Outra atividade" abre o campo');
+  assert.ok(norm(await retorno()).includes('confira na prefeitura ou na Sala do Empreendedor'), 'aviso para conferir');
+  await page.click('#ok');
+  assert.equal(await codAtual(), 'M9-02', 'sem escrever a atividade não avança');
+  assert.ok((await page.textContent('#erro')).includes('Escreva qual é a sua atividade.'));
+  await page.fill('#outra', 'Revenda de joias');
+  if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m09_outra_atividade.png') }); }
+  await page.click('#ok');
+  assert.equal(await codAtual(), 'M9-03');
+  assert.deepEqual((await st()).R['M9-02'], { estado: 'opcao', opcao: OUTRA, detalhe: 'Revenda de joias' }, 'grava a outra atividade com o texto');
+  /* Voltar mostra a resposta com o texto */
+  await page.click('#v'); assert.equal(await codAtual(), 'M9-02');
+  assert.equal(await page.inputValue('#outra'), 'Revenda de joias'); await page.click('#ok');
+  /* domicílio na pergunta do local: orientação, texto longo com "Ver mais" fechado */
+  await tocar(DOMIC);
+  const rd = norm(await page.textContent('#retorno'));
+  assert.ok(rd.includes('não precisa de alvará para um ponto próprio') && rd.includes('confira na prefeitura'), rd);
+  assert.equal(await page.locator('#retorno details.mais').count(), 1, 'texto longo com "Ver mais"');
+  assert.equal(await page.$eval('#retorno details.mais', (d) => d.open), false, '"Ver mais" fechado');
+  assert.ok(await page.locator('#ok').isVisible(), 'Continuar à vista');
+  if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m09_domicilio.png') }); }
+  await page.click('#ok');
+  assert.equal(await codAtual(), 'M9-04', 'domicílio não pergunta a forma (M9-03a)');
+  for (const [c, o] of [['M9-04', 'Ainda não fiz'], ['M9-10', 'Não'], ['M9-11', 'Não']]) { assert.equal(await codAtual(), c); await tocar(o); await page.click('#ok'); }
+  await page.click('#ok');   // M9-13 em branco
+  assert.equal(norm(await page.textContent('.passo')), 'Resultado');
+  assert.ok(await page.evaluate(() => document.querySelector('.corpo').firstElementChild.id === 'v'), 'resultado: Voltar no topo');
+  const nd = norm(await page.textContent('#nota-domicilio'));
+  for (const k of ['Atendimento na casa do cliente', 'não precisa de alvará para um ponto próprio', 'pode precisar de licença', 'Sala do Empreendedor da prefeitura']) assert.ok(nd.includes(k), 'nota de domicílio: ' + k);
+  assert.equal(await page.locator('#nota-casa').count(), 0);
+  assert.equal(await page.$eval('[data-item="vigilancia"] .sit', (e) => e.textContent.trim()), 'a confirmar');
+  assert.ok(norm(await page.textContent('[data-item="vigilancia"]')).includes('Outra atividade: Revenda de joias'), 'checklist mostra a outra atividade');
+  const en = norm(await page.textContent('#entendemos'));
+  assert.ok(en.includes('Você vai atender na casa do cliente, em domicílio (Minas Gerais).') && en.includes('(“Revenda de joias”) não está nas opções de saúde'), en);
+  if (SHOTS) { await page.waitForTimeout(400); await page.evaluate(() => document.querySelector('#entendemos').scrollIntoView()); await page.screenshot({ path: path.join(SHOTS, 'l3_m09_resultado_domicilio.png') }); }
+  await page.click('#v'); assert.equal(await codAtual(), 'M9-13', 'Voltar do resultado volta à última pergunta');
+  /* herança: domicílio do Módulo 8 chega marcado; CNAE escolhido no Módulo 8 aparece */
+  await abrir({ v: 2, R: R_(ATE3), feitos: {} }, { 'lg2-turma-b-m08': { R: { 'M8.P03': opc(DOMIC) }, hist: [], cnae: { cnae: '9602-5/01', ocupacao: 'CABELEIREIRO(A) INDEPENDENTE' } } });
+  await page.click('#ir'); assert.equal(await codAtual(), 'M9-03');
+  assert.equal(await selAtual(), DOMIC, 'M9-03: domicílio herdado do Módulo 8');
+  assert.equal(norm(await page.textContent('#ent .veio')), 'Veio do Módulo 8');
+  await page.click('[data-inicio]');
+  assert.ok(norm(await page.textContent('.corpo')).includes('9602-5/01 (CABELEIREIRO(A) INDEPENDENTE)'), 'CNAE escolhido no Módulo 8 na capa');
 
   /* ---------- 9. botão do próximo módulo: marcação exata ---------- */
   const app = fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8');

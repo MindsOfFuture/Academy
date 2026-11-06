@@ -54,9 +54,10 @@
   /* ---------- respostas dos Módulos 1 a 6 salvas neste navegador ---------- */
   function lerModulo(chave) { try { const s = JSON.parse(localStorage.getItem(chave)); return (s && s.R) || {}; } catch (e) { return {}; } }
   const M1 = () => lerModulo("lg2-turma-a-m01"), M3 = () => lerModulo("lg2-turma-a-m03"), M4 = () => lerModulo("lg2-turma-a-m04"),
-    M5 = () => lerModulo("lg2-turma-a-m05");
-  const valor = (r) => !r ? null : r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : null;
-  const textoDe = (r) => { const x = valor(r); return typeof x === "string" && x.trim() ? x.trim() : null; };
+    M5 = () => lerModulo("lg2-turma-a-m05"), M6 = () => lerModulo("lg2-turma-b-m06");
+  /* escolha múltipla (ex.: forma de entrega do Módulo 4) vira texto "a, b" */
+  const valor = (r) => !r ? null : r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : r.estado === "opcoes" && Array.isArray(r.opcoes) ? r.opcoes.join(", ") : null;
+  const textoDe = (r) => { const x = valor(r); return typeof x === "number" ? String(x) : typeof x === "string" && x.trim() ? x.trim() : null; };
   /* primeiro número de um texto livre ("60 pedidos" → "60"); null se não houver */
   const numDe = (t) => { if (t == null) return null; const m = /\d+(?:[.,]\d+)*/.exec(String(t)); return m ? m[0] : null; };
   /* número digitado num campo de número: aceita "5%", "12,50", "1.500"; vazio = null; negativo ou texto = NaN */
@@ -75,12 +76,26 @@
   const HORAS = ["Até 10 h", "De 11 a 20 h", "Mais de 20 h", NS];
   const REPOSICAO = ["Toda semana", "A cada 15 dias", "Todo mês", NS];
   const SNN = ["Sim", "Não", NS];
+  /* o Módulo 1 pergunta o tempo POR DIA; a conta daqui usa horas POR SEMANA (7 dias).
+     Cada resposta do Módulo 1 vai para a faixa mais próxima desta tela; a pessoa confere e ajusta. */
+  const HORAS_M1 = {
+    "Até 1 hora por dia": ["Até 10 h", "até cerca de 7 horas por semana"],
+    "De 1 a 3 horas por dia": ["De 11 a 20 h", "cerca de 7 a 21 horas por semana"],
+    "Mais de 3 horas por dia": ["Mais de 20 h", "mais de 21 horas por semana"],
+    "Só nos fins de semana": ["Até 10 h", "só os dois dias do fim de semana"],
+  };
+  /* revenda: estoque guardado ou compra sob encomenda (o Módulo 6 pergunta isso com Sim/Não) */
+  const ESTOQUE = ["Sim, mantenho mercadoria guardada", "Não, compro quando o cliente pede", NS];
+  const NAO_APLICA = "Não se aplica ao meu negócio";
+  /* ajuda com mais de 220 caracteres: 1ª frase à vista e o resto em "Ver mais" */
+  const AJUDA_CURTA = 220;
 
   /* tela de partida: o que dá para trazer dos módulos anteriores */
   function herdar() {
-    const m1 = M1(), m3 = M3(), m4 = M4(), m5 = M5();
+    const m1 = M1(), m3 = M3(), m4 = M4(), m5 = M5(), m6 = M6();
     const ini = { de: {} };
-    const pega = (campo, v, mod) => { if (v != null && v !== "" && ini[campo] == null) { ini[campo] = v; ini.de[campo] = mod; } };
+    /* "Não sei" herdado não conta como resposta */
+    const pega = (campo, v, mod) => { if (v != null && v !== "" && v !== NS && ini[campo] == null) { ini[campo] = v; ini.de[campo] = mod; } };
     pega("oferta", textoDe(m5["M5.P02"]) || textoDe(m5["M5.P10"]) || textoDe(m5["M5.P17"]), 5);
     pega("oferta", textoDe(m4["M4.P01"]), 4);
     pega("oferta", textoDe(m1["M1.P03"]), 1);
@@ -88,6 +103,12 @@
     const tipo = (t) => { const w = (t || "").split(/[:+]/)[0].trim(); return TIPOS.find((x) => x.startsWith(w + ":")) || null; };
     pega("tipo", tipo(t1), 1); pega("tipo", tipo(t5), 5); pega("tipo", tipo(t4), 4);
     const s18 = textoDe(m5["M5.P18"]); pega("material", SNN.includes(s18) ? s18 : null, 5);
+    const s12 = textoDe(m6["M6.P12"]); pega("material", SNN.includes(s12) ? s12 : null, 6);
+    /* horas: Módulo 1 (por dia) convertido para a faixa por semana mais próxima */
+    const p05 = textoDe(m1["M1.P05"]), h1 = HORAS_M1[p05];
+    if (h1) { pega("horas", h1[0], 1); ini.horasM1 = p05; ini.horasConv = h1[1]; }
+    /* revenda: o Módulo 6 pergunta se a pessoa vai manter estoque */
+    const e18 = { "Sim": ESTOQUE[0], "Não": ESTOQUE[1] }[textoDe(m6["M6.P18"])]; pega("estoque", e18, 6);
     const est = { "Ainda está só na minha cabeça": ESTAGIOS[0], "Já fiz um pouco para testar ou dar de amostra": ESTAGIOS[1], "Já vendi algumas vezes": ESTAGIOS[2], "Já vendo sempre": ESTAGIOS[2] }[textoDe(m1["M1.P01"])];
     pega("estagio", est, 1);
     const vol = Mo.num(numDe(textoDe(m5["M5.P37"]))); pega("volume", vol > 0 ? numDe(textoDe(m5["M5.P37"])) : null, 5);
@@ -95,7 +116,10 @@
     if (t23 && typeof t23 === "object") { const m = (Mo.num(t23.h) || 0) * 60 + (Mo.num(t23.m) || 0); if (m > 0) pega("minUn", m, 5); }
     /* materiais do Módulo 5: produto = P03/P06 (receita) ÷ P07 (unidades que rende); serviço = P19/P22 (por atendimento) */
     const prod = t5 ? t5.startsWith("Produto") : Array.isArray(valor(m5["M5.P03"]));
-    const itens = (prod ? valor(m5["M5.P03"]) : valor(m5["M5.P19"])) || [];
+    /* revenda: o item principal é a própria mercadoria do Módulo 5 (não há lista de materiais) */
+    const rev = (ini.tipo || "").startsWith("Mercadoria") || (!ini.tipo && (t5 || "").startsWith("Mercadoria"));
+    if (rev) pega("item", textoDe(m5["M5.P10"]), 5);
+    const itens = rev ? [] : (prod ? valor(m5["M5.P03"]) : valor(m5["M5.P19"])) || [];
     const usos = valor(m5[prod ? "M5.P06" : "M5.P22"]);
     const rende = prod ? Mo.num(textoDe(m5["M5.P07"])) : 1;
     ini.usoPor = {};
@@ -109,6 +133,7 @@
     /* unidades que saem de uma vez (M7-02): o que a receita do Módulo 5 rende */
     if (prod && rende > 0) { ini.unLote = String(rende); ini.de.unLote = 5; }
     const reg = textoDe(m4["M4.P15"]); pega("regulada", SNN.includes(reg) ? reg : null, 4);
+    if (rev && !ini.uso) ini.uso = "1";
     /* o Módulo 4 guarda texto livre ("60 pedidos"): fica só o número */
     pega("testeN", numDe(textoDe(m4["M4.P19"])), 4);
     pega("testeDias", numDe(textoDe(m4["M4.P20"])), 4);
@@ -134,6 +159,45 @@
   const oferta = () => (I().oferta || "").trim();
   const opR = (cod) => { const r = S.R[cod]; return r && r.estado === "opcao" ? r.opcao : r && r.estado === "naosei" ? NS : null; };
   const multiR = (cod) => { const r = S.R[cod]; return r && r.estado === "multi" ? r.opcoes : []; };
+  const rev = () => tipoChave() === "rev";
+  /* revenda (distribuidora, loja): sem palavras de fabricação. O valor gravado continua o mesmo;
+     muda só o texto mostrado. */
+  const REV = {
+    "M7-02": { apoio: "Conte o tempo de separar, conferir, embalar e entregar um pedido. Se você separa vários pedidos de uma vez, informe o tempo total e quantos pedidos saem." },
+    "M7-03": { pergunta: "Além de separar e entregar os pedidos, quanto do seu tempo por semana vai para responder clientes, comprar mercadoria e divulgar?" },
+    "M7-04": { apoio: "Família, parceiro, amigo ou alguém que você paga. Conte só a ajuda para separar, embalar e entregar os pedidos." },
+    "M7-05a": { pergunta: "Quantos pedidos ou caixas cabem de uma vez nesse espaço ou veículo, e quanto tempo leva cada vez?", apoio: "Ex.: o carro leva 20 caixas por viagem, e cada viagem de entrega leva 1 h." },
+    "M7-06": { pergunta: "Para a mercadoria principal: de quantos fornecedores você poderia comprar, e em quantos dias ela chega depois do pedido?", apoio: "Pense em [item principal do Módulo 4], a mercadoria que mais vende ou que, se faltar, para as vendas. Quando pagar já foi visto no Módulo 6; aqui é o tempo até a mercadoria chegar." },
+    "M7-08": { pergunta: "As mercadorias que você vende estragam, vencem ou perdem valor com o tempo?", apoio: "Pense na data de validade, em produtos que precisam de geladeira ou de lugar seco e em itens que saem de moda." },
+    "M7-09": { apoio: "Pense no que faz o cliente voltar: pedido certo, validade em dia, embalagem inteira, prazo combinado." },
+  };
+  const ROT_REV = {
+    "Um equipamento ou o espaço": "O espaço para guardar ou o veículo de entrega",
+    "Falta ou atraso de material": "Falta ou atraso de mercadoria",
+    "Sigo um padrão ou receita anotada": "Sigo uma lista de conferência anotada",
+    "Confiro no olho ou provando, sem nada anotado": "Confiro no olho, sem nada anotado",
+    "Faltar material": "Faltar mercadoria",
+    "Equipamento quebrar": "Veículo ou equipamento quebrar",
+    "Quantidade feita ou atendida na semana": "Pedidos separados na semana",
+    "Vezes que faltou material": "Vezes que faltou mercadoria",
+  };
+  const rot = (op) => (rev() && ROT_REV[op]) || op;
+  const perg = (cod) => preencher((rev() && REV[cod] && REV[cod].pergunta) || Q[cod].pergunta);
+  const apoioDe = (cod) => preencher((rev() && REV[cod] && REV[cod].apoio) || Q[cod].apoio);
+  /* 1ª frase à vista; o resto em "Ver mais" (não corta em "Ex.:") */
+  function ajudaHtml(t) {
+    t = String(t || "").trim();
+    if (!t) return "";
+    if (t.length > AJUDA_CURTA) {
+      const re = /[.!?](?=\s)/g; let m;
+      while ((m = re.exec(t))) {
+        if (/\bEx$/i.test(t.slice(0, m.index))) continue;
+        const a = t.slice(0, m.index + 1), b = t.slice(m.index + 1).trim();
+        if (b) return `<p class="ajuda">${esc(a)}</p><details class="ver-mais"><summary>Ver mais</summary><p class="ajuda">${esc(b)}</p></details>`;
+      }
+    }
+    return `<p class="ajuda">${esc(t)}</p>`;
+  }
 
   /* modelo do mapa por tipo (aba Instrumentos) */
   function modelo() {
@@ -247,7 +311,8 @@
     }).join("")}</ol>`;
   }
   const chipOferta = () => `<div class="chip-oferta"><span>${esc(oferta() || "Sua oferta")}</span><button class="chip-alterar" id="alterar">Alterar</button></div>`;
-  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  /* "‹ Voltar" no topo do cartão, à esquerda (mesmo lugar em todos os módulos) */
+  const botaoVoltar = () => `<button type="button" class="voltar-topo" id="v" aria-label="Voltar"><span aria-hidden="true">‹</span> Voltar</button>`;
   function ligar(p) {
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
     const a = p.querySelector("#alterar"); if (a) a.onclick = () => ir(telaPartida, { volta: true });
@@ -310,6 +375,14 @@
   function telaPartida(o) {
     const volta = o && o.volta;
     const base = S.ini ? Object.assign({ de: {} }, S.ini) : herdar();
+    /* estado salvo antes desta versão: traz as horas (Módulo 1) e o estoque (Módulo 6) se ainda faltam */
+    if (S.ini) {
+      const h = herdar();
+      base.de = Object.assign({}, base.de);
+      [["horas", ["horasM1", "horasConv"]], ["estoque", []]].forEach(([c, extra]) => {
+        if (!base[c] && h[c]) { base[c] = h[c]; base.de[c] = h.de[c]; extra.forEach((k) => { base[k] = h[k]; }); }
+      });
+    }
     const f = Object.assign({}, base);
     const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio do Módulo ${base.de[campo]}</span>` : "";
     const sel = (campo, ops, rot) => `<fieldset class="grupo" data-campo="${campo}"><legend>${esc(rot)} ${veio(campo)}</legend>
@@ -321,6 +394,7 @@
       ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nos módulos anteriores. Confira, corrija ou complete. Só o tipo é obrigatório." })}
       <main class="corpo">
         <div class="cartao-q partida">
+          ${botaoVoltar()}
           <h3 class="secao-titulo">Sua oferta</h3>
           ${txt("oferta", "O que você vende (a oferta em foco)")}
           ${sel("tipo", TIPOS, "Tipo de oferta")}
@@ -328,6 +402,7 @@
           ${sel("estagio", ESTAGIOS, "Em que momento você está?")}
           <h3 class="secao-titulo">Seu tempo e suas vendas</h3>
           ${sel("horas", HORAS, "Quantas horas por semana você tem para o negócio?")}
+          ${base.de && base.de.horas === 1 && base.horasM1 ? `<p class="nota-veio" id="nota-horas">No Módulo 1 você respondeu “${esc(base.horasM1)}” (${esc(base.horasConv)}). Marcamos a faixa mais próxima. Confira e ajuste.</p>` : ""}
           ${txt("volume", "Quantas unidades ou atendimentos você pretende vender por mês?", 'inputmode="decimal"')}
           ${base.minUn > 0 ? txt("minUn", "Tempo por unidade ou atendimento (minutos)", 'inputmode="decimal"') : ""}
           ${txt("testeN", "No teste da ideia: qual número mínimo de pedidos você combinou?", 'inputmode="decimal"')}
@@ -337,7 +412,6 @@
           ${sel("regulada", SNN, "Sua oferta envolve alimentos, saúde, produtos para crianças ou outra atividade com regras próprias?")}
           <div class="erro" id="erro" hidden></div>
           <div class="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
-          ${botaoVoltar()}
         </div>
         ${rodape()}
       </main>
@@ -347,7 +421,15 @@
       const serv = (f.tipo || "").startsWith("Serviço");
       p.querySelector("#mat").innerHTML = serv ? sel("material", SNN, "Você usa algum produto ou material para atender?") : "";
       const fase3 = (f.tipo || "").startsWith("Produto") || (f.tipo || "").startsWith("Mercadoria") || (serv && f.material === "Sim");
-      p.querySelector("#f3").innerHTML = !fase3 ? "" : `<h3 class="secao-titulo">Material principal</h3>
+      const ehRev = (f.tipo || "").startsWith("Mercadoria");
+      p.querySelector("#f3").innerHTML = !fase3 ? "" : ehRev ? `<h3 class="secao-titulo">Mercadoria principal e estoque</h3>
+        ${txt("item", "Qual mercadoria mais vende ou, se faltar, para as vendas?")}
+        ${txt("uso", "Quantas unidades dela saem em cada venda?", 'inputmode="decimal"')}
+        <p class="ajuda nota-campo">Em geral é 1. Mude se você vende em caixa ou fardo.</p>
+        ${sel("estoque", ESTOQUE, "Você vai manter mercadoria guardada para pronta entrega?")}
+        ${sel("reposicao", REPOSICAO, "De quanto em quanto tempo você compra essa mercadoria?")}
+        ${txt("perda", "Quanto dela você costuma perder (vencida, quebrada ou amassada), em %? (deixe em branco se não sabe)", 'inputmode="decimal"')}`
+        : `<h3 class="secao-titulo">Material principal</h3>
         ${txt("item", "Qual é o item que, se faltar, para tudo?")}
         ${txt("uso", rotUso(), 'inputmode="decimal"')}
         ${sel("reposicao", REPOSICAO, "De quanto em quanto tempo você compra esse item?")}
@@ -450,15 +532,15 @@
       <main class="corpo">
         ${barraFases(FASE(cod))}
         <div class="cartao-q pergunta">
-          <h2 class="q" id="pergunta">${esc(preencher(q.pergunta))}</h2>
-          <p class="ajuda">${esc(preencher(q.apoio))}</p>
+          ${botaoVoltar()}
+          <h2 class="q" id="pergunta">${esc(perg(cod))}</h2>
+          ${ajudaHtml(apoioDe(cod))}
           <div class="entrada" id="ent"></div>
           <div class="erro" id="erro" hidden></div>
           <div id="retorno" aria-live="polite"></div>
           <div id="junto"></div>
-          ${termosDe(cod)}
           <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
-          ${botaoVoltar()}
+          ${termosDe(cod)}
         </div>
         ${rodape()}
       </main>
@@ -482,7 +564,7 @@
     function unica(ops, atual, aoTocar) {
       const wrap = el(`<div class="opcoes"></div>`);
       ops.forEach((op) => {
-        const b = el(`<button class="opcao ${atual === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
+        const b = el(`<button class="opcao ${atual === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(rot(op))}</b></span></button>`);
         b.onclick = () => { wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", x === b)); aoTocar(op); };
         wrap.appendChild(b);
       });
@@ -493,7 +575,7 @@
       const wrap = el(`<div class="opcoes multi"></div>`);
       const pintar = () => wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", marcadas.includes(x.dataset.v)));
       ops.forEach((op) => {
-        const b = el(`<button class="opcao" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
+        const b = el(`<button class="opcao" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(rot(op))}</b></span></button>`);
         b.onclick = () => {
           let aviso3 = false;
           if (marcadas.includes(op)) marcadas.splice(marcadas.indexOf(op), 1);
@@ -591,9 +673,15 @@
       const v = resp && resp.estado === "valor" ? resp : null;
       const herdaUn = !v && I().unLote && tipoChave() === "fab";
       ent.appendChild(el(`<div><label class="rot-campo">Tempo</label>${tempoCampos("t", v)}
-        <label class="rot-campo" for="un">Unidades que saem de uma vez ${herdaUn ? `<span class="veio">Veio do Módulo 5</span>` : ""}</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : herdaUn ? I().unLote : "1")}">
+        <label class="rot-campo" for="un">${rev() ? "Pedidos separados de uma vez" : "Unidades que saem de uma vez"} ${herdaUn ? `<span class="veio">Veio do Módulo 5</span>` : ""}</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : herdaUn ? I().unLote : "1")}">
         ${herdaUn ? `<p class="ajuda">É quanto rende a sua receita, como você contou no Módulo 5. Confira e ajuste se quiser.</p>` : ""}</div>`));
       ent.appendChild(btnNaoSei(() => { mostrar(caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
+      /* revenda em que o cliente retira e não há separação: a pergunta pode não servir */
+      if (rev()) {
+        const na = el(`<button class="btn-alt" id="na">${NAO_APLICA}</button>`);
+        na.onclick = () => { mostrar(`<div class="bloco b-ok"><p>Tudo bem. Sem esse tempo, a conta de quanto cabe por semana fica de fora. O resto do módulo continua.</p></div>`); trocarParaSeguir({ estado: "naoaplica" }); };
+        ent.querySelector(".alt").appendChild(na);
+      }
       let confirmouAlto = false;
       coletar = () => {
         const t = lerTempo("t"), un = Mo.num(p.querySelector("#un").value || "1");
@@ -615,7 +703,7 @@
         if (!op.startsWith("Sim")) return { estado: "opcao", opcao: op, horas: 0 };
         const h = Mo.num(p.querySelector("#hajuda").value);
         if (h === null || isNaN(h) || h < 0) { mostrar(caixa(caminho(cod, "Horas inválidas (negativo ou texto)"))); return null; }
-        if (h > Mo.LIMITE.ajudaMax) { erro(`Uma semana tem ${Mo.LIMITE.ajudaMax} horas. Informe quantas horas por semana a ajuda trabalha no preparo e na produção.`); return null; }
+        if (h > Mo.LIMITE.ajudaMax) { erro(`Uma semana tem ${Mo.LIMITE.ajudaMax} horas. Informe quantas horas por semana essa pessoa ajuda você.`); return null; }
         if (h > Mo.LIMITE.ajudaAviso && avisouAjuda !== h) { avisouAjuda = h; aviso_(`${Mo.fmt(h, h % 1 ? 1 : 0)} horas de ajuda por semana é mais que uma jornada inteira de trabalho. Confira; se estiver certo, toque em “Continuar mesmo assim”.`); return null; }
         return { estado: "opcao", opcao: op, horas: h };
       };
@@ -720,6 +808,7 @@
       ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(caixa(caminho(cod, o))); }));
       if (op) mostrar(caixa(caminho(cod, op)));
       if (cod === "M7-09" && I().regulada === "Sim") junto(caixa(caminho(cod, "Qualquer resposta, com atividade regulada em M4-11")));
+      if (cod === "M7-08" && rev()) junto(`<div class="bloco b-proximo" id="dica-estoque"><b>Dica</b><p>Guarde as mercadorias em lugar limpo, seco e arejado, longe do chão e do sol, e siga o que a embalagem pede (por exemplo, geladeira). Venda primeiro o que vence primeiro.</p></div>`);
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
         return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
@@ -755,6 +844,7 @@
   }
 
   /* ================= contas com as respostas ================= */
+  const naoAplicaTempo = () => !!(S.R["M7-02"] && S.R["M7-02"].estado === "naoaplica");
   function minUnAtual() {
     if (I().minUn > 0) return I().minUn;
     const r = S.R["M7-02"];
@@ -816,7 +906,7 @@
   function proximosPassos(c) {
     const B = Object.fromEntries(D.resumo.proximos.map((x) => [x.situacao, x.mensagem]));
     const out = [];
-    if (!minUnAtual()) out.push(preencher(B["Tempo não medido"]));
+    if (!minUnAtual() && !naoAplicaTempo()) out.push(preencher(B["Tempo não medido"]));
     const cmp = Mo.comparar(c, volume());
     if (cmp && cmp.tipo === "falta") out.push(preencher(B["Capacidade abaixo do volume pretendido"], { "[N]": nTexto(c, "mes"), "[volume]": Mo.fmt(volume()) }));
     const r6 = S.R["M7-06"];
@@ -830,14 +920,29 @@
   function riscos() {
     const out = [];
     const r10 = S.R["M7-10"];
-    if (r10 && r10.estado === "multi") r10.opcoes.forEach((o) => out.push({ nome: o === "Outro" ? r10.outro : o, antes: o === "Outro" ? "" : caminho("M7-10", o).texto }));
+    if (r10 && r10.estado === "multi") r10.opcoes.forEach((o) => out.push({ nome: o === "Outro" ? r10.outro : rot(o), antes: o === "Outro" ? "" : caminho("M7-10", o).texto }));
     if (r10 && r10.estado === "naosei") etapas().slice(0, 3).forEach((e) => out.push({ nome: e, antes: "" }));
     const r6 = S.R["M7-06"];
     if (r6 && r6.p1 === "Só um") out.push({ nome: "Depender de um só fornecedor", antes: caminho("M7-06", "Parte 1: Só um").texto });
     if (r6 && r6.p2 === "Mais de 7 dias") out.push({ nome: "Prazo de entrega do fornecedor acima de 7 dias", antes: caminho("M7-06", "Parte 2: Mais de 7 dias").texto });
-    if (opR("M7-08") === "Sim, em poucos dias") out.push({ nome: "Itens que estragam em poucos dias", antes: caminho("M7-08", "Sim, em poucos dias").texto });
+    if (opR("M7-08") === "Sim, em poucos dias") out.push({ nome: rev() ? "Mercadorias que vencem em poucos dias" : "Itens que estragam em poucos dias", antes: caminho("M7-08", "Sim, em poucos dias").texto });
     if (I().regulada === "Sim") out.push({ nome: "Atividade com regras próprias", antes: caminho("M7-09", "Qualquer resposta, com atividade regulada em M4-11").texto });
     return out.slice(0, 6).map((x) => Object.assign(x, { antes: preencher(x.antes) }));
+  }
+  /* revenda: estoque, armazenamento, validade e entrega (orientação, com o que a pessoa contou) */
+  function cuidadosRevenda() {
+    const e = I().estoque, v = opR("M7-08"), ent = I().entrega;
+    const itens = [
+      ["Estoque", e === ESTOQUE[0] ? "Você vai manter mercadoria guardada. Comece com pouco e aumente conforme as vendas: mercadoria parada é dinheiro parado."
+        : e === ESTOQUE[1] ? "Você compra quando o cliente pede. Combine com o cliente um prazo que inclua o tempo do fornecedor para entregar a você."
+        : "Decida se vai manter mercadoria guardada ou comprar quando o cliente pedir. Isso muda quanto dinheiro fica parado."],
+      ["Armazenamento", "Guarde em lugar limpo, seco e arejado, longe do chão e do sol. Siga o que a embalagem pede, como geladeira ou empilhar no máximo algumas caixas."],
+      ["Validade", v === "Sim, em poucos dias" ? "Suas mercadorias vencem rápido: compre menos de cada vez, confira a validade quando chegam e venda primeiro o que vence primeiro."
+        : v === "Não" ? "Mesmo sem validade curta, confira se nada amassou, quebrou ou saiu de moda antes de vender."
+        : "Confira a validade quando a mercadoria chega e antes de entregar. Venda primeiro o que vence primeiro."],
+      ["Entrega", `${ent ? `Você contou que a entrega é por ${ent.toLowerCase()}. ` : ""}Antes de sair, confira itens e quantidade do pedido e proteja o que pode quebrar ou amassar.`],
+    ];
+    return `<h4>Cuidados com a mercadoria</h4><ul class="cuidados" id="cuidados-revenda">${itens.map(([t, x]) => `<li><b>${esc(t)}</b> ${esc(x)}</li>`).join("")}</ul>`;
   }
   function indicadores() {
     const r = S.R["M7-11"];
@@ -864,15 +969,16 @@
     const sem = semAjuda(c);
     if (c.estado === "ok") fr.push(`Com ${hs} por semana${mu ? ` e cerca de ${fmtMin(mu)} para ${verbo()} cada um` : ""}, cabem ${sem ? `${Mo.texto(sem, "mes")} por mês sem ajuda e ${Mo.texto(c, "mes")} por mês com a ajuda que você contou` : `${Mo.texto(c, "mes")} por mês`}.`);
     else if (c.estado === "sem-producao") fr.push("As tarefas de apoio (clientes, compras, entregas) tomam todo o tempo que você tem, então ainda não sobra tempo para produzir.");
+    else if (hs && naoAplicaTempo()) fr.push(`Como o tempo de ${verbo()} cada pedido não se aplica ao seu negócio, a conta de quanto cabe por mês ficou de fora.`);
     else fr.push(`Ainda falta ${!hs ? "saber quantas horas por semana você tem" : "medir quanto tempo leva cada unidade ou atendimento"} para calcular quanto cabe por mês.`);
     const vol = volume(), cmp = Mo.comparar(c, vol);
     if (vol && cmp) fr.push(cmp.tipo === "falta" ? `Você quer vender ${Mo.fmt(vol)} por mês, mais do que cabe hoje: vale rever o tempo, pedir ajuda ou ajustar a meta.` : `Você quer vender ${Mo.fmt(vol)} por mês, e isso cabe no seu tempo.`);
     const c2 = fr.length;   // 2º: quanto cabe e a meta; 3º: o que segura o ritmo
     const g = opR("M7-05"), r5 = S.R["M7-05"];
-    if (g && g !== NS) fr.push(`O que mais segura o seu ritmo hoje é ${g === "Uma etapa que demora ou acumula" && r5.etapa ? `a etapa “${r5.etapa}”` : g.charAt(0).toLowerCase() + g.slice(1)}.`);
+    if (g && g !== NS) fr.push(`O que mais segura o seu ritmo hoje é ${g === "Uma etapa que demora ou acumula" && r5.etapa ? `a etapa “${r5.etapa}”` : rot(g).charAt(0).toLowerCase() + rot(g).slice(1)}.`);
     const r6 = S.R["M7-06"];
     if (temFase3() && I().item && r6 && r6.estado === "partes" && r6.p1 === "Só um") fr.push(`Você depende de um só fornecedor para ${I().item}: ter um segundo nome anotado evita parar se faltar.`);
-    else { const q9 = opR("M7-09"); if (q9 && q9 !== NS) fr.push(q9 === "Sigo um padrão ou receita anotada" ? "Você já segue um padrão anotado para a qualidade, o que ajuda a entregar sempre igual." : "Anotar um padrão de qualidade simples ajuda a entregar sempre igual."); }
+    else { const q9 = opR("M7-09"); if (q9 && q9 !== NS) fr.push(q9 === "Sigo um padrão ou receita anotada" ? (rev() ? "Você já segue uma lista de conferência anotada, o que ajuda a entregar o pedido certo." : "Você já segue um padrão anotado para a qualidade, o que ajuda a entregar sempre igual.") : (rev() ? "Anotar uma lista simples do que conferir (itens, quantidade, validade, embalagem) ajuda a entregar o pedido certo." : "Anotar um padrão de qualidade simples ajuda a entregar sempre igual.")); }
     return emParagrafos(fr.slice(0, 6), c1, c2);
   }
   const fmtMin = (min) => { const h = Math.floor(min / 60), m = Math.round(min - h * 60); return h && m ? `${h} h ${m} min` : h ? `${h} h` : `${Mo.fmt(min, min % 1 ? 1 : 0)} min`; };
@@ -911,7 +1017,7 @@
     const garg = r5 && r5.etapa;
     const mapaHtml = `<ol class="mapa">${etapas().map((e) => `<li class="${e === garg ? "gargalo" : ""}"><span>${esc(e)}</span>${e === garg ? `<em>Gargalo</em>` : ""}</li>`).join("")}</ol>
       <p class="aviso-inst">Tempo de cada etapa: a medir.</p>
-      ${r5 && !garg ? `<p class="diag-q">Gargalo</p><p class="diag-r">${esc(r5.estado === "naosei" ? "Ainda não definido" : r5.opcao)}</p>` : ""}
+      ${r5 && !garg ? `<p class="diag-q">Gargalo</p><p class="diag-r">${esc(r5.estado === "naosei" ? "Ainda não definido" : rot(r5.opcao))}</p>` : ""}
       ${avisoInst("Mapa do processo")}${ideia() ? avisoInst("Mapa do processo", 1) : ""}`;
     /* capacidade */
     let capHtml;
@@ -951,7 +1057,7 @@
       const un = I().usoUn || "", nomeItem = I().item || "O item principal";
       const fmt1 = (n) => Mo.fmt(n, n % 1 ? 1 : 0);
       fornHtml = `<section class="cartao bloco-res"><h3>Fornecedores e estoque</h3>
-        ${r6 && r6.estado === "partes" ? `<p class="diag-q">Fornecedores do item principal</p><p class="diag-r">${esc(r6.p1)} · chega: ${esc(r6.p2.toLowerCase())}${r6.dias ? ` (${esc(r6.dias)} dias)` : ""}</p>` : ""}
+        ${r6 && r6.estado === "partes" ? `<p class="diag-q">Fornecedores ${rev() ? "da mercadoria principal" : "do item principal"}</p><p class="diag-r">${esc(r6.p1)} · chega: ${esc(r6.p2.toLowerCase())}${r6.dias ? ` (${esc(r6.dias)} dias)` : ""}</p>` : ""}
         <h4>Lembrete de reposição${I().item ? ` · ${esc(I().item)}` : ""}</h4>
         ${ponto != null ? `<div class="res-num"><div class="lbl">Peça de novo quando restarem</div><div class="val">${esc(Mo.fmt(ponto))}${un ? ` ${esc(un)}` : ""}</div><div class="sub">${esc(nomeItem)} que você usa durante ${esc(Mo.fmt(prazo))} dias de prazo${folga ? `, mais a folga de ${esc(Mo.fmt(folga))}` : ""}</div></div>
           <ul class="reposicao-conta" id="conta-reposicao">
@@ -964,6 +1070,7 @@
         <label class="rot-campo" for="folga">Folga que você quer manter (unidades a mais)</label><input class="campo" id="folga" inputmode="numeric" value="${esc(S.inst.folga)}">
         ${compra ? `<p class="diag-r">Compra do mês${perda > 0 ? `, já contando a perda de ${esc(Mo.fmt(perda, perda % 1 ? 1 : 0))}%` : ""}: ${esc(Mo.fmt(compra))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}.</p>${comoCalc(`${Mo.fmt(vol)} por mês × ${fmt1(uso)}${un ? ` ${un}` : ""} em cada um = ${fmt1(vol * uso)}${un ? ` ${un}` : ""}${perda > 0 ? `; com a perda de ${fmt1(perda)}%, dividimos por ${Mo.fmt(100 - perda, perda % 1 ? 1 : 0)}% (o que sobra depois da perda) = ${Mo.fmt(compra)}` : ""} (arredondado para cima).`, "como-compra")}` : ""}
         ${avisoInst("Lembrete de reposição")}
+        ${rev() ? cuidadosRevenda() : ""}
         <h4>Quadro de fornecedores</h4>
         ${forn.map((f, i) => {
           const crits = colunas.slice(1), conta = crits.filter((k) => f.v[k] === "atende").length, marcou = crits.some((k) => f.v[k]);
@@ -997,11 +1104,12 @@
     const r13 = S.R["M7-13"];
     /* o item sobre fornecedores só vale quando a fase de fornecedores aparece */
     const IA = D.pedidos_ia.filter((x) => (x.texto || "").trim() && (temFase3() || x.pedido !== "Fornecedores"));
-    const respostas = [["Seu ponto de partida", null]].concat(sequencia().map((k) => [preencher(Q[k].pergunta), k]));
+    const respostas = [["Seu ponto de partida", null]].concat(sequencia().map((k) => [perg(k), k]));
     const p = el(`<div class="pag">
       ${topo("Resultado")}
       ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: preencher(q13.pergunta), extra: chipOferta() })}
       <main class="corpo">
+        ${botaoVoltar()}
         ${barraFases(null, true)}
         <section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>${entendemos(c).map((x) => `<p>${esc(x)}</p>`).join("")}</section>
         <section class="concluido">
@@ -1013,7 +1121,7 @@
         <section class="cartao bloco-res"><h3>Sua capacidade</h3>${capHtml}${termoBox(["Capacidade", "Tempo de apoio", "Lote"])}</section>
         ${fornHtml}
         <section class="cartao bloco-res"><h3>Qualidade</h3>
-          ${opR("M7-09") ? `<p class="diag-r">${esc(opR("M7-09"))}</p>` : ""}
+          ${opR("M7-09") ? `<p class="diag-r">${esc(rot(opR("M7-09")))}</p>` : ""}
           <h4>Padrão de qualidade</h4>
           ${padrao.map((x, i) => `<input class="campo pq" data-i="${i}" aria-label="Ponto ${i + 1}" placeholder="Ponto ${i + 1}" value="${esc(x)}">`).join("")}
           ${padrao.length < 5 ? `<button class="btn-mais" id="pq-mais">+ Incluir ponto</button>` : ""}
@@ -1025,8 +1133,8 @@
           ${avisoInst("Checklist de riscos da operação")}
         </section>
         <section class="cartao bloco-res"><h3>Números da semana</h3>
-          ${inds.length ? `<div class="tabela-wrap"><table class="fluxo painel"><thead><tr><th>Semana</th>${inds.map((k) => `<th>${esc(k)}</th>`).join("")}</tr></thead>
-            <tbody>${painel.map((l, i) => `<tr><td>${i + 1}</td>${inds.map((k) => `<td><input class="pn" data-i="${i}" data-k="${esc(k)}" inputmode="decimal" aria-label="${esc(k)} – semana ${i + 1}" value="${esc(l[k] || "")}"></td>`).join("")}</tr>`).join("")}</tbody></table></div>
+          ${inds.length ? `<div class="tabela-wrap"><table class="fluxo painel"><thead><tr><th>Semana</th>${inds.map((k) => `<th>${esc(rot(k))}</th>`).join("")}</tr></thead>
+            <tbody>${painel.map((l, i) => `<tr><td>${i + 1}</td>${inds.map((k) => `<td><input class="pn" data-i="${i}" data-k="${esc(k)}" inputmode="decimal" aria-label="${esc(rot(k))} – semana ${i + 1}" value="${esc(l[k] || "")}"></td>`).join("")}</tr>`).join("")}</tbody></table></div>
             <button class="btn-mais" id="semana">+ Anotar uma semana</button>
             ${leitura ? `<p class="diag-r">${esc(leitura)}</p>` : ""}${avisoInst("Painel semanal")}` : `<p class="diag-r">Nenhum número escolhido.</p>`}
           ${termoBox(["Indicador"])}
@@ -1045,7 +1153,6 @@
           <div id="corr" ${r13 && r13.opcao === "Quero corrigir algo" ? "" : "hidden"}>${respostas.map(([t, k]) => `<div class="corr-item"><span>${esc(t)}</span><button class="btn btn-claro editar" data-c="${k || "PARTIDA"}">Corrigir minha resposta</button></div>`).join("")}</div>
         </section>
         <div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resultado</button><button class="btn btn-linha" id="zerar2">Recomeçar do zero</button></div>
-        ${botaoVoltar()}
         <div id="seguir" ${r13 && r13.opcao === "Sim, pode seguir" ? "" : "hidden"}><div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m08/index.html">Ir para o Módulo 8</a></div></div>
         ${rodape()}
       </main>

@@ -177,3 +177,12 @@ body.com-video{overflow:hidden}
 
 /* aviso quando o navegador recusa o microfone do botão Falar */
 .falar-aviso{margin:.5rem 0 0;font-size:.95rem;color:var(--m-gray);background:var(--m-lavender);border-left:4px solid var(--m-coral);border-radius:8px;padding:.6rem .75rem}
+
+/* menos texto: "Ver mais" e "Para onde seguem" recolhidos */
+.ver-mais{margin-top:6px}
+.ver-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px}
+.aviso-roxo .ver-mais summary{color:#fff;text-decoration:underline}
+.aviso-roxo p+.ver-mais p,.ver-mais p{margin-top:6px}
+.para-onde{margin:18px 0}
+.para-onde .cartao{background:#fff;margin-top:10px}
+.para-onde .cartao p{margin-top:0}

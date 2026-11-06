@@ -108,7 +108,6 @@ p.ajuda{font-size:15px;color:var(--m-gray);margin-bottom:8px}
 
 /* botões */
 .acoes{display:flex;flex-direction:column;gap:10px;margin-top:20px}
-.acoes-voltar{margin-top:10px}
 .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:none;border-radius:12px;font:inherit;font-weight:700;font-size:16.5px;padding:14px;cursor:pointer;line-height:1.25;text-align:center}
 .btn-primario{background:var(--m-purple);color:#fff}
 .btn-claro{background:var(--m-lavender);color:var(--m-purple)}
@@ -193,3 +192,22 @@ label.mini-info{display:block;margin-top:10px;margin-bottom:4px;font-weight:700;
 .entendemos .mini-info{font-size:13px;color:var(--m-gray);margin:6px 0 0}
 #suas-respostas{margin:6px 0 14px}
 #suas-respostas .cartao{margin-top:10px}
+/* lote 3: Voltar no topo (mesmo lugar em todos os módulos) */
+.voltar-topo{display:inline-flex;align-items:center;gap:2px;background:none;border:none;color:var(--m-purple);font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:4px 0;margin:0 0 8px}
+.corpo>.voltar-topo{margin-top:4px}
+/* lote 3: menos texto — "Ver mais" e caixas educativas recolhidas */
+.ver-mais{margin:4px 0 6px}
+.ver-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:14.5px}
+.ver-mais p{margin-top:4px}
+.aviso .ver-mais summary{font-size:13.5px}
+details.caixa summary{cursor:pointer;list-style-position:inside}
+details.caixa summary b{display:inline;margin:0}
+details.caixa[open] summary{margin-bottom:6px}
+/* lote 3: pergunta de várias respostas (quadradinho) e "Outra" */
+.opcoes.multi .radio{border-radius:6px}
+.opcoes.multi .opcao.sel .radio{border-radius:6px}
+.outra{margin-top:-2px}
+/* lote 3: onde fica o quadro citado no retorno */
+.onde-quadro{background:var(--m-lavender);border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:14.5px;color:#3d2f5c}
+.onde-quadro .btn-alt{margin-top:6px}
+@media print{.voltar-topo,.onde-quadro .btn-alt,.ver-mais>summary{display:none!important}}

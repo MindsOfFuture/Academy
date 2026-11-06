@@ -16,6 +16,16 @@
   const TOLERANCIA_MEI = 0.2;            // até 20% acima do limite
   const FAT_MES_ALTO = 20000;            // acima disso por mês: aviso "parece alto para um pequeno negócio" (não trava)
   const ESPERA_TECLADO = 300;            // ms até rolar o campo para o centro, depois que o teclado abre
+  const LIMITE_TEXTO = 220;              // dica com mais que isso: 1ª frase à vista e o resto em "Ver mais"
+  const DOMICILIO = "Na casa do cliente (atendimento em domicílio)";   // opção do local (lote 3); o Módulo 10 usa o mesmo texto
+  /* fontes oficiais (consultadas em 06/11/2026) */
+  const FONTE = {
+    criterios: "https://www.gov.br/pt-br/servicos/realizar-registro-como-microempreendedor-individual-mei",   // gov.br: condições a), c) e d) do serviço
+    portal: "https://www.gov.br/empresas-e-negocios/pt-br/empreendedor",
+    salaJF: "https://desenvolvejf.pjf.mg.gov.br/sme.html",                                                  // Sala Mineira do Empreendedor, Prefeitura de Juiz de Fora
+    sebrae: "https://sebrae.com.br/sites/PortalSebrae/estamosai",
+  };
+  const SEBRAE_TEL = "0800 570 0800";
   /* "Não sei" que não grava nem avança (nov/2026): estas respostas decidem o resto do módulo.
      P01 → busca das ocupações do MEI · P02 → mostra ou não a pergunta do responsável técnico e o aviso do tipo
      P03 → mostra ou não a pergunta das licenças · P04 → conta do limite do MEI e pergunta da lista do MEI
@@ -87,6 +97,7 @@
     const casa = (x) => /casa|apartamento|condom/i.test(x || "") && !/cliente/i.test(x || "");
     const loja = (x) => /loja|sala comercial/i.test(x || "");
     const semFixo = () => /internet|telefone/i.test(sa || "") ? "Online" : sa ? "Atendimento externo" : null;
+    if (/^Na casa do cliente/i.test(a || "")) return DOMICILIO;
     if (casa(a)) return "Minha casa";
     if (loja(a)) return "Ponto comercial";
     if (/sem local fixo/i.test(a || "")) return semFixo();
@@ -223,11 +234,20 @@
       ${o.progresso !== undefined ? `<div class="heroi-prog"><div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.progresso}"><div class="barra-fill" style="width:${o.progresso}%"></div></div></div>` : ""}
     </section>`;
   }
+  /* texto longo: a 1ª frase fica à vista e o resto vai para "Ver mais" (fechado) */
+  function curto(texto) {
+    const t = String(texto || "").trim();
+    if (t.length <= LIMITE_TEXTO) return esc(t);
+    const m = /^(.+?[.!?:])\s+(?=[A-ZÀ-Ú“"(])/.exec(t);
+    if (!m || m[1].length >= t.length - 20) return esc(t);
+    return `${esc(m[1])} <details class="mais"><summary>Ver mais</summary>${esc(t.slice(m[0].length))}</details>`;
+  }
   function dica(texto) {
     if (vazio(texto)) return "";
-    return `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
+    return `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><div class="ajuda">${curto(texto)}</div></div></aside>`;
   }
-  const botaoVoltar = (rot) => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">${rot || "Voltar"}</button></div>`;
+  /* "Voltar" no topo, à esquerda, no mesmo lugar em todas as telas (padrão do Módulo 1) */
+  const botaoVoltar = () => `<button class="voltar voltar-topo" id="v">Voltar</button>`;
   function ligar(p) {
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
   }
@@ -271,11 +291,11 @@
         ${topo("Limites")}
         ${heroi({ titulo: "Limites do módulo" })}
         <main class="corpo">
+          ${botaoVoltar()}
           <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
@@ -292,10 +312,10 @@
         ${topo("Ocupações permitidas ao MEI")}
         ${heroi({ titulo: "Ocupações permitidas ao MEI" })}
         <main class="corpo">
+          ${botaoVoltar()}
           <p class="ajuda">${esc(AX.titulo)}</p>
           <input class="campo" id="busca" placeholder="Busque pela ocupação, pelo CNAE ou pela descrição" value="${esc(termo || "")}">
           <p class="mini-info" id="conta"></p>
-          ${botaoVoltar()}
           <div id="lista"></div>
           ${rodape()}
         </main>
@@ -304,21 +324,83 @@
     const desenhar = (t) => {
       const linhas = Motor.buscarAnexo(M, t);
       p.querySelector("#conta").textContent = `${linhas.length} de ${AX.linhas.length} ocupações`;
-      lista.innerHTML = linhas.slice(0, 80).map(linhaAnexo).join("") || `<p class="ajuda">Nenhuma ocupação encontrada.</p>`;
+      lista.innerHTML = linhas.slice(0, 80).map((l) => linhaAnexo(l, true)).join("") || `<p class="ajuda">Nenhuma ocupação encontrada.</p>`;
     };
+    ligarCnae(p);
     p.querySelector("#busca").oninput = (e) => desenhar(e.target.value);
     desenhar(termo || "");
     ligar(p);
     p.querySelector("#v").onclick = () => voltar ? voltar() : ir(telaCapa);
     return p;
   }
-  function linhaAnexo(l) {
-    return `<div class="cnae">
+  /* com acoes = true, a ocupação ganha "Copiar" (código e nome) e "Escolher este" (salva como CNAE escolhido) */
+  function linhaAnexo(l, acoes) {
+    const esc1 = S.cnae && S.cnae.cnae === l.cnae && S.cnae.ocupacao === l.ocupacao;
+    return `<div class="cnae${esc1 ? " cnae-escolhido" : ""}">
       <div class="cnae-topo"><b>${esc(l.cnae)}</b><span class="nivel n1">${esc(l.tabela)}</span></div>
       <p><b>${esc(l.ocupacao)}</b></p>
       <p class="ex">${esc(l.descricao)}</p>
       <p class="mini-info">ISS: ${esc(l.iss)} · ICMS: ${esc(l.icms)}</p>
+      ${acoes ? `<div class="cnae-acoes"><button class="btn-mini btn-copiar-cnae" data-t="${esc(l.cnae + " - " + l.ocupacao)}">Copiar</button>
+        <button class="btn-mini btn-escolher" data-cnae="${esc(l.cnae)}" data-ocup="${esc(l.ocupacao)}" aria-pressed="${esc1}">${esc1 ? "Escolhido" : "Escolher este"}</button></div>` : ""}
     </div>`;
+  }
+  function copiarTexto(t) {
+    try { if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).catch(() => copiarAntigo(t)); } catch (e) {}
+    copiarAntigo(t);
+  }
+  function copiarAntigo(t) {
+    const a = document.createElement("textarea"); a.value = t; a.setAttribute("readonly", ""); a.style.position = "absolute"; a.style.left = "-9999px";
+    document.body.appendChild(a); a.select(); try { document.execCommand("copy"); } catch (e) {} a.remove();
+  }
+  /* "Copiar" e "Escolher este" nas listas de ocupações (sugestões do resumo e consulta) */
+  function ligarCnae(p) {
+    p.addEventListener("click", (e) => {
+      const c = e.target.closest(".btn-copiar-cnae");
+      if (c) { copiarTexto(c.dataset.t); c.textContent = "Copiado"; return; }
+      const b = e.target.closest(".btn-escolher");
+      if (!b) return;
+      S.cnae = { cnae: b.dataset.cnae, ocupacao: b.dataset.ocup };
+      salvar();
+      p.querySelectorAll(".btn-escolher").forEach((x) => {
+        const sel = x.dataset.cnae === S.cnae.cnae && x.dataset.ocup === S.cnae.ocupacao;
+        x.textContent = sel ? "Escolhido" : "Escolher este"; x.setAttribute("aria-pressed", String(sel));
+        x.closest(".cnae").classList.toggle("cnae-escolhido", sel);
+      });
+      const box = p.querySelector("#cnae-escolhido");
+      if (box) box.outerHTML = blocoEscolhido();
+    });
+  }
+  function blocoEscolhido() {
+    if (!S.cnae) return `<div id="cnae-escolhido" hidden></div>`;
+    return `<section class="cartao cnae-esc" id="cnae-escolhido"><h3>CNAE escolhido</h3><p><b>${esc(S.cnae.cnae)}</b> · ${esc(S.cnae.ocupacao)}</p>
+      <p class="mini-info">Leve este código quando for à Sala do Empreendedor ou ao contador, para conferir se ele descreve o que você faz.</p></section>`;
+  }
+
+  /* "Quem pode ser MEI": critérios básicos antes de procurar contador ou Sebrae */
+  function blocoQuemMei(aberto) {
+    const corpo = `<ul class="criterios">
+        <li>Faturar até ${reais(LIMITE_MEI_ANO)} por ano em 2026 (cerca de ${reais(LIMITE_MEI_ANO / 12)} por mês). Em 2027 o limite sobe para ${reais(LIMITE_MEI_2027)} por ano.</li>
+        <li>Ter uma atividade que esteja na lista de ocupações permitidas ao MEI.</li>
+        <li>Não ser sócio nem titular de outra empresa.</li>
+        <li>Ter no máximo 1 empregado.</li>
+      </ul>
+      <p>Confira na Sala do Empreendedor ou no ${link(FONTE.portal, "Portal do Empreendedor (gov.br)")}.</p>
+      <span class="fonte">Fonte: ${link(FONTE.criterios, "gov.br, “Cadastrar/formalizar Microempreendedor Individual”")} e Lei Complementar 238/2026 (limite de 2027).</span>`;
+    return aberto
+      ? `<section class="cartao quem-mei" id="quem-mei"><h3>Quem pode ser MEI</h3>${corpo}</section>`
+      : `<details class="saiba quem-mei" id="quem-mei"><summary>Quem pode ser MEI</summary>${corpo}</details>`;
+  }
+
+  /* onde tirar as dúvidas sobre formalização (depois da pergunta da dúvida principal) */
+  function blocoFontes() {
+    return `<section class="bloco b-enc fontes" id="fontes-duvida"><b>Onde tirar suas dúvidas</b>
+      <ul class="criterios">
+        <li>${link(FONTE.salaJF, "Sala do Empreendedor de Juiz de Fora")}, da prefeitura (em outra cidade, procure a Sala do Empreendedor ou a prefeitura da sua cidade).</li>
+        <li>${link(FONTE.portal, "Portal do Empreendedor (gov.br)")}: quem pode ser MEI, atividades permitidas e abertura do MEI.</li>
+        <li>${link(FONTE.sebrae, "Sebrae")}: ${SEBRAE_TEL}, ligação gratuita.</li>
+        <li>Um contador, para dúvidas sobre impostos, CNAE e tipo de empresa.</li>
+      </ul></section>`;
   }
 
   /* ================= pergunta ================= */
@@ -344,6 +426,7 @@
         ${heroi({ titulo: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, tituloClasse: "passo", progresso: progresso() })}
         <main class="corpo">
           <div class="cartao-q pergunta">
+            ${botaoVoltar()}
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${deOnde ? `<div class="herdou" id="herdou">${selo(deOnde)}<span>${H ? "Confira e ajuste se quiser." : "Você já conferiu esta resposta."}</span>${nota ? `<p class="conta">${esc(nota)}</p>` : ""}</div>` : ""}
             ${dica(q.ajuda)}
@@ -354,9 +437,9 @@
             <div id="retorno"></div>
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             ${LIGA_ANEXO.includes(cod) ? `<div class="alt"><button class="btn-alt" id="anexo">Consultar as ocupações permitidas ao MEI</button></div>` : ""}
+            ${cod === "M8.P07" ? blocoQuemMei(false) : ""}
             ${blocoEducativo(educativoDe(cod))}
             ${blocoConceitos(conceitosDe(q))}
-            ${botaoVoltar(S.hist.length > 1 ? "Voltar" : "Início")}
           </div>
           ${rodape()}
         </main>
@@ -401,7 +484,7 @@
     function pedirResposta() {
       p.querySelector("#erro").hidden = true;
       const box = p.querySelector("#ns-ajuda");
-      box.innerHTML = `<b>Precisamos desta resposta para seguir</b>${esc(NS_PRECISA[cod])}<p class="ns-pede">${tipo === "escolha" ? "Escolha a opção que mais se aproxima e toque em Continuar." : "Escreva a sua resposta no campo e toque em Continuar."}</p>`;
+      box.innerHTML = `<b>Precisamos desta resposta para seguir</b>${curto(NS_PRECISA[cod])}<p class="ns-pede">${tipo === "escolha" ? "Escolha a opção que mais se aproxima e toque em Continuar." : "Escreva a sua resposta no campo e toque em Continuar."}</p>`;
       box.hidden = false;
       const f = ent.querySelector("input,textarea");
       if (f) f.focus();
@@ -465,6 +548,7 @@
             ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${esc(r.encaminhamento)}</div>`}
           </div>`).join("")}
         ${vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(q.alerta)}</div>`}
+        ${cod === "M8.P10" ? blocoFontes() : ""}
       </div>`;
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
@@ -502,7 +586,7 @@
     else {
       const ls = Motor.sugerirAnexo(M, desc);
       corpo = ls.length
-        ? `<p>Pela sua descrição (“${esc(desc)}”), estas ocupações permitidas ao MEI podem combinar com a sua atividade:</p>${ls.map(linhaAnexo).join("")}${confira}`
+        ? `<p>Pela sua descrição (“${esc(desc)}”), estas ocupações permitidas ao MEI podem combinar com a sua atividade. Toque em “Escolher este” para guardar a que mais combina, ou em “Copiar” para levar o código.</p>${ls.map((l) => linhaAnexo(l, true)).join("")}${confira}`
         : `<p>Não encontramos, na lista de ocupações permitidas ao MEI, nenhuma que combine com as palavras da sua descrição (“${esc(desc)}”). Isso não quer dizer que a sua atividade não possa ser MEI: procure com outras palavras no botão “Consultar as ocupações permitidas ao MEI” ou peça ajuda na Sala do Empreendedor.</p>`;
     }
     return `<section class="sugestoes" id="sugestoes"><div class="secao-titulo">Possíveis CNAEs compatíveis</div>${corpo}</section>`;
@@ -510,7 +594,7 @@
 
   function blocoCnae(c) {
     return c.linhas.length
-      ? `<p class="mini-info">CNAE ${esc(c.cnae)} na lista de ocupações permitidas ao MEI (Anexo XI):</p>${c.linhas.map(linhaAnexo).join("")}`
+      ? `<p class="mini-info">CNAE ${esc(c.cnae)} na lista de ocupações permitidas ao MEI (Anexo XI):</p>${c.linhas.map((l) => linhaAnexo(l)).join("")}`
       : `<div class="cnae"><div class="cnae-topo"><b>${esc(c.cnae)}</b><span class="nivel n0">não consta no Anexo XI</span></div></div>`;
   }
 
@@ -526,6 +610,7 @@
         ${topo("Resultado")}
         ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Resumo da sua formalização" })}
         <main class="corpo">
+          ${botaoVoltar()}
           <section class="concluido">
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
           </section>
@@ -551,7 +636,9 @@
               ${vazio(q.alerta) ? "" : `<p class="mini-info"><b>Atenção:</b> ${esc(q.alerta)}</p>`}
             </div>`).join("")}
           </details>
+          ${blocoQuemMei(true)}
           ${blocoSugestoes()}
+          ${blocoEscolhido()}
           ${cnaes.map(blocoCnae).join("")}
 
           ${regras.length ? `<div class="secao-titulo">Orientações</div>${regras.map((r) => `<div class="cartao"><p>${esc(r.texto)}</p>
@@ -559,6 +646,7 @@
           ${ale.length ? `<div class="secao-titulo">Alertas</div>${ale.map((a) => `<div class="bloco b-alerta">${esc(a)}</div>`).join("")}` : ""}
           ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
           ${enc.length ? `<div class="bloco b-enc"><b>Quem procurar, pelas suas respostas</b>${enc.map(esc).join(" · ")}</div>` : ""}
+          ${S.R["M8.P10"] ? blocoFontes() : ""}
 
           <div class="secao-titulo">O que este módulo entrega</div>
           <div class="cartao"><p>${esc(D.mapa.entrega)}</p></div>
@@ -571,12 +659,12 @@
             <button class="btn btn-linha" id="base">Consultar as ocupações permitidas ao MEI</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
-          ${botaoVoltar()}
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m09/index.html">Ir para o Módulo 9</a></div>
           ${rodape()}
         </main>
       </div>`);
     ligar(p);
+    ligarCnae(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
     p.querySelector("#imp").onclick = () => { p.querySelectorAll("details.respostas").forEach((d) => (d.open = true)); window.print(); };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); };
@@ -615,8 +703,10 @@
     const dor = textoDe(m3["M3.P11"]);
     if (dor) f.push(`Para o seu cliente, você resolve: ${minus(semPonto(dor))}.`);
     const local = { "Minha casa": "Você trabalha na sua casa", "Ponto comercial": "Você trabalha em um ponto comercial",
-                    "Atendimento externo": "Você atende fora, no local do cliente", "Online": "Você trabalha pela internet" }[v("M8.P03")];
-    if (local) f.push(local + (local.includes("internet") ? "." : ", e isso pode pedir licenças da prefeitura."));
+                    "Atendimento externo": "Você atende fora, no local do cliente", "Online": "Você trabalha pela internet",
+                    [DOMICILIO]: "Você atende na casa do cliente" }[v("M8.P03")];
+    if (local) f.push(local + (local.includes("internet") ? "."
+      : v("M8.P03") === DOMICILIO ? ": não precisa de alvará de um ponto, mas a atividade pode pedir licença da prefeitura." : ", e isso pode pedir licenças da prefeitura."));
     const c1 = f.length;   // 1º parágrafo: a atividade, o estágio, o cliente e o lugar
     const fat = numero(v("M8.P04"));
     if (fat > 0) {
@@ -630,6 +720,7 @@
     const cnpj = v("M8.P05");
     if (cnpj === "Não") f.push("Você ainda não tem CNPJ.");
     else if (cnpj) f.push(`Você já tem CNPJ (${cnpj}).`);
+    if (S.cnae) f.push(`Você escolheu o CNAE ${S.cnae.cnae} (${minus(S.cnae.ocupacao.toLowerCase())}).`);
     const c2 = f.length;   // 2º: faturamento e CNPJ; 3º: a dúvida principal
     const duv = v("M8.P10");
     if (duv && f.length < 6) f.push(`Sua principal dúvida agora é: ${minus(duv)}.`);

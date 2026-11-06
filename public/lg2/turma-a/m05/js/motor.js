@@ -357,8 +357,13 @@
     if (q.codigo !== "M5.P36") return null;
     const preco = num(valor), custo = calcular(M, R).custoUnidade;
     if (preco === null || !(custo > 0)) return null;
+    if (preco < custo) return msgAbaixoCusto(custo);          // relatório de 05/11: preço menor que o custo
     return ((preco - custo) / custo) * 100 > LIMITE_ACRESCIMO ? msgVezes(preco, custo) : null;
   }
+  /* preço abaixo do custo de uma unidade: aviso claro que não trava (na pergunta do preço, no passo do preço,
+     no resultado e na simulação) */
+  const msgAbaixoCusto = (custo) => `O preço informado está abaixo do custo (${brl(custo)}). Assim você perde dinheiro em cada venda. Quer revisar?`;
+  function abaixoCusto(preco, custo) { return preco !== null && isFinite(preco) && custo > 0 && preco < custo ? msgAbaixoCusto(custo) : null; }
 
   /* Aviso (não bloqueia de vez): quantidade usada maior que a embalagem comprada (P06/P22). */
   function avisoQuantidade(M, q, valor, R) {
@@ -537,7 +542,7 @@
     const negativo = pct < 0;
     const mensagens = [];
     if (nivel) mensagens.push(MSG_PRECO[modo][nivel]);
-    if (negativo) mensagens.push(MSG_PRECO.negativo);
+    const abaixo = modo === "reverso" ? abaixoCusto(preco, custo) : null;   // aviso próprio, em destaque (não entra em mensagens)
     /* acréscimo sobre o custo (pct) x margem sobre o preço; sobra depois do custo e das taxas */
     const taxa = (preco * taxaPct) / 100;
     const sobra = preco - custo - taxa;
@@ -547,7 +552,7 @@
     const precoMinimo = c.parcelaMensal !== null && c.mensal > 0 && taxaPct < 100 ? (custo + c.parcelaMensal) / (1 - taxaPct / 100) : null;
     if (faixa && preco > faixa.max) mensagens.push(MSG_ACIMA_MERCADO);
     const muitoAcima = pct > LIMITE_ACRESCIMO ? msgVezes(preco, custo) : null;   // aviso em destaque, separado dos outros
-    return Object.assign(a, { preco, pct, margem, taxa, taxaPct, sobra, faixa, precoMinimo, nivel, negativo, mensagens, muitoAcima });
+    return Object.assign(a, { preco, pct, margem, taxa, taxaPct, sobra, faixa, precoMinimo, nivel, negativo, abaixo, mensagens, muitoAcima });
   }
 
   /* ---------------- gasto inicial x quanto pode investir (Módulo 1, pergunta 7) ----------------
@@ -636,7 +641,7 @@
     const p = num(preco), q = num(qtd);
     if (p === null || p < 0 || q === null || q < 0) return null;
     const sobra = p - c.custoUnidade - (p * c.taxaPct) / 100;
-    return { sobra, resultado: sobra * q - c.mensal, pe: sobra > 0 ? Math.ceil(c.mensal / sobra) : null, semSobra: sobra <= 0 && c.mensal > 0 };
+    return { sobra, resultado: sobra * q - c.mensal, pe: sobra > 0 ? Math.ceil(c.mensal / sobra) : null, semSobra: sobra <= 0 && c.mensal > 0, abaixo: abaixoCusto(p, c.custoUnidade) };
   }
   /* Serviço: horas que a quantidade de atendimentos exige x horas disponíveis (Módulo 1). */
   function tempoExcede(c, opcaoM1) {
@@ -651,7 +656,7 @@
     P_INICIAL, P_FORMAS, OPCOES_M1, FORMAS, NOTA_CONSUMO, NOTA_LUZ_AGUA, MSG_QTD_ALTA, MSG_SOMA_PARTES, POUCAS_VENDAS,
     MARGEM_X_ACRESCIMO, MSG_SEM_SOBRA, MSG_SIMULACAO, MSG_ACIMA_MERCADO, MSG_TEMPO, MSG_DESCONTADOS, HORAS_MES_M1, simular, tempoExcede,
     herdarEstagio, herdarTipo, entendemos,
-    LIMITE_ACRESCIMO, LIMITE_FATURAMENTO, TETO_M1, MSG_NUMERO, MSG_FAT_ALTO, avisoValor, msgVezes, gastoInicial, avisoInvestimento,
+    LIMITE_ACRESCIMO, LIMITE_FATURAMENTO, TETO_M1, MSG_NUMERO, MSG_FAT_ALTO, avisoValor, msgVezes, msgAbaixoCusto, abaixoCusto, gastoInicial, avisoInvestimento,
     exemploConceito, EXEMPLO_TIPO };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else raiz.Motor = API;

@@ -6,7 +6,8 @@ import ModulosTurma from "@/components/modules/laboratorio-gestao/ModulosTurma";
 import { PRONTOS, caminhoModulo } from "@/components/modules/laboratorio-gestao/turmas";
 
 describe.each(["a", "b"] as const)("Turma %s", (turma) => {
-  it("lista os 10 módulos; os prontos abrem e os outros dizem \"Em breve\"", () => {
+  it("lista os 10 módulos; os prontos abrem (os da outra turma também) e os outros dizem \"Em breve\"", () => {
+    const outra = turma === "a" ? "b" : "a";
     render(<ModulosTurma turma={turma} />);
     const lista = screen.getByRole("list", { name: `Módulos da Turma ${turma.toUpperCase()}` });
     const itens = within(lista).getAllByRole("listitem");
@@ -16,6 +17,9 @@ describe.each(["a", "b"] as const)("Turma %s", (turma) => {
       const link = within(item).queryByRole("link");
       if (PRONTOS[turma].includes(numero)) {
         expect(link).toHaveAttribute("href", caminhoModulo(turma, numero));
+      } else if (PRONTOS[outra].includes(numero)) {
+        expect(link).toHaveAttribute("href", caminhoModulo(outra, numero));
+        expect(within(item).getByText(`Abrir o módulo → (feito pela Turma ${outra.toUpperCase()})`)).toBeInTheDocument();
       } else {
         expect(link).toBeNull();
         expect(within(item).getByText("Em breve")).toBeInTheDocument();

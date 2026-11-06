@@ -206,9 +206,17 @@
       ${herdado(PRIMEIRA) || herdado("M5.P01") ? `<p class="neg-nota">Confira e ajuste se quiser.</p>` : ""}
     </div>`;
   }
+  /* menos texto na tela: ajuda com mais de ~220 caracteres mostra a 1ª frase e guarda o resto em "Ver mais" */
+  const LIMITE_TEXTO = 220;
+  function curto(texto) {
+    const t = String(texto || "").trim();
+    const m = /^(.+?[.!?:])\s+(.+)$/s.exec(t);
+    if (t.length <= LIMITE_TEXTO || !m) return esc(t);
+    return `${esc(m[1])}<details class="ver-mais"><summary>Ver mais</summary>${esc(m[2])}</details>`;
+  }
   function dica(texto, img) {
     if (vazio(texto)) return "";
-    return `<aside class="dica">${img ? `<img src="assets/${img}" alt="">` : ""}<div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
+    return `<aside class="dica">${img ? `<img src="assets/${img}" alt="">` : ""}<div><b>Dica</b><div class="ajuda">${curto(texto)}</div></div></aside>`;
   }
   function imgDica(n) {
     const t = infoTipo();
@@ -216,7 +224,8 @@
     if (!t) return "dica-produto.webp";
     return n === 2 ? t.gastos : t.dica;
   }
-  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  /* "‹ Voltar" no topo do cartão, à esquerda, no mesmo lugar em todos os módulos (como no Módulo 1) */
+  const botaoVoltar = () => `<button class="voltar-topo" id="v" aria-label="Voltar"><span aria-hidden="true">‹</span> Voltar</button>`;
   /* liga os botões comuns a todas as telas */
   function ligar(p) {
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
@@ -226,7 +235,7 @@
     if (n) n.onclick = reiniciar;
   }
 
-  const obs = (t) => vazio(t) ? "" : `<div class="obs"><b>Observação</b>${esc(t)}</div>`;
+  const obs = (t) => vazio(t) ? "" : `<div class="obs"><b>Observação</b>${curto(t)}</div>`;
   /* orientação de preenchimento (diferente de aviso): consumo x equipamento e conta de luz/água */
   function notas(q) {
     if (!q.notaConsumo) return "";
@@ -317,11 +326,11 @@
         ${topo("Limites")}
         ${heroi({ titulo: "Limites do módulo", texto: "O que este módulo faz, o que não faz e quando procurar ajuda.", img: "hero-preco.webp" })}
         <main class="corpo">
+          ${botaoVoltar()}
           <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
@@ -364,9 +373,10 @@
         ${inicial ? "" : etapas(n)}
         <main class="corpo">
           <div class="cartao-q pergunta">
+            ${botaoVoltar()}
             ${inicial ? `<div class="kicker-q">Vamos conhecer seu negócio</div>${neg}` : neg || contexto(cod)}
             <h2 class="q">${esc(q.pergunta)}</h2>
-            ${inicial ? `<p class="sub-q">${esc(q.ajuda)}</p>` : ""}
+            ${inicial ? `<div class="sub-q">${curto(q.ajuda)}</div>` : ""}
             ${obs(q.observacao)}
             ${notas(q)}
             ${ajudaNS ? "" : blocoVideo(q.video)}
@@ -380,7 +390,6 @@
             <div id="retorno"></div>
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             ${blocoConceitos(conceitos(q.fonte))}
-            ${botaoVoltar()}
           </div>
           ${rodape()}
         </main>
@@ -613,6 +622,7 @@
     const mini = (t, v) => `<div class="mini"><span>${v}</span><small>${esc(t)}</small></div>`;
     return `<div class="analise">
       ${comTitulo && a.modo === "sugerido" ? `<div class="secao-titulo">Preço de venda (demonstração)</div>` : ""}
+      ${a.abaixo && !comTitulo ? blocoAbaixo(a.abaixo) : ""}
       ${a.muitoAcima ? `<div class="bloco b-alerta aviso-forte" id="aviso-acrescimo"><b>Confira os valores</b><p>${esc(a.muitoAcima)}</p></div>` : ""}
       ${a.modo === "sugerido" ? `
         <div class="res-num"><div class="lbl">Preço possível</div><div class="val" id="preco-possivel">${brl(a.preco)}</div>
@@ -635,6 +645,9 @@
     </div>`;
   }
 
+  /* preço informado abaixo do custo de uma unidade: aviso que não trava, com atalho para revisar o preço */
+  const blocoAbaixo = (msg) => `<div class="bloco b-alerta aviso-forte" id="aviso-abaixo-custo"><b>Atenção</b><p>${esc(msg)}</p>
+    <button class="btn btn-claro btn-peq revisar" data-alterar="M5.P36">Revisar o preço</button></div>`;
   /* explicação de acréscimo sobre o custo x margem sobre o preço (exemplo do grupo) */
   function blocoMargem() {
     const m = Motor.MARGEM_X_ACRESCIMO;
@@ -659,6 +672,7 @@
         ${etapas(3)}
         <main class="corpo">
           <div class="cartao-q pergunta">
+            ${botaoVoltar()}
             ${contexto(Motor.PRECO)}
             <h2 class="q">${sugerido ? "Quanto você quer acrescentar sobre o custo? (%)" : "Quanto você ganha em cada venda"}</h2>
             ${blocoPoucasVendas(cBase)}
@@ -671,7 +685,6 @@
               ${sugerido && a && !a.semCusto ? `<button class="btn btn-primario seta" id="calc">Continuar</button>` : ""}
               <button class="btn ${sugerido && a && !a.semCusto ? "btn-claro" : "btn-primario seta"}" id="res" ${sugerido && a && !a.semCusto && (a.pendente) ? "hidden" : ""}>Ver o resultado</button>
             </div>
-            ${botaoVoltar()}
           </div>
           ${rodape()}
         </main>
@@ -733,6 +746,7 @@
         ${topo("Minhas análises")}
         ${heroi({ titulo: "Minhas análises", texto: "As análises que você concluiu ficam guardadas neste aparelho.", img: "hero-preco.webp" })}
         <main class="corpo">
+          ${botaoVoltar()}
           ${l.length ? `<ul class="lista-analises">${l.map((x) => `
             <li class="analise-item" data-id="${esc(x.id)}">
               <div class="ai-topo">
@@ -746,7 +760,6 @@
               <div class="ai-acoes"><button class="btn btn-primario btn-peq" data-abrir="${esc(x.id)}">Abrir</button><button class="btn btn-linha btn-peq" data-apagar="${esc(x.id)}">Apagar</button></div>
             </li>`).join("")}</ul>`
           : `<div class="cartao vazio-lista"><h3>Nenhuma análise ainda</h3><p>Quando você chegar ao resultado de um produto, serviço ou mercadoria, a análise aparece aqui.</p></div>`}
-          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
@@ -796,6 +809,7 @@
     const num2 = (n) => n.toFixed(1).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     const card = (t, v, sub) => `<div class="mini"><span>${v}</span><small>${esc(t)}</small>${sub ? `<em>${esc(sub)}</em>` : ""}</div>`;
     const t = TIPOS[c.tipo];
+    const abaixo = c.precoInformado !== null ? Motor.abaixoCusto(c.precoInformado, c.custoUnidade) : null;
 
     const p = el(`
       <div class="pag">
@@ -803,6 +817,7 @@
         ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Uma análise concluída.", texto: "Você organizou os gastos e entendeu o preço deste item.", img: "hero-inicio.webp", foco: "22% 30%" })}
         ${etapas(3, true)}
         <main class="corpo">
+          ${botaoVoltar()}
           <section class="concluido">
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a análise deste item!</h2><p>Agora você pode analisar outro produto, serviço ou mercadoria.</p></div></div>
             <div class="item-salvo">
@@ -839,6 +854,7 @@
 
           ${c.mc !== null ? `
             <div class="secao-titulo">Preço e margem</div>
+            ${abaixo ? blocoAbaixo(abaixo) : ""}
             <div class="mini-cards">
               ${card(c.precoInformado !== null ? bt("08").conceito : "Preço possível (simulação)", brl(c.preco))}
               ${card(bt("09").conceito, brl(c.mc))}
@@ -909,7 +925,6 @@
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
           </div>
-          ${botaoVoltar()}
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m06/index.html">Ir para o Módulo 6</a></div>
           ${rodape()}
         </main>
@@ -924,6 +939,7 @@
       if (!r && [p.querySelector("#sim-preco").value, p.querySelector("#sim-qtd").value].some((x) => x.trim() && Motor.num(x) === null)) { box.innerHTML = `<div class="erro">${esc(Motor.MSG_NUMERO)}</div>`; return; }
       if (!r) { box.innerHTML = `<div class="erro">Informe o preço e a quantidade de vendas para simular.</div>`; return; }
       box.innerHTML = `<div class="mini-cards">${card("Sobra em cada venda", brl(r.sobra))}${card(bt("12").conceito || "Resultado", brl(r.resultado))}${r.pe !== null ? card(bt("13").conceito || "Ponto de equilíbrio", String(r.pe)) : ""}</div>
+        ${r.abaixo ? `<div class="bloco b-alerta" id="sim-abaixo"><b>Atenção</b>${esc(r.abaixo)}</div>` : ""}
         ${r.semSobra ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(Motor.MSG_SEM_SOBRA)}</div>` : ""}`;
     };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, pularHerdadas(PRIMEIRA)); };

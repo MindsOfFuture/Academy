@@ -247,11 +247,11 @@ window.MODULO2 = {
   {
    "codigo": "M2.P08",
    "modulo": "M2",
-   "pergunta": "Qual característica mais muda o que as pessoas procuram no seu produto ou serviço?",
-   "ajuda": "Escolha a que mais faz diferença entre um cliente e outro. Se tiver dúvida, escolha a que mais apareceu nas conversas.",
-   "tipo": "Escolha",
+   "pergunta": "Quais características mais mudam o que as pessoas procuram no seu produto ou serviço?",
+   "ajuda": "Pode marcar mais de uma: marque as que mais fazem diferença entre um cliente e outro. Se tiver dúvida, marque as que mais apareceram nas conversas.",
+   "tipo": "Múltipla escolha",
    "condicao": "sempre",
-   "opcoes": "Idade/fase da vida; Quanto podem pagar; Onde moram/trabalham; Motivo da compra; Hábitos de compra; Nenhuma muda muito; Não sei",
+   "opcoes": "Idade/fase da vida; Quanto podem pagar; Onde moram/trabalham; Motivo da compra; Hábitos de compra; Outra; Nenhuma muda muito; Não sei",
    "resposta": "É o jeito de dividir os clientes em grupos. Define a pergunta seguinte.",
    "alerta": "Nenhum",
    "proximo": "Pense nos clientes que você imagina: o que faz um escolher diferente do outro?",
@@ -352,7 +352,7 @@ window.MODULO2 = {
    "opcoes": "Mais fácil de alcançar; Maior necessidade; Pode pagar mais; Não sei",
    "resposta": "Ajuda a priorizar um grupo para as primeiras conversas.",
    "alerta": "Tentar atender todos os grupos de uma vez no início pode dispersar tempo e dinheiro.",
-   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes (M2.I05).",
+   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
   },
@@ -1159,7 +1159,7 @@ window.MODULO2 = {
    "texto": "Começar pelo grupo mais fácil de alcançar permite testar rápido e aprender com baixo custo.",
    "alerta": "O grupo mais fácil de alcançar nem sempre é o que mais compra; confira com evidências.",
    "lacuna": "Se esse grupo realmente tem a necessidade",
-   "proximo": "Registre os grupos e as notas no quadro para comparar os grupos de clientes (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1171,7 +1171,7 @@ window.MODULO2 = {
    "texto": "Começar pelo grupo com maior necessidade tende a gerar sinais de interesse mais claros, se for possível alcançá-lo.",
    "alerta": "Uma necessidade grande não ajuda se o grupo for difícil de alcançar.",
    "lacuna": "Se o grupo é fácil de alcançar",
-   "proximo": "Registre os grupos e as notas no quadro para comparar os grupos de clientes (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1183,7 +1183,7 @@ window.MODULO2 = {
    "texto": "Começar pelo grupo que pode pagar mais pode melhorar a margem, mas só ajuda se ele realmente comprar.",
    "alerta": "Supor que um grupo paga mais, sem conferir, é arriscado.",
    "lacuna": "Se esse grupo demonstra interesse real",
-   "proximo": "Registre os grupos e as notas no quadro para comparar os grupos de clientes (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1195,7 +1195,7 @@ window.MODULO2 = {
    "texto": "Sem um critério de escolha, comparar os grupos lado a lado ajuda a decidir.",
    "alerta": "Nenhum",
    "lacuna": "Qual grupo parece mais promissor",
-   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes (M2.I05) em três pontos: facilidade de alcançar, necessidade e capacidade de pagar.",
+   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo, dando uma nota de 1 a 3 em três pontos: facilidade de alcançar, necessidade e capacidade de pagar (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1701,7 +1701,7 @@ window.MODULO2 = {
    "respostas": "M2.P01 = Sim; M2.P03 = Experiência própria com esse público; M2.P05 = De dois a três grupos; M2.P08 = Motivo da compra; M2.P12 = Datas especiais/eventos; M2.P15 = Maior necessidade",
    "texto": "Identificar mais de um grupo é um passo para separar os clientes em grupos. Você poderá escolher um deles para testar primeiro. Compras ligadas a datas e eventos costumam ser concentradas e planejadas; a procura pode variar muito ao longo do ano. Começar pelo grupo com maior necessidade tende a gerar sinais de interesse mais claros, se for possível alcançá-lo.",
    "alerta": "Atender vários grupos ao mesmo tempo no início pode dispersar tempo e dinheiro. Vendas concentradas em poucas datas exigem planejamento para os períodos de menor venda.",
-   "proximo": "Registre os grupos e as notas no quadro para comparar os grupos de clientes (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
    "encaminhamento": "Nenhum"
   },
   {
