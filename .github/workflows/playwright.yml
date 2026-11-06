@@ -10,7 +10,8 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    # Playwright 1.57 não suporta Ubuntu 26.04 (ubuntu-latest desde out/2026). Volta para ubuntu-latest ao subir o Playwright para 1.65+.
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     # Sem estes segredos o middleware responde 503 e o servidor de teste nunca fica pronto
