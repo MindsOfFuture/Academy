@@ -40,6 +40,12 @@ async function lancarEncontro(
   page: Page,
   e: { inicio: string; fim: string; escola: string; atividade: string; equipe: string[] },
 ) {
+  // A checagem de horário só existe depois da hidratação (onSubmit do React). Clicar antes
+  // envia o formulário direto ao servidor, sem aviso — corrida que derrubava o teste no CI.
+  await page.waitForFunction(() => {
+    const form = [...document.querySelectorAll('form')].find((f) => f.querySelector('h3')?.textContent === 'Lançar encontro');
+    return !!form && Object.keys(form).some((k) => k.startsWith('__reactProps'));
+  });
   await page.getByLabel('Data').fill(DIA);
   await page.getByLabel('Início').fill(e.inicio);
   await page.getByLabel('Fim').fill(e.fim);
@@ -54,7 +60,7 @@ const sobreposicao = (page: Page) => page.getByRole('dialog', { name: 'Horário 
 
 /** Execução anterior no mesmo dia pode gerar aviso de horário: aqui ele não é o assunto. */
 async function lancarIgnorandoSobreposicao(page: Page) {
-  await expect(lancado(page).or(sobreposicao(page))).toBeVisible();
+  await expect(lancado(page).or(sobreposicao(page))).toBeVisible({ timeout: 20_000 });
   if (await sobreposicao(page).isVisible()) {
     await page.getByRole('button', { name: 'Lançar mesmo assim' }).click();
   }
@@ -85,7 +91,7 @@ test('coordenação: cria, edita, conclui e confere no histórico', async ({ pag
   await linhaA.getByRole('button', { name: 'Salvar' }).click();
   await expect(equipe).toContainText(new RegExp(`${BOLSISTA_A}\\s*· Faltou avisando`));
 
-  await equipe.getByLabel('Acrescentar pessoa').selectOption({ label: BOLSISTA_B });
+  await equipe.getByRole('group', { name: 'Acrescentar pessoas' }).getByLabel(BOLSISTA_B).check();
   await equipe.getByRole('button', { name: 'Alocar' }).click();
   await expect(equipe.getByRole('status')).toHaveText('Pessoa alocada.');
   await expect(equipe).toContainText(new RegExp(`${BOLSISTA_B}\\s*· Prevista`));
@@ -119,7 +125,7 @@ test('exceção: bolsista em duas escolas no mesmo horário é avisado antes de 
   await page.reload();
   await lancarEncontro(page, { inicio: '09:00', fim: '11:00', escola: ESCOLA_2, atividade: tarde, equipe: [BOLSISTA_A] });
   const aviso = sobreposicao(page);
-  await expect(aviso).toBeVisible();
+  await expect(aviso).toBeVisible({ timeout: 20_000 });
   await expect(aviso.getByRole('listitem').filter({ hasText: manha })).toContainText(BOLSISTA_A);
 
   // Revisar não lança nada

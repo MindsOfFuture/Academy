@@ -10,8 +10,17 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    # Playwright 1.57 não suporta Ubuntu 26.04 (ubuntu-latest desde out/2026). Volta para ubuntu-latest ao subir o Playwright para 1.65+.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    # Navegadores e dependências já vêm na imagem oficial: o "playwright install --with-deps"
+    # falhava no Ubuntu 26.04 e travava no 24.04 (nov/2026). A tag acompanha o @playwright/test
+    # do package-lock; ao subir um, suba o outro (o passo "Conferir versão" acusa a diferença).
+    container:
+      image: mcr.microsoft.com/playwright:v1.57.0-noble
+      options: --user 1001
+    # No container o shell padrão é sh; o passo de segredos usa ${!v}, que é bash.
+    defaults:
+      run:
+        shell: bash
     steps:
     - uses: actions/checkout@v4
     # Sem estes segredos o middleware responde 503 e o servidor de teste nunca fica pronto
@@ -38,8 +47,10 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+    - name: Conferir versão do Playwright contra a imagem
+      run: |
+        v=$(node -p "require('@playwright/test/package.json').version")
+        [ "$v" = "1.57.0" ] || { echo "::error::@playwright/test $v instalado, imagem é v1.57.0. Atualize container.image."; exit 1; }
     - name: Run Playwright tests
       run: npx playwright test
       env:
