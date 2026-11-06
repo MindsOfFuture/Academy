@@ -34,6 +34,8 @@ describe("isPublicPath", () => {
         // sem quebrar o batch de telemetria; o 401/403 é responsabilidade do handler.
         expect(isPublicPath("/api/telemetry/events")).toBe(true);
         expect(isPublicPath("/api/analytics/events")).toBe(true);
+        expect(isPublicPath("/api/analytics/site")).toBe(true);
+        expect(isPublicPath("/api/analytics/site/export")).toBe(false);
     });
 
     it("deixa as respostas de jogo chegarem ao guard da própria rota", () => {

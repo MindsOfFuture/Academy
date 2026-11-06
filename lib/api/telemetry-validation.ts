@@ -32,12 +32,16 @@ const CANONICAL_ROUTES = new Set([
   "/protected/modulos/educacao-financeira/financity",
   "/protected/modulos/educacao-financeira/cidadania-financeira",
   "/protected/modulos/laboratorio-de-gestao",
+  "/lg2",
+  "/lg2/jornada",
 ]);
 const EVENT_KEYS = new Set([
   "eventId", "occurredAt", "sessionId", "eventName", "route",
   "learningPathId", "courseId", "lessonId", "activityId", "metadata",
 ]);
 const BANNED_METADATA_KEY = /(name|nome|email|e-mail|cpf|document|phone|telefone|ip|referrer|query|hash|selector|seletor|user.?agent|message|mensagem|content|conteudo|conteúdo|answer|resposta|file|arquivo|comment|comentario|comentário)/i;
+
+const LG2_MODULOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 const METADATA_RULES: Record<LearningEventName, Record<string, readonly (string | number | boolean)[]>> = {
   session_started: {},
@@ -53,6 +57,9 @@ const METADATA_RULES: Record<LearningEventName, Record<string, readonly (string 
   assignment_submitted: { submissionKind: ["nova", "atualizacao"] },
   chat_message_sent: { senderRole: ["student", "teacher", "admin"] },
   certificate_generated: { source: ["emissao"] },
+  lg2_module_opened: { modulo: LG2_MODULOS },
+  lg2_module_completed: { modulo: LG2_MODULOS },
+  lg2_journey_completed: {},
 };
 
 const REQUIRED_CONTEXT: Partial<Record<LearningEventName, readonly (keyof LearningEventInput)[]>> = {

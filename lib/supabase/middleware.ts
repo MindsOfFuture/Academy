@@ -31,6 +31,7 @@ const PUBLIC_PATH_PREFIXES = [
 const PUBLIC_EXACT_PATHS = [
   "/api/telemetry/events",
   "/api/analytics/events",
+  "/api/analytics/site",
   "/api/games/events",
   "/api/games/export",
 ] as const;
