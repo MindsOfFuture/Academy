@@ -3,6 +3,16 @@
 (function (raiz) {
   "use strict";
   const SEMANAS_MES = 4.33;
+  /* dias usados para passar vendas do mês para vendas por dia (dias corridos, como diz o aviso
+     do grupo no "Lembrete de reposição") */
+  const DIAS_MES = 30;
+  /* limites (receita B): aviso que não trava, salvo o impossível */
+  const LIMITE = {
+    minUnAlto: 12 * 60,   /* tempo por unidade acima de 12 h: aviso (mesmo limiar do grupo na pergunta do tempo) */
+    ajudaAviso: 44,       /* ajuda acima de 44 h por semana (uma jornada inteira): aviso */
+    ajudaMax: 168,        /* uma semana tem 168 horas: acima disso é impossível e não entra na conta */
+    volumeAlto: 1000,     /* mais de 1.000 vendas por mês: aviso para negócio caseiro */
+  };
   /* folga numérica para 300 × 4,33 não virar 1298,999… antes do arredondamento */
   const piso = (x) => Math.floor(x + 1e-9);
   const teto = (x) => Math.ceil(x - 1e-9);
@@ -28,10 +38,12 @@
     const f = HORAS[o.horas];
     if (!f) return { estado: "sem-horas" };
     const apoio = APOIO[o.apoio] ?? 0;
+    /* horas de ajuda impossíveis (mais que a semana inteira) não entram na conta */
+    const ajuda = o.ajuda > 0 && o.ajuda <= LIMITE.ajudaMax ? o.ajuda : 0;
     const temTempo = o.minUn > 0, temEquip = o.equip && o.equip.un > 0 && o.equip.minVez > 0;
     if (!temTempo && !temEquip) return { estado: "sem-tempo", modo: f.modo };
     const conta = (h) => {
-      const minProd = (h - apoio + (o.ajuda || 0)) * 60;
+      const minProd = (h - apoio + ajuda) * 60;
       if (minProd <= 0) return null;
       const t = temTempo ? porTempo(minProd, o.minUn) : null;
       const e = temEquip ? porEquip(minProd, o.equip.un, o.equip.minVez) : null;
@@ -70,9 +82,11 @@
   /* lembrete de reposição: dias corridos; arredonda para cima */
   function pontoDePedido(volumeMes, usoPorUn, prazoDias, folga) {
     if (!(volumeMes > 0) || !(usoPorUn > 0) || prazoDias == null || prazoDias < 0) return null;
-    return teto((volumeMes * usoPorUn * prazoDias) / 30) + (folga > 0 ? folga : 0);
+    return teto(consumoDia(volumeMes, usoPorUn) * prazoDias) + (folga > 0 ? folga : 0);
   }
-  const consumoDia = (volumeMes, usoPorUn) => (volumeMes * usoPorUn) / 30;
+  /* vendas por dia = vendas do mês ÷ 30; consumo do item por dia = vendas por dia × quanto vai em cada unidade */
+  const vendasDia = (volumeMes) => volumeMes / DIAS_MES;
+  const consumoDia = (volumeMes, usoPorUn) => vendasDia(volumeMes) * usoPorUn;
   /* compra com perda: dividir, não multiplicar */
   function compraComPerda(necessidade, perdaPct) {
     if (!(necessidade > 0)) return null;
@@ -85,12 +99,14 @@
     if (typeof s === "number") return s;
     const t = String(s ?? "").trim().replace(/\s/g, "").replace(/^R\$/i, "");
     if (!t) return null;
-    const n = Number(/,/.test(t) ? t.replace(/\./g, "").replace(",", ".") : t);
+    /* "1.500" sem vírgula = mil e quinhentos (ponto de milhar), não 1,5 */
+    const milhar = /^[1-9]\d{0,2}(\.\d{3})+$/.test(t);
+    const n = Number(/,/.test(t) || milhar ? t.replace(/\./g, "").replace(",", ".") : t);
     return Number.isFinite(n) ? n : NaN;
   }
   const fmt = (n, casas = 0) => Number(n).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
-  const M = { SEMANAS_MES, HORAS, APOIO, capacidade, texto, comparar, teste, pontoDePedido, consumoDia, compraComPerda, num, fmt, piso, teto };
+  const M = { SEMANAS_MES, DIAS_MES, LIMITE, vendasDia, HORAS, APOIO, capacidade, texto, comparar, teste, pontoDePedido, consumoDia, compraComPerda, num, fmt, piso, teto };
   if (typeof module !== "undefined" && module.exports) module.exports = M;
   raiz.Motor7 = M;
 })(typeof window !== "undefined" ? window : globalThis);

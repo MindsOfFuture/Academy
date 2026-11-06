@@ -272,3 +272,4 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 .veio-linha .veio{margin-left:0;margin-right:4px}
 .entendemos{border-color:var(--m-purple);border-left-width:6px}
 .entendemos p+p{margin-top:6px}
+.bloco p+p,#nota-casa p+p{margin-top:6px}

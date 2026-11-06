@@ -32,6 +32,16 @@ ok(D.modulo.turma === 'Turma de 18', 'Capa C7 deve ser Turma de 18');
 const nP = M.perguntas.length, nR = D.regras.length;
 ok(nP === 21 && nR === 89, `contagens 21 perguntas / 89 regras (obtido ${nP}/${nR})`);
 ok(!JSON.stringify(D).match(/\b\d{4,5}-?\d{4}\b/), 'nenhum telefone no dados/modulo2.js');
+/* relatório de testadores (05/11/2026): erros de redação corrigidos */
+for (const errado of ['passo da separar', 'para serem comparados', 'comprar para a ideia', 'comprar para o produto', 'ainda ainda', 'datas exige planejamento', 'Não sei se você já conversou', '(separar os clientes em grupos)', '(a forma de dividir o público em grupos)', 'serão comparados entre si', 'interessada em comprar por trás', 'Responda as perguntas'])
+  ok(!JSON.stringify(D).includes(errado), `erro de redação ainda presente: "${errado}"`);
+ok(D.regras.some((r) => r.texto.includes('é um passo para separar os clientes em grupos')), 'texto corrigido: "um passo para separar"');
+ok(D.regras.some((r) => r.texto.startsWith('Esses grupos entram no quadro para comparar os grupos de clientes. ')), 'texto corrigido: quadro para comparar');
+/* receita do teclado do celular */
+const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+ok(/content="width=device-width, initial-scale=1, interactive-widget=resizes-content"/.test(html), 'viewport com interactive-widget=resizes-content');
+ok((app.match(/addEventListener\("focusin"/g) || []).length === 1 && /scrollIntoView\(\{ block: "center" \}\)/.test(app) && !/scrollTo\(0, ?0\)[^;]*focus/.test(app), 'um único focusin que centraliza o campo');
+ok(!/position:\s*fixed/.test(fs.readFileSync(path.join(dir, 'css/estilo.css'), 'utf8')), 'nada fixo no rodapé');
 
 /* ---------- planejamento de caminhos (usa o próprio motor) ---------- */
 const NUM = (cond) => {           // valor que satisfaz as faixas numéricas de uma pergunta
@@ -140,7 +150,7 @@ async function servidor() {
       await responder(cod, v, i + 1, i === seq.length - 1 ? seq.length : 0);
       if (aoResponder) await aoResponder(cod, v);
       const fim = seq[seq.length - 1][0] === cod;
-      await clicarTexto('#acoes .btn', fim ? 'Ver meu resumo' : 'Seguir');
+      await clicarTexto('#acoes .btn', fim ? 'Ver meu resumo' : 'Continuar');
     }
     await page.waitForSelector('.passo:text("Resultado")');
     for (const x of await regrasNaTela()) { const c = porTexto.get(norm(x)); if (c) alcancadas.add(c); }
@@ -169,10 +179,48 @@ async function servidor() {
     /* 3) pergunta que mudou na v0.3 (próximo passo genérico da aba 3) + print */
     await inicio();
     await responder('M2.P01', 'Não sei');
-    const prox = await page.locator('#retorno .b-proximo').allTextContents();
-    ok(prox.some((t) => t.includes(M.porCodigo['M2.P01'].proximo)), 'P01 mostra o próximo passo da aba 3 (v0.3)');
+    /* 10d) "Não sei" mostra um caminho para descobrir antes de seguir (regra da própria pergunta) */
+    const nsTxt = norm(await page.locator('#retorno .b-naosei').textContent());
+    ok(nsTxt.startsWith('Como descobrir') && nsTxt.includes('Pense na última pessoa que pediu algo parecido'), `P01 Não sei: "Como descobrir" com o caminho da regra (obtido "${nsTxt}")`);
+    ok((await page.locator('#retorno .b-proximo').count()) === 0, 'P01 Não sei: sem Próximo passo repetido');
     await page.locator('#retorno').scrollIntoViewIfNeeded();
     await shot('pergunta_v03');
+
+    /* 10) relatório da Júlia: um bloco de cada, linguagem para o usuário, legal como Atenção, Continuar avança */
+    const contar = () => page.evaluate(() => ({ a: document.querySelectorAll('#retorno .b-alerta').length, p: document.querySelectorAll('#retorno .b-proximo').length, ns: document.querySelectorAll('#retorno .b-naosei').length, t: document.querySelector('#retorno').innerText }));
+    await inicio();
+    await responder('M2.P01', 'Sim');
+    let k = await contar();
+    ok(k.p === 1 && k.a <= 1 && !/\bapp\b|próxima pergunta/.test(k.t), `P01 Sim: um Próximo passo, sem linguagem de montagem (obtido ${JSON.stringify(k)})`);
+    ok(k.t.includes(M.porCodigo['M2.P01'].proximo), 'P01 Sim: o próximo passo é a frase para pensar (nova)');
+    for (const q of M.perguntas) ok(!/\bo app\b/i.test(q.proximo), `${q.codigo}: próximo passo sem "o app"`);
+    /* Continuar depois do retorno: a tela não volta para cima e o botão leva à próxima pergunta */
+    const y0 = await page.evaluate(() => window.scrollY);
+    await page.waitForTimeout(600);
+    const y1 = await page.evaluate(() => window.scrollY);
+    ok(y1 >= y0, `depois de responder a tela não sobe (antes ${y0}, depois ${y1})`);
+    const nomes = await page.locator('#acoes .btn').allTextContents();
+    ok(nomes[0] === 'Continuar', `botão depois do retorno se chama Continuar (obtido ${nomes.join('/')})`);
+    await clicarTexto('#acoes .btn', 'Continuar');
+    ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P02'].pergunta, 'Continuar leva à próxima pergunta (P02)');
+    /* em todas as regras: no máximo uma Atenção e um Próximo passo por pergunta; "Não sei" sempre explica */
+    for (const seq of [planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P04': 'Não' }), planejar({ 'M2.P05': 'Quase qualquer pessoa', 'M2.P08': 'Nenhuma muda muito' }), planejar({ 'M2.P04': 'Sim', 'M2.P18': '3', 'M2.P19': 'Não', 'M2.P21': 'Contaram um problema de verdade' }), planejar({ 'M2.P07': 'Os dois', 'M2.P08': 'Não sei', 'M2.P14': 'Não sei', 'M2.P17': 'Não sei', 'M2.P16': 'Não sei' })]) {
+      await percorrer(seq, async (cod, v) => {
+        const c = await contar();
+        ok(c.a <= 1 && c.p <= 1 && c.ns <= 1, `${cod}=${v}: no máximo 1 Atenção e 1 Próximo passo (obtido ${c.a}/${c.p})`);
+        if (v === 'Não sei') ok(c.ns === 1 && c.p === 0, `${cod}=Não sei: mostra "Como descobrir"`);
+      });
+    }
+    /* legal (empresa que é órgão público): vai para a Atenção, num bloco só; o Próximo passo fica sem a parte legal */
+    await percorrer(planejar({ 'M2.P07': 'Empresas', 'M2.P14': 'Órgãos públicos/instituições' }), async (cod) => {
+      if (cod !== 'M2.P14') return;
+      const c = await contar();
+      const at = norm(await page.locator('#retorno .b-alerta').textContent()), px = norm(await page.locator('#retorno .b-proximo').textContent());
+      ok(c.a === 1 && /Consulte fonte oficial e o Sebrae/.test(at) && /Quem procurar: Órgão público ou Sebrae/.test(at), `P14: regra legal e quem procurar na Atenção (obtido "${at}")`);
+      ok(c.p === 1 && !/Sebrae|fonte oficial/.test(px), `P14: Próximo passo sem a parte legal (obtido "${px}")`);
+      await page.locator('#retorno').scrollIntoViewIfNeeded();
+      await shot('retorno_legal');
+    });
 
     /* 4) casos de teste da aba 8 (o grupo valida; divergências não falham) */
     for (const c of D.casos) {
@@ -224,6 +272,9 @@ async function servidor() {
       await page.click('#f-ok');
     }
     /* regressão (Ana, 15/10): o placar muda ao salvar entrevistas e diz de onde vem a contagem */
+    const txtInst = await page.locator('.corpo').innerText();
+    ok(!/M2\.[PI]\d{2}/.test(txtInst), 'instrumentos sem códigos internos (M2.Ixx)');
+    ok(!/Grupo \d|Exemplo do grupo/.test(txtInst), 'instrumentos e rodapé sem "Grupo N" / "do grupo"');
     const placar = norm(await page.locator('.res-num .val').first().textContent());
     ok(placar === '2 · 2 · 1', `placar M2.I04 deveria ser "2 · 2 · 1" (obtido "${placar}")`);
     ok(/5 entrevista\(s\) salvas na ficha/.test(await page.locator('#quadro-origem').textContent()), 'nota de origem do placar ausente');
@@ -263,7 +314,7 @@ async function servidor() {
     await page.goto(srv.url + 'index.html');
     await clicarTexto('button', 'Começar');
     await responder('M2.P01', 'Em parte');
-    await clicarTexto('#acoes .btn', 'Seguir');
+    await clicarTexto('#acoes .btn', 'Continuar');
     await page.fill('#ent textarea', 'Mães do bairro');
     await page.reload();
     await clicarTexto('button', 'Continuar de onde parei');
@@ -299,15 +350,29 @@ async function servidor() {
     await clicarTexto('button', 'Começar');
     ok(norm(await page.locator('#contexto').innerText()).startsWith('Seu negócio: Lavagem de carro em domicílio Veio do Módulo 1'), 'ideia do Módulo 1 aparece como contexto');
     ok(norm(await page.locator('h2.q').textContent()) === 'Você já tem uma ideia de quem seria o principal comprador do seu serviço?', 'enunciado usa "serviço" (tipo vindo do Módulo 1)');
-    await clicarTexto('#ent .opcao', 'Sim'); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Seguir');
+    await clicarTexto('#ent .opcao', 'Sim'); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Continuar');
     const p02 = await page.locator('#ent textarea').inputValue();
-    ok(p02 === 'Pessoas comuns (Idade: 30 a 55 anos; Ocupação: trabalha fora o dia todo; Onde mora: condomínios do bairro). Problema que você resolve: falta de tempo para levar o carro ao lava-jato', `P02 pré-preenchida com o perfil do Módulo 3 (obtido "${p02}")`);
+    ok(p02 === 'Pessoas comuns de 30 a 55 anos (ocupação: trabalha fora o dia todo), que moram em condomínios do bairro. Problema que você resolve: falta de tempo para levar o carro ao lava-jato', `P02 pré-preenchida com o perfil do Módulo 3 em frase (obtido "${p02}")`);
     ok(norm(await page.locator('#herdado').innerText()) === 'Veio do Módulo 3 Confira e ajuste se quiser.', 'P02 mostra o selo "Veio do Módulo 3"');
+    // 9a) teclado do celular: com o campo em foco e a janela encolhida (teclado aberto), o campo e o Continuar continuam à vista
+    await page.focus('#ent textarea');
+    await page.setViewportSize({ width: 390, height: 450 });
+    await page.waitForTimeout(600);
+    const caixas = await page.evaluate(() => ['#ent textarea', '#ok'].map((s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.top, r.bottom]; }));
+    ok(caixas.every(([a, b]) => a >= 0 && b <= 450), `teclado aberto (390x450): campo e Continuar deveriam estar visíveis (obtido ${JSON.stringify(caixas)})`);
+    await shot('teclado_p02');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
     await shot('heranca_p02');
     await page.click('#ok');
     ok((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')).R['M2.P02'].veio)) === 3, 'P02 confirmada guarda a origem (Módulo 3)');
-    for (const [cod, v] of [['M2.P03', 'Experiência própria com esse público'], ['M2.P04', 'Sim'], ['M2.P05', 'Um único grupo']]) { await clicarTexto('#acoes .btn', 'Seguir'); await clicarTexto('#ent .opcao', v); await page.click('#ok'); }
-    await clicarTexto('#acoes .btn', 'Seguir');
+    for (const [cod, v] of [['M2.P03', 'Experiência própria com esse público'], ['M2.P04', 'Sim'], ['M2.P05', 'Um único grupo']]) {
+      await clicarTexto('#acoes .btn', 'Continuar');
+      // 9c) exemplo da ajuda conforme o tipo (serviço vindo do Módulo 1): manicure, não bolo
+      if (cod === 'M2.P05') { const aj = await page.locator('.dica .ajuda').textContent(); ok(/unhas/.test(aj) && !/bolo/.test(aj), `P05: exemplo de serviço para quem presta serviço (obtido "${aj}")`); }
+      await clicarTexto('#ent .opcao', v); await page.click('#ok');
+    }
+    await clicarTexto('#acoes .btn', 'Continuar');
     ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P07'].pergunta, 'chegou na P07');
     ok((await page.locator('#ent .opcao.sel').textContent()) === 'Pessoas' && (await page.locator('#herdado').count()) === 1, 'P07 vem marcada com "Pessoas" (Módulo 3) e selo');
     await page.click('#ok');
@@ -315,8 +380,22 @@ async function servidor() {
     // segue até o fim com respostas típicas e confere a caixa "O que entendemos até aqui"
     const resto = [['M2.P08', 'Hábitos de compra'], ['M2.P13', 'Praticidade/rapidez'], ['M2.P16', 'Em parte'], ['M2.P17', 'Todo mês'], ['M2.P18', '4'], ['M2.P19', 'Não'], ['M2.P20', 'Não sei'], ['M2.P21', 'Só elogiaram a ideia']];
     for (const [cod, v] of resto) {
-      await clicarTexto('#acoes .btn', 'Seguir');
+      await clicarTexto('#acoes .btn', 'Continuar');
       const q = M.porCodigo[cod];
+      if (cod === 'M2.P18') {
+        // 9d) campo de número: texto e negativo não gravam; número muito alto avisa e deixa seguir no 2º toque
+        ok(await page.locator('#ent input').getAttribute('inputmode') === 'numeric', 'P18 abre o teclado numérico');
+        for (const [x, re] of [['quatro', /Digite só números/], ['-3', /não pode ser negativo/]]) {
+          await page.fill('#ent input', x); await page.click('#ok');
+          ok(re.test(await page.locator('#erro').textContent()) && (await page.locator('#retorno .retorno').count()) === 0, `P18 "${x}" deveria ser recusado com mensagem simples`);
+        }
+        ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')).R['M2.P18'])), 'P18 inválido não é gravado');
+        await page.fill('#ent input', '5000'); await page.click('#ok');
+        ok(/parece alto/.test(await page.locator('#erro').textContent()) && (await page.locator('#retorno .retorno').count()) === 0, 'P18 5000: aviso de valor alto no 1º toque');
+        await page.click('#ok');
+        ok((await page.locator('#retorno .retorno').count()) === 1, 'P18 5000: o 2º Continuar com o mesmo valor segue');
+        await clicarTexto('#acoes .btn', 'Corrigir minha resposta');
+      }
       if (Motor.campo(q) === 'escolha') { if (!(await clicarTexto('#ent .opcao', v))) throw new Error(`herança: opção ${v} ausente em ${cod}`); await page.click('#ok'); }
       else if (v === 'Não sei') await page.click('#ns'); else { await page.fill('#ent input, #ent textarea', v); await page.click('#ok'); }
     }
@@ -324,7 +403,10 @@ async function servidor() {
     await clicarTexto('#acoes .btn', 'Ver meu resumo');
     await page.waitForSelector('#entendemos');
     const ent = await page.locator('#entendemos p:not(.mini-info)').allTextContents();
-    ok(ent.length >= 3 && ent.length <= 6, `caixa "O que entendemos" com 3–6 frases (obtido ${ent.length})`);
+    /* texto corrido (relatório do Bento): 1 a 3 parágrafos, sem lista */
+    ok(ent.length >= 1 && ent.length <= 3, `caixa "O que entendemos" em 1 a 3 parágrafos (obtido ${ent.length})`);
+    ok(await page.evaluate(() => { const e = document.querySelector('#entendemos'); return !e.querySelector('ul, ol, li') && e.querySelectorAll('p:not(.mini-info)').length >= 1; }), 'caixa "O que entendemos" sem <li> e com pelo menos um <p>');
+    ok(ent.join(' ').split(/(?<=[.!?])\s+(?=[A-ZÀ-Ú])/).length >= 3, 'caixa "O que entendemos" continua com 3 ou mais frases');
     const entT = ent.join(' ');
     for (const trecho of ['Você vende (ou quer vender) lavagem de carro em domicílio, que é um serviço, e você já começou a testar.', 'Seus clientes seriam principalmente pessoas que compram para si ou para a família', 'Você vê um único grupo de clientes; o que mais muda entre um cliente e outro é: hábitos de compra (praticidade/rapidez).', 'Cada cliente compraria todo mês, e você sabe em parte onde encontrar essas pessoas.', 'Você já conversou com 4 pessoas, mas ninguém fez nada concreto ainda. Por enquanto, o que você ouviu foi mais elogio do que um problema de verdade.'])
       ok(entT.includes(trecho), `"O que entendemos" deveria trazer: ${trecho} (obtido: ${entT})`);
@@ -335,6 +417,10 @@ async function servidor() {
     ok(!/M2\.[PI]\d{2}/.test(corpoRes), 'resultado sem códigos internos (M2.Pxx/M2.Ixx)');
     await page.evaluate(() => document.querySelector('#entendemos').scrollIntoView());
     await shot('resultado_entendemos');
+    // 9e) formato do estado salvo, lido por outros módulos (Módulo 10): {v, R:{código:{estado, opcao|valor}}}
+    const est = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
+    ok(est.v === 2 && est.R['M2.P17'].estado === 'opcao' && est.R['M2.P17'].opcao === 'Todo mês' && est.R['M2.P18'].estado === 'valor' && est.R['M2.P18'].valor === '4'
+      && est.R['M2.P21'].opcao === 'Só elogiaram a ideia' && est.R['M2.P02'].estado === 'valor' && est.R['M2.P20'].estado === 'naosei', `estado salvo no formato esperado (obtido ${JSON.stringify(est.R).slice(0, 300)})`);
     const outros = await page.evaluate(() => [localStorage.getItem('lg2-turma-a-m01'), localStorage.getItem('lg2-turma-a-m03')]);
     ok(outros[0] === JSON.stringify(M1) && outros[1] === JSON.stringify(M3), 'Módulos 1 e 3 não são alterados (só leitura)');
     // 8d) "Não sei" no Módulo 3 não conta como herança
@@ -343,8 +429,27 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Começar');
     ok((await page.locator('#contexto').count()) === 0, 'sem dado do Módulo 1, não mostra o contexto');
-    for (const [cod, v] of [['M2.P01', 'Ainda não pensei nisso'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo']]) { await clicarTexto('#ent .opcao', v); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Seguir'); }
+    for (const [cod, v] of [['M2.P01', 'Ainda não pensei nisso'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo']]) { await clicarTexto('#ent .opcao', v); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Continuar'); }
     ok((await page.locator('#ent .opcao.sel').count()) === 0 && (await page.locator('#herdado').count()) === 0, '"Não sei" do Módulo 3 não pré-marca a P07');
+    // 9c) sem tipo do negócio, o exemplo da planilha (bolo) continua
+    ok(/bolo/.test(M.porCodigo['M2.P05'].ajuda), 'P05 da planilha fala de bolo');
+    // 9b) bug do relatório: "Empresas (Local: Bolos caseiros de pote)". Cada campo no lugar certo; o que repete a ideia sai; "Não sei" sai
+    const p02De = async (m1, m3) => {
+      await page.goto(srv.url + 'index.html');
+      await page.evaluate(([a, b]) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', a); localStorage.setItem('lg2-turma-a-m03', b); }, [JSON.stringify(m1), JSON.stringify(m3)]);
+      await page.reload(); await clicarTexto('button', 'Começar');
+      await clicarTexto('#ent .opcao', 'Sim'); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Continuar');
+      return page.locator('#ent textarea').inputValue();
+    };
+    const M1b = { v: 3, R: { 'M1.P03': { estado: 'valor', valor: 'Bolos caseiros de pote' }, 'M1.P03A': { estado: 'opcao', opcao: 'Produto: eu mesmo faço o que vendo' } } };
+    let e02 = await p02De(M1b, { v: 3, R: { 'M3.P10': { estado: 'opcao', opcao: 'Empresas', campos: { Ramo: 'Restaurantes e alimentação', Tamanho: 'Micro ou pequena empresa', Equipe: '2 a 9 pessoas', Local: 'Bolos caseiros de pote' } }, 'M3.P11': { estado: 'valor', valor: 'Falta de sobremesa pronta para vender.' } } });
+    ok(e02 === 'Empresas do ramo de restaurantes e alimentação, micro ou pequena empresa, com 2 a 9 pessoas. Problema que você resolve: Falta de sobremesa pronta para vender', `P02 (empresas, local = ideia) em frase sem o local errado (obtido "${e02}")`);
+    await shot('heranca_empresas');
+    e02 = await p02De(M1b, { v: 3, R: { 'M3.P10': { estado: 'opcao', opcao: 'Empresas', campos: { Ramo: 'Não sei', Tamanho: '', Equipe: 'Só o dono', Local: 'Juiz de Fora' } } } });
+    ok(e02 === 'Empresas, em que só o dono trabalha, em Juiz de Fora', `P02 (empresas, sem dor, "Não sei" omitido) (obtido "${e02}")`);
+    e02 = await p02De(M1b, { v: 3, R: { 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', campos: { Idade: '18 a 29 anos; 30 a 44 anos', Renda: 'Não sei', Ocupação: 'Estudantes', 'Onde mora': 'no bairro São Pedro', 'O que precisa resolver (a dor)': 'vontade de um doce barato depois da aula' } } } });
+    ok(e02 === 'Pessoas comuns de 18 a 29 anos ou 30 a 44 anos, que são estudantes, que moram no bairro São Pedro. Problema que você resolve: vontade de um doce barato depois da aula', `P02 (pessoas, dor do perfil) (obtido "${e02}")`);
+    ok(!/[A-Za-zçã ]+: (?!vontade)/.test(e02.split('. Problema')[0]), 'P02 sem rótulos de campo');
     // 8e) estado salvo antes (opção antiga da P21) é convertido
     await page.goto(srv.url + 'index.html');
     await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', JSON.stringify({ R: { 'M2.P04': { estado: 'opcao', opcao: 'Sim' }, 'M2.P21': { estado: 'opcao', opcao: 'Só elogios' } }, hist: [] })); });

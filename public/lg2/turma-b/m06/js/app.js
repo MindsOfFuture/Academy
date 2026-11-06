@@ -13,10 +13,34 @@
 
   /* as respostas guardadas pela planilha v0.1 usam outra numeração de perguntas: começam do zero */
   const DADOS = "2026-10-15";
+  const MSG_NUMERO = "Digite só números. Ex.: 12,50";
+  const MAX_DICAS = 4;     // "Dicas gerais" fica curta
+  const SEM_COMPRAS = "Não tenho compras a fazer agora";
+  const SEM_COMPRAS_RET = "Tudo bem: sem compras para começar agora. Pulamos o valor das compras e a lista de prioridades.";
+
+  /* teclado do celular: o campo em foco (e o Continuar logo abaixo) vai para o meio da área visível */
+  const ehCampo = (x) => x && x.matches && x.matches("input, textarea, select");
+  function mostrarCampo(alvo) {
+    alvo.scrollIntoView({ block: "center" });
+    /* se o Continuar ainda ficou atrás do teclado, sobe um pouco mais, sem esconder o campo */
+    const ok = document.querySelector("#ok"); if (!ok) return;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const falta = ok.getBoundingClientRect().bottom - vh + 12, sobra = alvo.getBoundingClientRect().top - 8;
+    if (falta > 0) window.scrollBy(0, Math.min(falta, sobra));
+  }
+  document.addEventListener("focusin", (e) => {
+    if (!ehCampo(e.target)) return;
+    const alvo = e.target;
+    setTimeout(() => { if (document.activeElement === alvo) mostrarCampo(alvo); }, 300);
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => {
+    const a = document.activeElement;
+    if (ehCampo(a)) mostrarCampo(a);
+  });
   let S = carregar();   // { R: respostas, hist: [códigos], prio: {item: categoria}, fluxo: null|{...}, cen: {...} }
   /* (herdarNegocio() roda logo abaixo, depois que o motor e as leituras estão prontos) */
   function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.dados === DADOS ? s : novo(); } catch { return novo(); } }
-  function novo() { return { dados: DADOS, R: {}, hist: [], prio: {}, fluxo: null, cen: null }; }
+  function novo() { return { dados: DADOS, R: {}, hist: [], prio: {}, fora: [], fluxo: null, cen: null }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   /* ================= o que já veio de outros módulos (só leitura; nunca escreve nas chaves deles) ================= */
@@ -43,6 +67,14 @@
     if (S.R[Motor.NEGOCIO]) return;
     const t = tipoHerdado();
     if (t) { S.R[Motor.NEGOCIO] = { estado: "opcao", opcao: t.tipo, herdado: t.modulo }; salvar(); }
+  }
+  /* limite de investimento dito no Módulo 1 (M1.P07): aviso, sem trava */
+  const TETO_M1 = { "Nada por enquanto": 0, "Até R$ 100": 100, "Entre R$ 100 e R$ 500": 500, "Entre R$ 500 e R$ 1.000": 1000, "Mais de R$ 1.000": null };
+  function tetoM1() {
+    const op = opcaoDe(lerOutro(K[1], "M1.P07"));
+    if (!op) return null;
+    const txt = op.replace(/^\s*\d+\.\s*/, "").trim();
+    return txt in TETO_M1 ? { texto: txt, teto: TETO_M1[txt] } : null;
   }
   const brl0 = (n) => "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const numero = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -92,6 +124,7 @@
   const p01Respondida = (R) => !!R["M6.P01"] && R["M6.P01"].estado === "valor";
   function pulada(c, R) {
     if (c === Motor.NEGOCIO) return !!(R[c] && R[c].herdado);
+    if (c === "M6.P02" && R["M6.P01"] && R["M6.P01"].semCompras) return true;     // sem compras: não pergunta quanto vai gastar
     return REPETE_P01.includes(c) && p01Respondida(R);
   }
   function proxima(R, cod) {
@@ -278,13 +311,13 @@
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${her ? `<div class="herdado"><span class="selo">Veio do Módulo ${her.modulo}</span><span>Confira e ajuste se quiser.</span>${her.nota ? `<p class="mini-info">${esc(her.nota)}</p>` : ""}</div>` : ""}
             <div class="entrada" id="ent"></div>
-            ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
+            ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" id="sem-compras-btn">${SEM_COMPRAS}</button>` : ""}</div>` : ""}
             <div class="erro" id="erro" hidden></div>
-            ${dica(q.ajuda)}
+            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             <div id="retorno"></div>
+            ${dica(q.ajuda)}
             ${blocoEducativo(educativoDe(cod))}
             ${blocoConceitos(conceitosDe(q))}
-            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             ${botaoVoltar(S.hist.length > 1 ? "Voltar" : "Início")}
           </div>
           ${rodape()}
@@ -330,6 +363,8 @@
     }
     const ns = p.querySelector("#ns");
     if (ns) ns.onclick = () => responder({ estado: "naosei" });
+    const sc = p.querySelector("#sem-compras-btn");
+    if (sc) sc.onclick = () => responder({ estado: "valor", valor: SEM_COMPRAS, semCompras: true });
 
     p.querySelector("#ok").onclick = () => {
       if (tipo === "escolha" || tipo === "simnao_texto") {
@@ -347,16 +382,23 @@
       }
       const r2 = Motor.envio(q, ent.querySelector("input,textarea").value);
       if (her && r2.estado === "valor" && r2.valor === String(her.valor)) r2.herdado = her.modulo;
+      /* valor fora do comum: avisa uma vez; o segundo Continuar com o mesmo valor segue */
+      /* "nada, por enquanto." = sem compras agora: não vira item da lista de prioridades */
+      if (cod === "M6.P01" && r2.estado === "valor" && Motor.semCompras(r2.valor)) r2.semCompras = true;
+      const av = Motor.avisoValor(cod, r2);
+      if (av && avisado !== r2.valor) { avisado = r2.valor; return erro(av, true); }
       responder(r2);
     };
-    function erro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
+    let avisado = null;
+    function erro(t, soAviso) { const e = p.querySelector("#erro"); e.textContent = t; e.className = soAviso ? "aviso aviso-valor" : "erro"; e.hidden = false; }
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
       const regras = Motor.regrasPara(M, cod, r0);
       /* resposta vazia/inválida, ou regra cujo encaminhamento é "Retornar à Pxx": fica na pergunta */
       if (!Motor.valido(r0) || regras.some(Motor.retorna)) {
-        if (!regras.length) return erro("Responda para continuar.");
+        if (r0.estado === "invalida") erro(MSG_NUMERO);
+        if (!regras.length) return erro(r0.estado === "invalida" ? MSG_NUMERO : "Responda para continuar.");
         return mostrarRetorno(regras, null, true);
       }
       S.R[cod] = r0;
@@ -368,21 +410,25 @@
 
     function mostrarRetorno(regras, prox, parado) {
       const box = p.querySelector("#retorno");
+      /* um só bloco de atenção na tela: alertas das regras + alerta da pergunta, sem repetição */
+      const atencao = [...new Set([...regras.map((r) => r.alerta), ...(parado ? [] : [q.alerta])].filter((a) => !vazio(a)).map((a) => String(a).trim()))];
+      const extra = !parado && S.R[cod] && S.R[cod].semCompras ? SEM_COMPRAS_RET : "";
       box.innerHTML = `<div class="retorno${parado ? " parado" : ""}">
         ${parado || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
+        ${extra ? `<p class="r-texto r-sem-compras">${esc(extra)}</p>` : ""}
         ${regras.map((r) => `
           <div class="regra">
             <p class="r-texto">${esc(r.texto)}</p>
-            ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(r.alerta)}</div>`}
             ${vazio(r.lacuna) ? "" : `<div class="bloco b-lacuna"><b>O que ainda falta</b>${esc(r.lacuna)}</div>`}
             ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
             ${vazio(r.encaminhamento) || Motor.retorna(r) ? "" : `<div class="bloco b-enc"><b>Encaminhamento</b>${esc(r.encaminhamento)}</div>`}
           </div>`).join("")}
-        ${parado || vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(q.alerta)}</div>`}
+        ${atencao.length ? `<div class="bloco b-alerta"><b>Atenção</b>${atencao.length === 1 ? esc(atencao[0]) : `<ul>${atencao.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`}</div>` : ""}
       </div>`;
       if (parado) { box.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
+      box.after(acoes);          // depois de ler o retorno, o Seguir fica logo abaixo dele
       const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
       b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
       acoes.appendChild(b);
@@ -415,7 +461,10 @@
       <p class="ajuda">${esc(ins.objetivo)}</p>`;
   }
   const regraInstr = (ins) => `<p class="mini-info">${esc(ins.regra)}</p>`;
-  const limiteInstr = (ins) => vazio(ins.limite) ? "" : `<div class="aviso">${esc(ins.limite)}</div>`;
+  /* o limite de cada instrumento vira nota curta (o único bloco de atenção da tela é o #atencao) */
+  const limiteInstr = (ins) => vazio(ins.limite) ? "" : `<p class="mini-info">${esc(ins.limite)}</p>`;
+  /* "Como calculamos: …" embaixo de cada número calculado */
+  const como = (t, id) => `<p class="como"${id ? ` id="${id}"` : ""}><b>Como calculamos:</b> ${esc(t)}</p>`;
 
   function blocoI01() {
     const ins = I("M6.I01"), inv = Motor.investimento(S.R);
@@ -430,43 +479,83 @@
             + (inv.forma && inv.forma !== Motor.NS ? ` · ${esc(inv.forma)}` : "")
           : esc(naoSeiP02.texto)}</div>
       </div>
-      ${regraInstr(ins)}${limiteInstr(ins)}`;
+      ${como(inv.semCompras ? "você disse que não tem compras a fazer agora, então o valor para começar é zero."
+        : temValor ? `somamos os valores que você informou para começar (${inv.partes.map((x) => brl(x.valor)).join(" + ")}).`
+        : "ainda não dá para calcular, porque o valor das compras ficou em “Não sei”.", "como-i01")}
+      ${limiteInstr(ins)}`;
+  }
+  function avisoM1(valor) {
+    const t = tetoM1();
+    if (!t || t.teto === null || valor === null || !(valor > t.teto)) return "";
+    return `<li id="aviso-m1"><span class="selo">Veio do Módulo 1</span> No Módulo 1 você disse que pode usar
+      “${esc(t.texto)}” no negócio sem faltar para as contas da casa. Aqui, o que você precisa para começar soma ${brl(valor)}.
+      Confira os valores, veja o que pode ficar para depois ou como juntar a diferença antes de comprar.</li>`;
+  }
+  /* um só bloco de atenção no resultado: Módulo 1, semanas no vermelho, cenário e alertas das respostas, sem repetição */
+  function blocoAtencao() {
+    const inv = Motor.investimento(S.R), F = fluxo(), P = Motor.projetar(F), ins4 = I("M6.I04"), ins5 = I("M6.I05");
+    const itens = [], vistos = new Set();
+    const add = (html, txt) => { const k = String(txt).trim(); if (!k || vistos.has(k)) return; vistos.add(k); itens.push(html); };
+    const m1 = avisoM1(inv.valor); if (m1) add(m1, "m1");
+    const neg = P.filter((x) => x.alerta).map((x) => x.semana);
+    if (neg.length) add(`<li id="atencao-fluxo">Vai sair mais dinheiro do que você terá em caixa na semana ${neg.join(", ")} da tabela de 13 semanas. Planeje como cobrir essa falta antes de começar.</li>`, "fluxo");
+    cenario();
+    if (Motor.cenario(S.cen.ini, S.cen.ent, S.cen.sai).alerta) add(`<li id="atencao-cen">No simulador de cenários, as saídas passam do que entra mais o dinheiro em caixa.</li>`, "cen");
+    Motor.alertas(Motor.regrasTodas(M, S.R)).forEach((a) => add(`<li>${esc(a)}</li>`, a));
+    return itens.length ? `<div class="bloco b-alerta"><b>Atenção, pelas suas respostas</b><ul>${itens.join("")}</ul></div>` : "";
   }
 
   function blocoI02() {
-    const ins = I("M6.I02"), itens = Motor.itens(S.R), cats = Motor.categorias(M);
+    const ins = I("M6.I02"), itens = Motor.itens(S.R, S.fora), cats = Motor.categorias(M);
     const naoSeiP01 = D.regras.find((r) => r.pergunta === "M6.P01" && Motor.casa(r.condicao, { estado: "naosei" })) || {};
-    if (!itens.length) return `${cabInstr(ins)}<div class="bloco b-lacuna">${esc(naoSeiP01.lacuna)}</div>`;
+    const fora = (S.fora || []).length ? `<p class="mini-info" id="fora">Tirados da lista: ${S.fora.map(esc).join(", ")}. <button class="btn-alt" id="repor">Pôr de volta</button></p>` : "";
+    /* a lista só abre quando há itens de compra de verdade */
+    if (!itens.length) {
+      const nada = Motor.investimento(S.R).semCompras || (S.fora || []).length;
+      return `<div id="sem-compras">${nada ? `<p class="mini-info">Sem compras a fazer agora: a lista de prioridade de compras fica de fora.</p>${fora}`
+        : valor1NS() ? `${cabInstr(ins)}<div class="bloco b-lacuna">${esc(naoSeiP01.lacuna)}</div>` : ""}</div>`;
+    }
     return `${cabInstr(ins)}
       <div class="lista" id="prio">${itens.map((it, i) => `
-        <div class="item"><b class="nome">${esc(it)}</b>
+        <div class="item"><div class="item-topo"><b class="nome">${esc(it)}</b><button class="btn-alt tirar" data-i="${i}" aria-label="Tirar ${esc(it)} da lista">Tirar da lista</button></div>
           <div class="opcoes mini">${cats.map((c) => `<button class="opcao ${S.prio[it] === c ? "sel" : ""}" data-i="${i}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>
         </div>`).join("")}</div>
+      ${fora}
       ${regraInstr(ins)}${limiteInstr(ins)}`;
   }
 
+  const valor1NS = () => Motor.valor(S.R, "M6.P01") === Motor.NS;
   function fluxo() {
-    if (!S.fluxo) { S.fluxo = Motor.fluxoInicial(S.R); salvar(); }
+    /* fluxo guardado antes da correção de 05/11 (venda do mês entrava uma vez só): refeito com as respostas */
+    if (!S.fluxo || S.fluxo.v !== Motor.FLUXO_V) { S.fluxo = Motor.fluxoInicial(S.R); S.cen = null; salvar(); }
     return S.fluxo;
   }
   function blocoI04() {
     const ins = I("M6.I04"), F = fluxo(), P = Motor.projetar(F);
     const p09 = S.R["M6.P09"], p06 = Motor.valor(S.R, "M6.P06");
+    const entra = F.atraso ? `a partir da semana ${F.atraso + 1}, porque o dinheiro das vendas chega ${FRASE_PRAZO[F.prazo] || "depois"}` : "desde a semana 1";
     return `${cabInstr(ins)}
-      <div class="linha"><span class="lbl">Saldo inicial</span><span class="unid">R$</span><input class="campo" id="f-ini" inputmode="decimal" value="${F.saldoInicial}"></div>
+      <div class="linha"><span class="lbl">Dinheiro em caixa hoje</span><span class="unid">R$</span><input class="campo" id="f-ini" inputmode="decimal" value="${numero(F.saldoInicial)}"></div>
+      <div class="linha"><span class="lbl">Vendas por mês</span><span class="unid">R$</span><input class="campo" id="f-vendas" inputmode="decimal" value="${numero(F.vendasMes || 0)}"></div>
+      <div class="linha"><span class="lbl">Gastos de todo mês</span><span class="unid">R$</span><input class="campo" id="f-gastos" inputmode="decimal" value="${numero(F.gastosMes || 0)}"></div>
+      ${como("em cada semana, saldo = saldo da semana anterior + entradas − saídas, começando pelo dinheiro em caixa hoje.", "como-i04")}
+      <ul class="mini-info como-conta" id="como-conta">
+        <li>Vendas: ${brl(F.vendasMes || 0)} por mês = ${brl(F.vendasSemana || 0)} por semana (mês × 12 ÷ 52), ${entra}.</li>
+        <li>Gastos de todo mês: ${brl(F.gastosMes || 0)} = ${brl(F.gastosSemana || 0)} por semana${p06 && p06 !== Motor.NS ? " (somamos os valores que você escreveu; ajuste acima se faltar algum)" : ""}.</li>
+        <li>O que você precisa para começar (${brl(F.investimento || 0)}) sai na semana 1.</li>
+      </ul>
       <div class="tabela-wrap"><table class="fluxo">
-        <thead><tr><th>Sem.</th><th>Entradas</th><th>Saídas</th><th>Saldo final</th></tr></thead>
-        <tbody>${P.map((s, i) => `<tr class="${s.alerta ? "neg" : ""}">
+        <thead><tr><th>Sem.</th><th>Entradas</th><th>Saídas</th><th>Saldo</th></tr></thead>
+        <tbody>${P.map((s, i) => `<tr class="${s.final < 0 ? "neg" : ""}">
           <td>${s.semana}</td>
-          <td><input inputmode="decimal" data-i="${i}" data-k="entradas" value="${s.entradas || ""}"></td>
-          <td><input inputmode="decimal" data-i="${i}" data-k="saidas" value="${s.saidas || ""}"></td>
+          <td><input inputmode="decimal" aria-label="Entradas da semana ${s.semana}" data-i="${i}" data-k="entradas" value="${numero(s.entradas)}"></td>
+          <td><input inputmode="decimal" aria-label="Saídas da semana ${s.semana}" data-i="${i}" data-k="saidas" value="${numero(s.saidas)}"></td>
           <td class="sf">${brl(s.final)}</td></tr>`).join("")}</tbody>
       </table></div>
-      <p class="mini-info">Os valores das suas respostas já entraram na semana do prazo escolhido. Você pode mudar qualquer semana.</p>
+      <p class="mini-info">Você pode mudar qualquer semana; mudar vendas ou gastos do mês refaz a tabela.</p>
       ${p06 && p06 !== Motor.NS ? `<div class="bloco b-proximo"><b>${esc(M.porCodigo["M6.P06"].pergunta)}</b>${esc(p06)}</div>` : ""}
       ${p09 && p09.detalhe ? `<div class="bloco b-proximo"><b>${esc(M.porCodigo["M6.P09"].pergunta)}</b>${esc(p09.detalhe)}</div>` : ""}
-      ${P.some((s) => s.alerta) ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(ins.limite)} (semana ${P.filter((s) => s.alerta).map((s) => s.semana).join(", ")})</div>` : ""}
-      ${regraInstr(ins)}`;
+      ${P.some((s) => s.alerta) ? `<p class="mini-info">Semanas em que falta dinheiro: ${P.filter((s) => s.alerta).map((s) => s.semana).join(", ")} (veja “Atenção” no alto do resumo).</p>` : ""}`;
   }
   function blocoI03() {
     const ins = I("M6.I03"), c = Motor.controle(fluxo());
@@ -477,19 +566,24 @@
         <div class="cartao"><h3>Saídas</h3><p>${brl(c.saidas)}</p></div>
         <div class="cartao"><h3>Saldo</h3><p><b>${brl(c.saldo)}</b></p></div>
       </div>
-      ${regraInstr(ins)}${limiteInstr(ins)}`;
+      ${como(`dinheiro em caixa hoje (${brl(c.inicial)}) + tudo o que entra nas 13 semanas (${brl(c.entradas)}) − tudo o que sai (${brl(c.saidas)}) = ${brl(c.saldo)}.`, "como-i03")}
+      ${limiteInstr(ins)}`;
+  }
+  function cenario() {
+    if (!S.cen) { const c = Motor.controle(fluxo()); S.cen = { ini: c.inicial, ent: c.entradas, sai: c.saidas }; salvar(); }
+    return S.cen;
   }
   function blocoI05() {
-    const ins = I("M6.I05"), c = Motor.controle(fluxo());
-    if (!S.cen) { S.cen = { ini: c.inicial, ent: c.entradas, sai: c.saidas }; salvar(); }
+    const ins = I("M6.I05");
+    cenario();
     const r = Motor.cenario(S.cen.ini, S.cen.ent, S.cen.sai);
     return `${cabInstr(ins)}
       <div class="linha"><span class="lbl">Saldo inicial</span><span class="unid">R$</span><input class="campo cen" data-k="ini" inputmode="decimal" value="${S.cen.ini}"></div>
       <div class="linha"><span class="lbl">Entradas previstas</span><span class="unid">R$</span><input class="campo cen" data-k="ent" inputmode="decimal" value="${S.cen.ent}"></div>
       <div class="linha"><span class="lbl">Saídas previstas</span><span class="unid">R$</span><input class="campo cen" data-k="sai" inputmode="decimal" value="${S.cen.sai}"></div>
       <div class="res-num ${r.alerta ? "coral" : ""}" id="cen-res"><div class="lbl">Saldo do cenário</div><div class="val">${brl(r.saldo)}</div></div>
-      ${r.alerta ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(ins.limite)}</div>` : ""}
-      ${regraInstr(ins)}`;
+      ${como("saldo inicial + entradas previstas − saídas previstas no cenário. Mude os valores para testar outras situações.", "como-i05")}
+      ${r.alerta ? `<p class="mini-info">${esc(ins.limite)}</p>` : ""}`;
   }
 
   /* ================= "O que entendemos até aqui" (frases montadas por regra, sem IA) ================= */
@@ -502,6 +596,8 @@
     for (const [mod, cod] of [[1, "M1.P03"], [3, "M3.P01"], [4, "M4.P01"], [8, "M8.P01"]]) { const t = valorTxt(lerOutro(K[mod], cod)); if (t) return t.replace(/[.!\s]+$/, ""); }
     return null;
   }
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function frasesEntendemos() {
     const out = [], neg = S.R[Motor.NEGOCIO], tipo = neg && neg.estado === "opcao" ? neg.opcao : null, ideia = ideiaHerdada();
     if (ideia && tipo) out.push(`Você oferece ${FRASE_TIPO[tipo]}: ${ideia}.`);
@@ -509,18 +605,20 @@
     else if (tipo) out.push(`Você oferece ${FRASE_TIPO[tipo]}.`);
     const est = FRASE_ESTAGIO[opcaoDe(lerOutro(K[1], "M1.P01"))];
     if (est) out.push(est);
+    const c1 = out.length;   // 1º parágrafo: o que oferece e em que ponto está
     const inv = Motor.investimento(S.R), forma = inv.forma && inv.forma !== Motor.NS ? inv.forma.toLowerCase() : null;
-    out.push(inv.valor !== null ? `Para começar, você estima gastar ${brl(inv.valor)}${forma ? `, pagando ${forma}` : ""}.`
+    out.push(inv.semCompras ? "Você não tem compras a fazer para começar agora." : inv.valor !== null ? `Para começar, você estima gastar ${brl(inv.valor)}${forma ? `, pagando ${forma}` : ""}.`
       : "Você ainda não sabe quanto vai gastar para começar: vale pesquisar os preços antes.");
     const vendas = numDe("M6.P05"), prazo = FRASE_PRAZO[Motor.valor(S.R, "M6.P08")];
     out.push(vendas !== null ? `Você espera vender cerca de ${brl(vendas)} por mês${prazo ? ` e receber o dinheiro ${prazo}` : ""}.`
       : "Você ainda não estimou quanto vai vender por mês.");
+    const c2 = out.length;   // 2º: gasto para começar e vendas; 3º: o caixa nas 13 semanas
     const F = fluxo(), P = Motor.projetar(F), neg1 = P.find((x) => x.final < 0);
     const inicio = F.saldoInicial || numDe("M6.P07") !== null ? `Começando com ${brl(F.saldoInicial)} no caixa` : "Sem contar dinheiro guardado";
     out.push(`${inicio}, ${neg1
       ? `o seu dinheiro fica negativo na semana ${neg1.semana}: antes de começar, planeje como cobrir essa falta.`
       : "o seu dinheiro não fica negativo em nenhuma das 13 semanas da projeção."}`);
-    return out;
+    return emParagrafos(out, c1, c2);
   }
   const numDe = (c) => { const v = Motor.valor(S.R, c); return v === undefined || v === Motor.NS || isNaN(Motor.num(v)) ? null : Motor.num(v); };
   function blocoEntendemos() {
@@ -541,6 +639,7 @@
   function telaResultado() {
     const regras = Motor.regrasTodas(M, S.R);
     const lac = Motor.lacunas(regras), enc = Motor.encaminhamentos(regras), ale = Motor.alertas(regras);
+    const dicas = Motor.dicasGerais(regras).slice(0, MAX_DICAS), falta = Motor.pendencias(M, S.R);
     const p = el(`
       <div class="pag">
         ${topo("Resultado")}
@@ -551,6 +650,7 @@
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
           </section>
           <section class="entendemos" id="entendemos">${blocoEntendemos()}</section>
+          <div id="atencao">${blocoAtencao()}</div>
           <p class="ajuda">${esc(D.mapa.entrega)}</p>
           <div id="i01">${blocoI01()}</div>
           <div id="i02">${blocoI02()}</div>
@@ -558,9 +658,11 @@
           <div id="i03">${blocoI03()}</div>
           <div id="i05">${blocoI05()}</div>
 
-          ${ale.length ? `<div class="secao-titulo">Alertas</div>${ale.map((a) => `<div class="bloco b-alerta">${esc(a)}</div>`).join("")}` : ""}
           ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
-          ${regras.length ? `<div class="secao-titulo">Próximos passos</div><ol class="roteiro">${[...new Set(regras.map((r) => r.proximo).filter((x) => !vazio(x)))].map((x) => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}
+          <div class="secao-titulo">Próximos passos</div>
+          ${falta.length ? `<ol class="roteiro" id="proximos">${falta.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`
+            : `<p class="ajuda" id="proximos">Nada ficou em aberto nas suas respostas. Acompanhe a tabela das 13 semanas e atualize os valores quando souber os preços de verdade.</p>`}
+          ${dicas.length ? `<div class="secao-titulo">Dicas gerais</div><ul class="dicas-gerais" id="dicas">${dicas.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
           <div class="bloco b-enc"><b>Encaminhamentos, pelas suas respostas</b>${enc.length ? `<ul>${enc.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}<p>${esc(D.mapa.encaminhamentos)}</p></div>
 
           <details class="saiba respostas"><summary>Ver suas respostas</summary>
@@ -582,18 +684,27 @@
     const refazer = (id, f) => { p.querySelector(id).innerHTML = f(); ligar(); };
     function ligar() {
       p.querySelectorAll("#prio .opcao").forEach((b) => (b.onclick = () => {
-        const it = Motor.itens(S.R)[+b.dataset.i]; S.prio[it] = b.dataset.c; salvar(); refazer("#i02", blocoI02);
+        const it = Motor.itens(S.R, S.fora)[+b.dataset.i]; S.prio[it] = b.dataset.c; salvar(); refazer("#i02", blocoI02);
       }));
+      p.querySelectorAll("#prio .tirar").forEach((b) => (b.onclick = () => {
+        const it = Motor.itens(S.R, S.fora)[+b.dataset.i]; S.fora = [...(S.fora || []), it]; delete S.prio[it]; salvar(); refazer("#i02", blocoI02);
+      }));
+      const rp = p.querySelector("#repor");
+      if (rp) rp.onclick = () => { S.fora = []; salvar(); refazer("#i02", blocoI02); };
       const ini = p.querySelector("#f-ini");
-      ini.onchange = () => { S.fluxo.saldoInicial = Motor.num(ini.value) || 0; S.cen = null; salvar(); atualizarCaixa(); };
+      ini.onchange = () => { S.fluxo.saldoInicial = Math.max(0, Motor.num(ini.value) || 0); S.cen = null; salvar(); atualizarCaixa(); };
+      [["#f-vendas", "vendasMes"], ["#f-gastos", "gastosMes"]].forEach(([sel, k]) => {
+        const x = p.querySelector(sel);
+        x.onchange = () => { S.fluxo[k] = Math.max(0, Motor.num(x.value) || 0); Motor.montarSemanas(S.fluxo); S.cen = null; salvar(); atualizarCaixa(); };
+      });
       p.querySelectorAll(".fluxo input").forEach((x) => (x.onchange = () => {
-        S.fluxo.semanas[+x.dataset.i][x.dataset.k] = Motor.num(x.value) || 0; S.cen = null; salvar(); atualizarCaixa();
+        S.fluxo.semanas[+x.dataset.i][x.dataset.k] = Math.max(0, Motor.num(x.value) || 0); S.cen = null; salvar(); atualizarCaixa();
       }));
       p.querySelectorAll(".cen").forEach((x) => (x.onchange = () => {
-        S.cen[x.dataset.k] = Motor.num(x.value) || 0; salvar(); refazer("#i05", blocoI05);
+        S.cen[x.dataset.k] = Motor.num(x.value) || 0; salvar(); refazer("#i05", blocoI05); refazer("#atencao", blocoAtencao);
       }));
     }
-    function atualizarCaixa() { p.querySelector("#entendemos").innerHTML = blocoEntendemos(); p.querySelector("#i04").innerHTML = blocoI04(); p.querySelector("#i03").innerHTML = blocoI03(); p.querySelector("#i05").innerHTML = blocoI05(); ligar(); }
+    function atualizarCaixa() { p.querySelector("#entendemos").innerHTML = blocoEntendemos(); p.querySelector("#atencao").innerHTML = blocoAtencao(); p.querySelector("#i04").innerHTML = blocoI04(); p.querySelector("#i03").innerHTML = blocoI03(); p.querySelector("#i05").innerHTML = blocoI05(); ligar(); }
     ligar();
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
 
@@ -606,7 +717,7 @@
 
   function rodape() {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do Grupo ${esc(D.modulo.numero)} · Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} (A) · fontes consultadas em ${esc(D.modulo.data)}</p>
+      <p class="credito">Conteúdo produzido por estudantes do Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} (A) · fontes consultadas em ${esc(D.modulo.data)}</p>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

@@ -61,6 +61,7 @@ const server = http.createServer(async (req, res) => {
     await assertTop();
     await page.screenshot({ path: path.join(artifacts, 'mobile-question.png') });
 
+    const avisos = [];
     for (const [branch, first] of [['Produto', 'M5.P02'], ['Serviço', 'M5.P17'], ['Mercadoria', 'M5.P10']]) {
       await assertFresh();
       await page.locator('.opcao').first().click();             // P00 -> P01
@@ -101,6 +102,11 @@ const server = http.createServer(async (req, res) => {
           }
         }
         await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+        // aviso que não trava (ex.: preço 10 para custo 1 = 10 vezes o custo): o 2º Continuar segue
+        if (await page.locator('#erro.aviso-qtd').isVisible()) {
+          avisos.push((await state()).hist.at(-1));
+          await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+        }
         assert.equal(await page.locator('#erro').isVisible(), false, 'Valid fixture answer');
         await page.getByRole('button', { name: /^(Seguir|Ver o resultado)$/ }).click();
       }
@@ -133,6 +139,7 @@ const server = http.createServer(async (req, res) => {
     await page.reload();
     await page.getByRole('button', { name: 'Continuar de onde parei', exact: true }).click();
     await assertFresh();
+    assert.deepEqual(avisos, ['M5.P36'], 'só a Mercadoria (custo 1, preço 10) mostra o aviso de preço muitas vezes o custo, e ele não trava');
     console.log('PASS: question confirmation clears answers/history and persists');
     await page.emulateMedia({ media: 'print' });
     assert.equal(await page.getByRole('button', { name: label, exact: true }).isVisible(), false);

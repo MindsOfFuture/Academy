@@ -42,6 +42,42 @@
     const d = soDig(t);
     return M.anexo.filter((l) => sem(l.ocupacao + " " + l.cnae + " " + l.descricao).includes(t) || (d.length >= 4 && soDig(l.cnae).startsWith(d)));
   }
+  /* Ocupações do Anexo XI que podem combinar com a descrição da atividade (busca por palavras).
+     Cada palavra da descrição vira um começo de palavra (até 6 letras, sem o "s" do plural) e
+     procura nas ocupações e descrições do Anexo. SINONIMOS liga palavras do dia a dia às do Anexo.
+     Ocupação vale 2 pontos por palavra; descrição, 1. Ficam as que somam 2 pontos ou mais e mais da metade da melhor (até MAX_SUGESTOES). */
+  const MAX_SUGESTOES = 5;
+  const PARADAS = new Set(("faco fazer feito feitos feita feitas vendo vender venda vendas para pela pelo pelas pelos com sem uma umas uns " +
+    "como casa minha minhas meu meus seu sua dia dias por encomenda encomendas pedido pedidos cliente clientes entrego entrega " +
+    "domicilio domiciliar trabalho trabalhar atendo atender atendimento tambem mais muito pouco algumas alguns todo toda todos " +
+    "caseiro caseira caseiros caseiras proprio propria online internet instagram whatsapp bairro cidade nao sei renda gerar civil").split(" "));
+  const SINONIMOS = {
+    bolo: ["confeiteir", "doceir"], bolos: ["confeiteir", "doceir"], torta: ["confeiteir"], confeitaria: ["confeiteir"],
+    doce: ["doceir"], docinho: ["doceir"], brigadeiro: ["doceir"], pudim: ["doceir"],
+    salgado: ["salgadeir"], salgadinho: ["salgadeir"], coxinha: ["salgadeir"], marmita: ["marmiteir"], quentinha: ["marmiteir"],
+    pao: ["padeir", "panific"], paes: ["padeir", "panific"], unha: ["manicure"], unhas: ["manicure"], pe: ["pedicure"],
+    cabelo: ["cabeleireir"], cabelos: ["cabeleireir"], barba: ["barbeir"], sobrancelha: ["sobrancelh"], maquiagem: ["maquiador"],
+    roupa: ["costureir"], roupas: ["costureir"], conserto: ["reparador"], jato: ["lavador"], lavajato: ["lavador"], carro: ["lavador"],
+    revenda: ["comerciante"], revendo: ["comerciante"], revender: ["comerciante"], aula: ["professor", "instrutor"], aulas: ["professor", "instrutor"],
+  };
+  const raizes = (txt) => [...new Set(sem(txt).replace(/[^a-z0-9 ]/g, " ").split(" ").filter((w) => w.length >= 3 && !PARADAS.has(w))
+    .flatMap((w) => { const b = w.length > 4 ? w.replace(/s$/, "") : w; return [b.length >= 4 ? b.slice(0, 6) : null, ...(SINONIMOS[w] || SINONIMOS[b] || [])]; })
+    .filter(Boolean))];
+  function sugerirAnexo(M, texto) {
+    const rs = raizes(texto);
+    if (!rs.length) return [];
+    const palavras = (s) => sem(s).replace(/[^a-z0-9 ]/g, " ").split(" ").filter(Boolean);
+    const pont = M.anexo.map((l) => {
+      const po = palavras(l.ocupacao), pd = palavras(l.descricao);
+      let n = 0;
+      for (const r of rs) n += po.some((w) => w.startsWith(r)) ? 2 : pd.some((w) => w.startsWith(r)) ? 1 : 0;
+      return { l, n };
+    }).filter((x, i, todos) => x.n > 0 && todos.findIndex((y) => y.l.ocupacao === x.l.ocupacao && y.l.cnae === x.l.cnae) === i);
+    if (!pont.length) return [];
+    const melhor = Math.max(...pont.map((x) => x.n));
+    return pont.filter((x) => x.n >= 2 && x.n > melhor / 2)
+      .sort((a, b) => b.n - a.n || a.l.ocupacao.length - b.l.ocupacao.length).slice(0, MAX_SUGESTOES).map((x) => x.l);
+  }
   /* CNAEs digitados em P06 cruzados com o Anexo XI */
   function cnaes(M, R) {
     const v = valor(R, "M8.P06");
@@ -105,7 +141,7 @@
   const encaminhamentos = (rs) => semVazio(rs, "encaminhamento", "Nenhum");
   const alertas = (rs) => semVazio(rs, "alerta", "Nenhum");
 
-  const API = { montar, valor, campo, temNaoSei, buscarAnexo, cnaes, avaliar, proxima, regrasAgora, regrasTodas,
+  const API = { montar, valor, campo, temNaoSei, buscarAnexo, sugerirAnexo, cnaes, avaliar, proxima, regrasAgora, regrasTodas,
                 respondidas, lacunas, encaminhamentos, alertas, NS };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

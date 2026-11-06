@@ -71,7 +71,7 @@ const NA_PAGINA = {
   const ordem = await page.evaluate(() => Motor.montar(window.MODULO6).perguntas.map((p) => ({ codigo: p.codigo, campo: Motor.campo(p), opcoes: p.opcoesLista, condicao: p.condicao })));
   const Q = Object.fromEntries(ordem.map((p) => [p.codigo, p]));
   const P = D.perguntas.filter((p) => p.codigo), R = D.regras.filter((r) => r.codigo);
-  const telasComRafael = [];
+  const telasComRafael = [], telasComCodigo = [], telasComVariosAlertas = [];
 
   /* ---------- dados ---------- */
   const dadosTxt = fs.readFileSync(path.join(DIR, 'dados/modulo6.js'), 'utf8');
@@ -97,7 +97,12 @@ const NA_PAGINA = {
     return { tipo: 'opcao', v: q.opcoes.find((o) => o !== 'Não sei') };
   };
   async function olharRafael(rotulo) {
-    if (/rafael/i.test(await page.evaluate(() => document.body.innerText))) telasComRafael.push(rotulo);
+    const corpo = await page.evaluate(() => document.body.innerText);
+    if (/rafael/i.test(corpo)) telasComRafael.push(rotulo);
+    const cod = corpo.match(/\b(M\d+\.)?P\d{2}\b/);
+    if (cod) telasComCodigo.push(`${rotulo}: ${cod[0]}`);
+    const nAlerta = await page.evaluate(() => document.querySelectorAll('.b-alerta').length);
+    if (nAlerta > 1) telasComVariosAlertas.push(`${rotulo}: ${nAlerta}`);
   }
   /* começa do zero; responde até chegar em `alvo` (ou ao resultado), usando `resp` ou valores neutros */
   async function caminho(resp, alvo, semente) {
@@ -213,20 +218,40 @@ const NA_PAGINA = {
     check(`I01 na tela: ${v} = ${brl(esp)}`, nrm(v) === nrm(brl(esp)), v); }
   { const e = reais(I['M6.I03'].ex_entrada), s = reais(I['M6.I03'].ex_saida), esp = s[1];
     const m = await page.evaluate(([e, s]) => Motor.controle({ saldoInicial: e[0], semanas: [{ entradas: e[1], saidas: s[0] }] }).saldo, [e, s]);
-    check(`I03 motor: ${e[0]} + ${e[1]} − ${s[0]} = ${esp}`, m === esp, m);
-    await caminho({ 'M6.P02': { tipo: 'texto', v: String(s[0]) }, 'M6.P05': { tipo: 'texto', v: String(e[1]) }, 'M6.P07': { tipo: 'texto', v: String(e[0]) }, 'M6.P08': { tipo: 'opcao', v: 'Na hora' }, 'M6.P10': { tipo: 'NS' } }, null);
-    const t = nrm(await page.textContent('#i03'));
-    check(`I03 na tela mostra saldo ${brl(esp)}`, t.replace(/\s/g, '').includes(('Saldo' + brl(esp)).replace(/\s/g, '')), t); }
+    check(`I03 motor: ${e[0]} + ${e[1]} − ${s[0]} = ${esp}`, m === esp, m); }
   { const e = reais(I['M6.I04'].ex_entrada), s = reais(I['M6.I04'].ex_saida), esp = s[1];
     const m = await page.evaluate(([e, s]) => Motor.projetar({ saldoInicial: e[0], semanas: [{ entradas: e[1], saidas: s[0] }] })[0].final, [e, s]);
     check(`I04 motor: ${e[0]} + ${e[1]} − ${s[0]} = ${esp}`, m === esp, m);
-    await caminho({ 'M6.P02': { tipo: 'texto', v: String(s[0]) }, 'M6.P05': { tipo: 'texto', v: String(e[1]) }, 'M6.P07': { tipo: 'texto', v: String(e[0]) }, 'M6.P08': { tipo: 'opcao', v: 'Na hora' }, 'M6.P10': { tipo: 'NS' } }, null);
-    const sf = nrm(await page.textContent('.fluxo tbody tr:first-child .sf'));
-    check(`I04 na tela: semana 1 = ${sf} (esperado ${brl(esp)})`, sf === nrm(brl(esp)), sf);
+    /* BUG ALTO (05/11): a venda do mês entrava uma vez só e o saldo ficava parado. Caso conferido à mão:
+       caixa hoje R$ 2.000; investimento R$ 1.500 (sai na semana 1); vendas R$ 1.000/mês recebidas "Até 7 dias";
+       gastos de todo mês "Aluguel 300, luz 90" = R$ 390/mês.
+       vendas por semana = 1.000 × 12 ÷ 52 = 230,769… → R$ 230,77 (entram a partir da semana 2);
+       gastos por semana = 390 × 12 ÷ 52 = R$ 90,00 (toda semana).
+       semana 1: 2.000 + 0 − (1.500 + 90) = R$ 410,00
+       semana 2: 410 + 230,77 − 90 = R$ 550,77
+       semana 13: 410 + 12 × (230,77 − 90) = 410 + 12 × 140,77 = 410 + 1.689,24 = R$ 2.099,24
+       controle do período: entradas 12 × 230,77 = 2.769,24; saídas 1.590 + 12 × 90 = 2.670,00; saldo 2.000 + 2.769,24 − 2.670 = 2.099,24 */
+    await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel 300, luz 90' },
+      'M6.P07': { tipo: 'texto', v: '2000' }, 'M6.P08': { tipo: 'opcao', v: 'Até 7 dias' } }, null);
+    const linhas = await page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => ({ e: r.querySelector('[data-k="entradas"]').value, s: r.querySelector('[data-k="saidas"]').value, sf: r.querySelector('.sf').textContent.replace(/\s+/g, ' ').trim() })));
+    check('I04: 13 semanas, cada uma com Entradas, Saídas e Saldo preenchidos', linhas.length === 13 && linhas.every((l) => l.e !== '' && l.s !== '' && l.sf !== ''), linhas.slice(0, 3));
+    check('I04 conferido à mão: semana 1 = entradas 0,00 · saídas 1.590,00 · saldo R$ 410,00', linhas[0].e === '0,00' && linhas[0].s === '1.590,00' && linhas[0].sf === nrm(brl(410)), linhas[0]);
+    check('I04 conferido à mão: semana 2 = entradas 230,77 · saídas 90,00 · saldo R$ 550,77', linhas[1].e === '230,77' && linhas[1].s === '90,00' && linhas[1].sf === nrm(brl(550.77)), linhas[1]);
+    check('I04 conferido à mão: semana 13 = saldo R$ 2.099,24', linhas[12].sf === nrm(brl(2099.24)), linhas[12]);
+    check('I04: o saldo muda toda semana (não fica parado da semana 3 em diante)', new Set(linhas.map((l) => l.sf)).size === 13, linhas.map((l) => l.sf));
+    const como = nrm(await page.textContent('#como-conta'));
+    check('I04 explica a conta: vendas e gastos do mês por semana (× 12 ÷ 52), recebimento a partir da semana 2, investimento na semana 1',
+      como.includes('R$ 1.000,00 por mês = R$ 230,77 por semana (mês × 12 ÷ 52), a partir da semana 2') && como.includes('R$ 390,00 = R$ 90,00 por semana') && como.includes('(R$ 1.500,00) sai na semana 1'), como);
+    const t = nrm(await page.textContent('#i03'));
+    check('I03 na tela (13 semanas): entradas R$ 2.769,24, saídas R$ 2.670,00, saldo R$ 2.099,24', ['Entradas' + brl(2769.24), 'Saídas' + brl(2670), 'Saldo' + brl(2099.24)].every((x) => t.replace(/\s/g, '').includes(x.replace(/\s/g, ''))), t);
     /* editar uma semana recalcula e passa o saldo adiante */
     await page.fill('.fluxo input[data-i="1"][data-k="saidas"]', '2000'); await page.dispatchEvent('.fluxo input[data-i="1"][data-k="saidas"]', 'change');
     const sf2 = nrm(await page.textContent('.fluxo tbody tr:nth-child(2) .sf'));
-    check('I04: semana 2 = saldo da semana 1 − R$ 2.000 e alerta do limite', sf2 === nrm('−' + brl(500)) && nrm(await page.textContent('#i04')).includes(nrm(I['M6.I04'].limite)), sf2); }
+    check('I04: semana 2 com saída de R$ 2.000 = 410 + 230,77 − 2.000 = −R$ 1.359,23 e aviso da semana 2 no bloco Atenção', sf2 === nrm('−' + brl(1359.23)) && /Vai sair mais dinheiro do que você terá em caixa na semana 2\b/.test(nrm(await page.textContent('#atencao'))), sf2);
+    /* mudar as vendas do mês refaz a tabela: 2.000 × 12 ÷ 52 = 461,54; semana 2 = 410 + 461,54 − 90 = 781,54 */
+    await page.fill('#f-vendas', '2000'); await page.dispatchEvent('#f-vendas', 'change');
+    const sf3 = nrm(await page.textContent('.fluxo tbody tr:nth-child(2) .sf'));
+    check('I04: vendas do mês = R$ 2.000 refaz a tabela (semana 2 = R$ 781,54)', sf3 === nrm(brl(781.54)), sf3); }
   { const e = reais(I['M6.I05'].ex_entrada), esp = reais(I['M6.I05'].ex_saida)[0];
     for (const [k, v] of [['ini', 0], ['ent', e[0]], ['sai', e[1]]]) { await page.fill(`.cen[data-k="${k}"]`, String(v)); await page.dispatchEvent(`.cen[data-k="${k}"]`, 'change'); }
     const t = nrm(await page.textContent('#cen-res'));
@@ -316,10 +341,13 @@ const NA_PAGINA = {
     const sem = { ...semM5, 'lg2-turma-a-m01': M1({ 'M1.P01': { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' }, 'M1.P03': { estado: 'valor', valor: 'Lavagem de carro em domicílio' }, 'M1.P03A': { estado: 'opcao', opcao: SERV_M1 } }) };
     await caminho({ 'M6.P01': { tipo: 'texto', v: 'Lavadora' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P03': { tipo: 'opcao', v: 'À vista' }, 'M6.P04': { tipo: 'manter' }, 'M6.P05': { tipo: 'manter' }, 'M6.P06': { tipo: 'manter' },
       'M6.P07': { tipo: 'texto', v: '500' }, 'M6.P08': { tipo: 'opcao', v: 'Até 7 dias' } }, null, sem);
-    const box = await page.evaluate(() => { const b = document.querySelector('#entendemos'); return b && { txt: b.innerText, n: b.querySelectorAll('p').length,
+    const box = await page.evaluate(() => { const b = document.querySelector('#entendemos'); return b && { txt: b.innerText, n: b.querySelectorAll('p').length, li: b.querySelectorAll('ul, ol, li').length,
+      p: [...b.querySelectorAll('p')].map((x) => x.textContent.replace(/\s+/g, ' ')),
       antes: !!(b.compareDocumentPosition(document.querySelector('#i01')) & Node.DOCUMENT_POSITION_FOLLOWING) }; });
     const bt = nrm(box && box.txt);
-    check('resultado: caixa "O que entendemos até aqui" acima do caixa, 3–6 frases', box && box.antes && box.n >= 3 && box.n <= 6 && bt.startsWith('O que entendemos até aqui'), box);
+    /* texto corrido (relatório do Bento): 1 a 3 parágrafos, sem lista */
+    check('resultado: caixa "O que entendemos até aqui" acima do caixa, texto corrido em 1 a 3 parágrafos (sem <li>, com <p>)', box && box.antes && box.n >= 1 && box.n <= 3 && box.li === 0 && bt.startsWith('O que entendemos até aqui'), box);
+    check('caixa: parágrafos por assunto (negócio · gasto e vendas · caixa nas 13 semanas)', box && box.n === 3 && box.p[0].startsWith('Você oferece') && /Para começar/.test(box.p[1]) && /semana/.test(box.p[2]), box && box.p);
     check('caixa junta módulos anteriores e este (ideia, tipo, estágio, investimento, vendas, semana negativa)',
       bt.includes('Você oferece um serviço: Lavagem de carro em domicílio.') && bt.includes('Você ainda não começou a vender.')
       && bt.includes('Para começar, você estima gastar R$ 3.000,00, pagando à vista.') && bt.includes('Você espera vender cerca de R$ 1.000,00 por mês e receber o dinheiro em até 7 dias.')
@@ -327,6 +355,107 @@ const NA_PAGINA = {
     check('lista de respostas recolhida em "Ver suas respostas"', await page.evaluate(() => { const d = document.querySelector('details.respostas'); return !!d && !d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }));
     const resumo = nrm(await page.evaluate(() => document.querySelector('details.respostas').textContent));
     check('resumo mostra o selo "Veio do Módulo 5" nas respostas herdadas e "Veio do Módulo 1" no tipo', /Veio do Módulo 5 Dinheiro; Pix/.test(resumo) && /Veio do Módulo 1 Serviço/.test(resumo), resumo.slice(0, 500)); }
+
+  /* ---------- 7. relatório 05/11: próximos passos, encaminhamentos, alertas, Módulo 1, campos numéricos, teclado ---------- */
+  { const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P07': { tipo: 'NS' }, 'M6.P09': { tipo: 'NS' },
+      'Negócio': { tipo: 'opcao', v: 'Mercadoria' }, 'M6.P16': { tipo: 'texto', v: 'Potes' }, 'M6.P17': { tipo: 'texto', v: '1000' } }, null);
+    const px = await page.$$eval('#proximos li', (l) => l.map((x) => x.textContent.trim()));
+    check('Próximos passos = só o que ficou em "Não sei", em linguagem simples', JSON.stringify(px) === JSON.stringify(['Informe quanto você tem em caixa hoje para usar no negócio.', 'Confira se algum pagamento ou recebimento tem prazo diferente dos outros.']), px);
+    const corpo = await page.evaluate(() => document.body.innerText);
+    check('resultado sem códigos internos (P02, "Preencher P17", "na P08")', !/\b(M\d+\.)?P\d{2}\b/.test(corpo), (corpo.match(/.{30}\bP\d{2}\b.{10}/) || [])[0]);
+    const enc = await page.$$eval('.b-enc li', (l) => l.map((x) => x.textContent.trim()));
+    check('encaminhamentos sem repetição ("Estimativa do investimento" aparece uma vez só)', enc.filter((x) => /^Estimativa do investimento/.test(x)).length === 1 && new Set(enc).size === enc.length, enc);
+    const ale = nrm(await page.evaluate(() => (document.querySelector('#atencao') || {}).innerText || ''));
+    await olharRafael('RESULTADO com alertas');
+    const dic = await page.$$eval('#dicas li', (l) => l.map((x) => x.textContent.trim()));
+    check('alerta que depende da resposta fica em "Atenção, pelas suas respostas" (caixa = Não sei)', ale.includes('Sem essa informação, não é possível comparar os recursos disponíveis com as necessidades.'), ale);
+    check('alertas genéricos saem dos alertas e vão para "Dicas gerais" (no máximo 4)', !ale.includes('O valor pode mudar após consultar preços e fornecedores.')
+      && dic.length >= 1 && dic.length <= 4 && dic.every((d) => !ale.includes(nrm(d))), { ale, dic });
+    await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' } }, null);
+    check('nada em aberto: Próximos passos diz isso em vez de listar perguntas já respondidas', /Nada ficou em aberto/.test(await page.textContent('#proximos')) && !(await page.$('#proximos li'))); }
+  { const m1 = (op) => ({ 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: op } }) });
+    const resp = { 'M6.P01': { tipo: 'texto', v: 'Potes e forno' }, 'M6.P02': { tipo: 'texto', v: '3000' } };
+    await caminho(resp, null, m1('Até R$ 100'));
+    const av = nrm(await page.evaluate(() => (document.querySelector('#aviso-m1') || {}).innerText || ''));
+    check('investimento R$ 3.000 acima de "Até R$ 100" (Módulo 1): aviso no resultado citando o Módulo 1', av.includes('Veio do Módulo 1') && av.includes('“Até R$ 100”') && av.includes('R$ 3.000,00'), av);
+    await caminho(resp, null, m1('Mais de R$ 1.000'));
+    const a2 = await page.$('#aviso-m1');
+    await caminho({ ...resp, 'M6.P02': { tipo: 'texto', v: '800' } }, null, m1('Entre R$ 500 e R$ 1.000'));
+    check('sem aviso do Módulo 1 quando o investimento cabe no limite (ou "Mais de R$ 1.000")', !a2 && !(await page.$('#aviso-m1'))); }
+  { await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' } }, 'M6.P02');
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '12abc' });
+    check('número com letras: "Digite só números. Ex.: 12,50" e não grava', nrm(await page.textContent('#erro')).includes('Digite só números. Ex.: 12,50')
+      && !(await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P02'])));
+    const inp = await page.getAttribute('#ent input', 'inputmode');
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '60000' });
+    const aviso1 = nrm(await page.textContent('#erro')), gravou1 = await page.evaluate(() => !!JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P02']);
+    await page.evaluate(() => document.querySelector('#ok').click());
+    const gravou2 = await page.evaluate(() => !!JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P02']);
+    check('valor alto (R$ 60.000) avisa sem travar: 1º Continuar avisa, 2º com o mesmo valor segue', inp === 'decimal' && /parece alto/.test(aviso1) && !gravou1 && gravou2
+      && (await page.evaluate(NA_PAGINA.seguir)), { inp, aviso1, gravou1, gravou2 }); }
+  { // teclado do celular: campo e Continuar continuam visíveis
+    check('viewport com interactive-widget=resizes-content', /interactive-widget=resizes-content/.test(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8')));
+    for (const [cod, sel, pre] of [['M6.P01', '#ent textarea', {}], ['M6.P05', '#ent input', {}]]) {
+      await caminho(pre, cod);
+      await page.focus(sel);
+      await page.setViewportSize({ width: 390, height: 450 });
+      await page.waitForTimeout(600);
+      const [bc, bo] = [await (await page.$(sel)).boundingBox(), await (await page.$('#ok')).boundingBox()];
+      await page.setViewportSize({ width: 390, height: 844 });
+      check(`teclado aberto (390x450) em ${cod}: campo e Continuar dentro da tela`, bc.y >= 0 && bc.y + bc.height <= 450 && bo.y >= 0 && bo.y + bo.height <= 450, { bc, bo });
+    } }
+  { // estado salvo antes da correção (venda do mês uma vez só): a tabela é refeita
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m06', JSON.stringify({ dados: '2026-10-15',
+      R: { 'M6.P01': { estado: 'valor', valor: 'Potes' }, 'M6.P02': { estado: 'valor', valor: '1500' }, 'M6.P05': { estado: 'valor', valor: '1000' }, 'M6.P07': { estado: 'valor', valor: '2000' } },
+      hist: ['M6.P01', 'RESULTADO'], prio: {}, cen: null,
+      fluxo: { saldoInicial: 2000, semanas: [{ entradas: 1000, saidas: 1500 }, ...Array.from({ length: 12 }, () => ({ entradas: 0, saidas: 0 }))], semanaPagamento: 1, semanaRecebimento: 1 } })); });
+    await page.reload(); await page.click('#ir');
+    const sf = await page.$$eval('.fluxo .sf', (x) => x.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
+    // 2.000 − 1.500 + 230,77 por semana desde a semana 1 (prazo não informado) = 730,77 … 500 + 13 × 230,77 = 3.500,01
+    check('fluxo salvo na versão antiga é refeito com as respostas (semana 1 = R$ 730,77; semana 13 = R$ 3.500,01)', sf[0] === nrm(brl(730.77)) && sf[12] === nrm(brl(3500.01)), sf); }
+
+  /* ---------- 8. novas testadoras: atenção única, prioridade de compras, "Como calculamos" ---------- */
+  { // (a) pergunta com regra + alerta da pergunta = um bloco só, sem repetição
+    await caminho({}, 'M6.P05');
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '0' });
+    const blocos = await page.$$eval('.b-alerta', (b) => b.map((x) => x.innerText));
+    const itensAt = await page.$$eval('.b-alerta li', (l) => l.map((x) => x.textContent.trim()));
+    check('P05 = 0 (duas regras + alerta da pergunta): um único bloco "Atenção" com os alertas sem repetição', blocos.length === 1 && itensAt.length >= 2 && new Set(itensAt).size === itensAt.length, { blocos, itensAt });
+    // resultado com M1 acima do teto + semana negativa + alertas das respostas: um bloco só
+    await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P07': { tipo: 'texto', v: '0' } }, null,
+      { 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: 'Até R$ 100' } }) });
+    const nb = await page.$$eval('.b-alerta', (b) => b.length), li = await page.$$eval('#atencao li', (l) => l.map((x) => x.textContent.trim()));
+    check('resultado: Módulo 1, semana no vermelho e alertas das respostas no MESMO bloco "Atenção", sem repetição', nb === 1 && li.some((x) => /Veio do Módulo 1/.test(x)) && li.some((x) => /semana 1/.test(x)) && new Set(li).size === li.length, { nb, li }); }
+  { // (b) "nada, por enquanto." não vira item
+    const its = await page.evaluate(() => [Motor.itensDe('nada, por enquanto.'), Motor.itensDe('farinha, chocolate em pó, nada mais'), Motor.itensDe('Nenhum. Ainda não sei'), Motor.semCompras('nada, por enquanto.'), Motor.semCompras('farinha')]);
+    check('motor: "nada, por enquanto." = nenhum item (sem compras); "farinha, chocolate em pó, nada mais" = 2 itens', JSON.stringify(its) === JSON.stringify([[], ['farinha', 'chocolate em pó'], [], true, false]), its);
+    const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'nada, por enquanto.' } }, null);
+    const r1 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P01']);
+    check('P01 = "nada, por enquanto.": sem compras, pula o valor das compras (P02/P03) e não abre a lista de prioridades',
+      r1.semCompras === true && !c.vistas.includes('M6.P02') && !c.vistas.includes('M6.P03') && !(await page.$('#prio')) && !/por enquanto/.test(await page.textContent('#i02'))
+      && nrm(await page.textContent('#i01-val')) === nrm(brl(0)), { r1, vistas: c.vistas });
+    await caminho({}, 'M6.P01');
+    check('P01 tem o botão "Não tenho compras a fazer agora"', !!(await page.$('#sem-compras-btn')) && nrm(await page.textContent('#sem-compras-btn')) === 'Não tenho compras a fazer agora');
+    await page.click('#sem-compras-btn');
+    const ret = nrm(await page.evaluate(NA_PAGINA.retorno));
+    await page.evaluate(NA_PAGINA.seguir);
+    check('o botão grava "sem compras" e pula para as formas de pagamento', ret.includes('sem compras para começar agora') && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04', ret);
+    // tirar um item antes de classificar
+    await caminho({ 'M6.P01': { tipo: 'texto', v: 'farinha, chocolate em pó, nada' } }, null);
+    const antes = await page.$$eval('#prio .nome', (n) => n.map((x) => x.textContent));
+    await page.evaluate(() => [...document.querySelectorAll('#prio .tirar')][1].click());
+    const depois = await page.$$eval('#prio .nome', (n) => n.map((x) => x.textContent));
+    await page.reload(); await page.click('#ir');
+    const recarr = await page.$$eval('#prio .nome', (n) => n.map((x) => x.textContent));
+    check('lista de prioridades: "nada" não entra; "Tirar da lista" remove um item e continua fora ao recarregar',
+      JSON.stringify(antes) === '["farinha","chocolate em pó"]' && JSON.stringify(depois) === '["farinha"]' && JSON.stringify(recarr) === '["farinha"]' && /chocolate em pó/.test(await page.textContent('#fora')), { antes, depois, recarr }); }
+  { // (c) "Como calculamos" embaixo de cada número
+    await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel 300, luz 90' },
+      'M6.P07': { tipo: 'texto', v: '2000' }, 'M6.P08': { tipo: 'opcao', v: 'Até 7 dias' } }, null);
+    const cm = await page.evaluate(() => Object.fromEntries(['i01', 'i03', 'i04', 'i05'].map((k) => [k, (document.querySelector('#como-' + k) || {}).innerText || ''])));
+    check('"Como calculamos:" no investimento, no saldo, no fluxo e no cenário',
+      Object.values(cm).every((x) => nrm(x).startsWith('Como calculamos:')) && nrm(cm.i01).includes('R$ 1.500,00')
+      && nrm(cm.i03).includes('(R$ 2.000,00)') && nrm(cm.i03).includes('= R$ 2.099,24') && /semana anterior \+ entradas − saídas/.test(cm.i04), cm); }
 
   /* ---------- 4. persistência ---------- */
   await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno e balcão' } }, 'M6.P04');
@@ -347,6 +476,8 @@ const NA_PAGINA = {
   check('resultado não mostra "Retornar à Pxx"', !/Retornar à P\d/.test(fim));
   await olharRafael('RESULTADO');
   check('nenhum texto "Rafael" aparece em nenhuma tela', telasComRafael.length === 0, telasComRafael);
+  check('nenhum código de pergunta (P02, M6.P17…) aparece em nenhuma tela', telasComCodigo.length === 0, telasComCodigo.slice(0, 8));
+  check('no máximo um bloco de atenção por tela (todas as regras e resultados vistos)', telasComVariosAlertas.length === 0, telasComVariosAlertas.slice(0, 8));
   check('sem erro de JavaScript na página', errosJS.length === 0, errosJS);
 
   /* ---------- prints de celular ---------- */

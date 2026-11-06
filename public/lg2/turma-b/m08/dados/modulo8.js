@@ -175,11 +175,11 @@ window.MODULO8 = {
   {
    "codigo": "M8.P02",
    "modulo": "M8",
-   "pergunta": "Sua atividade envolve principalmente produto, serviço ou os dois?",
-   "ajuda": "Escolha a opção que mais representa sua atividade.",
+   "pergunta": "Sua atividade envolve principalmente produto, mercadoria, serviço ou mais de um?",
+   "ajuda": "Produto: você faz o que vende (bolo, doce, roupa). Mercadoria: você compra pronto e revende. Serviço: o cliente paga pelo seu trabalho (manicure, conserto, aula). Se fizer produto e também prestar serviço, escolha “Produto e serviço”.",
    "tipo": "Escolha",
    "condicao": "Sempre",
-   "opcoes": "Produto; Serviço; Produto e serviço; Não sei",
+   "opcoes": "Produto; Mercadoria; Serviço; Produto e serviço; Não sei",
    "resposta": "-",
    "alerta": "A classificação influencia CNAE, MEI e licenças."
   },

@@ -101,7 +101,10 @@
   ];
   const SIT = { feito: "feito", fazer: "a fazer", na: "não se aplica", conf: "a confirmar" };
 
-  function checklist(D, R, feitos) {
+  /* alimento percebido pelo que a pessoa vende (outros módulos ou ideias deste) e M9-02 = "Não":
+     a Vigilância Sanitária fica "a confirmar" em vez de "não se aplica" */
+  const alimentoSemSaude = (R, X) => !!(X && X.alimento) && op(R, "M9-02") === "Não";
+  function checklist(D, R, feitos, X) {
     const L = local(R), o4 = op(R, "M9-04"), o7 = op(R, "M9-07"), o7c = op(R, "M9-07c");
     const pulado = (motivo) => (L.indefinido ? { sit: SIT.conf, motivo: "Local ainda não definido" } : { sit: SIT.na, motivo });
     const porNS = (cods) => cods.filter((c) => ns(R, c));
@@ -135,7 +138,8 @@
       add("bombeiros", aceso ? { sit: SIT.fazer } : c.length ? { sit: SIT.conf, ns: c } : { sit: SIT.na, motivo: L.forma === "rua" ? "Sem gás" : "Sem público, gás ou inflamáveis em maior quantidade" }, ["bombeiros"]);
     }
     /* 5. Vigilância Sanitária */
-    add("vigilancia", sanitario(R) ? { sit: SIT.fazer } : ns(R, "M9-02") ? { sit: SIT.conf, ns: ["M9-02"] } : { sit: SIT.na, motivo: "Atividade sem interesse sanitário" }, ["vigilancia"]);
+    add("vigilancia", sanitario(R) ? { sit: SIT.fazer } : ns(R, "M9-02") ? { sit: SIT.conf, ns: ["M9-02"] }
+      : alimentoSemSaude(R, X) ? { sit: SIT.conf, motivo: "Você vende alimentos: confira com a Vigilância Sanitária" } : { sit: SIT.na, motivo: "Atividade sem interesse sanitário" }, ["vigilancia"]);
     /* 6. uso de espaço público (ambulante) */
     add("ambulante", L.forma === "rua" ? { sit: SIT.fazer } : L.forma === "indefinido" ? { sit: SIT.conf, ns: ["M9-03a"] } : { sit: SIT.na, motivo: "Não vende em local público" },
       ["prefeitura", "detran"]);
@@ -241,7 +245,7 @@
     return p.join("; ") + ".";
   }
 
-  const api = { NS, O, AVISO_NS, LIMITE, SIT, ORGAOS, ITENS, op, ns, local, sanitario, publico, sequencia, caminho, partesAviso, avisoNS, linkEstado, checklist, cruzamentos, alertas, proximos, encaminhamento, orgaos, linhaResumo };
+  const api = { NS, O, AVISO_NS, LIMITE, SIT, ORGAOS, ITENS, op, ns, local, sanitario, publico, sequencia, alimentoSemSaude, caminho, partesAviso, avisoNS, linkEstado, checklist, cruzamentos, alertas, proximos, encaminhamento, orgaos, linhaResumo };
   raiz.Motor9 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

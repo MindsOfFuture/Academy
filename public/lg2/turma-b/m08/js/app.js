@@ -8,10 +8,47 @@
   const D = window.MODULO8, M = Motor.montar(D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-b-m08";
+  /* Limites (nov/2026). Limite do MEI em 2026: R$ 81 mil por ano (gov.br, "Teto do MEI", e Lei Complementar 123/2006,
+     art. 18-A). A Lei Complementar 238/2026 (sancionada em 21/10/2026) sobe o teto para R$ 110 mil em 2027 e R$ 140 mil
+     a partir de 2028. Passar até 20% do limite tira do MEI no ano seguinte; mais que isso, desde janeiro do mesmo ano. */
+  const LIMITE_MEI_ANO = 81000;          // vale até 31/12/2026
+  const LIMITE_MEI_2027 = 110000;        // LC 238/2026
+  const TOLERANCIA_MEI = 0.2;            // até 20% acima do limite
+  const FAT_MES_ALTO = 20000;            // acima disso por mês: aviso "parece alto para um pequeno negócio" (não trava)
+  const ESPERA_TECLADO = 300;            // ms até rolar o campo para o centro, depois que o teclado abre
+  /* "Não sei" que não grava nem avança (nov/2026): estas respostas decidem o resto do módulo.
+     P01 → busca das ocupações do MEI · P02 → mostra ou não a pergunta do responsável técnico e o aviso do tipo
+     P03 → mostra ou não a pergunta das licenças · P04 → conta do limite do MEI e pergunta da lista do MEI
+     P05 → perguntas do CNAE e da lista do MEI e o alerta do limite. Nas outras perguntas o "Não sei" continua valendo.
+     Tocar em "Não sei" aqui mostra como descobrir a resposta e pede uma resposta. */
+  const NS_PRECISA = {
+    "M8.P01": "Escreva com as suas palavras o que você faz ou vende e para quem, como contaria a um amigo. Ex.: “Faço bolos de pote e vendo para os vizinhos”. Não precisa ser bonito: é com essa descrição que procuramos as ocupações do MEI que combinam com você.",
+    "M8.P02": "Pense no que o cliente paga. Se ele leva algo que você fez, é Produto. Se leva algo que você comprou pronto, é Mercadoria. Se paga pelo seu trabalho, é Serviço. Se faz as duas coisas, escolha “Produto e serviço”. Na dúvida, escolha o que mais acontece no seu dia a dia.",
+    "M8.P03": "Escolha o lugar onde você trabalha a maior parte do tempo. Se ainda não começou, escolha onde pretende trabalhar. Dá para mudar depois.",
+    "M8.P04": "Pode ser um valor aproximado. Faça a conta: preço de uma venda × quantas vendas por mês. Ex.: R$ 10 por bolo × 100 bolos = R$ 1.000. Se ainda não vende, use quanto espera vender por mês.",
+    "M8.P05": "Se você nunca abriu uma empresa, a resposta é “Não”. Se abriu, o tipo aparece no Cartão CNPJ, que você consulta de graça no gov.br com o número do CNPJ. Quem é MEI também tem o Certificado do MEI.",
+  };
+
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
   let S = carregar();               // { R: respostas, hist: [códigos] }
-  function carregar() { try { return JSON.parse(localStorage.getItem(CHAVE)) || novo(); } catch { return novo(); } }
+  function carregar() { try { return migrar(JSON.parse(localStorage.getItem(CHAVE)) || novo()); } catch { return novo(); } }
+  /* resposta antiga "Não sei" numa pergunta que agora precisa de resposta: apaga e volta para ela */
+  function migrar(s) {
+    if (!s.R) s.R = {};
+    if (!Array.isArray(s.hist)) s.hist = [];
+    let corte = -1, mudou = false;
+    for (const cod of Object.keys(NS_PRECISA)) {
+      if (!s.R[cod] || Motor.valor(s.R, cod) !== Motor.NS) continue;   // "Não sei" em botão de opção ou no botão à parte
+      delete s.R[cod]; mudou = true;
+      const i = s.hist.indexOf(cod);
+      if (i >= 0 && (corte < 0 || i < corte)) corte = i;
+      else if (i < 0) { corte = -1; s.hist = []; }   // fora da trilha salva: recomeça a navegação do início, com as respostas guardadas
+    }
+    if (corte >= 0) s.hist = s.hist.slice(0, corte + 1);
+    if (mudou) try { localStorage.setItem(CHAVE, JSON.stringify(s)); } catch {}   // a última da trilha é a pergunta apagada: "Continuar de onde parei" abre nela
+    return s;
+  }
   function novo() { return { R: {}, hist: [] }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
@@ -37,11 +74,13 @@
   }
   const reais = (n) => "R$\u00a0" + n.toLocaleString("pt-BR", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
   const qtd = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
-  /* tipo por palavra inicial: Produto / Mercadoria (conta como Produto) / Serviço; combinações com serviço = os dois */
+  /* tipo de oferta dos outros módulos → opção deste módulo:
+     "Produto: …" → Produto · "Mercadoria: …" → Mercadoria · "Serviço: …" → Serviço
+     Produto+Serviço ou Mercadoria+Serviço (Módulo 4) → Produto e serviço · Mercadoria+Produto → Produto */
   function tipoP02(t) {
     if (!t) return null;
-    const temS = /servi[cç]o/i.test(t), temP = /produto|mercadoria/i.test(t);
-    return temS && temP ? "Produto e serviço" : temS ? "Serviço" : temP ? "Produto" : null;
+    const temS = /servi[cç]o/i.test(t), temP = /produto/i.test(t), temM = /mercadoria/i.test(t);
+    return temS && (temP || temM) ? "Produto e serviço" : temS ? "Serviço" : temP ? "Produto" : temM ? "Mercadoria" : null;
   }
   function localP03(m9) {
     const a = textoDe(m9["M9-03"]), sa = textoDe(m9["M9-03a"]), sb = textoDe(m9["M9-03b"]);
@@ -82,6 +121,48 @@
     }
     return null;
   }
+  /* o que os outros módulos dizem do tipo de oferta, mesmo depois de respondido aqui: { opcao, de, original } */
+  function tipoHerdado() {
+    const fontes = [["lg2-turma-a-m01", "M1.P03A", 1], ["lg2-turma-a-m05", "M5.P01", 5], ["lg2-turma-a-m04", "M4.P02", 4]];
+    for (const [k, c, n] of fontes) { const o = textoDe(lerR(k)[c]); const t = tipoP02(o); if (t) return { opcao: t, de: n, original: o }; }
+    return null;
+  }
+  function avisoTipo(escolhida) {
+    const h = tipoHerdado();
+    if (!h || !escolhida || escolhida === NS || escolhida === h.opcao) return "";
+    return `<div class="bloco b-alerta" id="aviso-tipo"><b>Confira o tipo de atividade</b>No Módulo ${esc(h.de)} você respondeu “${esc(h.original)}”. Aqui você escolheu “${esc(escolhida)}”. Se mudou de ideia, tudo bem, pode seguir. Se foi engano, toque em “Corrigir minha resposta”. ${selo(h.de)}</div>`;
+  }
+
+  /* faturamento por ano: o informado aqui (por mês × 12) ou, se respondeu "Não sei", preço × vendas por mês do Módulo 5 × 12 */
+  function faturamentoAno() {
+    const v = Motor.valor(S.R, "M8.P04"), n = v && v !== NS ? numero(v) : null;
+    if (n != null && n >= 0) return { ano: n * 12, mes: n, de: S.R["M8.P04"] && S.R["M8.P04"].de };
+    const m5 = lerR("lg2-turma-a-m05"), preco = numero(textoDe(m5["M5.P36"])), vendas = numero(textoDe(m5["M5.P37"]));
+    if (preco > 0 && vendas > 0) return { ano: preco * vendas * 12, mes: preco * vendas, de: 5 };
+    return null;
+  }
+  /* alerta forte quando o faturamento passa do limite do MEI */
+  function alertaMei() {
+    const f = faturamentoAno();
+    if (!f || f.ano <= LIMITE_MEI_ANO) return "";
+    const cnpj = Motor.valor(S.R, "M8.P05");
+    if (cnpj && !["MEI", "Não", NS].includes(cnpj)) return "";          // EI, SLU ou LTDA já não são MEI
+    const teto20 = LIMITE_MEI_ANO * (1 + TOLERANCIA_MEI);
+    const origem = f.de ? ` ${selo(f.de)}` : "";
+    const conta = `Você estima faturar ${reais(Math.round(f.mes))} por mês, cerca de <b class="num">${reais(Math.round(f.ano))} por ano</b>.${origem} O limite do MEI em 2026 é de ${reais(LIMITE_MEI_ANO)} por ano (${reais(LIMITE_MEI_ANO / 12)} por mês, em média).`;
+    const corpo = cnpj === "MEI"
+      ? `<p>${conta}</p><p>Com esse faturamento, o seu negócio <b>sai do MEI</b>. Isso se chama <b>desenquadramento</b>: a empresa passa a ser microempresa, com outros impostos e obrigações.</p>
+         <p>${f.ano <= teto20 ? `Como passou até 20% do limite (até ${reais(teto20)}), a mudança vale a partir de janeiro do ano seguinte, e você paga um imposto a mais sobre o que passou.` : `Como passou mais de 20% do limite (acima de ${reais(teto20)}), a mudança vale desde janeiro deste ano, e pode haver imposto a pagar sobre o ano todo.`}</p>`
+      : `<p>${conta}</p><p>Com esse faturamento, o <b>MEI não serve</b> para o seu negócio: quem passa do limite sai do MEI (desenquadramento). Será preciso abrir o CNPJ de outra forma, como microempresa.</p>`;
+    return `<section class="alerta-forte" id="alerta-mei" role="alert">
+      <b class="af-tit">Atenção: faturamento acima do limite do MEI</b>
+      ${corpo}
+      <p><b>O que fazer:</b> procure um contador ou a Sala do Empreendedor da sua cidade antes de seguir vendendo nesse ritmo.</p>
+      ${f.ano <= LIMITE_MEI_2027 ? `<p class="mini-info">Em 2027 o limite sobe para ${reais(LIMITE_MEI_2027)} por ano (Lei Complementar 238/2026). Confira a sua situação com o contador.</p>` : ""}
+      <p class="mini-info">Fonte: gov.br, “Teto do MEI” e Lei Complementar 238/2026.</p>
+    </section>`;
+  }
+
   const mesmo = (a, b) => !!a && !!b && a.estado === b.estado && (a.opcao ?? a.valor) === (b.opcao ?? b.valor);
   const selo = (de) => `<span class="veio">Veio do Módulo ${esc(de)}</span>`;
 
@@ -265,15 +346,16 @@
           <div class="cartao-q pergunta">
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${deOnde ? `<div class="herdou" id="herdou">${selo(deOnde)}<span>${H ? "Confira e ajuste se quiser." : "Você já conferiu esta resposta."}</span>${nota ? `<p class="conta">${esc(nota)}</p>` : ""}</div>` : ""}
+            ${dica(q.ajuda)}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
-            ${LIGA_ANEXO.includes(cod) ? `<div class="alt"><button class="btn-alt" id="anexo">Consultar as ocupações permitidas ao MEI</button></div>` : ""}
-            ${dica(q.ajuda)}
+            <div class="bloco b-alerta" id="ns-ajuda" hidden></div>
             <div id="retorno"></div>
+            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            ${LIGA_ANEXO.includes(cod) ? `<div class="alt"><button class="btn-alt" id="anexo">Consultar as ocupações permitidas ao MEI</button></div>` : ""}
             ${blocoEducativo(educativoDe(cod))}
             ${blocoConceitos(conceitosDe(q))}
-            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             ${botaoVoltar(S.hist.length > 1 ? "Voltar" : "Início")}
           </div>
           ${rodape()}
@@ -294,13 +376,18 @@
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
         const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
+        b.onclick = () => {
+          ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel"));
+          if (op === NS && NS_PRECISA[cod]) { escolhida = null; return pedirResposta(); }   // não marca, não grava
+          escondeNs();
+          escolhida = op; b.classList.add("sel");
+        };
         ent.appendChild(b);
       });
     } else {
       const v = resp && resp.estado === "valor" ? resp.valor : "";
       ent.appendChild(el(tipo === "numero"
-        ? `<div class="linha"><input class="campo" inputmode="decimal" value="${esc(v)}"><span class="pre">R$</span></div>`
+        ? `<div class="linha"><input class="campo" inputmode="decimal" placeholder="Ex.: 2.500,00" value="${esc(v)}"><span class="pre">R$</span></div>`
         : `<textarea class="campo" rows="3">${esc(v)}</textarea>`));
     }
     const ax = p.querySelector("#anexo");
@@ -309,7 +396,18 @@
       ir(telaBase, () => ir(telaPergunta, cod), t && cod === "M8.P06" ? t.value : "");
     };
     const ns = p.querySelector("#ns");
-    if (ns) ns.onclick = () => responder({ estado: "naosei" });
+    if (ns) ns.onclick = () => NS_PRECISA[cod] ? pedirResposta() : responder({ estado: "naosei" });
+    /* "Não sei" numa pergunta necessária: explica como descobrir e pede a resposta (nada é gravado) */
+    function pedirResposta() {
+      p.querySelector("#erro").hidden = true;
+      const box = p.querySelector("#ns-ajuda");
+      box.innerHTML = `<b>Precisamos desta resposta para seguir</b>${esc(NS_PRECISA[cod])}<p class="ns-pede">${tipo === "escolha" ? "Escolha a opção que mais se aproxima e toque em Continuar." : "Escreva a sua resposta no campo e toque em Continuar."}</p>`;
+      box.hidden = false;
+      const f = ent.querySelector("input,textarea");
+      if (f) f.focus();
+      box.scrollIntoView({ block: "nearest" });
+    }
+    function escondeNs() { const box = p.querySelector("#ns-ajuda"); if (box) box.hidden = true; }
 
     p.querySelector("#ok").onclick = () => {
       if (tipo === "escolha") {
@@ -317,14 +415,28 @@
         return responder({ estado: "opcao", opcao: escolhida });
       }
       const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(Motor.temNaoSei(q) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
-      if (tipo === "numero" && isNaN(parseFloat(v.replace(/\./g, "").replace(",", ".")))) return erro("Informe um número.");
+      if (!v) return erro(Motor.temNaoSei(q) && !NS_PRECISA[cod] ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
+      if (tipo === "numero") {
+        if (/^-/.test(v.replace(/^R\$\s*/i, ""))) return erro("O valor não pode ser negativo. Digite quanto espera faturar por mês.");
+        if (!/^(R\$\s*)?\d[\d.\s]*(,\d+)?$|^(R\$\s*)?\d+(\.\d+)?$/i.test(v) || numero(v) == null) return erro("Digite só números. Ex.: 2500 ou 2.500,00");
+        const n = numero(v);
+        /* valor muito alto: avisa uma vez; o segundo Continuar com o mesmo valor segue */
+        if (n > FAT_MES_ALTO && avisado !== v) {
+          avisado = v;
+          return erro(`Esse valor parece alto para um pequeno negócio: ${reais(n)} por mês dá cerca de ${reais(Math.round(n * 12))} por ano. Confira se digitou certo. Se estiver certo, toque em Continuar de novo.`, true);
+        }
+      }
       responder({ estado: "valor", valor: v });
     };
-    function erro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
+    let avisado = null;
+    function erro(t, aviso) {
+      const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; e.classList.toggle("erro-aviso", !!aviso);
+      const ok = p.querySelector("#ok"); if (ok && ok.scrollIntoView) ok.scrollIntoView({ block: "nearest" });   // o Continuar continua à vista
+    }
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
+      escondeNs();
       /* guarda de onde veio quando a pessoa manteve o valor herdado (aparece com o selo no resumo) */
       const h = H || (S.R[cod] && S.R[cod].de ? S.R[cod] : null);
       if (h && mesmo(r0, h.r || h)) { r0.de = h.de; if (h.nota) r0.nota = h.nota; }
@@ -342,6 +454,8 @@
       const cnaes = cod === "M8.P06" ? Motor.cnaes(M, S.R) : [];
       box.innerHTML = `<div class="retorno">
         ${vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
+        ${cod === "M8.P02" ? avisoTipo(Motor.valor(S.R, cod)) : ""}
+        ${cod === "M8.P04" || cod === "M8.P05" ? alertaMei() : ""}
         ${cnaes.map(blocoCnae).join("")}
         ${regras.map((r) => `
           <div class="regra">
@@ -378,6 +492,22 @@
     Object.keys(S.R).forEach((k) => { if (!vis.has(k)) delete S.R[k]; });
   }
 
+  /* "possíveis CNAEs compatíveis": busca por palavras da descrição da atividade na lista de ocupações do MEI */
+  function blocoSugestoes() {
+    const ativ = Motor.valor(S.R, "M8.P01");
+    const desc = ativ && ativ !== NS ? ativ : textoDe(lerR("lg2-turma-a-m01")["M1.P03"]);
+    const confira = `<p class="mini-info">Esta é só uma busca pelas palavras que você usou. Confira na Sala do Empreendedor ou com um contador qual ocupação descreve de verdade o que você faz.</p>`;
+    let corpo;
+    if (!desc) corpo = `<p>Você não descreveu a sua atividade, então não foi possível procurar ocupações do MEI que combinem com ela. Use o botão “Consultar as ocupações permitidas ao MEI” logo abaixo para procurar por conta própria.</p>`;
+    else {
+      const ls = Motor.sugerirAnexo(M, desc);
+      corpo = ls.length
+        ? `<p>Pela sua descrição (“${esc(desc)}”), estas ocupações permitidas ao MEI podem combinar com a sua atividade:</p>${ls.map(linhaAnexo).join("")}${confira}`
+        : `<p>Não encontramos, na lista de ocupações permitidas ao MEI, nenhuma que combine com as palavras da sua descrição (“${esc(desc)}”). Isso não quer dizer que a sua atividade não possa ser MEI: procure com outras palavras no botão “Consultar as ocupações permitidas ao MEI” ou peça ajuda na Sala do Empreendedor.</p>`;
+    }
+    return `<section class="sugestoes" id="sugestoes"><div class="secao-titulo">Possíveis CNAEs compatíveis</div>${corpo}</section>`;
+  }
+
   function blocoCnae(c) {
     return c.linhas.length
       ? `<p class="mini-info">CNAE ${esc(c.cnae)} na lista de ocupações permitidas ao MEI (Anexo XI):</p>${c.linhas.map(linhaAnexo).join("")}`
@@ -403,6 +533,8 @@
             <h3>O que entendemos até aqui</h3>
             ${entendemos().map((f) => `<p>${esc(f)}</p>`).join("")}
           </section>
+          ${alertaMei()}
+          ${avisoTipo(Motor.valor(S.R, "M8.P02"))}
           <div class="res-num">
             <div class="lbl">Perguntas respondidas</div>
             <div class="val">${resp.length}</div>
@@ -419,6 +551,7 @@
               ${vazio(q.alerta) ? "" : `<p class="mini-info"><b>Atenção:</b> ${esc(q.alerta)}</p>`}
             </div>`).join("")}
           </details>
+          ${blocoSugestoes()}
           ${cnaes.map(blocoCnae).join("")}
 
           ${regras.length ? `<div class="secao-titulo">Orientações</div>${regras.map((r) => `<div class="cartao"><p>${esc(r.texto)}</p>
@@ -461,7 +594,8 @@
 
   /* "O que entendemos até aqui": frases montadas por regras com as respostas deste módulo
      e o que já existe nos módulos anteriores (estágio do Módulo 1, cliente do Módulo 3) */
-  const LIMITE_MEI_ANO = 81000;   // "até R$ 81 mil/ano" (Base técnica, MEI)
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function entendemos() {
     const v = (c) => { const x = Motor.valor(S.R, c); return x && x !== NS ? x : null; };
     const minus = (t) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -469,7 +603,8 @@
     const m1 = lerR("lg2-turma-a-m01"), m3 = lerR("lg2-turma-a-m03");
     const f = [];
     const ativ = v("M8.P01"), tipo = v("M8.P02");
-    const tipoTxt = { "Produto": "um produto", "Serviço": "um serviço", "Produto e serviço": "produto e serviço ao mesmo tempo" }[tipo];
+    const tipoTxt = { "Produto": "um produto (você faz o que vende)", "Mercadoria": "revenda de mercadoria (você compra pronto e revende)",
+                      "Serviço": "um serviço", "Produto e serviço": "produto e serviço ao mesmo tempo" }[tipo];
     if (ativ) f.push(`Sua atividade é: ${semPonto(ativ)}${tipoTxt ? ` — principalmente ${tipoTxt}` : ""}.`);
     else if (tipoTxt) f.push(`Sua atividade envolve principalmente ${tipoTxt}.`);
     const est = { "Ainda está só na minha cabeça": "Seu negócio ainda está no papel: você não começou a vender.",
@@ -482,25 +617,29 @@
     const local = { "Minha casa": "Você trabalha na sua casa", "Ponto comercial": "Você trabalha em um ponto comercial",
                     "Atendimento externo": "Você atende fora, no local do cliente", "Online": "Você trabalha pela internet" }[v("M8.P03")];
     if (local) f.push(local + (local.includes("internet") ? "." : ", e isso pode pedir licenças da prefeitura."));
+    const c1 = f.length;   // 1º parágrafo: a atividade, o estágio, o cliente e o lugar
     const fat = numero(v("M8.P04"));
     if (fat > 0) {
       const ano = fat * 12;
       f.push(`Você estima faturar ${reais(fat)} por mês, cerca de ${reais(Math.round(ano))} por ano — ${ano <= LIMITE_MEI_ANO
         ? "dentro do limite do MEI (R$ 81 mil por ano), então o MEI pode ser um caminho se a sua ocupação for permitida."
-        : "acima do limite do MEI (R$ 81 mil por ano); converse com um contador sobre outras formas de abrir o CNPJ."}`);
+        : v("M8.P05") === "MEI"
+          ? "acima do limite do MEI (R$ 81 mil por ano): com esse faturamento, o seu negócio sai do MEI. Procure um contador ou a Sala do Empreendedor."
+          : "acima do limite do MEI (R$ 81 mil por ano); converse com um contador sobre outras formas de abrir o CNPJ."}`);
     }
     const cnpj = v("M8.P05");
     if (cnpj === "Não") f.push("Você ainda não tem CNPJ.");
     else if (cnpj) f.push(`Você já tem CNPJ (${cnpj}).`);
+    const c2 = f.length;   // 2º: faturamento e CNPJ; 3º: a dúvida principal
     const duv = v("M8.P10");
     if (duv && f.length < 6) f.push(`Sua principal dúvida agora é: ${minus(duv)}.`);
     if (!f.length) f.push("Você ainda não deu detalhes suficientes sobre o seu negócio. Volte às perguntas quando souber mais.");
-    return f.slice(0, 6);
+    return emParagrafos(f.slice(0, 6), c1, c2);
   }
 
   function rodape() {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do Grupo ${esc(D.modulo.numero)} · Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
+      <p class="credito">Conteúdo do Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">
@@ -508,6 +647,16 @@
       </div>
     </footer>`;
   }
+
+  /* teclado do celular: o campo em foco vai para o centro da área visível (com o Continuar logo abaixo) */
+  let focado = null, espera = 0;
+  const centrar = () => { if (focado && document.activeElement === focado) focado.scrollIntoView({ block: "center" }); };
+  document.addEventListener("focusin", (e) => {
+    if (!e.target.matches || !e.target.matches("input, textarea, select")) return;
+    focado = e.target; clearTimeout(espera); espera = setTimeout(centrar, ESPERA_TECLADO);
+  });
+  document.addEventListener("focusout", () => { focado = null; });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", centrar);
 
   ir(telaCapa);
 })();
