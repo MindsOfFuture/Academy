@@ -85,7 +85,7 @@ test('coordenação: cria, edita, conclui e confere no histórico', async ({ pag
   await linhaA.getByRole('button', { name: 'Salvar' }).click();
   await expect(equipe).toContainText(new RegExp(`${BOLSISTA_A}\\s*· Faltou avisando`));
 
-  await equipe.getByLabel('Acrescentar pessoa').selectOption({ label: BOLSISTA_B });
+  await equipe.getByRole('group', { name: 'Acrescentar pessoas' }).getByLabel(BOLSISTA_B).check();
   await equipe.getByRole('button', { name: 'Alocar' }).click();
   await expect(equipe.getByRole('status')).toHaveText('Pessoa alocada.');
   await expect(equipe).toContainText(new RegExp(`${BOLSISTA_B}\\s*· Prevista`));
