@@ -48,6 +48,28 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     assert.equal(await atual(), 1);
     assert.deepEqual(await situacoes(), ['liberado', ...Array(9).fill('bloqueado')]);
 
+    // Painel "Seu negócio até aqui": abre no topo, sem respostas diz isso de forma simples, fecha com Esc.
+    const painelAberto = () => page.$eval('#painel', (e) => !e.hidden);
+    const painelInfo = () => page.evaluate(() => ({
+      pars: [...document.querySelectorAll('#painel-resumo p:not(.vazio)')].map((p) => p.textContent.trim()).filter(Boolean),
+      vazio: (document.querySelector('#painel-resumo .vazio') || {}).textContent || '',
+      nota: !document.getElementById('painel-nota').hidden ? document.getElementById('painel-nota').textContent : '',
+      mods: [...document.querySelectorAll('#painel-lista li')].map((li) => ({
+        n: Number(li.dataset.modulo), estado: li.querySelector('.estado').textContent, revisar: !!li.querySelector('.revisar') })),
+    }));
+    assert.ok(await page.isVisible('#abre-painel'), 'botão "Seu negócio até aqui" visível no topo');
+    await page.click('#abre-painel');
+    assert.ok(await painelAberto());
+    let info = await painelInfo();
+    assert.deepEqual(info.pars, []);
+    assert.match(info.vazio, /ainda não respondeu nenhuma pergunta/);
+    assert.equal(info.mods.length, 10);
+    assert.deepEqual(info.mods.map((m) => m.revisar), [true, ...Array(9).fill(false)], 'só o módulo liberado abre para revisar');
+    assert.deepEqual(info.mods.map((m) => m.estado), Array(10).fill('Não começado'));
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada_painel_vazio.png') }); }
+    await page.keyboard.press('Escape');
+    assert.equal(await painelAberto(), false, 'Esc fecha o painel');
+
     // Tocar num módulo trancado não abre: avisa qual concluir.
     await page.click('#trilha li:nth-child(3) button');
     assert.match(await page.textContent('#aviso'), /Conclua o Módulo 2 para liberar o Módulo 3/);
@@ -149,6 +171,41 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
       // O botão do próprio módulo ("Ir para o Módulo N" / "Voltar aos módulos") segue a jornada.
       await frame().evaluate(() => document.querySelector('.lg2-proximo a').click());
       if (prox) await esperarModulo(prox);
+      if (n === 1) {
+        // No meio da jornada (Módulo 2 aberto), o painel mostra o resumo com o que foi respondido no Módulo 1.
+        await page.click('#abre-painel');
+        assert.ok(await painelAberto(), 'painel abre no meio da jornada');
+        info = await painelInfo();
+        assert.ok(info.pars.length >= 1, 'pelo menos um parágrafo depois de responder o Módulo 1');
+        assert.equal(info.vazio, '');
+        assert.equal(info.nota, 'Montado com o que você respondeu. Se algo não estiver certo, abra o módulo e corrija.');
+        assert.equal(info.mods[0].estado, 'Feito');
+        assert.deepEqual(info.mods.map((m) => m.revisar), [true, true, ...Array(8).fill(false)]);
+        // Legível no celular: o painel cabe na largura e o conteúdo rola dentro dele.
+        const caixa = await page.evaluate(() => {
+          const c = document.querySelector('.painel-corpo'), r = document.querySelector('.painel').getBoundingClientRect();
+          return { largura: r.width, direita: r.right, rolavel: c.scrollWidth <= c.clientWidth, overflow: getComputedStyle(c).overflowY, base: r.bottom };
+        });
+        assert.ok(caixa.direita <= 390 && caixa.rolavel && caixa.overflow === 'auto' && caixa.base <= 844, 'painel cabe na tela do celular: ' + JSON.stringify(caixa));
+        if (process.env.SHOTS) {
+          await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada_painel_m01.png') });
+          await page.$eval('.painel-corpo', (c) => { c.scrollTop = c.scrollHeight; });
+          await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada_painel_m01_lista.png') });
+        }
+        await page.click('#fecha-painel');
+        assert.equal(await painelAberto(), false, 'Fechar fecha o painel');
+        await esperarModulo(2);
+        // "Abrir para revisar" abre o módulo certo; depois volta ao Módulo 2 pelo mesmo painel.
+        await page.click('#abre-painel');
+        await page.click('#painel-lista li[data-modulo="1"] .revisar');
+        assert.equal(await painelAberto(), false);
+        await esperarModulo(1);
+        assert.equal(await atual(), 1, '"Abrir para revisar" abre o Módulo 1');
+        await page.click('#abre-painel');
+        await page.click('#painel-lista li[data-modulo="2"] .revisar');
+        await esperarModulo(2);
+        assert.equal(await atual(), 2);
+      }
     }
     await page.waitForSelector('#fim:not([hidden])');
     assert.deepEqual(await situacoes(), Array(10).fill('feito'));

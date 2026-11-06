@@ -5,7 +5,9 @@
    ficha técnica do serviço (M4.P06 + M4.BT09S) e M4.P19 numérica.
    Ajuste de 05/11/2026 (3º lote): papel e caneta em "O que ter em mãos", M4.P04 múltipla escolha,
    alerta e próximo passo da M4.P11 juntos, M4.P12/M4.P13 sem "Não sei" e proposta de valor
-   (M4.PV1–M4.PV3, lida pelo Módulo 10) antes da M4.P12. */
+   (M4.PV1–M4.PV3, lida pelo Módulo 10) antes da M4.P12.
+   Ajuste de 05/11/2026 (4º lote): ficha técnica de ALIMENTO (por_tipo.Alimento na M4.P03 e no M4.BT09),
+   usada quando o produto é comida ou bebida. */
 window.MODULO4 = {
  "origem": "M04.xlsx",
  "modulo": {
@@ -216,6 +218,10 @@ window.MODULO4 = {
    "por_tipo": {
     "Mercadoria": {
      "exemplo": "Conjunto infantil: comprado do fornecedor por R$ 25, mais sacola (R$ 0,50) e etiqueta (R$ 0,10); vendido nos tamanhos 2 a 8."
+    },
+    "Alimento": {
+     "definicao": "Registro padronizado da receita: cada ingrediente com a quantidade exata, o modo de preparo, quantas unidades a receita rende, a perda no preparo, a embalagem de cada unidade, a validade e o tempo de preparo.",
+     "exemplo": "Brownie: 200 g de chocolate, 150 g de manteiga, 200 g de açúcar, 3 ovos e 100 g de farinha (R$ 30); rende 12 pedaços, 2 quebram e ficam 10; saquinho de R$ 0,50; dura 5 dias em pote fechado; 1 hora por fornada. Custo por pedaço: R$ 30 ÷ 10 + R$ 0,50 = R$ 3,50."
     }
    }
   },
@@ -349,6 +355,17 @@ window.MODULO4 = {
      "proximo": "Se ainda não tem os preços de compra, anote o que já sabe; depois o módulo de custos ajuda a estimar o custo por unidade.",
      "resposta_naosei": "Em caso de dificuldade para preencher essa lista, indicamos que você use o seguinte texto na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
      "prompt_ia": "Você vai me ajudar a montar a FICHA de uma mercadoria que eu quero comprar pronta para revender. Quero apenas o que é necessário para comprar, guardar e vender, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu da mercadoria.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar à minha mercadoria)\n- Descrição da mercadoria: o que é, modelos, tamanhos e cores.\n- De quem vou comprar e quanto pago por unidade.\n- Quantidade mínima de compra e prazo de entrega do fornecedor.\n- Frete ou deslocamento para buscar.\n- Embalagem, etiqueta e outros itens para vender cada unidade.\n- Como guardar e cuidados para não estragar ou perder.\n- Regras de troca e garantia.\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha organizada em seções, usando apenas o que eu informei. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nA MERCADORIA QUE QUERO DETALHAR É:\n[escreva aqui a sua mercadoria]"
+    },
+    "Alimento": {
+     "pergunta": "Quais ingredientes vão na sua receita, em que quantidade, e quantas unidades ela rende?",
+     "ajuda": "Monte a ficha técnica da sua receita: a quantidade de cada ingrediente (em gramas ou ml); quantas unidades a receita rende por fornada ou assadeira; quanto se perde no preparo (aparas, quebra, o que estraga); a embalagem de cada unidade e quanto ela custa; a validade e como guardar; e o tempo de preparo de cada fornada ou pedido. Custo por unidade = custo da receita ÷ rendimento, mais a embalagem.",
+     "ajuda_exemplo": {
+      "titulo": "Ver um exemplo com brownie",
+      "texto": "200 g de chocolate, 150 g de manteiga, 200 g de açúcar, 3 ovos e 100 g de farinha: uns R$ 30 de ingredientes. A assadeira rende 12 pedaços, mas 2 quebram, então ficam 10 para vender. Cada pedaço vai num saquinho de R$ 0,50. Dura 5 dias em pote fechado. Leva 1 hora por fornada.\n\nCusto por pedaço: R$ 30 ÷ 10 = R$ 3,00 + R$ 0,50 da embalagem = R$ 3,50."
+     },
+     "proximo": "Se ainda não pesou os ingredientes, faça uma fornada anotando tudo; depois o módulo de custos ajuda a calcular o custo por unidade.",
+     "resposta_naosei": "Em caso de dificuldade para preencher essa ficha técnica, indicamos que você use o seguinte texto na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
+     "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um alimento que eu quero fazer para vender. Quero apenas o que é necessário para produzi-lo, sem análise de mercado, preço de venda ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do alimento.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir (por exemplo, pesar tudo na próxima fornada).\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR\n- Receita: cada ingrediente, a quantidade usada (em gramas ou ml) e quanto paguei por ele.\n- Rendimento: quantas unidades saem de uma receita (por fornada, assadeira ou panela).\n- Perda no preparo: aparas, quebra, o que queima ou estraga e não dá para vender.\n- Embalagem de cada unidade (pote, saquinho, caixa, etiqueta) e quanto ela custa.\n- Validade e como guardar (fora da geladeira, na geladeira ou no congelador).\n- Tempo de preparo de cada fornada ou pedido, contando assar e esfriar.\n- Utensílios e equipamentos que eu uso.\n- Cuidados de higiene no preparo.\n\nCONTA DO CUSTO POR UNIDADE\nCusto por unidade = custo da receita ÷ unidades boas para vender (o rendimento menos a perda) + custo da embalagem de uma unidade.\nExemplo (brownie): os ingredientes da receita custam R$ 30; a assadeira rende 12 pedaços, 2 quebram e sobram 10; R$ 30 ÷ 10 = R$ 3,00; mais R$ 0,50 do saquinho = R$ 3,50 por pedaço.\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica organizada em seções, usando apenas o que eu informei, com a conta do custo por unidade. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO ALIMENTO QUE QUERO DETALHAR É:\n[escreva aqui o seu alimento]"
     }
    }
   },

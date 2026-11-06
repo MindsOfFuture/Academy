@@ -17,7 +17,10 @@
       <a class="sair" href="/protected/modulos/laboratorio-de-gestao?aba=jornada">Sair</a>
     </div>
     <ol class="trilha" id="trilha" aria-label="Módulos da jornada"></ol>
-    <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
+    <div class="topo-rodape">
+      <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
+      <button type="button" class="abre-painel" id="abre-painel" aria-haspopup="dialog" aria-controls="painel">Seu negócio até aqui</button>
+    </div>
   </header>
   <main class="palco">
     <iframe id="modulo" title="Módulo da jornada" allow="microphone"></iframe>
@@ -37,6 +40,20 @@
       </div>
     </section>
   </main>
+  <div class="painel-fundo" id="painel" hidden>
+    <section class="painel" role="dialog" aria-modal="true" aria-labelledby="painel-titulo" tabindex="-1">
+      <div class="painel-topo">
+        <h2 id="painel-titulo">Seu negócio até aqui</h2>
+        <button type="button" class="fechar" id="fecha-painel">Fechar</button>
+      </div>
+      <div class="painel-corpo">
+        <div class="painel-resumo" id="painel-resumo"></div>
+        <p class="painel-nota" id="painel-nota">Montado com o que você respondeu. Se algo não estiver certo, abra o módulo e corrija.</p>
+        <h3 class="painel-sub">Seus módulos</h3>
+        <ul class="painel-lista" id="painel-lista"></ul>
+      </div>
+    </section>
+  </div>
   <script src="js/motor7.js"></script>
   <script src="js/resumo-negocio.js"></script>
   <script src="js/jornada.js"></script>

@@ -113,8 +113,21 @@
     const t = p && p !== Motor.NS ? p : (tipoCurto(opcaoDe(lerOutro(M1, "M1.P03A"))) || tipoCurto(opcaoDe(lerOutro(M5, "M5.P01"))));
     return t === "Serviço" ? "Serviço" : /^Mercadoria(\+ ?Serviço)?$/.test(t || "") ? "Mercadoria" : "Produto";
   }
-  /* textos e exemplos próprios do tipo (campo por_tipo dos dados), por cima dos de produto */
-  function adapt(o) { const x = o && o.por_tipo && o.por_tipo[tipoEx()]; return x ? Object.assign({}, o, x) : o; }
+  /* alimento pelo que a pessoa vende: palavras comuns de comida e bebida (cópia da lista do Módulo 9, com brownie e afins) */
+  const ALIMENTO = /bolo|brownie|doce|salgad|comida|marmit|quentinha|lanche|aliment|bebida|suco|sorvete|picol[eé]|gelad|confeit|padaria|\bp[aã]o\b|\bp[aã]es\b|torta|brigadeiro|trufa|bombo|cupcake|biscoit|cookie|chocolate|pizza|hamb[uú]rg|sandu[ií]che|pastel|coxinha|empad|petisco|geleia|cerveja|quitut|refei[cç]|caf[eé]\b|a[cç]a[ií]\b|tempero|conserva|queijo|cocada|pudim|p[aã]o de mel|esfiha|tapioca|cachorro-quente|hot ?dog/i;
+  /* onde procurar: a ideia do Módulo 1 e as respostas de texto deste módulo (ideia, ficha e versões) */
+  const FALAS_ALIMENTO = ["M4.P01", "M4.P03", "M4.P05"];
+  function ehAlimento() {
+    const falas = [textoDe(lerOutro(M1, "M1.P03"))].concat(FALAS_ALIMENTO.map((c) => { const v = Motor.valor(S.R, c); return v && v !== Motor.NS ? String(v) : ""; }));
+    return falas.some((t) => t && ALIMENTO.test(t));
+  }
+  /* textos e exemplos próprios do tipo (campo por_tipo dos dados), por cima dos de produto;
+     produto de comida ou bebida usa a variante "Alimento" (ficha técnica da receita) quando ela existe */
+  function adapt(o) {
+    const pt = o && o.por_tipo, k = tipoEx();
+    const x = pt && ((k === "Produto" && pt.Alimento && ehAlimento() && pt.Alimento) || pt[k]);
+    return x ? Object.assign({}, o, x) : o;
+  }
   /* conceitos que valem para as respostas: a ficha técnica do serviço só aparece quando há serviço */
   function baseVale(b) {
     const t = String(Motor.valor(S.R, "M4.P02") || "");
@@ -253,7 +266,8 @@
     </section>`;
   }
   /* ajuda aberta da planilha, em cartão de dica (html já escapado) */
-  const dica = (html) => html ? `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p></div></aside>` : "";
+  /* mais = exemplo longo que fica recolhido (ficha técnica de alimento), para o campo continuar perto da pergunta */
+  const dica = (html, mais) => html ? `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p>${mais ? `<details class="dica-mais"><summary>${esc(mais.titulo)}</summary><p class="ajuda">${txt(mais.texto)}</p></details>` : ""}</div></aside>` : "";
   const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
   /* opção com bolinha; sem espaços entre as tags para o nome do botão continuar igual ao texto da opção */
   const opcaoHtml = (op, sel, attrs, sub) => `<button class="opcao ${sel ? "sel" : ""}"${attrs || ""}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b>${sub ? `<small class="op-sub">${esc(sub)}</small>` : ""}</span></button>`;
@@ -342,7 +356,7 @@
           <div class="cartao-q pergunta">
             <h2 class="q">${esc(T(V.pergunta))}</h2>
             ${vazio(q.destaque) ? "" : `<div class="bloco b-proximo destaque">${txt(q.destaque)}</div>`}
-            ${dica((cod === "M4.PV2" && motivoP11() ? `Antes você marcou “${esc(motivoP11())}” como o principal motivo. Explique com as suas palavras.<br>` : "") + txt(T(V.ajuda)))}
+            ${dica((cod === "M4.PV2" && motivoP11() ? `Antes você marcou “${esc(motivoP11())}” como o principal motivo. Explique com as suas palavras.<br>` : "") + txt(T(V.ajuda)), q.ajuda_exemplo)}
             ${vazio(q.destaque_alerta) ? "" : `<div class="bloco b-alerta destaque"><b>Atenção</b>${txt(T(q.destaque_alerta))}</div>`}
             ${q.conceito_destaque ? conceitoAberto(q.conceito_destaque) : ""}
             ${her && her.nota ? `<p class="selo-m"><b>${esc(her.nota)}</b> · Confira e ajuste se quiser.</p>` : origem && origem.de && (origem.valor || origem.opcao) ? selo(origem.de) : ""}
