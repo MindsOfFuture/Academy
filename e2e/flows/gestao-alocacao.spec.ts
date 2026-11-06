@@ -54,7 +54,7 @@ const sobreposicao = (page: Page) => page.getByRole('dialog', { name: 'Horário 
 
 /** Execução anterior no mesmo dia pode gerar aviso de horário: aqui ele não é o assunto. */
 async function lancarIgnorandoSobreposicao(page: Page) {
-  await expect(lancado(page).or(sobreposicao(page))).toBeVisible();
+  await expect(lancado(page).or(sobreposicao(page))).toBeVisible({ timeout: 20_000 });
   if (await sobreposicao(page).isVisible()) {
     await page.getByRole('button', { name: 'Lançar mesmo assim' }).click();
   }
@@ -119,13 +119,8 @@ test('exceção: bolsista em duas escolas no mesmo horário é avisado antes de 
   await page.reload();
   await lancarEncontro(page, { inicio: '09:00', fim: '11:00', escola: ESCOLA_2, atividade: tarde, equipe: [BOLSISTA_A] });
   const aviso = sobreposicao(page);
-  // DIAGNÓSTICO TEMPORÁRIO (CI): o que a tela mostrou depois do segundo lançamento.
-  await expect(lancado(page).or(aviso)).toBeVisible().catch(() => {});
-  console.log('DIAG dia', DIA, 'manha', manha, 'tarde', tarde);
-  console.log('DIAG status', JSON.stringify(await page.getByRole('status').allInnerTexts()));
-  console.log('DIAG dialogos', JSON.stringify(await page.locator('dialog[open]').allInnerTexts()));
-  console.log('DIAG links', JSON.stringify(await page.getByRole('link', { name: new RegExp(`E2E ${RODADA}`) }).allInnerTexts()));
-  await expect(aviso).toBeVisible();
+  // A checagem de conflito roda no servidor antes do aviso; 5s padrão não bastam no CI.
+  await expect(aviso).toBeVisible({ timeout: 20_000 });
   await expect(aviso.getByRole('listitem').filter({ hasText: manha })).toContainText(BOLSISTA_A);
 
   // Revisar não lança nada
