@@ -404,7 +404,8 @@
     }).join("")}</ol>`;
   }
   const chipOferta = () => `<div class="chip-oferta"><span>${esc(oferta() || "Seu negócio")}</span><button class="chip-alterar" id="alterar">Alterar</button></div>`;
-  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  /* "‹ Voltar" no topo do cartão, à esquerda, acima da pergunta (mesmo lugar em todos os módulos, como no Módulo 1) */
+  const botaoVoltar = () => `<div class="voltar-topo"><button type="button" class="btn-voltar" id="v" aria-label="Voltar"><span aria-hidden="true">‹</span> Voltar</button></div>`;
   function ligar(p) {
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
     const a = p.querySelector("#alterar"); if (a) a.onclick = () => ir(telaPartida, { volta: true });
@@ -424,6 +425,15 @@
     const tit = c.retorno === "Dica" || c.retorno === "Atenção" ? c.retorno : "";
     const cls = c.retorno === "Atenção" ? "b-alerta" : c.retorno === "Dica" ? "b-proximo" : "b-ok";
     return `<div class="bloco ${cls}">${tit ? `<b>${tit}</b>` : ""}<p>${esc(t)}</p></div>`;
+  }
+  /* ajuda com mais de ~220 caracteres: 1ª frase à vista e o resto em "Ver mais" (fechado) */
+  const AJUDA_CURTA = 220;
+  function ajudaHtml(t) {
+    t = String(t || "").trim();
+    if (!t) return "";
+    const m = /^([\s\S]+?[.!?])\s+([\s\S]+)$/.exec(t);
+    if (t.length <= AJUDA_CURTA || !m) return `<p class="ajuda">${esc(t)}</p>`;
+    return `<div class="ajuda ajuda-longa"><p>${esc(m[1])}</p><details class="ver-mais"><summary>Ver mais</summary><p>${esc(m[2])}</p></details></div>`;
   }
   /* conceitos da Base técnica (documento v2) ligados a cada pergunta: escolha do app */
   const CONCEITO = { "M10-01": ["M10-C02"], "M10-02": ["M10-C03"], "M10-03": ["M10-C04"], "M10-04": ["M10-C05"], "M10-05": ["M10-C01"], [SOCIO]: ["M10-C07"], "M10-06": ["M10-C07"], "M10-07": ["M10-C08"], "M10-08": ["M10-C09"], "M10-08a": ["M10-C06"], "M10-09": ["M10-C10"] };
@@ -478,6 +488,7 @@
       ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nos módulos anteriores. Confira, corrija ou complete. Nada aqui é obrigatório." })}
       <main class="corpo">
         <div class="cartao-q partida">
+          ${botaoVoltar()}
           <h3 class="secao-titulo">Sua oferta</h3>
           ${txt("oferta", "O que você vende (a oferta em foco)")}
           ${txt("grupo", "Para quem")}
@@ -491,7 +502,6 @@
           ${txt("pagamento", "Formas de pagamento")}
           <div class="erro" id="erro" hidden></div>
           <div class="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
-          ${botaoVoltar()}
         </div>
         ${rodape()}
       </main>
@@ -538,14 +548,14 @@
       <main class="corpo">
         ${barraFases(FASE(cod))}
         <div class="cartao-q pergunta">
+          ${botaoVoltar()}
           <h2 class="q" id="pergunta">${esc(TXT(cod))}</h2>
-          ${q.apoio ? `<p class="ajuda">${esc(apoioDe(cod))}</p>` : ""}
+          ${q.apoio ? ajudaHtml(apoioDe(cod)) : ""}
           <div class="entrada" id="ent"></div>
           <div class="erro" id="erro" hidden></div>
           <div id="retorno" aria-live="polite"></div>
           <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
           ${termos(CONCEITO[cod] || [])}
-          ${botaoVoltar()}
         </div>
         ${rodape()}
       </main>
@@ -907,6 +917,18 @@
   function pontosConferir() {
     const out = [];
     const m1 = lerR(1), m4 = lerR(4), m5 = lerR(5), m6 = lerR(6), m8 = lerR(8), m9 = lerR(9);
+    /* 0. preço abaixo do custo de uma unidade (custo do Módulo 5; preço do ponto de partida ou do Módulo 5) */
+    { const c5 = RN.contaM5(lerEstado(5));
+      const pI = Mo.num(I().preco);
+      const preco = pI > 0 ? pI : c5.preco;
+      /* a taxa do Módulo 5 é um percentual do preço: refeita com o preço usado aqui */
+      const taxa = c5.preco > 0 && c5.taxa > 0 && preco > 0 ? (preco * c5.taxa) / c5.preco : 0;
+      const gasto = c5.custo > 0 ? c5.custo + taxa : null;
+      if (preco > 0 && gasto && preco < gasto - 0.004) {
+        const custoTxt = `${brl(gasto)}${c5.taxa > 0 ? " com as taxas" : ""}`;
+        out.push({ tipo: "preco", detalhe: `Seu preço (${brl(preco)}) está abaixo do custo de uma unidade (${custoTxt}).`, mods: [5], texto: `Seu preço de venda é ${brl(preco)}, mas fazer uma unidade custa ${custoTxt}. Assim, cada venda tira dinheiro do seu bolso. Confira a conta do preço no Módulo 5.` });
+      }
+    }
     /* 1. quanto pode investir (Módulo 1) x gastos dos Módulos 4, 5 e 6 */
     const p07 = textoDe(m1["M1.P07"]);
     if (p07 && TETO_M1[p07] != null) {
@@ -917,22 +939,48 @@
       if (n4 > teto) { acima.push(`no Módulo 4, o primeiro teste pode custar até ${brl(n4)}`); ms.push(4); }
       const c5 = RN.contaM5(lerEstado(5));
       if (c5.mensal > teto) { acima.push(`no Módulo 5, os gastos do mês somam ${brl(c5.mensal)}`); ms.push(5); }
-      if (acima.length) out.push({ mods: ms, texto: `No Módulo 1 você disse que pode usar ${teto === 0 ? "nada, por enquanto," : p07.charAt(0).toLowerCase() + p07.slice(1)} no negócio sem faltar para as contas da casa. Mas ${acima.join("; ")}. Confira se dá para começar menor ou se algum desses valores mudou.` });
+      if (acima.length) out.push({ tipo: "limite", detalhe: `Os gastos previstos passam do que você disse no Módulo 1 que pode usar (${teto === 0 ? "nada, por enquanto" : p07.charAt(0).toLowerCase() + p07.slice(1)}).`, mods: ms, texto: `No Módulo 1 você disse que pode usar ${teto === 0 ? "nada, por enquanto," : p07.charAt(0).toLowerCase() + p07.slice(1)} no negócio sem faltar para as contas da casa. Mas ${acima.join("; ")}. Confira se dá para começar menor ou se algum desses valores mudou.` });
     }
     /* 2. tipo de oferta diferente entre os módulos */
     const tipos = [[1, textoDe(m1["M1.P03A"])], [4, textoDe(m4["M4.P02"])], [5, textoDe(m5["M5.P01"])], [8, textoDe(m8["M8.P02"])]].map(([n, t]) => [n, tiposDe(t)]).filter(([, t]) => t);
     const briga = tipos.some(([, a], i) => tipos.some(([, b], j) => j > i && !a.some((x) => b.includes(x))));
-    if (briga) out.push({ mods: tipos.map(([n]) => n), texto: `O tipo do seu negócio aparece diferente entre os módulos: ${tipos.map(([n, t]) => `${juntarE(t)} (Módulo ${n})`).join("; ")}. Confira qual é o certo: as contas de custo e as licenças mudam conforme o tipo.` });
+    if (briga) out.push({ tipo: "tipo", mods: tipos.map(([n]) => n), texto: `O tipo do seu negócio aparece diferente entre os módulos: ${tipos.map(([n, t]) => `${juntarE(t)} (Módulo ${n})`).join("; ")}. Confira qual é o certo: as contas de custo e as licenças mudam conforme o tipo.` });
     /* 3. sem sócio, mas etapas com o sócio */
     const r7 = S.R["M10-07"];
     const comSocio = r7 && r7.quem ? Object.entries(r7.quem).filter(([, q]) => q === "Sócio").map(([e]) => e.toLowerCase()) : [];
-    if (opR(SOCIO) === "Não" && comSocio.length) out.push({ mods: [10, 7], texto: `Você respondeu que não tem sócio, mas marcou o sócio como responsável por: ${juntarE(comSocio)}. Confira quem vai cuidar ${comSocio.length > 1 ? "dessas etapas" : "dessa etapa"}.` });
+    if (opR(SOCIO) === "Não" && comSocio.length) out.push({ tipo: "socio", mods: [10, 7], texto: `Você respondeu que não tem sócio, mas marcou o sócio como responsável por: ${juntarE(comSocio)}. Confira quem vai cuidar ${comSocio.length > 1 ? "dessas etapas" : "dessa etapa"}.` });
     /* 4. alimento x \"Não\" para a Vigilância Sanitária no Módulo 9 */
     if (textoDe(m9["M9-02"]) === "Não") {
       const ideia = [oferta(), textoDe(m1["M1.P03"]), textoDe(m4["M4.P01"]), textoDe(m8["M8.P01"])].find((x) => x && ALIMENTO.test(x));
-      if (ideia) out.push({ mods: [9, 1], texto: `Você vende ${curto(ideia, 60).toLowerCase()}, que parece envolver alimento, mas no Módulo 9 respondeu que o que vende não afeta a saúde de quem compra. Quem vende alimento costuma precisar da Vigilância Sanitária, mesmo como MEI. Confira essa resposta no Módulo 9.` });
+      if (ideia) out.push({ tipo: "vigilancia", detalhe: "Você vende alimento, mas no Módulo 9 respondeu que o que vende não afeta a saúde de quem compra.", mods: [9, 1], texto: `Você vende ${curto(ideia, 60).toLowerCase()}, que parece envolver alimento, mas no Módulo 9 respondeu que o que vende não afeta a saúde de quem compra. Quem vende alimento costuma precisar da Vigilância Sanitária, mesmo como MEI. Confira essa resposta no Módulo 9.` });
     }
     return out;
+  }
+
+  /* ---------- "Por onde começar": 3 ações na ordem (regras em motor.js) ---------- */
+  function estagioM1() {
+    const e = Mo.estagioDe(textoDe(lerR(1)["M1.P01"]));
+    if (e) return e;
+    return I().estagio ? (I().estagio === ESTAGIOS[2] ? "vende" : "comeca") : null;
+  }
+  const CONF_MOTOR = { preco: "preco", vigilancia: "vigilancia", limite: "limite" };
+  function porOnde(prios, pc) {
+    return Mo.porOndeComecar({
+      estagio: estagioM1(),
+      prioridades: prios,
+      conferir: pc.filter((x) => CONF_MOTOR[x.tipo]).map((x) => ({ chave: CONF_MOTOR[x.tipo], detalhe: x.detalhe })),
+      lacunas: listaPrioridades(),
+    });
+  }
+  const ORIGEM_TXT = { prioridade: "Você marcou como prioridade", conferir: "Ponto para conferir", lacuna: "Ficou em aberto no seu percurso" };
+  function blocoComecar(acoes, est) {
+    if (!acoes.length) return "";
+    const intro = est === "vende" ? "Você já vende: estas ações ajudam a organizar e melhorar o que já funciona. Faça nesta ordem." : est === "comeca" ? "Você ainda está começando: estas ações ajudam a testar antes de gastar mais. Faça nesta ordem." : "Faça nesta ordem.";
+    return `<section class="cartao comecar" id="comecar"><h3>Por onde começar</h3><p class="comecar-intro">${esc(intro)}</p>
+      <ol class="lista-comecar">${acoes.map((a, i) => {
+        const por = [ORIGEM_TXT[a.origem] || "", a.modulo && a.modulo < 10 && MODS[a.modulo] ? `<a href="${LINK(a.modulo)}">Abrir o Módulo ${a.modulo}</a>` : ""].filter(Boolean);
+        return `<li data-origem="${esc(a.origem)}"><span class="num-c" aria-hidden="true">${i + 1}</span><div><p class="acao-c">${a.detalhe ? `<b>${esc(a.detalhe)}</b> ` : ""}${esc(a.texto)}</p>${por.length ? `<p class="por-que">${por.map((x) => (x.startsWith("<a") ? x : esc(x))).join(" · ")}</p>` : ""}</div></li>`;
+      }).join("")}</ol></section>`;
   }
 
   /* retrato: uma linha por módulo (o que já se sabe, o que é hipótese, o que está em aberto de fato) */
@@ -987,7 +1035,7 @@
   }
 
   /* ---------- mensagem de apresentação montada com as respostas ---------- */
-  const LOCAL_TXT = [[/^(Minha casa|Na minha casa|Em apartamento)/i, "Atendo na minha casa"], [/^(Ponto comercial|Em loja ou sala comercial)/i, "Atendo no meu ponto comercial"], [/^(Atendimento externo|Sem local fixo)/i, "Vou até você"], [/^Online/i, "Atendo pela internet"]];
+  const LOCAL_TXT = [[/^(Minha casa|Na minha casa|Em apartamento)/i, "Atendo na minha casa"], [/^(Ponto comercial|Em loja ou sala comercial)/i, "Atendo no meu ponto comercial"], [/^(Atendimento externo|Sem local fixo|Na casa do cliente)/i, "Vou até você"], [/^Online/i, "Atendo pela internet"]];
   const CANAL_TXT = { "WhatsApp Business ou WhatsApp": "pelo WhatsApp", "Catálogo no Instagram ou outra rede social": "pelo Instagram", "Pessoalmente (atendimento direto)": "pessoalmente", "Aplicativo de entrega (iFood e outros)": "pelo aplicativo de entrega", "Telefone": "por telefone", "E-mail": "por e-mail", "Site ou loja virtual próprios": "pelo meu site", "Marketplace (Mercado Livre, Shopee e outros)": "pela minha loja no marketplace" };
   function mensagemModelo() {
     const m1 = lerR(1), m2 = lerR(2), m3 = lerR(3), m4 = lerR(4), m8 = lerR(8), m9 = lerR(9);
@@ -1037,6 +1085,7 @@
     if ((S.prioridade || null) !== (prios[0] || null)) { S.prioridade = prios[0] || null; salvar(); }
     const entendemos = RN.paragrafos(null, { ini: I(), R: S.R, prioridade: prios[0] || null });
     const pc = pontosConferir();
+    const comecar = porOnde(prios, pc);
     const msgM = mensagemModelo();
     const msgTxt = S.inst.mensagem != null ? S.inst.mensagem : msgM.texto;
     const canais = S.R["M10-01"];
@@ -1048,11 +1097,13 @@
       ${topo("Resultado")}
       ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Seu plano de ação", extra: chipOferta() })}
       <main class="corpo">
+        ${botaoVoltar()}
         ${barraFases(null, true)}
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao fim do percurso</h2><p>${esc(preencher(q12.apoio))}</p></div></div>
         </section>
         ${entendemos.length ? `<section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3><div class="resumo-negocio">${entendemos.map((x) => `<p>${esc(x)}</p>`).join("")}</div><p class="aviso-inst">Este resumo junta o que você respondeu nos 10 módulos. Se algo não estiver certo, corrija a resposta e o texto muda.</p></section>` : ""}
+        ${blocoComecar(comecar, estagioM1())}
         ${cz.length || pc.length ? `<section class="cartao"><h3>Pontos para conferir</h3>${pc.map((x) => `<div class="bloco b-alerta conferir"><b>Confira</b><p>${esc(x.texto)}</p><p><span class="veio">${esc(modsTxt(x.mods))}</span></p></div>`).join("")}${cz.map((a) => `<div class="bloco ${a.x.forma === "Pergunta gentil" ? "b-alerta" : "b-proximo"}"><b>${esc(a.x.forma)}</b><p>${esc(a.texto)}</p></div>`).join("")}</section>` : ""}
         <section class="cartao bloco-res"><h3>Seu plano</h3>
           ${prios.length ? `<ol class="lista-capa">${prios.map((t, i) => `<li>${i === 0 ? `<b>${esc(t)}</b>` : esc(t)}</li>`).join("")}</ol>` : `<p class="diag-r">Nenhuma prioridade escolhida.</p>`}
@@ -1103,7 +1154,6 @@
             <p class="diag-r">Para mudar uma resposta de outro módulo, use os links do retrato acima.</p></div>
         </section>
         <div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resultado</button><button class="btn btn-linha" id="zerar2">Recomeçar do zero</button></div>
-        ${botaoVoltar()}
         <div class="acoes lg2-proximo"><a class="btn btn-claro" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/protected/modulos/laboratorio-de-gestao?aba=b">Voltar aos módulos</a></div>
         ${rodape()}
       </main>

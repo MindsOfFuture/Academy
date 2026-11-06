@@ -178,6 +178,17 @@ const server = http.createServer(async (req, res) => {
       ok(!e, `${c}: valores ${vals.join('|')} aceitos` + (e ? ' — erro: ' + await texto('#erro') : ''));
       if (seg) await seguir();
     };
+    /* lote 3 (Nayara): "‹ Voltar" no topo do cartão, à esquerda, acima do texto; nenhum Voltar embaixo */
+    const voltarNoTopo = async (onde) => {
+      const r = await page.evaluate(() => {
+        const v = document.querySelector('#v'), alvo = document.querySelector('.cartao-q h2.q') || document.querySelector('.corpo > :not(#v)');
+        if (!v || !alvo) return null;
+        const bv = v.getBoundingClientRect(), ba = alvo.getBoundingClientRect();
+        return { n: document.querySelectorAll('#v, .acoes-voltar, .btn.voltar').length, acima: bv.bottom <= ba.top + 1, esq: bv.left < 60, txt: v.textContent.replace(/\s+/g, ' ').trim() };
+      });
+      ok(r && r.n === 1 && r.acima && r.esq && r.txt === '‹ Voltar', `${onde}: um só "‹ Voltar", no topo à esquerda ` + JSON.stringify(r));
+      ok(await page.getByRole('button', { name: 'Voltar', exact: true }).count() === 1, `${onde}: nome acessível "Voltar"`);
+    };
     const semNaN = async (onde) => {
       const t = await texto('#tela');
       ok(!/NaN|undefined|Infinity|null/.test(t), `${onde}: sem NaN/undefined/null na tela`);
@@ -234,6 +245,7 @@ const server = http.createServer(async (req, res) => {
       ok((await texto('h2.q')) === 'Como está a sua ideia hoje?', 'P00: texto da pergunta 1 do Módulo 1');
       ok(await page.locator('#naosei').count() === 1, 'P00: botão de ajuda "Não sei" já no começo');
       ok(await page.locator('#ent .opcao').count() === 4, 'P00: 4 opções ("Não sei dizer" virou ajuda)');
+      await voltarNoTopo('P00');
       if (!(m1 && m1.R['M1.P01'])) await escolher(ideia);
     };
     /* formas de pagamento (múltipla escolha) */
@@ -450,8 +462,19 @@ const server = http.createServer(async (req, res) => {
     const precoB = async (v) => {
       if (await atual() === 'PRECO') { await page.click('#v'); }
       ok(await atual() === 'M5.P36', 'volta para a P36');
-      await preencher([v]);
+      if (Number(v.replace(',', '.')) < custoMerc) {
+        /* relatório de 05/11 (Arthur): preço menor que o custo -> aviso claro na pergunta, que não trava */
+        await page.locator('#ent input').fill(v);
+        await continuar();
+        ok(await erroVisivel() && (await texto('#erro')).includes(norm(Motor.msgAbaixoCusto(custoMerc))) && await atual() === 'M5.P36', `P36 preço ${v} abaixo do custo: aviso no 1º Continuar`);
+        ok((await texto('#erro')).includes('O preço informado está abaixo do custo (R$ 20,00). Assim você perde dinheiro em cada venda. Quer revisar?'), `P36 preço ${v}: texto do aviso com o custo`);
+        await shot('l3_m05_p36_abaixo_custo.png');
+        await continuar();
+        ok(!(await erroVisivel()), `P36 preço ${v}: 2º Continuar segue (não trava)`);
+        await seguir();
+      } else await preencher([v]);
       ok(await atual() === 'PRECO', 'P36 com preço -> análise');
+      if (v === '30') await voltarNoTopo('passo do preço');
       return texto('#analise');
     };
     const custoMerc = 20;
@@ -463,11 +486,12 @@ const server = http.createServer(async (req, res) => {
       const p = Number(v.replace(',', '.'));
       const pctMao = (p - custoMerc) / custoMerc * 100;
       ok(t.includes(pct1(pctMao)), `preço ${v}: lucro ${pct1(pctMao)} (tela: ${t.slice(0, 60)})`);
-      const temB = t.includes(MSG.reverso.baixo), temA = t.includes(MSG.reverso.alto), temN = t.includes(MSG.negativo);
+      const temB = t.includes(MSG.reverso.baixo), temA = t.includes(MSG.reverso.alto), temN = t.includes(norm(Motor.msgAbaixoCusto(custoMerc)));
+      ok((await page.locator('#aviso-abaixo-custo').count() === 1) === (p < custoMerc), `preço ${v}: bloco "abaixo do custo" no passo do preço só quando preço < custo`);
       if (esp === null) ok(!temB && !temA && !temN, `preço ${v}: sem aviso`);
       if (esp === 'baixo') ok(temB && !temA && !temN, `preço ${v}: aviso de lucro baixo (b)`);
       if (esp === 'alto') ok(temA && !temB && !temN, `preço ${v}: aviso de lucro alto (b)`);
-      if (esp === 'neg') ok(temB && temN && !temA, `preço ${v}: lucro negativo = baixo + "abaixo do que gasta"`);
+      if (esp === 'neg') ok(temB && temN && !temA, `preço ${v}: lucro negativo = baixo + "abaixo do custo"`);
       if (v === '15') await shot('05b-lucro-negativo.png');
       ok(t.includes(Motor.MSG_ACIMA_MERCADO) === (p > 40), `preço ${v}: aviso de acima da faixa do Módulo 3 só acima de R$ 40`);
       ok(t.includes('Faixa de preço que você informou no Módulo 3: R$ 25,00 a R$ 40,00'), `preço ${v}: mostra a faixa do Módulo 3`);
@@ -479,6 +503,7 @@ const server = http.createServer(async (req, res) => {
     await precoB('30');
     await semNaN('passo do preço (b)');
     ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (b)');
+    await voltarNoTopo('resultado');
     tr = await texto('#tela');
     ok(tr.includes('50,0%') && tr.includes('R$ 20,00') && tr.includes('R$ 30,00'), 'resultado Mercadoria: lucro 50,0%, custo 20, preço 30');
     ok(await page.inputValue('#sim-preco') === '30' && await page.inputValue('#sim-qtd') === '50', 'simulação começa com o preço e a quantidade informados');
@@ -576,9 +601,23 @@ const server = http.createServer(async (req, res) => {
     await escolher('Sim'); await preencher(['500']);        // P28/P29
     await escolher('Não'); await escolher('Não'); await escolher('Não');
     await preencher(['30']);                                // P37
-    await preencher(['15']);                                // P36 abaixo do custo (20)
+    await page.locator('#ent input').fill('15');            // P36 abaixo do custo (20)
+    await continuar();
+    ok(await erroVisivel() && (await texto('#erro')).includes('O preço informado está abaixo do custo (R$ 20,00). Assim você perde dinheiro em cada venda. Quer revisar?'), 'P36 abaixo do custo: aviso na pergunta');
+    await continuar(); ok(!(await erroVisivel()), 'P36 abaixo do custo: 2º Continuar segue'); await seguir();
+    ok(await page.locator('#aviso-abaixo-custo').count() === 1, 'passo do preço: aviso "abaixo do custo" em destaque');
     ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado (sem sobra)');
     tr = await texto('#tela');
+    ok((await texto('#aviso-abaixo-custo')).includes('O preço informado está abaixo do custo (R$ 20,00). Assim você perde dinheiro em cada venda. Quer revisar?'), 'resultado: aviso "abaixo do custo" com o custo de uma unidade');
+    ok(await page.locator('.lg2-proximo').count() === 1, 'aviso abaixo do custo não trava o resultado');
+    await page.locator('#aviso-abaixo-custo').scrollIntoViewIfNeeded();
+    await shot('l3_m05_resultado_abaixo_custo.png');
+    await page.fill('#sim-preco', '12'); await page.click('#sim-ok');
+    ok((await texto('#sim-abaixo')).includes('abaixo do custo (R$ 20,00)'), 'simulação com preço abaixo do custo: mesmo aviso');
+    ok(await clicar('#aviso-abaixo-custo button', 'Revisar o preço') && await atual() === 'M5.P36', '"Revisar o preço" volta para a pergunta do preço');
+    ok(await page.inputValue('#ent input') === '15', 'ao revisar, o preço informado continua no campo');
+    await continuar(); await continuar(); await seguir();
+    ok(await clicar('#res', 'Ver o resultado'), 'Ver o resultado de novo (sem sobra)');
     ok((await texto('#sem-sobra')).includes(Motor.MSG_SEM_SOBRA) && !/Ponto de equilíbrio\s*\d/.test(tr), 'sem sobra por venda: explica que vender mais não resolve, sem ponto de equilíbrio');
     ok((await texto('#simulacao')).includes(Motor.MSG_SIMULACAO), 'ideia só na cabeça (Módulo 1): resultado marcado como simulação');
     await semNaN('resultado sem sobra');

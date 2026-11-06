@@ -391,6 +391,36 @@ const Mo = require(path.join(DIR, 'js/motor.js'));
   check('Número: \"1.500\" = 1500 (ponto de milhar), \"1,5\" = 1,5', Mo.num('1.500') === 1500 && Mo.num('1,5') === 1.5 && Mo.num('12.5') === 12.5);
   check('Regra: data passada é bloqueada; acima de 90 dias pede passo intermediário', Mo.avaliarData('2026-10-01', '2026-10-21') === 'passada' && Mo.avaliarData('2027-02-01', '2026-10-21') === 'longe' && Mo.avaliarData('2026-11-04', '2026-10-21') === 'ok');
   check('Regra: "Não sei" em prioridades marca as 3 primeiras da lista', JSON.stringify(Mo.tresPrimeiras([{ tema: 'a' }, { tema: 'b' }, { tema: 'c' }, { tema: 'd' }])) === '["a","b","c"]');
+  /* lote 3 (Gaby, Arthur): "Por onde começar" = 3 ações em ordem; prioridades da pessoa primeiro, depois pontos para conferir e lacunas */
+  const LAC = [{ tema: 'Fazer a consulta de viabilidade na prefeitura', gravidade: 'alta', modulo: 9 }, { tema: 'Saber quanto dinheiro você tem para começar', gravidade: 'media', modulo: 6 }, { tema: 'Rever uma resposta “Não sei” do Módulo 3', gravidade: 'baixa', modulo: 3 }];
+  { /* cenário 1: a pessoa marcou o preço como prioridade (Gaby) */
+    const a = Mo.porOndeComecar({ estagio: 'comeca', prioridades: ['Definição dos preços'], conferir: [{ chave: 'limite', detalhe: 'Os gastos previstos passam do que você disse no Módulo 1 que pode usar (até R$ 100).' }], lacunas: LAC });
+    check('Por onde começar (prioridade preço): 3 ações; a 1ª é o preço, com a ação e o módulo', a.length === 3 && a[0].chave === 'preco' && a[0].origem === 'prioridade' && a[0].modulo === 5 && a[0].texto.startsWith('Refaça a conta do preço no Módulo 5'), a);
+    check('Por onde começar (prioridade preço): depois o ponto para conferir e a lacuna mais grave', a[1].chave === 'limite' && a[1].origem === 'conferir' && a[1].detalhe.includes('até R$ 100') && a[2].chave === 'viabilidade' && a[2].origem === 'lacuna', a);
+    const b = Mo.porOndeComecar({ estagio: 'comeca', prioridades: ['Definir o preço de venda'], conferir: [{ chave: 'preco', detalhe: 'Seu preço (R$ 8) está abaixo do custo de uma unidade (R$ 10).' }], lacunas: [] });
+    check('Por onde começar: preço marcado + preço abaixo do custo = uma ação só, com o aviso junto', b.filter((x) => x.chave === 'preco').length === 1 && b[0].detalhe.startsWith('Seu preço (R$ 8) está abaixo do custo') && b[0].origem === 'prioridade', b);
+  }
+  { /* cenário 2: lacunas, sem prioridade marcada */
+    const a = Mo.porOndeComecar({ estagio: 'comeca', prioridades: [], conferir: [{ chave: 'vigilancia', detalhe: 'x' }, { chave: 'preco', detalhe: 'y' }], lacunas: LAC });
+    check('Por onde começar (lacunas sem prioridade): pontos para conferir na ordem, depois a lacuna alta', JSON.stringify(a.map((x) => x.chave)) === '["vigilancia","preco","viabilidade"]' && a.every((x) => x.origem !== 'prioridade'), a);
+    const c = Mo.porOndeComecar({ estagio: 'comeca', prioridades: [], conferir: [], lacunas: LAC });
+    check('Por onde começar (lacunas sem prioridade): alta, depois média; "Não sei" leve só completa com ações do estágio', JSON.stringify(c.map((x) => x.chave)) === '["viabilidade","caixa","vendas"]' && c[1].modulo === 6 && c[2].origem === 'estagio', c);
+  }
+  { /* cenário 3: nada em aberto */
+    const v = Mo.porOndeComecar({ estagio: 'vende', prioridades: [], conferir: [], lacunas: [] });
+    const n = Mo.porOndeComecar({ estagio: 'comeca', prioridades: [], conferir: [], lacunas: [] });
+    check('Por onde começar (nada em aberto): 3 ações gerais do estágio', v.length === 3 && n.length === 3 && v.every((x) => x.origem === 'estagio') && v[0].texto.startsWith('Anote as vendas da semana') && n[0].texto.startsWith('Faça 5 vendas-teste'), { v, n });
+  }
+  { /* item 3 (Gaby): o estágio do Módulo 1 muda o texto das ações */
+    check('Estágio do Módulo 1: "Já vendo sempre"/"Já vendi algumas vezes" = vende; ideia e amostras = começando', Mo.estagioDe('Já vendo sempre') === 'vende' && Mo.estagioDe('Já vendi algumas vezes') === 'vende' && Mo.estagioDe('Ainda está só na minha cabeça') === 'comeca' && Mo.estagioDe('Já fiz um pouco para testar ou dar de amostra') === 'comeca' && Mo.estagioDe('') === null);
+    const pv = Mo.porOndeComecar({ estagio: 'vende', prioridades: ['Definição dos preços', 'Definir a divulgação'] });
+    const pc = Mo.porOndeComecar({ estagio: 'comeca', prioridades: ['Definição dos preços', 'Definir a divulgação'] });
+    check('Estágio: quem já vende recebe ações de organizar e melhorar (anotar as vendas da semana)', pv[0].texto.includes('anote as vendas da semana') && pv[1].texto.includes('cliente desta semana') && pv[2].texto.startsWith('Anote as vendas da semana') && !pv.some((x) => /vendas-teste/.test(x.texto)), pv);
+    check('Estágio: quem ainda não começou recebe ações de testar (5 vendas-teste)', pc[0].texto.includes('5 vendas-teste') && pc[1].texto.startsWith('Escolha um lugar para divulgar') && pc[2].texto.startsWith('Faça 5 vendas-teste') && !pc.some((x) => /vendas da semana/.test(x.texto)), pc);
+    check('Estágio: todas as ações de todos os temas têm texto para quem vende e para quem começa, sem códigos', Mo.TEMAS.every((x) => x.vende && x.comeca && x.vende !== x.comeca && !/M\d+[.-]|P\d\d/.test(x.vende + x.comeca)));
+    const o = Mo.porOndeComecar({ estagio: 'vende', prioridades: ['Organizar o estoque'] });
+    check('Por onde começar: prioridade escrita pela pessoa (sem tema conhecido) vira a 1ª ação com o texto dela', o[0].origem === 'prioridade' && o[0].texto.startsWith('Comece por: organizar o estoque.'), o);
+  }
 }
 
 /* ---------- 2b. resumo do negócio (texto corrido montado por regras) ---------- */
@@ -592,8 +622,11 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   check('M10-02: sem apoio alto, a parte condicional não aparece', !(await blocos()).join(' ').includes('tempo de apoio'));
   /* M10-03: texto de apoio com pessoas ouvidas e roteiro pré-montado */
   await abrir('M10-03');
-  const ap3 = await page.evaluate(() => document.querySelector('.ajuda').innerText);
+  const ap3 = await page.evaluate(() => document.querySelector('.ajuda').textContent.replace(/\s+/g, ' '));
   check('M10-03: apoio com [pessoas ouvidas] e [etapas] do roteiro', ap3.startsWith('Você já ouviu 6 pessoas no Módulo 2.') && ap3.includes('Preço: R$ 12') && ap3.includes('Receber: pix, dinheiro'), ap3);
+  { /* menos texto (receita D): ajuda com mais de 220 caracteres mostra a 1ª frase e o resto em "Ver mais" fechado */
+    const vm3 = await page.evaluate(() => { const a = document.querySelector('.ajuda'); const d = a.querySelector('details'); return { vis: a.innerText.replace(/\s+/g, ' ').trim(), aberto: d ? d.open : null, resumo: d ? d.querySelector('summary').innerText : '' }; });
+    check('Menos texto: ajuda longa = 1ª frase à vista e "Ver mais" fechado', vm3.aberto === false && vm3.resumo === 'Ver mais' && vm3.vis.startsWith('Você já ouviu 6 pessoas no Módulo 2.') && !vm3.vis.includes('Preço: R$ 12'), vm3); }
   /* M10-04: apoio condicional (compra recorrente no Módulo 2) */
   await abrir('M10-04');
   check('M10-04: [Se compra recorrente no Módulo 2] com [frequência]', (await page.evaluate(() => document.querySelector('.ajuda').innerText)) === 'Você disse que o cliente compra toda semana. Voltar a falar pode trazer a próxima venda.');
@@ -703,6 +736,60 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     check('Resultado: "O que entendemos até aqui" em texto corrido (1 a 3 parágrafos, sem lista com marcadores)', fmt.li === 0 && fmt.ps.length >= 1 && fmt.ps.length <= 3 && fmt.ps.every((t) => t && !/^[•·\-–*]/.test(t)), fmt);
     check('Resultado: parágrafos agrupados por assunto (negócio e cliente / tempo / documentos e próximo passo)', fmt.ps.length === 3 && fmt.ps[0].startsWith('Seu negócio é bolo de pote') && fmt.ps[1].startsWith('Você cobra R$ 12') && fmt.ps[2].startsWith('Na parte de documentos'), fmt.ps); }
   check('Resultado: canais de venda (Módulo 3) e canais de conversa (Módulo 10) em linhas separadas', t.includes('Onde o cliente encontra você e compra') && t.includes('Por onde mais os clientes falam com você'));
+
+  /* ---------- 4a. lote 3: Voltar no topo e "Por onde começar" ---------- */
+  { await semear(null); await clicar('Começar'); await clicar('Continuar');
+    await clicar('Telefone'); await clicar('Continuar');
+    const vt = await page.evaluate(() => { const c = document.querySelector('.cartao-q'); const v = document.querySelectorAll('#v'); const b = v[0]; return { n: v.length, primeiro: c.firstElementChild.contains(b), antesQ: !!(b.compareDocumentPosition(c.querySelector('.q')) & 4), antesOk: !!(b.compareDocumentPosition(document.querySelector('#ok')) & 4), nome: b.getAttribute('aria-label'), texto: b.textContent.replace(/\s+/g, ' ').trim(), esq: Math.round(b.getBoundingClientRect().left - c.getBoundingClientRect().left) }; });
+    check('Voltar: um só, no topo do cartão da pergunta, à esquerda, acima da pergunta e do Continuar', vt.n === 1 && vt.primeiro && vt.antesQ && vt.antesOk && vt.nome === 'Voltar' && vt.texto === '‹ Voltar' && vt.esq < 30, vt);
+    check('Voltar: nome acessível "Voltar"', (await page.getByRole('button', { name: 'Voltar', exact: true }).count()) === 1);
+    await page.click('#v'); await page.waitForTimeout(60);
+    check('Voltar: da 2ª pergunta volta para a 1ª', (await titulo()).includes('por onde os clientes falam com você'), await titulo());
+    await page.click('#v'); await page.waitForTimeout(60);
+    const partidaV = await page.evaluate(() => { const c = document.querySelector('.cartao-q.partida'); return c ? { primeiro: c.firstElementChild.querySelector('#v') !== null, n: document.querySelectorAll('#v').length } : null; });
+    check('Voltar: da 1ª pergunta volta ao ponto de partida, com o Voltar no topo do cartão', partidaV && partidaV.primeiro && partidaV.n === 1, partidaV);
+    await page.click('#v'); await page.waitForTimeout(60);
+    check('Voltar: do ponto de partida volta para a capa', !!(await page.$('#ir')));
+    await resumo({});
+    const vr = await page.evaluate(() => { const v = document.querySelectorAll('#v'); return { n: v.length, topo: v.length && document.querySelector('.corpo').firstElementChild.contains(v[0]) }; });
+    check('Voltar: no resultado, um só e no topo', vr.n === 1 && vr.topo, vr);
+    const termosAbaixo = await abrir('M10-01').then(() => page.evaluate(() => { const s = document.querySelector('.cartao-q .saiba'); return s ? { fechado: !s.open, depois: !!(document.querySelector('#ok').compareDocumentPosition(s) & 4) } : null; }));
+    check('Menos texto: "Entenda os termos" recolhido, embaixo do Continuar', termosAbaixo && termosAbaixo.fechado && termosAbaixo.depois, termosAbaixo);
+  }
+  { const sec = (h) => page.evaluate((h) => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === h); return s ? s.innerText.replace(/\s+/g, ' ') : ''; }, h);
+    const acoesC = () => page.evaluate(() => [...document.querySelectorAll('#comecar .lista-comecar li')].map((x) => ({ o: x.dataset.origem, t: x.querySelector('.acao-c').innerText.replace(/\s+/g, ' '), p: (x.querySelector('.por-que') || {}).innerText || '' })));
+    /* Gaby: começando (ideia), marcou "definição dos preços"; preço abaixo do custo; limite do Módulo 1 estourado */
+    const hg = JSON.parse(JSON.stringify(HERANCA));
+    hg['lg2-turma-a-m01'].R['M1.P01'] = { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' };
+    hg['lg2-turma-a-m01'].R['M1.P07'] = { estado: 'opcao', opcao: 'Até R$ 100' };
+    hg['lg2-turma-a-m05'] = { versao: 3, R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P11': { estado: 'valor', valor: '100' }, 'M5.P12': { estado: 'valor', valor: '10' }, 'M5.P36': { estado: 'valor', valor: '8' } } };
+    hg['lg2-turma-b-m06'].R['M6.P02'] = { estado: 'valor', valor: '1.500' };
+    const eg = estadoAte('FIM', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Definição dos preços', naosei: false }, 'M10-10': { estado: 'escala', u: { 'Definição dos preços': 'piora muito' } } });
+    eg.ini = Object.assign({}, INI, { preco: '8', estagio: 'Ainda é uma ideia' });
+    await semear(eg, hg); await clicar('Continuar de onde parei');
+    const pos = await page.evaluate(() => { const c = document.querySelector('#comecar'), e = document.querySelector('#entendemos'); return c && e ? { depoisEnt: !!(e.compareDocumentPosition(c) & 4), logoDepois: e.nextElementSibling === c, h: c.querySelector('h3').innerText } : null; });
+    check('Por onde começar: logo depois de "O que entendemos até aqui", com o título certo', pos && pos.depoisEnt && pos.logoDepois && pos.h === 'Por onde começar', pos);
+    const ag = await acoesC();
+    check('Por onde começar (Gaby): 3 ações numeradas; a 1ª é o preço que ela marcou, com o aviso de preço abaixo do custo e o Módulo 5', ag.length === 3 && ag[0].o === 'prioridade' && ag[0].t.startsWith('Seu preço (R$ 8) está abaixo do custo de uma unidade (R$ 10). Refaça a conta do preço no Módulo 5') && ag[0].p.includes('Você marcou como prioridade') && ag[0].p.includes('Abrir o Módulo 5'), ag);
+    check('Por onde começar (Gaby): depois o limite do Módulo 1 e a consulta na prefeitura, com texto de quem está começando', ag[1].o === 'conferir' && ag[1].t.includes('(até R$ 100)') && ag[1].t.includes('5 vendas-teste') && ag[2].o === 'lacuna' && ag[2].t.includes('consulta de viabilidade'), ag);
+    check('Por onde começar: sem códigos nem nomes de pergunta', !ag.some((x) => /M\d+[.-]|P\d\d|Grupo \d/.test(x.t + x.p)));
+    check('Pontos para conferir: preço abaixo do custo (Módulo 5)', (await sec('Pontos para conferir')).includes('Seu preço de venda é R$ 8, mas fazer uma unidade custa R$ 10.'), await sec('Pontos para conferir'));
+    const nums = await page.evaluate(() => [...document.querySelectorAll('#comecar .num-c')].map((x) => x.innerText.trim()).join());
+    check('Por onde começar: números 1, 2 e 3 à vista', nums === '1,2,3', nums);
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await (await page.$('#comecar')).screenshot({ path: path.join(process.env.SHOTS, 'l3_m10_comecar_gaby.png') }); }
+    /* mesma prioridade, quem já vende: organizar e melhorar */
+    const hv2 = JSON.parse(JSON.stringify(hg)); hv2['lg2-turma-a-m01'].R['M1.P01'] = { estado: 'opcao', opcao: 'Já vendo sempre' };
+    await semear(Object.assign({}, eg, { ini: Object.assign({}, eg.ini, { estagio: 'Já vendo' }) }), hv2); await clicar('Continuar de onde parei');
+    const av = await acoesC();
+    check('Por onde começar (já vende): mesmas prioridades, texto de organizar e melhorar (anote as vendas da semana)', av[0].t.includes('anote as vendas da semana') && !av.some((x) => /vendas-teste/.test(x.t)) && (await page.evaluate(() => document.querySelector('.comecar-intro').innerText)).startsWith('Você já vende'), av);
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await (await page.$('#comecar')).screenshot({ path: path.join(process.env.SHOTS, 'l3_m10_comecar_ja_vende.png') }); }
+    /* nada em aberto: ações gerais do estágio */
+    const hn = { 'lg2-turma-a-m01': { R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' } } } };
+    const en = estadoAte('FIM', { SOCIO: { estado: 'opcao', opcao: 'Não' }, 'M10-07': undefined }); delete en.R['M10-06']; delete en.R['M10-07'];
+    await semear(en, hn); await clicar('Continuar de onde parei');
+    const an = await acoesC();
+    check('Por onde começar (nada em aberto além da prioridade escrita): a prioridade e depois ações do estágio', an.length === 3 && an[0].o === 'prioridade' && an.slice(1).every((x) => x.o === 'estagio') && an[1].t.startsWith('Anote as vendas da semana'), an);
+  }
 
   /* ---------- 4b. correções dos testes da turma (05/11) ---------- */
   /* sócio \"Não\": \"Sócio\" não é oferecido nas etapas; se já estava escolhido, aviso que não trava */

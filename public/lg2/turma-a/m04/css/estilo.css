@@ -183,3 +183,13 @@ textarea.campo{resize:vertical;font-family:inherit}
 .proposta-valor .pv-item{border-left:4px solid var(--m-purple);padding:2px 0 2px 12px;margin:10px 0}
 .proposta-valor .pv-item b{display:block;font-size:15px;color:var(--m-purple)}
 .proposta-valor .pv-item p{margin:4px 0 0}
+/* 5º lote: "‹ Voltar" no topo do cartão, dica ao tocar a opção, campo do "Outro" e os três jeitos de testar */
+.voltar-topo{display:inline-flex;align-items:center;gap:4px;background:none;border:none;font:inherit;font-size:16px;font-weight:700;color:var(--m-purple);cursor:pointer;padding:4px 0;margin:-4px 0 6px}
+.voltar-topo span{font-size:22px;line-height:1}
+.dica-op{background:var(--m-lavender);border-left:4px solid var(--m-purple);border-radius:12px;padding:10px 13px;font-size:14.5px;color:#3d2f5c;line-height:1.4}
+.outro-campo{display:block}
+.outro-campo span{display:block;font-size:15px;font-weight:700;color:var(--m-purple);margin:2px 0 6px}
+.cj-item{margin:6px 0}
+.cj-item strong,.conceitos-juntos .ex strong{color:var(--m-purple)}
+.conceitos-juntos .dica-mais .ex{margin-top:6px}
+@media print{.voltar-topo{display:none!important}}

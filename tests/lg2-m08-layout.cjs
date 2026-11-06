@@ -64,7 +64,12 @@ const K = 'lg2-turma-b-m08';
     assert.equal(await page.locator('.herdou').count(), 0, `${cod}: sem dados de outros módulos, nada pré-preenchido`);
     assert.equal(await page.locator('.cartao-q .q').count(), 1, `${cod}: cartão da pergunta`);
     assert.equal(nrm(await page.textContent('.cartao-q .q')), nrm(q.pergunta), `${cod}: pergunta literal`);
-    assert.equal(nrm(await page.textContent('.dica .ajuda')), nrm(q.ajuda), `${cod}: ajuda literal aberta`);
+    /* ajuda literal; acima de 220 caracteres, o resto fica em "Ver mais" (lote 3) */
+    assert.equal(nrm(await page.$eval('.dica .ajuda', (e) => { const c = e.cloneNode(true); c.querySelectorAll('summary').forEach((x) => x.remove()); return c.textContent; })), nrm(q.ajuda), `${cod}: ajuda literal`);
+    assert.equal(await page.locator('.dica details.mais').count(), q.ajuda.length > 220 ? 1 : 0, `${cod}: "Ver mais" só na ajuda longa`);
+    /* Voltar no topo do cartão, à esquerda, acima da pergunta (lote 3) */
+    assert.ok(await page.evaluate(() => { const v = document.querySelector('.cartao-q #v'), q = document.querySelector('.cartao-q .q'); return !!v && v.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1 && v.getBoundingClientRect().left < 80; }), `${cod}: Voltar no topo do cartão`);
+    assert.equal(nrm(await page.textContent('#v')), 'Voltar', `${cod}: nome Voltar`);
     assert.equal(await page.locator('.heroi .barra-fill').count(), 1, `${cod}: barra de progresso na faixa`);
     assert.equal(await page.locator('.etapas').count(), 0, `${cod}: sem stepper (módulo sem seções)`);
     const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));

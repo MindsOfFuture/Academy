@@ -16,10 +16,17 @@
     return { D, perguntas, porCodigo };
   }
 
+  /* pergunta de várias respostas ("Múltipla escolha" na planilha): guarda {estado:"opcao", opcao: a 1ª marcada,
+     opcoes: [todas, na ordem da lista], detalhe: o que a pessoa escreveu em "Outra"} */
+  const multipla = (q) => /m[uú]ltipla/i.test(String(q && q.tipo));
+  const OUTRA = "Outra";
+  const itens = (r) => (r && Array.isArray(r.opcoes) ? r.opcoes : r && r.opcao ? [r.opcao] : [])
+    .map((o) => (o === OUTRA && String(r.detalhe || "").trim() ? `${OUTRA}: ${String(r.detalhe).trim()}` : o));
   function valor(R, cod) {
     const r = R[cod];
     if (!r) return undefined;
     if (r.estado === "naosei") return NS;
+    if (r.estado === "opcao" && Array.isArray(r.opcoes)) return itens(r).join("; ");
     return r.estado === "opcao" ? r.opcao : String(r.valor ?? "").trim();
   }
 
@@ -41,6 +48,9 @@
     const v = valor(R, cod);
     if (v === undefined) return undefined;
     const a = alvo.trim();
+    /* várias respostas: "=" vale se a opção estiver entre as marcadas */
+    const r = R[cod];
+    if (r.estado === "opcao" && Array.isArray(r.opcoes) && (op === "=" || op === "≠")) return op === "=" ? r.opcoes.includes(a) : !r.opcoes.includes(a);
     /* "M2.P02 = Preenchido": a pessoa escreveu algo (não tocou em "Não sei") */
     if (op === "=" && a === "Preenchido") return v !== NS && v !== "";
     /* "M2.P04 = 0": comparação numérica quando os dois lados são número */
@@ -124,11 +134,24 @@
     return lista;
   }
 
-  /* ---- textos na tela sem códigos internos ("(M2.I01)", "M2.P08"): a pessoa não sabe o que são ---- */
+  /* ---- textos na tela sem códigos internos ("(M2.I01)", "M2.P08"): a pessoa não sabe o que são.
+     Código solto no meio da frase vira o assunto da pergunta ("a pergunta sobre…"); código de qualquer
+     módulo (M1.P03, M3-02…) entre parênteses sai, e solto vira "uma pergunta anterior". ---- */
+  const TEMA = {
+    "M2.P01": "quem seria o principal comprador", "M2.P02": "quem teria mais interesse em comprar", "M2.P03": "de onde vem o que você sabe sobre o público",
+    "M2.P04": "conversas com possíveis clientes", "M2.P05": "quantos grupos de clientes você imagina", "M2.P06": "os grupos que você imagina",
+    "M2.P07": "se os clientes são pessoas ou empresas", "M2.P08": "o que mais muda entre um cliente e outro", "M2.P09": "a fase da vida dos clientes",
+    "M2.P10": "como os clientes reagem ao preço", "M2.P11": "onde estão os clientes", "M2.P12": "em que situação os clientes compram",
+    "M2.P13": "o que pesa na escolha dos clientes", "M2.P14": "o tipo de empresa que compraria de você", "M2.P15": "por qual grupo começar",
+    "M2.P16": "como chegar até os clientes", "M2.P17": "a frequência de compra", "M2.P18": "quantas pessoas você já ouviu",
+    "M2.P19": "se alguém já tomou uma ação concreta", "M2.P20": "o motivo para escolherem você", "M2.P21": "se contaram um problema de verdade",
+  };
+  const CODIGO = /\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}[A-Za-z]?\b/;
   function limpa(t) {
     return String(t ?? "")
-      .replace(/\s*\([^()]*M2\.[PI]\d{2}[^()]*\)/g, "")
-      .replace(/\bM2\.P\d{2}\b/g, "a próxima pergunta")
+      .replace(/\s*\([^()]*\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}[^()]*\)/g, "")
+      .replace(/\b(M2\.P\d{2})\b/g, (c) => (TEMA[c] ? `a pergunta sobre ${TEMA[c]}` : "uma pergunta anterior"))
+      .replace(new RegExp(CODIGO.source, "g"), "uma pergunta anterior")
       .replace(/\s+([.,;:])/g, "$1");
   }
 
@@ -138,7 +161,7 @@
   const alertas = (rs) => semVazio(rs, "alerta", "Nenhum");
   const proximos = (rs) => semVazio(rs, "proximo", "Nenhum");
 
-  const API = { montar, valor, campo, temNaoSei, avaliar, proxima, regrasAgora, regrasTodas, quadro, segmentos, SINAIS, caminho, limpa,
+  const API = { montar, valor, itens, multipla, OUTRA, CODIGO, campo, temNaoSei, avaliar, proxima, regrasAgora, regrasTodas, quadro, segmentos, SINAIS, caminho, limpa,
                 lacunas, encaminhamentos, alertas, proximos, NS };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

@@ -87,7 +87,123 @@
   }
   const fmt = (n, casas = 0) => Number(n).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
-  const M = { META_ALTA, PRECO_ALTO, UNIDADES, UNIDADES_PLANO, LIMITE_LISTA, LIMITE_PRIORIDADES, PRAZO_LONGO, URGENCIA, prioridades, limitar, tresPrimeiras, ordenarPorUrgencia, avaliarData, dataBR, somarDias, frasePlano, num, fmt };
+  /* ---------- "Por onde começar" (topo do resultado) ----------
+     Até 3 ações, numeradas, nesta ordem:
+       1) as prioridades que a própria pessoa marcou (já na ordem de urgência);
+       2) os pontos para conferir (preço abaixo do custo, alimento sem Vigilância, gasto acima do limite do Módulo 1);
+       3) as lacunas graves do percurso ("Não sei" em dado essencial: preço, viabilidade, dinheiro…);
+       4) se ainda faltar, ações gerais do estágio.
+     O texto muda com o estágio do Módulo 1 (M1.P01): quem já vende recebe ações de organizar e
+     melhorar; quem ainda não começou recebe ações de testar. Tema repetido não entra duas vezes. */
+  const POR_ONDE = 3;
+  /* M1.P01: "Já vendi algumas vezes" / "Já vendo sempre" = vende; ideia ou amostras = começando */
+  function estagioDe(t) {
+    const s = String(t || "").trim();
+    if (!s || /^n[ãa]o sei/i.test(s)) return null;
+    return /^j[áa] vend/i.test(s) ? "vende" : "comeca";
+  }
+  /* temas reconhecidos no texto da prioridade ou da lacuna (a ordem importa: o primeiro que casar vale) */
+  const TEMAS = [
+    { chave: "preco", re: /pre[çc]o|precific|cobrar|abaixo do custo/i, modulo: 5,
+      vende: "Refaça a conta do preço no Módulo 5 com os custos de hoje e anote as vendas da semana para ver quanto sobra em cada uma.",
+      comeca: "Refaça a conta do preço no Módulo 5 e faça 5 vendas-teste com esse preço, anotando o que os clientes acharam." },
+    { chave: "viabilidade", re: /viabilidade|prefeitura|endere[çc]o|alvar[áa]/i, modulo: 9,
+      vende: "Faça a consulta de viabilidade na prefeitura para o endereço onde você já trabalha e anote a resposta no Módulo 9.",
+      comeca: "Antes de alugar, reformar ou comprar equipamento, faça a consulta de viabilidade na prefeitura e anote a resposta no Módulo 9." },
+    { chave: "vigilancia", re: /vigil[âa]ncia|sanit[áa]ri/i, modulo: 9,
+      vende: "Confira no Módulo 9 a resposta sobre a Vigilância Sanitária e pergunte na prefeitura o que vale para o que você já vende.",
+      comeca: "Antes das primeiras vendas, confira no Módulo 9 a resposta sobre a Vigilância Sanitária: quem vende alimento costuma precisar dela." },
+    { chave: "limite", re: /come[çc]ar menor|limite|investir|investimento/i, modulo: 6,
+      vende: "Anote os gastos e as vendas desta semana e reveja no Módulo 6 o que dá para adiar ou fazer menor.",
+      comeca: "Reveja no Módulo 6 como começar menor, comprando só o necessário para 5 vendas-teste." },
+    { chave: "caixa", re: /quanto dinheiro|dinheiro (voc[êe] )?tem|capital|caixa/i, modulo: 6,
+      vende: "Anote o que entrou e saiu nesta semana e registre no Módulo 6 quanto sobra para o negócio.",
+      comeca: "Some o dinheiro que você pode usar sem faltar para as contas da casa e registre no Módulo 6." },
+    { chave: "aprender", re: /aprender a fazer/i, modulo: 1,
+      vende: "Anote o passo a passo do que você faz, para repetir sempre do mesmo jeito.",
+      comeca: "Faça 5 unidades de treino antes de vender, anotando o que deu certo e o que mudar." },
+    { chave: "resposta", re: /tempo de resposta|responder|atendimento/i, modulo: 10,
+      vende: "Separe dois horários por dia para responder aos clientes e anote, nesta semana, quanto tempo cada um esperou.",
+      comeca: "Combine com você mesmo responder no mesmo dia e faça isso nas suas 5 primeiras conversas com clientes." },
+    { chave: "divulgacao", re: /divulga|an[úu]ncio|propaganda|redes sociais|instagram|marketing|clientes novos/i, modulo: 10,
+      vende: "Pergunte a cada cliente desta semana como ficou sabendo de você e anote: assim você vê qual divulgação funciona.",
+      comeca: "Escolha um lugar para divulgar, mostre sua oferta lá nesta semana e anote quantas pessoas pedem informação." },
+    { chave: "clientes", re: /conversar|possíveis clientes|problema (é )?real|ouvir|entrevist|cliente/i, modulo: 2,
+      vende: "Pergunte a 5 clientes que já compram por que escolhem você e o que melhorariam; anote as respostas no Módulo 2.",
+      comeca: "Converse com 5 possíveis clientes sobre o problema que você quer resolver e anote as respostas no Módulo 2." },
+    { chave: "tempo", re: /tempo|n[ãa]o cabe|capacidade|produ[çc][ãa]o|agenda/i, modulo: 7,
+      vende: "Anote nesta semana quanto tempo leva cada pedido e refaça a conta do tempo no Módulo 7.",
+      comeca: "Faça uma unidade de teste marcando o tempo de cada etapa e coloque esse tempo no Módulo 7." },
+    { chave: "teste", re: /teste|testar|confirma/i, modulo: 4,
+      vende: "Defina no Módulo 4 quantos pedidos por semana mostram que vale continuar e compare com as vendas da semana.",
+      comeca: "Defina no Módulo 4 quantas vendas-teste mostram que a ideia funciona (por exemplo, 5 em 2 semanas) e faça o teste." },
+    { chave: "fornecedor", re: /fornecedor/i, modulo: 7,
+      vende: "Peça preço a mais 2 fornecedores do que você mais compra e compare com o de hoje (Módulo 7).",
+      comeca: "Antes da primeira compra, peça preço a pelo menos 3 fornecedores (Módulo 7)." },
+    { chave: "qualidade", re: /qualidade|conferir .*entreg/i, modulo: 7,
+      vende: "Faça uma lista curta do que conferir antes de cada entrega e use nos pedidos desta semana (Módulo 7).",
+      comeca: "Monte uma lista curta do que conferir antes de entregar e use nas vendas-teste (Módulo 7)." },
+    { chave: "formalizacao", re: /formaliz|cnpj|\bmei\b|nota fiscal|imposto/i, modulo: 8,
+      vende: "Anote quanto você vende por mês e leve as dúvidas do Módulo 8 à Sala do Empreendedor da prefeitura ou a um contador.",
+      comeca: "Veja no Módulo 8 o que muda no seu caso e tire as dúvidas na Sala do Empreendedor da prefeitura antes de abrir o CNPJ." },
+    { chave: "socio", re: /s[óo]cio/i, modulo: 10,
+      vende: "Escreva com seu sócio quem faz o quê, quanto cada um coloca e como dividem o resultado (use o checklist deste módulo).",
+      comeca: "Antes de investir junto, escreva com seu sócio quem faz o quê, quanto cada um coloca e como dividem o resultado (use o checklist deste módulo)." },
+    { chave: "responsavel", re: /quem cuida/i, modulo: 10,
+      vende: "Escolha quem vai cuidar das etapas que estão sem responsável e combine os horários desta semana.",
+      comeca: "Escolha quem vai cuidar das etapas que estão sem responsável antes das vendas-teste." },
+    { chave: "vendas", re: /vend[ae]|pedidos/i, modulo: null,
+      vende: "Anote as vendas da semana: quantas, de quê, por quanto e por onde chegou cada pedido.",
+      comeca: "Faça 5 vendas-teste com vizinhos, amigos ou colegas e anote o preço, o que acharam e se comprariam de novo." },
+  ];
+  /* quando faltam ações: as do estágio (organizar e melhorar / testar) */
+  const PADRAO = {
+    vende: [
+      { chave: "vendas", texto: "Anote as vendas da semana: quantas, de quê, por quanto e por onde chegou cada pedido.", modulo: null },
+      { chave: "opiniao", texto: "Peça a opinião de 3 clientes desta semana e anote o que eles melhorariam.", modulo: null },
+      { chave: "revisar", texto: "Daqui a um mês, volte a este resultado e compare: você vendeu mais, igual ou menos?", modulo: null },
+    ],
+    comeca: [
+      { chave: "vendas", texto: "Faça 5 vendas-teste com vizinhos, amigos ou colegas e anote o preço, o que acharam e se comprariam de novo.", modulo: null },
+      { chave: "opiniao", texto: "Pergunte a cada pessoa do teste se compraria de novo e quanto pagaria.", modulo: null },
+      { chave: "revisar", texto: "Depois das vendas-teste, volte ao Módulo 5 e confira se o preço cobre o custo.", modulo: 5 },
+    ],
+  };
+  const temaDe = (t) => TEMAS.find((x) => x.re.test(String(t || "")));
+  const semModulo = (t) => String(t || "").replace(/\s*\(Módulo \d+\)\s*$/, "").trim();
+  const moduloNo = (t) => { const m = /Módulo (\d+)/.exec(String(t || "")); return m ? +m[1] : null; };
+  /* e = { estagio: "vende"|"comeca"|null, prioridades: [texto], conferir: [{chave, detalhe, modulo}], lacunas: [{tema, gravidade, modulo}] }
+     → [{ chave, texto, detalhe, modulo, origem: "prioridade"|"conferir"|"lacuna"|"estagio" }] */
+  function porOndeComecar(e) {
+    e = e || {};
+    const est = e.estagio === "vende" ? "vende" : "comeca";
+    const out = [], usadas = new Set();
+    const conf = (e.conferir || []).filter((c) => c && c.chave);
+    const detalheDe = (ch) => { const c = conf.find((x) => x.chave === ch); return c ? c.detalhe || "" : ""; };
+    const add = (a) => { if (out.length >= POR_ONDE || usadas.has(a.chave)) return; usadas.add(a.chave); out.push(a); };
+    const doTema = (tm, origem, detalhe) => ({ chave: tm.chave, texto: tm[est], detalhe: detalhe || detalheDe(tm.chave), modulo: tm.modulo, origem });
+    /* 1) prioridades da pessoa */
+    (e.prioridades || []).forEach((p) => {
+      const tm = temaDe(p);
+      if (tm) return add(doTema(tm, "prioridade"));
+      const t = semModulo(p), n = moduloNo(p);
+      if (!t) return;
+      add({ chave: "p:" + t.toLowerCase(), texto: n ? `Volte ao Módulo ${n} e resolva: ${t.charAt(0).toLowerCase() + t.slice(1)}.` : `Comece por: ${t.charAt(0).toLowerCase() + t.slice(1)}. Escreva o que vai fazer e até quando, e confira o resultado nessa data.`, detalhe: "", modulo: n, origem: "prioridade" });
+    });
+    /* 2) pontos para conferir */
+    conf.forEach((c) => { const tm = TEMAS.find((x) => x.chave === c.chave); if (tm) add(doTema(tm, "conferir", c.detalhe)); });
+    /* 3) lacunas graves (alta, depois média) */
+    ["alta", "media"].forEach((g) => (e.lacunas || []).filter((x) => x && x.gravidade === g).forEach((l) => {
+      const tm = temaDe(l.tema);
+      if (tm) return add(doTema(tm, "lacuna"));
+      add({ chave: "l:" + String(l.tema).toLowerCase(), texto: `${semModulo(l.tema)}${l.modulo && l.modulo < 10 ? ` (Módulo ${l.modulo})` : ""}.`, detalhe: "", modulo: l.modulo || null, origem: "lacuna" });
+    }));
+    /* 4) ações gerais do estágio */
+    PADRAO[est].forEach((a) => add(Object.assign({ detalhe: "", origem: "estagio" }, a)));
+    return out;
+  }
+
+  const M = { POR_ONDE, TEMAS, estagioDe, porOndeComecar, META_ALTA, PRECO_ALTO, UNIDADES, UNIDADES_PLANO, LIMITE_LISTA, LIMITE_PRIORIDADES, PRAZO_LONGO, URGENCIA, prioridades, limitar, tresPrimeiras, ordenarPorUrgencia, avaliarData, dataBR, somarDias, frasePlano, num, fmt };
   if (typeof module !== "undefined" && module.exports) module.exports = M;
   raiz.Motor10 = M;
 })(typeof window !== "undefined" ? window : globalThis);

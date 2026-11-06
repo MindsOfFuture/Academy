@@ -35,7 +35,7 @@ const NA_PAGINA = {
     if (v === 'NS' && document.querySelector('#ns')) document.querySelector('#ns').click();
     else if (opc.length) {
       const alvo = v === 'NS' ? 'Não sei' : v;
-      const rot = (x) => (x.querySelector('.op-txt b') || x).textContent.trim();
+      const rot = (x) => x.dataset.op || (x.querySelector('.op-txt b') || x).textContent.trim();   // valor gravado (a tela mostra "Mercadoria + Serviço")
       const b = opc.find((x) => rot(x) === alvo);
       if (!b) return 'opcao inexistente: ' + alvo + ' em ' + opc.map(rot).join('|');
       b.click(); document.querySelector('#ok').click();
@@ -65,14 +65,15 @@ async function caminho(page, respostas, outros) {
     visitadas.push(cod);
     const q = await page.evaluate((c) => {
       const p = window.MODULO4.perguntas.find((x) => x.codigo === c);
-      return { tipo: p.tipo, opcoes: [...document.querySelectorAll('.opcao')].map((x) => (x.querySelector('.op-txt b') || x).textContent.trim()), pergunta: document.querySelector('.q').textContent };
+      return { tipo: p.tipo, opcoes: [...document.querySelectorAll('.opcao')].map((x) => x.dataset.op || (x.querySelector('.op-txt b') || x).textContent.trim()), pergunta: document.querySelector('.q').textContent.replace(/^\s+|\s+$/g, '') };
     }, cod);
     let v = respostas[cod];
     if (v === undefined) v = q.opcoes.length ? q.opcoes.find((o) => o !== 'Não sei') : /N[uú]mero/.test(q.tipo) ? '5' : 'Resposta de teste';
     const e = await page.evaluate(NA_PAGINA.responder, v);
     if (e) throw new Error(cod + ': ' + e);
     const corpo = await page.evaluate(() => document.body.innerText);
-    telas[cod] = { ...q, corpo };
+    const todo = await page.evaluate(() => document.querySelector('#tela').textContent.replace(/\s+/g, ' '));   // inclui o que está em "Ver mais"
+    telas[cod] = { ...q, corpo, todo };
     if (/rafael/i.test(corpo)) rafael.push(cod);
     if (!(await page.evaluate(NA_PAGINA.seguir))) { telas[cod].bloqueado = true; break; }
   }
@@ -110,9 +111,11 @@ async function caminho(page, respostas, outros) {
   txt = await page.evaluate(() => document.body.innerText);
   check('P01 com frase mostra a regra M4.R01 e libera', txt.includes(D.regras.find((r) => r.codigo === 'M4.R01').texto) && await page.evaluate(NA_PAGINA.seguir));
   check('P02 aparece depois de P01', (await page.evaluate(NA_PAGINA.atual)) === 'M4.P02');
-  const ops2 = await page.evaluate(() => [...document.querySelectorAll('.opcao .op-txt b')].map((x) => x.textContent.trim()));
+  const ops2 = await page.evaluate(() => [...document.querySelectorAll('.opcao')].map((x) => x.dataset.op));
   check('P02 tem 6 opções, sem opção vazia', JSON.stringify(ops2) === JSON.stringify(['Produto', 'Serviço', 'Mercadoria', 'Mercadoria+ Serviço', 'Produto+ Serviço', 'Mercadoria+Produto']), ops2);
-  check('P02 mostra a Nota em destaque logo após a pergunta', await page.evaluate(() => { const d = document.querySelector('.q').nextElementSibling; return !!d && d.classList.contains('destaque') && d.textContent.startsWith('Nota: O que é produto?'); }));
+  const rot2 = await page.evaluate(() => [...document.querySelectorAll('.opcao .op-txt b')].map((x) => x.textContent.trim()));
+  check('L5-6: P02 mostra as combinações com espaço dos dois lados do "+"', JSON.stringify(rot2.slice(3)) === JSON.stringify(['Mercadoria + Serviço', 'Produto + Serviço', 'Mercadoria + Produto']), rot2);
+  check('P02 mostra o que é produto, serviço e mercadoria em destaque logo após a pergunta', await page.evaluate(() => { const d = document.querySelector('.q').nextElementSibling; return !!d && d.classList.contains('destaque') && d.textContent.startsWith('Produto: o que você mesmo faz') && /Serviço: /.test(d.textContent) && /Mercadoria: /.test(d.textContent); }));
 
   /* ---- todos os ramos de P02 ---- */
   const RAMO = {
@@ -215,7 +218,7 @@ async function caminho(page, respostas, outros) {
   const M1_SERV = { R: { 'M1.P01': { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' }, 'M1.P03': { estado: 'valor', valor: 'Lavagem de carro na casa do cliente' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
   const M3_CLI = { v: 3, R: { 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', campos: { 'Idade': '30 a 50', 'Ocupação': 'trabalha fora o dia todo', 'Onde mora': 'bairro São Pedro', 'O que precisa resolver (a dor)': 'sem tempo' } }, 'M3.P11': { estado: 'valor', valor: 'Falta de tempo para lavar o carro' } } };
   const semear = async (o) => { await page.evaluate((o) => { localStorage.clear(); Object.entries(o).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v))); }, o); await page.reload(); await page.click('#ir'); };
-  const tela = () => page.evaluate(() => ({ cod: null, txt: document.body.innerText, campo: (document.querySelector('#ent textarea, #ent input') || {}).value, sel: [...document.querySelectorAll('.opcao.sel .op-txt b')].map((x) => x.textContent.trim()), ops: [...document.querySelectorAll('.opcao .op-txt b')].map((x) => x.textContent.trim()), q: (document.querySelector('.q') || {}).textContent, ajuda: (document.querySelector('.dica .ajuda') || {}).textContent }));
+  const tela = () => page.evaluate(() => ({ cod: null, txt: document.body.innerText, campo: (document.querySelector('#ent textarea, #ent input') || {}).value, sel: [...document.querySelectorAll('.opcao.sel')].map((x) => x.dataset.op), ops: [...document.querySelectorAll('.opcao')].map((x) => x.dataset.op), q: (document.querySelector('.q') || {}).textContent, ajuda: (document.querySelector('.dica .ajuda') || {}).textContent }));
   const estado = () => page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m04')).R);
   {
     await semear({ 'lg2-turma-a-m01': M1_SERV, 'lg2-turma-a-m03': M3_CLI });
@@ -272,7 +275,7 @@ async function caminho(page, respostas, outros) {
     const c = await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2', 'M4.P14': 'Aceitar encomenda ou reserva antes de fazer' });
     const t = c.telas['M4.P14'];
     check('P14 nova pergunta "Como você quer testar sua oferta pela primeira vez?"', t.pergunta === 'Como você quer testar sua oferta pela primeira vez?', t.pergunta);
-    check('P14 cada opção explica o caminho', Object.values(P['M4.P14'].opcoes_explica).slice(0, 3).every((x) => t.corpo.includes(x)));
+    check('P14 a opção escolhida explica o caminho (dica ao tocar)', t.corpo.includes(P['M4.P14'].opcoes_explica['Aceitar encomenda ou reserva antes de fazer']));
     check('P14 sem o texto antigo ("investir na produção", "Protótipo sem venda")', !/investir na produção|Protótipo sem venda|Oferta mínima com preço/.test(t.corpo));
     const s = await caminho(page, { 'M4.P02': 'Serviço', 'M4.P14': 'Atender poucos clientes, já cobrando' });
     check('P14 versão serviço: ajuda própria, sem "produto"', s.telas['M4.P14'].corpo.includes(P['M4.P14'].variantes[0].ajuda) && !/produto/i.test(s.telas['M4.P14'].pergunta));
@@ -422,8 +425,8 @@ async function caminho(page, respostas, outros) {
     const s = await caminho(page, { 'M4.P02': 'Serviço', 'M4.P06': 'NS', 'M4.P14': 'Aceitar agendamento ou reserva antes de atender' }, M1_TIPO('Serviço: meu cliente paga pelo trabalho que realizo'));
     const sem = (cod) => !/bolo|picolé|farinha/i.test(s.telas[cod].corpo);
     check('tipo Serviço: P01 já traz exemplo de manicure (tipo do Módulo 1)', /manicure em domicílio/.test(s.telas['M4.P01'].corpo) && sem('M4.P01'));
-    for (const cod of ['M4.P09', 'M4.P10', 'M4.P12', 'M4.P13', 'M4.P19']) check(`tipo Serviço: ${cod} sem exemplo de bolo/picolé`, sem(cod) && /manicure|salão|horários marcados/.test(s.telas[cod].corpo), s.telas[cod].corpo.slice(0, 400));
-    check('tipo Serviço: P14 mostra Pré-venda com exemplo de agendamento', s.telas['M4.P14'].corpo.includes(P['M4.P14'] && D.base.find((b) => b.codigo === 'M4.BT07').por_tipo['Serviço'].exemplo) && sem('M4.P14'));
+    for (const cod of ['M4.P09', 'M4.P10', 'M4.P12', 'M4.P13', 'M4.P19']) check(`tipo Serviço: ${cod} sem exemplo de bolo/picolé`, sem(cod) && !/bolo|picolé|farinha/i.test(s.telas[cod].todo) && /manicure|salão|horários marcados/.test(s.telas[cod].todo), s.telas[cod].corpo.slice(0, 400));
+    check('tipo Serviço: P14 mostra Pré-venda com exemplo de agendamento (em "Ver exemplos")', s.telas['M4.P14'].todo.includes(D.base.find((b) => b.codigo === 'M4.BT07').por_tipo['Serviço'].exemplo) && !/bolo|picolé|farinha/i.test(s.telas['M4.P14'].todo));
     /* ficha técnica do serviço */
     const t6 = s.telas['M4.P06'].corpo;
     check('ficha Serviço: P06 orienta etapas, tempo, materiais e custo por atendimento', /ficha técnica do seu atendimento/.test(t6) && /tempo/.test(t6) && /materiais que você usa em cada atendimento/.test(t6) && /custam por atendimento/.test(t6));
@@ -436,9 +439,9 @@ async function caminho(page, respostas, outros) {
   {
     const r = await caminho(page, { 'M4.P02': 'Mercadoria' }, M1_TIPO('Mercadoria: compro pronto para revender'));
     check('tipo Mercadoria: P03 vira a lista de mercadorias para revender', /comprar prontas para revender/.test(r.telas['M4.P03'].pergunta) && !/ingredientes/.test(r.telas['M4.P03'].corpo));
-    check('tipo Mercadoria: P01 e P12 com exemplo de revenda', /revender roupas infantis/.test(r.telas['M4.P01'].corpo) && /roupas infantis/.test(r.telas['M4.P12'].corpo) && !/bolo/i.test(r.telas['M4.P12'].corpo));
+    check('tipo Mercadoria: P01 e P12 com exemplo de revenda', /revender roupas infantis/.test(r.telas['M4.P01'].corpo) && /roupas infantis/.test(r.telas['M4.P12'].todo) && !/bolo/i.test(r.telas['M4.P12'].todo));
     const p = await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': 'NS' }, M1_TIPO('Produto: eu faço o que vendo'));
-    check('tipo Produto: exemplos de produto mantidos (bolo de pote, picolé)', /bolo de pote para lanche escolar/.test(p.telas['M4.P01'].corpo) && /picolé gourmet/.test(p.telas['M4.P05'].corpo) && /bolo de pote/.test(p.telas['M4.P12'].corpo));
+    check('tipo Produto: exemplos de produto mantidos (bolo de pote, picolé)', /bolo de pote para lanche escolar/.test(p.telas['M4.P01'].corpo) && /picolé gourmet/.test(p.telas['M4.P05'].corpo) && /bolo de pote/.test(p.telas['M4.P12'].todo));
     check('tipo Produto: resumo mostra a ficha técnica do produto, sem a do serviço', p.finalTodo.includes('Ficha técnica do produto') && !p.finalTodo.includes('Ficha técnica do serviço'));
   }
   {
@@ -448,7 +451,8 @@ async function caminho(page, respostas, outros) {
     check('alimento: dados têm a variante Alimento da P03 e do conceito M4.BT09', !!AL && !!D.base.find((b) => b.codigo === 'M4.BT09').por_tipo.Alimento);
     const ITENS = [/gramas ou ml/, /rende/, /[Pp]erd[ae] no preparo/, /[Ee]mbalagem de cada unidade/, /[Vv]alidade e como guardar/, /[Tt]empo de preparo de cada fornada ou pedido/, /custo da receita ÷/];
     check('alimento: texto de IA pede quantidades, rendimento, perda, embalagem, validade, tempo e custo por unidade', ITENS.every((r) => r.test(AL.prompt_ia)) && /brownie/.test(AL.prompt_ia) && /R\$ 30 ÷ 10 = R\$ 3,00/.test(AL.prompt_ia), ITENS.filter((r) => !r.test(AL.prompt_ia)).map(String));
-    check('alimento: ajuda pede os mesmos 7 pontos, com exemplo de brownie e conta simples', ITENS.slice(0, 6).every((r) => r.test(AL.ajuda)) && /Custo por unidade = custo da receita ÷ rendimento, mais a embalagem/.test(AL.ajuda) && /brownie/.test(AL.ajuda_exemplo.titulo) && /R\$ 30 ÷ 10 = R\$ 3,00 \+ R\$ 0,50 da embalagem = R\$ 3,50/.test(AL.ajuda_exemplo.texto));
+    const ALA = AL.ajuda + ' ' + AL.ajuda_mais;   // parte à vista + "Ver mais"
+    check('alimento: ajuda pede os mesmos 7 pontos, com exemplo de brownie e conta simples', ITENS.slice(0, 6).every((r) => r.test(ALA)) && /Custo por unidade = custo da receita ÷ rendimento, mais a embalagem/.test(ALA) && /brownie/.test(AL.ajuda_exemplo.titulo) && /R\$ 30 ÷ 10 = R\$ 3,00 \+ R\$ 0,50 da embalagem = R\$ 3,50/.test(AL.ajuda_exemplo.texto));
     const M1_IDEIA = (ideia) => ({ 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: ideia }, 'M1.P03A': { estado: 'opcao', opcao: 'Produto: eu faço o que vendo' } } } });
     /* ideia do Módulo 1 = brownies artesanais (a pergunta 1 respondida com texto neutro: vale a ideia do Módulo 1) */
     const b = await caminho(page, { 'M4.P02': 'Produto', 'M4.P03': 'NS', 'M4.P05': '2' }, M1_IDEIA('brownies artesanais'));
@@ -459,7 +463,7 @@ async function caminho(page, respostas, outros) {
     check('alimento: conceito da ficha técnica com exemplo de brownie', t3.includes('Ficha técnica do produto') && /Brownie: 200 g de chocolate/.test(t3));
     check('alimento: resumo mostra a ficha técnica da receita', b.finalTodo.includes(D.base.find((x) => x.codigo === 'M4.BT09').por_tipo.Alimento.definicao));
     await abrirEm('M4.P03', { 'M4.P02': 'Produto', 'M4.P05': '2' }, M1_IDEIA('brownies artesanais'));
-    const ex = await page.evaluate(() => { const d = document.querySelector('.dica .dica-mais'), ok = document.querySelector('#ok').getBoundingClientRect(); const fechado = !!d && !d.open; if (d) d.open = true; return { fechado, texto: d ? d.innerText : '', okTop: ok.top + window.scrollY }; });
+    const ex = await page.evaluate(() => { const d = document.querySelector('.dica .dica-mais:not(.dica-resto)'), ok = document.querySelector('#ok').getBoundingClientRect(); const fechado = !!d && !d.open; if (d) d.open = true; return { fechado, texto: d ? d.innerText : '', okTop: ok.top + window.scrollY }; });
     check('alimento: exemplo do brownie recolhido na dica (o campo fica perto) e com a conta ao abrir', ex.fechado && /R\$ 30 ÷ 10 = R\$ 3,00/.test(ex.texto) && /12 pedaços/.test(ex.texto), ex);
     /* sem Módulo 1: a própria resposta da pergunta 1 (hamburgueria) */
     const h = await caminho(page, { 'M4.P01': 'Hambúrguer artesanal no bairro', 'M4.P02': 'Produto', 'M4.P03': 'NS', 'M4.P05': '2' });
@@ -483,7 +487,7 @@ async function caminho(page, respostas, outros) {
     const t = await tela();
     check('estado v2: P04 "Plataformas (ifood)" vira "Plataformas (iFood)"', JSON.stringify(t.sel) === '["Plataformas (iFood)"]', t.sel);
     await page.evaluate(() => document.querySelector('#ok').click());
-    check('estado v2: ao responder, grava como versão 4, em lista, com a opção nova', await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); return s.v === 4 && JSON.stringify(s.R['M4.P04']) === JSON.stringify({ estado: 'opcoes', opcoes: ['Plataformas (iFood)'] }); }));
+    check('estado v2: ao responder, grava como versão 5, em lista, com a opção nova', await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); return s.v === 5 && JSON.stringify(s.R['M4.P04']) === JSON.stringify({ estado: 'opcoes', opcoes: ['Plataformas (iFood)'] }); }));
   }
 
 
@@ -531,7 +535,7 @@ async function caminho(page, respostas, outros) {
     await page.reload(); await page.click('#ir');
     const selV3 = (await tela()).sel;
     await page.evaluate(() => document.querySelector('#ok').click());
-    check('J3: estado v3 com opção única vira lista de um item (v4)', JSON.stringify(selV3) === '["Loja própria ou parceira"]' && await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); return s.v === 4 && s.R['M4.P04'].estado === 'opcoes' && s.R['M4.P04'].opcoes[0] === 'Loja própria ou parceira'; }));
+    check('J3: estado v3 com opção única vira lista de um item (v5)', JSON.stringify(selV3) === '["Loja própria ou parceira"]' && await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); return s.v === 5 && s.R['M4.P04'].estado === 'opcoes' && s.R['M4.P04'].opcoes[0] === 'Loja própria ou parceira'; }));
     const r = await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2', 'M4.P04': 'Entregador parceiro' });
     check('J3: resumo mostra as formas de entrega', r.finalTodo.includes('Entregador parceiro'));
     /* relatório do Bento: a 4ª tela (como o produto chega até o cliente) aceita várias formas, também com produto + serviço */
@@ -586,6 +590,128 @@ async function caminho(page, respostas, outros) {
     const s = await caminho(page, { 'M4.P02': 'Serviço', 'M4.P14': 'Atender poucos clientes, já cobrando' });
     check('J6: serviço lê "serviço" no enunciado da PV1 e PV2', s.telas['M4.PV1'].pergunta === 'Qual problema do cliente o seu serviço resolve?' && s.telas['M4.PV2'].pergunta === 'Por que o cliente escolheria o seu serviço em vez de outro?' && /manicure|salão/.test(s.telas['M4.PV1'].corpo + s.telas['M4.PV2'].corpo + s.telas['M4.PV3'].corpo), [s.telas['M4.PV1'].pergunta, s.telas['M4.PV2'].pergunta]);
     check('J6: serviço grava com os mesmos códigos', await page.evaluate(() => { const R = JSON.parse(localStorage.getItem('lg2-turma-a-m04')).R; return ['M4.PV1', 'M4.PV2', 'M4.PV3'].every((k) => R[k] && R[k].estado === 'valor'); }));
+  }
+
+
+  /* ================= 5º lote de 05/11/2026 (Nayara: revenda de joias; Arthur: marmitas) ================= */
+  const M1_JOIAS = { 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Revenda de joias folheadas' }, 'M1.P03A': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' } } } };
+  {
+    /* receita C: "‹ Voltar" no topo do cartão da pergunta */
+    await page.evaluate(() => localStorage.clear()); await page.reload(); await page.click('#ir');
+    const v = await page.evaluate(() => { const c = document.querySelector('.cartao-q'), b = c.querySelector('#v'); return { primeiro: c.firstElementChild === b, antesDaPergunta: !!(b.compareDocumentPosition(c.querySelector('.q')) & Node.DOCUMENT_POSITION_FOLLOWING), n: document.querySelectorAll('#v, .voltar').length, esq: b.getBoundingClientRect().left - c.getBoundingClientRect().left }; });
+    check('C: Voltar é o 1º item do cartão, à esquerda, acima da pergunta, e não há outro embaixo', v.primeiro && v.antesDaPergunta && v.n === 1 && v.esq < 30, v);
+    check('C: nome acessível do botão é exatamente "Voltar"', await page.getByRole('button', { name: 'Voltar', exact: true }).count() === 1);
+    await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+    check('C: na 1ª pergunta, Voltar leva à capa', !!(await page.$('#ir')));
+    await abrirEm('M4.P09', { 'M4.P02': 'Produto', 'M4.P05': '2' });
+    await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+    check('C: no meio do módulo, Voltar leva à pergunta anterior', (await page.evaluate(NA_PAGINA.atual)) === 'M4.P08');
+  }
+  {
+    /* item 1 (receita D): dica longa = essencial à vista + "Ver mais" fechado */
+    /* o que fica à vista: a ajuda inteira quando há "Ver mais" (ajuda_mais) ou é curta; senão, a 1ª frase */
+    const aVista = (ajuda, mais) => (mais || ajuda.length <= 220 ? ajuda : (ajuda.match(/^[\s\S]+?[.!?](?=\s)/) || [ajuda])[0]).length;
+    const vista = [];
+    Object.values(P).forEach((q) => {
+      if (q.ajuda) vista.push([q.codigo, aVista(q.ajuda, q.ajuda_mais)]);
+      Object.entries(q.por_tipo || {}).forEach(([t, o]) => { if (o.ajuda) vista.push([q.codigo + ' ' + t, aVista(o.ajuda, 'ajuda_mais' in o ? o.ajuda_mais : q.ajuda_mais)]); });
+      (q.variantes || []).forEach((o) => { if (o.ajuda) vista.push([q.codigo + ' versão', aVista(o.ajuda, '')]); });
+    });
+    const longas = vista.filter(([, n]) => n > 230);
+    check('D: nenhuma dica mostra mais de ~230 letras antes do "Ver mais"', longas.length === 0, longas);
+    await page.evaluate(() => localStorage.clear()); await page.reload(); await page.click('#ir');
+    let d = await page.evaluate(() => { const x = document.querySelector('.dica .dica-resto'); return { vista: document.querySelector('.dica .ajuda').innerText, fechado: !!x && !x.open, sum: x && x.querySelector('summary').textContent, resto: x && x.textContent }; });
+    check('D: pergunta 1 mostra como descrever + exemplo; o resto fica em "Ver mais" fechado', /Descreva como explicaria/.test(d.vista) && /bolo de pote para lanche escolar/.test(d.vista) && !/muito amplas/.test(d.vista) && d.fechado && d.sum === 'Ver mais' && /muito amplas/.test(d.resto), d);
+    await abrirEm('M4.P06', { 'M4.P02': 'Serviço', 'M4.P14': 'Atender poucos clientes, já cobrando' });
+    d = await page.evaluate(() => { const x = document.querySelector('.dica .dica-resto'); return { vista: document.querySelector('.dica .ajuda').innerText, fechado: !!x && !x.open, resto: x && x.textContent }; });
+    check('D: pergunta da ficha do serviço: o que anotar à vista; exemplo da manicure em "Ver mais"', /ficha técnica do seu atendimento/.test(d.vista) && !/manicure/.test(d.vista) && d.fechado && /manicure em domicílio/.test(d.resto), d);
+    await abrirEm('M4.P14', { 'M4.P02': 'Produto', 'M4.P05': '2' });
+    d = await page.evaluate(() => { const c = document.querySelector('.conceitos-juntos'); const det = c && c.querySelector('details'); return { exFechado: !!det && !det.open, ok: document.querySelector('#ok').getBoundingClientRect().top + scrollY, ent: document.querySelector('#ent').getBoundingClientRect().top + scrollY }; });
+    check('D: na pergunta 14, os exemplos dos três jeitos de testar ficam em "Ver exemplos" fechado', d.exFechado, d);
+  }
+  {
+    /* item 2: quem é o cliente já foi respondido antes -> pergunta 8 vem preenchida */
+    const M3_DUAS = { 'lg2-turma-a-m03': { v: 5, R: { 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', opcoes: ['Pessoas comuns (consumidor final)', 'Empresas'], campos: { 'Idade': '25 a 45', 'Ocupação': 'trabalha no centro', 'Ramo': 'salões de beleza' } } } } };
+    const c = await caminho(page, { 'M4.P02': 'Mercadoria' }, Object.assign({}, M1_JOIAS, M3_DUAS));
+    const t8 = c.telas['M4.P08'];
+    check('Cliente: perfil do Módulo 3 com duas opções marcadas vem na pergunta 8, com o selo', /Veio do Módulo 3/.test(t8.corpo) && /Confira e ajuste se quiser/.test(t8.corpo), t8.corpo.slice(0, 500));
+    await abrirEm('M4.P08', { 'M4.P02': 'Mercadoria', 'M4.P08': undefined }, Object.assign({}, M1_JOIAS, M3_DUAS));
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); delete s.R['M4.P08']; localStorage.setItem('lg2-turma-a-m04', JSON.stringify(s)); });
+    await page.reload(); await page.click('#ir');
+    const campo = await page.evaluate(() => document.querySelector('#ent textarea').value);
+    check('Cliente: texto trazido junta as duas opções e os campos (Módulo 3)', campo === 'Pessoas comuns e Empresas (idade: 25 a 45; ocupação: trabalha no centro; ramo: salões de beleza)', campo);
+    const m2 = await caminho(page, { 'M4.P02': 'Mercadoria' }, Object.assign({}, M1_JOIAS, { 'lg2-turma-b-m02': { R: { 'M2.P02': { estado: 'valor', valor: 'Mulheres de 25 a 45 anos que gostam de acessórios' } } } }));
+    check('Cliente: sem perfil no Módulo 3, a pergunta 8 vem do Módulo 2 (selo "Veio do Módulo 2")', /Veio do Módulo 2/.test(m2.telas['M4.P08'].corpo) && /Confira e ajuste se quiser/.test(m2.telas['M4.P08'].corpo));
+  }
+  {
+    /* item 3: pergunta 11, "Outro" abre campo e grava o texto junto */
+    await abrirEm('M4.P11', { 'M4.P02': 'Mercadoria' }, M1_JOIAS);
+    const escolher = (op) => page.evaluate((op) => [...document.querySelectorAll('#ent .opcao')].find((x) => x.dataset.op === op).click(), op);
+    const campoOutro = () => page.evaluate(() => { const l = document.querySelector('.outro-campo'); return { visivel: !!l && !l.hidden && l.offsetHeight > 0, foco: document.activeElement === (l && l.querySelector('textarea')), rotulo: l && l.querySelector('span').textContent }; });
+    await escolher('Preço');
+    check('Outro: com outra opção marcada, o campo fica escondido', !(await campoOutro()).visivel);
+    await escolher('Outro');
+    let o = await campoOutro();
+    check('Outro: ao tocar em "Outro" abre um campo para escrever, já com o cursor', o.visivel && o.foco && o.rotulo === 'Qual é esse outro motivo?', o);
+    await page.focus('.outro-campo textarea'); await page.setViewportSize({ width: 390, height: 450 }); await page.waitForTimeout(700);
+    const bc = await page.locator('.outro-campo textarea').boundingBox(), bo = await page.locator('#ok').boundingBox();
+    check('Outro: com o teclado aberto (390x450), o campo e o Continuar ficam visíveis', bc && bo && bc.y >= 0 && bc.y + bc.height <= 450 && bo.y >= 0 && bo.y + bo.height <= 450, { bc, bo });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => document.querySelector('#ok').click());
+    const s0 = await situacao('M4.P11');
+    check('Outro: campo vazio pede o texto e não grava', /Escreva qual é o outro motivo/.test(s0.erro) && !s0.seguir && ((await estado())['M4.P11'] || {}).opcao === 'Preço', s0);
+    await page.fill('.outro-campo textarea', 'Peças com garantia de um ano');
+    await page.evaluate(() => document.querySelector('#ok').click());
+    check('Outro: grava a opção e o texto ({opcao:"Outro", detalhe})', JSON.stringify((await estado())['M4.P11']) === JSON.stringify({ estado: 'opcao', opcao: 'Outro', detalhe: 'Peças com garantia de um ano' }), (await estado())['M4.P11']);
+    await page.evaluate(NA_PAGINA.seguir); await page.evaluate(NA_PAGINA.responder, 'Não acha joia bonita e barata perto de casa'); await page.evaluate(NA_PAGINA.seguir);
+    check('Outro: a proposta de valor lembra o motivo escrito', /Antes você marcou “Peças com garantia de um ano”/.test(await page.evaluate(() => document.body.innerText)));
+    await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+    await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+    o = await page.evaluate(() => ({ v: (document.querySelector('.outro-campo textarea') || {}).value, aberto: !document.querySelector('.outro-campo').hidden }));
+    check('Outro: ao voltar, o campo aparece aberto com o texto', o.v === 'Peças com garantia de um ano' && o.aberto, o);
+    const c = await caminho(page, { 'M4.P02': 'Mercadoria', 'M4.P11': 'Outro' }, M1_JOIAS).catch((e) => ({ erro: String(e) }));
+    check('Outro: "Outro" sem texto para na pergunta 11 (campo obrigatório)', !!c.telas && c.telas['M4.P11'].bloqueado === true, c.erro || c.visitadas);
+  }
+  {
+    /* resumo com o "Outro" escrito */
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m04', JSON.stringify({ v: 5, R: { 'M4.P01': { estado: 'valor', valor: 'Joias folheadas' }, 'M4.P02': { estado: 'opcao', opcao: 'Mercadoria+ Serviço' }, 'M4.P10': { estado: 'valor', valor: 'Ficar bonita gastando pouco' }, 'M4.P11': { estado: 'opcao', opcao: 'Outro', detalhe: 'Peças com garantia de um ano' } }, hist: ['RESULTADO'] })); });
+    await page.reload(); await page.click('#ir');
+    const r = await page.evaluate(() => ({ lista: document.querySelector('details.respostas').textContent, caixa: document.querySelector('.entendemos').innerText }));
+    check('Outro: resumo mostra "Outro: texto" e o tipo como "Mercadoria + Serviço"', r.lista.includes('Outro: Peças com garantia de um ano') && r.lista.includes('Mercadoria + Serviço'), r.lista.slice(0, 600));
+    check('Outro: "O que entendemos" usa o motivo escrito', r.caixa.includes('escolheria você por “Peças com garantia de um ano”'), r.caixa);
+  }
+  {
+    /* item 4: protótipo e oferta mínima explicados junto da pré-venda, e dica ao tocar cada opção */
+    await abrirEm('M4.P14', { 'M4.P02': 'Mercadoria' }, M1_JOIAS);
+    const caixa = await page.evaluate(() => { const c = document.querySelector('.conceitos-juntos'); return c ? { txt: c.innerText, antesDasOpcoes: !!(c.compareDocumentPosition(document.querySelector('#ent')) & Node.DOCUMENT_POSITION_FOLLOWING) } : null; });
+    const B = (c) => D.base.find((b) => b.codigo === c);
+    check('Teste: protótipo, oferta mínima e pré-venda no mesmo cartão, antes das opções', !!caixa && caixa.antesDasOpcoes && ['M4.BT05', 'M4.BT04', 'M4.BT07'].every((c) => caixa.txt.includes(B(c).definicao)) && /Protótipo:/.test(caixa.txt) && /Oferta mínima/.test(caixa.txt) && /Pré-venda:/.test(caixa.txt), caixa);
+    check('Teste: protótipo explicado sem a sigla MVP', !/MVP/.test(B('M4.BT05').definicao) && /não mostra se as pessoas pagariam/.test(B('M4.BT05').definicao));
+    check('Teste: sem texto fixo embaixo de cada opção; uma só dica, a da opção marcada', await page.evaluate(() => !document.querySelector('#ent .op-sub') && document.querySelectorAll('#dica-op').length === 1 && document.querySelector('#dica-op').textContent === window.MODULO4.perguntas.find((x) => x.codigo === 'M4.P14').opcoes_explica[document.querySelector('#ent .opcao.sel').dataset.op]));
+    const toque = async (op) => { await page.evaluate((op) => [...document.querySelectorAll('#ent .opcao')].find((x) => x.dataset.op === op).click(), op); return page.evaluate(() => { const d = document.querySelector('#dica-op'); return d.hidden ? '' : d.textContent; }); };
+    const vistos = {};
+    for (const op of PROD_P14) vistos[op] = await toque(op);
+    check('Teste: tocar cada opção mostra o que ela significa', PROD_P14.every((op) => vistos[op] === P['M4.P14'].opcoes_explica[op]) && /^Isto é um protótipo/.test(vistos['Mostrar uma amostra sem cobrar']) && /^Isto é uma oferta mínima/.test(vistos['Vender pouca quantidade, já com preço']) && /^Isto é uma pré-venda/.test(vistos['Aceitar encomenda ou reserva antes de fazer']), vistos);
+    const s = await caminho(page, { 'M4.P02': 'Serviço', 'M4.P14': 'Aceitar agendamento ou reserva antes de atender' });
+    const ts = s.telas['M4.P14'];
+    check('Teste (serviço): oferta mínima e pré-venda explicadas; a dica da opção escolhida aparece', /Oferta mínima/.test(ts.corpo) && /Pré-venda:/.test(ts.corpo) && !/Protótipo:/.test(ts.corpo) && ts.corpo.includes(P['M4.P14'].opcoes_explica['Aceitar agendamento ou reserva antes de atender']) && !/produto/i.test(ts.corpo.split('Continuar')[0].replace(/Produto,/g, '')), ts.corpo.slice(0, 900));
+  }
+  {
+    /* item 5: pergunta 16, "Não sei" sem texto sobre o aplicativo */
+    for (const v of ['NS', 'Sim']) {
+      const c = await caminho(page, { 'M4.P02': 'Mercadoria', 'M4.P16': v }, M1_JOIAS);
+      const t = so(c.telas['M4.P16'].corpo);
+      check(`P16 "${v === 'NS' ? 'Não sei' : v}": sem o texto roxo sobre o app ("O app não guarda dados")`, !/O app não guarda|aplicativo não guarda/.test(t) && (v !== 'NS' || t.includes(so(P['M4.P16'].resposta_naosei.split('“')[0]))), t.slice(0, 600));
+    }
+    check('P16 "Não sei": orientação fala do negócio da pessoa (contato dos clientes)', /contato dos clientes/.test(P['M4.P16'].resposta_naosei) && !/\bapp\b|aplicativo/i.test(P['M4.P16'].resposta_naosei));
+  }
+  {
+    /* item 6: gramática, escrita e espaçamento */
+    const tudo = JSON.stringify(D);
+    const RUINS2 = ['Mercadoria, produto ou serviço', 'Lembre-se: Dizer', '‘as pessoas vão gostar’', 'compraria/marcaria um horário [produto ou serviço]', 'Ao invés de', 'pessoas reservarem, ou então', 'pagariam 18 reais', '200g farinha', 'dados pessoais já que', 'cartão de experimento', 'risco, é preciso', 'condições de gastos', 'opção Outra.', 'como é no caso de', 'Pense se para você e para o seu negócio,', 'pareça incompleto"', 'desconforto algum, proporcionando um produto de qualidade', 'O app não guarda dados dos seus clientes'];
+    const achados = RUINS2.filter((r) => tudo.includes(r));
+    check('L5 textos: erros de escrita encontrados foram corrigidos', achados.length === 0, achados);
+    check('L5 textos: regra do "Não sei" da pergunta 1 termina com ponto', /incompleto\.$/.test(D.regras.find((r) => r.codigo === 'M4.R02').texto));
   }
 
   check('nenhum texto "Rafael" aparece em nenhuma tela', rafael.length === 0, rafael);

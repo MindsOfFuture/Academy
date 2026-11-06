@@ -12,6 +12,8 @@
    resultado com as respostas recolhidas em "Ver suas respostas".
    Lote 05/11 (b): teclado do celular, "O que ainda falta descobrir" e "Sua tarefa para fazer já" gerados no
    resultado, P4/P8 adaptadas para Mercadoria, exemplos por tipo, aviso de combinação, sem texto aos grupos.
+   Lote 3: um só Voltar, no topo à esquerda acima da pergunta; textos longos do resultado com "Ver mais";
+   "Para onde seguem estas informações" recolhido; nenhuma menção a "Grupo N"/outros grupos.
    Inclui teste de sabotagem dos próprios conferidores. Sai com código != 0 se falhar. */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -434,6 +436,9 @@ async function servidor() {
     ok(q === qEsp, `${c}: pergunta "${q}" != "${qEsp}"`);
     ok(t.includes(e.apoio), `${c}: apoio`);
     ok(await page.evaluate(() => [...document.querySelectorAll('.topo button')].some((b) => b.textContent.trim() === '< Voltar')), `${c}: "< Voltar" no topo`);
+    /* Receita C (lote 3): o Voltar fica no topo, à esquerda, acima do texto da pergunta, e só há um */
+    ok(await page.evaluate(() => { const v = [...document.querySelectorAll('button')].filter((b) => /Voltar/.test(b.textContent)); const q = document.querySelector('.q').getBoundingClientRect(), r = v[0] && v[0].getBoundingClientRect();
+      return v.length === 1 && r.bottom <= q.top && r.left < innerWidth / 2; }), `${c}: um só Voltar, à esquerda e acima da pergunta`);
     ok(await page.evaluate(() => !!document.querySelector('.barra')), `${c}: barra de progresso`);
     const d = await page.evaluate(() => [...document.querySelectorAll('details')].map((x) => [x.open, x.querySelector('summary').textContent]));
     ok(e.ajuda ? d.length === 1 && d[0][0] === false && d[0][1] === 'O que quer dizer isso?' : d.length === 0, `${c}: caixa de ajuda (fechada, título)`);
@@ -610,6 +615,17 @@ async function servidor() {
   ok(t.includes('Você já sabe fazer bolo de pote?') && t.includes('Bolo de pote'), 'resultado: resumo com P3/P4');
   ok(/Ver suas respostas/i.test(t) && /Para onde seguem estas informações/i.test(t), 'resultado: resumo + textos do Mapa');
   await regrasGerais('resultado');
+  /* lote 3 (Receita D): texto longo do resultado com a 1ª frase à vista e o resto em "Ver mais"; "Para onde seguem" recolhido */
+  ok(await page.evaluate(() => {
+    const prof = [...document.querySelectorAll('.cartao')].find((c) => c.querySelector('h3') && c.querySelector('h3').textContent === 'Quando procurar um profissional');
+    const lim = document.querySelector('.aviso-roxo');
+    const d1 = prof && prof.querySelector('details.ver-mais'), d2 = lim && lim.querySelector('details.ver-mais');
+    return !!d1 && !d1.open && d1.querySelector('summary').textContent === 'Ver mais' && prof.querySelector(':scope > p').textContent.length <= 220
+      && !!d2 && !d2.open && lim.querySelector(':scope > p').textContent.length <= 220;
+  }), 'resultado: textos longos com 1ª frase e "Ver mais" fechado');
+  ok(await page.evaluate(() => { const d = document.querySelector('details.para-onde'); return !!d && !d.open && d.querySelector('summary').textContent === 'Para onde seguem estas informações' && d.querySelectorAll('.cartao').length === 4; }),
+    'resultado: "Para onde seguem estas informações" recolhido (4 módulos dentro)');
+  ok(await page.evaluate(() => !/\bGrupo\s*\d|demais grupos|outros grupos/i.test(document.querySelector('#tela').textContent)), 'resultado: nenhuma menção a "Grupo N" ou aos outros grupos (nem no que está recolhido)');
   await shot('06b-resultado-respostas');
 
   // 5A para cada opção da Pergunta 5
@@ -676,6 +692,8 @@ async function servidor() {
   ok(await tarefaAgora() === 'Anote quanto você gasta de material para fazer uma unidade de bolo de pote.', 'tarefa (produto, já vende): ' + await tarefaAgora());
   ok(await page.evaluate(() => !document.querySelector('.b-aviso')), 'resultado: sem aviso quando não há combinação estranha');
   {
+    /* lote 3: "Para onde seguem estas informações" fica recolhido; abre para conferir o texto */
+    await page.evaluate(() => { document.querySelector('details.para-onde').open = true; });
     const t2 = await texto();
     ok(!/O que você recebe no final/.test(t2), 'resultado: sai o cartão que só descrevia a entrega');
     for (const s of ['No Módulo 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes.',
@@ -884,5 +902,5 @@ async function servidor() {
   ok(erros.length === 0, 'erros na página: ' + erros.join(' | '));
   await browser.close(); srv.close();
   if (falhas.length) { console.log(`FAIL ${falhas.length} de ${checks} checagens`); falhas.forEach((f) => console.log(' - ' + f)); process.exit(1); }
-  console.log(`PASS ${checks} checagens · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
+  console.log(`PASS ${checks} checagens · lote 3: Voltar só no topo acima da pergunta, textos longos com "Ver mais", "Para onde seguem" recolhido, sem "Grupo N" · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

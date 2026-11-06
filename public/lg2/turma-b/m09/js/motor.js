@@ -20,7 +20,25 @@
     dentro: "Dentro da cozinha ou de outro cômodo fechado",
     inflMaior: "Sim, em maior quantidade ou para vender",
     obra: "Sim, obra que muda estrutura, área ou uso", alimentos: "Sim, alimentos ou bebidas",
+    /* opções criadas pelo app no lote 3 (nov/2026), fora do documento do grupo */
+    outra: "Outra atividade", domicilio: "Na casa do cliente (atendimento em domicílio)",
   };
+  /* opções extras (relatórios de Nayara e Gaby, 05/11/2026): entram antes de "depois" na lista do documento.
+     "Outra atividade" (M9-02) = atividade fora das opções de saúde: a Vigilância Sanitária fica "a confirmar", com aviso para conferir.
+     Domicílio (M9-03) = sem ponto próprio, atendimento na casa do cliente: segue como "sem local fixo" sem perguntar a forma (M9-03a). */
+  const EXTRAS = {
+    "M9-02": [{ depois: "Não", opcao: O.outra, opcoes: [O.outra],
+      texto: "Anotado. Mesmo fora dessas opções, a sua atividade pode pedir alguma licença ou autorização: confira na prefeitura ou na Sala do Empreendedor." }],
+    "M9-03": [{ depois: O.loja, opcao: O.domicilio, opcoes: [O.domicilio],
+      texto: "Quem atende na casa do cliente não precisa de alvará para um ponto próprio. Mas a atividade pode precisar de licença própria, por exemplo da Vigilância Sanitária ou do conselho da profissão: confira na prefeitura. O registro ainda pede um endereço, em geral o da sua casa." }],
+  };
+  /* opções na ordem da tela: as do documento + as extras */
+  function opcoes(D, cod) {
+    const q = D.perguntas.find((x) => x.codigo === cod);
+    const lista = q ? q.caminhos.flatMap((c) => c.opcoes) : [];
+    (EXTRAS[cod] || []).forEach((e) => { const i = lista.indexOf(e.depois); lista.splice(i < 0 ? lista.length : i + 1, 0, e.opcao); });
+    return lista;
+  }
   /* perguntas em que o "Não sei" mostra o aviso com "Já verifiquei" (texto do documento + regra das linhas) */
   const AVISO_NS = ["M9-02", "M9-03a", "M9-04", "M9-06", "M9-07", "M9-07a", "M9-07b", "M9-07c", "M9-08", "M9-10", "M9-11", "M9-12"];
 
@@ -34,9 +52,10 @@
     let tipo = { [O.casa]: "casa", [O.apto]: "apto", [O.loja]: "loja" }[o3] || null, planejado = false;
     if (!tipo && (o3 === O.naoEscolhi || o3 === NS)) { tipo = { [O.pCasa]: "casa", [O.pApto]: "apto", [O.pLoja]: "loja" }[o3b] || null; planejado = !!tipo; }
     const pedeForma = o3 === O.semLocal || ((o3 === O.naoEscolhi || o3 === NS) && o3b === O.pSem);
-    const forma = !pedeForma ? null : o3a === O.internet || o3a === O.cliente ? "remoto" : o3a === O.rua ? "rua" : o3a === NS ? "indefinido" : null;
+    const domicilio = o3 === O.domicilio;
+    const forma = domicilio ? "remoto" : !pedeForma ? null : o3a === O.internet || o3a === O.cliente ? "remoto" : o3a === O.rua ? "rua" : o3a === NS ? "indefinido" : null;
     const indefinido = o3b === O.pIdeia || forma === "indefinido";
-    return { tipo, planejado, pedeForma, forma, indefinido, fixo: !!tipo, casaOuApto: tipo === "casa" || tipo === "apto" };
+    return { tipo, planejado, pedeForma, forma, domicilio, indefinido, fixo: !!tipo, casaOuApto: tipo === "casa" || tipo === "apto" };
   }
   const sanitario = (R) => sim(op(R, "M9-02"));
   /* público no local: M9-06 = Sim (qualquer número); na rua, público no local = sim */
@@ -67,7 +86,7 @@
   /* ---------- texto do documento ---------- */
   const caminho = (D, cod, opcao) => {
     const q = D.perguntas.find((x) => x.codigo === cod);
-    return q && q.caminhos.find((c) => c.opcao === opcao || c.opcoes.includes(opcao));
+    return (q && q.caminhos.find((c) => c.opcao === opcao || c.opcoes.includes(opcao))) || (EXTRAS[cod] || []).find((e) => e.opcao === opcao);
   };
   /* "Verifique ... ⚠ Atenção: ..." -> { verifique, atencao } */
   function partesAviso(t) {
@@ -106,7 +125,7 @@
   const alimentoSemSaude = (R, X) => !!(X && X.alimento) && op(R, "M9-02") === "Não";
   function checklist(D, R, feitos, X) {
     const L = local(R), o4 = op(R, "M9-04"), o7 = op(R, "M9-07"), o7c = op(R, "M9-07c");
-    const pulado = (motivo) => (L.indefinido ? { sit: SIT.conf, motivo: "Local ainda não definido" } : { sit: SIT.na, motivo });
+    const pulado = (motivo) => (L.indefinido ? { sit: SIT.conf, motivo: "Local ainda não definido" } : { sit: SIT.na, motivo: L.domicilio && motivo === "Sem local fixo" ? "Atende na casa do cliente" : motivo });
     const porNS = (cods) => cods.filter((c) => ns(R, c));
     const out = [];
     const add = (id, r, orgaos) => out.push(Object.assign({ id, orgaos }, r));
@@ -139,7 +158,9 @@
     }
     /* 5. Vigilância Sanitária */
     add("vigilancia", sanitario(R) ? { sit: SIT.fazer } : ns(R, "M9-02") ? { sit: SIT.conf, ns: ["M9-02"] }
-      : alimentoSemSaude(R, X) ? { sit: SIT.conf, motivo: "Você vende alimentos: confira com a Vigilância Sanitária" } : { sit: SIT.na, motivo: "Atividade sem interesse sanitário" }, ["vigilancia"]);
+      : alimentoSemSaude(R, X) ? { sit: SIT.conf, motivo: "Você vende alimentos: confira com a Vigilância Sanitária" }
+        : op(R, "M9-02") === O.outra ? { sit: SIT.conf, motivo: `Outra atividade${R["M9-02"].detalhe ? ` (${R["M9-02"].detalhe})` : ""}: confira na prefeitura se ela precisa de licença sanitária ou de outra autorização` }
+          : { sit: SIT.na, motivo: "Atividade sem interesse sanitário" }, ["vigilancia"]);
     /* 6. uso de espaço público (ambulante) */
     add("ambulante", L.forma === "rua" ? { sit: SIT.fazer } : L.forma === "indefinido" ? { sit: SIT.conf, ns: ["M9-03a"] } : { sit: SIT.na, motivo: "Não vende em local público" },
       ["prefeitura", "detran"]);
@@ -236,6 +257,7 @@
     const nomeLocal = { casa: "casa", apto: "apartamento ou condomínio", loja: "loja ou sala comercial" }[L.tipo];
     if (L.tipo && !L.planejado) p.push(`local: ${nomeLocal} (fato)`);
     else if (L.tipo) p.push(`local pretendido: ${nomeLocal} (hipótese)`);
+    else if (L.domicilio) p.push("atendimento na casa do cliente (fato)");
     else if (L.forma === "remoto" || L.forma === "rua") p.push("sem local fixo (fato)");
     else p.push("local não definido (hipótese)");
     p.push(o4 === O.aprovada ? "viabilidade aprovada (fato)" : o4 === O.negada ? "viabilidade negada (fato)" : "viabilidade ainda não confirmada (hipótese)");
@@ -245,7 +267,7 @@
     return p.join("; ") + ".";
   }
 
-  const api = { NS, O, AVISO_NS, LIMITE, SIT, ORGAOS, ITENS, op, ns, local, sanitario, publico, sequencia, alimentoSemSaude, caminho, partesAviso, avisoNS, linkEstado, checklist, cruzamentos, alertas, proximos, encaminhamento, orgaos, linhaResumo };
+  const api = { NS, O, EXTRAS, opcoes, AVISO_NS, LIMITE, SIT, ORGAOS, ITENS, op, ns, local, sanitario, publico, sequencia, alimentoSemSaude, caminho, partesAviso, avisoNS, linkEstado, checklist, cruzamentos, alertas, proximos, encaminhamento, orgaos, linhaResumo };
   raiz.Motor9 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);
