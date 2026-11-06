@@ -47,7 +47,8 @@ jobs:
   # Smoke pós-deploy (RUNBOOK §2.4). Falha deixa o deploy vermelho e avisa a caixa da equipe.
   smoke:
     needs: deploy
-    runs-on: ubuntu-latest
+    # Playwright 1.57 não suporta Ubuntu 26.04 (ubuntu-latest desde out/2026). Volta para ubuntu-latest ao subir o Playwright para 1.65+.
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       PLAYWRIGHT_BASE_URL: https://mindsofthefuture.com.br
