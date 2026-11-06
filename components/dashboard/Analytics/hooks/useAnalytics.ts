@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import type { LearningAnalyticsResult } from "@/lib/api/learning-analytics";
+import type { SiteMetrics } from "@/lib/api/site-metrics";
 
 export type DateFilter = "7d" | "30d" | "90d" | "all";
 
-function getDates(filter: DateFilter) {
+export function getDates(filter: DateFilter) {
   const to = new Date();
   const from = new Date();
   if (filter === "7d") from.setDate(from.getDate() - 7);
@@ -204,4 +205,35 @@ export function useStudentAnalytics(userId: string | null) {
   }, [userId]);
 
   return { data, loading, error, semanticError };
+}
+
+/** Números do site e do Laboratório de Gestão, no mesmo período do filtro da aba. */
+export function useSiteMetrics(filter: DateFilter) {
+  const [data, setData] = useState<SiteMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const dates = getDates(filter);
+        const params = new URLSearchParams({ from: dates.p_date_from, to: dates.p_date_to });
+        const response = await fetch(`/api/analytics/site?${params.toString()}`);
+        const body = await response.json();
+        if (!response.ok) throw new Error(body?.error || "Erro ao carregar os números do site.");
+        if (ativo) setData(body as SiteMetrics);
+      } catch (err: unknown) {
+        if (ativo) setError(asError(err));
+      } finally {
+        if (ativo) setLoading(false);
+      }
+    }
+    void load();
+    return () => { ativo = false; };
+  }, [filter]);
+
+  return { data, loading, error };
 }
