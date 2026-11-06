@@ -119,6 +119,12 @@ test('exceção: bolsista em duas escolas no mesmo horário é avisado antes de 
   await page.reload();
   await lancarEncontro(page, { inicio: '09:00', fim: '11:00', escola: ESCOLA_2, atividade: tarde, equipe: [BOLSISTA_A] });
   const aviso = sobreposicao(page);
+  // DIAGNÓSTICO TEMPORÁRIO (CI): o que a tela mostrou depois do segundo lançamento.
+  await expect(lancado(page).or(aviso)).toBeVisible().catch(() => {});
+  console.log('DIAG dia', DIA, 'manha', manha, 'tarde', tarde);
+  console.log('DIAG status', JSON.stringify(await page.getByRole('status').allInnerTexts()));
+  console.log('DIAG dialogos', JSON.stringify(await page.locator('dialog[open]').allInnerTexts()));
+  console.log('DIAG links', JSON.stringify(await page.getByRole('link', { name: new RegExp(`E2E ${RODADA}`) }).allInnerTexts()));
   await expect(aviso).toBeVisible();
   await expect(aviso.getByRole('listitem').filter({ hasText: manha })).toContainText(BOLSISTA_A);
 
