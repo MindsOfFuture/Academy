@@ -5,6 +5,8 @@
   const D = window.MODULO2, M = Motor.montar(D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-b-m02";
+  /* número de pessoas ouvidas (pergunta de número): acima disso mostra um aviso que não trava */
+  const LIMITE_PESSOAS_OUVIDAS = 200;
   /* o módulo mudou de turma em 15/10: traz as respostas salvas na chave antiga */
   try { const antiga = localStorage.getItem("lg2-turma-a-m02"); if (antiga && !localStorage.getItem(CHAVE)) localStorage.setItem(CHAVE, antiga); } catch (e) {}
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
@@ -49,6 +51,61 @@
     }
     return null;
   }
+  /* exemplos das ajudas: os da planilha falam de bolo (produto que a pessoa faz). Para quem presta serviço
+     ou revende mercadoria, troca pelo exemplo do mesmo tipo de negócio (tipo vindo do Módulo 1 ou 5). */
+  const EX_TIPO = {
+    "M2.P05.ajuda": {
+      "Serviço": "Grupo = pessoas com necessidades ou hábitos parecidos. Exemplo: quem faz as unhas para uma festa ou casamento e quem faz toda semana, por costume.",
+      "Mercadoria": "Grupo = pessoas com necessidades ou hábitos parecidos. Exemplo: quem compra roupa para dar de presente e quem compra para usar no dia a dia.",
+    },
+    "M2.P06.ajuda": {
+      "Serviço": "Exemplo: \"noivas e madrinhas que se arrumam para casamento\"; \"mulheres que trabalham fora e fazem as unhas toda semana\". Não use nomes de pessoas.",
+      "Mercadoria": "Exemplo: \"mães que compram roupa infantil para presente\"; \"jovens que compram roupa para sair no fim de semana\". Não use nomes de pessoas.",
+    },
+    "educativo.0": {
+      "Serviço": "Em vez de \"mulheres que gostam de unhas bonitas\", um público-alvo mais útil é \"mulheres que trabalham fora e querem fazer as unhas perto de casa, no fim do dia\".",
+      "Mercadoria": "Em vez de \"pessoas que gostam de roupa\", um público-alvo mais útil é \"mães do bairro que compram roupa infantil para dar de presente\".",
+    },
+    "educativo.1": {
+      "Serviço": "Perguntar a uma vizinha: \"quando você fez as unhas pela última vez, o que te fez escolher aquela manicure?\"",
+      "Mercadoria": "Perguntar a uma vizinha: \"quando você comprou uma roupa pela última vez, o que te fez escolher aquela loja?\"",
+    },
+    "educativo.3": {
+      "Serviço": "Entre quem faz as unhas, separar quem faz para festas e eventos de quem faz toda semana, por costume.",
+      "Mercadoria": "Entre quem compra roupa, separar quem compra para dar de presente de quem compra para usar no dia a dia.",
+    },
+    "base.0": {
+      "Serviço": "Para uma manicure, o público-alvo pode ser \"mulheres que trabalham fora e querem fazer as unhas perto de casa\".",
+      "Mercadoria": "Para quem revende roupas, o público-alvo pode ser \"mães do bairro que compram roupa infantil para presente\".",
+    },
+    "base.4": {
+      "Serviço": "Fazer as unhas para um casamento costuma ser marcado com dias de antecedência; já a manutenção das unhas pode ser feita toda semana.",
+      "Mercadoria": "Uma roupa para presente costuma ser comprada perto de datas especiais; já peças do dia a dia podem ser compradas todo mês.",
+    },
+    "base.5": {
+      "Serviço": "Dentro de \"pessoas que fazem as unhas\", separar \"quem faz para festas e eventos\" de \"quem faz toda semana, por costume\".",
+      "Mercadoria": "Dentro de \"pessoas que compram roupa\", separar \"quem compra para presente\" de \"quem compra para usar no dia a dia\".",
+    },
+    "base.6": {
+      "Serviço": "Para uma manicure: dividir por local (quem mora no bairro), por ocasião (festas ou dia a dia) ou por hábito (faz as unhas toda semana).",
+      "Mercadoria": "Para quem revende roupas: dividir por local (quem mora no bairro), por ocasião (presente ou dia a dia) ou por hábito (compra todo mês).",
+    },
+  };
+  function exTipo(chave, original) {
+    const tp = tipoNegocio();
+    return (tp && EX_TIPO[chave] && EX_TIPO[chave][tp.v]) || original;
+  }
+
+  /* celular: com o teclado aberto, o campo em foco vai para o meio da parte visível da tela */
+  let emFoco = null, tFoco = null;
+  const centralizar = () => { if (emFoco && document.activeElement === emFoco && emFoco.isConnected) emFoco.scrollIntoView({ block: "center" }); };
+  document.addEventListener("focusin", (e) => {
+    const t = e.target;
+    if (!t.matches || !t.matches("input:not([type=checkbox]):not([type=radio]),textarea,select")) return;
+    emFoco = t; clearTimeout(tFoco); tFoco = setTimeout(centralizar, 300);
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", centralizar);
+
   const ESTAGIO = [
     [/^Ainda está só na minha cabeça/i, "a ideia ainda está só no papel"],
     [/^Já fiz um pouco/i, "você já começou a testar"],
@@ -64,14 +121,49 @@
       if (op) return { resp: { estado: "opcao", opcao: op }, n: 3 };
     }
     if (cod === "M2.P02") {
-      const partes = p10 ? Object.entries(p10.campos || {}).filter(([, v]) => String(v || "").trim()).map(([k, v]) => `${k}: ${String(v).trim()}`) : [];
-      const dor = txtDe(M03, "M3.P11");
-      if (p10 && (partes.length || dor)) {
-        const quem = /^Pessoas/i.test(p10.opcao) ? "Pessoas comuns" : p10.opcao;
-        return { resp: { estado: "valor", valor: `${quem}${partes.length ? " (" + partes.join("; ") + ")" : ""}${dor ? `. Problema que você resolve: ${dor}` : ""}` }, n: 3 };
-      }
+      /* quem compra = perfil do Módulo 3 (P10); problema = a dor escrita no perfil ou a P11 do Módulo 3.
+         Se não houver, Módulo 4 (P08 quem, P09 problema). */
+      const quem = p10 ? perfilM3(p10) : null;
+      const dor = (p10 && semNS(p10.campos && p10.campos[DOR_M3])) || txtDe(M03, "M3.P11");
+      if (quem && (dor || !/^(Pessoas comuns|Empresas)$/.test(quem))) return { resp: { estado: "valor", valor: `${quem}${dor ? `. Problema que você resolve: ${semPonto(dor)}` : ""}` }, n: 3 };
       const p8 = txtDe(M04, "M4.P08"), p9 = txtDe(M04, "M4.P09");
-      if (p8) return { resp: { estado: "valor", valor: `${p8}${p9 ? `. Problema que você resolve: ${p9}` : ""}` }, n: 4 };
+      if (p8) return { resp: { estado: "valor", valor: `${semPonto(p8)}${p9 ? `. Problema que você resolve: ${semPonto(p9)}` : ""}` }, n: 4 };
+    }
+    return null;
+  }
+  /* ---- perfil do cliente do Módulo 3 (P10) em frase: cada campo no seu lugar; campo vazio ou "Não sei" sai da frase ---- */
+  const DOR_M3 = "O que precisa resolver (a dor)";
+  const OCUP_M3 = ["Estudantes", "Trabalhadores com carteira assinada", "Autônomos e trabalhadores por conta própria", "Servidores públicos", "Aposentados", "Donas e donos de casa"];
+  const semPonto = (s) => String(s).trim().replace(/[.!;]+$/, "");
+  const semNS = (s) => {
+    const v = String(s ?? "").split(/;\s*/).map((x) => x.trim()).filter((x) => x && !/^n[ãa]o sei$/i.test(x));
+    return v.length ? v.join("; ") : null;
+  };
+  const ou = (s) => { const l = String(s).split(/;\s*/).map((x) => minus(semPonto(x))); return l.length > 1 ? l.slice(0, -1).join(", ") + " ou " + l[l.length - 1] : l[0]; };
+  const lugar = (s) => (/^(em|no|na|nos|nas|perto|longe|ao lado|aqui|por|pelo|pela|todo|toda)\b/i.test(s) ? minus(s) : "em " + s);
+  const mesmo = (a, b) => !!a && !!b && semPonto(a).toLowerCase() === semPonto(b).toLowerCase();
+  function perfilM3(p10) {
+    const c = p10.campos || {}, f = (k) => semNS(c[k]);
+    const ide = ideia();
+    if (/^Pessoas/i.test(p10.opcao)) {
+      const idade = f("Idade"), renda = f("Renda"), ocup = f("Ocupação"), mora = f("Onde mora");
+      const p = ["Pessoas comuns"];
+      if (idade) p.push(/^(até|mais)/i.test(idade) || /ou mais$/i.test(idade) ? ` com ${ou(idade)}` : ` de ${ou(idade)}`);
+      if (renda) p.push(`, com renda ${/^(de|até)\b/i.test(renda) ? ou(renda) : "de " + ou(renda)}`);
+      /* ocupação marcada nas opções do Módulo 3 ("Estudantes", "Aposentados"…) entra como "que são…"; texto livre fica entre parênteses */
+      if (ocup) p.push(ocup.split(/;\s*/).every((x) => OCUP_M3.includes(x)) ? `, que são ${ou(ocup)}` : ` (ocupação: ${minus(semPonto(ocup))})`);
+      if (mora && !mesmo(mora, ide && ide.v)) p.push(`, que moram ${lugar(semPonto(mora))}`);
+      return p.join("");
+    }
+    if (/^Empresas/i.test(p10.opcao)) {
+      const ramo = f("Ramo"), tam = f("Tamanho"), eq = f("Equipe"), local = f("Local");
+      const p = ["Empresas"];
+      if (ramo) p.push(` do ramo de ${ou(ramo)}`);
+      if (tam) p.push(`, ${ou(tam)}`);
+      if (eq) p.push(/^só o dono$/i.test(eq) ? ", em que só o dono trabalha" : `, com ${ou(eq)}`);
+      /* o "Local" é onde a empresa fica; se repetir o que a pessoa vende (Módulo 1), não é um local e fica de fora */
+      if (local && !mesmo(local, ide && ide.v)) p.push(`, ${lugar(semPonto(local))}`);
+      return p.join("");
     }
     return null;
   }
@@ -116,7 +208,7 @@
         <span class="tag">${esc(e.tipo)}</span>
         <b>${esc(e.titulo)}</b>
         <p>${L(e.texto)}</p>
-        ${vazio(e.exemplo) ? "" : `<p class="ex">${L(e.exemplo)}</p>`}
+        ${vazio(e.exemplo) ? "" : `<p class="ex">${L(exTipo("educativo." + D.educativo.indexOf(e), e.exemplo))}</p>`}
         ${vazio(e.prompt) ? "" : `<div class="prompt"><p>${esc(e.prompt)}</p><button class="btn-copiar" data-t="${esc(e.prompt)}">Copiar texto</button></div>
           <p class="ex">${esc(e.conferir)}</p>`}
         <span class="fonte">Fonte: ${esc(e.fonte)}</span>
@@ -126,7 +218,7 @@
     if (!lista.length) return "";
     return `<details class="saiba"><summary>Entenda os termos</summary>${lista.map((b) => `
       <div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(b.definicao)}</p>
-      ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(b.exemplo)}</p>`}
+      ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(exTipo("base." + D.base.indexOf(b), b.exemplo))}</p>`}
       <span class="fonte">Fonte: ${link(b.link, b.fonte)}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`).join("")}
     </details>`;
   }
@@ -160,7 +252,11 @@
     </section>`;
   }
   /* ajuda aberta da planilha, em cartão de dica (html já escapado) */
-  const dica = (html) => html ? `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p></div></aside>` : "";
+  /* fica acima do campo; se for longa, vem recolhida para o campo e o Continuar caberem na tela com o teclado aberto */
+  const DICA_LONGA = 160;
+  const dica = (html) => !html ? "" : html.length > DICA_LONGA
+    ? `<details class="dica-dobra"><summary>Dica para responder</summary><aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p></div></aside></details>`
+    : `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${html}</p></div></aside>`;
   const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
   /* opção com bolinha; sem espaços entre as tags para o nome do botão continuar igual ao texto da opção */
   const opcaoHtml = (op, sel, attrs) => `<button class="opcao ${sel ? "sel" : ""}"${attrs || ""}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`;
@@ -225,10 +321,10 @@
   /* ================= instrumentos (aba 5: M2.I01 a M2.I05) ================= */
   const I = (c) => D.instrumentos.lista.find((l) => l.codigo === c) || {};
   function cabInst(l) {
-    return `<div class="secao-titulo">${esc(l.codigo)} · ${esc(l.nome)}</div>
+    return `<div class="secao-titulo">${esc(l.nome)}</div>
       <p class="ajuda">${esc(l.objetivo)}</p>
       <p class="mini-info"><b>${esc(l.tipo)}.</b> ${esc(l.regra)}</p>
-      <details class="saiba"><summary>Exemplo do grupo</summary><div class="conceito"><p>${esc(l.ex_entrada)}</p><p class="ex">${esc(l.ex_saida)}</p></div></details>`;
+      <details class="saiba"><summary>Exemplo</summary><div class="conceito"><p>${esc(l.ex_entrada)}</p><p class="ex">${esc(l.ex_saida)}</p></div></details>`;
   }
   /* passos do plano de coleta: os trechos literais da coluna "O que calcula ou mostra" */
   function passosPlano() {
@@ -273,6 +369,7 @@
             ${passos.map((s, n) => `<label class="passo-plano ${S.plano.feitos[n] ? "feito" : ""}"><input type="checkbox" data-n="${n}" ${S.plano.feitos[n] ? "checked" : ""}> ${esc(s)}</label>`).join("")}
             <p class="mini-info">Entrevistas registradas na ficha: <b>${Q.total}</b>${S.plano.meta ? ` de ${esc(S.plano.meta)}` : ""}</p>
             <label class="mini-info">Meta de entrevistas</label><input class="campo" inputmode="numeric" id="p-meta" value="${esc(S.plano.meta)}">
+            <div class="erro" id="p-erro" hidden></div>
             <label class="mini-info">Prazo</label><input class="campo" type="date" id="p-prazo" value="${esc(S.plano.prazo)}">
           </div>
           <div class="aviso">${esc(i3.limite)}</div>
@@ -283,7 +380,7 @@
             <div class="val">${Q.contagem.forte} · ${Q.contagem.fraco} · ${Q.contagem.nenhum}</div>
             <div class="sub">forte · fraco · nenhum${Q.motivo ? ` — motivo mais citado: ${esc(Q.motivo.t)}` : ""}</div>
           </div>
-          <p class="mini-info" id="quadro-origem">${Q.total ? `Contado a partir das ${Q.total} entrevista(s) salvas na ficha (${esc(i2.codigo)}).` : `O quadro conta as entrevistas salvas na ficha (${esc(i2.codigo)}). Registre uma pessoa entrevistada e toque em “Salvar na ficha” para ele mudar.`} <a href="#form">Registrar entrevista</a></p>
+          <p class="mini-info" id="quadro-origem">${Q.total ? `Contado a partir das ${Q.total} entrevista(s) salvas na ficha de perfil de cliente.` : `O quadro conta as entrevistas salvas na ficha de perfil de cliente. Registre uma pessoa entrevistada e toque em “Salvar na ficha” para ele mudar.`} <a href="#form">Registrar entrevista</a></p>
           ${Q.total ? `<p class="r-texto" id="frase">${esc(Q.frase)}</p>` : ""}
           <div class="aviso">${esc(i4.limite)}</div>
 
@@ -314,7 +411,11 @@
     };
     p.querySelectorAll("#fichas .x").forEach((b) => (b.onclick = () => { S.fichas.splice(+b.dataset.n, 1); salvar(); refazer(voltar); }));
     p.querySelectorAll("input[type=checkbox]").forEach((c) => (c.onchange = () => { S.plano.feitos[+c.dataset.n] = c.checked; salvar(); refazer(voltar); }));
-    p.querySelector("#p-meta").onchange = (e) => { S.plano.meta = e.target.value.trim(); salvar(); refazer(voltar); };
+    p.querySelector("#p-meta").onchange = (e) => {
+      const v = e.target.value.trim(), er = p.querySelector("#p-erro");
+      if (v && !/^\d+$/.test(v)) { er.textContent = "Digite só números, sem letras. Ex.: 8"; er.hidden = false; return; }
+      S.plano.meta = v; salvar(); refazer(voltar);
+    };
     p.querySelector("#p-prazo").onchange = (e) => { S.plano.prazo = e.target.value; salvar(); };
     const gok = p.querySelector("#g-ok");
     if (gok) gok.onclick = () => { const v = p.querySelector("#g-nome").value.trim(); if (!v) return; S.grupos.push({ nome: v }); salvar(); refazer(voltar); };
@@ -353,15 +454,15 @@
             ${ide ? `<p class="contexto" id="contexto">Seu negócio: <b>${esc(ide.v)}</b> <span class="veio">Veio do Módulo ${ide.n}</span></p>` : ""}
             <h2 class="q">${esc(enunciado(q))}</h2>
             ${veio ? `<p class="herdado" id="herdado"><span class="veio">Veio do Módulo ${esc(veio)}</span> Confira e ajuste se quiser.</p>` : ""}
+            ${vazio(q.ajuda) ? "" : dica(L(exTipo(cod + ".ajuda", q.ajuda)))}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
-            ${vazio(q.ajuda) ? "" : dica(L(q.ajuda))}
             <div id="retorno"></div>
-            ${blocoEducativo(educativoDe(cod))}
-            ${blocoVideos(videosDe(cod))}
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             ${botaoVoltar()}
+            ${blocoEducativo(educativoDe(cod))}
+            ${blocoVideos(videosDe(cod))}
           </div>
           ${rodape()}
         </main>
@@ -387,7 +488,7 @@
     } else {
       const v = r0 && r0.estado === "valor" ? r0.valor : "";
       ent.appendChild(el(tipo === "numero"
-        ? `<div class="linha"><input class="campo" inputmode="decimal" value="${esc(v)}"></div>`
+        ? `<div class="linha"><input class="campo" inputmode="numeric" value="${esc(v)}"></div>`
         : `<textarea class="campo" rows="${String(v).length > 90 ? 5 : 3}">${esc(v)}</textarea>`));
     }
     const ns = p.querySelector("#ns");
@@ -400,10 +501,17 @@
       }
       const v = ent.querySelector("input,textarea").value.trim();
       if (!v) return erro(Motor.temNaoSei(q) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
-      if (tipo === "numero" && isNaN(parseFloat(v.replace(/\./g, "").replace(",", ".")))) return erro("Informe um número.");
+      if (tipo === "numero") {
+        /* a única pergunta de número conta pessoas ouvidas: só inteiro, sem negativo */
+        if (!/^\d+$/.test(v.replace(/\./g, ""))) return erro(/^-/.test(v) ? "O número não pode ser negativo." : "Digite só números, sem letras. Ex.: 8");
+        const n = parseInt(v.replace(/\./g, ""), 10);
+        /* número fora do comum: avisa uma vez e deixa seguir com o mesmo valor */
+        if (n > LIMITE_PESSOAS_OUVIDAS && avisado !== v) { avisado = v; return erro(`Esse número parece alto para conversas feitas por uma pessoa (mais de ${LIMITE_PESSOAS_OUVIDAS}); confira. Se estiver certo, toque em Continuar de novo.`, true); }
+      }
       responder({ estado: "valor", valor: v });
     };
-    function erro(t) { const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; }
+    let avisado = null;
+    function erro(t, aviso) { const e = p.querySelector("#erro"); e.textContent = t; e.classList.toggle("aviso-num", !!aviso); e.hidden = false; }
 
     function responder(nova) {
       p.querySelector("#erro").hidden = true;
@@ -421,29 +529,57 @@
 
     function mostrarRetorno(regras, prox) {
       const box = p.querySelector("#retorno");
+      const B = blocosRetorno(q, regras, S.R[cod]);
       box.innerHTML = `<div class="retorno">
-        <p class="r-texto r-pergunta">${L(q.resposta)}</p>
-        ${regras.map((r) => `
-          <div class="regra">
-            <p class="r-texto">${L(r.texto)}</p>
-            ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${L(r.alerta)}</div>`}
-            ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${L(r.proximo)}</div>`}
-            ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${L(r.encaminhamento)}</div>`}
-          </div>`).join("")}
-        ${vazio(q.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${L(q.alerta)}</div>`}
-        ${vazio(q.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${L(q.proximo)}</div>`}
+        ${regras.length ? regras.map((r) => `<div class="regra"><p class="r-texto">${L(r.texto)}</p></div>`).join("") : `<p class="r-texto r-pergunta">${L(q.resposta)}</p>`}
+        ${B.naosei ? `<div class="bloco b-naosei"><b>Como descobrir</b>${B.naosei}</div>` : ""}
+        ${B.alerta ? `<div class="bloco b-alerta"><b>Atenção</b>${B.alerta}</div>` : ""}
+        ${B.proximo ? `<div class="bloco b-proximo"><b>Próximo passo</b>${B.proximo}</div>` : ""}
       </div>`;
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
+      /* o mesmo nome "Continuar": a resposta já foi gravada e este botão leva para a próxima pergunta */
+      const b = el(`<button class="btn btn-primario seta" id="seguir">${prox === "RESULTADO" ? "Ver meu resumo" : "Continuar"}</button>`);
       b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
       acoes.appendChild(b);
       const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
       c.onclick = () => ir(telaPergunta, cod);
       acoes.appendChild(c);
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
+      /* o retorno fica logo abaixo do campo: a tela desce até ele, nunca volta para cima */
+      if (box.getBoundingClientRect().top > 0) box.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     return p;
+  }
+
+  /* ---- retorno de uma resposta: uma Atenção e um Próximo passo por pergunta, sem repetição ----
+     - regra que junta duas respostas (mais específica) vem antes da regra simples, que vem antes do texto geral da pergunta;
+     - próximo passo que só manda responder a pergunta seguinte não aparece (o app já vai fazer essa pergunta);
+     - o que é regra legal (fonte oficial, Sebrae, contador, contratos) e "quem procurar" vão para a Atenção, num bloco só;
+     - "Não sei": em vez do próximo passo, "Como descobrir" (o caminho da regra ou, se não houver, a ajuda da pergunta). */
+  const SO_NAVEGA = /^(Responda|Informe|Descreva|Siga para)\b[^]*M2\.P\d{2}/;
+  const LEGAL = /fonte oficial|Sebrae|contador|nota fiscal|emiss[ãa]o de nota|contrata[çc]/i;
+  /* "Responda M2.P08 e anote…" → "Anote…": a parte que só manda para a próxima pergunta sai */
+  const semNavegar = (x) => {
+    const t = String(x || "").replace(/^(Responda|Informe)\b[^.;]*?M2\.P\d{2}\)?[^.;]*?\s+e\s+(?=[a-zà-ú])/, "");
+    return t === x ? x : t.charAt(0).toUpperCase() + t.slice(1);
+  };
+  const tem = (x) => !vazio(x) && !/^Nenhum/i.test(String(x).trim());
+  const nRef = (r) => (String(r.condicao).match(/M2\.P\d{2}/g) || []).length;
+  const especificas = (rs) => rs.slice().sort((a, b) => nRef(b) - nRef(a));
+  function blocosRetorno(q, regras, resp) {
+    const rs = especificas(regras);
+    const naoSei = resp && Motor.valor({ x: resp }, "x") === Motor.NS;
+    /* a Atenção geral da pergunta não vale para quem respondeu "Não sei" (fala de outra resposta) */
+    const al = [rs.map((r) => r.alerta).find(tem) || (!naoSei && tem(q.alerta) ? q.alerta : null)];
+    rs.forEach((r) => { if (tem(r.proximo) && LEGAL.test(r.proximo)) al.push(r.proximo); });
+    const enc = [...new Set(rs.map((r) => r.encaminhamento).filter(tem))];
+    const alerta = al.filter(Boolean).map(L).join(" ") + (enc.length ? `${al.some(Boolean) ? " " : ""}Quem procurar: ${enc.map(L).join("; ")}.` : "");
+    const util = (x) => tem(x) && !SO_NAVEGA.test(x) && !LEGAL.test(x);
+    const rp = rs.map((r) => semNavegar(r.proximo));
+    const proximo = rp.find(util) || (util(q.proximo) ? q.proximo : null);
+    const caminho = rp.find(util);
+    if (naoSei) return { alerta, naosei: L(caminho || (tem(q.ajuda) ? exTipo(q.codigo + ".ajuda", q.ajuda) : "Converse com duas ou três pessoas que comprariam de você e volte a esta pergunta depois.")), proximo: "" };
+    return { alerta, proximo: proximo ? L(proximo) : "" };
   }
 
   function limparInvisiveis() {
@@ -463,7 +599,7 @@
   function telaResultado() {
     const regras = Motor.regrasTodas(M, S.R);
     const lac = Motor.lacunas(regras), enc = Motor.encaminhamentos(regras);
-    const ale = Motor.alertas(regras), prox = Motor.proximos(regras);
+    const ale = Motor.alertas(regras), prox = Motor.proximos(regras).filter((x) => !SO_NAVEGA.test(x));
     const Q = Motor.quadro(S.fichas, I("M2.I04").ex_saida);
     const resp = M.perguntas.filter((q) => S.R[q.codigo] !== undefined);
     const p = el(`
@@ -510,6 +646,8 @@
 
   /* ================= "O que entendemos até aqui": frases montadas por regra, sem IA ================= */
   const minus = (s) => String(s || "").charAt(0).toLowerCase() + String(s || "").slice(1);
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function frasesEntendemos() {
     const v = (c) => { const x = Motor.valor(S.R, c); return x === undefined || x === Motor.NS || x === "" ? null : x; };
     const f = [];
@@ -522,6 +660,7 @@
     const quem = { "Pessoas": "pessoas que compram para si ou para a família", "Empresas": "empresas que compram para o próprio negócio", "Os dois": "tanto pessoas quanto empresas" }[p07];
     if (quem || p02) f.push(`Seus clientes seriam principalmente ${quem || "este público"}${p02 ? `. Como você descreve quem mais compraria: “${p02.replace(/[.]+$/, "")}”` : ""}${v("M2.P14") ? `. Entre as empresas, ${minus(v("M2.P14"))}` : ""}.`);
     else f.push("Você ainda não sabe bem quem compraria: descobrir isso é o primeiro passo.");
+    const c1 = f.length;   // 1º parágrafo: o que vende e quem compra
     const p05 = v("M2.P05"), p08 = v("M2.P08");
     const det = ["M2.P09", "M2.P10", "M2.P11", "M2.P12", "M2.P13"].map(v).find(Boolean);
     let g = "";
@@ -536,6 +675,7 @@
       const onde = { "Sim": "você já sabe onde encontrar essas pessoas", "Em parte": "você sabe em parte onde encontrar essas pessoas", "Ainda não": "você ainda não sabe onde encontrar essas pessoas" }[p16];
       if (freq || onde) f.push(`${freq}${freq && onde ? (p16 === "Ainda não" ? ", mas " : ", e ") : ""}${onde ? (freq ? onde : onde.charAt(0).toUpperCase() + onde.slice(1)) : ""}.`);
     }
+    const c2 = f.length;   // 2º: grupos e como compram; 3º: conversas com clientes
     const p04 = v("M2.P04");
     if (p04 === "Não") f.push("Você ainda não conversou com possíveis clientes: esse é o passo mais importante agora.");
     else if (p04 === "Sim") {
@@ -548,7 +688,7 @@
       else if (p21 === "Só elogiaram a ideia") s += ". Por enquanto, o que você ouviu foi mais elogio do que um problema de verdade";
       f.push(s + ".");
     } else if (p04) f.push("Você não tem certeza se já conversou com possíveis clientes.");
-    return f.slice(0, 6);
+    return emParagrafos(f, c1, c2);
   }
   function entendemos() {
     const fr = frasesEntendemos();
@@ -558,7 +698,7 @@
 
   function rodape() {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do Grupo ${esc(D.modulo.numero)} · Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
+      <p class="credito">Conteúdo feito por estudantes do Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

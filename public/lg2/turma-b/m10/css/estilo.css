@@ -251,5 +251,7 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 .entendemos{border-color:var(--m-purple);border-left-width:6px}
 .entendemos h3{color:var(--m-purple)}
 .resumo-negocio{font-size:17px;line-height:1.6;margin:6px 0 8px}
+.resumo-negocio p+p{margin-top:10px}
+textarea.msg-auto{resize:none;overflow:hidden;min-height:96px}
 .herdado{font-size:14.5px;color:var(--m-gray);margin:0 0 10px;line-height:1.45}
 .herdado .veio{margin-right:6px}

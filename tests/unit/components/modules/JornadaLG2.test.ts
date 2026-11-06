@@ -40,5 +40,8 @@ describe("cabeçalhos de moldura", () => {
     expect(valor("/lg2/turma-a/m01/index.html", "X-Frame-Options")).toBe("SAMEORIGIN");
     expect(valor("/lg2/turma-a/m01/index.html", "Content-Security-Policy")).toBe("frame-ancestors 'self'; object-src 'none'; base-uri 'self'");
     expect(valor("/lg2x/qualquer", "X-Frame-Options")).toBe("DENY");
+    // Microfone liberado só no LG2 (botão "Falar"), e só para o próprio site.
+    expect(valor("/lg2/turma-a/m01/index.html", "Permissions-Policy")).toContain("microphone=(self)");
+    expect(valor("/protected/modulos/laboratorio-de-gestao", "Permissions-Policy")).toContain("microphone=()");
   });
 });

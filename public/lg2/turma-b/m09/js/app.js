@@ -14,7 +14,9 @@
 
   /* ---------- estado ---------- */
   function novo() { return { v: VERSAO, R: {}, feitos: {}, voltarResumo: false }; }
-  function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.v === VERSAO && s.R ? Object.assign(novo(), s) : novo(); } catch (e) { return novo(); } }
+  function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return migrar(s && s.v === VERSAO && s.R ? Object.assign(novo(), s) : novo()); } catch (e) { return novo(); } }
+  /* o estado (UF) não aceita mais "Não sei": resposta antiga com "Não sei" é apagada e a pergunta volta a ser feita */
+  function migrar(s) { const r = s.R["M9-01"]; if (r && (r.estado !== "opcao" || r.opcao === NS)) delete s.R["M9-01"]; return s; }
   let S = carregar();
   let aviso = "";
   function salvar() {
@@ -46,13 +48,17 @@
     const nomes = D.viabilidade.estados.map((e) => e.estado);
     return nomes.find((n) => t.toLowerCase().includes(n.toLowerCase())) || null;
   }
+  /* alimento pelo que a pessoa vende: palavras comuns de comida e bebida */
+  const ALIMENTO = /bolo|doce|salgad|comida|marmit|quentinha|lanche|aliment|bebida|suco|sorvete|picol[eé]|gelad|confeit|padaria|\bp[aã]o\b|\bp[aã]es\b|torta|brigadeiro|trufa|bombo|cupcake|biscoit|cookie|chocolate|pizza|hamb[uú]rg|sandu[ií]che|pastel|coxinha|empad|petisco|geleia|cerveja|quitut|refei[cç]|caf[eé]\b|a[cç]a[ií]\b|tempero|conserva|queijo/i;
+  /* CNAE de alimentos e bebidas: fabricação (10, 11), restaurantes e comida (561, 562), comércio de alimentos (4721 a 4724) */
+  const cnaeAlimento = (t) => { const d = String(t || "").replace(/\D/g, ""); return d.length >= 4 && /^(10|11|561|562|472[1-4])/.test(d); };
   /* quando o Módulo 4 disse "atividade com regras específicas": qual opção do M9-02, pelo que a pessoa vende */
   function tipoSaude(t) {
     if (!t) return null;
     if (/\bpets?\b|cachorr|\bc[aã]es\b|gatos?\b|animal|animais|banho e tosa|ra[cç][aã]o/i.test(t)) return "Sim, animais";
     if (/cabel|unha|manicure|pedicure|est[eé]tic|massag|sobrancelh|depila|tatua|maquiador|cuidador|enferm|barbe/i.test(t)) return "Sim, procedimentos no corpo ou cuidado com pessoas";
     if (/cosm[eé]t|sabonete|perfum|hidratante|saneante|desinfetante|rem[eé]dio|medicament/i.test(t)) return "Sim, cosméticos, saneantes, medicamentos ou produtos para a saúde";
-    if (/bolo|doce|salgad|comida|marmit|lanche|aliment|bebida|suco|caf[eé]\b|\bp[aã]es?\b|torta|brigadeiro|pizza|hamb[uú]rg|sorvete|geleia|cerveja|quitut|refei[cç]|confeit|padaria/i.test(t)) return "Sim, alimentos ou bebidas";
+    if (ALIMENTO.test(t)) return "Sim, alimentos ou bebidas";
     return null;
   }
   /* respostas que já vieram de outro módulo: pré-marcadas com selo (a pessoa confere e toca Continuar) */
@@ -60,7 +66,7 @@
   const FORMA8 = { "Atendimento externo": "Na casa ou na empresa do cliente", "Online": "Só pela internet ou por telefone" };
   function herdado(cod, X, R) {
     if (cod === "M9-02") {
-      if (X.m4NaoRegulada) return { op: "Não", m: 4 };
+      /* "Não" nunca vem pré-marcado: a pessoa precisa responder (no Módulo 4, quem vende bolos chegou a marcar "Não") */
       if (X.m4Regulada && X.saudeTipo) return { op: X.saudeTipo, m: 4 };
     }
     if (cod === "M9-03" && X.m8Local) return { op: LOCAL8[X.m8Local], m: 8 };
@@ -88,6 +94,10 @@
     const est1 = texto(m1["M1.P01"]);
     const estagio = !est1 ? null : est1.startsWith("Ainda está") ? "ideia" : est1.startsWith("Já fiz") ? "testes" : est1.startsWith("Já vend") ? "vende" : null;
     const loc8 = texto(m8["M8.P03"]), tec8 = texto(m8["M8.P08"]);
+    /* o que a pessoa vende (Módulos 1, 3, 4 e 8 e as ideias deste módulo) e o CNAE do Módulo 8: é alimento? */
+    const cnae = primeiro(m8, ["M8-04", "M8.P06"]);
+    const falas = [ideia, primeiro(m1, ["M1.P03", "M1-01"]), primeiro(m8, ["M8.P01", "M8-01"]), primeiro(m4, ["M4.P01"]), primeiro(m3, ["M3.P01"]), texto(S.R["M9-13"]), cnae].filter(Boolean);
+    const falaAlimento = falas.find((t) => ALIMENTO.test(t)) || (cnaeAlimento(cnae) ? cnae : null);
     return {
       ideia, tipo, tipoDe, estagio,
       m8Local: ["Minha casa", "Ponto comercial", "Atendimento externo", "Online"].includes(loc8) ? loc8 : null,
@@ -96,7 +106,10 @@
       descricao: primeiro(m8, ["M8-01", "M8.P01"]),
       oferta: primeiro(m1, ["M1-01", "M1.P03"]),
       cnpj: cnpj && cnpj !== NS ? cnpj : null,
-      cnae: primeiro(m8, ["M8-04", "M8.P06"]),
+      cnae,
+      alimento: !!falaAlimento,
+      alimentoTexto: falaAlimento,
+      cidade,
       estado: estadoDe(cidade),
       m4Regulada: typeof reg4 === "string" && reg4.startsWith("Sim"),
       m4NaoRegulada: reg4 === "Não",
@@ -110,7 +123,7 @@
   /* ---------- peças do layout (modelo dos Módulos 6, 7 e 10) ---------- */
   function rodape() {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do Grupo 9 · Laboratório de Gestão II · FACC/UFJF · ${esc(D.modulo.versao)} · ${esc(D.modulo.data)}</p>
+      <p class="credito">Conteúdo do Laboratório de Gestão II · FACC/UFJF · ${esc(D.modulo.versao)} · ${esc(D.modulo.data)}</p>
       <div class="logos"><img src="assets/logo_facc.png" alt="FACC"><img src="assets/logo_ufjf.svg" alt="UFJF"><img src="assets/logo_mg.svg" alt="Governo de Minas Gerais"></div>
     </footer>`;
   }
@@ -175,9 +188,48 @@
   };
   const TERMOS_RESULTADO = ["M9.BT01", "M9.BT02", "M9.BT03", "M9.BT04", "M9.BT06", "M9.BT07", "M9.BT10"];
   function termos(cods) {
-    const ts = (cods || []).map((c) => BASE[c]).filter(Boolean);
+    const ts = (cods || []).map((c) => BASE[c]).filter(Boolean).map((t) => (t.codigo === "M9.BT21" ? conceitoGas(t) : t));
     if (!ts.length) return "";
-    return `<details class="saiba"><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.conceito)}</b><p>${esc(t.definicao)}</p><span class="fonte">Fonte: ${link(t.link, t.referencia)} · consulta em ${esc(t.data)}</span></div>`).join("")}</details>`;
+    return `<details class="saiba"><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.conceito)}</b><p>${esc(t.definicao)}</p>${t.semFonte ? `<span class="fonte">${esc(bombeirosEstado())}</span>` : `<span class="fonte">Fonte: ${link(t.link, t.referencia)} · consulta em ${esc(t.data)}</span>`}</div>`).join("")}</details>`;
+  }
+  /* ---------- notas novas: alimento, trabalho em casa, Bombeiros do estado ---------- */
+  const quemVende = (X) => X.alimentoTexto && X.alimentoTexto === X.cnae ? `A atividade que você escolheu (${X.alimentoTexto}) é de alimentos` : `Você vende “${X.alimentoTexto}”`;
+  const avisoAlimentoNao = (X) => `${quemVende(X)}: alimentos normalmente passam pela Vigilância Sanitária. Confira.`;
+  function cidadeJF(X) { const uf = Mo.op(S.R, "M9-01"); return /juiz de fora/i.test(X.cidade || "") || (!X.cidade && uf === "Minas Gerais"); }
+  function notaCasa(X, apto) {
+    const ondeConfirmar = cidadeJF(X)
+      ? "Em Juiz de Fora, tire as dúvidas na Sala do Empreendedor da prefeitura."
+      : "Tire as dúvidas na prefeitura ou na Sala do Empreendedor da sua cidade, se houver.";
+    return [
+      "No MEI, é comum registrar o negócio no endereço de casa quando a atividade não precisa de um local próprio.",
+      "Se clientes forem até a sua casa ou se você trabalhar com alimentos, a prefeitura ou a Vigilância Sanitária podem pedir vistoria ou licença do espaço.",
+      `Antes de registrar, confira na prefeitura se a atividade é permitida na sua rua (as regras de uso e ocupação do solo da cidade). ${ondeConfirmar}`,
+      apto ? "Em apartamento ou condomínio, confira também o que a convenção do condomínio permite." : "",
+    ].filter(Boolean);
+  }
+  const blocoCasa = (X, apto) => `<div class="bloco b-proximo extra nota-casa"><b>Trabalhar em casa</b>${notaCasa(X, apto).map((t) => `<p>${esc(t)}</p>`).join("")}</div>`;
+  function textoAlimento(X) {
+    return [
+      "Quem faz ou vende alimentos normalmente precisa da licença sanitária (o alvará da Vigilância Sanitária), mesmo sendo MEI e mesmo trabalhando em casa.",
+      "Siga as boas práticas de manipulação de alimentos: mãos, local e utensílios limpos; ingredientes e produtos guardados na temperatura certa e dentro da validade; embalagem com rótulo.",
+      "Faça um curso de boas práticas ou de manipulação de alimentos. Ele ajuda a vender com segurança e pode ser pedido pela Vigilância Sanitária. Há cursos gratuitos ou de baixo custo, por exemplo no Sebrae.",
+      `Confira as exigências com a Vigilância Sanitária da ${cidadeJF(X) ? "prefeitura de Juiz de Fora" : "sua cidade"}.`,
+    ];
+  }
+  /* norma de gás dos Bombeiros: a do Rio de Janeiro (fonte do grupo) só vale para quem está no RJ */
+  const RJ = "Rio de Janeiro";
+  function bombeirosEstado() {
+    const uf = Mo.op(S.R, "M9-01");
+    if (uf === "Minas Gerais") return "Confira as regras do Corpo de Bombeiros de MG para gás e prevenção de incêndio.";
+    if (uf && uf !== NS && uf !== RJ) return `Confira as regras do Corpo de Bombeiros do seu estado (${uf}) para gás e prevenção de incêndio.`;
+    if (uf === RJ) return "";
+    return "Confira as regras do Corpo de Bombeiros do seu estado para gás e prevenção de incêndio.";
+  }
+  /* conceito do gás: tira os exemplos de outros estados (RJ, PR) e a fonte do RJ para quem não está lá */
+  function conceitoGas(t) {
+    const uf = Mo.op(S.R, "M9-01");
+    const frases = t.definicao.split(/(?<=\.)\s+(?=[A-ZÀ-Ú])/).filter((f) => !(/^No Rio de Janeiro/.test(f) && uf !== RJ) && !(/^No Paraná/.test(f) && uf !== "Paraná"));
+    return Object.assign({}, t, { definicao: frases.join(" "), semFonte: uf !== RJ });
   }
   const instr = (nome) => D.instrumentos.find((x) => x.nome.startsWith(nome)) || {};
 
@@ -290,16 +342,16 @@
     let coletar = null;
 
     if (cod === "M9-01") {
-      let r0 = resp || (X.estado ? { estado: "opcao", opcao: X.estado, de: 3 } : null);
+      /* sem "Não sei": todo mundo sabe em que estado está; resposta antiga "Não sei" não vale e a pergunta é feita de novo */
+      const resp1 = resp && resp.estado === "opcao" ? resp : null;
+      let r0 = resp1 || (X.estado ? { estado: "opcao", opcao: X.estado, de: 3 } : null);
       const sel = el(`<div><label class="rot-campo" for="uf">Estado</label><select class="campo" id="uf"><option value="">Escolha o estado</option>${D.viabilidade.estados.map((e) => `<option ${r0 && r0.opcao === e.estado ? "selected" : ""}>${esc(e.estado)}</option>`).join("")}</select></div>`);
-      const nsB = el(`<div class="opcoes"><button class="opcao ${r0 && r0.estado === "naosei" ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${NS}</b></span></button></div>`);
-      const ret = () => mostrar(!r0 ? "" : r0.estado === "naosei" ? caixa(Mo.caminho(D, cod, NS).texto) : caixa(q.caminhos[0].texto, { estado: r0.opcao }));
-      sel.querySelector("select").onchange = (e) => { r0 = e.target.value ? { estado: "opcao", opcao: e.target.value } : null; nsB.firstElementChild.classList.remove("sel"); ret(); };
-      nsB.firstElementChild.onclick = () => { r0 = { estado: "naosei" }; sel.querySelector("select").value = ""; nsB.firstElementChild.classList.add("sel"); ret(); };
-      if (!resp && X.estado) ent.appendChild(el(veio(3)));
-      ent.appendChild(sel); ent.appendChild(nsB);
+      const ret = () => mostrar(!r0 ? "" : caixa(q.caminhos[0].texto, { estado: r0.opcao }));
+      sel.querySelector("select").onchange = (e) => { r0 = e.target.value ? { estado: "opcao", opcao: e.target.value } : null; ret(); };
+      if (!resp1 && X.estado) ent.appendChild(el(veio(3)));
+      ent.appendChild(sel);
       ret();
-      coletar = () => { if (!r0) { erro("Escolha o estado ou toque em “Não sei”."); return null; } const { de, ...r } = r0; return r; };
+      coletar = () => { if (!r0) { erro("Escolha o estado onde você vai trabalhar."); return null; } const { de, ...r } = r0; return r; };
     } else if (cod === "M9-05") {
       const v0 = resp && resp.estado === "valor" ? resp.valor : "";
       let naosei = !!(resp && resp.estado === "naosei");
@@ -347,13 +399,21 @@
         const r0 = op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
         const c = Mo.caminho(D, cod, op);
         avisando = op === NS && Mo.AVISO_NS.includes(cod);
-        mostrar(caixa(c.texto) + (avisando ? `<div class="acoes ns-acoes"><button class="btn btn-claro" id="verifiquei">Já verifiquei</button></div>` : "") + cruzAgora(r0));
+        mostrar(caixa(c.texto) + extras(op) + (avisando ? `<div class="acoes ns-acoes"><button class="btn btn-claro" id="verifiquei">Já verifiquei</button></div>` : "") + cruzAgora(r0));
         rotuloOk(avisando ? "Seguir sem responder" : "Continuar");
         const jv = box.querySelector("#verifiquei");
         if (jv) jv.onclick = () => { op = null; pintar(); ret(); p.querySelector("#pergunta").scrollIntoView({ block: "start" }); };
       };
+      /* notas novas ao tocar: alimento com "Não" na pergunta de saúde; trabalho em casa */
+      const extras = (o) => {
+        if (cod === "M9-02" && o === "Não" && X.alimento) return `<div class="bloco b-alerta extra aviso-alimento"><b>Confira</b><p>${esc(avisoAlimentoNao(X))}</p></div>`;
+        if (cod === "M9-03" && (o === Mo.O.casa || o === Mo.O.apto)) return blocoCasa(X, o === Mo.O.apto);
+        if (cod === "M9-03b" && (o === Mo.O.pCasa || o === Mo.O.pApto)) return blocoCasa(X, o === Mo.O.pApto);
+        return "";
+      };
       if (pre) ent.appendChild(el(veio(h.m)));
       else if (!resp && cod === "M9-02" && X.m4Regulada) ent.appendChild(el(`<p class="veio-linha"><span class="veio">Veio do Módulo 4</span> Lá você disse que sua oferta tem regras específicas para vender. Escolha abaixo qual é o seu caso.</p>`));
+      else if (cod === "M9-02" && X.alimento) ent.appendChild(el(`<p class="veio-linha dica-alimento">${esc(quemVende(X))}. Alimentos costumam afetar a saúde de quem compra.</p>`));
       ops.forEach((o) => {
         const b = el(`<button class="opcao" data-v="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`);
         b.onclick = () => { op = o; pintar(); ret(); };
@@ -368,10 +428,14 @@
       };
     }
     ok.onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };
+    /* campo digitado: o botão fica logo abaixo do campo, para o teclado do celular não escondê-lo */
+    if (cod === "M9-05" || cod === "M9-13") err.after(p.querySelector("#acoes"));
     return p;
   }
 
   /* ================= "O que entendemos até aqui": frases por regra, juntando este módulo e os anteriores ================= */
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function entendemos(X, R, itens, enc) {
     const f = [], L = Mo.local(R), o1 = Mo.op(R, "M9-01"), o2 = Mo.op(R, "M9-02"), o3a = Mo.op(R, "M9-03a"), o4 = Mo.op(R, "M9-04");
     const TIPO = { "Serviço": "um serviço (o cliente paga pelo seu trabalho)", "Produto": "um produto que você mesmo faz", "Mercadoria": "mercadoria que você compra pronta para revender" };
@@ -384,25 +448,28 @@
     else if (L.forma === "remoto") f.push(`Você não terá local fixo: ${o3a === Mo.O.cliente ? "vai atender na casa ou na empresa do cliente" : "vai atender pela internet ou por telefone"}${uf}.`);
     else if (L.forma === "rua") f.push(`Você vai trabalhar na rua, em feiras ou eventos${uf}.`);
     else f.push(`O lugar onde você vai trabalhar ainda não está definido${uf}.`);
+    const c1 = f.length;   // 1º parágrafo: o negócio e o lugar; 2º: saúde, conselho e prefeitura; 3º: o checklist
     if (Mo.sanitario(R)) f.push("Como o que você faz pode afetar a saúde de quem compra ou é atendido, a Vigilância Sanitária faz parte do seu caminho.");
+    else if (o2 === "Não" && X.alimento) f.push(`Você respondeu que o que faz não afeta a saúde de quem compra, mas ${quemVende(X).replace(/^Você/, "você").replace(/^A atividade/, "a atividade")}. Alimentos normalmente passam pela Vigilância Sanitária: confira.`);
     else if (o2 === "Não") f.push("Pelo que você respondeu, o que você faz não afeta a saúde de quem compra, então a Vigilância Sanitária não entra no seu caminho.");
     else f.push("Ainda falta saber se o que você faz pode afetar a saúde de quem compra ou é atendido.");
     if (Mo.op(R, "M9-10") === "Sim") f.push("Sua atividade precisa de um profissional formado e registrado em conselho.");
     f.push(o4 === Mo.O.aprovada ? "A prefeitura já confirmou que a atividade pode funcionar no endereço."
       : o4 === Mo.O.negada ? "A prefeitura não liberou a atividade nesse endereço, então será preciso pensar em outro local."
         : "Ainda falta confirmar com a prefeitura se a atividade pode funcionar no endereço que você vai usar.");
+    const c2 = f.length;
     const nf = itens.filter((i) => i.sit === Mo.SIT.fazer).length, nc = itens.filter((i) => i.sit === Mo.SIT.conf).length;
     const pl = (n, s, p) => `${n} ${n === 1 ? s : p}`;
     f.push(nf + nc === 0 ? "Pelo que você respondeu, não há nenhum passo pendente no seu checklist."
       : `No seu checklist há ${pl(nf, "passo", "passos")} a fazer e ${pl(nc, "item", "itens")} a confirmar${enc ? `; comece por: ${enc.item.toLowerCase()} (${Mo.ORGAOS[enc.orgao].nome})` : ""}.`);
-    return f.slice(0, 6);
+    return emParagrafos(f.slice(0, 6), c1, c2);
   }
 
   /* ================= resultado: checklist e resumo (tela M9-14) ================= */
   function telaResultado() {
     const X = contexto();
     const R = S.R, seq = Mo.sequencia(R);
-    const itens = Mo.checklist(D, R, S.feitos);
+    const itens = Mo.checklist(D, R, S.feitos, X);
     const ale = Mo.alertas(D, R, X), prox = Mo.proximos(D, R, itens), enc = Mo.encaminhamento(itens), orgs = Mo.orgaos(itens);
     const L = Mo.local(R);
     const q14 = Q["M9-14"], r14 = R["M9-14"];
@@ -429,6 +496,10 @@
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo 9</h2><p>Veja abaixo o resultado pelas suas respostas.</p></div></div>
         </section>
         <section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>${entendemos(X, R, itens, enc).map((f) => `<p>${esc(f)}</p>`).join("")}</section>
+        ${Mo.op(R, "M9-02") === Mo.O.alimentos || X.alimento ? `<section class="cartao" id="alimentos"><h3>Você trabalha com alimentos</h3>
+          ${Mo.alimentoSemSaude(R, X) ? `<div class="bloco b-alerta"><b>Confira</b><p>${esc(avisoAlimentoNao(X))}</p></div>` : ""}
+          <div class="bloco b-alerta"><b>Licença sanitária e boas práticas</b>${textoAlimento(X).map((t) => `<p>${esc(t)}</p>`).join("")}</div></section>` : ""}
+        ${L.casaOuApto ? `<section class="cartao" id="nota-casa"><h3>Trabalhar em casa</h3>${notaCasa(X, L.tipo === "apto").map((t) => `<p>${esc(t)}</p>`).join("")}</section>` : ""}
         <section class="cartao" id="linha-resumo"><h3>Em uma linha</h3><p>${esc(Mo.linhaResumo(D, R, itens))}</p><p class="aviso-inst">${esc(I4.aviso)}</p></section>
         <section class="cartao" id="risco"><h3>Nível de risco provável</h3>
           <p class="diag-r"><b>A confirmar na consulta de viabilidade.</b></p>
@@ -448,7 +519,8 @@
             ${LIGA[it.id].filter((c) => seq.includes(c) && R[c]).map((c) => `<p class="mini-info"><b>${esc(Q[c].descobre)}:</b> ${esc(resposta(c))}</p>`).join("")}
             ${it.avisos.map((a) => `<p class="aviso-ck">⚠ Atenção: ${esc(a)}</p>`).join("")}
             ${it.sit === "não se aplica" ? "" : `<p class="mini-info"><b>Onde confirmar:</b> ${it.orgaos.map((k) => esc(Mo.ORGAOS[k].nome)).join(" · ")}</p>
-              <p class="fonte">${it.id === "viabilidade" ? link(linkUF, linkOrgao("prefeitura").t) : link(BASE[it.base].link, BASE[it.base].referencia)}</p>`}
+              ${(it.id === "gas" || it.id === "bombeiros") && bombeirosEstado() ? `<p class="mini-info bombeiros-uf">${esc(bombeirosEstado())}</p>` : ""}
+              <p class="fonte">${it.id === "viabilidade" ? link(linkUF, linkOrgao("prefeitura").t) : it.id === "gas" && Mo.op(R, "M9-01") !== RJ ? link(BASE["M9.BT14"].link, BASE["M9.BT14"].referencia) : link(BASE[it.base].link, BASE[it.base].referencia)}</p>`}
             ${it.sit === "a fazer" || it.sit === "a confirmar" || it.marcado ? `<label class="chk"><input type="checkbox" data-feito="${it.id}" ${it.marcado ? "checked" : ""}><span>Já fiz</span></label>` : ""}
           </div>`).join("")}</div>
         <p class="aviso-inst">${esc(I1.aviso)}</p>
@@ -479,6 +551,17 @@
     if (aviso) p.querySelector(".corpo").insertBefore(el(`<p class="erro">${esc(aviso)}</p>`), p.querySelector(".corpo").firstChild);
     return p;
   }
+
+  /* teclado do celular: o campo em foco vai para o centro da área visível (e o Continuar logo abaixo dele) */
+  let focado = null, timer = 0;
+  const centralizar = () => { if (focado && document.activeElement === focado) focado.scrollIntoView({ block: "center" }); };
+  document.addEventListener("focusin", (e) => {
+    const t = e.target;
+    if (!t || !t.matches || !t.matches("input, textarea, select")) return;
+    focado = t; clearTimeout(timer); timer = setTimeout(centralizar, 300);
+  });
+  document.addEventListener("focusout", () => { focado = null; });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => { clearTimeout(timer); timer = setTimeout(centralizar, 100); });
 
   ir(telaCapa);
 })();

@@ -211,9 +211,17 @@ table.fluxo th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .etapa-ed{display:flex;align-items:center;gap:4px}
 .etapa-ed .num{flex:0 0 26px;height:26px;border-radius:50%;background:var(--m-purple);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
 .etapa-ed .campo{flex:1 1 0;min-width:0}
-.mini-b{flex:0 0 30px;height:40px;padding:0;border:1.5px solid var(--m-lavender-mid);background:#fff;color:var(--m-purple);border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+.mini-b{flex:0 0 36px;height:44px;padding:0;border:1.5px solid var(--m-lavender-mid);background:#fff;color:var(--m-purple);border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
 .mini-b:disabled{opacity:.35}
 .mini-b.x{color:var(--m-coral)}
+.mini-b.mover{background:var(--m-lavender);border-color:var(--m-purple);font-size:14px;touch-action:manipulation}
+.mini-b.mover:disabled{background:#fff;border-color:var(--m-lavender-mid)}
+.mini-b:focus-visible{outline:3px solid var(--m-purple);outline-offset:2px}
+.dica-ordem{margin:0 0 8px}
+.etapa-ed.nova .campo{border-color:var(--m-purple)}
+.dica-mover{font-size:14px;color:var(--m-purple);margin:2px 0 6px 30px;line-height:1.35}
+/* "Como calculamos: …" embaixo de cada número do resultado: discreta, em fonte menor */
+.como-calc,.cartao p.como-calc{font-size:13px;line-height:1.45;color:var(--m-gray);margin:-4px 2px 12px}
 .b-ok{background:var(--m-lavender);border-left:4px solid var(--m-purple)}
 .mapa{list-style:none;counter-reset:e;display:grid;gap:6px;margin:6px 0 10px}
 .mapa li{counter-increment:e;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--m-lavender);border-radius:10px;padding:8px 12px}
@@ -245,3 +253,10 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 /* "O que entendemos até aqui" no topo do resultado */
 .entendemos{border-left:5px solid var(--m-purple)}
 .entendemos p{margin:6px 0;line-height:1.45}
+
+/* aviso que não trava (valor fora do comum) */
+.erro.aviso-valor{background:#fff7e0;color:#6b5200;border-left:4px solid var(--m-yellow-soft)}
+.erro-campo.aviso-campo{color:#6b5200}
+.conta-forn.vazia{font-weight:400;color:var(--m-gray);font-style:italic}
+.reposicao-conta{list-style:none;padding:0;margin:8px 0 4px;font-size:14.5px}
+.reposicao-conta li{padding:4px 0;border-bottom:1px solid var(--m-lavender)}

@@ -7,7 +7,7 @@
 (function (raiz) {
   "use strict";
   const NS = "Não sei";
-  const COD = /M4\.P\d{2}/g;
+  const COD = /M4\.P(?:\d{2}|V\d)/g;
   const lista = (s) => String(s || "").split(";").map((x) => x.trim()).filter(Boolean);
 
   function montar(D) {
@@ -33,15 +33,17 @@
     const r = R[cod];
     if (!r) return undefined;
     if (r.estado === "naosei") return NS;
+    if (r.estado === "opcoes") return (r.opcoes || []).join(", ");   // múltipla escolha (M4.P04)
     return r.estado === "opcao" ? r.opcao : String(r.valor ?? "").trim();
   }
 
   function campo(q) {
+    if (/m[uú]ltipla/i.test(q.tipo)) return "multipla";
     if (/escolha|sim\/n/i.test(q.tipo)) return "escolha";
     if (/n[uú]mero/i.test(q.tipo)) return "numero";
     return "texto";
   }
-  const temNaoSei = (q) => campo(q) !== "escolha" && q.opcoesLista.includes(NS);
+  const temNaoSei = (q) => campo(q) === "texto" || campo(q) === "numero" ? q.opcoesLista.includes(NS) : false;
 
   /* ---- condições escritas pelo grupo ---- */
   const norm = (s) => String(s).replace(/\s+/g, "").toLowerCase();

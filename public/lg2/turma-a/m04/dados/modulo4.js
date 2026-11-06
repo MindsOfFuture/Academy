@@ -1,6 +1,11 @@
 /* GERADO por ferramentas/extrair.py a partir da planilha do grupo.
    Ajuste manual em 05/11/2026 (relatório de teste aprovado): M4.P14 reescrita (enunciado, ajuda,
-   opções e opcoes_explica) e condicao_app da M4.P15 com as novas opções. */
+   opções e opcoes_explica) e condicao_app da M4.P15 com as novas opções.
+   Ajuste de 05/11/2026 (2º lote): digitação, textos em segunda pessoa, exemplos por tipo (por_tipo),
+   ficha técnica do serviço (M4.P06 + M4.BT09S) e M4.P19 numérica.
+   Ajuste de 05/11/2026 (3º lote): papel e caneta em "O que ter em mãos", M4.P04 múltipla escolha,
+   alerta e próximo passo da M4.P11 juntos, M4.P12/M4.P13 sem "Não sei" e proposta de valor
+   (M4.PV1–M4.PV3, lida pelo Módulo 10) antes da M4.P12. */
 window.MODULO4 = {
  "origem": "M04.xlsx",
  "modulo": {
@@ -19,13 +24,13 @@ window.MODULO4 = {
   ]
  },
  "mapa": {
-  "objetivo": "Ao final deste módulo, o usuário será capaz de detalhar seu produto (incluindo aspectos como matéria-prima e demais componentes), estruturar sua proposta de valor por meio do Canvas de Proposta de Valor e testar sua ideia junto ao mercado, identificando se o que foi planejado atende de fato às necessidades do público ou se ajustes são necessários.",
-  "usuario": "Nossos usuários identificados seriam quem já tem uma ideia na cabeça e precisa amadurecer, pensar no que seria necessário para realizar e o que entregaria de valor para o cliente.",
+  "objetivo": "Ao final deste módulo, você vai conseguir detalhar o que oferece (os materiais de um produto ou as etapas de um serviço), montar a sua proposta de valor com o Canvas de Proposta de Valor e preparar um teste da sua ideia com clientes de verdade, para ver se o que você planejou atende ao que o seu público precisa ou se são necessários ajustes.",
+  "usuario": "Este módulo é para você que já tem uma ideia na cabeça e precisa amadurecê-la: pensar no que é necessário para colocá-la em prática e no que ela entrega de valor para o seu cliente.",
   "decisoes": "Como este módulo ajuda você\n\nEste módulo guia você a pensar com clareza sobre o seu produto, o valor que ele entrega e se a ideia faz sentido para o seu público. As decisões são sempre suas. Nós orientamos o caminho, e você escolhe o destino.\n\nO que você vai fazer aqui:\n\n - Detalhar seu produto: organize as informações principais sobre o que você oferece.\n - Preencher o Canvas de Proposta de Valor: responda a perguntas simples, bloco por bloco (perfil do cliente, mapa de valor e outros), para entender quem você atende e o que realmente importa para essas pessoas.\n - Preparar o teste da sua ideia: receba um roteiro de perguntas e critérios para conversar com seu público e avaliar as respostas. A aplicação do teste fica por sua conta.\n - Identificar possíveis desencontros: com base no que você mesmo respondeu, mostramos onde o seu plano pode estar diferente do que o público precisa. Apontamos os pontos de atenção, mas não dizemos o que você deve fazer: a solução é sua.",
-  "nao_faz": "Não sugere o produto, não dá ideia de desenvolvimento, não determina a matéria prima do produto, não faz o canvas para o usuário, não instruí como fazer o teste de ideia.",
+  "nao_faz": "Não sugere o produto ou serviço, não dá ideia de desenvolvimento, não determina a matéria-prima do produto, não faz o canvas por você e não instrui como fazer o teste da ideia.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
-  "ter_em_maos": "Celular, acesso a internet",
-  "entrega": "Entrega as ideias, junto com espaço para anotações/registros do produto e das matérias primas, um canvas guiado e simplificado e, por fim, um guia para um possível teste de ideia, para que apessoa seja direcionada a como proceder para fazer uma viabilidade ideial.",
+  "ter_em_maos": "Celular e acesso à internet. É bom ter papel e caneta à mão para anotar o que precisar.",
+  "entrega": "Você recebe as suas ideias organizadas, com espaço para anotar como é feito o que você oferece (os materiais e as matérias-primas de um produto ou as etapas de um serviço), um canvas guiado e simplificado e, por fim, um guia para um possível teste da ideia, que mostra como proceder para chegar a uma viabilidade ideal.",
   "encaminhamentos": "Advogado: quando surgir dúvida sobre informação obrigatória ao consumidor ou sobre uso de dados pessoais já que o módulo não redige termo de consentimento nem aviso legal.\nVigilância Sanitária, Procon, Inmetro: quando o produto testado exigir registro, licença sanitária ou normas técnicas antes mesmo da venda de teste.\nContador: quando o teste já envolver emissão de nota fiscal, recebimento formal de valores ou mudança no enquadramento tributário do usuário.",
   "caso_real": "",
   "riscos": "Prometer um canvas modelo de negócio avançado; um teste de ideia complexo, que a pessoa não consegue realizar; direcionar o teste de ideia de forma errada, em que a pessoa vai chegar a uma conclusão precipitada, que não é a veridica. \nO grupo evita isso não fazendo afirmações concretas, promovendo um modelo de canvas simplificado e guiado por perguntas que façam a pessoa pensar ou de forma simples conseguir na IA, conduzir um teste de ideia também guiado, direcionado para o modelo de negócio da pessoa, e que esse teste não deixe ter margem para duvidas se o produto vale ou não a pena ser lançado. "
@@ -66,7 +71,15 @@ window.MODULO4 = {
    "tipo_fonte": "Institucional",
    "fonte": "Sebrae, \"Proposta de valor: guia prático para criar e aplicar na sua empresa\"",
    "link": "https://blog.rn.sebrae.com.br/proposta-de-valor/",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Manicure em domicílio no fim do dia para quem trabalha fora e não consegue ir ao salão."
+    },
+    "Mercadoria": {
+     "exemplo": "Roupas infantis com preço de bairro, entregues em casa, para mães que não têm tempo de ir ao centro."
+    }
+   }
   },
   {
    "codigo": "M4.BT02",
@@ -75,9 +88,17 @@ window.MODULO4 = {
    "porque": "Descrever o produto pelas próprias características (o que ele é) enfraquece a proposta de valor.",
    "exemplo": "Ao invés de definir como \"bolo sem glúten\" o benefício para o cliente é: poder comer doce sem passar mal.",
    "tipo_fonte": "Outra (justificar)",
-   "fonte": "Eaemidiadigital, \"O que é Benefício Funcional\"",
+   "fonte": "Eamidiadigital, \"O que é Benefício Funcional\"",
    "link": "https://eamidiadigital.com.br/glossario/o-que-e-beneficio-funcional/",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Em vez de definir como \"manicure com esmaltes importados\", o benefício para a cliente é: sair com as unhas prontas sem sair de casa."
+    },
+    "Mercadoria": {
+     "exemplo": "Em vez de definir como \"roupa 100% algodão\", o benefício para o cliente é: a criança fica confortável o dia todo."
+    }
+   }
   },
   {
    "codigo": "M4.BT03",
@@ -86,20 +107,33 @@ window.MODULO4 = {
    "porque": "Evita que o usuário confunda gostar da própria ideia com ter um motivo real de escolha para o cliente.",
    "exemplo": "Entrega em até 2h vs. concorrentes que só entregam no dia seguinte.",
    "tipo_fonte": "Institucional",
-   "fonte": "SerasaExperian, \"Diferencial competitivo: entenda o que é e como desenvolver o seu\"           ",
+   "fonte": "SerasaExperian, \"Diferencial competitivo: entenda o que é e como desenvolver o seu\"",
    "link": "https://www.serasaexperian.com.br/conteudos/diferencial-competitivo/",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Atendimento em casa até as 21h vs. salões do bairro que fecham às 18h."
+    }
+   }
   },
   {
    "codigo": "M4.BT04",
    "conceito": "Produto Mínimo Viável (MVP)",
    "definicao": "Versão simplificada do produto ou serviço, com apenas as funções essenciais, usada para colher reação real do cliente antes de investir mais.",
    "porque": "Permite descobrir cedo se a ideia tem aceitação, evitando gasto de tempo e dinheiro em algo que ninguém compraria.",
-   "exemplo": "Em vez de abrir uma cozinha de bolos com equipamento completo a pessoa faz um único bolo, no forno de casa, anunciar venda nos Stories e entregar aos primeiros clientes. ",
+   "exemplo": "Em vez de abrir uma cozinha de bolos com equipamento completo, a pessoa faz um único bolo no forno de casa, anuncia a venda nos Stories e entrega aos primeiros clientes.",
    "tipo_fonte": "Institucional",
    "fonte": "Sebrae, \"MVP: o que é e para que serve o Produto Viável Mínimo\"",
    "link": "https://www.sebrae-sc.com.br/blog/mvp-o-que-e-e-para-que-serve-o-produto-viavel-minimo",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Em vez de alugar uma sala e montar um salão, a pessoa atende as primeiras clientes em casa, com o material que já tem, e anuncia os horários nos Stories."
+    },
+    "Mercadoria": {
+     "exemplo": "Em vez de comprar um estoque grande, a pessoa compra poucas peças, anuncia nos Stories e entrega aos primeiros clientes."
+    }
+   }
   },
   {
    "codigo": "M4.BT05",
@@ -110,14 +144,22 @@ window.MODULO4 = {
    "tipo_fonte": "Outra (justificar)",
    "fonte": "Hostinger, \"Qual a diferença entre protótipo e MVP de software?\"",
    "link": "https://www.hostinger.com/br/tutoriais/diferenca-entre-prototipo-e-mvp/",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Fazer as unhas de uma amiga para treinar e mostrar fotos do resultado, sem cobrar."
+    },
+    "Mercadoria": {
+     "exemplo": "Montar um catálogo com fotos das peças e mostrar a amigos antes de comprar o estoque."
+    }
+   }
   },
   {
    "codigo": "M4.BT06",
    "conceito": "Critério de decisão",
    "definicao": "Número ou condição definida antes de testar que diz se o resultado confirma, exige ajuste ou descarta a hipótese.",
    "porque": "Definir o critério depois de ver o resultado tende a justificar a ideia original em vez de testá-la de verdade.\n",
-   "exemplo": "Definir critério de 5 a 20 pessoas reservarem, ou então é necessário revisar preço ou público antes de continuar",
+   "exemplo": "Definir critério de 5 a 20 pessoas reservarem, ou então é necessário revisar preço ou público antes de continuar.",
    "tipo_fonte": "Outra (justificar)",
    "fonte": "NaPrática, \"MVP: como validar sua ideia antes de investir tempo ou dinheiro nela?\"",
    "link": "https://napratica.org.br/noticias/mvp-como-validar-sua-ideia-antes-de-investir-tempo-ou-dinheiro-nela",
@@ -132,7 +174,15 @@ window.MODULO4 = {
    "tipo_fonte": "Outra (justificar)",
    "fonte": "Meu Bolso em Dia (Febraban), \"Empreendedor, saiba como validar a sua ideia de negócio sem gastar muito\"",
    "link": "https://www.meubolsoemdia.com.br/Materias/empreender",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Cobrar um sinal para reservar um horário de manicure, abrindo a agenda só se houver 5 agendamentos confirmados."
+    },
+    "Mercadoria": {
+     "exemplo": "Receber o pedido e o pagamento de uma peça antes de comprá-la do fornecedor, só fazendo a compra se houver 5 pedidos."
+    }
+   }
   },
   {
    "codigo": "M4.BT08",
@@ -143,7 +193,15 @@ window.MODULO4 = {
    "tipo_fonte": "Outra (justificar)",
    "fonte": "Meu Bolso em Dia (Febraban), \"Empreendedor, saiba como validar a sua ideia de negócio sem gastar muito\"",
    "link": "https://www.meubolsoemdia.com.br/Materias/empreender",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Mulheres do bairro que trabalham fora pagariam R$ 35 por uma manicure em casa no fim do dia."
+    },
+    "Mercadoria": {
+     "exemplo": "Mães do bairro pagariam R$ 40 por um conjunto de roupa infantil entregue em casa."
+    }
+   }
   },
   {
    "codigo": "M4.BT09",
@@ -154,18 +212,43 @@ window.MODULO4 = {
    "tipo_fonte": "Institucional",
    "fonte": "Sebrae, \"Estudo inédito mapeia características que influenciam a produtividade dos bares e restaurantes no país\"",
    "link": "https://agenciasebrae.com.br/economia-e-politica/estudo-inedito-mapeia-caracteristicas-que-influenciam-a-produtividade-dos-bares-e-restaurantes-no-pais/",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Mercadoria": {
+     "exemplo": "Conjunto infantil: comprado do fornecedor por R$ 25, mais sacola (R$ 0,50) e etiqueta (R$ 0,10); vendido nos tamanhos 2 a 8."
+    }
+   }
+  },
+  {
+   "codigo": "M4.BT09S",
+   "conceito": "Ficha técnica do serviço",
+   "definicao": "Registro padronizado de um atendimento: as etapas (do pedido do cliente até o fim), o tempo que um atendimento leva, os materiais usados em cada atendimento e o custo desses materiais por atendimento.",
+   "porque": "Sem isso cada atendimento sai diferente e você não consegue saber quanto tempo e quanto dinheiro gasta com cada cliente.",
+   "exemplo": "Manicure em domicílio: combinar horário, ir até a cliente, tirar o esmalte, cutilar, esmaltar e secar; cerca de 1 hora; algodão, acetona, lixa, palito e esmalte; cerca de R$ 6 de material por atendimento.",
+   "tipo_fonte": "Institucional",
+   "fonte": "Sebrae, \"Estudo inédito mapeia características que influenciam a produtividade dos bares e restaurantes no país\"",
+   "link": "https://agenciasebrae.com.br/economia-e-politica/estudo-inedito-mapeia-caracteristicas-que-influenciam-a-produtividade-dos-bares-e-restaurantes-no-pais/",
+   "data": "22/09/2026",
+   "so_servico": true
   },
   {
    "codigo": "M4.BT10",
    "conceito": "Funcionalidades essenciais",
    "definicao": "Separar o que o produto precisa ter para resolver a dor do cliente (essencial) do que seria bom ter, mas pode esperar (secundário).",
-   "porque": "Sem separar essencial de secundário, o empreendedor tende a incluir tudo de uma vez e  se perder.",
+   "porque": "Sem separar essencial de secundário, o empreendedor tende a incluir tudo de uma vez e se perder.",
    "exemplo": "Essencial: bolo comestível e no prazo combinado. Secundário: papel personalizado, cartão de mensagem, fita decorativa.",
    "tipo_fonte": "Institucional",
    "fonte": "Sebrae, \"Estudo inédito mapeia características que influenciam a produtividade dos bares e restaurantes no país\"",
    "link": "https://agenciasebrae.com.br/economia-e-politica/estudo-inedito-mapeia-caracteristicas-que-influenciam-a-produtividade-dos-bares-e-restaurantes-no-pais/",
-   "data": "22/09/2026"
+   "data": "22/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Essencial: unhas bem feitas, no horário combinado. Secundário: decoração nas unhas, hidratação das mãos, brinde."
+    },
+    "Mercadoria": {
+     "exemplo": "Essencial: peça no tamanho certo, entregue no prazo. Secundário: embalagem de presente, cartão, laço."
+    }
+   }
   },
   {
    "codigo": "M4.BT11",
@@ -176,7 +259,15 @@ window.MODULO4 = {
    "tipo_fonte": "Oficial",
    "fonte": "Código de Defesa do Consumidor, Lei nº 8.078/1990, art. 6º, inciso III",
    "link": "https://www.planalto.gov.br/ccivil_03/Leis/L8078compilado.htm",
-   "data": "30/09/2026"
+   "data": "30/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Ao divulgar a manicure pelo Instagram, informar o preço total, o tempo do atendimento, os produtos usados e como remarcar, mesmo num post informal."
+    },
+    "Mercadoria": {
+     "exemplo": "Ao vender as peças pelo Instagram, informar tamanho, tecido, preço total, prazo de entrega e se aceita troca, mesmo num post informal."
+    }
+   }
   },
   {
    "codigo": "M4.BT12",
@@ -187,7 +278,15 @@ window.MODULO4 = {
    "tipo_fonte": "Oficial",
    "fonte": "Lei Geral de Proteção de Dados Pessoais, Lei nº 13.709/2018, arts. 5º (XII), 6º (I), 7º (I) e 8º (§4º)",
    "link": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/L13709compilado.htm",
-   "data": "30/09/2026"
+   "data": "30/09/2026",
+   "por_tipo": {
+    "Serviço": {
+     "exemplo": "Ao pedir nome e telefone para agendar o horário: \"seus dados serão usados só para combinar o atendimento deste teste e não serão compartilhados com terceiros.\""
+    },
+    "Mercadoria": {
+     "exemplo": "Ao pedir nome e telefone para registrar o pedido: \"seus dados serão usados só para combinar a entrega deste teste e não serão compartilhados com terceiros.\""
+    }
+   }
   }
  ],
  "perguntas": [
@@ -195,7 +294,7 @@ window.MODULO4 = {
    "codigo": "M4.P01",
    "modulo": "M4",
    "pergunta": "Em uma frase, o que você pretende oferecer aos seus primeiros clientes? Vamos usar esta frase como ponto de partida.",
-   "ajuda": "Descreva como explicaria a um conhecido. Descrições muito amplas (ex.: \"doces\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente. Procure fazer conforme o exemplo. Ex.: \"Eu pretendo oferecer aos meus clientes um bolo de pote para lanche escolar\". ",
+   "ajuda": "Descreva como explicaria a um conhecido. Descrições muito amplas (ex.: \"doces\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente. Procure fazer conforme o exemplo. Ex.: \"Eu pretendo oferecer aos meus clientes um bolo de pote para lanche escolar\".",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
@@ -204,7 +303,15 @@ window.MODULO4 = {
    "fonte": "M4.BT08 (Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
    "status": "Rascunho",
    "alerta_naosei": "Você não poderá avançar antes de conseguir construir a frase, porque isso define as próximas etapas.",
-   "bloqueia_naosei": true
+   "bloqueia_naosei": true,
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Descreva como explicaria a um conhecido. Descrições muito amplas (ex.: \"beleza\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente. Procure fazer conforme o exemplo. Ex.: \"Eu pretendo oferecer às minhas clientes manicure em domicílio no fim do dia\"."
+    },
+    "Mercadoria": {
+     "ajuda": "Descreva como explicaria a um conhecido. Descrições muito amplas (ex.: \"roupas\", \"cosméticos\") dificultam o teste, porque cada pessoa entende uma coisa diferente. Procure fazer conforme o exemplo. Ex.: \"Eu pretendo revender roupas infantis para as mães do meu bairro\"."
+    }
+   }
   },
   {
    "codigo": "M4.P02",
@@ -217,13 +324,13 @@ window.MODULO4 = {
    "proximo": "",
    "fonte": "Estrutura do fluxo (sem regra externa)",
    "status": "Rascunho",
-   "destaque": "Nota: O que é produto? É o que você produz; precisa de materiais para fazer, do seu tempo para ser feito. EX.: artesanato, comida caseira, etc. O que serviço? É o que presta à alguém; EX.: cabeleleiro, manicure, psicologo. O que é mercadoria? É o que você compra e revende. EX.:roupas, bebidas, cosméticos, eletronicos."
+   "destaque": "Nota: O que é produto? É o que você produz; precisa de materiais para fazer e do seu tempo para ser feito. Ex.: artesanato, comida caseira etc. O que é serviço? É o que você presta a alguém. Ex.: cabeleireiro, manicure, psicólogo. O que é mercadoria? É o que você compra e revende. Ex.: roupas, bebidas, cosméticos, eletrônicos."
   },
   {
    "codigo": "M4.P03",
    "modulo": "M4",
    "pergunta": "Quais materiais, ingredientes ou componentes principais o produto precisa ter para ser feito?",
-   "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: farinha, ovos, açúcar, embalagem. Essa lista é a base da ficha técnica do produto.Sem uma lista clara, cada lote pode sair diferente, e fica difícil repetir o teste ou calcular o custo.",
+   "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: farinha, ovos, açúcar, embalagem. Essa lista é a base da ficha técnica do produto. Sem uma lista clara, cada lote pode sair diferente, e fica difícil repetir o teste ou calcular o custo.",
    "tipo": "Texto",
    "condicao": "M4.P02 = Produto físico ou M4.P02 = Ambos",
    "opcoes": "Não sei",
@@ -231,20 +338,29 @@ window.MODULO4 = {
    "proximo": "Se ainda não tem as quantidades, anote o que usou em uma unidade; depois o módulo de custos ajuda a estimar o custo por unidade.",
    "fonte": "M4.BT09 (fonte a substituir; ver aba Revisão e sugestões, item 12)",
    "status": "Rascunho",
-   "resposta_naosei": "Em caso de dificuldade para preencher essa ficha tecnica, indicamos que você use o seguinte prompt na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
+   "resposta_naosei": "Em caso de dificuldade para preencher essa ficha técnica, indicamos que você use o seguinte prompt na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
    "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um produto que eu quero fazer. Quero apenas o que é necessário para produzi-lo, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do produto.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Adapte as perguntas ao tipo de produto (físico, alimento, serviço, digital).\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar ao meu produto)\n- Descrição do produto: o que é, para que serve e como deve ficar pronto.\n- Materiais, ingredientes ou componentes: o que usa e em que quantidade.\n- Medidas e especificações: tamanho, peso, cor, capacidade e outras características técnicas.\n- Equipamentos e ferramentas necessários.\n- Passo a passo de produção.\n- Tempo de produção e rendimento (quanto sai por vez).\n- Embalagem e armazenamento.\n- Cuidados de qualidade e segurança (testes, normas ou exigências legais, se houver).\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica organizada em seções, usando apenas o que eu informei. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO PRODUTO QUE QUERO DETALHAR É:\n[escreva aqui o seu produto]",
    "conceito_naosei": "M4.BT09",
-   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto ou M4.P02 = Mercadoria ou M4.P02 = Mercadoria+ Serviço"
+   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto ou M4.P02 = Mercadoria ou M4.P02 = Mercadoria+ Serviço",
+   "por_tipo": {
+    "Mercadoria": {
+     "pergunta": "Quais mercadorias você vai comprar prontas para revender e o que mais precisa para vender cada uma?",
+     "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: conjuntos de roupa infantil do 2 ao 8, sacolas, etiquetas de preço. Essa lista é a base da ficha de cada mercadoria (o que você compra, de quem e por quanto). Sem uma lista clara, fica difícil repetir o teste ou calcular o custo.",
+     "proximo": "Se ainda não tem os preços de compra, anote o que já sabe; depois o módulo de custos ajuda a estimar o custo por unidade.",
+     "resposta_naosei": "Em caso de dificuldade para preencher essa lista, indicamos que você use o seguinte texto na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
+     "prompt_ia": "Você vai me ajudar a montar a FICHA de uma mercadoria que eu quero comprar pronta para revender. Quero apenas o que é necessário para comprar, guardar e vender, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu da mercadoria.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar à minha mercadoria)\n- Descrição da mercadoria: o que é, modelos, tamanhos e cores.\n- De quem vou comprar e quanto pago por unidade.\n- Quantidade mínima de compra e prazo de entrega do fornecedor.\n- Frete ou deslocamento para buscar.\n- Embalagem, etiqueta e outros itens para vender cada unidade.\n- Como guardar e cuidados para não estragar ou perder.\n- Regras de troca e garantia.\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha organizada em seções, usando apenas o que eu informei. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nA MERCADORIA QUE QUERO DETALHAR É:\n[escreva aqui a sua mercadoria]"
+    }
+   }
   },
   {
    "codigo": "M4.P04",
-   "pergunta": "Como seu produto vai chegar até o cliente? ",
-   "ajuda": "Pense e descreva formas viáveis de como levar o produto até o seu cliente.",
-   "tipo": "Escolha",
+   "pergunta": "Como seu produto vai chegar até o cliente?",
+   "ajuda": "Pense nas formas viáveis de levar o produto até o seu cliente. Marque todas as que você pretende usar.",
+   "tipo": "Múltipla escolha",
    "condicao": "M4.P02 = Produto físico ou M4.P03 = Produto + Serviço ",
-   "opcoes": "De porta a porta pessoalmente; Plataformas (ifood); entregador parceiro; loja própria ou parceira; Retirada presencial pelo cliente; Não sei",
+   "opcoes": "De porta a porta pessoalmente; Plataformas (iFood); Entregador parceiro; Loja própria ou parceira; Retirada presencial pelo cliente; Não sei",
    "resposta": "",
-   "resposta_naosei": "Reflita melhor sobre as opções. Cada opção demonstra um custo especifico que é importante ser definido para saber a viabilidade do seu negocio.  Sem sabermos isso, poderemos encontrar problemas em outros módulos.",
+   "resposta_naosei": "Reflita melhor sobre as opções. Cada opção tem um custo específico, que é importante definir para saber a viabilidade do seu negócio. Sem sabermos isso, poderemos encontrar problemas em outros módulos.",
    "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto"
   },
   {
@@ -260,22 +376,24 @@ window.MODULO4 = {
    "fonte": "M4.BT10 (fonte a substituir); o limite de 3 é sugestão do grupo, a validar com a tutora",
    "status": "Rascunho",
    "destaque_alerta": "Muitas opções aumentam custo, tempo e sobras, e dificultam saber o que o cliente realmente preferiu.",
-   "resposta_naosei": "Pense melhor: Quantas opções/variações você estaria disposto(a) a oferecer ao seu cliente? Ex.: quero oferecer picolé gourmet de ninho trufado, brigadeiro e sensação do mesmo tamanho.",
+   "resposta_naosei": "Pense melhor: quantas opções ou variações você estaria disposto(a) a oferecer ao seu cliente? Ex.: quero oferecer picolé gourmet de ninho trufado, brigadeiro e sensação, todos do mesmo tamanho.",
    "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto"
   },
   {
    "codigo": "M4.P06",
    "modulo": "M4",
    "pergunta": "O que você precisa ter e fazer para realizar o serviço uma vez, do pedido do cliente até a entrega?",
-   "ajuda": "Liste materiais, ferramentas, tempo e etapas principais. Ex.: combinar horário, ir até o local, executar o serviço, confirmar com o cliente.\n\nAnote quanto tempo leva uma execução completa; isso ajuda nas próximas perguntas e nos módulos de custos e de operação.",
+   "ajuda": "Monte a ficha técnica do seu atendimento: as etapas, do pedido do cliente até o fim; quanto tempo leva um atendimento completo; os materiais que você usa em cada atendimento; e quanto esses materiais custam por atendimento. Ex. (manicure em domicílio): combinar horário, ir até a cliente, tirar o esmalte, cutilar, esmaltar e secar; cerca de 1 hora; algodão, acetona, lixa, palito e esmalte; uns R$ 6 de material por atendimento.\n\nO tempo e o custo por atendimento ajudam nas próximas perguntas e nos módulos de custos e de operação.",
    "tipo": "Texto",
    "condicao": "M4.P02 = Serviço ou M4.P02 = Produto+Serviço ou M4.P02 = Mercadoria + Serviço ",
    "opcoes": "Não sei",
    "resposta": "",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
    "status": "Rascunho",
-   "resposta_naosei": "Serviços dependem do seu tempo e da sua agenda. Se o tempo gasto não estiver claro, o teste pode consumir mais horas do que você imaginou.",
-   "condicao_app": "M4.P02 = Serviço ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+ Serviço"
+   "resposta_naosei": "Serviços dependem do seu tempo e da sua agenda. Se o tempo gasto não estiver claro, o teste pode consumir mais horas do que você imaginou.\n\nPara montar a ficha técnica do seu atendimento, você pode usar o texto abaixo na sua Inteligência Artificial preferida:",
+   "condicao_app": "M4.P02 = Serviço ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+ Serviço",
+   "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um serviço que eu quero oferecer. Quero apenas o que é necessário para realizar um atendimento, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do serviço.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar ao meu serviço)\n- Descrição do serviço: o que é, para quem e como o cliente recebe o resultado.\n- Etapas do atendimento, do pedido do cliente até o fim (agendar, deslocar, preparar, executar, conferir com o cliente, limpar).\n- Tempo de cada etapa e tempo total de um atendimento.\n- Materiais usados em cada atendimento e a quantidade gasta por atendimento.\n- Custo desses materiais por atendimento.\n- Equipamentos e ferramentas que uso em todos os atendimentos.\n- Deslocamento: distância e gasto, se eu for até o cliente.\n- Cuidados de higiene, qualidade e segurança (normas ou exigências legais, se houver).\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica do atendimento organizada em seções, usando apenas o que eu informei, com o tempo total e o custo de material por atendimento. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO SERVIÇO QUE QUERO DETALHAR É:\n[escreva aqui o seu serviço]",
+   "conceito_naosei": "M4.BT09S"
   },
   {
    "codigo": "M4.P07",
@@ -290,7 +408,7 @@ window.MODULO4 = {
    "fonte": "M4.BT10 (fonte a substituir; ver aba Revisão e sugestões, item 12)",
    "status": "Rascunho",
    "destaque_alerta": "Incluir tudo de uma vez tende a aumentar o custo e a confundir o resultado do teste.",
-   "resposta_naosei": "Pense melhor: o que você precisa responder é o minimo que você precisa realizar para começar seu negócio, como no exemplo. Agora é só escolher o que é essencial e o que pode esperar, ou seja, o que não faz diferença no início do negócio."
+   "resposta_naosei": "Pense melhor: o que você precisa responder é o mínimo que você precisa realizar para começar seu negócio, como no exemplo. Agora é só escolher o que é essencial e o que pode esperar, ou seja, o que não faz diferença no início do negócio."
   },
   {
    "codigo": "M4.P08",
@@ -301,7 +419,7 @@ window.MODULO4 = {
    "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Vamos usar este grupo como o público do primeiro teste. Ele pode mudar depois de conversar com pessoas reais.",
-   "alerta": "Todo mundo dificulta o teste: cada grupo compra por motivos diferentes, e fica difícil saber quem realmente faz parte de seu publico",
+   "alerta": "\"Todo mundo\" dificulta o teste: cada grupo compra por motivos diferentes, e fica difícil saber quem realmente faz parte do seu público.",
    "proximo": "Se você já pesquisou clientes no módulo de clientes e necessidades, compare com o que escreveu aqui.",
    "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
    "status": "Rascunho"
@@ -318,7 +436,15 @@ window.MODULO4 = {
    "alerta": "Se o problema veio só da sua opinião, ele ainda é uma hipótese: pessoas próximas costumam elogiar mesmo quando não comprariam.",
    "proximo": "Anote quantas vezes você viu ou ouviu esse problema em pessoas reais; isso será útil ao definir o teste.",
    "fonte": "M4.BT01; M4.BT08 (Sebrae; Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"não consegue ir ao salão durante a semana porque trabalha até tarde\"."
+    },
+    "Mercadoria": {
+     "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"não acha roupa infantil com preço bom perto de casa\"."
+    }
+   }
   },
   {
    "codigo": "M4.P10",
@@ -332,7 +458,15 @@ window.MODULO4 = {
    "alerta": "Descrever só o que o produto é enfraquece a proposta de valor, porque o cliente compra pelo resultado que espera.",
    "proximo": "Confira se o benefício descreve algo que o cliente percebe, e não algo do seu processo de produção.",
    "fonte": "M4.BT02 (fonte de baixa autoridade; ver aba Revisão e sugestões, item 13)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Descreva o resultado para o cliente, não a característica do serviço. Ex.: em vez de \"manicure com esmaltes importados\" (característica), \"sair com as unhas prontas sem sair de casa\" (benefício)."
+    },
+    "Mercadoria": {
+     "ajuda": "Descreva o resultado para o cliente, não a característica da mercadoria. Ex.: em vez de \"roupa 100% algodão\" (característica), \"a criança fica confortável o dia todo\" (benefício)."
+    }
+   }
   },
   {
    "codigo": "M4.P11",
@@ -343,24 +477,90 @@ window.MODULO4 = {
    "condicao": "sempre",
    "opcoes": "Preço; Prazo/rapidez; Atendimento; Qualidade/especialização; Conveniência; Outro; Não sei",
    "resposta": "Este motivo será tratado como o seu diferencial hipotético, a ser conferido no teste.",
-   "alerta": "Gostar da própria ideia não é o mesmo que ter um motivo de escolha para o cliente. Se ainda não há um motivo claro, essa informação ajuda a ajustar antes de testar.",
-   "proximo": "Se você já pesquisou concorrentes e alternativas no módulo de mercado, compare o seu motivo com o que eles oferecem.",
+   "alerta": "Gostar da própria ideia não é o mesmo que ter um motivo de escolha para o cliente. Se ainda não há um motivo claro, essa informação ajuda a ajustar antes de testar. Se você já pesquisou concorrentes e alternativas no módulo de mercado, compare o seu motivo com o que eles oferecem.",
+   "proximo": "",
    "fonte": "M4.BT03 (Serasa Experian, consulta em 22/09/2026)",
    "status": "Rascunho"
+  },
+  {
+   "codigo": "M4.PV1",
+   "modulo": "M4",
+   "tipo": "Texto",
+   "condicao": "sempre",
+   "opcoes": "",
+   "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
+   "status": "Rascunho",
+   "pergunta": "Qual problema do cliente o seu produto resolve?",
+   "destaque": "Proposta de valor: três respostas curtas que resumem por que o cliente compraria de você. Elas ajudam a escrever a frase da pergunta seguinte.",
+   "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"os pais não têm tempo de preparar um lanche gostoso para a escola\".",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"não consegue ir ao salão durante a semana porque trabalha até tarde\"."
+    },
+    "Mercadoria": {
+     "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"não acha roupa infantil com preço bom perto de casa\"."
+    }
+   }
+  },
+  {
+   "codigo": "M4.PV2",
+   "modulo": "M4",
+   "tipo": "Texto",
+   "condicao": "sempre",
+   "opcoes": "",
+   "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
+   "status": "Rascunho",
+   "pergunta": "Por que o cliente escolheria o seu produto em vez de outro?",
+   "ajuda": "Pense no que o cliente usa hoje (outra loja, fazer em casa, deixar para lá) e no que você faz melhor. Ex.: \"entrego o bolo de pote na porta da escola, na hora do lanche\".",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Pense no que o cliente usa hoje (outro salão, fazer em casa, deixar para lá) e no que você faz melhor. Ex.: \"atendo em casa depois das 18h, quando os salões já fecharam\"."
+    },
+    "Mercadoria": {
+     "ajuda": "Pense no que o cliente usa hoje (outra loja, comprar pela internet, deixar para lá) e no que você faz melhor. Ex.: \"levo as peças até a casa da cliente para ela provar, sem precisar ir ao centro\"."
+    }
+   }
+  },
+  {
+   "codigo": "M4.PV3",
+   "modulo": "M4",
+   "tipo": "Texto",
+   "condicao": "sempre",
+   "opcoes": "",
+   "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
+   "status": "Rascunho",
+   "pergunta": "Qual é o principal benefício que ele recebe?",
+   "ajuda": "Escreva o resultado que o cliente sente, não a característica do produto. Ex.: \"ter um lanche pronto e gostoso sem perder tempo de manhã\".",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Escreva o resultado que o cliente sente, não a característica do serviço. Ex.: \"sair com as unhas prontas sem sair de casa\"."
+    },
+    "Mercadoria": {
+     "ajuda": "Escreva o resultado que o cliente sente, não a característica da mercadoria. Ex.: \"vestir bem a criança gastando pouco e sem sair do bairro\"."
+    }
+   }
   },
   {
    "codigo": "M4.P12",
    "modulo": "M4",
    "pergunta": "Com as suas respostas anteriores, escreva a sua proposta de valor em uma ou duas frases.",
-   "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [produto ou serviço], que [benefício], proporcionando [meu diferencial].\" Ex.: \"Para pessoas com intolerância a gluten/ lactose que evitam comer bolo de pote e passarem mal, ofereço um bolo de pote sem gluten e sem lactose, que não causa desconforto algum, proporcionando um produto de qualidade.\"  Escreva com as suas palavras. ",
+   "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [produto ou serviço], que [benefício], proporcionando [meu diferencial].\" Ex.: \"Para pessoas com intolerância a glúten ou lactose que evitam comer bolo de pote para não passar mal, ofereço um bolo de pote sem glúten e sem lactose, que não causa desconforto algum, proporcionando um produto de qualidade.\" Escreva com as suas palavras.",
    "tipo": "Texto",
    "condicao": "sempre",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "resposta": "Esta frase é a sua hipótese de trabalho: ela será testada e pode mudar depois do teste.",
    "alerta": "Evite frases vagas como \"o melhor\" ou \"de qualidade\": elas não dizem ao cliente por que escolher você.",
    "proximo": "Leia a frase para alguém do seu público e observe se a pessoa entende o que você oferece.",
    "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [serviço], que [benefício], proporcionando [meu diferencial].\" Ex.: \"Para mulheres que trabalham fora e não conseguem ir ao salão, ofereço manicure em domicílio no fim do dia, que deixa as unhas prontas sem sair de casa, proporcionando horário flexível.\" Escreva com as suas palavras."
+    },
+    "Mercadoria": {
+     "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [mercadoria], que [benefício], proporcionando [meu diferencial].\" Ex.: \"Para mães do bairro que não têm tempo de ir ao centro, ofereço roupas infantis entregues em casa, que poupam a viagem, proporcionando preço de bairro e troca fácil.\" Escreva com as suas palavras."
+    }
+   }
   },
   {
    "codigo": "M4.P13",
@@ -369,11 +569,19 @@ window.MODULO4 = {
    "ajuda": "Modelo: \"[cliente] compraria/marcaria um horário [produto ou serviço] por [preço]\". Ex.: \"Alunos e pais voltando da escola pagariam R$ 10 por um bolo de pote.\" A suposição precisa poder ser desmentida.",
    "tipo": "Texto",
    "condicao": "sempre",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "resposta": "Esta será a hipótese do seu teste. Se o resultado não a confirmar, isso também traz informação útil.",
    "alerta": "Anote qual parte da hipótese você tem menos certeza: ela merece ser testada primeiro. Lembre-se: Dizer que ‘as pessoas vão gostar’ não ajuda, pois não dá para medir. Uma boa hipótese é clara e pode ser testada.",
    "fonte": "M4.BT08 (Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Modelo: \"[cliente] marcaria um horário de [serviço] por [preço]\". Ex.: \"Mulheres do meu bairro que trabalham fora marcariam uma manicure em casa por R$ 35.\" A suposição precisa poder ser desmentida."
+    },
+    "Mercadoria": {
+     "ajuda": "Modelo: \"[cliente] compraria [mercadoria] por [preço]\". Ex.: \"Mães do bairro comprariam um conjunto de roupa infantil por R$ 40.\" A suposição precisa poder ser desmentida."
+    }
+   }
   },
   {
    "codigo": "M4.P14",
@@ -424,7 +632,7 @@ window.MODULO4 = {
      "Sim",
      "Não sei"
     ],
-    "texto": "Se a sua oferta envolve alimentos ou saúde, consulte a Anvisa (gov.br/anvisa). Se envolve produtos para crianças, consulte o Inmetro (gov.br/inmetro).Para tirar dúvidas acesse Sebrae.com.br . Para a regra da sua cidade, busque “[sua cidade] + Vigilância Sanitária”."
+    "texto": "Se a sua oferta envolve alimentos ou saúde, consulte a Anvisa (gov.br/anvisa). Se envolve produtos para crianças, consulte o Inmetro (gov.br/inmetro). Para tirar dúvidas, acesse sebrae.com.br. Para a regra da sua cidade, busque “[sua cidade] + Vigilância Sanitária”."
    },
    "condicao_app": "M4.P14 = Vender pouca quantidade, já com preço ou M4.P14 = Aceitar encomenda ou reserva antes de fazer ou M4.P14 = Atender poucos clientes, já cobrando ou M4.P14 = Aceitar agendamento ou reserva antes de atender"
   },
@@ -459,25 +667,33 @@ window.MODULO4 = {
   {
    "codigo": "M4.P18",
    "modulo": "M4",
-   "pergunta": "Você marcou a opção Outra. Qual será esse comportamento? ",
+   "pergunta": "Você marcou a opção Outra. Qual será esse comportamento?",
    "ajuda": "É importante que o comportamento definido possa ser medido, como é no caso de um número de pedidos, ou quantidade de pessoas que aceitaram experimentar.",
    "tipo": "Texto",
    "condicao": "M4.P17= Outra",
-   "destaque_alerta": "Verifique se realmente esse outro comportamento indica que a hipotese foi confirmada.Talvez valha a pena algum outro método listado anteriormente."
+   "destaque_alerta": "Verifique se esse outro comportamento realmente indica que a hipótese foi confirmada. Talvez valha a pena usar um dos comportamentos listados antes."
   },
   {
    "codigo": "M4.P19",
    "modulo": "M4",
    "pergunta": "Antes de testar: qual é o número mínimo em que você poderá considerar a hipótese confirmada?",
-   "ajuda": "Defina o número ANTES de ver o resultado. Ex.: \"5 reservas em 7 dias\". Escolha um número que faça sentido para o tamanho do seu teste.",
-   "tipo": "Texto",
+   "ajuda": "Defina o número ANTES de ver o resultado. Ex.: 5 (cinco reservas nos 7 dias do teste). Escolha um número que faça sentido para o tamanho do seu teste.",
+   "tipo": "Número",
    "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Este é o seu critério de decisão. Ele fica registrado antes do teste para não ser ajustado depois.",
-   "alerta": "Definir o critério depois de ver o resultado tende a justificar a ideia original em vez de testá-la. Um número muito baixo também pode dar falsa segurança. Busque ser bem realista. ",
+   "alerta": "Definir o critério depois de ver o resultado tende a justificar a ideia original em vez de testá-la. Um número muito baixo também pode dar falsa segurança. Busque ser bem realista.",
    "proximo": "Decida agora o que você vai rever se o resultado ficar abaixo do critério (ex.: preço, público ou oferta).",
    "fonte": "M4.BT06 (NaPrática, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "por_tipo": {
+    "Serviço": {
+     "ajuda": "Defina o número ANTES de ver o resultado. Ex.: 5 (cinco horários marcados nos 7 dias do teste). Escolha um número que faça sentido para o tamanho do seu teste."
+    },
+    "Mercadoria": {
+     "ajuda": "Defina o número ANTES de ver o resultado. Ex.: 5 (cinco peças vendidas nos 7 dias do teste). Escolha um número que faça sentido para o tamanho do seu teste."
+    }
+   }
   },
   {
    "codigo": "M4.P20",
@@ -501,7 +717,7 @@ window.MODULO4 = {
    "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Este é o seu limite de gasto. O app não indica um valor: a escolha é sua de acordo com as suas condições de gastos.",
-   "alerta": "Usar dinheiro de despesas essenciais ou recorrer a dívidas aumenta o risco do teste. Compras difíceis de desfazer também aumentam o risco, é preciso ter cautela e um bom planejamento financeiro para não criar-se problemas.",
+   "alerta": "Usar dinheiro de despesas essenciais ou recorrer a dívidas aumenta o risco do teste. Compras difíceis de desfazer também aumentam o risco, é preciso ter cautela e um bom planejamento financeiro para não criar problemas.",
    "proximo": "Compare este limite com o custo estimado no módulo de custos e prefira formas de teste que possam ser interrompidas sem perda grande.",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
    "status": "Rascunho"

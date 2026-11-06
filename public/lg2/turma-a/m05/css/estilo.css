@@ -261,3 +261,11 @@ a{color:var(--m-purple)}
   .heroi,.res-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .saiba{border:none}.saiba[open] summary{display:none}
 }
+/* aviso de valor fora do comum (preço muitas vezes o custo, faturamento alto): não trava, mas aparece forte */
+.bloco.aviso-forte{background:var(--m-paper);border:2px solid var(--m-coral);border-left-width:6px;color:#2b2340;font-size:16px}
+.bloco.aviso-forte b{color:var(--m-coral);font-size:13px}
+.bloco.aviso-forte p{margin:0}
+
+/* "Como calculamos: …" embaixo de cada número do resultado: discreta, em fonte menor */
+.como-calc,.cartao p.como-calc{font-size:13px;line-height:1.45;color:var(--m-gray);margin:-4px 2px 12px}
+.como-calc b{color:inherit}

@@ -69,7 +69,40 @@
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const brl = (n) => "R$ " + n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  const pct = (n) => n.toFixed(1).replace(".", ",") + "%";
+  const pct = (n) => n.toFixed(1).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "%";
+  /* "Como calculamos: …" embaixo de cada número calculado: a conta em linguagem simples, com os valores
+     da pessoa. Recebe HTML já escapado (use esc() nos textos digitados). */
+  const comoCalc = (html, id) => `<p class="como-calc"${id ? ` id="${id}"` : ""}>Como calculamos: ${html}</p>`;
+  const qtdTxt = (n) => String(Math.round(n * 100) / 100).replace(".", ",");
+  /* custo de uma unidade = soma do que vai em cada unidade (materiais, mercadoria, frete, embalagem) */
+  function comoCusto(c) {
+    const cada = c.tipo === "Serviço" ? "cada atendimento" : "cada unidade";
+    if (!c.linhas.length) return comoCalc(`nenhum material informado para ${cada}, então o custo fica em ${brl(c.custoUnidade)}.`, "como-custo");
+    if (c.linhas.length === 1) return comoCalc(`o que vai em ${cada}: ${esc(c.linhas[0].nome)} ${brl(c.linhas[0].valor)}.`, "como-custo");
+    return comoCalc(`somamos o que vai em ${cada}: ${c.linhas.map((l) => `${esc(l.nome)} ${brl(l.valor)}`).join(" + ")} = ${brl(c.custoUnidade)}.`, "como-custo");
+  }
+  /* sobra em cada venda e margem sobre o preço */
+  const comoSobra = (preco, custo, taxa, sobra, margem, id) => comoCalc(`${brl(preco)} de preço − ${brl(custo)} de custo${taxa ? ` − ${brl(taxa)} de taxas` : ""} = ${brl(sobra)} que sobram em cada venda${margem !== null && margem !== undefined ? `; ${brl(sobra)} ÷ ${brl(preco)} = ${pct(margem)} do preço` : ""}.`, id);
+  /* Teclado do celular: o campo em foco vai para o centro da área visível (depois de ~300 ms
+     e de novo quando o teclado muda o tamanho da tela), para o campo e o Continuar ficarem à vista. */
+  let focoT = null;
+  const centralizar = () => {
+    const a = document.activeElement;
+    if (!a || !a.matches || !a.matches("input, textarea, select")) return;
+    a.scrollIntoView({ block: "center" });
+    /* se o Continuar ficou abaixo da área visível, sobe mais um pouco, sem esconder o campo */
+    const ok = document.getElementById("ok");
+    if (!ok || ok.offsetParent === null) return;
+    const alt = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const falta = ok.getBoundingClientRect().bottom + 8 - alt, folga = a.getBoundingClientRect().top - 8;
+    if (falta > 0 && folga > 0) window.scrollBy(0, Math.min(falta, folga));
+  };
+  document.addEventListener("focusin", (e) => {
+    if (!e.target.matches || !e.target.matches("input, textarea, select")) return;
+    clearTimeout(focoT); focoT = setTimeout(centralizar, 300);
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => { clearTimeout(focoT); focoT = setTimeout(centralizar, 60); });
+
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
   function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
   /* abre um passo do histórico: pergunta, análise do preço ou resultado */
@@ -221,20 +254,21 @@
         <h3>${esc(b.conceito)}</h3>
         <p><b>O que é:</b> ${esc(b.definicao)}</p>
         ${vazio(b.porque) ? "" : `<p><b>Por que é importante para dividir o custo:</b> ${esc(b.porque)}</p>`}
-        ${vazio(b.exemplo) ? "" : `<p class="ex"><b>Exemplo:</b> ${esc(b.exemplo)}</p>`}`).join("")}
+        ${vazio(exConceito(b)) ? "" : `<p class="ex"><b>Exemplo:</b> ${esc(exConceito(b))}</p>`}`).join("")}
       ${a.comoAchar.length ? `<p><b>Como descobrir:</b> ${a.comoAchar.map(esc).join(" ")}</p>` : ""}
       ${a.extra.map((x) => `<p>${esc(x)}</p>`).join("")}
       <p class="depois">Depois de ler, responda acima para continuar.</p>
     </div>`;
   }
 
+  const exConceito = (b) => Motor.exemploConceito(b, tipoAtual());   // exemplo do conceito pelo tipo de negócio
   const conceitos = (txt) => (String(txt || "").match(/M5\.BT\d{2}/g) || []).map((c) => M.conceito[c]).filter(Boolean);
 
   function blocoConceitos(lista) {
     if (!lista.length) return "";
     return `<details class="saiba"><summary>Entenda os termos</summary>${lista.map((b) => `
       <div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(b.definicao)}</p>
-      ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(b.exemplo)}</p>`}
+      ${vazio(exConceito(b)) ? "" : `<p class="ex">${esc(exConceito(b))}</p>`}
       <span class="fonte">Fonte: ${vazio(b.link) ? esc(b.fonte) : `<a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.fonte)}</a>`}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`).join("")}
     </details>`;
   }
@@ -336,16 +370,16 @@
             ${obs(q.observacao)}
             ${notas(q)}
             ${ajudaNS ? "" : blocoVideo(q.video)}
+            ${inicial ? "" : dica(q.ajuda, imgDica(n))}
             ${veioM1 || nomeM1 || seloHerdado ? selo(1) : ""}
             <div class="entrada" id="ent"></div>
             ${cartoesTipo ? `<p class="nota-info">Trabalha com mais de um tipo? Comece por um deles.</p>` : ""}
             ${alt.length ? `<div class="alt" id="alt"></div>` : ""}
             ${ajudaNS ? `<div class="alt"><button class="btn-ajuda" id="naosei" aria-expanded="false"><span aria-hidden="true">?</span> Não sei</button></div>${painelNaoSei(ajudaNS)}` : ""}
             <div class="erro" id="erro" hidden></div>
-            ${inicial ? "" : dica(q.ajuda, imgDica(n))}
             <div id="retorno"></div>
-            ${blocoConceitos(conceitos(q.fonte))}
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            ${blocoConceitos(conceitos(q.fonte))}
             ${botaoVoltar()}
           </div>
           ${rodape()}
@@ -406,7 +440,7 @@
       const v = ler();
       const erro = Motor.validar(M, q, v, S.R);
       if (erro) return mostrarErro(erro);
-      const aviso = Motor.avisoQuantidade(M, q, v, S.R);
+      const aviso = Motor.avisoQuantidade(M, q, v, S.R) || Motor.avisoValor(M, q, v, S.R);
       const chaveAviso = JSON.stringify(v);
       if (aviso && avisoVisto !== chaveAviso) {
         avisoVisto = chaveAviso;
@@ -578,19 +612,24 @@
     const bt = (n) => M.conceito["M5.BT" + n] || {};
     const mini = (t, v) => `<div class="mini"><span>${v}</span><small>${esc(t)}</small></div>`;
     return `<div class="analise">
-      ${comTitulo ? `<div class="secao-titulo">${a.modo === "sugerido" ? "Preço de venda (demonstração)" : "Acréscimo sobre o custo"}</div>` : ""}
+      ${comTitulo && a.modo === "sugerido" ? `<div class="secao-titulo">Preço de venda (demonstração)</div>` : ""}
+      ${a.muitoAcima ? `<div class="bloco b-alerta aviso-forte" id="aviso-acrescimo"><b>Confira os valores</b><p>${esc(a.muitoAcima)}</p></div>` : ""}
       ${a.modo === "sugerido" ? `
         <div class="res-num"><div class="lbl">Preço possível</div><div class="val" id="preco-possivel">${brl(a.preco)}</div>
           <div class="sub">${esc(bt("03").conceito || "Custo por unidade")} ${brl(a.custo)} + ${pct(a.pct)} sobre o custo</div></div>
+        ${comoCalc(`${brl(a.custo)} de custo + ${pct(a.pct)} de ${brl(a.custo)} (${brl(a.preco - a.custo)}) = ${brl(a.preco)}.`, "como-preco")}
         <p class="nota">Este preço é só uma demonstração para ajudar você a pensar. A decisão do preço é sua.</p>` : `
         <div class="res-num"><div class="lbl">Acréscimo sobre o custo</div><div class="val" id="lucro-pct">${pct(a.pct)}</div>
           <div class="sub">Preço ${brl(a.preco)} · ${esc(bt("03").conceito || "Custo por unidade")} ${brl(a.custo)}</div></div>
+        ${comoCalc(`(${brl(a.preco)} de preço − ${brl(a.custo)} de custo) ÷ ${brl(a.custo)} de custo = ${pct(a.pct)}.`, "como-acrescimo")}
         <p class="nota">Acréscimo sobre o custo = (preço − custo de uma unidade) ÷ custo de uma unidade.</p>`}
       ${comTitulo ? "" : `<div class="mini-cards" id="sobra-margem">
         ${mini("Sobra em cada venda" + (a.taxa ? " (depois das taxas)" : ""), brl(a.sobra))}
         ${a.margem !== null ? mini("Margem sobre o preço", pct(a.margem)) : ""}
-      </div>`}
-      ${a.precoMinimo !== null ? `<p class="nota" id="preco-minimo">Para cobrir o custo, as taxas e a parte dos gastos do mês em cada venda, o preço precisa ser de pelo menos <b>${brl(a.precoMinimo)}</b>.</p>` : ""}
+      </div>
+      ${comoSobra(a.preco, a.custo, a.taxa, a.sobra, a.margem, "como-sobra")}`}
+      ${a.precoMinimo !== null ? `<p class="nota" id="preco-minimo">Para cobrir o custo, as taxas e a parte dos gastos do mês em cada venda, o preço precisa ser de pelo menos <b>${brl(a.precoMinimo)}</b>.</p>
+        ${comoCalc(`${brl(a.custo)} de custo + ${brl(a.precoMinimo * (1 - a.taxaPct / 100) - a.custo)} dos gastos do mês em cada venda${a.taxaPct ? `, divididos por ${pct(100 - a.taxaPct)} (o que fica depois da taxa de ${pct(a.taxaPct)})` : ""} = ${brl(a.precoMinimo)}.`, "como-minimo")}` : ""}
       ${a.faixa ? `<p class="nota" id="faixa-m3">Faixa de preço que você informou no Módulo 3: ${brl(a.faixa.min)}${a.faixa.max !== a.faixa.min ? ` a ${brl(a.faixa.max)}` : ""}.</p>` : ""}
       ${avisos}
     </div>`;
@@ -623,7 +662,7 @@
             ${contexto(Motor.PRECO)}
             <h2 class="q">${sugerido ? "Quanto você quer acrescentar sobre o custo? (%)" : "Quanto você ganha em cada venda"}</h2>
             ${blocoPoucasVendas(cBase)}
-            ${sugerido && a && !a.semCusto ? `<p class="ajuda">Vamos somar essa porcentagem ao que você gasta para fazer cada unidade e mostrar um preço possível.</p>
+            ${sugerido && a && !a.semCusto ? `<p class="ajuda">Vamos somar essa porcentagem ao que você gasta ${tipoAtual() === "Serviço" ? "em cada atendimento" : tipoAtual() === "Mercadoria" ? "para comprar cada unidade" : "para fazer cada unidade"} e mostrar um preço possível.</p>
               <div class="entrada" id="ent"><div class="linha"><input class="campo" id="lucro" inputmode="decimal" value="${esc(S.lucro ?? "")}"><span class="pre">%</span></div></div>` : ""}
             <div class="erro" id="erro" hidden></div>
             <div id="analise">${blocoAnalise(a, false)}</div>
@@ -644,6 +683,7 @@
       const v = p.querySelector("#lucro").value;
       const n = Motor.num(v);
       const erro = p.querySelector("#erro");
+      if (n === null && v.trim()) { erro.textContent = Motor.MSG_NUMERO; erro.hidden = false; return; }
       if (n === null || n < 0) { erro.textContent = "Informe a porcentagem que você quer acrescentar sobre o custo, por exemplo 30."; erro.hidden = false; return; }
       erro.hidden = true;
       S.lucro = v.trim();
@@ -752,6 +792,8 @@
       if (r && !vazio(r.lacuna) && !lacunas.includes(r.lacuna)) lacunas.push(r.lacuna);
     });
     const tempoAlto = Motor.tempoExcede(c, (doM1("M1.P05") || {}).opcao);   // horas por dia do Módulo 1
+    const investe = Motor.avisoInvestimento(M, S.R, doM1("M1.P07"));        // compra x quanto pode usar (Módulo 1)
+    const num2 = (n) => n.toFixed(1).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     const card = (t, v, sub) => `<div class="mini"><span>${v}</span><small>${esc(t)}</small>${sub ? `<em>${esc(sub)}</em>` : ""}</div>`;
     const t = TIPOS[c.tipo];
 
@@ -787,6 +829,7 @@
               <div class="lbl">${esc(bt("03").conceito || "")}</div>
               <div class="val">${brl(c.custoUnidade)}</div>
             </div>
+            ${comoCusto(c)}
             <p class="r-texto">${esc(regraFinal.texto.replace("R$ X", brl(c.custoUnidade)))}</p>
             <div class="bloco b-alerta"><b>Atenção</b>${esc(regraFinal.alerta)}</div>
             ${c.linhas.length ? `<details class="saiba" open><summary>${esc(regraFinal.proximo)}</summary>
@@ -801,6 +844,7 @@
               ${card(bt("09").conceito, brl(c.mc))}
               ${c.mcPct !== null ? card(bt("10").conceito, pct(c.mcPct)) : ""}
             </div>
+            ${comoSobra(c.preco, c.custoUnidade, c.taxa, c.mc, c.mcPct, "como-margem")}
             ${c.mc <= 0 ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(bt("09").definicao)}</div>` : ""}
           ` : ""}
           ${blocoAnalise(aPreco, true)}
@@ -825,7 +869,8 @@
               <div class="sub">${c.tipo === "Serviço" ? "atendimentos" : "unidades"} por mês</div>
             </div>
             <p class="r-texto">${esc(bt("13").definicao)}</p>
-            <p class="nota">O número é sempre arredondado para cima: não dá para vender só uma parte.</p>` : ""}
+            ${comoCalc(`${brl(c.mensal)} de gastos do mês ÷ ${brl(c.mc)} que sobram em cada venda = ${num2(c.mensal / c.mc)}. Arredondamos para cima, porque não dá para vender só uma parte: <b>${c.pe}</b> ${c.tipo === "Serviço" ? "atendimentos" : "vendas"}.`, "pe-conta")}` : ""}
+          ${c.peFalta ? `<div class="secao-titulo">${esc(bt("13").conceito || "Ponto de equilíbrio")}</div><p class="nota" id="pe-falta">${esc(c.peFalta)}</p>` : ""}
           ${c.semSobra ? `<div class="bloco b-alerta" id="sem-sobra"><b>Atenção</b>${esc(Motor.MSG_SEM_SOBRA)}</div>` : ""}
 
           ${c.fat !== null ? `
@@ -834,8 +879,11 @@
               ${card(bt("11").conceito, brl(c.fat))}
               ${card(bt("12").conceito, brl(c.resultado))}
             </div>
+            ${comoCalc(`${brl(c.preco)} × ${qtdTxt(c.qtd)} vendas = ${brl(c.fat)}; ${brl(c.fat)} − ${brl((c.custoUnidade + c.taxa) * c.qtd)} de custo${c.taxa ? " e taxas" : ""} dessas vendas − ${brl(c.mensal)} de gastos do mês = ${brl(c.resultado)}.`, "como-resultado")}
             <p class="r-texto">${esc(bt("12").definicao)}</p>
-            <p class="nota" id="descontados">${esc(Motor.MSG_DESCONTADOS)}</p>` : ""}
+            <p class="nota" id="descontados">${esc(Motor.MSG_DESCONTADOS)}</p>
+            ${c.fatAlto ? `<div class="bloco b-alerta aviso-forte" id="fat-alto"><b>Confira os valores</b><p>${esc(Motor.MSG_FAT_ALTO)}</p></div>` : ""}` : ""}
+          ${investe ? `<div class="bloco b-alerta" id="aviso-investimento"><b>Atenção</b><p>${esc(investe.texto)}</p>${seloMini()}</div>` : ""}
           ${tempoAlto ? `<div class="bloco b-alerta" id="tempo-alto"><b>Atenção</b>${esc(Motor.MSG_TEMPO)}
             <p>${String(Math.round(tempoAlto.horas * 10) / 10).replace(".", ",")} horas por mês para ${esc(String(c.qtd))} atendimentos; no Módulo 1 você disse ter até ${tempoAlto.limite} horas por mês.</p>
             <button class="btn btn-claro btn-peq" data-alterar="M5.P37">Conferir a quantidade</button></div>` : ""}
@@ -873,6 +921,7 @@
     if (sim) sim.onclick = () => {
       const r = Motor.simular(M, S.R, p.querySelector("#sim-preco").value, p.querySelector("#sim-qtd").value);
       const box = p.querySelector("#sim-res");
+      if (!r && [p.querySelector("#sim-preco").value, p.querySelector("#sim-qtd").value].some((x) => x.trim() && Motor.num(x) === null)) { box.innerHTML = `<div class="erro">${esc(Motor.MSG_NUMERO)}</div>`; return; }
       if (!r) { box.innerHTML = `<div class="erro">Informe o preço e a quantidade de vendas para simular.</div>`; return; }
       box.innerHTML = `<div class="mini-cards">${card("Sobra em cada venda", brl(r.sobra))}${card(bt("12").conceito || "Resultado", brl(r.resultado))}${r.pe !== null ? card(bt("13").conceito || "Ponto de equilíbrio", String(r.pe)) : ""}</div>
         ${r.semSobra ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(Motor.MSG_SEM_SOBRA)}</div>` : ""}`;
@@ -885,7 +934,7 @@
 
   function rodape() {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do Grupo ${esc(D.modulo.numero)} · Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)}</p>
+      <p class="credito">Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)}</p>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

@@ -53,6 +53,11 @@ a{color:var(--m-purple)}
 .dica b{display:block;color:var(--m-purple);font-size:16px;margin-bottom:2px}
 p.ajuda{font-size:15px;color:var(--m-gray);margin-bottom:8px}
 .dica .ajuda{font-size:15px;color:#3d3650;line-height:1.4;margin:0}
+.cartao-q .dica{margin:12px 0 4px}
+.dica-dobra{margin:12px 0 4px}
+.dica-dobra summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:15px;padding:6px 0}
+.dica-dobra .dica{margin-top:6px}
+.erro.aviso-num{background:var(--m-lavender);color:#4a3d66;border-left:4px solid var(--m-purple)}
 
 /* cartões e textos */
 .cartao{border:2px solid var(--m-lavender);border-radius:var(--m-radius);padding:14px 16px;margin-bottom:12px}
@@ -89,6 +94,7 @@ p.ajuda{font-size:15px;color:var(--m-gray);margin-bottom:8px}
 .bloco b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .b-alerta{background:#fff7e0;border-left:4px solid var(--m-yellow-soft);color:#6b5200}
 .b-proximo{background:var(--m-lavender);border-left:4px solid var(--m-purple);color:#3d2f5c}
+.b-naosei{background:#fff;border:2px solid var(--m-purple);color:#3d2f5c}
 .b-lacuna{background:#fff;border:2px solid var(--m-lavender);color:#3d3650}
 .b-lacuna ul,.b-proximo ul{padding-left:18px}
 

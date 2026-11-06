@@ -170,3 +170,15 @@ textarea.campo{resize:vertical;font-family:inherit}
 .e-sim{border-color:var(--m-purple)}
 .e-conf{border-color:var(--m-yellow-soft);background:#fffbef}
 .cartao .mini-info a{word-break:break-all}
+/* aviso de número fora do comum (não trava) */
+.erro.aviso-num{background:var(--m-lavender);color:#2b2340;border-left:4px solid var(--m-coral)}
+.erro.aviso-num > b{display:block;color:var(--m-purple);margin-bottom:2px}
+.erro.aviso-num .selo-m{display:table;margin:6px 0 2px}
+.aviso-dica{display:block;margin-top:6px;font-size:13.5px;color:var(--m-gray)}
+/* caixas de seleção (pergunta 4, várias respostas) e cartão da proposta de valor */
+.radio.quadrado{border-radius:6px}
+.opcao.sel .radio.quadrado{box-shadow:none;background:var(--m-purple) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3 3 7-7' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+.dica-multi{margin:0 0 2px;font-size:15px;color:var(--m-purple)}
+.proposta-valor .pv-item{border-left:4px solid var(--m-purple);padding:2px 0 2px 12px;margin:10px 0}
+.proposta-valor .pv-item b{display:block;font-size:15px;color:var(--m-purple)}
+.proposta-valor .pv-item p{margin:4px 0 0}

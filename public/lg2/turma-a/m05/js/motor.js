@@ -10,6 +10,14 @@
   const LUCRO_BAIXO = 20;    // abaixo disso: lucro baixo
   const LUCRO_ALTO = 100;    // acima disso: lucro alto
 
+  /* Valores fora do comum (relatório dos testadores, 05/11): avisos que não travam. */
+  const LIMITE_ACRESCIMO = 500;        // acréscimo sobre o custo acima disso (%) = preço mais de 6 vezes o custo
+  const LIMITE_FATURAMENTO = 100000;   // faturamento por mês acima disso (R$) = alto para um negócio caseiro
+  /* Quanto a pessoa disse que pode usar no negócio (pergunta 7 do Módulo 1) -> teto em R$ (sem teto: não compara). */
+  const TETO_M1 = { "Nada por enquanto": 0, "Até R$ 100": 100, "Entre R$ 100 e R$ 500": 500, "Entre R$ 500 e R$ 1.000": 1000 };
+  const MSG_NUMERO = "Digite só números. Ex.: 12,50";
+  const MSG_FAT_ALTO = "Esse faturamento parece alto para um negócio caseiro (mais de R$ 100.000,00 por mês). Confira se o preço e a quantidade de vendas que você informou estão certos.";
+
   /* Gastos fixos/indiretos (Parte comum): "Não sei" deixa de ser resposta e vira
      botão de ajuda; a pessoa precisa responder Sim/Não ou o valor para seguir. */
   const AJUDA_NAO_SEI = ["M5.P24", "M5.P25", "M5.P26", "M5.P27", "M5.P28", "M5.P29",
@@ -42,7 +50,26 @@
     titulo: "Materiais de consumo e equipamentos",
     texto: "Ingredientes, embalagens e materiais utilizados durante um atendimento entram no cálculo conforme a quantidade consumida. Já itens como formas, panelas, máquinas e tesouras não devem ter seu valor total de compra colocado como custo de um único produto ou atendimento: essas compras são investimentos e são registradas no Módulo 6.",
     exemplo: "Se você trabalha como cabeleireiro, informe quanto de shampoo usa em cada atendimento. Não coloque o preço inteiro da tesoura como gasto de um único corte.",
+    exemploProduto: "Se você faz bolos, informe quanto de farinha usa em cada receita. Não coloque o preço inteiro da forma ou da batedeira como gasto de um único bolo.",
   };
+  /* Exemplos dos conceitos que só falavam de produto feito em casa: versão para serviço e revenda (item 6 do relatório de 05/11). */
+  const EXEMPLO_TIPO = {
+    "M5.BT04": {
+      "Serviço": "Uma manicure abre um esmalte novo e parte dele seca no frasco antes de ser usada. Esse desperdício aumenta o gasto de cada atendimento.",
+      Mercadoria: "Uma pessoa compra 50 camisetas para revender e 2 chegam manchadas e não podem ser vendidas. Essa perda aumenta o gasto com as camisetas que foram vendidas.",
+    },
+    "M5.BT06": {
+      Mercadoria: "Uma camiseta vendida por R$ 40 vai para o cliente numa sacola que custa R$ 0,80. Esse valor pode ser considerado na composição do custo da venda.",
+    },
+    "M5.BT07": {
+      "Serviço": "Uma manicure que trabalha sozinha pode considerar o valor destinado à sua própria remuneração na análise dos gastos do negócio.",
+      Mercadoria: "Uma pessoa que revende roupas sozinha pode considerar o valor destinado à sua própria remuneração na análise dos gastos do negócio.",
+    },
+  };
+  function exemploConceito(b, tipo) {
+    const e = b && EXEMPLO_TIPO[b.codigo];
+    return e && e[tipo] ? e[tipo] : b ? b.exemplo : "";
+  }
   const NOTA_LUZ_AGUA = "Não coloque aqui a conta de luz nem a de água: tem uma pergunta sobre isso depois, e o valor ficaria contado duas vezes.";
   const MSG_QTD_ALTA = "A quantidade utilizada está maior que a embalagem. Confira o valor e a unidade informados.";
   const MSG_SOMA_PARTES = "A soma das partes das vendas precisa dar 100%.";
@@ -86,7 +113,7 @@
       alto: "Seu lucro em cada venda está alto. Isso pode ajudar, mas um preço muito acima dos concorrentes pode atrapalhar as vendas.",
     },
     negativo: "Com esse preço você vende abaixo do que gasta para fazer cada unidade.",
-    semCusto: "Não foi possível calcular quanto você gasta para fazer cada unidade com as informações que você deu. Por isso não dá para calcular a porcentagem de lucro agora. Você pode voltar e conferir os valores.",
+    semCusto: "Não foi possível calcular quanto você gasta em cada venda (cada unidade ou atendimento) com as informações que você deu. Por isso não dá para calcular a porcentagem de lucro agora. Você pode voltar e conferir os valores.",
   };
 
   function montar(D) {
@@ -97,7 +124,10 @@
       q.fixo = AJUDA_NAO_SEI.includes(q.codigo);   // gastos fixos (correção de 15/10)
       q.ajudaNaoSei = true;                         // "Não sei" = ajuda em todas as perguntas (22/10)
       q.opcoesLista = opcoes(q).filter((o) => !NAO_SEI.test(o));
-      if (q.codigo === "M5.P03" || q.codigo === "M5.P19") { q.notaConsumo = NOTA_CONSUMO; q.notaLuzAgua = NOTA_LUZ_AGUA; }
+      if (q.codigo === "M5.P03" || q.codigo === "M5.P19") {
+        q.notaConsumo = q.codigo === "M5.P03" ? Object.assign({}, NOTA_CONSUMO, { exemplo: NOTA_CONSUMO.exemploProduto }) : NOTA_CONSUMO;
+        q.notaLuzAgua = NOTA_LUZ_AGUA;
+      }
       if (q.codigo === "M5.P36") q.observacao = null;   // orientação retirada pelo grupo (15/10); a explicação nova fica no passo do preço
       if (q.codigo === "M5.P25") q.tipoApp = "taxas-formas";
       ordem.push(q);
@@ -215,6 +245,8 @@
     let s = String(v).trim().replace(/[R$\s%]/g, "");
     if (!s) return null;
     if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+    else if (/^-?[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");   // "1.500" = mil e quinhentos
+    if (!/^-?(\d+\.?\d*|\.\d+)$/.test(s)) return null;                        // texto, "1e5" etc. não é número
     const n = Number(s);
     return isFinite(n) ? n : null;
   }
@@ -235,6 +267,7 @@
     /* campo vazio nunca vale R$ 0: pede a resposta. O texto do Alerta só é usado quando é uma mensagem de validação. */
     const ehValidacao = /preencha|maior que zero|negativ|compat|entre 0%/i.test(msg);
     const falha = !q.fixo && ehValidacao ? msg : MSG_RESPONDA;
+    if (numerosDe(c, valor).some(naoNumero)) return MSG_NUMERO;     // texto em campo de número: não grava
     if (c === "multipla") return (valor || []).length ? null : falha;
     if (c === "taxas-formas") {
       const vs = valor || [];
@@ -297,6 +330,34 @@
       return h * 60 + m > 0 && h >= 0 && m >= 0 ? null : falha;
     }
     return null;
+  }
+
+  /* Valores digitados nos campos de número de cada tipo de pergunta. */
+  function numerosDe(c, valor) {
+    const v = valor || {};
+    if (c === "numero" || c === "percentual") return [valor];
+    if (c === "por-item-valor") return Array.isArray(valor) ? valor : [];
+    if (c === "por-item-unidade") return Array.isArray(valor) ? valor.map((x) => x && x.q) : [];
+    if (c === "pacote") return [v.preco, v.qtd];
+    if (c === "lista-valor") return Array.isArray(valor) ? valor.map((x) => x && x.v) : [];
+    if (c === "tempo") return [v.h, v.m];
+    if (c === "taxas-formas") return Array.isArray(valor) ? valor.flatMap((x) => [x.taxa, x.prazo, x.parte]) : [];
+    return [];
+  }
+  /* preenchido, mas não é número (ex.: "abc", "doze") */
+  const naoNumero = (x) => x !== null && x !== undefined && String(x).trim() !== "" && num(x) === null;
+
+  /* "6 vezes", "1.500 vezes" */
+  function vezes(n) {
+    return n >= 10 ? String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : String(Math.round(n * 10) / 10).replace(".", ",");
+  }
+  const msgVezes = (preco, custo) => `Seu preço está ${vezes(preco / custo)} vezes o custo. Confira se o custo ou o preço estão certos.`;
+  /* Aviso (não trava) no preço: acréscimo sobre o custo acima de LIMITE_ACRESCIMO. */
+  function avisoValor(M, q, valor, R) {
+    if (q.codigo !== "M5.P36") return null;
+    const preco = num(valor), custo = calcular(M, R).custoUnidade;
+    if (preco === null || !(custo > 0)) return null;
+    return ((preco - custo) / custo) * 100 > LIMITE_ACRESCIMO ? msgVezes(preco, custo) : null;
   }
 
   /* Aviso (não bloqueia de vez): quantidade usada maior que a embalagem comprada (P06/P22). */
@@ -412,6 +473,16 @@
     const fat = preco !== null && qtd !== null ? preco * qtd : null;
     const resultado = fat !== null ? fat - (custoUnidade + taxa) * qtd - mensal : null;
     const pe = mc !== null && mc > 0 ? Math.ceil(mensal / mc) : null;      // sempre arredondado para cima
+    /* sem ponto de equilíbrio: uma frase com o que falta para a conta */
+    let peFalta = null;
+    if (pe === null || !(mensal > 0)) {
+      const f = [];
+      if (preco === null) f.push("o preço de venda");
+      if (!(mensal > 0)) f.push("os gastos fixos do mês (aluguel, contas de água e luz, outras contas, perdas ou o valor do seu trabalho)");
+      if (f.length) peFalta = "Para calcular quantas vendas cobrem seus gastos fixos, falta informar " + f.join(" e ") + ".";
+      else if (mc !== null && mc <= 0) peFalta = "Para calcular quantas vendas cobrem seus gastos fixos, falta um preço que deixe sobra em cada venda, depois do custo e das taxas.";
+    }
+    const fatAlto = fat !== null && fat > LIMITE_FATURAMENTO;
     const semSobra = mc !== null && mc <= 0 && mensal > 0;
     const parcelaMensal = qtd > 0 ? mensal / qtd : null;                 // parte dos gastos do mês em cada venda
 
@@ -422,7 +493,7 @@
     const r00 = R[P_INICIAL];
     const simulacao = (r00 && r00.estado === "opcao" && SIMULACAO_M1.includes(r00.opcao)) || op("P37") === "Ainda não comecei a vender";
     return { tipo, nome, linhas, faltas, custoUnidade, preco, precoInformado, taxaPct, taxa, mc, mcPct,
-      fixos, outros, perdas, trabalho, mensal, qtd, fat, resultado, pe, semSobra, parcelaMensal, tempo,
+      fixos, outros, perdas, trabalho, mensal, qtd, fat, fatAlto, resultado, pe, peFalta, semSobra, parcelaMensal, tempo,
       formas, taxasFormas, simulacao };
   }
 
@@ -475,7 +546,33 @@
     /* preço que cobre o custo, a taxa e a parte dos gastos do mês em cada venda (quando há quantidade de vendas) */
     const precoMinimo = c.parcelaMensal !== null && c.mensal > 0 && taxaPct < 100 ? (custo + c.parcelaMensal) / (1 - taxaPct / 100) : null;
     if (faixa && preco > faixa.max) mensagens.push(MSG_ACIMA_MERCADO);
-    return Object.assign(a, { preco, pct, margem, taxa, taxaPct, sobra, faixa, precoMinimo, nivel, negativo, mensagens });
+    const muitoAcima = pct > LIMITE_ACRESCIMO ? msgVezes(preco, custo) : null;   // aviso em destaque, separado dos outros
+    return Object.assign(a, { preco, pct, margem, taxa, taxaPct, sobra, faixa, precoMinimo, nivel, negativo, mensagens, muitoAcima });
+  }
+
+  /* ---------------- gasto inicial x quanto pode investir (Módulo 1, pergunta 7) ----------------
+     Soma do que a pessoa paga em cada compra informada aqui: materiais (preço de cada item),
+     mercadoria (compra + frete) e pacote de embalagens. Só avisa; não trava. */
+  function gastoInicial(M, R) {
+    const v = (c) => (R["M5." + c] && R["M5." + c].estado === "valor" ? R["M5." + c].valor : null);
+    const op = (c) => (R["M5." + c] && R["M5." + c].estado === "opcao" ? rotulo(R["M5." + c].opcao) : null);
+    const soma = (l) => (Array.isArray(l) ? l : []).reduce((s, x) => s + (num(x) || 0), 0);
+    const pac = (c) => num(v(c) && v(c).preco) || 0;
+    const tipo = op("P01");
+    if (tipo === "Produto") return soma(v("P04")) + (op("P08") === "Sim" ? pac("P09") : 0);
+    if (tipo === "Mercadoria") return (num(v("P11")) || 0) + (op("P13") === "Sim" ? num(v("P14")) || 0 : 0) + (op("P15") === "Sim" ? pac("P16") : 0);
+    if (tipo === "Serviço") return op("P18") === "Sim" ? soma(v("P20")) : 0;
+    return 0;
+  }
+  const O_QUE_COMPRA = { Produto: "comprar os materiais e as embalagens", Mercadoria: "comprar a mercadoria (com frete e embalagens)", "Serviço": "comprar os materiais" };
+  function avisoInvestimento(M, R, r07) {
+    const opcao = r07 && r07.estado === "opcao" ? r07.opcao : null;
+    if (!opcao || !(opcao in TETO_M1)) return null;
+    const total = gastoInicial(M, R), teto = TETO_M1[opcao];
+    if (!(total > teto)) return null;
+    const tipo = (R["M5.P01"] && R["M5.P01"].estado === "opcao") ? rotulo(R["M5.P01"].opcao) : null;
+    return { total, teto, opcao,
+      texto: `No Módulo 1, sobre quanto dinheiro pode usar no negócio, você respondeu “${opcao}”. Só o que você informou aqui para ${O_QUE_COMPRA[tipo] || "as compras"} soma ${brl(total)}, acima desse valor. Confira os valores ou pense em começar com uma compra menor.` };
   }
 
   /* ---------------- herança do Módulo 1 (relatório do testador, 05/11) ----------------
@@ -495,6 +592,8 @@
   const UNID = { Produto: ["unidade", "unidades"], Mercadoria: ["unidade", "unidades"], "Serviço": ["atendimento", "atendimentos"] };
   function brl(n) { return "R$\u00a0" + n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
   /* c = calcular(...); ideia = texto do Módulo 1 (M1.P03) ou null */
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function entendemos(R, c, ideia) {
     const fr = [];
     const [un1, unN] = UNID[c.tipo] || ["venda", "vendas"];
@@ -511,6 +610,7 @@
     if (est === OPCOES_M1[0] || naoComecou) fr.push("Você ainda não vende, então estes números são uma simulação feita com estimativas.");
     else if (est === OPCOES_M1[1]) fr.push("Você está começando a vender, então alguns números ainda são estimativas.");
     else if (est) fr.push("Você já vende, então os números partem do que acontece hoje no seu negócio.");
+    const c1 = fr.length;   // 1º parágrafo: o que analisou e em que ponto está; 2º: os números
     const COM = { Produto: "com materiais e embalagem", Mercadoria: "com a compra, o frete e a embalagem", "Serviço": "com os materiais que usa" };
     if (c.custoUnidade > 0) fr.push(`Em cada ${un1}, você gasta cerca de ${brl(c.custoUnidade)} ${COM[c.tipo] || ""}.`.replace(" .", "."));
     else if (c.tipo === "Serviço" && !c.faltas.length) fr.push("Seu serviço não gasta materiais a cada atendimento, então o custo de cada venda vem das taxas e dos gastos do mês.");
@@ -527,7 +627,7 @@
         fr.push(f + ".");
       } else fr.push(`${qual} ${brl(c.preco)}, cada ${un1} não deixa sobra depois do custo e das taxas: vale rever o preço ou os gastos.`);
     }
-    return fr.slice(0, 6);
+    return emParagrafos(fr.slice(0, 6), c1);
   }
 
   /* Simulação de outro preço e outra quantidade de vendas (resultado). */
@@ -550,7 +650,9 @@
     itensDe, listaDeOrigem, num, compativel, valorCond, avisoQuantidade, faixaMercado, taxaMedia,
     P_INICIAL, P_FORMAS, OPCOES_M1, FORMAS, NOTA_CONSUMO, NOTA_LUZ_AGUA, MSG_QTD_ALTA, MSG_SOMA_PARTES, POUCAS_VENDAS,
     MARGEM_X_ACRESCIMO, MSG_SEM_SOBRA, MSG_SIMULACAO, MSG_ACIMA_MERCADO, MSG_TEMPO, MSG_DESCONTADOS, HORAS_MES_M1, simular, tempoExcede,
-    herdarEstagio, herdarTipo, entendemos };
+    herdarEstagio, herdarTipo, entendemos,
+    LIMITE_ACRESCIMO, LIMITE_FATURAMENTO, TETO_M1, MSG_NUMERO, MSG_FAT_ALTO, avisoValor, msgVezes, gastoInicial, avisoInvestimento,
+    exemploConceito, EXEMPLO_TIPO };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else raiz.Motor = API;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -12,13 +12,32 @@
   /* VERSAO 3: 22 perguntas reescritas. Respostas da versão de 15 perguntas (v1/v2, inclusive as
      trazidas da chave antiga) são descartadas.
      VERSAO 4: perfil do cliente com marcadores e a dor copiada para a pergunta seguinte. As respostas
-     da versão 3 têm os mesmos códigos e o mesmo formato: são mantidas (migração). */
-  const VERSAO = 4;
+     da versão 3 têm os mesmos códigos e o mesmo formato: são mantidas (migração).
+     VERSAO 5 (testes da turma, nov/2026): os canais de venda ganharam opções de pequeno negócio
+     ("Loja física" virou atendimento presencial; "Redes sociais (…WhatsApp)" virou WhatsApp + Instagram)
+     e o preço dos concorrentes virou dois campos de número (guarda também min/max). Migração abaixo. */
+  const VERSAO = 5;
+  const CANAIS_V4 = { "Loja física": ["Atendimento direto ou presencial (loja, feira, ponto)"],
+    "Redes sociais (Instagram, Facebook, WhatsApp)": ["WhatsApp (WhatsApp Business)", "Instagram e outras redes sociais (catálogo)"] };
+  function migrar4(s) {
+    const r13 = s.R && s.R["M3.P13"];
+    if (r13 && Array.isArray(r13.opcoes)) {
+      const q = M.porCodigo["M3.P13"], novas = [].concat(...r13.opcoes.map((o) => CANAIS_V4[o] || [o]));
+      r13.opcoes = q.opcoes.filter((o) => novas.includes(o));
+    }
+    const r20 = s.R && s.R["M3.P20"];
+    if (r20 && r20.estado === "valor" && r20.min == null) {
+      const ns = Motor.numeros(r20.valor);
+      if (ns.length) { r20.min = Math.min(...ns); r20.max = Math.max(...ns); }
+    }
+    s.v = VERSAO;
+  }
   let S = carregar();               // { v, R: respostas, hist: [códigos] }
   function carregar() {
     try {
       const s = JSON.parse(localStorage.getItem(CHAVE));
-      if (s && s.v === 3) s.v = VERSAO;
+      if (s && s.v === 3) s.v = 4;
+      if (s && s.v === 4) migrar4(s);
       const ok = s && s.v === VERSAO && s.R && typeof s.R === "object" && Array.isArray(s.hist) &&
         Object.keys(s.R).every((k) => M.porCodigo[k]) && s.hist.every((k) => k === "RESULTADO" || M.porCodigo[k]);
       return ok ? s : novo();
@@ -26,6 +45,22 @@
   }
   function novo() { return { v: VERSAO, R: {}, hist: [] }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) {} }
+
+  /* ===== teclado do celular: o campo em foco (e o Continuar) ficam na parte visível da tela ===== */
+  let focoEl = null, focoT = null;
+  function centrar() {
+    if (!focoEl || document.activeElement !== focoEl || !focoEl.isConnected) return;
+    focoEl.scrollIntoView({ block: "center" });
+    const ok = document.getElementById("ok"), vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    if (!ok) return;
+    const b = ok.getBoundingClientRect(), f = focoEl.getBoundingClientRect();
+    if (b.bottom > vh) window.scrollBy(0, Math.max(0, Math.min(b.bottom - vh + 8, f.top - 8)));
+  }
+  document.addEventListener("focusin", (e) => {
+    if (!e.target.matches || !e.target.matches("input, textarea, select")) return;
+    focoEl = e.target; clearTimeout(focoT); focoT = setTimeout(centrar, 300);
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => { clearTimeout(focoT); focoT = setTimeout(centrar, 60); });
 
   /* ===== o que já veio do Módulo 1 (só leitura; nunca grava na chave de outro módulo) ===== */
   function lerOutro(chave, cod) {
@@ -44,11 +79,32 @@
   }
   let H = heranca();
   const est = () => H.estagio;
-  const enunciado = (q) => Motor.variante(q, est()).pergunta || q.pergunta;
+  const enunciado = (q) => porTipo(Motor.variante(q, est()).pergunta || q.pergunta);
   const rotulo = (q, c) => (Motor.variante(q, est()).campos || {})[c] || c;
   /* prompts: quem ainda não começou "quer vender"; o que vende entra no lugar do colchete */
+  /* exemplos por tipo de oferta (Módulo 1): onde o exemplo só serve para produto físico */
+  const EX_TIPO = [
+    ["Vendo marmitas para trabalhadores do bairro", { "Serviço": "Faço unhas em domicílio para mulheres do bairro", "Mercadoria": "Revendo cosméticos para vizinhas e colegas de trabalho" }],
+    ["Quero vender marmitas para trabalhadores do bairro", { "Serviço": "Quero fazer unhas em domicílio para mulheres do bairro", "Mercadoria": "Quero revender cosméticos para vizinhas e colegas de trabalho" }],
+    ["quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote", { "Serviço": "quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha", "Mercadoria": "quem revende cosméticos perde cliente para a farmácia ou para a loja da internet" }],
+    ["quem vende bolo caseiro perde cliente para a padaria", { "Serviço": "quem faz unhas em casa perde cliente para o salão", "Mercadoria": "quem revende cosméticos perde cliente para a farmácia" }],
+    ["preço dos insumos subindo", { "Serviço": "preço do material de trabalho subindo", "Mercadoria": "preço do fornecedor subindo" }],
+    ["vende o mesmo produto", { "Serviço": "faz o mesmo serviço" }],
+    ["(ex.: \"bolos perto de mim\")", { "Serviço": "(ex.: \"manicure perto de mim\")", "Mercadoria": "(ex.: \"loja de cosméticos perto de mim\")" }],
+    ["entrega no mesmo dia, bolo sob medida, atendimento pelo WhatsApp", { "Serviço": "atendimento em casa, horário à noite, lembrete pelo WhatsApp", "Mercadoria": "entrega no mesmo dia, preço menor que o da loja, parcelamento" }],
+    ["entrega atrasada", { "Serviço": "atrasam o horário marcado" }],
+    ["(Horário, entrega, forma de atender)", { "Serviço": "(Horário, se atendem em casa, forma de atender)" }],
+    ["Ex.: horário, entrega, forma de atender.", { "Serviço": "Ex.: horário, se atendem em casa, forma de atender." }],
+    ["Prazo (tempo para entregar)", { "Serviço": "Prazo (tempo para atender)" }],
+  ];
+  function porTipo(t) {
+    let x = String(t ?? "");
+    if (!H.tipo) return x;
+    EX_TIPO.forEach(([de, para]) => { if (para[H.tipo]) x = x.split(de).join(para[H.tipo]); });
+    return x;
+  }
   function adaptar(t) {
-    let x = String(t);
+    let x = porTipo(t);
     if (est() === "ideia") x = x.replace(/\bEu vendo \[/g, "Eu quero vender [");
     if (H.ideia) x = x.replace(/\[produto ou serviço\]/g, H.ideia);
     return x;
@@ -97,7 +153,9 @@
         <div class="prompt"><p class="prompt-txt">${esc(p.prompt)}</p><button class="btn-copiar" type="button">Copiar texto</button></div>
         ${p.depois ? `<p class="conferir">${esc(p.depois)}</p>` : ""}`;
     } else if (c.tipo === "Passo a passo") {
-      corpo = `<ol class="passos">${Motor.passos(c.texto).map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`;
+      /* texto antes do "1." (ex.: "Tudo bem, …") fica como frase de abertura, fora da lista */
+      const ps = Motor.passos(c.texto), intro = /^\s*1\.\s/.test(c.texto) ? "" : ps.shift();
+      corpo = `${intro ? `<p class="antes">${esc(intro)}</p>` : ""}<ol class="passos">${ps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`;
     }
     const b = el(`<div class="bloco caminho ${cls}" data-op="${esc(c.opcao)}" data-tipo="${esc(c.tipo)}" role="${c.tipo === "Alerta" ? "alert" : "note"}"><b>${esc(c.tipo)}</b>${corpo}</div>`);
     const bc = b.querySelector(".btn-copiar");
@@ -261,6 +319,9 @@
     let outro = null, camposBox = null;
     if (tipo === "escolha" || tipo === "escolhacampos" || tipo === "multipla") {
       ent.classList.add("opcoes");
+      /* escolha única (Sim/Não e outras): grupo de rádio; tocar uma opção desmarca as outras */
+      ent.setAttribute("role", tipo === "multipla" ? "group" : "radiogroup");
+      ent.setAttribute("aria-label", enunciado(q));
       q.opcoes.forEach((op) => {
         const b = el(`<button class="opcao" type="button" ${tipo === "multipla" ? 'role="checkbox"' : 'role="radio"'}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
         b.dataset.op = op;
@@ -269,7 +330,10 @@
             if (marcadas.includes(op)) marcadas = marcadas.filter((x) => x !== op);
             /* "Não sei" é exclusivo */
             else marcadas = op === Motor.NS ? [op] : marcadas.filter((x) => x !== Motor.NS).concat(op);
-          } else escolhida = op;
+          } else {
+            escolhida = op;
+            ent.querySelectorAll(".opcao").forEach((x) => { if (x !== b) { x.classList.remove("sel"); x.setAttribute("aria-checked", "false"); x.blur(); } });
+          }
           erroBox.hidden = true;
           extra.innerHTML = "";
           botoes("continuar");
@@ -285,6 +349,14 @@
     } else if (tipo === "doiscampos") {
       q.campos.forEach((c) => ent.appendChild(el(`<label class="item"><span>${esc(rotulo(q, c))}</span>
         <textarea class="campo" rows="3" data-c="${esc(c)}">${esc(resp && resp.campos && resp.campos[c])}</textarea></label>`)));
+    } else if (tipo === "preco") {
+      /* dois campos de número; só o primeiro é obrigatório */
+      const ns = resp && resp.estado === "valor" ? (resp.min != null ? [resp.min, resp.max] : Motor.numeros(resp.valor)) : [];
+      const ini = ns.length ? [Math.min(...ns), Math.max(...ns)] : [];
+      const fmt = (n) => (n == null ? "" : String(Math.round(n * 100) / 100).replace(".", ","));
+      q.campos.forEach((c, i) => ent.appendChild(el(`<label class="item"><span>${esc(c)}</span>
+        <input class="campo" inputmode="decimal" autocomplete="off" data-c="${i ? "max" : "min"}" placeholder="Ex.: ${i ? "60,00" : "40,00"}" value="${esc(i && ini[1] === ini[0] ? "" : fmt(ini[i]))}"></label>`)));
+      ent.appendChild(el(`<p class="mini-info">Se você viu um preço só, preencha só o primeiro campo.</p>`));
     } else {
       ent.appendChild(el(`<textarea class="campo" rows="4">${esc(resp && resp.estado === "valor" ? resp.valor : "")}</textarea>`));
     }
@@ -347,6 +419,10 @@
         if (marcadas.includes("Outro") && d) r.detalhe = d;
         return r;
       }
+      if (tipo === "preco") {
+        const f = Motor.faixaPreco(ent.querySelector('[data-c="min"]').value, ent.querySelector('[data-c="max"]').value);
+        return f.r || null;
+      }
       if (tipo === "doiscampos") {
         const campos = {};
         ent.querySelectorAll("[data-c]").forEach((i) => (campos[i.dataset.c] = i.value.trim()));
@@ -358,6 +434,13 @@
 
     function continuar() {
       erroBox.hidden = true;
+      if (tipo === "preco") {
+        /* texto ou número negativo: erro que não grava; valor fora do comum: aviso, e o 2º toque segue */
+        const f = Motor.faixaPreco(ent.querySelector('[data-c="min"]').value, ent.querySelector('[data-c="max"]').value);
+        if (f.erro) return erro(f.erro);
+        if (f.aviso) { erroBox.classList.add("aviso-num"); erro(f.aviso); return botoes("mesmo"); }
+      }
+      erroBox.classList.remove("aviso-num");
       const r = coletar();
       if (!r) return erro(tipo === "escolhacampos" ? `Escolha uma opção ou toque em “${Motor.NS}”.` : "Escolha uma opção para continuar.");
       const lista = Motor.retornos(q, r, est());
@@ -365,7 +448,7 @@
       gravar(r);
       if (r.estado === "naosei") return naoSei(true);
       if (Motor.corrigir(lista)) { mostrar(msg, lista); return botoes("mesmo"); }
-      if (tipo === "texto" || tipo === "doiscampos") {
+      if (tipo === "texto" || tipo === "doiscampos" || tipo === "preco") {
         if (Motor.mostraveis(q, r, est()).length) { mostrar(msg, lista); return botoes("seguir"); }
       }
       avancar();
@@ -385,19 +468,22 @@
       if (q.exemplos) extra.appendChild(chips(r));
       if (q.criterios) extra.appendChild(tabela(r));
       if (cod === "M3.P01") extra.appendChild(frase(r));
+      /* perfil do cliente: o prompt é ajuda; seguir sem colar a resposta da IA é permitido e fica dito na tela */
+      if (cod === "M3.P10") extra.appendChild(el(`<p class="mini-info nota-opcional" id="nota-opcional">Usar a IA é opcional. Com a resposta dela, escolha acima “${esc(Motor.PESSOAS)}” ou “Empresas” e preencha os campos. Se preferir, siga agora: a pergunta fica na lista de “Não sei” do resultado para você completar depois.</p>`));
       botoes("seguir");
     }
     function pintarSemRetorno() { ent.querySelectorAll(".opcao").forEach((x) => { x.classList.remove("sel"); x.setAttribute("aria-checked", false); }); }
 
     function chips(r) {
       const box = el(`<div class="marcar" role="group"></div>`);
-      q.exemplos.forEach((ex) => {
+      const exs = q.exemplos.map(porTipo);
+      exs.forEach((ex) => {
         const b = el(`<button type="button" class="chip" role="checkbox"></button>`);
         b.textContent = ex; b.dataset.ex = ex;
         const on = () => { const s = (r.marcados || []).includes(ex); b.classList.toggle("sel", s); b.setAttribute("aria-checked", s); };
         b.onclick = () => {
           const m = r.marcados || [];
-          r.marcados = m.includes(ex) ? m.filter((x) => x !== ex) : q.exemplos.filter((x) => m.includes(x) || x === ex);
+          r.marcados = m.includes(ex) ? m.filter((x) => x !== ex) : exs.filter((x) => m.includes(x) || x === ex);
           salvar(); on();
         };
         on(); box.appendChild(b);
@@ -410,7 +496,7 @@
       const res = el(`<div></div>`);
       const atual = () => mostrar(res, Motor.retornos(q, r, est()).filter((c) => c.tipo === "Resposta"));
       q.criterios.forEach((c) => {
-        const linha = el(`<div class="t-linha" role="radiogroup"><span class="t-crit">${esc(c)}</span><div class="t-ops"></div></div>`);
+        const linha = el(`<div class="t-linha" role="radiogroup"><span class="t-crit">${esc(porTipo(c))}</span><div class="t-ops"></div></div>`);
         linha.dataset.crit = c;
         q.escala.forEach((v) => {
           const b = el(`<button type="button" class="t-op" role="radio">${esc(v)}</button>`);
@@ -428,7 +514,7 @@
       return box;
     }
     function frase(r) {
-      const box = el(`<div class="frase"><label class="item"><span>Cole aqui a frase, se quiser</span>
+      const box = el(`<div class="frase"><label class="item"><span>Cole aqui a frase (opcional)</span>
         <textarea class="campo" rows="3">${esc(r.frase)}</textarea></label>
         <button type="button" class="btn btn-claro" id="salvar-frase">Salvar a frase</button><p class="mini-info" id="frase-ok" ${r.frase ? "" : "hidden"}>Frase salva.</p></div>`);
       /* "Salvar o texto gerado somente se o usuário confirmar" */
@@ -540,50 +626,141 @@
   /* ===== "O que entendemos até aqui": frases montadas por regras, sem inventar ===== */
   const ALCANCE = { "No meu bairro e na minha cidade": "no seu bairro e na sua cidade", "Na minha região (estado e cidades próximas)": "na sua região (estado e cidades próximas)",
     "No Brasil todo": "no Brasil todo", "Também fora do Brasil": "no Brasil e também fora dele" };
-  const CANAL = { "Loja física": "loja ou ponto físico", "Marketplace (ex.: Mercado Livre, Shopee)": "sites de venda como Mercado Livre e Shopee",
-    "Redes sociais (Instagram, Facebook, WhatsApp)": "redes sociais e WhatsApp", "Site ou aplicativo próprio": "site ou aplicativo próprio" };
+  const CANAL = { "Indicação (boca a boca)": "indicação (boca a boca)", "WhatsApp (WhatsApp Business)": "WhatsApp",
+    "Instagram e outras redes sociais (catálogo)": "redes sociais como o Instagram", "Atendimento direto ou presencial (loja, feira, ponto)": "atendimento presencial (loja, feira ou ponto)",
+    "Atendimento em domicílio (vou até o cliente)": "atendimento em domicílio", "Aplicativos de entrega (iFood e outros)": "aplicativos de entrega",
+    "Marketplace (ex.: Mercado Livre, Shopee)": "sites de venda como Mercado Livre e Shopee", "Site ou aplicativo próprio": "site ou aplicativo próprio" };
+  const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  /* texto escrito no campo errado (ex.: a ideia no campo "Local"): não entra na frase */
+  const repete = (t, ...outros) => {
+    const a = semAcento(t);
+    return !a || outros.some((o) => { const b = semAcento(o); return b && (a === b || (a.length >= 8 && b.includes(a)) || (b.length >= 8 && a.includes(b))); });
+  };
   const aspas = (t) => `“${String(t).trim().replace(/[.;\s]+$/, "")}”`;
   const lista = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs[xs.length - 1];
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function entendemos(RR, nPend) {
     const ideia = est() === "ideia", val = (c) => { const r = RR[c]; return r && r.estado === "valor" && !vazio(r.valor) ? r.valor : null; };
     const f = [];
     const oque = RR["M3.P01"] && RR["M3.P01"].doM1 ? H.ideia : val("M3.P01");
     const estagio = { ideia: " A ideia ainda está no começo: você ainda não começou a vender.", comecando: " Você já fez um pouco para testar.", vende: " Você já vende." }[est()] || "";
-    if (oque) f.push(`Você ${ideia ? "quer vender" : "vende"} ${aspas(oque)}${H.tipoFrase ? ` — é ${H.tipoFrase}` : ""}.${estagio}`);
+    /* resposta escrita como frase ("Vendo marmitas…", "Faço unhas…") não cabe depois de "Você vende" */
+    const frase = oque && /^(eu\s+)?(vendo|revendo|fa[cç]o|trabalho|quero|ofere[cç]o|sou|tenho|presto)\b/i.test(String(oque).trim());
+    if (oque) f.push(`${frase ? `Sobre o seu negócio, você disse: ${aspas(oque)}` : `Você ${ideia ? "quer vender" : "vende"} ${aspas(oque)}`}${H.tipoFrase ? ` — é ${H.tipoFrase}` : ""}.${estagio}`);
     const p09 = RR["M3.P09"], p10 = RR["M3.P10"];
     let cli = "";
     if (p10 && p10.estado === "opcao") {
       const c = p10.campos || {}, livre = (k) => c[k] && c[k] !== Motor.NS ? c[k] : null;
       /* marcadores: em minúsculas e "ou" entre as opções; texto livre fica como a pessoa escreveu */
       const ok = (k) => { const v = livre(k); return v ? v.split(/;\s*/).filter((x) => x !== Motor.NS).join(" ou ").toLowerCase() || null : null; };
+      /* lugar escrito igual ao que vende (ou ao que já foi dito) fica de fora: a pessoa escreveu no campo errado */
+      const lugar = (k) => { const v = livre(k); return v && !repete(v, oque, H.ideia, val("M3.P01"), c[Motor.DOR]) ? v : null; };
       if (p10.opcao === Motor.PESSOAS) {
-        const det = [ok("Idade") && `idade: ${ok("Idade")}`, ok("Renda") && `renda: ${ok("Renda")}`, ok("Ocupação") && `ocupação: ${ok("Ocupação")}`, livre("Onde mora") && `moram em ${livre("Onde mora")}`].filter(Boolean);
+        const det = [ok("Idade") && `idade: ${ok("Idade")}`, ok("Renda") && `renda: ${ok("Renda")}`, ok("Ocupação") && `ocupação: ${ok("Ocupação")}`, lugar("Onde mora") && `onde moram: ${lugar("Onde mora")}`].filter(Boolean);
         cli = `pessoas comuns${det.length ? ` (${det.join("; ")})` : ""}`;
       } else {
-        const det = [ok("Ramo") && `ramo: ${ok("Ramo")}`, ok("Tamanho") && `porte: ${ok("Tamanho")}`, ok("Equipe") && `equipe: ${ok("Equipe")}`, livre("Local") && `em ${livre("Local")}`].filter(Boolean);
+        const det = [ok("Ramo") && `ramo: ${ok("Ramo")}`, ok("Tamanho") && `porte: ${ok("Tamanho")}`, ok("Equipe") && `equipe: ${ok("Equipe")}`, lugar("Local") && `local: ${lugar("Local")}`].filter(Boolean);
         cli = `empresas${det.length ? ` (${det.join("; ")})` : ""}`;
       }
     }
+    /* "os clientes … são": sujeito no plural, concorda com "pessoas comuns" / "empresas" */
+    const quem = `os clientes que você ${ideia ? "imagina" : "mais atende"} são ${cli}`;
     const onde = p09 && p09.estado === "opcao" ? ALCANCE[p09.opcao] : null;
-    if (onde && cli) f.push(`Você ${ideia ? "pretende vender" : "vende"} ${onde}, e o cliente que você ${ideia ? "imagina" : "mais atende"} são ${cli}.`);
+    if (onde && cli) f.push(`Você ${ideia ? "pretende vender" : "vende"} ${onde}, e ${quem}.`);
     else if (onde) f.push(`Você ${ideia ? "pretende vender" : "vende"} ${onde}.`);
-    else if (cli) f.push(`O cliente que você ${ideia ? "imagina" : "mais atende"} são ${cli}.`);
+    else if (cli) f.push(quem.charAt(0).toUpperCase() + quem.slice(1) + ".");
     const dor = val("M3.P11");
-    if (dor) f.push(`Ele procura você para resolver isto: ${aspas(dor)}.`);
+    if (dor) f.push(`O que o cliente quer resolver com você: ${aspas(dor)}.`);
+    const c1 = f.length;   // 1º parágrafo: o negócio, o cliente e o que ele quer resolver
     const p13 = RR["M3.P13"];
     if (p13 && p13.estado === "opcoes") {
       const cs = p13.opcoes.filter((o) => CANAL[o]).map((o) => CANAL[o]).concat(p13.detalhe ? [p13.detalhe] : []);
-      if (cs.length) f.push(`Ele ${ideia ? "vai encontrar" : "encontra"} você por ${lista(cs)}.`);
+      if (cs.length) f.push(`Por onde o cliente ${ideia ? "vai encontrar e comprar" : "encontra e compra"} de você: ${lista(cs)}.`);
     }
     const conc = val("M3.P15"), preco = val("M3.P20"), dif = val("M3.P21");
     const ns = preco ? Motor.numeros(preco) : [];
     const partes = [conc && `Quem vende algo parecido: ${aspas(conc)}`, ns.length && `eles cobram em torno de R$ ${Motor.reais(Motor.media(ns))}`].filter(Boolean);
     if (partes.length) f.push(partes.join("; ") + ".");
     if (dif) f.push(`O que ${ideia ? "vai fazer" : "faz"} o cliente preferir você: ${aspas(dif)}.`);
-    const out = f.slice(0, 5);
+    const out = f.slice(0, 5), c2 = out.length;   // 2º: canais, concorrentes e diferencial; 3º: o que ficou em aberto
     if (nPend) out.push(nPend === 1 ? "Ficou 1 pergunta com “Não sei”: vale voltar nela quando tiver a informação." : `Ficaram ${nPend} perguntas com “Não sei”: vale voltar nelas quando tiver a informação.`);
     if (!out.length) out.push("Você ainda não respondeu o suficiente para montarmos este retrato. Volte às perguntas quando puder.");
-    return out;
+    return emParagrafos(out, Math.min(c1, c2), c2);
+  }
+
+  /* ===== entregas prometidas na abertura: roteiro de pesquisa e tabela de concorrentes ===== */
+  const valorDe = (RR, c) => { const r = RR[c]; return r && r.estado === "valor" && !vazio(r.valor) ? String(r.valor).trim() : null; };
+  const camposDe = (RR, c, k) => { const r = RR[c]; const v = r && r.estado === "valor" && r.campos ? String(r.campos[k] || "").trim() : ""; return v || null; };
+  const MAX_CONC = 6;
+  /* nomes citados na pergunta "quem vende o mesmo que você" (separados por vírgula, ";", "e", "ou" ou linha) */
+  function nomesConc(RR) {
+    const t = valorDe(RR, "M3.P15");
+    if (!t) return [];
+    const ns = t.split(/\s*(?:[,;\n/]|\s+e\s+|\s+ou\s+)\s*/).map((x) => x.trim().replace(/[.]+$/, "")).filter((x) => x.length >= 2);
+    return [...new Set(ns)].slice(0, MAX_CONC).map((x) => x.charAt(0).toUpperCase() + x.slice(1));
+  }
+  function tabelaConc(RR) {
+    const nomes = nomesConc(RR);
+    const p20 = RR["M3.P20"], preco = p20 && p20.estado === "valor" && !vazio(p20.valor) ? String(p20.valor) : null;
+    const bem = camposDe(RR, "M3.P22", "O que os outros fazem bem"), mal = camposDe(RR, "M3.P22", "Onde os outros deixam a desejar");
+    const como = valorDe(RR, "M3.P18");
+    const linhas = nomes.map((n) => ({ nome: n, tipo: "Vende o mesmo que você (concorrente direto)", preco, bem, mal, como }));
+    if (!linhas.length) for (let i = 1; i <= 3; i++) linhas.push({ nome: `Concorrente ${i}`, tipo: "Vende o mesmo que você (concorrente direto)", vazio: true });
+    const subst = valorDe(RR, "M3.P03");
+    if (subst) linhas.push({ nome: subst, tipo: "O que o cliente compra no lugar (substituto)" });
+    return { linhas, geral: nomes.length > 1 && !!(preco || bem || mal || como), modelo: !nomes.length };
+  }
+  function roteiro(RR) {
+    const p13 = RR["M3.P13"], cs = p13 && p13.estado === "opcoes" ? p13.opcoes : [];
+    const tem = (re) => cs.some((o) => re.test(o));
+    const servico = H.tipo === "Serviço", ideia = est() === "ideia";
+    const oque = H.ideia || valorDe(RR, "M3.P01");
+    const termo = oque && oque.length <= 40 ? `“${oque.replace(/[.\s]+$/, "")} perto de mim”` : `o que você ${ideia ? "quer vender" : "vende"} e “perto de mim”`;
+    const nomes = nomesConc(RR);
+    const p09 = RR["M3.P09"], longe = p09 && p09.estado === "opcao" && /Brasil/.test(p09.opcao);
+    const onde = [];
+    if (tem(/Indicação|WhatsApp|Instagram/) || !cs.length) onde.push("no Instagram e nos grupos de WhatsApp da sua cidade");
+    if (!longe || tem(/presencial|domicílio/)) onde.push(`no Google Maps, buscando ${termo}`);
+    if (tem(/Aplicativos de entrega/)) onde.push("no aplicativo de entrega, vendo quem aparece primeiro na sua região");
+    if (longe || tem(/Marketplace|Site/)) onde.push("no Mercado Livre e na Shopee, vendo os anúncios que mais vendem");
+    const n = Math.max(3, nomes.length);
+    const passos = [`Procure pelo menos ${n} concorrentes ${lista(onde)}.`];
+    if (nomes.length) passos.push(`Olhe o perfil ou passe em frente de ${lista(nomes)}: veja horário, como ${servico ? "atendem e se vão até o cliente" : "atendem e como entregam"}.`);
+    const p20 = RR["M3.P20"], faixa = p20 && p20.min != null ? (p20.min === p20.max ? `perto de R$ ${Motor.reais(p20.min)}` : `entre R$ ${Motor.reais(p20.min)} e R$ ${Motor.reais(p20.max)}`) : null;
+    passos.push((servico ? `Peça a ${n} deles o preço de um serviço parecido com o seu (um orçamento pelo WhatsApp serve) e anote.`
+      : `Anote o preço de algo parecido com o seu em ${n} deles; se o preço não estiver à vista, peça um orçamento pelo WhatsApp.`) + (faixa ? ` Confira se continua ${faixa}, como você respondeu.` : ""));
+    const bem = camposDe(RR, "M3.P22", "O que os outros fazem bem"), mal = camposDe(RR, "M3.P22", "Onde os outros deixam a desejar");
+    passos.push(bem && mal ? "Leia as avaliações no Google Maps e os comentários no Instagram e confira se o que você respondeu sobre os pontos fortes e fracos deles se repete."
+      : "Leia 5 avaliações boas e 5 ruins no Google Maps ou nos comentários do Instagram e anote os elogios e as reclamações que mais se repetem.");
+    passos.push(`Pergunte a 5 ${ideia ? "pessoas que comprariam de você" : "clientes"} onde ${ideia ? "elas compram hoje" : "mais eles já compraram"} e o que pesa na escolha: preço, qualidade, atendimento ou prazo.`);
+    passos.push("Anote tudo na tabela de concorrentes abaixo, com onde você viu e a data.");
+    return passos;
+  }
+  function htmlEntregas(RR) {
+    const t = tabelaConc(RR), anotar = `<span class="anotar">a anotar</span>`;
+    const cel = (v) => (v ? esc(v) : anotar);
+    const rot = (k) => porTipo(k);
+    return `<section class="entrega-m" id="roteiro">
+        <h2>Seu roteiro de pesquisa</h2>
+        <ol class="roteiro">${roteiro(RR).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      </section>
+      <section class="entrega-m" id="tabela-conc">
+        <h2>Sua tabela de concorrentes</h2>
+        <p class="mini-info">${t.modelo ? "Você ainda não citou concorrentes. Use este modelo ao pesquisar." : "Montada com o que você respondeu. O que estiver “a anotar”, complete ao pesquisar."}</p>
+        ${t.linhas.map((l) => `<div class="conc" data-nome="${esc(l.nome)}">
+          <h3>${esc(l.nome)}</h3>
+          <dl>
+            <dt>Tipo</dt><dd>${esc(l.tipo)}</dd>
+            <dt>Preço que você viu</dt><dd>${cel(l.preco)}</dd>
+            <dt>O que faz bem</dt><dd>${cel(l.bem)}</dd>
+            <dt>Onde deixa a desejar</dt><dd>${cel(l.mal)}</dd>
+            <dt>${esc(rot("Onde fica e como atende"))}</dt><dd>${cel(l.como)}</dd>
+            <dt>Onde você viu e quando</dt><dd>${anotar}</dd>
+          </dl>
+        </div>`).join("")}
+        ${t.geral ? `<p class="mini-info">Preço, pontos fortes e fracos foram respondidos para os concorrentes em geral. Ao pesquisar, anote os de cada um.</p>` : ""}
+      </section>`;
   }
 
   function telaResultado() {
@@ -591,6 +768,11 @@
     const vis = Motor.visiveis(M, S.R);
     const resp = vis.filter((q) => RR[q.codigo]);
     const pend = resp.filter((q) => Motor.pendente(RR[q.codigo]));
+    /* contagem igual à do topo ("Pergunta N de M"): conta as telas que a pessoa vê no caminho dela.
+       Duas perguntas na mesma tela contam uma vez; a que veio pronta (Módulo 1 ou perfil do cliente) não conta. */
+    const telas = Motor.telas(M, S.R, H);
+    const telasResp = telas.filter((t) => t.every((c) => RR[c]));
+    const telasPend = telas.filter((t) => t.some((c) => Motor.pendente(RR[c])));
     const semResp = vis.filter((q) => !RR[q.codigo]);
     const blocos = D.blocos.map((b) => ({ nome: b, qs: vis.filter((q) => q.bloco === b) })).filter((b) => b.qs.length);
     const p = el(`
@@ -604,12 +786,12 @@
           </section>
           <section class="entendemos" id="entendemos">
             <h2>O que entendemos até aqui</h2>
-            ${entendemos(RR, pend.length).map((t) => `<p>${esc(t)}</p>`).join("")}
+            ${entendemos(RR, telasPend.length).map((t) => `<p>${esc(t)}</p>`).join("")}
           </section>
           <div class="res-num">
             <div class="lbl">Perguntas respondidas</div>
-            <div class="val">${resp.length} de ${vis.length}</div>
-            <div class="sub">${pend.length ? `${pend.length} com “Não sei”` : "nenhuma com “Não sei”"}</div>
+            <div class="val">${telasResp.length} de ${telas.length}</div>
+            <div class="sub">${telasPend.length ? `${telasPend.length} com “Não sei”` : "nenhuma com “Não sei”"}</div>
           </div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
 
@@ -619,6 +801,8 @@
             ${semResp.length ? `<div class="secao-titulo">Perguntas sem resposta</div>
             ${semResp.map((q) => `<div class="pend" data-cod="${q.codigo}"><p>${esc(enunciado(q))}</p><button class="btn btn-claro preencher" data-cod="${q.codigo}">Responder agora</button></div>`).join("")}` : ""}
           </section>` : ""}
+
+          ${htmlEntregas(RR)}
 
           <details class="respostas" id="respostas">
           <summary>Ver suas respostas</summary>
@@ -666,7 +850,7 @@
 
   function rodape() {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do Grupo ${esc(D.modulo.numero)} · Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
+      <p class="credito">Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

@@ -54,6 +54,26 @@ function contas() {
   check('Caso: ponto de pedido = 47', Mo.pontoDePedido(200, 1, 7, 0) === 47);
   check('Caso: compra com perda = 211 (dividir, não multiplicar)', Mo.compraComPerda(200, 5) === 211);
   check('Caso: tudo "Não sei" = capacidade não calculada', cap({ horas: 'Até 10 h', apoio: 'Não sei' }).estado === 'sem-tempo');
+  /* --- correções dos testes da turma (05/11), conferidas à mão --- */
+  /* bug do testador: 1500 h 12 min por unidade (90.012 min), 11 a 20 h/semana, apoio de 2 h e "1500 h de ajuda".
+     Antes: (20 − 2 + 1500) × 60 = 91.080 min/semana → 91.080 × 4,33 ÷ 90.012 = 4,38 → "cerca de 4".
+     Agora a ajuda acima de 168 h/semana (impossível) não entra: (20 − 2) × 60 = 1.080 → 1.080 × 4,33 ÷ 90.012 = 0,05 → 0;
+     (11 − 2) × 60 = 540 → 0. */
+  c = cap({ horas: 'De 11 a 20 h', apoio: 'Até 2 h', ajuda: 1500, minUn: 1500 * 60 + 12 });
+  check('Bug 1500 h 12 min + ajuda de 1500 h: cabem 0 por mês (antes: cerca de 4)', c.estado === 'ok' && c.lo.mes === 0 && c.hi.mes === 0 && Mo.texto(c, 'mes') === 'cerca de 0', c);
+  c = cap({ horas: 'De 11 a 20 h', apoio: 'Até 2 h', ajuda: 10, minUn: 90012 });
+  check('1500 h 12 min com 10 h de ajuda: (20 − 2 + 10) × 60 = 1.680 → 1.680 × 4,33 ÷ 90.012 = 0,08 → 0', c.hi.mes === 0, c);
+  /* 168 h ainda conta: (10 − 2 + 168) × 60 = 10.560 min → 176 por semana; 10.560 × 4,33 ÷ 60 = 762,08 → 762 */
+  c = cap({ horas: 'Até 10 h', apoio: 'Até 2 h', ajuda: 168, minUn: 60 });
+  check('Ajuda de 168 h (a semana inteira) ainda entra: 176 por semana, 762 por mês', c.hi.semana === 176 && c.hi.mes === 762, c);
+  /* 169 h não entra: (10 − 2) × 60 = 480 → 8 por semana; 480 × 4,33 ÷ 60 = 34,64 → 34 */
+  c = cap({ horas: 'Até 10 h', apoio: 'Até 2 h', ajuda: 169, minUn: 60 });
+  check('Ajuda de 169 h (impossível) fica fora da conta: 8 por semana, 34 por mês', c.hi.semana === 8 && c.hi.mes === 34, c);
+  check('Limites nomeados: tempo alto 720 min, ajuda 44 h (aviso) e 168 h (máximo), volume 1.000', Mo.LIMITE.minUnAlto === 720 && Mo.LIMITE.ajudaAviso === 44 && Mo.LIMITE.ajudaMax === 168 && Mo.LIMITE.volumeAlto === 1000);
+  check('Número "1.500" (ponto de milhar) = 1500; "1,5" = 1,5; "1.5" = 1,5', Mo.num('1.500') === 1500 && Mo.num('1,5') === 1.5 && Mo.num('1.5') === 1.5 && Mo.num('12.345,6') === 12345.6);
+  /* reposição: 1.500 por mês ÷ 30 = 50 por dia; 1 por venda e 3 dias de prazo → 150; 12 por venda → 600 por dia, 1.800 */
+  check('Reposição: 1.500 por mês = 50 vendas por dia; 1 item por venda = 50 por dia', Mo.vendasDia(1500) === 50 && Mo.consumoDia(1500, 1) === 50);
+  check('Reposição: ponto de pedido com 3 dias = 150 (1 por venda) e 1.800 (12 por venda)', Mo.pontoDePedido(1500, 1, 3, 0) === 150 && Mo.pontoDePedido(1500, 12, 3, 0) === 1800 && Mo.pontoDePedido(1500, 1, 3, 20) === 170);
   /* "Cenários do Módulo 6" não é testado: o Módulo 6 publicado não guarda cenários de faturamento */
 }
 
@@ -199,6 +219,46 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   const nao = todas.filter((k) => !coberto.has(k));
   check(`Linhas da aba "Caminhos por resposta" alcançadas: ${todas.length - nao.length} de ${todas.length}`, !nao.length, nao);
 
+  /* ---------- 2b. etapas móveis (relato das alunas, 05/11): instrução + ▲/▼ acessíveis, por toque ---------- */
+  {
+    const valores = () => page.$$eval('.etapa-ed input', (xs) => xs.map((x) => x.value));
+    await abrir(E('M7-01'));
+    check('Etapas: instrução diz que dá para mudar a ordem com as setas', nrm(await page.innerText('#dica-ordem')) === 'Você pode mudar a ordem: use as setas para subir ou descer a etapa.');
+    const nEt = await page.locator('.etapa-ed').count();
+    const sobe = page.getByRole('button', { name: 'Subir etapa', exact: true }), desce = page.getByRole('button', { name: 'Descer etapa', exact: true });
+    check('Etapas: um ▲ "Subir etapa" e um ▼ "Descer etapa" por etapa (primeira não sobe, última não desce)', (await sobe.count()) === nEt && (await desce.count()) === nEt && await sobe.first().isDisabled() && await desce.last().isDisabled() && (await sobe.nth(1).textContent()) === '▲' && (await desce.first().textContent()) === '▼');
+    const bb = await sobe.nth(1).boundingBox();
+    check('Etapas: setas com área de toque de pelo menos 36 × 44 px', bb && bb.width >= 36 && bb.height >= 44, bb);
+    const v0 = await valores();
+    await desce.first().click();
+    const v1 = await valores();
+    check('Etapas: "Descer etapa" troca a 1ª com a 2ª', v1[0] === v0[1] && v1[1] === v0[0] && v1.slice(2).join('|') === v0.slice(2).join('|'), v1);
+    check('Etapas: depois de mover, o foco acompanha a etapa (2ª linha)', await page.evaluate(() => { const a = document.activeElement; return !!a && a.dataset.a === 'desce' && a.getAttribute('aria-describedby') === 'etapa-1'; }));
+    await page.click('#mais');
+    await page.fill('.etapa-ed input >> nth=-1', 'Separar a encomenda');
+    check('Etapas: etapa incluída avisa que pode subir até o lugar certo', /Etapa incluída no fim\. Toque em ▲/.test(await page.innerText('.mapa-edit')));
+    if (process.env.SHOTS7B) { await page.locator('.etapa-ed.nova').scrollIntoViewIfNeeded(); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS7B, 'm07b_etapa_incluida_setas.png') }); }
+    await sobe.last().click(); await sobe.nth(nEt - 1).click();
+    const v2 = await valores();
+    check('Etapas: a etapa nova sobe duas posições com "Subir etapa"', v2.length === nEt + 1 && v2[nEt - 2] === 'Separar a encomenda' && v2[nEt] === v0[nEt - 1], v2);
+    await ok();
+    const retorno = await caixa();
+    await ok();
+    const st = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
+    check('Etapas: a nova ordem é gravada (mapa salvo e resposta "Ajustei as etapas")', st.mapa && st.mapa.join('|') === v2.join('|') && st.R['M7-01'] && st.R['M7-01'].opcao === 'Ajustei as etapas' && fragmentos(D.perguntas[0].caminhos.find((c) => c.opcao === 'Ajustei as etapas').texto).every((f) => retorno.includes(f)), [st.mapa, st.R['M7-01'], retorno]);
+    /* por toque (celular): mesma tela num contexto com tela de toque */
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    const tp = await ctx.newPage();
+    await tp.goto(URL);
+    await tp.evaluate(([k, v]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(v)); }, [CHAVE, E('M7-01')]);
+    await tp.goto(URL); await tp.click('#ir');
+    const t0 = await tp.$$eval('.etapa-ed input', (xs) => xs.map((x) => x.value));
+    await tp.getByRole('button', { name: 'Subir etapa', exact: true }).nth(2).tap();
+    const t1 = await tp.$$eval('.etapa-ed input', (xs) => xs.map((x) => x.value));
+    check('Etapas: ▲ funciona por toque (3ª etapa sobe para 2ª)', t1[1] === t0[2] && t1[2] === t0[1], t1);
+    await ctx.close();
+  }
+
   /* ---------- 3. percurso completo com dados herdados ---------- */
   await page.evaluate(() => {
     localStorage.clear();
@@ -275,6 +335,11 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   const pp = Mo.pontoDePedido(200, 0.5, 10, 0);
   check(`Resumo: ponto de pedido com prazo de 10 dias = ${pp}`, new RegExp(`quando restarem ${pp}\\b`, 'i').test(res), pp);
   check('Resumo: compra do mês com perda de 5% = 106', /perda de 5%: 106/.test(res));
+  /* "Como calculamos" embaixo dos números (relato das alunas, 05/11) */
+  check('Como calculamos (capacidade do forno): 480 min ÷ 50 min = 9 vezes × 4 = 36 por semana; no mês 164', nrm(await page.innerText('#como-capacidade')) === 'Como calculamos: 10 h por semana − 2 h de tarefas de apoio = 480 min para fazer; 480 min ÷ 50 min por vez = 9 vezes × 4 por vez = 36 por semana. No mês (4,33 semanas) = 164.', nrm(await page.innerText('#como-capacidade')));
+  check('Como calculamos (compra do mês): 200 × 0,5 kg = 100 kg ÷ 95% = 106', nrm(await page.innerText('#como-compra')) === 'Como calculamos: 200 por mês × 0,5 kg em cada um = 100 kg; com a perda de 5%, dividimos por 95% (o que sobra depois da perda) = 106 (arredondado para cima).', nrm(await page.innerText('#como-compra')));
+  check(`Como calculamos (reposição): ${pp} kg com 10 dias de prazo`, nrm(await page.innerText('#como-reposicao')).startsWith('Como calculamos: ') && nrm(await page.innerText('#como-reposicao')).includes(`× 10 dias de prazo do fornecedor = ${pp} kg`), nrm(await page.innerText('#como-reposicao')));
+  check('Como calculamos: fonte menor que o texto do resultado', await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.como-calc')).fontSize) < parseFloat(getComputedStyle(document.querySelector('.diag-r')).fontSize)));
   check('Resumo: checklist tem fornecedor único, prazo longo, validade curta e atividade regulada', ['Depender de um só fornecedor', 'Prazo de entrega do fornecedor acima de 7 dias', 'Itens que estragam em poucos dias', 'Atividade com regras próprias'].every((x) => res.includes(x)));
   check('Resumo: avisos dos instrumentos', D.instrumentos.every((i) => res.includes(nrm(i.avisos[0]).replace('[fizer] [oferta em foco]', 'fizer Pão de fermentação natural'))), D.instrumentos.map((i) => i.avisos[0]).filter((a) => !res.includes(a)));
   const ent = nrm(await page.innerText('#entendemos'));
@@ -282,7 +347,10 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Entendemos: oferta, tipo e estágio', ent.includes('Você oferece Pão de fermentação natural, um produto que você mesmo faz, e já vende.'), ent);
   check('Entendemos: capacidade e volume', ent.includes('Com até 10 horas por semana e cerca de 10 min para fazer cada um, cabem no máximo 164 por mês.') && ent.includes('Você quer vender 200 por mês, mais do que cabe hoje'), ent);
   check('Entendemos: gargalo e fornecedor único', ent.includes('O que mais segura o seu ritmo hoje é um equipamento ou o espaço.') && ent.includes('Você depende de um só fornecedor para Farinha'), ent);
-  check('Entendemos: de 3 a 6 frases', (await page.locator('#entendemos p').count()) >= 3 && (await page.locator('#entendemos p').count()) <= 6);
+  /* texto corrido (relatório do Bento): frases agrupadas por assunto em 1 a 3 parágrafos, sem lista */
+  check('Entendemos: texto corrido em 1 a 3 parágrafos, sem <li> e com <p>', await page.evaluate(() => { const e = document.querySelector('#entendemos'), n = e.querySelectorAll('p').length; return !e.querySelector('ul, ol, li') && n >= 1 && n <= 3; }));
+  { const ps = await page.$$eval('#entendemos p', (x) => x.map((e) => e.textContent.replace(/\s+/g, ' ')));
+    check('Entendemos: parágrafos por assunto (oferta · tempo e meta · o que segura o ritmo)', ps.length === 3 && ps[0].startsWith('Você oferece') && /cabem/.test(ps[1]) && /ritmo/.test(ps[2]), ps); }
   check('Sem código interno na tela (M7-, M4-, M5-)', !/\bM\d-\d/.test(res), (res.match(/.{20}\bM\d-\d.{20}/) || [])[0]);
   await foto('m07_07_resumo');
   /* instrumento: quadro de fornecedores conta critérios sem voltar ao topo */
@@ -332,6 +400,92 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Entendemos (serviço): ideia, cliente, capacidade e volume', entS.includes('Você oferece Lavagem de carro em casa, um serviço, e ainda está na fase da ideia.') && entS.includes('Seu cliente procura você por isto: Falta de tempo para levar o carro ao lava-jato.') && entS.includes('cerca de 1 h 30 min para atender cada um, cabem no máximo 23 por mês') && entS.includes('Você quer vender 40 por mês, mais do que cabe hoje'), entS);
   check('Serviço: botão final continua escondido até "Sim, pode seguir"', await page.isHidden('.lg2-proximo'));
   await foto('m07_10_entendemos');
+
+  /* ---------- 4. correções dos testes da turma (05/11) ---------- */
+  /* 4a. cenário do testador: mercadoria, 1500 h 12 min herdado do Módulo 5 e 1.500 vendas por mês */
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' }, 'M1.P03A': { estado: 'opcao', opcao: 'Mercadoria: compro pronto e revendo' } } }));
+    localStorage.setItem('lg2-turma-a-m05', JSON.stringify({ versao: 3, R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P23': { estado: 'valor', valor: { h: '1500', m: '12' } }, 'M5.P37': { estado: 'valor', valor: '1.500' } } }));
+  });
+  await page.goto(URL); await page.click('#ir');
+  check('Testador: tempo de 1500 h 12 min herdado (90.012 min) e volume "1.500" lido como 1500', (await page.inputValue('#f-minUn')) === '90012' && Mo.num(await page.inputValue('#f-volume')) === 1500, [await page.inputValue('#f-minUn'), await page.inputValue('#f-volume')]);
+  await tocar('De 11 a 20 h');
+  await preenche('#f-volume', '60 pedidos'); await ok();
+  check('Receita B: texto em campo de número é recusado ("60 pedidos")', /Use só números/.test(await page.innerText('#e-volume')) && !(await page.$('#pergunta')));
+  await preenche('#f-volume', '1.500'); await ok();
+  const avP = nrm(await page.innerText('#e-minUn')) + ' | ' + nrm(await page.innerText('#e-volume'));
+  check('Partida: tempo de 1500 h 12 min e 1.500 por mês geram aviso, sem gravar', /1500 h 12 min para cada unidade ou atendimento parece muito tempo/.test(avP) && /cerca de 50 por dia/.test(avP) && !(await page.$('#pergunta')) && (await page.innerText('#ok')).trim() === 'Continuar mesmo assim', avP);
+  await page.waitForTimeout(400);
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm07_aviso_tempo_partida.png') });
+  await ok();
+  check('Partida: o segundo Continuar com os mesmos valores segue', !!(await page.$('#pergunta')));
+  /* 4b. horas de ajuda: 1500 é impossível (trava), 50 é alto (aviso que não trava) */
+  await abrir(E('M7-04'));
+  await tocar('Sim, sem pagamento (família, amigo, parceiro)');
+  await preenche('#hajuda', '1500'); await ok();
+  check('Ajuda de 1500 h por semana: recusada ("Uma semana tem 168 horas")', /Uma semana tem 168 horas/.test(await page.innerText('#erro')) && /Horas de ajuda/.test(await page.innerText('body')) && !(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M7-04'], CHAVE)));
+  await preenche('#hajuda', '50'); await ok();
+  check('Ajuda de 50 h: aviso "mais que uma jornada inteira" sem gravar', /mais que uma jornada inteira/.test(await page.innerText('#erro')) && !(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M7-04'], CHAVE)));
+  await ok();
+  check('Ajuda de 50 h: o segundo Continuar grava e segue', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M7-04'], CHAVE) || {}).horas === 50);
+  /* 4c. resultado do testador (estado antigo com 1500 h de ajuda): cabe 0, sem "cerca de 4" */
+  const iniTestador = { tipo: 'Mercadoria: compro pronto para revender', oferta: 'Bolo de pote', horas: 'De 11 a 20 h', volume: '1500', minUn: 90012, item: 'Bolo de pote', uso: '1', usoUn: '' };
+  await abrir(E('ZZ', iniTestador, { 'M7-04': { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 1500 }, 'M7-06': { estado: 'partes', p1: 'Dois ou mais', p2: 'De 1 a 3 dias', dias: '' } }));
+  const resT = nrm(await page.innerText('body')), entT = nrm(await page.innerText('#entendemos'));
+  check('Resultado do testador: cabem cerca de 0 por mês, nunca "cerca de 4"', entT.includes('cerca de 1500 h 12 min para separar e entregar cada um, cabem cerca de 0 por mês') && !/cerca de 4\b/.test(resT), entT);
+  check('Resultado do testador: aviso de tempo por unidade muito alto', /Você informou 1500 h 12 min para separar e entregar cada unidade/.test(await page.innerText('#aviso-tempo')));
+  check('Reposição: 1.500 por mês ÷ 30 dias = cerca de 50 por dia; 3 dias de prazo = 150', resT.includes('Vendas por dia: 1.500 por mês ÷ 30 dias = cerca de 50 por dia.') && /quando restarem 150\b/i.test(resT) && resT.includes('50 × 3 = 150') && !/\b600\b/.test(resT), (resT.match(/Lembrete de reposição.{0,400}/) || [])[0]);
+  check('Como calculamos (reposição do testador): 50 por dia × 3 dias = 150', nrm(await page.innerText('#como-reposicao')) === 'Como calculamos: 50 por dia × 3 dias de prazo do fornecedor = 150 (arredondado para cima).', nrm(await page.innerText('#como-reposicao')));
+  await page.evaluate(() => document.querySelector('#conta-reposicao').scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(400);
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm07_reposicao.png') });
+  /* 4d. sem ajuda x com ajuda: tabela e resumo dizem as duas coisas.
+     Até 10 h, apoio 2 h, 60 min por unidade. Sem ajuda: 8 h = 480 min → 480 × 4,33 ÷ 60 = 34,6 → 34.
+     Com 4 h de ajuda: 12 h = 720 min → 720 × 4,33 ÷ 60 = 51,96 → 51. */
+  await abrir(E('ZZ', { minUn: 60 }, { 'M7-04': { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 4 } }));
+  const entA = nrm(await page.innerText('#entendemos')), tabA = nrm(await page.innerText('#sem-com'));
+  check('Sem/com ajuda: tabela = sem ajuda no máximo 34; com ajuda no máximo 51', tabA === 'Por mês, sem ajuda: no máximo 34; com ajuda: no máximo 51.', tabA);
+  check('Sem/com ajuda: o resumo diz as duas coisas, igual à tabela', entA.includes('cabem no máximo 34 por mês sem ajuda e no máximo 51 por mês com a ajuda que você contou'), entA);
+  {
+    const cc = nrm(await page.innerText('#como-capacidade'));
+    check('Como calculamos (com ajuda): 10 h − 2 h de apoio + 4 h de ajuda = 720 min ÷ 1 h = 12 por semana; 720 × 4,33 ÷ 1 h = 51', cc === 'Como calculamos: 10 h por semana − 2 h de tarefas de apoio + 4 h de ajuda = 720 min para fazer ÷ 1 h cada um = 12 por semana. No mês: 720 min × 4,33 semanas ÷ 1 h = 51 (sempre arredondado para baixo).', cc);
+    if (process.env.SHOTS7B) { await page.evaluate(() => document.querySelector('#como-capacidade').scrollIntoView({ block: 'center' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS7B, 'm07b_como_calculamos_capacidade.png') }); }
+  }
+  await page.evaluate(() => document.querySelector('#sem-com').scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(400);
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm07_sem_com_ajuda.png') });
+  /* 4e. quadro de fornecedores sem critério */
+  await abrir(E('ZZ', {}, { 'M7-07': { estado: 'multi', opcoes: ['Só o preço'] } }));
+  const fz = nrm(await page.innerText('.forn >> nth=0'));
+  check('Fornecedores sem critério: "Nenhum critério escolhido", sem "Atende 0 de"', fz.includes('Nenhum critério escolhido.') && !/Atende \d+ de/.test(await page.innerText('body')), fz);
+  await abrir(E('ZZ', {}, { 'M7-07': { estado: 'multi', opcoes: ['Prazo de entrega'] } }));
+  const f1 = nrm(await page.innerText('.forn >> nth=0'));
+  check('Fornecedores com 1 critério ainda não marcado: pede para marcar, sem "Atende 0 de 1"', f1.includes('Marque se este fornecedor atende o critério.') && !/Atende 0 de 1/.test(await page.innerText('body')), f1);
+  await page.selectOption('.forn >> nth=0 >> select >> nth=0', 'não atende');
+  check('Fornecedores: depois de marcar, "Atende 0 de 1 critério" (singular)', /Atende 0 de 1 critério\b/.test(await page.innerText('.forn >> nth=0')));
+  /* 4f. pedidos para IA: visíveis e preenchidos */
+  check('Pedidos para IA: seção aberta com os textos preenchidos (oferta no lugar do colchete)', await page.isVisible('#pedidos-ia') && /Quero organizar as etapas de Bolo de pote/.test(await page.innerText('#pedidos-ia')) && (await page.locator('#pedidos-ia .caixa-ia').count()) === 3 && !/\[/.test(await page.innerText('#pedidos-ia')));
+  await page.evaluate(() => document.querySelector('#pedidos-ia').scrollIntoView({ block: 'start' }));
+  await page.waitForTimeout(400);
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm07_pedidos_ia.png') });
+  await abrir(E('ZZ', { tipo: 'Serviço: atendo o cliente', material: 'Não', oferta: 'Manicure' }));
+  check('Pedidos para IA (serviço sem material): sem o item de fornecedores', (await page.locator('#pedidos-ia .caixa-ia').count()) === 2 && !/Fornecedores/.test(await page.innerText('#pedidos-ia')));
+  /* 4g. receita A: teclado do celular (viewport 390x844 → 390x450 com o campo em foco) */
+  check('Receita A: viewport com interactive-widget=resizes-content', /interactive-widget=resizes-content/.test(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8')));
+  for (const [nome, st, campo] of [['tempo', E('M7-02'), '#th'], ['ideias', E('M7-12'), '#txt']]) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await abrir(st);
+    await page.focus(campo);
+    await page.waitForTimeout(350);
+    await page.setViewportSize({ width: 390, height: 450 });
+    await page.waitForTimeout(450);
+    const bc = await page.locator(campo).boundingBox(), bo = await page.locator('#ok').boundingBox();
+    check(`Receita A (${nome}): campo e Continuar visíveis com o teclado aberto`, bc && bo && bc.y >= 0 && bc.y + bc.height <= 450 && bo.y >= 0 && bo.y + bo.height <= 450, { bc, bo });
+    if (nome === 'tempo' && SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm07_teclado.png') });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
   check('Sem erros de página', !erros.length, erros);
   await browser.close();
   servidor.close();

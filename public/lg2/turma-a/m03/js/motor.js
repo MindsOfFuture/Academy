@@ -9,6 +9,9 @@
   /* respostas que mostram a dica e deixam corrigir ou seguir ("Permitir corrigir e continuar") */
   const CORRIGIR = new Set(["Resposta vazia ou muito curta", "Resposta muito genérica", "Texto sem valor em reais",
     "Preencheu só um dos campos", "Campos complementares incompletos"]);
+  /* preço dos concorrentes (campo numérico, nov/2026): o que é texto bloqueia; o que é fora do comum só avisa */
+  const PRECO_ALTO = 1000;      // acima disto (R$ por unidade ou por atendimento) mostra aviso que não trava
+  const PRECO_RAZAO = 10;       // maior preço mais de 10 vezes o menor: aviso de conferir se é a mesma coisa
   /* resumo: "Não transformar hipótese em fato" */
   const HIPOTESE = new Set(["M3.P04", "M3.P08", "M3.P11", "M3.P19"]);
 
@@ -25,6 +28,7 @@
     if (/\+\s*campos/i.test(t)) return "escolhacampos";
     if (/sele[cç][aã]o [uú]nica/i.test(t)) return "escolha";
     if (/2 campos/.test(t)) return "doiscampos";
+    if (/faixa de pre[cç]o/i.test(t)) return "preco";
     return "texto";
   }
 
@@ -88,6 +92,30 @@
     const comRS = todos.filter((x) => x.rs);
     return (comRS.length ? comRS : todos).map((x) => x.n);
   }
+  /* um campo de preço: "40", "59,90", "R$ 1.200,50", "12.5". Devolve {n} ou {erro} */
+  function lerPreco(txt) {
+    const t = String(txt || "").replace(/^\s*R\$\s*/i, "").replace(/\s+/g, "");
+    if (!t) return { vazio: true };
+    if (/^-/.test(t) && /^-\d/.test(t)) return { erro: "O preço não pode ser negativo. Digite só números. Ex.: 12,50" };
+    let m;
+    if ((m = t.match(/^\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?$/))) return { n: parseFloat(t.replace(/\./g, "").replace(",", ".")) };
+    if ((m = t.match(/^\d+(?:[.,]\d{1,2})?$/))) return { n: parseFloat(t.replace(",", ".")) };
+    return { erro: "Digite só números. Ex.: 12,50" };
+  }
+  /* os dois campos (menor e maior): erro que bloqueia, aviso que não trava e a resposta a gravar */
+  function faixaPreco(a, b) {
+    const x = lerPreco(a), y = lerPreco(b);
+    if (x.erro || y.erro) return { erro: x.erro || y.erro };
+    if (x.vazio && y.vazio) return { erro: "Digite o menor preço que você viu ou toque em “Não sei”." };
+    let ns = [x.n, y.n].filter((n) => n != null);
+    const min = Math.min(...ns), max = Math.max(...ns);
+    const avisos = [];
+    if (max > PRECO_ALTO) avisos.push(`Esse valor parece alto para o preço de uma unidade ou de um atendimento num pequeno negócio (R$ ${reais(max)}). Confira se digitou certo.`);
+    if (min === 0) avisos.push("Um dos preços ficou em zero. Confira se digitou certo.");
+    else if (ns.length === 2 && max > min * PRECO_RAZAO) avisos.push("O maior preço é mais de 10 vezes o menor. Confira se está comparando a mesma coisa.");
+    const valor = min === max ? `R$ ${reais(min)}` : `de R$ ${reais(min)} a R$ ${reais(max)}`;
+    return { r: { estado: "valor", valor, min, max }, aviso: avisos.join(" ") || null };
+  }
   const media = (ns) => ns.reduce((a, b) => a + b, 0) / ns.length;
   const reais = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const piores = (tab) => Object.values(tab || {}).filter((v) => v === "Pior").length;
@@ -119,6 +147,9 @@
     } else if (tipo === "multipla") {
       const ops = r.opcoes || [];
       lista = ops.length ? q.opcoes.filter((o) => ops.includes(o)).map((o) => linha(q, o)) : [linha(q, "Nenhuma opção marcada")];
+    } else if (tipo === "preco") {
+      const ns = r.min != null ? [...new Set([r.min, r.max])] : numeros(r.valor);
+      lista = [ns.length ? linha(q, "Informou valores", reais(media(ns))) : null];
     } else if (tipo === "doiscampos") {
       const n = q.campos.filter((c) => String((r.campos || {})[c] || "").trim()).length;
       lista = [linha(q, n === 2 ? "Preencheu os dois campos" : "Preencheu só um dos campos")];
@@ -175,6 +206,6 @@
   }
 
   const API = { montar, campo, visivel, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
-                mostraveis, bloqueia, corrigir, partesPrompt, passos, pendente, texto, hipotese, NS, DESVIO };
+                mostraveis, bloqueia, corrigir, lerPreco, faixaPreco, PRECO_ALTO, PRECO_RAZAO, partesPrompt, passos, pendente, texto, hipotese, NS, DESVIO };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

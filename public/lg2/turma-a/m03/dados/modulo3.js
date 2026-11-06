@@ -22,7 +22,7 @@ window.MODULO3 = {
   "nao_faz": "Não afirma que existe ou não existe concorrência suficiente para o negócio dar certo.\nNão garante lucro ou sucesso com base na análise de mercado.\nNão inventa concorrentes, preços, avaliações ou dados de mercado.\nNão guarda dados identificáveis de concorrentes reais além do que é necessário para a análise do próprio usuário.",
   "mensagem_limite": " O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
   "ter_em_maos": "A descrição da própria ideia de negócio.\nAcesso a celular com internet, mesmo que limitada, para pesquisar no Google Maps, Instagram e avaliações.\nDisponibilidade para observar alguns concorrentes/substitutos na própria região ou canal de venda pretendido.",
-  "entrega": "Roteiro de pesquisa, indicando onde e como buscar concorrentes conforme o tipo de negócio e canal do usuário.\nModelo de tabela de concorrentes, com nome, tipo (direto/indireto/substituto), canal, preço observado, diferencial e fonte/data.\nPróximo passo indicado, direcionando para o módulo de Oferta e experimentação (Grupo 4), para completar a pesquisa, ou para fonte externa se necessário.",
+  "entrega": "Roteiro de pesquisa, com onde e como procurar concorrentes, de acordo com o seu tipo de negócio e com os canais em que você vende.\nTabela de concorrentes, com o nome de cada um, o tipo (vende o mesmo que você ou é o que o cliente compra no lugar), o preço que você viu, o que fazem bem, onde deixam a desejar e espaço para anotar onde e quando você viu.\nPróximo passo: o Módulo 4 (Oferta e experimentação), para transformar o que você descobriu em uma oferta para testar.",
   "encaminhamentos": "Nenhum encaminhamento a profissional regulado é típico deste módulo.",
   "caso_real": "Acompanhar o empreendedor real serve para testar se o roteiro de pesquisa funciona na prática: quais dúvidas ele teve ao procurar concorrentes, se encontrou dificuldade em registrar informações e analisá-las. Servindo para aprimorar o módulo.",
   "riscos": "Os principais riscos de conteúdo do módulo estão ligados a promessas de resultado e a recomendações fixas, que não fazem sentido na realidade específica de cada usuário. Esses riscos são evitados ao reunir o máximo de informações possível para orientar a pesquisa do usuário de forma eficaz, sem enviesar decisões nem levá-lo a conclusões precipitadas, o módulo apenas mostra o caminho e conduz à análise, deixando a interpretação final a cargo do próprio usuário."
@@ -620,7 +620,7 @@ window.MODULO3 = {
     {
      "opcao": "Resposta vazia ou muito curta",
      "tipo": "Dica",
-     "texto": "Pense no que dificulta outra pessoa de começar igual a você. Ex.: muito dinheiro, licença, máquina cara, nome já conhecido."
+     "texto": "Pense também no que você já conquistou e que alguém começando agora não teria: clientes que voltam, um fornecedor bom, uma receita ou técnica sua, o ponto onde você está. Isso ajuda a ver o que protege o seu negócio."
     },
     {
      "opcao": "Não sei",
@@ -646,23 +646,43 @@ window.MODULO3 = {
    "codigo": "M3.P13",
    "bloco": "Bloco 3: Onde está o Negócio",
    "titulo": "Canais de Venda",
-   "pergunta": "Onde o seu cliente encontra você e compra de você hoje? Na loja, no WhatsApp, no Instagram, em site ou aplicativo?",
+   "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
    "tipo": "Seleção múltipla",
    "caminhos": [
     {
-     "opcao": "Loja física",
+     "opcao": "Indicação (boca a boca)",
+     "tipo": "Dica",
+     "texto": "Considere pedir a clientes satisfeitos que indiquem você. Para quem está começando, a indicação costuma ser o caminho mais forte."
+    },
+    {
+     "opcao": "WhatsApp (WhatsApp Business)",
+     "tipo": "Dica",
+     "texto": "Considere atender e fechar pedidos pelo WhatsApp. O WhatsApp Business é gratuito e tem catálogo, horário de atendimento e respostas prontas."
+    },
+    {
+     "opcao": "Instagram e outras redes sociais (catálogo)",
+     "tipo": "Dica",
+     "texto": "Considere mostrar o seu trabalho com fotos e um catálogo no Instagram ou no Facebook, e fechar a venda por mensagem."
+    },
+    {
+     "opcao": "Atendimento direto ou presencial (loja, feira, ponto)",
      "tipo": "Dica",
      "texto": "Considere loja, feira, ponto de atendimento ou venda direta."
+    },
+    {
+     "opcao": "Atendimento em domicílio (vou até o cliente)",
+     "tipo": "Dica",
+     "texto": "Considere o tempo e o custo de ir até o cliente e em quais bairros você atende."
+    },
+    {
+     "opcao": "Aplicativos de entrega (iFood e outros)",
+     "tipo": "Dica",
+     "texto": "Considere que os aplicativos de entrega ficam com uma parte de cada venda. Confira a taxa antes de definir o seu preço."
     },
     {
      "opcao": "Marketplace (ex.: Mercado Livre, Shopee)",
      "tipo": "Dica",
      "texto": "Considere plataformas onde o cliente procura e compra de vários vendedores."
-    },
-    {
-     "opcao": "Redes sociais (Instagram, Facebook, WhatsApp)",
-     "tipo": "Dica",
-     "texto": "Considere vender e atender por Instagram, Facebook ou WhatsApp."
     },
     {
      "opcao": "Site ou aplicativo próprio",
@@ -677,7 +697,7 @@ window.MODULO3 = {
     {
      "opcao": "Não sei",
      "tipo": "Prompt de IA",
-     "texto": "Prompt: \"Eu vendo [produto ou serviço]. Quais são os melhores canais para vender isso (loja, WhatsApp, Instagram, marketplace, site)? Explique as vantagens de cada um.\""
+     "texto": "Prompt: \"Eu vendo [produto ou serviço]. Quais são os melhores canais para um pequeno negócio vender isso (indicação, WhatsApp, Instagram, atendimento presencial ou em domicílio, aplicativo de entrega, marketplace, site)? Explique as vantagens de cada um.\""
     },
     {
      "opcao": "Nenhuma opção marcada",
@@ -686,9 +706,13 @@ window.MODULO3 = {
     }
    ],
    "opcoes": [
-    "Loja física",
+    "Indicação (boca a boca)",
+    "WhatsApp (WhatsApp Business)",
+    "Instagram e outras redes sociais (catálogo)",
+    "Atendimento direto ou presencial (loja, feira, ponto)",
+    "Atendimento em domicílio (vou até o cliente)",
+    "Aplicativos de entrega (iFood e outros)",
     "Marketplace (ex.: Mercado Livre, Shopee)",
-    "Redes sociais (Instagram, Facebook, WhatsApp)",
     "Site ou aplicativo próprio",
     "Outro",
     "Não sei"
@@ -696,7 +720,7 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Onde você imagina que o seu cliente vai encontrar você e comprar de você? Na loja, no WhatsApp, no Instagram, em site ou aplicativo?",
+     "pergunta": "Como você imagina que o seu cliente vai encontrar você e comprar de você? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
      "caminhos": {
       "Outro": "Escreva onde mais o cliente vai poder encontrar e comprar de você."
      }
@@ -819,7 +843,7 @@ window.MODULO3 = {
     {
      "opcao": "Não sei",
      "tipo": "Passo a passo",
-     "texto": "1. Abra o Google Maps e busque o que você vende (ex.: \"bolos perto de mim\"). 2. No Instagram, busque palavras do seu ramo e o nome da sua cidade. 3. Veja se há anúncios no Mercado Livre, Shopee ou OLX. 4. Pergunte a clientes onde mais já compraram. 5. Anote os nomes que mais aparecem."
+     "texto": "Tudo bem, dá para aprender rápido. Quando tiver um tempo, um jeito simples de descobrir é: 1. Buscar no Google Maps o que você vende (ex.: \"bolos perto de mim\"). 2. No Instagram, buscar palavras do seu ramo e o nome da sua cidade. 3. Ver se há anúncios no Mercado Livre, Shopee ou OLX. 4. Perguntar a clientes onde mais já compraram. 5. Anotar os nomes que mais aparecem (esses passos também ficam no roteiro de pesquisa do seu resultado)."
     }
    ],
    "naosei": true,
@@ -849,7 +873,7 @@ window.MODULO3 = {
     {
      "opcao": "Não sei",
      "tipo": "Passo a passo",
-     "texto": "1. Busque o nome do concorrente ou o que ele vende no Google Maps. 2. Veja endereço, horário, fotos e avaliações. 3. Veja no Instagram ou WhatsApp como ele atende e entrega. 4. Anote tudo na tabela de concorrentes."
+     "texto": "Tudo bem. Quando tiver um tempo, dá para descobrir assim: 1. Buscar o nome do concorrente ou o que ele vende no Google Maps. 2. Ver endereço, horário, fotos e avaliações. 3. Ver no Instagram ou no WhatsApp como ele atende e entrega. 4. Anotar tudo na tabela de concorrentes do seu resultado."
     }
    ],
    "naosei": true
@@ -905,17 +929,12 @@ window.MODULO3 = {
    "bloco": "Bloco 4: Definição da Concorrência",
    "titulo": "Faixa de Preço",
    "pergunta": "Quanto os outros costumam cobrar por algo parecido com o que você vende?",
-   "tipo": "Texto livre",
+   "tipo": "Faixa de preço (R$)",
    "caminhos": [
     {
      "opcao": "Informou valores",
      "tipo": "Resposta",
      "texto": "Os outros costumam cobrar em torno de R$ [valor]. Compare com o seu preço."
-    },
-    {
-     "opcao": "Texto sem valor em reais",
-     "tipo": "Dica",
-     "texto": "Escreva os valores em reais. Ex.: de R$ 40 a R$ 60."
     },
     {
      "opcao": "Não sei",
@@ -931,7 +950,11 @@ window.MODULO3 = {
       "Informou valores": "Os outros costumam cobrar em torno de R$ [valor]. Use esse valor como referência para definir o seu preço."
      }
     }
-   }
+   },
+   "campos": [
+    "Menor preço que você viu (R$)",
+    "Maior preço que você viu (R$)"
+   ]
   },
   {
    "codigo": "M3.P21",

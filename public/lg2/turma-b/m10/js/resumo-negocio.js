@@ -1,4 +1,4 @@
-/* Resumo do negócio em texto corrido, montado por regras a partir das respostas dos Módulos 1 a 10
+/* Resumo do negócio em texto corrido (até 9 frases, em até 3 parágrafos por assunto), montado por regras a partir das respostas dos Módulos 1 a 10
    guardadas neste aparelho (só leitura). Cada frase só aparece quando o dado existe.
    O MESMO arquivo está em turma-b/m10/js/ e em jornada/js/ (cada página é autocontida; há teste que
    confere que as duas cópias são iguais). A capacidade usa window.Motor7 (motor7.js), se carregado. */
@@ -26,7 +26,8 @@
     if (typeof v === "number") return isFinite(v) ? v : null;
     var s = String(v).trim().replace(/[R$\s%]/g, "");
     if (!s) return null;
-    if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", ".");
+    /* vírgula decimal ou ponto de milhar ("1.500" = mil e quinhentos) */
+    if (s.indexOf(",") >= 0 || /^[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "").replace(",", ".");
     var n = Number(s);
     return isFinite(n) ? n : null;
   }
@@ -40,6 +41,9 @@
     if (s.length > (max || 110)) s = s.slice(0, (max || 110) - 1).replace(/\s+\S*$/, "") + "…";
     return /^[A-ZÀ-Ú][a-zà-ú]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
   }
+  /* número inteiro com ponto de milhar (1.500) e a palavra no singular ou no plural */
+  function nf(n) { return Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 1 }); }
+  function qtd(n, um, varios) { return nf(n) + " " + (n === 1 ? um : varios); }
   function juntar(xs) { return xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs[xs.length - 1]; }
   function primeiro() { for (var i = 0; i < arguments.length; i++) if (arguments[i]) return arguments[i]; return null; }
 
@@ -124,7 +128,25 @@
     var c = M7.capacidade({ horas: ini.horas, apoio: apoio, ajuda: ajuda, minUn: minUn, equip: equip });
     if (!c || c.estado !== "ok") return null;
     var vol = M7.num(ini.volume);
-    return { texto: M7.texto(c, "mes"), vol: vol > 0 ? vol : null, cmp: M7.comparar(c, vol > 0 ? vol : null) };
+    return { texto: M7.texto(c, "mes"), zero: c.hi.mes === 0, vol: vol > 0 ? vol : null, cmp: M7.comparar(c, vol > 0 ? vol : null) };
+  }
+
+  /* ---------- proposta de valor (Módulo 4: problema, motivo da escolha e benefício) ---------- */
+  var PV_NOMES = { "M4.PV1": "o problema que você resolve", "M4.PV2": "por que o cliente escolheria você", "M4.PV3": "o principal benefício para o cliente" };
+  function semPorque(s) { return String(s || "").replace(/^\s*(porque|por que|pois)\s+/i, ""); }
+  function igual(a, b) { var n = function (x) { return String(x || "").toLowerCase().replace(/[^a-z0-9à-ú]+/g, " ").trim(); }; return !!a && n(a) === n(b); }
+  /* r4 = respostas do Módulo 4; devolve as três partes (null quando falta), a lista do que falta e a frase */
+  function proposta(r4, dor) {
+    r4 = r4 || {};
+    var pv = { problema: texto(r4["M4.PV1"]), porque: texto(r4["M4.PV2"]), beneficio: texto(r4["M4.PV3"]) };
+    pv.porque = pv.porque && semPorque(pv.porque).trim() ? semPorque(pv.porque).trim() : pv.porque;
+    pv.falta = ["M4.PV1", "M4.PV2", "M4.PV3"].filter(function (k, i) { return !pv[["problema", "porque", "beneficio"][i]]; }).map(function (k) { return PV_NOMES[k]; });
+    var partes = [];
+    if (pv.problema && !igual(pv.problema, dor)) partes.push("o problema que você resolve é " + trecho(pv.problema, 90));
+    if (pv.porque) partes.push("o cliente escolhe você porque " + trecho(pv.porque, 90));
+    if (pv.beneficio) partes.push("o principal benefício para ele é " + trecho(pv.beneficio, 90));
+    pv.frase = partes.length ? "Sua proposta de valor: " + (partes.length < 2 ? partes[0] : partes.slice(0, -1).join("; ") + "; e " + partes[partes.length - 1]) + "." : null;
+    return pv;
   }
 
   /* ---------- frases ---------- */
@@ -134,14 +156,16 @@
   var EST_SO = { ideia: "Seu negócio ainda é uma ideia.", teste: "Você já fez os primeiros testes do seu negócio.", algumas: "Você já vendeu algumas vezes.",
     sempre: "Você já vende com frequência.", vende: "Você já vende." };
 
-  /* ler(n) devolve o estado salvo do Módulo n; m10 (opcional) traz o que o Módulo 10 tem na tela agora */
-  function frases(ler, m10) {
+  /* ler(n) devolve o estado salvo do Módulo n; m10 (opcional) traz o que o Módulo 10 tem na tela agora.
+     Cada frase leva o assunto (1 = o negócio e o cliente; 2 = dinheiro e tempo; 3 = documentos e próximo passo). */
+  function itens(ler, m10) {
     ler = ler || lerLocal;
     var R = function (n) { var s = ler(n); return (s && s.R) || {}; };
     var r1 = R(1), r2 = R(2), r3 = R(3), r4 = R(4), r8 = R(8), r9 = R(9), r6 = R(6);
     var e10 = ler(10) || {};
     var ini10 = (m10 && m10.ini) || e10.ini || {};
     var out = [];
+    function add(g, t) { out.push({ g: g, t: t }); }
 
     /* 1. ideia, tipo e estágio */
     var ideia = primeiro(ini10.oferta && String(ini10.oferta).trim(), texto(r1["M1.P03"]), texto(r3["M3.P01"]), texto(r4["M4.P01"]), texto(r8["M8.P01"]));
@@ -152,17 +176,21 @@
     if (est === "vende" && ESTAGIO_M1[texto(r1["M1.P01"])] === "sempre") est = "sempre";
     if (ideia || tipo) {
       var s1 = "Seu negócio é " + (ideia ? trecho(ideia, 90) + (tipo ? ", " + TIPO_TXT[tipo] : "") : TIPO_TXT[tipo]);
-      out.push(s1 + (est ? (ideia && tipo ? ", " : " ") + EST_TXT[est] : "") + ".");
-    } else if (est) out.push(EST_SO[est]);
+      add(1, s1 + (est ? (ideia && tipo ? ", " : " ") + EST_TXT[est] : "") + ".");
+    } else if (est) add(1, EST_SO[est]);
 
     /* 2. cliente e dor */
     var p10 = r3["M3.P10"], p10op = p10 && p10.estado === "opcao" ? p10.opcao : null;
     var cliente = primeiro(texto(r4["M4.P08"]), texto(r2["M2.P02"]), ini10.grupo,
       p10op === "Empresas" ? "empresas" : p10op && /^Pessoas/.test(p10op) ? "pessoas comuns, que compram para si" : null);
     var dor = primeiro(texto(r4["M4.P09"]), texto(r3["M3.P11"]));
-    if (cliente && dor) out.push("Você vende para " + trecho(cliente, 80) + " e ajuda com " + trecho(dor, 90) + ".");
-    else if (cliente) out.push("Você vende para " + trecho(cliente, 80) + ".");
-    else if (dor) out.push("Você ajuda o seu cliente com " + trecho(dor, 90) + ".");
+    if (cliente && dor) add(1, "Você vende para " + trecho(cliente, 80) + " e ajuda com " + trecho(dor, 90) + ".");
+    else if (cliente) add(1, "Você vende para " + trecho(cliente, 80) + ".");
+    else if (dor) add(1, "Você ajuda o seu cliente com " + trecho(dor, 90) + ".");
+
+    /* 2b. proposta de valor (Módulo 4); a parte que já apareceu como dor não se repete */
+    var pv = proposta(r4, dor);
+    if (pv.frase) add(1, pv.frase);
 
     /* 3. preço, custo e sobra (Módulo 5) */
     var preco = c5.preco;
@@ -175,32 +203,33 @@
         s3 += c5.sobra > 0 ? "; tirando " + brl(gasto) + " de " + (c5.taxa > 0 ? "custo e taxas" : "custo") + ", sobram " + brl(c5.sobra) + " em cada venda"
           : "; com " + brl(gasto) + " de " + (c5.taxa > 0 ? "custo e taxas" : "custo") + ", não sobra dinheiro em cada venda";
       }
-      out.push(s3 + ".");
+      add(2, s3 + ".");
     }
     /* 4. gastos do mês e vendas */
     if (c5.mensal > 0) {
       var s4 = "Seus gastos do mês somam " + brl(c5.mensal);
       if (c5.pe) {
-        s4 += ", então você precisa de pelo menos " + c5.pe + (c5.pe === 1 ? " venda" : " vendas") + " por mês para cobri-los";
-        if (c5.qtd) s4 += c5.qtd >= c5.pe ? ", e as " + c5.qtd + " que você espera fazer já cobrem" : ", e hoje você espera fazer " + c5.qtd;
+        s4 += ", então você precisa de pelo menos " + qtd(c5.pe, "venda", "vendas") + " por mês para cobri-los";
+        if (c5.qtd) s4 += c5.qtd >= c5.pe ? (c5.qtd === 1 ? ", e a venda que você espera fazer já cobre" : ", e as " + nf(c5.qtd) + " que você espera fazer já cobrem") : ", e hoje você espera fazer " + qtd(c5.qtd, "venda", "vendas");
       }
-      out.push(s4 + ".");
-    } else if (preco !== null && c5.qtd) out.push("Com " + c5.qtd + " vendas por mês, entram cerca de " + brl(preco * c5.qtd) + ".");
+      add(2, s4 + ".");
+    } else if (preco !== null && c5.qtd) add(2, "Com " + qtd(c5.qtd, "venda", "vendas") + " por mês, entram cerca de " + brl(preco * c5.qtd) + ".");
 
     /* 5. dinheiro para começar (Módulo 6) */
     var invest = ["M6.P02", "M6.P11", "M6.P14", "M6.P17"].reduce(function (s, k) { var n = num(texto(r6[k])); return n > 0 ? s + n : s; }, 0);
     var tem = num(texto(r6["M6.P07"]));
-    if (invest > 0 && tem !== null && tem >= 0) out.push("Para começar, você precisa de cerca de " + brl(invest) + " e tem " + brl(tem) + (tem >= invest ? ", o que cobre esse começo." : ": faltam " + brl(invest - tem) + "."));
-    else if (invest > 0) out.push("Para começar, você estima gastar cerca de " + brl(invest) + ".");
-    else if (tem > 0) out.push("Você tem " + brl(tem) + " para usar no negócio.");
+    if (invest > 0 && tem !== null && tem >= 0) add(2, "Para começar, você precisa de cerca de " + brl(invest) + " e tem " + brl(tem) + (tem >= invest ? ", o que cobre esse começo." : ": faltam " + brl(invest - tem) + "."));
+    else if (invest > 0) add(2, "Para começar, você estima gastar cerca de " + brl(invest) + ".");
+    else if (tem > 0) add(2, "Você tem " + brl(tem) + " para usar no negócio.");
 
     /* 6. capacidade (Módulo 7) */
     var cap = capM7(ler(7));
-    if (cap) {
+    if (cap && cap.zero) add(2, "No tempo que você tem, ainda não dá para fazer nem uma unidade por mês" + (cap.vol ? ", e você pretende fazer " + nf(cap.vol) : "") + ". Confira o tempo por unidade e as horas da semana no Módulo 7.");
+    else if (cap) {
       var s6 = "No tempo que você tem, dá para fazer " + cap.texto + " por mês";
-      if (cap.cmp && cap.cmp.tipo === "falta") s6 += ", menos do que os " + cap.vol + " que você pretende fazer";
-      else if (cap.cmp) s6 += ", o que dá conta dos " + cap.vol + " que você pretende fazer";
-      out.push(s6 + ".");
+      if (cap.cmp && cap.cmp.tipo === "falta") s6 += ", menos do que " + (cap.vol === 1 ? "a unidade" : "os " + nf(cap.vol)) + " que você pretende fazer";
+      else if (cap.cmp) s6 += ", o que dá conta " + (cap.vol === 1 ? "da unidade" : "dos " + nf(cap.vol)) + " que você pretende fazer";
+      add(2, s6 + ".");
     }
 
     /* 7. formalização (Módulo 8) e licenças (Módulo 9) */
@@ -213,7 +242,7 @@
     else if (via === "Sim, foi negada") leg.push("a prefeitura negou a atividade no endereço escolhido");
     else if (via === "Ainda não fiz" || (r9["M9-04"] && r9["M9-04"].estado === "naosei")) leg.push("ainda falta perguntar à prefeitura se a atividade pode funcionar no endereço");
     if (/^Sim/.test(texto(r9["M9-02"]) || "")) leg.push("a Vigilância Sanitária faz parte do seu caminho");
-    if (leg.length) out.push("Na parte de documentos, " + leg.join("; ") + ".");
+    if (leg.length) add(3, "Na parte de documentos, " + leg.join("; ") + ".");
 
     /* 8. prioridade e próxima ação (Módulo 10) */
     var R10 = (m10 && m10.R) || e10.R || {};
@@ -221,13 +250,21 @@
     var prio = primeiro(m10 && m10.prioridade, e10.prioridade, r9p && r9p.opcoes && r9p.opcoes[0], r9p && r9p.outro);
     var r11 = R10["M10-11"];
     var plano = r11 && r11.estado === "plano" && r11.frase ? r11.frase : null;
-    if (prio && plano) out.push("Sua prioridade agora é " + trecho(prio, 90) + ", e o próximo passo é: " + trecho(plano, 140) + ".");
-    else if (prio) out.push("Sua prioridade agora é " + trecho(prio, 90) + ".");
+    if (prio && plano) add(3, "Sua prioridade agora é " + trecho(prio, 90) + ", e o próximo passo é: " + trecho(plano, 140) + ".");
+    else if (prio) add(3, "Sua prioridade agora é " + trecho(prio, 90) + ".");
 
-    return out.slice(0, 8);
+    return out.slice(0, 9);
+  }
+  /* lista de frases (mesma assinatura de sempre: a jornada junta com espaço) */
+  function frases(ler, m10) { return itens(ler, m10).map(function (x) { return x.t; }); }
+  /* texto corrido em até 3 parágrafos curtos, um por assunto, sem lista */
+  function paragrafos(ler, m10) {
+    var grupos = {};
+    itens(ler, m10).forEach(function (x) { (grupos[x.g] = grupos[x.g] || []).push(x.t); });
+    return [1, 2, 3].filter(function (g) { return grupos[g]; }).map(function (g) { return grupos[g].join(" "); });
   }
 
-  var API = { CHAVES: CHAVES, frases: frases, contaM5: contaM5, capM7: capM7, brl: brl, lerLocal: lerLocal };
+  var API = { CHAVES: CHAVES, frases: frases, paragrafos: paragrafos, proposta: proposta, contaM5: contaM5, capM7: capM7, brl: brl, lerLocal: lerLocal };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   raiz.ResumoNegocio = API;
 })(typeof window !== "undefined" ? window : globalThis);

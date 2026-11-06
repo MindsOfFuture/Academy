@@ -9,6 +9,9 @@
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
   let S = carregar();                // { v, R: respostas, atual: código da tela atual }
+  Motor.remapear(M, S.R);           // P4/P8 no texto do tipo escolhido na 3A (mesmo formato salvo)
+  /* pergunta como aparece para esta pessoa (enunciado/opções/exemplo conforme o tipo da 3A) */
+  const Q = (c, R) => Motor.efetiva(M, R || S.R, M.porCodigo[c]);
   function carregar() {
     try {
       const s = JSON.parse(localStorage.getItem(CHAVE));
@@ -46,13 +49,27 @@
     return s;
   }
   /* primeira pergunta do caminho ainda sem resposta (ou null) */
-  function faltando(R) { return Motor.caminho(M, R).find((c) => !Motor.completa(M.porCodigo[c], R[c])) || null; }
+  function faltando(R) { return Motor.caminho(M, R).find((c) => !Motor.completa(Motor.efetiva(M, R, M.porCodigo[c]), R[c])) || null; }
   function novo() { return { v: VERSAO, R: {}, atual: null }; }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
   function ir(f, a) { parar(); fecharVideo(); tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+
+  /* ---------- teclado do celular: o campo em foco vai para o meio da parte visível da tela ----------
+     Um só listener. Roda ~300 ms depois do foco (tempo de o teclado abrir) e de novo a cada mudança do
+     tamanho visível (visualViewport) enquanto o foco estiver no campo. O Continuar fica logo abaixo. */
+  const CAMPO = "input, textarea, select";
+  const ESPERA_TECLADO = 300;
+  function centralizar() {
+    const a = document.activeElement;
+    if (a && a.matches && a.matches(CAMPO)) a.scrollIntoView({ block: "center" });
+  }
+  document.addEventListener("focusin", (e) => {
+    if (e.target && e.target.matches && e.target.matches(CAMPO)) setTimeout(centralizar, ESPERA_TECLADO);
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", centralizar);
 
   /* ---------- ícones simples das listas ---------- */
   const SVG = (d) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -151,6 +168,7 @@
         </header>
         <main class="corpo" data-ler>
           ${blocos(I.blocos, ["pessoa", "ideia", "certo"])}
+          ${I.jornada ? `<p class="jornada-tempo">${esc(I.jornada)}</p>` : ""}
         </main>
         <div class="fixo">
           <p class="tempo" data-ler>${esc(I.tempo)}</p>
@@ -255,7 +273,7 @@
   }
 
   function telaPergunta(cod) {
-    const q = M.porCodigo[cod];
+    const q = Q(cod);
     S.atual = cod; salvar();
     const p = el(`
       <div class="pag">
@@ -319,6 +337,7 @@
     function gravar(r) {
       if (r) S.R[cod] = r; else delete S.R[cod];
       limparInvisiveis();
+      Motor.remapear(M, S.R);
       salvar();
       atualizar();
     }
@@ -405,8 +424,20 @@
             const t = Array.from(e.results).map((x) => x[0].transcript).join(" ").trim();
             if (t) { txt.value = (txt.value.trim() ? txt.value.trim() + " " : "") + t; txt.dispatchEvent(new Event("input")); }
           };
-          rec.onend = rec.onerror = () => { rec = null; fb.classList.remove("gravando"); rotulo.textContent = q.botao_falar; };
-          try { rec.start(); } catch { rec.onend(); }
+          const parar = () => { rec = null; fb.classList.remove("gravando"); rotulo.textContent = q.botao_falar; };
+          rec.onend = parar;
+          rec.onerror = (e) => {
+            parar();
+            const motivo = e && e.error;
+            const msg = motivo === "not-allowed" || motivo === "service-not-allowed"
+              ? "O navegador não deixou usar o microfone. Toque no cadeado ao lado do endereço do site, permita o microfone e tente de novo, ou escreva a resposta."
+              : motivo === "no-speech" ? "Não ouvimos nada. Toque em falar e tente de novo, mais perto do microfone."
+              : "Não deu para ouvir agora. Você pode escrever a resposta.";
+            let av = ent.querySelector("#falar-aviso");
+            if (!av) { av = el('<p id="falar-aviso" class="falar-aviso" role="status"></p>'); fb.parentNode.after(av); }
+            av.textContent = msg;
+          };
+          try { rec.start(); } catch { parar(); }
         };
       }
     }
@@ -431,11 +462,12 @@
   }
 
   /* ================= resultado: retrato inicial =================
-     Junta as respostas do usuário com os textos que o grupo escreveu no Mapa. */
+     Junta as respostas do usuário com os textos do Mapa e gera o que a tela inicial promete: o que falta
+     descobrir (respostas "Não sei" ou vagas) e uma tarefa fácil para fazer já. */
   function telaResultado() {
     const lista = Motor.retrato(M, S.R);
     const regras = Motor.regrasTodas(M, S.R);
-    const naosei = lista.filter((x) => x.naosei);
+    const falta = Motor.faltaDescobrir(M, S.R), tarefa = Motor.tarefa(M, S.R), avisos = Motor.avisos(M, S.R);
     const mostra = (x) => x.detalhe ? `${x.valor}: ${x.detalhe}` : x.valor;
     const entendemos = Motor.entendimento(M, S.R);
     const p = el(`
@@ -450,7 +482,11 @@
             <h3>O que entendemos até aqui</h3>
             ${entendemos.map((f) => `<p>${esc(f)}</p>`).join("")}
           </section>` : ""}
-          <div class="cartao" data-ler><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
+          ${avisos.map((a) => `<div class="bloco b-aviso" role="status" data-ler><b>Confira esta combinação</b><p>${esc(a)}</p></div>`).join("")}
+          <div class="bloco b-lacuna" data-ler><b>O que ainda falta descobrir</b>${falta.length
+            ? `<ul>${falta.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>`
+            : `<p class="nada-falta">${esc(Motor.NADA_FALTA)}</p>`}</div>
+          <div class="tarefa" data-ler><b>Sua tarefa para fazer já</b><p>${esc(tarefa)}</p></div>
 
           <details class="ajuda-box respostas">
             <summary data-ler>Ver suas respostas</summary>
@@ -465,7 +501,6 @@
 
           ${regras.map((r) => `<div class="regra"><p class="r-texto">${esc(r.texto)}</p></div>`).join("")}
 
-          ${naosei.length ? `<div class="bloco b-lacuna" data-ler><b>Perguntas que você ainda não soube responder</b><ul>${naosei.map((x) => `<li>${esc(x.pergunta)}</li>`).join("")}</ul></div>` : ""}
 
           <div class="cartao" data-ler><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
 

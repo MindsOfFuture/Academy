@@ -78,12 +78,39 @@
     return lista;
   }
 
+  /* pergunta como aparece para esta pessoa: "por_tipo" troca enunciado, opções ou exemplo conforme a
+     palavra inicial da Pergunta 3A (Produto / Mercadoria / Serviço). Sem 3A respondida vale o texto base. */
+  function efetiva(M, R, q) {
+    if (!q || !q.por_tipo) return q;
+    const t = tipoOferta(R);
+    return t && q.por_tipo[t] ? Object.assign({}, q, q.por_tipo[t]) : q;
+  }
+  /* trocou o tipo na 3A: a resposta guardada da P4/P8 passa para o texto equivalente (mesma posição) da
+     lista nova, para não perder o que a pessoa já tinha marcado */
+  function remapear(M, R) {
+    Object.keys(M.porCodigo).forEach((c) => {
+      const q = M.porCodigo[c], r = R[c];
+      if (!q.por_tipo || !r || r.estado !== "opcao") return;
+      const agora = (efetiva(M, R, q).opcoes || []).map((o) => o.texto);
+      if (!agora.length) return;
+      const listas = [q.opcoes || []].concat(Object.values(q.por_tipo).map((v) => v.opcoes).filter(Boolean)).map((l) => l.map((o) => o.texto));
+      const troca = (t) => {
+        if (agora.includes(t)) return t;
+        for (const l of listas) { const i = l.indexOf(t); if (i >= 0 && agora[i]) return agora[i]; }
+        return t;
+      };
+      r.opcao = troca(r.opcao);
+      if (Array.isArray(r.opcoes)) r.opcoes = r.opcoes.map(troca);
+    });
+    return R;
+  }
+
   /* texto da pergunta; a Pergunta 4 repete a resposta da Pergunta 3 quando houver */
   function textoPergunta(M, R, q) {
     const pr = q.pergunta_com_resposta;
     if (pr) {
       const r = R[pr.de];
-      if (r && r.estado === "valor") {
+      if (r && r.estado === "valor" && !(pr.de === "M1.P03" && ideiaVaga(R))) {
         let t = String(r.valor || "").trim().replace(/[.!?;:,]+$/, "").trim();
         if (/^[A-ZÀ-Ý][a-zà-ÿ]/.test(t)) t = t[0].toLowerCase() + t.slice(1);
         if (t) return pr.modelo.replace("{resposta}", t);
@@ -106,7 +133,7 @@
   /* retrato: as respostas do usuário, na ordem do fluxo */
   function retrato(M, R) {
     return caminho(M, R).filter((c) => R[c] !== undefined).map((c) => {
-      const q = M.porCodigo[c], r = R[c];
+      const q = efetiva(M, R, M.porCodigo[c]), r = R[c];
       if (q.tipo === "multipla") return { q, pergunta: textoPergunta(M, R, q), valor: itens(q, r).join("; "), itens: itens(q, r), detalhe: "", naosei: false };
       return { q, pergunta: textoPergunta(M, R, q), valor: valor(R, c), detalhe: r.detalhe || "",
         naosei: r.estado === "naosei" || valor(R, c) === "Não sei dizer" };
@@ -132,6 +159,10 @@
     "Sim, já faço bem": "Você já sabe fazer isso bem",
     "Sei um pouco, ainda estou aprendendo": "Você ainda está aprendendo a fazer isso",
     "Ainda não sei fazer": "Você ainda precisa aprender a fazer isso",
+    /* Mercadoria: a Pergunta 4 fala de conhecer o produto e onde comprar */
+    "Sim, conheço bem o produto e onde comprar": "Você já conhece bem o que vai revender e onde comprar",
+    "Conheço um pouco, ainda estou pesquisando": "Você ainda está conhecendo o que vai revender e onde comprar",
+    "Ainda não conheço": "Você ainda precisa conhecer melhor o que vai revender e onde comprar",
   };
   const TEMPO = {
     "Até 1 hora por dia": "tem até 1 hora por dia para o negócio",
@@ -158,6 +189,7 @@
   };
   const PREOCUPA = {
     "Ainda não sei fazer direito": "ainda não saber fazer direito",
+    "Ainda não conheço bem o produto ou os fornecedores": "ainda não conhecer bem o produto ou os fornecedores",
     "Me falta lugar ou equipamento": "a falta de lugar ou equipamento",
     "Conheço poucas pessoas para vender ou me ajudar": "conhecer poucas pessoas para vender ou te ajudar",
     "Tenho dificuldade com celular, internet ou redes sociais": "a dificuldade com celular, internet ou redes sociais",
@@ -168,15 +200,18 @@
     const m = r && r.estado === "opcao" ? String(r.opcao).match(/^(Produto|Mercadoria|Serviço)(?=[:\s]|$)/) : null;
     return m ? m[1] : null;
   }
+  /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
+  const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
   function entendimento(M, R) {
     const op = (c) => (R[c] && R[c].estado === "opcao" ? R[c].opcao : null);
     const frases = [];
-    const ideia = R["M1.P03"] && R["M1.P03"].estado === "valor" ? minuscula(limpa(R["M1.P03"].valor)) : "";
+    const ideia = !ideiaVaga(R) && R["M1.P03"] && R["M1.P03"].estado === "valor" ? minuscula(limpa(R["M1.P03"].valor)) : "";
     const tipo = tipoOferta(R);
     const vende = ["Já vendi algumas vezes", "Já vendo sempre"].includes(op("M1.P01"));
     if (ideia) frases.push((vende ? "Você vende " : "Você quer vender ") + ideia + (tipo ? TIPO[tipo] : "") + ".");
     else if (tipo) frases.push("O que você oferece é" + TIPO[tipo].replace(/^,/, "") + ".");
     if (ESTAGIO[op("M1.P01")]) frases.push(ESTAGIO[op("M1.P01")]);
+    const c1 = frases.length;   // 1º parágrafo: o que vende e em que ponto está
     const sabe = SABE[op("M1.P04")], tempo = TEMPO[op("M1.P05")];
     if (sabe || tempo) {
       let f = sabe || "Você";
@@ -189,15 +224,70 @@
       if (a && a !== "Não sei dizer") f += "; você pensa em começar " + minuscula(a);
       frases.push(f + ".");
     } else if (MATERIAL[op("M1.P06")]) frases.push("Você" + MATERIAL[op("M1.P06")].replace(/^,/, "") + ".");
-    const q8 = M.porCodigo["M1.P08"];
+    const c2 = frases.length;   // 2º: tempo, saber fazer e dinheiro; 3º: o que preocupa
+    const q8 = efetiva(M, R, M.porCodigo["M1.P08"]);
     const pre = q8 ? (R["M1.P08"] && Array.isArray(R["M1.P08"].opcoes) ? R["M1.P08"].opcoes : []).map((t) => {
       const o = q8.opcoes.find((x) => x.texto === t);
       return o && o.campo ? (limpa(R["M1.P08"].detalhe) ? minuscula(limpa(R["M1.P08"].detalhe)) : "outra coisa") : (PREOCUPA[t] || minuscula(t));
     }) : [];
     if (pre.length) frases.push((pre.length > 1 ? "O que mais te preocupa agora: " : "O que mais te preocupa agora é: ") + juntar(pre) + ".");
-    return frases;
+    return emParagrafos(frases, c1, c2);
   }
 
-  const API = { montar, valor, completa, avaliar, proxima, caminho, textoPergunta, regrasTodas, retrato, refs, itens, tipoOferta, entendimento };
+  /* ---------- "O que ainda falta descobrir": respostas "Não sei" ou vagas, em linguagem simples ---------- */
+  /* resposta da Pergunta 3 que não diz o que a pessoa vende */
+  const IDEIA_VAGA = /^(n[ãa]o sei( ainda)?|ainda n[ãa]o sei|sei l[áa]|nada( ainda)?|qualquer coisa|alguma coisa|n[ãa]o tenho( ideia)?( ainda)?|talvez|\?+|-+|\.+)$/i;
+  const IDEIA_MIN = 3;   // menos letras que isso também é vago ("x", "ok")
+  function ideiaVaga(R) {
+    const r = R["M1.P03"];
+    if (!r) return false;
+    if (r.estado === "naosei") return true;
+    const t = limpa(r.valor);
+    return t.replace(/[^A-Za-zÀ-ÿ]/g, "").length < IDEIA_MIN || IDEIA_VAGA.test(t);
+  }
+  const FALTA = {
+    "M1.P03": "o que exatamente você vai vender",
+    "M1.P05A": "se você consegue arrumar mais tempo quando o negócio crescer",
+    "M1.P07A": "como você vai começar sem dinheiro ou sem material",
+  };
+  function faltaDescobrir(M, R) {
+    const l = [];
+    caminho(M, R).forEach((c) => {
+      const r = R[c];
+      if (!r) return;
+      const ns = r.estado === "naosei" || (r.estado === "opcao" && r.opcao === "Não sei dizer");
+      if ((c === "M1.P03" && ideiaVaga(R)) || ns)
+        l.push("Ainda falta saber: " + (FALTA[c] || minuscula(limpa(textoPergunta(M, R, efetiva(M, R, M.porCodigo[c]))))) + ".");
+    });
+    return l;
+  }
+  const NADA_FALTA = "Você respondeu tudo com clareza. Por enquanto, não falta descobrir nada nesta parte.";
+
+  /* ---------- "Sua tarefa para fazer já": UMA tarefa, escolhida por regra (a primeira que vale) ---------- */
+  function tarefa(M, R) {
+    const op = (c) => (R[c] && R[c].estado === "opcao" ? R[c].opcao : null);
+    const ideia = !ideiaVaga(R) && R["M1.P03"] && R["M1.P03"].estado === "valor" ? minuscula(limpa(R["M1.P03"].valor)) : "";
+    const tipo = tipoOferta(R);
+    if (!ideia) return "Escreva em uma frase o que você quer vender e para quem.";
+    if (op("M1.P01") === "Ainda está só na minha cabeça") return `Pergunte a 3 pessoas próximas se comprariam ${ideia} e por quanto.`;
+    if (op("M1.P01") === "Já fiz um pouco para testar ou dar de amostra") return `Pergunte a 3 pessoas que já experimentaram se comprariam ${ideia} e por quanto.`;
+    if (tipo === "Mercadoria") return `Pesquise o preço de compra de ${ideia} em 2 fornecedores.`;
+    if (tipo === "Serviço") return "Anote quanto tempo leva um atendimento, do começo ao fim.";
+    if (tipo === "Produto") return `Anote quanto você gasta de material para fazer uma unidade de ${ideia}.`;
+    return `Escreva quanto você cobra hoje por ${ideia} e quantas vendas fez no último mês.`;
+  }
+
+  /* ---------- avisos de combinação estranha (não travam; só aparecem no resultado) ---------- */
+  function avisos(M, R) {
+    const op = (c) => (R[c] && R[c].estado === "opcao" ? R[c].opcao : null);
+    const l = [];
+    const vende = ["Já vendi algumas vezes", "Já vendo sempre"].includes(op("M1.P01"));
+    if (vende && op("M1.P04") === "Ainda não sei fazer")
+      l.push("Você disse que já vende, mas também que ainda não sabe fazer o que vende. Se outra pessoa faz para você e você só revende, talvez a resposta sobre o que você oferece seja \"Mercadoria\". Confira suas respostas.");
+    return l;
+  }
+
+  const API = { montar, valor, completa, avaliar, proxima, caminho, textoPergunta, regrasTodas, retrato, refs, itens, tipoOferta, entendimento,
+    efetiva, remapear, ideiaVaga, faltaDescobrir, NADA_FALTA, tarefa, avisos };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);
