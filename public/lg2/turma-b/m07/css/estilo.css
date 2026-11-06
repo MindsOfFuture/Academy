@@ -117,7 +117,19 @@ textarea.campo{resize:vertical;font-family:inherit}
 
 /* botões */
 .acoes{display:flex;flex-direction:column;gap:10px;margin-top:20px}
-.acoes-voltar{margin-top:10px}
+/* "‹ Voltar" no topo do cartão (mesmo lugar em todos os módulos) */
+.voltar-topo{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--m-purple);font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:8px 8px 8px 0;min-height:44px;margin:-8px 0 6px}
+.voltar-topo span{font-size:22px;line-height:1}
+/* ajuda longa: 1ª frase à vista, resto em "Ver mais" */
+.ver-mais{margin:2px 0 6px}
+.ver-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:14.5px;padding:4px 0}
+.nota-veio{font-size:13.5px;color:var(--m-gray);margin:-2px 0 12px}
+.nota-campo{font-size:13.5px;margin:4px 0 8px}
+/* "Entenda os termos" embaixo do Continuar, discreto */
+.cartao-q .acoes + .saiba{margin-top:14px;border-width:1px}
+.cuidados{list-style:none;display:flex;flex-direction:column;gap:8px;margin:6px 0 12px}
+.cuidados li{font-size:14.5px;color:#4a4460;background:var(--m-lavender);border-radius:12px;padding:10px 13px}
+.cuidados b{color:var(--m-purple);display:block}
 .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:none;border-radius:12px;font:inherit;font-weight:700;font-size:16.5px;padding:14px;cursor:pointer;line-height:1.25;text-align:center}
 .btn-primario{background:var(--m-purple);color:#fff}
 .btn-claro{background:var(--m-lavender);color:var(--m-purple)}
@@ -169,7 +181,7 @@ textarea.campo{resize:vertical;font-family:inherit}
 }
 @media print{
   body{background:#fff}#tela{box-shadow:none;max-width:none}
-  .acoes,.voltar,.barra-topo,.etapas,.heroi-prog,.alt{display:none!important}
+  .acoes,.voltar,.voltar-topo,.barra-topo,.etapas,.heroi-prog,.alt{display:none!important}
   .heroi,.res-num{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .saiba{border:none}.saiba[open] summary{display:none}
 }

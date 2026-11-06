@@ -3,7 +3,10 @@
    Opcional: LG2_M02_URL=http://127.0.0.1:8812/ (servidor externo); LG2_SHOTS=<pasta> (prints 390x844).
    Cobre: todas as regras da aba 4 alcançadas pela interface (N de N), casos da aba 8
    (divergências são relatadas, não falham), instrumentos M2.I04/M2.I05 contra a "saída esperada"
-   da aba 5 e persistência após recarregar. Imprime PASS/FAIL e sai com código != 0 se falhar. */
+   da aba 5 e persistência após recarregar. Imprime PASS/FAIL e sai com código != 0 se falhar.
+   Lote 3 (05/11/2026): Voltar no topo de todas as telas (um só), dica longa com "Ver mais" e caixas educativas
+   recolhidas, nenhum código Mx.Pyy na tela (perguntas, retornos, instrumentos, resultado aberto), P08 com várias
+   respostas + "Outra" com campo (migração v2 -> v3) e P15 dizendo onde fica o quadro, com botão até ele. */
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
@@ -419,7 +422,7 @@ async function servidor() {
     await shot('resultado_entendemos');
     // 9e) formato do estado salvo, lido por outros módulos (Módulo 10): {v, R:{código:{estado, opcao|valor}}}
     const est = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(est.v === 2 && est.R['M2.P17'].estado === 'opcao' && est.R['M2.P17'].opcao === 'Todo mês' && est.R['M2.P18'].estado === 'valor' && est.R['M2.P18'].valor === '4'
+    ok(est.v === 3 && est.R['M2.P17'].estado === 'opcao' && est.R['M2.P17'].opcao === 'Todo mês' && est.R['M2.P18'].estado === 'valor' && est.R['M2.P18'].valor === '4'
       && est.R['M2.P21'].opcao === 'Só elogiaram a ideia' && est.R['M2.P02'].estado === 'valor' && est.R['M2.P20'].estado === 'naosei', `estado salvo no formato esperado (obtido ${JSON.stringify(est.R).slice(0, 300)})`);
     const outros = await page.evaluate(() => [localStorage.getItem('lg2-turma-a-m01'), localStorage.getItem('lg2-turma-a-m03')]);
     ok(outros[0] === JSON.stringify(M1) && outros[1] === JSON.stringify(M3), 'Módulos 1 e 3 não são alterados (só leitura)');
@@ -456,7 +459,128 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Começar');
     const mig = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(mig.v === 2 && mig.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'resposta antiga "Só elogios" convertida para a opção nova');
+    ok(mig.v === 3 && mig.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'resposta antiga "Só elogios" convertida para a opção nova');
+
+    /* ===== lote 3 (Duda, Gaby, José Inácio, Nayara, Arthur) ===== */
+    const CODIGO = /\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}|\b[PI]\d{2}\b/;
+    /* texto inteiro da tela, inclusive o que está recolhido em "Ver mais"/caixas (textContent) */
+    const semCodigo = async (onde) => { const t = await page.evaluate(() => document.querySelector('#tela').textContent); const m = t.match(CODIGO); ok(!m, `${onde}: código visível na tela (${m ? t.slice(Math.max(0, m.index - 40), m.index + 20) : ''})`); };
+    const voltarNoTopo = (sel) => page.evaluate((sel) => {
+      const v = [...document.querySelectorAll('button')].filter((b) => /Voltar/.test(b.textContent));
+      const r = v[0] && v[0].getBoundingClientRect(), alvo = document.querySelector(sel).getBoundingClientRect();
+      return v.length === 1 && v[0].id === 'v' && v[0].textContent.trim() === '‹ Voltar' && r.bottom <= alvo.top + 1 && r.left < innerWidth / 2 && !document.querySelector('.acoes-voltar');
+    }, sel);
+    // C) Voltar no topo, acima da pergunta (e no topo das outras telas); um só, sem o de baixo
+    await page.goto(srv.url + 'index.html'); await page.evaluate(() => localStorage.clear()); await page.reload();
+    await semCodigo('capa');
+    await clicarTexto('button', 'O que este módulo não faz');
+    ok(await voltarNoTopo('.cartao'), 'limites: Voltar no topo');
+    await semCodigo('limites');
+    await page.click('#v');
+    await clicarTexto('button', 'Começar');
+    ok(await voltarNoTopo('h2.q'), 'pergunta: um só "‹ Voltar", à esquerda, acima do texto da pergunta');
+    ok(await page.evaluate(() => document.querySelector('#v').getBoundingClientRect().top < document.querySelector('#ok').getBoundingClientRect().top), 'pergunta: Voltar acima do Continuar');
+    await page.click('#v');
+    ok(await page.evaluate(() => !!document.querySelector('#ir')), '1ª pergunta: Voltar volta para a capa');
+    // códigos (Nayara): em todos os caminhos, a tela inteira (pergunta + retorno) não mostra Mx.Pyy
+    for (const seq of [planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P15': 'Não sei', 'M2.P07': 'Os dois', 'M2.P04': 'Sim', 'M2.P18': '3' }), planejar({ 'M2.P05': 'Quase qualquer pessoa', 'M2.P08': 'Nenhuma muda muito', 'M2.P04': 'Não' }), planejar({ 'M2.P01': 'Não sei', 'M2.P08': 'Não sei', 'M2.P16': 'Não sei', 'M2.P17': 'Não sei' })])
+      await percorrer(seq, async (cod) => { await semCodigo(cod + ' (pergunta e retorno)'); });
+    await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+    await semCodigo('resultado (tudo aberto, como na impressão)');
+    ok(await voltarNoTopo('.concluido'), 'resultado: Voltar no topo');
+    ok(/a pergunta sobre o que mais muda entre um cliente e outro/.test(Motor.limpa('Responda M2.P08 e anote.')) && !CODIGO.test(Motor.limpa('Veja M1.P03 e (M3-02) e M2.P02.')), 'limpeza troca o código pelo assunto da pergunta');
+    await clicarTexto('button', 'Abrir os instrumentos');
+    await semCodigo('instrumentos');
+    ok(await voltarNoTopo('.secao-titulo'), 'instrumentos: Voltar no topo');
+    await page.click('#v');
+    ok(await page.evaluate(() => !!document.querySelector('.concluido')), 'instrumentos: Voltar volta para o resultado');
+
+    // D) menos texto: dica longa com a 1ª frase e "Ver mais"; caixas educativas recolhidas embaixo do Continuar
+    await percorrer(planejar({ 'M2.P04': 'Sim', 'M2.P18': '6', 'M2.P21': 'Contaram um problema de verdade' }), async (cod) => {
+      if (cod === 'M2.P02') {
+        const cx = await page.evaluate(() => [...document.querySelectorAll('.caixa')].map((c) => ({ tag: c.tagName, open: c.open, abaixo: c.getBoundingClientRect().top > document.querySelector('#acoes').getBoundingClientRect().top, sum: c.querySelector('summary') && c.querySelector('summary').textContent.trim() })));
+        ok(cx.length === 2 && cx.every((c) => c.tag === 'DETAILS' && !c.open && c.abaixo && c.sum), `P02: caixas "Entenda"/"Use a IA" recolhidas embaixo do Continuar (obtido ${JSON.stringify(cx)})`);
+        await page.evaluate(() => { document.querySelector('#retorno').innerHTML = ''; window.scrollTo(0, 0); });
+        await shot('l3_m02_pergunta_voltar_topo');
+      }
+      if (cod === 'M2.P21') {
+        const d = await page.evaluate(() => { const a = document.querySelector('.dica'); const vm = a.querySelector('details.ver-mais'); return { vis: a.querySelector('p.ajuda').textContent, vm: !!vm && !vm.open && vm.querySelector('summary').textContent }; });
+        ok(d.vm === 'Ver mais' && d.vis.length <= 220 && d.vis.includes('que legal'), `P21: dica longa mostra só a 1ª frase e "Ver mais" fechado (obtido ${JSON.stringify(d)})`);
+      }
+    });
+
+    // P8 (Nayara): várias respostas, "Outra" com campo de texto, "Nenhuma"/"Não sei" sozinhas
+    ok(Motor.multipla(M.porCodigo['M2.P08']) && M.porCodigo['M2.P08'].opcoesLista.includes('Outra'), 'P08: várias respostas e opção "Outra"');
+    const ateP08 = async () => {
+      await inicio();
+      for (const [c, v] of [['M2.P01', 'Ainda não pensei nisso'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo'], ['M2.P07', 'Pessoas']]) { await responder(c, v); await clicarTexto('#acoes .btn', 'Continuar'); }
+      ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P08'].pergunta, 'chegou na P08');
+    };
+    await ateP08();
+    const marc = () => page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.textContent));
+    for (const o of ['Idade/fase da vida', 'Hábitos de compra']) await clicarTexto('#ent .opcao', o);
+    ok(JSON.stringify(await marc()) === JSON.stringify(['Idade/fase da vida', 'Hábitos de compra']), 'P08: marca mais de uma');
+    ok(await page.evaluate(() => getComputedStyle(document.querySelector('#ent .radio')).borderRadius === '6px'), 'P08: quadradinho (várias respostas)');
+    await clicarTexto('#ent .opcao', 'Não sei');
+    ok(JSON.stringify(await marc()) === JSON.stringify(['Não sei']), 'P08: "Não sei" desmarca as outras');
+    await clicarTexto('#ent .opcao', 'Idade/fase da vida');
+    ok(JSON.stringify(await marc()) === JSON.stringify(['Idade/fase da vida']), 'P08: marcar outra desmarca "Não sei"');
+    await clicarTexto('#ent .opcao', 'Hábitos de compra');
+    await clicarTexto('#ent .opcao', 'Outra');
+    ok(await page.locator('.outra textarea').isVisible(), 'P08: "Outra" abre o campo de texto');
+    await page.click('#ok');
+    ok(/Escreva qual é a outra/.test(await page.locator('#erro').textContent()) && (await page.locator('#retorno .retorno').count()) === 0, 'P08: "Outra" sem texto pede para escrever');
+    await page.fill('.outra textarea', 'Se é para presente');
+    await page.evaluate(() => { document.querySelector('#erro').hidden = true; window.scrollTo(0, 0); });
+    await shot('l3_m02_p08_multipla');
+    await page.click('#ok');
+    await page.waitForSelector('#retorno .retorno');
+    const r8 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')).R['M2.P08']);
+    ok(JSON.stringify(r8) === JSON.stringify({ estado: 'opcao', opcao: 'Idade/fase da vida', opcoes: ['Idade/fase da vida', 'Hábitos de compra', 'Outra'], detalhe: 'Se é para presente' }), `P08: formato salvo (obtido ${JSON.stringify(r8)})`);
+    await semCodigo('P08 (retorno)');
+    // cada característica marcada abre a sua pergunta de detalhe
+    const seguintes = [];
+    for (let i = 0; i < 2; i++) { await clicarTexto('#acoes .btn', 'Continuar'); seguintes.push(norm(await page.locator('h2.q').textContent())); await clicarTexto('#ent .opcao', i === 0 ? 'Adultos que trabalham' : 'Praticidade/rapidez'); await page.click('#ok'); }
+    ok(JSON.stringify(seguintes) === JSON.stringify([M.porCodigo['M2.P09'].pergunta, M.porCodigo['M2.P13'].pergunta]), `P08 com 2 marcadas abre P09 e P13 (obtido ${seguintes.join(' | ')})`);
+    for (const [c, v] of [['M2.P16', 'Sim'], ['M2.P17', 'Todo mês']]) { await clicarTexto('#acoes .btn', 'Continuar'); await clicarTexto('#ent .opcao', v); await page.click('#ok'); }
+    await clicarTexto('#acoes .btn', 'Ver meu resumo');
+    await page.waitForSelector('#entendemos');
+    const ent8 = norm(await page.locator('#entendemos').innerText());
+    ok(ent8.includes('as características que mais mudam entre um cliente e outro são: idade/fase da vida (adultos que trabalham), hábitos de compra (praticidade/rapidez) e se é para presente.'), `P08: "O que entendemos" junta as marcadas (obtido ${ent8})`);
+    await page.evaluate(() => { document.querySelector('#suas-respostas').open = true; });
+    ok((await page.locator('#suas-respostas').innerText()).includes('Idade/fase da vida; Hábitos de compra; Outra: Se é para presente'), 'P08: "Ver suas respostas" lista as marcadas e o texto de "Outra"');
+    // migração: resposta única antiga da P08 vira lista
+    await page.goto(srv.url + 'index.html');
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', JSON.stringify({ v: 2, R: { 'M2.P08': { estado: 'opcao', opcao: 'Motivo da compra' }, 'M2.P21': { estado: 'opcao', opcao: 'Só elogiaram a ideia' } }, hist: ['M2.P08'] })); });
+    await page.reload();
+    await clicarTexto('button', 'Continuar de onde parei');
+    const mig8 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
+    ok(mig8.v === 3 && JSON.stringify(mig8.R['M2.P08'].opcoes) === '["Motivo da compra"]' && mig8.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'P08: resposta única da versão 2 migrada para lista (v3)');
+    ok(JSON.stringify(await marc()) === JSON.stringify(['Motivo da compra']), 'P08 migrada aparece marcada');
+
+    // P15 (Nayara): o aviso diz onde fica o quadro e leva até ele
+    await inicio();
+    const s15 = planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P15': 'Maior necessidade' });
+    for (const [i, [c, v]] of s15.entries()) {
+      await responder(c, v, i + 1);
+      if (c === 'M2.P15') break;
+      await clicarTexto('#acoes .btn', 'Continuar');
+    }
+    const px15 = norm(await page.locator('#retorno .b-proximo').textContent());
+    ok(/quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo/.test(px15), `P15: o aviso diz onde fica o quadro (obtido "${px15}")`);
+    ok(norm(await page.locator('#abrir-quadro').textContent()) === 'Abrir o quadro para comparar os grupos', 'P15: botão que leva ao quadro');
+    await page.locator('#onde-quadro').scrollIntoViewIfNeeded();
+    await shot('l3_m02_p15_quadro');
+    await page.click('#abrir-quadro');
+    const noQuadro = await page.evaluate(() => { const t = document.querySelector('#quadro-grupos'); const r = t && t.getBoundingClientRect(); return !!t && t.textContent === 'Quadro para comparar os grupos de clientes' && r.top >= -2 && r.top < innerHeight / 2 && !!document.querySelector('#grupos'); });
+    ok(noQuadro, 'P15: o botão abre os instrumentos já no quadro para comparar os grupos');
+    await shot('l3_m02_quadro_grupos');
+    await page.click('#v');
+    ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P15'].pergunta && (await page.locator('#ent .opcao.sel').textContent()) === 'Maior necessidade', 'P15: Voltar do quadro volta para a pergunta, com a resposta marcada');
+    // outros avisos que citam um quadro também dizem onde ele fica (ex.: P06 e P19)
+    await percorrer(planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P04': 'Sim', 'M2.P18': '3', 'M2.P19': 'Sim' }), async (cod) => {
+      if (cod === 'M2.P06' || cod === 'M2.P19') ok((await page.locator('#onde-quadro').count()) === 1 && /fica na tela de instrumentos/.test(await page.locator('#retorno').innerText()), `${cod}: aviso do quadro diz onde ele fica`);
+    });
 
     /* 7) resultado (caso T06 do grupo) para o print */
     const t06 = D.casos.find((c) => c.codigo === 'M2.T06');
@@ -473,5 +597,5 @@ async function servidor() {
   console.log(`Casos da aba 8: ${D.casos.length} executados; divergências da planilha (não falham): ${div.length}`);
   div.forEach((d) => console.log('  DIVERGÊNCIA ' + d));
   if (falhas.length) { falhas.forEach((f) => console.log('  FALHA ' + f)); console.log(`FAIL (${falhas.length})`); process.exit(1); }
-  console.log(`PASS: ${alcancadas.size} de ${nR} regras alcançadas; ${nP} perguntas (P21 reescrita); herança M1/M3, progresso pelo caminho e "O que entendemos" conferidos; M2.I04 e M2.I05 conferem com a aba 5; persistência ok · ${D.modulo.versao} ${D.modulo.data}`);
+  console.log(`PASS: lote 3 (Voltar no topo, menos texto, sem códigos na tela, P08 com várias respostas + Outra + migração v3, P15 com o quadro) · ${alcancadas.size} de ${nR} regras alcançadas; ${nP} perguntas (P21 reescrita); herança M1/M3, progresso pelo caminho e "O que entendemos" conferidos; M2.I04 e M2.I05 conferem com a aba 5; persistência ok · ${D.modulo.versao} ${D.modulo.data}`);
 })();

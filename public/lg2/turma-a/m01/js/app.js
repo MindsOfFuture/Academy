@@ -54,6 +54,14 @@
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  /* menos texto na tela: texto longo mostra a 1ª frase e o resto fica em "Ver mais" (fechado) */
+  const TEXTO_LONGO = 220;
+  function resumo(t, cls) {
+    const s = String(t ?? "").trim();
+    const m = s.length > TEXTO_LONGO && s.match(/^([^]+?[.!?])\s+([^]+)$/);
+    if (!m) return `<p${cls ? ` class="${cls}"` : ""}>${esc(s)}</p>`;
+    return `<p${cls ? ` class="${cls}"` : ""}>${esc(m[1])}</p><details class="ver-mais"><summary>Ver mais</summary><p>${esc(m[2])}</p></details>`;
+  }
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
   function ir(f, a) { parar(); fecharVideo(); tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
 
@@ -502,12 +510,14 @@
           ${regras.map((r) => `<div class="regra"><p class="r-texto">${esc(r.texto)}</p></div>`).join("")}
 
 
-          <div class="cartao" data-ler><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
+          <div class="cartao" data-ler><h3>Quando procurar um profissional</h3>${resumo(D.mapa.encaminhamentos)}</div>
 
-          <div class="secao-titulo" data-ler>Para onde seguem estas informações</div>
-          ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao" data-ler><h3>Módulo ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
+          <details class="ajuda-box para-onde">
+            <summary data-ler>Para onde seguem estas informações</summary>
+            ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao" data-ler><h3>Módulo ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
+          </details>
 
-          <div class="aviso-roxo" data-ler>${esc(D.mapa.mensagem_limite)}</div>
+          <div class="aviso-roxo" data-ler>${resumo(D.mapa.mensagem_limite)}</div>
 
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
@@ -519,7 +529,7 @@
         </main>
       </div>`);
     p.querySelector("#v").onclick = () => { const cam = Motor.caminho(M, S.R); ir(telaPergunta, cam[cam.length - 1]); };
-    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details.respostas").forEach((d) => { d.open = true; }); window.print(); };
+    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details").forEach((d) => { d.open = true; }); window.print(); };
     p.querySelector("#rev").onclick = () => ir(telaPergunta, Motor.proxima(M, {}, null));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaInicio); } };
     ligarInicio(p);

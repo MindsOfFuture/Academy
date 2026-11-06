@@ -203,3 +203,14 @@ textarea.campo{resize:vertical;font-family:inherit}
 .conc dt{font-weight:700;color:var(--m-purple)}
 .conc dd{color:#4a4460;overflow-wrap:anywhere}
 .anotar{color:var(--m-gray);font-style:italic}
+
+/* lote 3 (nov/2026): Voltar no topo do cartão, "Ver mais" nas ajudas longas, perfil com pessoas e empresas */
+.voltar-topo{margin:-4px 0 8px}
+.btn-voltar{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--m-purple);font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:6px 2px}
+.btn-voltar:focus-visible{outline:3px solid var(--m-purple);outline-offset:2px;border-radius:8px}
+.ver-mais{margin-top:6px}
+.ver-mais>summary{cursor:pointer;font-weight:700;color:var(--m-purple);font-size:16px;padding:4px 0}
+.ver-mais[open]>summary{margin-bottom:2px}
+.cartao .ver-mais p{margin-top:4px}
+.grupo-campos{font-weight:700;color:#2b2340;font-size:16px;margin:14px 0 6px;padding-top:10px;border-top:2px solid var(--m-lavender)}
+@media print{.ver-mais>summary{display:none}}

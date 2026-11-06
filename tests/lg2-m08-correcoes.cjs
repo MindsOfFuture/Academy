@@ -236,6 +236,92 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     if (mod === 5) { await page.waitForTimeout(400); if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'bento_m08_p02_veio_m5.png') }); }
   }
 
+  /* ===== Lote 3 (nov/2026) ===== */
+  /* Receita C: Voltar no topo do cartão; na 1ª pergunta volta à capa */
+  await semear({}); await page.reload(); await btn('Começar').click();
+  check(await btn('Voltar').count() === 1 && await btn('Início').count() === 1, '1ª pergunta: botão Voltar (e Início só na trilha)');
+  check(await page.evaluate(() => document.querySelector('.cartao-q').firstElementChild.id === 'v'), 'Voltar é o 1º item do cartão da pergunta');
+  await btn('Voltar').click();
+  check(await page.locator('.heroi-grande').count() === 1, 'Voltar na 1ª pergunta volta à capa');
+  /* Receita D: ajuda longa da P02 com "Ver mais" fechado; opções e Continuar à vista */
+  await btn('Começar').click();
+  await page.fill('#ent textarea', 'Faço tranças'); await btn('Continuar').click(); await seguir();
+  check(await atual() === 'M8.P02' && await page.locator('.dica details.mais').count() === 1 && !(await page.$eval('.dica details.mais', (d) => d.open)), 'P02: ajuda longa com "Ver mais" fechado');
+  check(nrm(await page.innerText('.dica .ajuda')).length < 150, 'P02: só a 1ª frase da ajuda à vista');
+  await escolher('Serviço'); await btn('Continuar').click(); await seguir();
+  /* item 5: opção "Na casa do cliente (atendimento em domicílio)" */
+  const ops3 = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
+  check(JSON.stringify(ops3) === JSON.stringify(['Minha casa', 'Ponto comercial', 'Na casa do cliente (atendimento em domicílio)', 'Atendimento externo', 'Online', 'Não sei']), 'P03 com a opção de domicílio: ' + ops3.join(' | '));
+  await escolher('Na casa do cliente (atendimento em domicílio)'); await btn('Continuar').click(); await seguir();
+  check((await st()).R['M8.P03'].opcao === 'Na casa do cliente (atendimento em domicílio)', 'domicílio gravado');
+  /* P04..P06 */
+  await page.fill('#ent input', '2500'); await btn('Continuar').click(); await seguir();
+  await escolher('Não'); await btn('Continuar').click(); await seguir();
+  await btn('Não sei').click(); await seguir();
+  /* item 2: "Quem pode ser MEI" na pergunta da lista do MEI, recolhido, embaixo do Continuar */
+  check(await atual() === 'M8.P07', 'chega à P07');
+  const qm = page.locator('details#quem-mei');
+  check(await qm.count() === 1 && !(await qm.evaluate((d) => d.open)), 'P07: "Quem pode ser MEI" recolhido');
+  check(await page.evaluate(() => document.querySelector('#acoes').compareDocumentPosition(document.querySelector('#quem-mei')) & 4) > 0, 'P07: "Quem pode ser MEI" embaixo do Continuar');
+  await escolher('Sim'); await btn('Continuar').click(); await seguir();
+  await escolher('Não'); await btn('Continuar').click(); await seguir();   // P08
+  await escolher('Não'); await btn('Continuar').click(); await seguir();   // P09
+  /* item 4: fontes depois da dúvida principal */
+  check(await atual() === 'M8.P10', 'chega à P10');
+  check(await page.locator('#fontes-duvida').count() === 0, 'P10: fontes só depois da resposta');
+  await escolher('Se posso ser MEI'); await btn('Continuar').click();
+  const fd = nrm(await page.textContent('#retorno #fontes-duvida'));
+  for (const t of ['Onde tirar suas dúvidas', 'Sala do Empreendedor de Juiz de Fora', 'Portal do Empreendedor (gov.br)', 'Sebrae', '0800 570 0800', 'contador']) check(fd.includes(t), `P10 fontes: "${t}"`);
+  const hrefs = await page.$$eval('#fontes-duvida a', (as) => as.map((a) => a.href));
+  check(hrefs.includes('https://desenvolvejf.pjf.mg.gov.br/sme.html') && hrefs.includes('https://www.gov.br/empresas-e-negocios/pt-br/empreendedor') && hrefs.some((h) => h.startsWith('https://sebrae.com.br/')), 'P10: links oficiais ' + hrefs.join(' '));
+  if (SHOTS) { await page.waitForTimeout(400); await page.locator('#fontes-duvida').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_fontes_duvida.png') }); }
+  await seguir();
+  check(await atual() === 'RESULTADO', 'resultado');
+  /* item 2 no resultado: cartão aberto com os 4 critérios e a fonte */
+  const qmr = nrm(await page.textContent('section#quem-mei'));
+  for (const t of ['Quem pode ser MEI', 'R$ 81.000 por ano em 2026', 'R$ 110.000', 'lista de ocupações permitidas ao MEI', 'Não ser sócio nem titular de outra empresa', 'no máximo 1 empregado', 'Confira na Sala do Empreendedor ou no Portal do Empreendedor (gov.br)']) check(qmr.includes(t), `quem pode ser MEI: "${t}"`);
+  check(await page.locator('section#quem-mei li').count() === 4, 'quem pode ser MEI: 4 critérios');
+  check((await page.$$eval('section#quem-mei a', (as) => as.map((a) => a.href))).includes('https://www.gov.br/pt-br/servicos/realizar-registro-como-microempreendedor-individual-mei'), 'quem pode ser MEI: fonte gov.br');
+  check(await page.locator('#tela #fontes-duvida').count() === 1, 'fontes da dúvida também no resultado');
+  check(nrm(await page.textContent('#entendemos')).includes('Você atende na casa do cliente'), 'entendemos: atendimento em domicílio');
+  /* item 3: Copiar e Escolher este em cada CNAE compatível */
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P01'] = { estado: 'valor', valor: 'Manicure e pedicure em domicílio' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
+  await page.reload(); await btn('Continuar de onde parei').click();
+  const nSug = await page.locator('#sugestoes .cnae').count();
+  check(nSug >= 1 && await page.locator('#sugestoes .btn-copiar-cnae').count() === nSug && await page.locator('#sugestoes .btn-escolher').count() === nSug, `cada CNAE sugerido tem Copiar e Escolher este (${nSug})`);
+  check(await page.locator('#cnae-escolhido h3').count() === 0, 'sem escolha, sem CNAE escolhido');
+  const iMani = await page.$$eval('#sugestoes .cnae', (cs) => cs.findIndex((c) => c.textContent.includes('MANICURE/PEDICURE INDEPENDENTE')));
+  check(iMani >= 0, 'manicure entre as sugestões');
+  const cMani = page.locator('#sugestoes .cnae').nth(iMani);
+  check(await cMani.locator('.btn-copiar-cnae').getAttribute('data-t') === '9602-5/01 - MANICURE/PEDICURE INDEPENDENTE', 'Copiar leva código e nome');
+  await cMani.getByRole('button', { name: 'Copiar', exact: true }).click();
+  check(nrm(await cMani.locator('.btn-copiar-cnae').textContent()) === 'Copiado', 'Copiar mostra "Copiado"');
+  const y0 = await page.evaluate(() => window.scrollY);
+  await cMani.getByRole('button', { name: 'Escolher este', exact: true }).click();
+  check(JSON.stringify((await st()).cnae) === JSON.stringify({ cnae: '9602-5/01', ocupacao: 'MANICURE/PEDICURE INDEPENDENTE' }), 'Escolher este salva no estado do módulo');
+  check(nrm(await page.textContent('#cnae-escolhido')).includes('9602-5/01 · MANICURE/PEDICURE INDEPENDENTE') && nrm(await page.textContent('#cnae-escolhido h3')) === 'CNAE escolhido', 'CNAE escolhido aparece no resumo');
+  check(nrm(await cMani.locator('.btn-escolher').textContent()) === 'Escolhido' && await page.locator('#sugestoes .btn-escolher[aria-pressed=true]').count() === 1, 'só o escolhido fica marcado');
+  check(Math.abs((await page.evaluate(() => window.scrollY)) - y0) < 5, 'escolher não pula para o topo');
+  if (SHOTS) { await page.waitForTimeout(400); await page.locator('#sugestoes').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_cnae_escolher.png') }); }
+  await page.reload(); await btn('Continuar de onde parei').click();
+  check(nrm(await page.textContent('#cnae-escolhido')).includes('9602-5/01') && nrm(await page.textContent('#entendemos')).includes('Você escolheu o CNAE 9602-5/01'), 'escolha guardada após recarregar e citada em "O que entendemos"');
+  if (SHOTS) { await page.waitForTimeout(400); await page.locator('#quem-mei').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_quem_pode_ser_mei.png') }); }
+  /* a consulta da lista também deixa copiar e escolher */
+  await btn('Consultar as ocupações permitidas ao MEI').click();
+  await page.fill('#busca', 'cabeleireiro');
+  check(await page.locator('#lista .btn-escolher').count() >= 1, 'consulta: Escolher este');
+  await page.locator('#lista .cnae', { hasText: 'CABELEIREIRO(A) INDEPENDENTE' }).first().getByRole('button', { name: 'Escolher este', exact: true }).click();
+  check(/CABELEIREIR/i.test((await st()).cnae.ocupacao), 'consulta: escolha salva ' + (await st()).cnae.ocupacao);
+  await btn('Voltar').click();
+  check(await atual() === 'RESULTADO' && /CABELEIREIR/i.test(nrm(await page.textContent('#cnae-escolhido'))), 'Voltar da consulta: resumo com o novo CNAE');
+  /* item 5: domicílio vindo do Módulo 9 chega marcado */
+  await semear({ 'lg2-turma-b-m09': { v: 2, R: { 'M9-03': { estado: 'opcao', opcao: 'Na casa do cliente (atendimento em domicílio)' } } } });
+  await page.reload(); await btn('Começar').click();
+  await page.fill('#ent textarea', 'Faço tranças'); await btn('Continuar').click(); await seguir();
+  await escolher('Serviço'); await btn('Continuar').click(); await seguir();
+  check(nrm(await page.textContent('#ent .opcao.sel')) === 'Na casa do cliente (atendimento em domicílio)' && nrm(await page.textContent('#herdou .veio')) === 'Veio do Módulo 9', 'P03: domicílio herdado do Módulo 9');
+  if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_voltar_domicilio.png') }); }
+
   /* nada de "Grupo N" nem códigos na tela */
   check(!/Grupo \d/.test(await page.innerText('#tela')), 'sem "Grupo N" na tela');
   check(!/M8\.P|M5\.P|M1\.P/.test(await page.innerText('#tela')), 'sem código de pergunta na tela');

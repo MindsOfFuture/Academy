@@ -269,3 +269,10 @@ a{color:var(--m-purple)}
 /* "Como calculamos: …" embaixo de cada número do resultado: discreta, em fonte menor */
 .como-calc,.cartao p.como-calc{font-size:13px;line-height:1.45;color:var(--m-gray);margin:-4px 2px 12px}
 .como-calc b{color:inherit}
+
+/* "‹ Voltar" no topo do cartão (mesmo lugar em todos os módulos) e "Ver mais" das ajudas longas */
+.voltar-topo{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--m-purple);font:inherit;font-size:16px;font-weight:700;padding:6px 2px;margin:0 0 8px;cursor:pointer}
+.voltar-topo span{font-size:22px;line-height:1}
+.ver-mais{margin-top:4px}
+.ver-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:14.5px}
+@media print{.voltar-topo,.revisar{display:none!important}.ver-mais summary{display:none}}

@@ -43,6 +43,7 @@ const NA_PAGINA = {
       if (!b) throw new Error('opção inexistente: ' + v + ' em ' + opc.map(rot).join('|'));
       b.click();
     };
+    if (a.tipo === 'ainda') { document.querySelector('#ainda-nao-sei').click(); return; }
     if (a.tipo === 'NS') { if (document.querySelector('#ns')) { document.querySelector('#ns').click(); return; } clicar('Não sei'); }
     else if (a.tipo === 'opcao') { clicar(a.v); if (a.detalhe !== undefined) document.querySelector('#detalhe').value = a.detalhe; }
     else if (a.tipo === 'multi') a.vs.forEach(clicar);
@@ -456,6 +457,72 @@ const NA_PAGINA = {
     check('"Como calculamos:" no investimento, no saldo, no fluxo e no cenário',
       Object.values(cm).every((x) => nrm(x).startsWith('Como calculamos:')) && nrm(cm.i01).includes('R$ 1.500,00')
       && nrm(cm.i03).includes('(R$ 2.000,00)') && nrm(cm.i03).includes('= R$ 2.099,24') && /semana anterior \+ entradas − saídas/.test(cm.i04), cm); }
+
+  /* ---------- lote 3 (05/11): Voltar no topo, caixas educativas recolhidas, "Ainda não sei o que vou precisar comprar" ---------- */
+  { // Voltar no topo do cartão, à esquerda, acima do texto; um só; na 1ª pergunta volta para a capa
+    await caminho({}, 'M6.P01');
+    const vt = await page.evaluate(() => {
+      const v = document.querySelector('#v'), q = document.querySelector('.cartao-q h2.q'), bv = v.getBoundingClientRect(), bq = q.getBoundingClientRect();
+      return { n: document.querySelectorAll('#v, .acoes-voltar, .btn.voltar').length, dentro: !!v.closest('.cartao-q'), acima: bv.bottom <= bq.top + 1, esq: bv.left < 60, txt: v.textContent.replace(/\s+/g, ' ').trim() };
+    });
+    check('Voltar: um só "‹ Voltar", no topo do cartão, à esquerda, acima da pergunta', vt.n === 1 && vt.dentro && vt.acima && vt.esq && vt.txt === '‹ Voltar', vt);
+    check('Voltar: nome acessível "Voltar"', (await page.getByRole('button', { name: 'Voltar', exact: true }).count()) === 1);
+    await page.click('#v');
+    check('Voltar na 1ª pergunta volta para a capa', !!(await page.$('#ir')) && !(await page.$('.cartao-q')));
+    await caminho({}, 'M6.P04');
+    await page.click('#v');
+    check('Voltar na P04 volta para a pergunta anterior', (await page.evaluate(NA_PAGINA.atual)) !== 'M6.P04' && !!(await page.$('.cartao-q')));
+    await caminho({}, null);
+    const vr = await page.evaluate(() => { const v = document.querySelector('#v'); return { n: document.querySelectorAll('#v, .acoes-voltar').length, topo: v && v.getBoundingClientRect().bottom <= document.querySelector('.concluido').getBoundingClientRect().top + 1 }; });
+    check('resultado: "‹ Voltar" no topo, nenhum embaixo', vr.n === 1 && vr.topo, vr); }
+  { // caixas "Entenda", "Faça" e "Use a IA com cuidado": recolhidas, discretas, embaixo do Continuar
+    await caminho({}, 'M6.P01');
+    const cx = await page.evaluate(() => {
+      const ok = document.querySelector('#ok').getBoundingClientRect();
+      return [...document.querySelectorAll('.cartao-q .caixa')].map((c) => ({ tag: c.tagName, aberta: c.open, abaixo: c.getBoundingClientRect().top >= ok.bottom, alt: c.getBoundingClientRect().height, tipo: c.querySelector('.tag').textContent }));
+    });
+    check('P01: caixas educativas (Entenda, Faça, IA) são <details> fechados, embaixo do Continuar e baixinhas',
+      cx.length === 3 && cx.every((c) => c.tag === 'DETAILS' && !c.aberta && c.abaixo && c.alt < 90) && ['Entenda', 'Faça'].every((t) => cx.some((c) => c.tipo === t)), cx);
+    await page.click('.caixa-faca summary');
+    check('caixa "Faça" abre ao tocar', await page.evaluate(() => document.querySelector('.caixa-faca').open && document.querySelector('.caixa-faca p').getBoundingClientRect().height > 0));
+    if (process.env.SHOTS) { await page.evaluate(() => { document.querySelector('.caixa-faca').open = false; window.scrollTo(0, 0); }); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l3_m06_p01_botoes.png'), fullPage: true }); } }
+  { // "Ainda não sei o que vou precisar comprar": sem calculadora, orientação curta, "falta descobrir" no resumo
+    await caminho({}, 'M6.P01');
+    check('P01 tem o botão "Ainda não sei o que vou precisar comprar"', nrm(await page.textContent('#ainda-nao-sei')) === 'Ainda não sei o que vou precisar comprar');
+    await page.click('#ainda-nao-sei');
+    const ret = nrm(await page.evaluate(NA_PAGINA.retorno));
+    const r1 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P01']);
+    check('"Ainda não sei": grava como "Não sei" + marca aindaNaoSei e mostra como descobrir (unidade/atendimento, Módulo 4, Módulo 5)',
+      r1.estado === 'naosei' && r1.aindaNaoSei === true && /como descobrir o que comprar/i.test(ret) && ret.includes('uma unidade ou um atendimento')
+      && ret.includes('ficha técnica que você montou no Módulo 4') && ret.includes('materiais que você informou no Módulo 5') && !(await page.$('#retorno .b-alerta')), { r1, ret });
+    check('"Ainda não sei" sem Módulo 5: não oferece lista de partida', !(await page.$('#partida-m5')));
+    await page.evaluate(NA_PAGINA.seguir);
+    check('"Ainda não sei" não abre a calculadora: pula o valor e a forma de pagar as compras', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04');
+    const c = await caminho({ 'M6.P01': { tipo: 'ainda' } }, null);
+    const i02 = nrm(await page.textContent('#i02')), i01 = nrm(await page.textContent('#i01')), ent = nrm(await page.textContent('#entendemos'));
+    check('resumo: "Falta descobrir" o que comprar, com o caminho para descobrir, sem lista de prioridades e sem valor',
+      !c.vistas.includes('M6.P02') && !c.vistas.includes('M6.P03') && /falta descobrir/i.test(i02) && /como descobrir o que comprar/i.test(i02) && !(await page.$('#prio'))
+      && nrm(await page.textContent('#i01-val')) === '—' && i01.includes('falta descobrir o que você vai precisar comprar'), { vistas: c.vistas, i02, i01 });
+    check('"Ainda não sei" não repete a lista nem o valor dos equipamentos na seção do negócio', !c.vistas.includes('M6.P10') && !c.vistas.includes('M6.P11') && c.vistas.includes('M6.P12'), c.vistas);
+    check('resumo: "O que entendemos" diz que ainda vai descobrir o que comprar', ent.includes('Você ainda vai descobrir o que precisa comprar para começar'), ent);
+    const resp = nrm(await page.evaluate(() => [...document.querySelectorAll('.respostas .cartao')].find((x) => /O que você precisa comprar/.test(x.textContent)).textContent));
+    check('"Ver suas respostas": P01 aparece como "Ainda não sei o que vou precisar comprar · Falta descobrir"', resp.includes('Ainda não sei o que vou precisar comprar') && resp.includes('Falta descobrir'), resp);
+    check('resumo: o próximo passo pede a lista do que comprar', nrm(await page.textContent('#proximos')).includes('Liste o que você precisa comprar ou pagar para começar'));
+    if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#i02').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l3_m06_resultado_falta_descobrir.png') }); } }
+  { // com materiais no Módulo 5: oferece como ponto de partida e preenche a P01
+    const M5 = { 'lg2-turma-a-m05': { versao: 3, R: { 'M5.P03': { estado: 'valor', valor: ['farinha', 'leite condensado', 'pote com tampa'] } } } };
+    await caminho({}, 'M6.P01', M5);
+    await page.click('#ainda-nao-sei');
+    const pt = nrm(await page.evaluate(() => (document.querySelector('#partida-m5') || {}).innerText || ''));
+    check('"Ainda não sei" com Módulo 5: mostra os materiais de lá como ponto de partida, com selo', pt.includes('Veio do Módulo 5') && pt.includes('farinha, leite condensado, pote com tampa'), pt);
+    if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#retorno').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l3_m06_p01_ainda_nao_sei.png') }); }
+    await page.click('#usar-m5');
+    check('"Usar essa lista como ponto de partida" volta à P01 com a lista no campo e o selo do Módulo 5',
+      (await page.evaluate(NA_PAGINA.atual)) === 'M6.P01' && (await page.inputValue('#ent textarea')) === 'farinha, leite condensado, pote com tampa' && nrm(await page.textContent('.herdado')).includes('Veio do Módulo 5'));
+    await page.click('#ok'); await page.evaluate(NA_PAGINA.seguir);
+    const r1 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P01']);
+    check('lista de partida confirmada: grava os itens e segue para o valor das compras', r1.estado === 'valor' && !r1.aindaNaoSei && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P02', r1);
+    check('M5 nunca é escrito pelo M6', !(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m05'))).includes('M6.')); }
 
   /* ---------- 4. persistência ---------- */
   await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno e balcão' } }, 'M6.P04');

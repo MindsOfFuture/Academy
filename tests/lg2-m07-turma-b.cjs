@@ -486,6 +486,107 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
+  /* ---------- 5. lote 3 (relatos de Nayara e José Inácio, 05/11) ---------- */
+  /* 5a. receita C: "‹ Voltar" no topo do cartão, à esquerda, acima da pergunta; nenhum Voltar embaixo */
+  {
+    await abrir(Object.assign(E('M7-03'), { hist: ['M7-01', 'M7-02'] }));
+    const v = await page.evaluate(() => {
+      const vs = [...document.querySelectorAll('button')].filter((b) => /Voltar/.test(b.textContent));
+      const b = document.querySelector('#v'), q = document.querySelector('#pergunta'), ok = document.querySelector('#ok'), card = document.querySelector('.cartao-q');
+      return { n: vs.length, noCartao: card.firstElementChild === b, acima: b.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1, esquerda: b.getBoundingClientRect().left - card.getBoundingClientRect().left < 30, antesOk: !!(b.compareDocumentPosition(ok) & Node.DOCUMENT_POSITION_FOLLOWING), txt: b.textContent.replace(/\s+/g, ' ').trim() };
+    });
+    check('Receita C: um só Voltar, no topo do cartão, à esquerda, acima da pergunta e antes do Continuar', v.n === 1 && v.noCartao && v.acima && v.esquerda && v.antesOk && v.txt === '‹ Voltar', v);
+    check('Receita C: nome acessível exatamente "Voltar"', (await page.getByRole('button', { name: 'Voltar', exact: true }).count()) === 1);
+    await page.click('#v');
+    check('Receita C: Voltar da pergunta volta para a anterior', /Quanto tempo você leva/.test(await page.innerText('#pergunta')));
+    await abrir(E('M7-01'));
+    await page.click('#v');
+    check('Receita C: Voltar da 1ª pergunta leva ao ponto de partida, cujo Voltar (no topo) leva à capa', /Seu ponto de partida/.test(await page.innerText('body')) && await page.evaluate(() => document.querySelector('.cartao-q').firstElementChild.id === 'v'));
+    await page.click('#v');
+    check('Receita C: ponto de partida → capa', !!(await page.$('#ir')));
+    await abrir(E('ZZ'));
+    check('Receita C (resultado): Voltar no topo, antes da caixa "O que entendemos"', await page.evaluate(() => { const b = document.querySelector('#v'), e = document.querySelector('#entendemos'); return [...document.querySelectorAll('button')].filter((x) => /Voltar/.test(x.textContent)).length === 1 && !!(b.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING); }));
+  }
+  /* 5b. receita D: ajuda longa → 1ª frase + "Ver mais" fechado; "Entenda os termos" fechado e embaixo do Continuar */
+  {
+    const longo = 'Receber o pedido pelo WhatsApp, separar os ingredientes, bater a massa, assar, montar os potes com recheio, decorar, colocar a tampa e a etiqueta, embalar em caixa térmica e entregar de moto';
+    await abrir(E('M7-01', { etapas4: longo }));
+    const d = await page.evaluate(() => { const vm = document.querySelector('.pergunta .ver-mais'); const aj = document.querySelector('.pergunta > .ajuda'); return { tem: !!vm, aberto: vm && vm.open, resumo: vm && vm.querySelector('summary').textContent.trim(), primeira: aj && aj.textContent.trim() }; });
+    check('Receita D: ajuda com mais de 220 caracteres mostra a 1ª frase e o resto em "Ver mais" fechado', d.tem && !d.aberto && d.resumo === 'Ver mais' && d.primeira.startsWith('Montamos com o que você já contou:') && d.primeira.endsWith('.') && !/Mude a ordem/.test(d.primeira), d);
+    check('Receita D: campos e Continuar continuam visíveis', await page.isVisible('.etapa-ed input >> nth=0') && await page.isVisible('#ok'));
+    await abrir(E('M7-03'));
+    check('Receita D: ajuda curta fica inteira, sem "Ver mais"', !(await page.$('.pergunta .ver-mais')));
+    await abrir(E('M7-05'));
+    check('Receita D: "Entenda os termos" fechado e embaixo do Continuar', await page.evaluate(() => { const s = document.querySelector('.pergunta .saiba'), ok = document.querySelector('#ok'); return !!s && !s.open && !!(ok.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING); }));
+  }
+  /* 5c. disponibilidade: Módulo 1 pergunta por dia; aqui é por semana. Faixa mais próxima, com selo e "Confira e ajuste" */
+  const semear = (mods) => page.evaluate((m) => { localStorage.clear(); for (const [k, v] of Object.entries(m)) localStorage.setItem(k, JSON.stringify(v)); }, mods);
+  for (const [m1, m7] of [['Até 1 hora por dia', 'Até 10 h'], ['De 1 a 3 horas por dia', 'De 11 a 20 h'], ['Mais de 3 horas por dia', 'Mais de 20 h'], ['Só nos fins de semana', 'Até 10 h']]) {
+    await semear({ 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' }, 'M1.P05': { estado: 'opcao', opcao: m1 } } } });
+    await page.goto(URL); await page.click('#ir');
+    const sel = await page.evaluate(() => (document.querySelector('[data-campo="horas"] .opcao.sel') || {}).textContent);
+    const leg = nrm(await page.innerText('[data-campo="horas"] legend')), nota = nrm(await page.innerText('#nota-horas'));
+    check(`Disponibilidade: "${m1}" (Módulo 1) → "${m7}", com selo e "Confira e ajuste"`, nrm(sel) === m7 && /Veio do Módulo 1/.test(leg) && nota.includes(`No Módulo 1 você respondeu “${m1}”`) && /Confira e ajuste/.test(nota), [sel, leg, nota]);
+  }
+  await tocar('Mais de 20 h');
+  await page.click('[data-campo="tipo"] .opcao >> nth=0');
+  await ok();
+  check('Disponibilidade: a pessoa pode trocar a faixa herdada e a troca fica gravada', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE)).horas === 'Mais de 20 h');
+  /* estado salvo antes desta mudança (sem horas): ao abrir o ponto de partida, as horas do Módulo 1 aparecem */
+  await page.evaluate(([k]) => { const s = JSON.parse(localStorage.getItem(k)); delete s.ini.horas; s.ini.de = {}; localStorage.setItem(k, JSON.stringify(s)); localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ R: { 'M1.P05': { estado: 'opcao', opcao: 'De 1 a 3 horas por dia' } } })); }, [CHAVE]);
+  await page.goto(URL); await page.click('#ir'); await page.click('#v');
+  check('Disponibilidade: estado antigo sem horas recebe a faixa do Módulo 1 ao voltar ao ponto de partida', nrm(await page.evaluate(() => (document.querySelector('[data-campo="horas"] .opcao.sel') || {}).textContent)) === 'De 11 a 20 h');
+  /* 5d. herança: "Não sei" herdado não conta; material do serviço pelo Módulo 6 */
+  await semear({ 'lg2-turma-a-m01': { R: { 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } }, 'lg2-turma-a-m04': { R: { 'M4.P15': { estado: 'naosei' } } }, 'lg2-turma-b-m06': { R: { 'M6.P12': { estado: 'opcao', opcao: 'Sim' } } }, 'lg2-turma-a-m05': { R: { 'M5.P37': { estado: 'valor', valor: '80' } } } });
+  await page.goto(URL); await page.click('#ir');
+  check('Herança: vendas por mês (Módulo 5) e material do serviço (Módulo 6) com selo', (await page.inputValue('#f-volume')) === '80' && /Veio do Módulo 6/.test(await page.innerText('[data-campo="material"] legend')) && nrm(await page.evaluate(() => document.querySelector('[data-campo="material"] .opcao.sel').textContent)) === 'Sim');
+  check('Herança: "Não sei" do Módulo 4 não vira resposta', !(await page.$('[data-campo="regulada"] .opcao.sel')));
+  /* 5e. revenda (distribuidora de bebidas): sem perguntas de fabricação; estoque, armazenamento, validade e entrega */
+  await semear({
+    'lg2-turma-a-m01': { R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Distribuidora de bebidas' }, 'M1.P03A': { estado: 'opcao', opcao: 'Mercadoria: compro pronto e revendo' }, 'M1.P05': { estado: 'opcao', opcao: 'Mais de 3 horas por dia' } } },
+    'lg2-turma-a-m04': { R: { 'M4.P04': { estado: 'opcoes', opcoes: ['Entregador parceiro', 'Retirada presencial pelo cliente'] } } },
+    'lg2-turma-a-m05': { R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P10': { estado: 'valor', valor: 'Refrigerante 2 L' }, 'M5.P37': { estado: 'valor', valor: '300' } } },
+    'lg2-turma-b-m06': { R: { 'M6.P18': { estado: 'opcao', opcao: 'Sim' } } },
+  });
+  await page.goto(URL); await page.click('#ir');
+  const pRev = nrm(await page.innerText('.cartao-q'));
+  check('Revenda: item = mercadoria do Módulo 5, 1 por venda, estoque do Módulo 6 com selo', (await page.inputValue('#f-item')) === 'Refrigerante 2 L' && /Veio do Módulo 5/.test(await page.innerText('label[for="f-item"]')) && (await page.inputValue('#f-uso')) === '1' && nrm(await page.evaluate(() => document.querySelector('[data-campo="estoque"] .opcao.sel').textContent)) === 'Sim, mantenho mercadoria guardada' && /Veio do Módulo 6/.test(await page.innerText('[data-campo="estoque"] legend')), pRev);
+  check('Revenda: ponto de partida fala em mercadoria, sem "material" nem "cada unidade ou atendimento"', /Mercadoria principal e estoque/i.test(pRev) && !/Material principal|vai em cada unidade/i.test(pRev), (pRev.match(/.{80}(Material principal|vai em cada unidade).{40}/) || [pRev.slice(-300)])[0]);
+  if (SHOTS) { await page.locator('#f-item').scrollIntoViewIfNeeded(); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_partida_revenda.png') }); }
+  await ok();
+  await ok(); await ok(); /* mapa: retorno e segue */
+  const t2 = nrm(await page.innerText('.cartao-q'));
+  check('Revenda (tempo): fala em separar e entregar pedidos, sem "preparo e produção"', /Quanto tempo você leva para separar e entregar Refrigerante 2 L\?/.test(t2) && /Pedidos separados de uma vez/.test(t2) && !/produção|preparo/i.test(t2), t2);
+  await page.click('#na');
+  check('Revenda (tempo): "Não se aplica ao meu negócio" deixa seguir', /fica de fora/.test(await caixa()));
+  if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_tempo_nao_se_aplica.png') }); }
+  await ok();
+  const t3 = nrm(await page.innerText('#pergunta'));
+  check('Revenda (apoio): sem "entregar" repetido', t3 === 'Além de separar e entregar os pedidos, quanto do seu tempo por semana vai para responder clientes, comprar mercadoria e divulgar?', t3);
+  await tocar('Até 2 h'); await ok();
+  check('Revenda (ajuda): sem "preparo e produção"', !/produção|preparo/i.test(await page.innerText('.cartao-q')));
+  await tocar('Não, faço sozinho(a)'); await ok();
+  check('Revenda (gargalo): espaço/veículo e mercadoria no lugar de equipamento e material', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()); return t.includes('O espaço para guardar ou o veículo de entrega') && t.includes('Falta ou atraso de mercadoria') && !t.includes('Um equipamento ou o espaço'); }));
+  await tocar('O espaço para guardar ou o veículo de entrega'); await ok();
+  check('Revenda (espaço): exemplo com carro, sem forno', /carro leva 20 caixas/.test(await page.innerText('.cartao-q')) && !/forno/.test(await page.innerText('.cartao-q')));
+  await preenche('#uv', '20'); await preenche('#tvh', '1'); await ok(); await ok();
+  await tocar('Dois ou mais'); await tocar('De 1 a 3 dias'); await ok();
+  await tocar('Prazo de entrega'); await ok();
+  check('Revenda (validade): pergunta sobre as mercadorias e dica de armazenamento', /As mercadorias que você vende estragam, vencem/.test(await page.innerText('#pergunta')) && /lugar limpo, seco e arejado/.test(await page.innerText('#dica-estoque')));
+  if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_validade.png') }); }
+  await tocar('Sim, em semanas ou meses'); await ok();
+  check('Revenda (qualidade): conferência sem "receita" nem "provando"', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()); return t.includes('Sigo uma lista de conferência anotada') && !t.some((x) => /receita|provando/.test(x)); }));
+  await tocar('Sigo uma lista de conferência anotada'); await ok();
+  await tocar('Faltar mercadoria'); await ok();
+  await ok(); await ok(); await ok();
+  const rRev = nrm(await page.innerText('body'));
+  const cuid = nrm(await page.innerText('#cuidados-revenda'));
+  check('Revenda (resultado): cuidados com estoque, armazenamento, validade e entrega (forma de entrega do Módulo 4)', ['Estoque', 'Armazenamento', 'Validade', 'Entrega'].every((x) => cuid.includes(x)) && cuid.includes('Você vai manter mercadoria guardada') && cuid.includes('entregador parceiro, retirada presencial pelo cliente'), cuid);
+  check('Revenda (resultado): tempo "não se aplica" não vira pendência ("cronometre", "ainda falta medir")', !rRev.includes('cronometre do começo ao fim') && !/Ainda falta medir/.test(rRev) && /cabem pelo menos/.test(nrm(await page.innerText('#entendemos'))), nrm(await page.innerText('#entendemos')));
+  check('Revenda (resultado): riscos e gargalo com palavras de revenda', rRev.includes('Faltar mercadoria') && rRev.includes('Sigo uma lista de conferência anotada'));
+  if (SHOTS) { await page.evaluate(() => document.querySelector('#cuidados-revenda').scrollIntoView({ block: 'center' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_cuidados.png') }); }
+  check('Revenda: o valor gravado continua o da planilha (só o texto muda)', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE))['M7-05'].opcao === 'Um equipamento ou o espaço');
+
   check('Sem erros de página', !erros.length, erros);
   await browser.close();
   servidor.close();

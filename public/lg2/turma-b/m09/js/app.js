@@ -62,7 +62,7 @@
     return null;
   }
   /* respostas que já vieram de outro módulo: pré-marcadas com selo (a pessoa confere e toca Continuar) */
-  const LOCAL8 = { "Minha casa": "Na minha casa", "Ponto comercial": "Em loja ou sala comercial", "Atendimento externo": "Sem local fixo (digital, na casa do cliente ou ambulante)", "Online": "Sem local fixo (digital, na casa do cliente ou ambulante)" };
+  const LOCAL8 = { [Mo.O.domicilio]: Mo.O.domicilio, "Minha casa": "Na minha casa", "Ponto comercial": "Em loja ou sala comercial", "Atendimento externo": "Sem local fixo (digital, na casa do cliente ou ambulante)", "Online": "Sem local fixo (digital, na casa do cliente ou ambulante)" };
   const FORMA8 = { "Atendimento externo": "Na casa ou na empresa do cliente", "Online": "Só pela internet ou por telefone" };
   function herdado(cod, X, R) {
     if (cod === "M9-02") {
@@ -95,12 +95,13 @@
     const estagio = !est1 ? null : est1.startsWith("Ainda está") ? "ideia" : est1.startsWith("Já fiz") ? "testes" : est1.startsWith("Já vend") ? "vende" : null;
     const loc8 = texto(m8["M8.P03"]), tec8 = texto(m8["M8.P08"]);
     /* o que a pessoa vende (Módulos 1, 3, 4 e 8 e as ideias deste módulo) e o CNAE do Módulo 8: é alimento? */
-    const cnae = primeiro(m8, ["M8-04", "M8.P06"]);
+    const e8 = lerEstado("lg2-turma-b-m08").cnae;   // CNAE escolhido na lista do Módulo 8 (lote 3)
+    const cnae = primeiro(m8, ["M8-04", "M8.P06"]) || (e8 && e8.cnae ? `${e8.cnae}${e8.ocupacao ? ` (${e8.ocupacao})` : ""}` : null);
     const falas = [ideia, primeiro(m1, ["M1.P03", "M1-01"]), primeiro(m8, ["M8.P01", "M8-01"]), primeiro(m4, ["M4.P01"]), primeiro(m3, ["M3.P01"]), texto(S.R["M9-13"]), cnae].filter(Boolean);
     const falaAlimento = falas.find((t) => ALIMENTO.test(t)) || (cnaeAlimento(cnae) ? cnae : null);
     return {
       ideia, tipo, tipoDe, estagio,
-      m8Local: ["Minha casa", "Ponto comercial", "Atendimento externo", "Online"].includes(loc8) ? loc8 : null,
+      m8Local: ["Minha casa", "Ponto comercial", "Atendimento externo", "Online", Mo.O.domicilio].includes(loc8) ? loc8 : null,
       m8Tecnico: tec8 === "Sim" || tec8 === "Não" ? tec8 : null,
       saudeTipo: tipoSaude([ideia, primeiro(m8, ["M8.P01", "M8-01"]), primeiro(m4, ["M4.P01"])].filter(Boolean).join(" ")),
       descricao: primeiro(m8, ["M8-01", "M8.P01"]),
@@ -158,7 +159,15 @@
     const X = contexto(), t = X.descricao || X.oferta;
     return t ? `<div class="chip-oferta"><span>${esc(t)}</span></div>` : "";
   }
-  const botaoVoltar = () => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">Voltar</button></div>`;
+  /* "Voltar" no topo, à esquerda, no mesmo lugar em todas as telas (padrão do Módulo 1) */
+  const botaoVoltar = () => `<button class="voltar voltar-topo" id="v">Voltar</button>`;
+  /* texto longo (mais de LIMITE_TEXTO): a 1ª frase fica à vista e o resto vai para "Ver mais" (fechado) */
+  const LIMITE_TEXTO = 220;
+  function curto(t) {
+    const m = /^(.+?[.!?:])\s+(?=[A-ZÀ-Ú“"(])/.exec(t);
+    if (t.length <= LIMITE_TEXTO || !m || m[1].length >= t.length - 20) return `<p>${comLinks(t)}</p>`;
+    return `<p>${comLinks(m[1])}</p><details class="mais"><summary>Ver mais</summary><p>${comLinks(t.slice(m[0].length))}</p></details>`;
+  }
   function ligar(p) {
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
     p.querySelectorAll("#zerar,#zerar2").forEach((z) => { z.onclick = reiniciar; });
@@ -175,9 +184,9 @@
     if (!t) return "";
     t = String(t).split("[estado]").join(extra && extra.estado ? extra.estado : "[estado]");
     const pa = Mo.partesAviso(t);
-    if (pa.atencao) return `<div class="bloco b-ok"><p>${comLinks(pa.verifique)}</p></div><div class="bloco b-alerta"><b>⚠ Atenção</b><p>${comLinks(pa.atencao)}</p></div>`;
+    if (pa.atencao) return `<div class="bloco b-ok">${curto(pa.verifique)}</div><div class="bloco b-alerta"><b>⚠ Atenção</b><p>${comLinks(pa.atencao)}</p></div>`;
     if (/^Atenção: /.test(t)) return `<div class="bloco b-alerta"><b>Atenção</b><p>${comLinks(t.replace(/^Atenção: /, ""))}</p></div>`;
-    return `<div class="bloco b-ok"><p>${comLinks(t)}</p></div>`;
+    return `<div class="bloco b-ok">${curto(t)}</div>`;
   }
   const cruzBox = (c) => `<div class="bloco ${c.forma === "Dica" ? "b-proximo" : "b-alerta"} cruz"><b>${esc(c.forma)}</b><p>${esc(c.mensagem)}</p></div>`;
   /* conceitos da Base técnica ligados a cada pergunta: escolha do app (o documento não liga) */
@@ -206,6 +215,15 @@
       `Antes de registrar, confira na prefeitura se a atividade é permitida na sua rua (as regras de uso e ocupação do solo da cidade). ${ondeConfirmar}`,
       apto ? "Em apartamento ou condomínio, confira também o que a convenção do condomínio permite." : "",
     ].filter(Boolean);
+  }
+  /* atendimento em domicílio: sem alvará de ponto próprio, mas a atividade pode pedir licença */
+  function notaDomicilio(X) {
+    return [
+      "Como você atende na casa do cliente, não precisa de alvará para um ponto próprio.",
+      "Mas a atividade em si pode precisar de licença, por exemplo da Vigilância Sanitária (procedimentos no corpo, como cabelo, unhas e estética) ou do conselho da profissão.",
+      "O registro do negócio ainda pede um endereço, em geral o da sua casa.",
+      cidadeJF(X) ? "Em Juiz de Fora, confira na Sala do Empreendedor da prefeitura." : "Confira na prefeitura ou na Sala do Empreendedor da sua cidade.",
+    ];
   }
   const blocoCasa = (X, apto) => `<div class="bloco b-proximo extra nota-casa"><b>Trabalhar em casa</b>${notaCasa(X, apto).map((t) => `<p>${esc(t)}</p>`).join("")}</div>`;
   function textoAlimento(X) {
@@ -275,9 +293,9 @@
       ${topo("Limites")}
       ${heroi({ titulo: "Limites do módulo" })}
       <main class="corpo">
+        ${botaoVoltar()}
         <div class="cartao"><h3>O que este módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
         <p class="aviso">${esc(D.mapa.mensagem_limite)}</p>
-        ${botaoVoltar()}
         ${rodape()}
       </main>
     </div>`);
@@ -305,13 +323,13 @@
       <main class="corpo">
         ${barraFases(q.fase)}
         <div class="cartao-q pergunta">
+          ${botaoVoltar()}
           <h2 class="q" id="pergunta">${esc(q.pergunta)}</h2>
           <div class="entrada" id="ent"></div>
           <div class="erro" id="erro" hidden></div>
           <div id="retorno" aria-live="polite"></div>
-          ${termos(CONCEITO[cod])}
           <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">${ultima ? "Ver meu checklist" : "Continuar"}</button></div>
-          ${botaoVoltar()}
+          ${termos(CONCEITO[cod])}
         </div>
         ${rodape()}
       </main>
@@ -387,13 +405,19 @@
       coletar = () => ({ estado: "valor", valor: ta.value.trim() });
     } else {
       /* escolha única com retorno ao tocar */
-      const ops = q.caminhos.flatMap((c) => c.opcoes);
+      const ops = Mo.opcoes(D, cod);
       const h = resp ? null : herdado(cod, X, S.R);
       const pre = h && ops.includes(h.op) ? h.op : null;
       let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : pre;
       let avisando = false;
       const wrap = el(`<div class="opcoes"></div>`);
-      const pintar = () => wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", x.dataset.v === op));
+      /* "Outra atividade" (M9-02): campo para escrever qual */
+      const outraBox = cod === "M9-02" ? el(`<div class="outra-box" id="outra-box" hidden><label class="rot-campo" for="outra">Qual é a sua atividade?</label>
+        <input class="campo" id="outra" placeholder="Ex.: revenda de joias" value="${esc(resp && resp.detalhe ? resp.detalhe : "")}"></div>`) : null;
+      const pintar = () => {
+        wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", x.dataset.v === op));
+        if (outraBox) outraBox.hidden = op !== Mo.O.outra;
+      };
       const ret = () => {
         if (!op) { mostrar(""); avisando = false; rotuloOk("Continuar"); return; }
         const r0 = op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
@@ -416,14 +440,20 @@
       else if (cod === "M9-02" && X.alimento) ent.appendChild(el(`<p class="veio-linha dica-alimento">${esc(quemVende(X))}. Alimentos costumam afetar a saúde de quem compra.</p>`));
       ops.forEach((o) => {
         const b = el(`<button class="opcao" data-v="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`);
-        b.onclick = () => { op = o; pintar(); ret(); };
+        b.onclick = () => { op = o; pintar(); ret(); if (o === Mo.O.outra) outraBox.querySelector("#outra").focus(); };
         wrap.appendChild(b);
       });
       ent.appendChild(wrap);
+      if (outraBox) { ent.appendChild(outraBox); outraBox.querySelector("#outra").oninput = () => { err.hidden = true; }; }
       pintar();
       if (op) ret();
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
+        if (op === Mo.O.outra) {
+          const d = outraBox.querySelector("#outra").value.trim();
+          if (!d) { erro("Escreva qual é a sua atividade."); outraBox.querySelector("#outra").focus(); return null; }
+          return { estado: "opcao", opcao: op, detalhe: d };
+        }
         return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
       };
     }
@@ -445,6 +475,7 @@
     const uf = o1 && o1 !== NS ? ` (${o1})` : "";
     const NOME = { casa: "na sua casa", apto: "num apartamento ou condomínio", loja: "numa loja ou sala comercial" };
     if (L.tipo) f.push(`Você ${L.planejado ? "pretende trabalhar" : "vai trabalhar"} ${NOME[L.tipo]}${uf}.`);
+    else if (L.domicilio) f.push(`Você vai atender na casa do cliente, em domicílio${uf}.`);
     else if (L.forma === "remoto") f.push(`Você não terá local fixo: ${o3a === Mo.O.cliente ? "vai atender na casa ou na empresa do cliente" : "vai atender pela internet ou por telefone"}${uf}.`);
     else if (L.forma === "rua") f.push(`Você vai trabalhar na rua, em feiras ou eventos${uf}.`);
     else f.push(`O lugar onde você vai trabalhar ainda não está definido${uf}.`);
@@ -452,6 +483,7 @@
     if (Mo.sanitario(R)) f.push("Como o que você faz pode afetar a saúde de quem compra ou é atendido, a Vigilância Sanitária faz parte do seu caminho.");
     else if (o2 === "Não" && X.alimento) f.push(`Você respondeu que o que faz não afeta a saúde de quem compra, mas ${quemVende(X).replace(/^Você/, "você").replace(/^A atividade/, "a atividade")}. Alimentos normalmente passam pela Vigilância Sanitária: confira.`);
     else if (o2 === "Não") f.push("Pelo que você respondeu, o que você faz não afeta a saúde de quem compra, então a Vigilância Sanitária não entra no seu caminho.");
+    else if (o2 === Mo.O.outra) f.push(`Sua atividade${R["M9-02"].detalhe ? ` (“${R["M9-02"].detalhe}”)` : ""} não está nas opções de saúde; confira na prefeitura se ela precisa de alguma licença ou autorização.`);
     else f.push("Ainda falta saber se o que você faz pode afetar a saúde de quem compra ou é atendido.");
     if (Mo.op(R, "M9-10") === "Sim") f.push("Sua atividade precisa de um profissional formado e registrado em conselho.");
     f.push(o4 === Mo.O.aprovada ? "A prefeitura já confirmou que a atividade pode funcionar no endereço."
@@ -480,7 +512,7 @@
       : { u: BASE[Mo.ORGAOS[k].base].link, t: BASE[Mo.ORGAOS[k].base].referencia, d: BASE[Mo.ORGAOS[k].base].data };
     /* respostas que explicam cada item */
     const LIGA = { viabilidade: ["M9-04"], local: ["M9-05", "M9-06", "M9-08", "M9-09"], gas: ["M9-07", "M9-07a", "M9-07b", "M9-07c"], bombeiros: ["M9-06", "M9-07", "M9-07c"], vigilancia: ["M9-02", "M9-09"], ambulante: ["M9-03a"], conselho: ["M9-10"], ambiente: ["M9-11"], obra: ["M9-12"] };
-    const resposta = (c) => { const v = Mo.op(R, c); return v == null ? "" : c === "M9-05" && v !== NS ? `${v} m²` : v; };
+    const resposta = (c) => { const v = Mo.op(R, c); return v == null ? "" : c === "M9-05" && v !== NS ? `${v} m²` : R[c].detalhe ? `${v}: ${R[c].detalhe}` : v; };
     const cls = { "feito": "e-sim", "a fazer": "e-fazer", "não se aplica": "e-nao", "a confirmar": "e-conf" };
     const I1 = instr("Checklist"), I2 = instr("Nível de risco"), I3 = instr("Lista de órgãos"), I4 = instr("Linha-resumo");
     const datas = [...new Set(orgs.map((k) => linkOrgao(k).d))].join(" e ");
@@ -491,6 +523,7 @@
       ${topo("Resultado")}
       ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Seu checklist de endereço e licenças", extra: chipNegocio() })}
       <main class="corpo">
+        ${botaoVoltar()}
         ${barraFases(null, true)}
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo 9</h2><p>Veja abaixo o resultado pelas suas respostas.</p></div></div>
@@ -499,6 +532,7 @@
         ${Mo.op(R, "M9-02") === Mo.O.alimentos || X.alimento ? `<section class="cartao" id="alimentos"><h3>Você trabalha com alimentos</h3>
           ${Mo.alimentoSemSaude(R, X) ? `<div class="bloco b-alerta"><b>Confira</b><p>${esc(avisoAlimentoNao(X))}</p></div>` : ""}
           <div class="bloco b-alerta"><b>Licença sanitária e boas práticas</b>${textoAlimento(X).map((t) => `<p>${esc(t)}</p>`).join("")}</div></section>` : ""}
+        ${L.domicilio ? `<section class="cartao" id="nota-domicilio"><h3>Atendimento na casa do cliente</h3>${notaDomicilio(X).map((t) => `<p>${esc(t)}</p>`).join("")}</section>` : ""}
         ${L.casaOuApto ? `<section class="cartao" id="nota-casa"><h3>Trabalhar em casa</h3>${notaCasa(X, L.tipo === "apto").map((t) => `<p>${esc(t)}</p>`).join("")}</section>` : ""}
         <section class="cartao" id="linha-resumo"><h3>Em uma linha</h3><p>${esc(Mo.linhaResumo(D, R, itens))}</p><p class="aviso-inst">${esc(I4.aviso)}</p></section>
         <section class="cartao" id="risco"><h3>Nível de risco provável</h3>
@@ -536,7 +570,6 @@
           <div id="corr" ${r14 && r14.opcao === "Quero corrigir algo" ? "" : "hidden"}>${respostas.map(([tx, k]) => `<div class="corr-item"><span>${esc(tx)}</span><button class="btn btn-claro editar" data-c="${k}">Corrigir minha resposta</button></div>`).join("")}</div>
         </section>
         <div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resultado</button><button class="btn btn-linha" id="zerar2">Recomeçar do zero</button></div>
-        ${botaoVoltar()}
         <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m10/index.html">Ir para o Módulo 10</a></div>
         ${rodape()}
       </main>

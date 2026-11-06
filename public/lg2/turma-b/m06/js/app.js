@@ -17,6 +17,17 @@
   const MAX_DICAS = 4;     // "Dicas gerais" fica curta
   const SEM_COMPRAS = "Não tenho compras a fazer agora";
   const SEM_COMPRAS_RET = "Tudo bem: sem compras para começar agora. Pulamos o valor das compras e a lista de prioridades.";
+  /* relatório de 05/11 (Nayara): quem ainda não sabe o que vai comprar. Grava como "Não sei" (mesmo caminho:
+     não pergunta o valor nem monta a lista de prioridades) + marca aindaNaoSei, para o resumo dizer "falta descobrir". */
+  const AINDA_NAO_SEI = "Ainda não sei o que vou precisar comprar";
+  const COMO_DESCOBRIR = [
+    "Liste tudo o que você usa para fazer uma unidade ou um atendimento, do começo ao fim.",
+    "Olhe a ficha técnica que você montou no Módulo 4.",
+    "Confira os materiais que você informou no Módulo 5.",
+    "Separe o que você já tem do que ainda precisa comprar.",
+  ];
+  const ehAindaNaoSei = (R) => !!(R["M6.P01"] && R["M6.P01"].aindaNaoSei);
+  const LIMITE_TEXTO = 220;   // ajuda maior que isso: 1ª frase + "Ver mais"
 
   /* teclado do celular: o campo em foco (e o Continuar logo abaixo) vai para o meio da área visível */
   const ehCampo = (x) => x && x.matches && x.matches("input, textarea, select");
@@ -52,6 +63,8 @@
   const valorTxt = (r) => r && r.estado === "valor" && typeof r.valor === "string" && r.valor.trim() ? r.valor.trim() : null;
   const listaDe = (r) => r && r.estado === "valor" && Array.isArray(r.valor) ? r.valor.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()) : [];
   const doM5 = (c) => lerOutro(K[5], "M5." + c);
+  /* materiais que a pessoa listou no Módulo 5 (produto: P03; serviço: P19), sem repetir */
+  const materiaisM5 = () => [...new Set([...listaDe(doM5("P03")), ...listaDe(doM5("P19"))])];
   /* tipo de oferta: M1.P03A → M5.P01 → M4.P02 → M8.P02, pela palavra inicial da opção */
   const TIPOS = { produto: "Produto", mercadoria: "Mercadoria", "serviço": "Serviço", servico: "Serviço" };
   function tipoDe(txt) { const m = /^\s*(produto|mercadoria|servi[çc]o)/i.exec(txt || ""); return m ? TIPOS[m[1].toLowerCase()] : null; }
@@ -125,7 +138,8 @@
   function pulada(c, R) {
     if (c === Motor.NEGOCIO) return !!(R[c] && R[c].herdado);
     if (c === "M6.P02" && R["M6.P01"] && R["M6.P01"].semCompras) return true;     // sem compras: não pergunta quanto vai gastar
-    return REPETE_P01.includes(c) && p01Respondida(R);
+    /* "Ainda não sei o que vou precisar comprar": também não repete a lista nem o valor dos equipamentos */
+    return REPETE_P01.includes(c) && (p01Respondida(R) || ehAindaNaoSei(R));
   }
   function proxima(R, cod) {
     let c = Motor.proxima(M, R, cod);
@@ -153,17 +167,34 @@
   const educativoDe = (cod) => D.educativo.filter((e) => e.onde === cod);
   const conceito = (cod) => D.base.find((b) => b.codigo === cod) || {};
 
+  /* como descobrir o que comprar (P01 "Ainda não sei…"): orientação curta + materiais do Módulo 5 como ponto de partida */
+  function blocoComoDescobrir(comBotao) {
+    const mat = materiaisM5();
+    return `<div class="bloco b-proximo como-descobrir" id="como-descobrir"><b>Como descobrir o que comprar</b>
+      <ol>${COMO_DESCOBRIR.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${mat.length ? `<div class="partida" id="partida-m5"><span class="selo">Veio do Módulo 5</span>
+        <p>Você já listou estes materiais: ${esc(mat.join(", "))}. Eles podem ser o seu ponto de partida.</p>
+        ${comBotao ? `<button class="btn-alt" id="usar-m5">Usar essa lista como ponto de partida</button>` : ""}</div>` : ""}
+    </div>`;
+  }
+  /* menos texto na tela: ajuda longa mostra a 1ª frase e guarda o resto em "Ver mais" */
+  function curto(texto) {
+    const t = String(texto || "").trim();
+    const m = /^(.+?[.!?:])\s+(.+)$/s.exec(t);
+    if (t.length <= LIMITE_TEXTO || !m) return esc(t);
+    return `${esc(m[1])}<details class="ver-mais"><summary>Ver mais</summary>${esc(m[2])}</details>`;
+  }
+  /* caixas "Entenda", "Faça" e "Use a IA com cuidado": recolhidas e discretas, embaixo do Continuar */
   function blocoEducativo(lista) {
     return lista.map((e) => `
-      <div class="caixa caixa-${e.tipo === "Faça" ? "faca" : e.tipo === "Entenda" ? "entenda" : "ia"}">
-        <span class="tag">${esc(e.tipo)}</span>
-        <b>${esc(e.titulo)}</b>
+      <details class="caixa recolhida caixa-${e.tipo === "Faça" ? "faca" : e.tipo === "Entenda" ? "entenda" : "ia"}">
+        <summary><span class="tag">${esc(e.tipo)}</span> <b>${esc(e.titulo)}</b></summary>
         <p>${esc(e.texto)}</p>
         ${vazio(e.exemplo) ? "" : `<p class="ex">${esc(e.exemplo)}</p>`}
         ${vazio(e.prompt) ? "" : `<div class="prompt"><p>${esc(e.prompt)}</p><button class="btn-copiar" data-t="${esc(e.prompt)}">Copiar texto</button></div>
           ${vazio(e.conferir) ? "" : `<p class="ex">${esc(e.conferir)}</p>`}`}
         <span class="fonte">Fonte: ${esc(e.fonte)}</span>
-      </div>`).join("");
+      </details>`).join("");
   }
   function blocoConceitos(lista) {
     if (!lista.length) return "";
@@ -227,9 +258,12 @@
   }
   function dica(texto) {
     if (vazio(texto)) return "";
-    return `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><p class="ajuda">${esc(texto)}</p></div></aside>`;
+    return `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><div class="ajuda">${curto(texto)}</div></div></aside>`;
   }
-  const botaoVoltar = (rot) => `<div class="acoes acoes-voltar"><button class="btn btn-linha voltar" id="v">${rot || "Voltar"}</button></div>`;
+  /* "‹ Voltar" no topo do cartão, à esquerda, no mesmo lugar em todos os módulos (como no Módulo 1);
+     na 1ª pergunta ele volta para a capa */
+  const botaoVoltar = () => `<button class="voltar-topo" id="v" aria-label="Voltar"><span aria-hidden="true">‹</span> Voltar</button>`;
+  let partidaP01 = null;      // lista do Módulo 5 escolhida como ponto de partida da P01 (só para a próxima tela)
   function ligar(p) {
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
   }
@@ -271,12 +305,12 @@
         ${topo("Limites")}
         ${heroi({ titulo: "Limites do módulo" })}
         <main class="corpo">
+          ${botaoVoltar()}
           <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="cartao"><h3>Cuidados</h3><p>${esc(D.mapa.riscos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-          ${botaoVoltar()}
           ${rodape()}
         </main>
       </div>`);
@@ -294,7 +328,8 @@
     let escolhida = resp && resp.estado === "opcao" ? resp.opcao : null;
     let marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.estado === "naosei" && tipo === "multi" ? [Motor.NS] : [];
     if (resp && resp.estado === "naosei" && tipo !== "multi") escolhida = Motor.NS;
-    const her = resp ? null : heranca(cod);
+    const her = cod === "M6.P01" && partidaP01 ? partidaP01 : resp ? null : heranca(cod);
+    partidaP01 = null;
     if (her && her.opcoes) marcadas = her.opcoes.slice();
     const neg = S.R[Motor.NEGOCIO];
     const faixaNeg = etapaDe(cod) === 2 && cod !== Motor.NEGOCIO && neg && neg.estado === "opcao"
@@ -307,18 +342,18 @@
         ${etapas(etapaDe(cod))}
         <main class="corpo">
           <div class="cartao-q pergunta" data-cod="${esc(cod)}">
+            ${botaoVoltar()}
             ${faixaNeg}
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${her ? `<div class="herdado"><span class="selo">Veio do Módulo ${her.modulo}</span><span>Confira e ajuste se quiser.</span>${her.nota ? `<p class="mini-info">${esc(her.nota)}</p>` : ""}</div>` : ""}
             <div class="entrada" id="ent"></div>
-            ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" id="sem-compras-btn">${SEM_COMPRAS}</button>` : ""}</div>` : ""}
+            ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" id="sem-compras-btn">${SEM_COMPRAS}</button><button class="btn-alt" id="ainda-nao-sei">${AINDA_NAO_SEI}</button>` : ""}</div>` : ""}
             <div class="erro" id="erro" hidden></div>
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             <div id="retorno"></div>
             ${dica(q.ajuda)}
             ${blocoEducativo(educativoDe(cod))}
             ${blocoConceitos(conceitosDe(q))}
-            ${botaoVoltar(S.hist.length > 1 ? "Voltar" : "Início")}
           </div>
           ${rodape()}
         </main>
@@ -365,6 +400,8 @@
     if (ns) ns.onclick = () => responder({ estado: "naosei" });
     const sc = p.querySelector("#sem-compras-btn");
     if (sc) sc.onclick = () => responder({ estado: "valor", valor: SEM_COMPRAS, semCompras: true });
+    const ans = p.querySelector("#ainda-nao-sei");
+    if (ans) ans.onclick = () => responder({ estado: "naosei", aindaNaoSei: true });
 
     p.querySelector("#ok").onclick = () => {
       if (tipo === "escolha" || tipo === "simnao_texto") {
@@ -410,11 +447,15 @@
 
     function mostrarRetorno(regras, prox, parado) {
       const box = p.querySelector("#retorno");
+      /* "Ainda não sei o que vou precisar comprar": só a orientação curta (sem a calculadora do valor das compras) */
+      const descobrir = !parado && S.R[cod] && S.R[cod].aindaNaoSei;
+      if (descobrir) regras = [];
       /* um só bloco de atenção na tela: alertas das regras + alerta da pergunta, sem repetição */
-      const atencao = [...new Set([...regras.map((r) => r.alerta), ...(parado ? [] : [q.alerta])].filter((a) => !vazio(a)).map((a) => String(a).trim()))];
+      const atencao = descobrir ? [] : [...new Set([...regras.map((r) => r.alerta), ...(parado ? [] : [q.alerta])].filter((a) => !vazio(a)).map((a) => String(a).trim()))];
       const extra = !parado && S.R[cod] && S.R[cod].semCompras ? SEM_COMPRAS_RET : "";
       box.innerHTML = `<div class="retorno${parado ? " parado" : ""}">
-        ${parado || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
+        ${parado || descobrir || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
+        ${descobrir ? `<p class="r-texto r-descobrir">Tudo bem. Por enquanto, pulamos o valor das compras. No seu resumo, isso fica como algo que falta descobrir.</p>${blocoComoDescobrir(true)}` : ""}
         ${extra ? `<p class="r-texto r-sem-compras">${esc(extra)}</p>` : ""}
         ${regras.map((r) => `
           <div class="regra">
@@ -426,6 +467,11 @@
         ${atencao.length ? `<div class="bloco b-alerta"><b>Atenção</b>${atencao.length === 1 ? esc(atencao[0]) : `<ul>${atencao.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`}</div>` : ""}
       </div>`;
       if (parado) { box.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+      const usar = box.querySelector("#usar-m5");
+      if (usar) usar.onclick = () => {
+        partidaP01 = { valor: materiaisM5().join(", "), modulo: 5, nota: "São os materiais que você listou no Módulo 5. Apague o que não precisa comprar e acrescente o que faltar." };
+        ir(telaPergunta, cod);
+      };
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
       box.after(acoes);          // depois de ler o retorno, o Seguir fica logo abaixo dele
@@ -477,9 +523,10 @@
         <div class="sub">${temValor
           ? inv.partes.map((x) => `${esc(M.porCodigo[x.codigo].pergunta)} ${brl(x.valor)}`).join(" · ")
             + (inv.forma && inv.forma !== Motor.NS ? ` · ${esc(inv.forma)}` : "")
-          : esc(naoSeiP02.texto)}</div>
+          : ehAindaNaoSei(S.R) ? "Falta descobrir o que você vai precisar comprar." : esc(naoSeiP02.texto)}</div>
       </div>
       ${como(inv.semCompras ? "você disse que não tem compras a fazer agora, então o valor para começar é zero."
+        : !temValor && ehAindaNaoSei(S.R) ? "ainda não dá para calcular, porque falta descobrir o que você vai precisar comprar."
         : temValor ? `somamos os valores que você informou para começar (${inv.partes.map((x) => brl(x.valor)).join(" + ")}).`
         : "ainda não dá para calcular, porque o valor das compras ficou em “Não sei”.", "como-i01")}
       ${limiteInstr(ins)}`;
@@ -508,14 +555,19 @@
   function blocoI02() {
     const ins = I("M6.I02"), itens = Motor.itens(S.R, S.fora), cats = Motor.categorias(M);
     const naoSeiP01 = D.regras.find((r) => r.pergunta === "M6.P01" && Motor.casa(r.condicao, { estado: "naosei" })) || {};
+    /* "Ainda não sei o que vou precisar comprar": entra no resumo como algo que falta descobrir, com o caminho para descobrir */
+    const falta = ehAindaNaoSei(S.R) ? `<div class="bloco b-lacuna" id="falta-descobrir"><b>Falta descobrir</b>
+      <p>O que você vai precisar comprar para começar. Com a lista em mãos, volte aqui para estimar o valor e ver o que é prioridade.</p></div>
+      ${blocoComoDescobrir(false)}` : "";
     const fora = (S.fora || []).length ? `<p class="mini-info" id="fora">Tirados da lista: ${S.fora.map(esc).join(", ")}. <button class="btn-alt" id="repor">Pôr de volta</button></p>` : "";
     /* a lista só abre quando há itens de compra de verdade */
     if (!itens.length) {
       const nada = Motor.investimento(S.R).semCompras || (S.fora || []).length;
       return `<div id="sem-compras">${nada ? `<p class="mini-info">Sem compras a fazer agora: a lista de prioridade de compras fica de fora.</p>${fora}`
-        : valor1NS() ? `${cabInstr(ins)}<div class="bloco b-lacuna">${esc(naoSeiP01.lacuna)}</div>` : ""}</div>`;
+        : falta ? `${cabInstr(ins)}${falta}` : valor1NS() ? `${cabInstr(ins)}<div class="bloco b-lacuna">${esc(naoSeiP01.lacuna)}</div>` : ""}</div>`;
     }
     return `${cabInstr(ins)}
+      ${falta}
       <div class="lista" id="prio">${itens.map((it, i) => `
         <div class="item"><div class="item-topo"><b class="nome">${esc(it)}</b><button class="btn-alt tirar" data-i="${i}" aria-label="Tirar ${esc(it)} da lista">Tirar da lista</button></div>
           <div class="opcoes mini">${cats.map((c) => `<button class="opcao ${S.prio[it] === c ? "sel" : ""}" data-i="${i}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>
@@ -608,6 +660,7 @@
     const c1 = out.length;   // 1º parágrafo: o que oferece e em que ponto está
     const inv = Motor.investimento(S.R), forma = inv.forma && inv.forma !== Motor.NS ? inv.forma.toLowerCase() : null;
     out.push(inv.semCompras ? "Você não tem compras a fazer para começar agora." : inv.valor !== null ? `Para começar, você estima gastar ${brl(inv.valor)}${forma ? `, pagando ${forma}` : ""}.`
+      : ehAindaNaoSei(S.R) ? "Você ainda vai descobrir o que precisa comprar para começar: liste o que usa em cada unidade ou atendimento."
       : "Você ainda não sabe quanto vai gastar para começar: vale pesquisar os preços antes.");
     const vendas = numDe("M6.P05"), prazo = FRASE_PRAZO[Motor.valor(S.R, "M6.P08")];
     out.push(vendas !== null ? `Você espera vender cerca de ${brl(vendas)} por mês${prazo ? ` e receber o dinheiro ${prazo}` : ""}.`
@@ -632,7 +685,10 @@
       const base = Motor.valor(S.R, ["M6.P11", "M6.P14"].includes(q.codigo) ? "M6.P02" : "M6.P01");
       return `<span class="selo">Respondido no começo</span> ${esc(base === undefined ? "—" : base)}`;
     }
+    if (v === undefined && REPETE_P01.includes(q.codigo) && ehAindaNaoSei(S.R) && S.R[Motor.NEGOCIO] && SECAO[q.codigo] === SECAO_NEG[S.R[Motor.NEGOCIO].opcao])
+      return `<span class="selo">Falta descobrir</span>`;
     if (v === undefined) return `<span class="mini-info">Não apareceu no seu caminho</span>`;
+    if (r && r.aindaNaoSei) return `${esc(AINDA_NAO_SEI)} <span class="selo">Falta descobrir</span>`;
     return (r && r.herdado ? `<span class="selo">Veio do Módulo ${esc(r.herdado)}</span> ` : "") + esc(v) + (det ? ` · ${esc(det)}` : "");
   }
 
@@ -646,6 +702,7 @@
         ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Seu resumo" })}
         ${etapas(3, true)}
         <main class="corpo">
+          ${botaoVoltar()}
           <section class="concluido">
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
           </section>
@@ -675,7 +732,6 @@
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
-          ${botaoVoltar()}
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m07/index.html">Ir para o Módulo 7</a></div>
           ${rodape()}
         </main>

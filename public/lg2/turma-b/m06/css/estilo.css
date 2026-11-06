@@ -219,3 +219,26 @@ table.fluxo th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .item-topo .btn-alt{font-size:12.5px;padding:4px 10px}
 .b-alerta ul{padding-left:18px;margin:4px 0}
 .b-alerta li{margin:4px 0}
+
+/* "‹ Voltar" no topo do cartão (mesmo lugar em todos os módulos) e "Ver mais" das ajudas longas */
+.voltar-topo{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--m-purple);font:inherit;font-size:16px;font-weight:700;padding:6px 2px;margin:0 0 8px;cursor:pointer}
+.voltar-topo span{font-size:22px;line-height:1}
+.ver-mais{margin-top:4px}
+.ver-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:14.5px}
+@media print{.voltar-topo,.revisar{display:none!important}.ver-mais summary{display:none}}
+
+/* caixas educativas recolhidas e discretas (Entenda, Faça, Use a IA com cuidado) */
+.caixa.recolhida{padding:8px 12px;margin-top:10px;border-width:1px;background:#fff}
+.caixa.recolhida summary{cursor:pointer;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--m-purple);list-style:none}
+.caixa.recolhida summary::-webkit-details-marker{display:none}
+.caixa.recolhida summary::after{content:"+";margin-left:auto;font-weight:700;font-size:18px;color:var(--m-purple)}
+.caixa.recolhida[open] summary::after{content:"−"}
+.caixa.recolhida summary b{display:inline;margin:0;font-size:14px}
+.caixa.recolhida[open] summary{margin-bottom:6px}
+/* "Ainda não sei o que vou precisar comprar": como descobrir */
+.como-descobrir ol{margin:6px 0 0 20px;padding:0}
+.como-descobrir li{margin:3px 0}
+.como-descobrir .partida{margin-top:10px}
+.como-descobrir .partida p{margin:6px 0}
+@media print{.caixa.recolhida summary::after{content:""}}
+.caixa.recolhida summary .tag{white-space:nowrap;flex:0 0 auto}
