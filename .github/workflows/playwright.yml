@@ -47,6 +47,8 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm ci
+    - name: LibreOffice para o relatório em PDF (como no servidor)
+      run: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends libreoffice-writer-nogui fonts-crosextra-carlito >/dev/null
     - name: Conferir versão do Playwright contra a imagem
       run: |
         v=$(node -p "require('@playwright/test/package.json').version")
