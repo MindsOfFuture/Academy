@@ -24,11 +24,17 @@ export default async function RelatorioPage({ searchParams }: { searchParams: Pr
     <div className="space-y-8">
       <SeletorMes mes={mes} titulo="Relatório de" />
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         {/* Link comum: o navegador baixa o arquivo que a rota devolve. */}
         <a
-          href={`/gestao/relatorio/docx?mes=${mes}`}
+          href={`/gestao/relatorio/pdf?mes=${mes}`}
           className="rounded-md bg-[#684A97] px-4 py-2 text-sm font-medium text-white hover:bg-[#684A97]/90"
+        >
+          Baixar relatório (.pdf)
+        </a>
+        <a
+          href={`/gestao/relatorio/docx?mes=${mes}`}
+          className="rounded-md border border-[#684A97] px-4 py-2 text-sm font-medium text-[#684A97] hover:bg-[#684A97]/10"
         >
           Baixar relatório (.docx)
         </a>
