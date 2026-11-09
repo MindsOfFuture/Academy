@@ -103,9 +103,11 @@ describe("lib/api/gestao/indicators — fronteira de query", () => {
   });
 
   it("deriva reservas de ônibus filtrando onibus=true", async () => {
-    from.mockReturnValue(chain({ data: null, error: null, count: 3 }));
+    const query = chain({ data: null, error: null, count: 3 });
+    from.mockReturnValue(query);
     const result = await getReservasOnibus();
     expect(result.total).toBe(3);
+    expect(query.eq).toHaveBeenCalledWith("onibus", true);
     expect(from).toHaveBeenCalledWith("reserva");
   });
 
@@ -133,9 +135,11 @@ describe("lib/api/gestao/indicators — fronteira de query", () => {
   });
 
   it("deriva aulas realizadas excluindo realizadas_em nulo", async () => {
-    from.mockReturnValue(chain({ data: null, error: null, count: 4 }));
+    const query = chain({ data: null, error: null, count: 4 });
+    from.mockReturnValue(query);
     const result = await getAulasRealizadas();
     expect(result.total).toBe(4);
+    expect(query.not).toHaveBeenCalledWith("realizada_em", "is", null);
     expect(from).toHaveBeenCalledWith("aula");
   });
 

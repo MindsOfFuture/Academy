@@ -11,13 +11,64 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => mockClient,
 }));
 
+// Papel de quem chama: o padrão (aluno) é o que a resolução real daria com o mock vazio.
+const quem = vi.hoisted(() => ({ userId: 'test-user-id' as string | null, role: 'student' as string }));
+vi.mock('@/lib/api/profiles', () => ({ getCurrentUserAndRole: async () => ({ ...quem }) }));
+
 // Import após o mock
-import { listCourses, getCourseDetail } from '@/lib/api/courses';
+import { listCourses, getCourseDetail, removeModule, removeLesson } from '@/lib/api/courses';
 
 describe('Courses API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockClient = createMockSupabaseClient();
+    Object.assign(quem, { userId: 'test-user-id', role: 'student' });
+  });
+
+  describe('escopo e permissão do professor', () => {
+    it('professor lista só os próprios cursos; aluno não tem esse filtro', async () => {
+      quem.role = 'teacher';
+      mockClient.chain.order.mockResolvedValueOnce({ data: [], error: null });
+      await listCourses();
+      expect(mockClient.chain.eq).toHaveBeenCalledWith('owner_id', 'test-user-id');
+
+      mockClient.chain.eq.mockClear();
+      quem.role = 'student';
+      mockClient.chain.order.mockResolvedValueOnce({ data: [], error: null });
+      await listCourses();
+      expect(mockClient.chain.eq).not.toHaveBeenCalledWith('owner_id', expect.anything());
+    });
+
+    it.each([
+      ['módulo', removeModule],
+      ['aula', removeLesson],
+    ] as const)('professor não apaga %s de curso alheio', async (_nome, remover) => {
+      quem.role = 'teacher';
+      mockClient.chain.maybeSingle
+        .mockResolvedValueOnce({ data: { course_id: 'c1' }, error: null }) // curso do módulo/aula
+        .mockResolvedValueOnce({ data: { owner_id: 'outro' }, error: null }); // dono do curso
+      await expect(remover('x1')).rejects.toThrow('Acesso negado.');
+      expect(mockClient.chain.delete).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['módulo', removeModule],
+      ['aula', removeLesson],
+    ] as const)('professor não apaga %s quando o curso não é achado', async (_nome, remover) => {
+      quem.role = 'teacher';
+      mockClient.chain.maybeSingle.mockResolvedValue({ data: null, error: null });
+      await expect(remover('x1')).rejects.toThrow('Acesso negado.');
+      expect(mockClient.chain.delete).not.toHaveBeenCalled();
+    });
+
+    it('dono do curso apaga o módulo', async () => {
+      quem.role = 'teacher';
+      mockClient.chain.maybeSingle
+        .mockResolvedValueOnce({ data: { course_id: 'c1' }, error: null })
+        .mockResolvedValueOnce({ data: { owner_id: 'test-user-id' }, error: null });
+      expect(await removeModule('x1')).toBe(true);
+      expect(mockClient.chain.delete).toHaveBeenCalled();
+    });
   });
 
   describe('listCourses', () => {
