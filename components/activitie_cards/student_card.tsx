@@ -8,7 +8,8 @@ interface Student_CardProps {
 }
 
 export default function Student_Card({ link, StudentTitleLink, onDelete }: Student_CardProps) {
-    const repoLink = link;
+    // window.open não tem a proteção do React contra `javascript:`; só abre http(s) e blob.
+    const repoLink = /^(https?:|blob:)/i.test(link) ? link : `https://${link.replace(/^[a-z][\w+.-]*:/i, "")}`;
 
     const isBlob = typeof repoLink === 'string' && repoLink.startsWith('blob:');
     let faviconUrl = '';
