@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createClient as createServerSupabase, createAdminClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { type RoleName, type TeacherVerificationStatus, type UserProfileSummary } from "./types";
 import { notifyAdmins, createNotification } from "./notifications-server";
+import { assinarComprovantes, referenciaDoComprovante } from "./comprovante";
 
 type TeacherRequestRow = {
     user_id: string;
@@ -219,6 +220,11 @@ export async function getCurrentUserProfile(): Promise<{
         .maybeSingle();
 
     const displayName = profileRow?.full_name || user.user_metadata?.full_name || user.email || "Usuário";
+    const documento =
+        teacherRequest?.qualification_document_url ||
+        teacherRequestWithDocument?.qualification_document_url ||
+        ((user.user_metadata?.qualification_document_url as string | undefined) || null);
+    const documentoAssinado = documento ? (await assinarComprovantes(serviceRole, [documento])).get(documento) : undefined;
 
     return {
         id: user.id,
@@ -233,10 +239,7 @@ export async function getCurrentUserProfile(): Promise<{
         certifications: profileRow?.certifications || [],
         verificationStatus: (profileRow?.verification_status || null) as TeacherVerificationStatus,
         verificationReason: teacherRequest?.status === "rejected" ? teacherRequest.observations || null : null,
-        verificationDocumentUrl:
-            teacherRequest?.qualification_document_url ||
-            teacherRequestWithDocument?.qualification_document_url ||
-            ((user.user_metadata?.qualification_document_url as string | undefined) || null),
+        verificationDocumentUrl: documentoAssinado ?? documento,
         // Teacher-specific
         schools: teacherDetails?.schools || [],
         educationLevel: teacherDetails?.education_level || null,
@@ -261,6 +264,22 @@ async function contatosParaAdmin(ids: string[]): Promise<Record<string, Contato>
     } catch {
         return {};
     }
+}
+
+/** Comprovantes de professor assinados para o admin; quem não é admin recebe vazio. */
+async function comprovantesParaAdmin(urls: Array<string | null | undefined>): Promise<Map<string, string>> {
+    if (!urls.some(Boolean)) return new Map();
+    try {
+        return await assinarComprovantes(await createAdminClient(), urls);
+    } catch {
+        return new Map();
+    }
+}
+
+export async function assinarComprovantesAction(urls: string[]): Promise<Record<string, string>> {
+    "use server";
+    if (!Array.isArray(urls) || urls.length > 100 || !urls.every((url) => typeof url === "string")) return {};
+    return Object.fromEntries(await comprovantesParaAdmin(urls));
 }
 
 /** Mesma leitura para a tabela de usuários, que pagina no navegador. */
@@ -295,6 +314,7 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
 
     const latestTeacherRequestByUser = mapLatestTeacherRequestByUser(teacherRequests as TeacherRequestRow[]);
     const contatos = await contatosParaAdmin(userIds);
+    const comprovantes = await comprovantesParaAdmin(Object.values(latestTeacherRequestByUser).map((r) => r?.qualification_document_url));
 
     return data.map<UserProfileSummary>((row) => {
         const latestTeacherRequest = latestTeacherRequestByUser[row.id];
@@ -310,7 +330,7 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
             certifications: row.certifications || [],
             verificationStatus: (row.verification_status || null) as TeacherVerificationStatus,
             verificationReason: latestTeacherRequest?.status === "rejected" ? latestTeacherRequest.observations || null : null,
-            verificationDocumentUrl: latestTeacherRequest?.qualification_document_url || null,
+            verificationDocumentUrl: (latestTeacherRequest?.qualification_document_url && comprovantes.get(latestTeacherRequest.qualification_document_url)) || latestTeacherRequest?.qualification_document_url || null,
             isActive: row.is_active,
             role: mapRoleFromLinks(row.id, roleLinks || []),
         };
@@ -358,6 +378,7 @@ export async function getUsersPage(
 
     const latestTeacherRequestByUser = mapLatestTeacherRequestByUser(teacherRequests as TeacherRequestRow[]);
     const contatos = await contatosParaAdmin(userIds);
+    const comprovantes = await comprovantesParaAdmin(Object.values(latestTeacherRequestByUser).map((r) => r?.qualification_document_url));
 
     const users = (data || []).map<UserProfileSummary>((row) => {
         const latestTeacherRequest = latestTeacherRequestByUser[row.id];
@@ -373,7 +394,7 @@ export async function getUsersPage(
             certifications: row.certifications || [],
             verificationStatus: (row.verification_status || null) as TeacherVerificationStatus,
             verificationReason: latestTeacherRequest?.status === "rejected" ? latestTeacherRequest.observations || null : null,
-            verificationDocumentUrl: latestTeacherRequest?.qualification_document_url || null,
+            verificationDocumentUrl: (latestTeacherRequest?.qualification_document_url && comprovantes.get(latestTeacherRequest.qualification_document_url)) || latestTeacherRequest?.qualification_document_url || null,
             isActive: row.is_active,
             role: mapRoleFromLinks(row.id, roleLinks || []),
         };
@@ -528,8 +549,9 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
         .limit(1)
         .maybeSingle();
 
+    // A tela devolve a URL que exibiu (assinada); grava-se sempre a referência estável.
     const nextQualificationDocumentUrl = params.qualificationDocumentUrl?.trim()
-        ? params.qualificationDocumentUrl.trim()
+        ? referenciaDoComprovante(params.qualificationDocumentUrl.trim())
         : (latestTeacherRequest?.qualification_document_url || null);
 
     if (currentStatus === "rejected" && !nextQualificationDocumentUrl) {
@@ -640,12 +662,16 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
     revalidatePath("/protected/perfil");
     revalidatePath("/protected");
 
+    const urlExibida = nextQualificationDocumentUrl
+        ? (await assinarComprovantes(serviceRoleClient, [nextQualificationDocumentUrl])).get(nextQualificationDocumentUrl) ?? nextQualificationDocumentUrl
+        : null;
+
     if (currentStatus === "rejected") {
         return {
             reverificationRequested: true,
             message: "Perfil salvo. Sua solicitação voltou para verificação pendente.",
             verificationStatus: "pending",
-            qualificationDocumentUrl: nextQualificationDocumentUrl,
+            qualificationDocumentUrl: urlExibida,
         };
     }
 
@@ -653,7 +679,7 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
         reverificationRequested: false,
         message: "Perfil de professor salvo com sucesso.",
         verificationStatus: nextStatus,
-        qualificationDocumentUrl: nextQualificationDocumentUrl,
+        qualificationDocumentUrl: urlExibida,
     };
 }
 

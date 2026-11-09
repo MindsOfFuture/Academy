@@ -57,16 +57,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: uploadError.message }, { status: 500 });
         }
 
+        // `url` é a referência gravada no banco (forma pública do caminho); a leitura
+        // usa URL assinada (lib/api/comprovante.ts), então o bucket pode ser privado.
         const { data } = supabase.storage.from("teacher-qualification-documents").getPublicUrl(filePath);
+        const { data: assinada } = await supabase.storage
+            .from("teacher-qualification-documents")
+            .createSignedUrl(filePath, 60 * 60);
 
-        // ponytail: bucket segue público — a chave carrega um UUID e não existe
-        // policy de SELECT em storage.objects, então não dá para enumerar. Teto:
-        // quem obtiver a URL lê o documento para sempre. Upgrade: bucket privado +
-        // createSignedUrl na leitura (exige migrar as URLs já gravadas em
-        // teacher_request.qualification_document_url).
         return NextResponse.json({
             path: filePath,
             url: data.publicUrl,
+            signedUrl: assinada?.signedUrl ?? null,
             extension: ext,
         });
     } catch (error) {

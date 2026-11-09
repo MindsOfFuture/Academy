@@ -191,7 +191,7 @@ export function ProfileClient({
                         throw new Error(uploadPayload?.error || "Falha ao enviar comprovante de qualificação.");
                     }
                     nextDocumentUrl = uploadPayload.url;
-                    setQualificationDocumentUrl(uploadPayload.url);
+                    setQualificationDocumentUrl(uploadPayload.signedUrl || uploadPayload.url);
                 }
 
                 const teacherResult = await updateTeacherProfileClient({

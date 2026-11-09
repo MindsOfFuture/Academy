@@ -23,9 +23,10 @@ interface UsersTableClientProps {
     deleteUserAction: (formData: FormData) => Promise<void>;
     updateUserAction: (formData: FormData) => Promise<void>;
     contatosDosUsuariosAction: (ids: string[]) => Promise<Record<string, { phone: string | null; address: string | null }>>;
+    assinarComprovantesAction: (urls: string[]) => Promise<Record<string, string>>;
 }
 
-export default function UsersTableClient({ initialUsers, initialTotal, initialPage, initialPageSize, deleteUserAction, updateUserAction, contatosDosUsuariosAction }: UsersTableClientProps) {
+export default function UsersTableClient({ initialUsers, initialTotal, initialPage, initialPageSize, deleteUserAction, updateUserAction, contatosDosUsuariosAction, assinarComprovantesAction }: UsersTableClientProps) {
 
     const [open, setOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserProfileSummary | null>(null);
@@ -141,6 +142,11 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                 }
             });
 
+            // Comprovantes abrem por URL assinada, gerada no servidor só para admin.
+            const comprovantes = await assinarComprovantesAction(
+                [...latestTeacherRequestByUser.values()].map((r) => r.qualification_document_url).filter((u): u is string => !!u),
+            );
+
             const mapped = (data || []).map((row) => {
                 const latestTeacherRequest = latestTeacherRequestByUser.get(row.id);
                 const td = teacherDetailsByUser.get(row.id);
@@ -156,7 +162,7 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                     certifications: row.certifications || [],
                     verificationStatus: row.verification_status || null,
                     verificationReason: latestTeacherRequest?.status === "rejected" ? latestTeacherRequest?.observations || null : null,
-                    verificationDocumentUrl: latestTeacherRequest?.qualification_document_url || null,
+                    verificationDocumentUrl: (latestTeacherRequest?.qualification_document_url && comprovantes[latestTeacherRequest.qualification_document_url]) || latestTeacherRequest?.qualification_document_url || null,
                     isActive: row.is_active,
                     role: mapRole(row.id, roleLinks || []),
                     schools: td?.schools || [],

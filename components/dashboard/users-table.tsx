@@ -1,4 +1,4 @@
-import { contatosDosUsuariosAction, deleteUserAction, getUsersPage, updateUserAction } from "@/lib/api/profiles-server";
+import { assinarComprovantesAction, contatosDosUsuariosAction, deleteUserAction, getUsersPage, updateUserAction } from "@/lib/api/profiles-server";
 import { type UserProfileSummary } from "@/lib/api/types";
 import UsersTableClient from "./users-table-client";
 
@@ -17,6 +17,7 @@ export default async function UsersTable() {
             deleteUserAction={deleteUserAction}
             updateUserAction={updateUserAction}
             contatosDosUsuariosAction={contatosDosUsuariosAction}
+            assinarComprovantesAction={assinarComprovantesAction}
         />
     );
 }
