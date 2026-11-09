@@ -12,21 +12,16 @@ test.describe('Home Page Mobile - Hero Section', () => {
     const hero = page.locator('section').first();
     await expect(hero).toBeVisible();
     
-    // Imagens do hero devem carregar
-    const heroImages = hero.locator('img');
-    const imageCount = await heroImages.count();
-    
-    for (let i = 0; i < imageCount; i++) {
-      const img = heroImages.nth(i);
-      if (await img.isVisible()) {
-        // A foto do hero tem loading="lazy" e no celular fica abaixo da dobra: só baixa ao
-        // rolar. Rola e confere juntos, repetindo — ao hidratar o Next volta a página ao topo.
-        await expect(async () => {
-          await img.scrollIntoViewIfNeeded();
-          expect(await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-        }).toPass({ timeout: 20000 });
-      }
-    }
+    // A foto da equipe é a imagem do hero. Tem loading="lazy" e no celular fica abaixo
+    // da dobra: só baixa ao rolar. Rola e confere juntos, repetindo — ao hidratar o
+    // Next volta a página ao topo.
+    const foto = page.getByAltText('Equipe Minds of the Future');
+    await expect(foto).toHaveCount(1);
+    await expect(async () => {
+      await foto.scrollIntoViewIfNeeded();
+      const estado = await foto.evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, src: el.currentSrc }));
+      expect(estado.ok, `foto do hero não carregou: ${estado.src}`).toBe(true);
+    }).toPass({ timeout: 20000 });
   });
 
   test('CTA buttons devem ser tocáveis e visíveis', async ({ page }) => {
