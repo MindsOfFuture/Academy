@@ -55,9 +55,8 @@ test.describe('Fluxo de Login Real', () => {
 
     await loginViaUI(page, user);
 
-    // Verificar que nome é exibido
-    const greeting = page.locator('text=/olá|bem-vindo/i');
-    await expect(greeting).toBeVisible({ timeout: 10000 });
+    // A URL troca antes da tela: "bem-vindo" casava com o título do login que ainda estava na página.
+    await expect(page.getByRole('heading', { level: 1, name: /^Olá, \S/ })).toBeVisible({ timeout: 10000 });
   });
 
   test('usuário logado deve ver seus cursos', async ({ page }) => {
