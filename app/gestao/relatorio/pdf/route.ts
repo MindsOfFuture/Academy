@@ -4,10 +4,11 @@ import { NextResponse } from "next/server";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
 import { gestaoHabilitada } from "@/lib/api/gestao/feature-flags";
 import { encontrosDoMes, meuPerfilParaRelatorio, atividadesDoMes } from "@/lib/api/gestao/relatorio";
-import { gerarRelatorioPdf } from "@/lib/api/gestao/relatorio-pdf";
+import { preencherRelatorio } from "@/lib/api/gestao/relatorio-docx";
+import { docxParaPdf } from "@/lib/api/gestao/relatorio-pdf";
 import { mesDaUrl } from "../../alocacao/rotulos";
 
-/** Baixa o relatório do mês de quem está logado, em PDF, no mesmo formulário do .docx. */
+/** Baixa o relatório do mês de quem está logado, em PDF: o próprio .docx convertido. */
 export async function GET(request: Request) {
   if (!gestaoHabilitada()) return new NextResponse(null, { status: 404 });
   try {
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
       atividadesDoMes(mes),
     ]);
     const modelo = readFileSync(path.join(process.cwd(), "lib/api/gestao/modelos/relatorio-mensal.docx"));
-    const arquivo = gerarRelatorioPdf(modelo, { mes, ...perfil, encontros, atividades });
+    const arquivo = await docxParaPdf(preencherRelatorio(modelo, { mes, ...perfil, encontros, atividades }));
     return new NextResponse(Buffer.from(arquivo), {
       headers: {
         "Content-Type": "application/pdf",
