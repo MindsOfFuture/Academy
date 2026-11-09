@@ -16,10 +16,7 @@ jobs:
     # do package-lock; ao subir um, suba o outro (o passo "Conferir versão" acusa a diferença).
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
-      # Root para instalar o LibreOffice (relatório em PDF); HOME=/root porque o
-      # Firefox recusa rodar como root com o HOME de outro usuário.
-      env:
-        HOME: /root
+      # Root (sem --user) para instalar o LibreOffice do relatório em PDF.
     # No container o shell padrão é sh; o passo de segredos usa ${!v}, que é bash.
     defaults:
       run:
@@ -59,6 +56,9 @@ jobs:
     - name: Run Playwright tests
       run: npx playwright test
       env:
+        # Como root o Firefox recusa um HOME de outro dono; o GitHub força HOME=/github/home
+        # no container, então o passo sobrescreve.
+        HOME: /root
         # Sem estas o middleware responde 503 e todo spec autenticado quebra ou pula.
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
