@@ -116,6 +116,8 @@ test.describe('Touch Targets - WCAG', () => {
         if (box) {
           // WCAG recomenda 44x44 mínimo
           const nome = (await button.getAttribute('aria-label')) || (await button.innerText());
+          // Indicador do Next só existe em `next dev`; não é botão do app.
+          if (nome.startsWith('Open Next.js Dev Tools')) continue;
           expect(box.height, nome).toBeGreaterThanOrEqual(40);
         }
       }
