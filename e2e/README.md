@@ -147,8 +147,11 @@ e a coordenação de teste só enxerga o que é de teste (migration
 `20261019_gestao_dados_de_teste.sql`). Escola criada pela coordenação de teste
 já nasce marcada.
 
-Os encontros vão para um dia de 2001, fora do calendário real, e acumulam a cada
-execução (nada se apaga na alocação). O servidor precisa de `GESTAO_ENABLED=true`.
+Os encontros vão para um dia de 2001, fora do calendário real. A alocação não
+apaga encontro; no início do spec a coordenação de teste chama
+`gestao.limpar_encontros_de_teste()`, que apaga só encontro de 2001 de escola e
+equipe de teste criado há mais de uma hora (a outra execução do CI pode estar
+rodando). O servidor precisa de `GESTAO_ENABLED=true`.
 
 No CI a credencial ausente **falha** o teste em vez de pular, e o passo
 "Conferir que o E2E da alocação rodou" lê `test-results/results.json` e quebra se

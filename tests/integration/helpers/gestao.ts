@@ -37,6 +37,7 @@ export const GESTAO_EM_ORDEM = [
   "20261108_gestao_relatorio_comprovacao",
   "20261108_gestao_quem_cobriu_ve_o_encontro",
   "20261109_gestao_relatorio_meu_perfil",
+  "20261109_gestao_limpar_encontros_de_teste",
 ] as const;
 
 export type MigracaoGestao = (typeof GESTAO_EM_ORDEM)[number];
