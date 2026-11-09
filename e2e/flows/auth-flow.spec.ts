@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { TEST_USERS, loginViaUI, logout } from '../fixtures/auth.fixture';
+import { contaDeTeste, loginViaUI, logout } from '../fixtures/auth.fixture';
 
 test.beforeEach(async ({ page }) => {
   page.on('pageerror', (error) => console.error('[pageerror]', error.stack));
@@ -15,17 +15,8 @@ test.beforeEach(async ({ page }) => {
  */
 
 test.describe('Fluxo de Login Real', () => {
-  test.skip(
-    !process.env.TEST_STUDENT_EMAIL || !process.env.TEST_STUDENT_PASSWORD,
-    'Credenciais de teste não configuradas'
-  );
-
   test('login com credenciais válidas deve redirecionar para protected', async ({ page }) => {
-    const user = TEST_USERS.student;
-    if (!user) {
-      test.skip();
-      return;
-    }
+    const user = contaDeTeste('student');
 
     await page.goto('/auth');
     await page.waitForLoadState('domcontentloaded');
@@ -47,11 +38,7 @@ test.describe('Fluxo de Login Real', () => {
   });
 
   test('página protegida deve mostrar nome do usuário', async ({ page }) => {
-    const user = TEST_USERS.student;
-    if (!user) {
-      test.skip();
-      return;
-    }
+    const user = contaDeTeste('student');
 
     await loginViaUI(page, user);
 
@@ -60,11 +47,7 @@ test.describe('Fluxo de Login Real', () => {
   });
 
   test('usuário logado deve ver seus cursos', async ({ page }) => {
-    const user = TEST_USERS.student;
-    if (!user) {
-      test.skip();
-      return;
-    }
+    const user = contaDeTeste('student');
 
     await loginViaUI(page, user);
 
@@ -75,17 +58,8 @@ test.describe('Fluxo de Login Real', () => {
 });
 
 test.describe('Fluxo de Logout', () => {
-  test.skip(
-    !process.env.TEST_STUDENT_EMAIL || !process.env.TEST_STUDENT_PASSWORD,
-    'Credenciais de teste não configuradas'
-  );
-
   test('logout deve redirecionar para home ou auth', async ({ page }) => {
-    const user = TEST_USERS.student;
-    if (!user) {
-      test.skip();
-      return;
-    }
+    const user = contaDeTeste('student');
 
     await loginViaUI(page, user);
     await logout(page);
@@ -93,17 +67,8 @@ test.describe('Fluxo de Logout', () => {
 });
 
 test.describe('Área Protegida - Dashboard', () => {
-  test.skip(
-    !process.env.TEST_STUDENT_EMAIL || !process.env.TEST_STUDENT_PASSWORD,
-    'Credenciais de teste não configuradas'
-  );
-
   test('dashboard deve ter navbar', async ({ page }) => {
-    const user = TEST_USERS.student;
-    if (!user) {
-      test.skip();
-      return;
-    }
+    const user = contaDeTeste('student');
 
     await loginViaUI(page, user);
 
@@ -112,11 +77,7 @@ test.describe('Área Protegida - Dashboard', () => {
   });
 
   test('dashboard deve ter layout responsivo', async ({ page }) => {
-    const user = TEST_USERS.student;
-    if (!user) {
-      test.skip();
-      return;
-    }
+    const user = contaDeTeste('student');
 
     await loginViaUI(page, user);
 
@@ -133,17 +94,8 @@ test.describe('Área Protegida - Dashboard', () => {
 });
 
 test.describe('Funcionalidades Admin', () => {
-  test.skip(
-    !process.env.TEST_ADMIN_EMAIL || !process.env.TEST_ADMIN_PASSWORD,
-    'Credenciais de admin não configuradas'
-  );
-
   test('admin deve ver seção de gerenciamento de cursos', async ({ page }) => {
-    const admin = TEST_USERS.admin;
-    if (!admin) {
-      test.skip();
-      return;
-    }
+    const admin = contaDeTeste('admin');
 
     await loginViaUI(page, admin);
 
@@ -153,11 +105,7 @@ test.describe('Funcionalidades Admin', () => {
   });
 
   test('admin deve ver tabela de usuários', async ({ page }) => {
-    const admin = TEST_USERS.admin;
-    if (!admin) {
-      test.skip();
-      return;
-    }
+    const admin = contaDeTeste('admin');
 
     await loginViaUI(page, admin);
 

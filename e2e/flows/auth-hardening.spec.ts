@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { TEST_USERS, loginViaUI, logout } from '../fixtures/auth.fixture';
+import { contaDeTeste, loginViaUI, logout } from '../fixtures/auth.fixture';
 
 const PUBLIC_PAGES = [
   '/',
@@ -51,9 +51,7 @@ test('matriz protegida preserva o destino completo para usuário anônimo', asyn
 });
 
 test('student: destino original, navegação, reload e logout permanecem íntegros', async ({ page }) => {
-  const student = TEST_USERS.student;
-  test.skip(!student, 'Credenciais de student não configuradas');
-  if (!student) return;
+  const student = contaDeTeste('student');
 
   const pageErrors: string[] = [];
   const serverErrors: string[] = [];
@@ -85,9 +83,7 @@ test('student: destino original, navegação, reload e logout permanecem íntegr
 });
 
 test('teacher aprovado mantém capacidade de gestão sem aviso pending/rejected', async ({ page }) => {
-  const teacher = TEST_USERS.teacher;
-  test.skip(!teacher, 'Credenciais de teacher não configuradas');
-  if (!teacher) return;
+  const teacher = contaDeTeste('teacher');
 
   await loginViaUI(page, teacher);
   await expect(page.getByRole('button', { name: 'Criar novo curso' })).toBeVisible();
@@ -95,9 +91,7 @@ test('teacher aprovado mantém capacidade de gestão sem aviso pending/rejected'
 });
 
 test('admin mantém controles exclusivos sem elevação de outros papéis', async ({ page }) => {
-  const admin = TEST_USERS.admin;
-  test.skip(!admin, 'Credenciais de admin não configuradas');
-  if (!admin) return;
+  const admin = contaDeTeste('admin');
 
   await loginViaUI(page, admin);
   await expect(page.getByRole('button', { name: 'Analytics' })).toBeVisible();
@@ -112,9 +106,7 @@ for (const [name, payload] of [
   ['CR', '/%0D/evil.example'],
 ] as const) {
   test(`next malicioso com ${name} cai no destino seguro`, async ({ page }) => {
-    const student = TEST_USERS.student;
-    test.skip(!student, 'Credenciais de student não configuradas');
-    if (!student) return;
+    const student = contaDeTeste('student');
 
     await page.goto(`/auth?next=${payload}`);
     await page.getByPlaceholder('Email').first().fill(student.email);
@@ -124,14 +116,14 @@ for (const [name, payload] of [
   });
 }
 
-test('recuperação de senha aceita a conta de teste sem erro de servidor', async ({ page }) => {
-  const student = TEST_USERS.student;
-  test.skip(!student, 'Credenciais de student não configuradas');
-  if (!student) return;
-
-  const serverErrors: string[] = [];
-  page.on('response', (response) => {
-    if (response.status() >= 500) serverErrors.push(`${response.status()} ${response.url()}`);
+test('recuperação de senha pede o link ao Supabase com o e-mail e o destino certos', async ({ page }) => {
+  const student = contaDeTeste('student');
+  // Sem enviar e-mail de verdade: o Supabase limita recuperações por hora e duas
+  // execuções seguidas do CI cairiam no limite. Confere o pedido e a resposta da tela.
+  const pedidos: { email?: string; url: string }[] = [];
+  await page.route('**/auth/v1/recover**', async (route) => {
+    pedidos.push({ email: route.request().postDataJSON()?.email, url: route.request().url() });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   });
 
   await page.goto('/auth/forgot-password');
@@ -139,5 +131,7 @@ test('recuperação de senha aceita a conta de teste sem erro de servidor', asyn
   await page.getByRole('button', { name: 'Enviar Link' }).click();
   await expect(page.getByText('Link de redefinição enviado! Verifique sua caixa de entrada.'))
     .toBeVisible({ timeout: 30000 });
-  expect(serverErrors).toEqual([]);
+  expect(pedidos).toHaveLength(1);
+  expect(pedidos[0].email).toBe(student.email);
+  expect(decodeURIComponent(pedidos[0].url)).toContain('/auth/reset-password');
 });

@@ -4,7 +4,7 @@
 
 A estrutura anterior tinha apenas:
 - `e2e/mobile/` - 4 arquivos de testes focados em mobile
-- `e2e/fixtures/` - 2 fixtures (auth e mobile)
+- `e2e/fixtures/` - login e contas de teste (`contaDeTeste`)
 - `e2e/global.setup.ts` - Setup básico
 
 ## Nova Estrutura Implementada
@@ -32,8 +32,7 @@ e2e/
 │   └── responsive.spec.ts # Visual regression, WCAG
 │
 ├── fixtures/
-│   ├── auth.fixture.ts
-│   └── mobile.fixture.ts
+│   └── auth.fixture.ts
 │
 └── global.setup.ts
 ```

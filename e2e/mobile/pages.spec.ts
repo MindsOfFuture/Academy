@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
+import { contaDeTeste, loginViaUI } from '../fixtures/auth.fixture';
 
 /**
  * Curso e trilhas no celular. As duas páginas exigem login (sem ele o
@@ -7,9 +7,7 @@ import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
  * de quem não está logado é conferido em navigation.spec.ts.
  */
 async function entrar(page: Page, destino: string) {
-  const aluno = TEST_USERS.student;
-  test.skip(!aluno && !process.env.CI, 'TEST_STUDENT_EMAIL/PASSWORD não configurados');
-  if (!aluno) throw new Error('CI sem TEST_STUDENT_EMAIL/PASSWORD: os testes mobile logados não podem pular em silêncio.');
+  const aluno = contaDeTeste('student');
   await loginViaUI(page, aluno, destino);
 }
 

@@ -1,12 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
+import { contaDeTeste, loginViaUI } from '../fixtures/auth.fixture';
 
 // /trilhas exige login: sem ele os testes abaixo rodavam sobre a tela de /auth.
 // O redirect de quem não está logado é coberto em e2e/flows/auth-hardening.spec.ts.
 test.beforeEach(async ({ page }) => {
-  const student = TEST_USERS.student;
-  test.skip(!student && !process.env.CI, 'Requer TEST_STUDENT_EMAIL/PASSWORD');
-  if (!student) throw new Error('CI sem TEST_STUDENT_EMAIL/PASSWORD: trilhas não pode pular em silêncio.');
+  const student = contaDeTeste('student');
   await loginViaUI(page, student, '/trilhas');
   // Cada teste parte de uma lista com cursos: sem isso os demais não teriam o que conferir.
   await expect(page.locator('a[href*="/course?id="]').first(), 'nenhum curso listado em /trilhas').toBeVisible();

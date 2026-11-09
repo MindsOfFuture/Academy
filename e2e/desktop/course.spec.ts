@@ -1,14 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
-import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
+import { contaDeTeste, loginViaUI } from '../fixtures/auth.fixture';
 
 /**
  * /course exige login: sem ele o middleware manda para /auth, e um teste
  * anônimo acaba conferindo a tela de login. Por isso todos entram como aluno.
  */
 async function abrirPrimeiroCurso(page: Page) {
-  const aluno = TEST_USERS.student;
-  test.skip(!aluno && !process.env.CI, 'TEST_STUDENT_EMAIL/PASSWORD não configurados');
-  if (!aluno) throw new Error('CI sem TEST_STUDENT_EMAIL/PASSWORD: o teste de curso não pode pular em silêncio.');
+  const aluno = contaDeTeste('student');
 
   await loginViaUI(page, aluno, '/trilhas');
   const link = page.locator('a[href*="/course?id="]').first();
