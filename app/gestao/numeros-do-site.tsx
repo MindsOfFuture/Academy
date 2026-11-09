@@ -12,7 +12,15 @@ import { numerosDoSiteAction } from "./actions";
  * Envio à mão (e não por `action` no formulário): o React limparia os campos depois
  * de salvar e a tela voltaria a mostrar os números antigos.
  */
-export function FormNumerosDoSite({ escolas, alunos }: { escolas: number; alunos: number }) {
+export function FormNumerosDoSite({
+  escolas,
+  alunos,
+  total,
+}: {
+  escolas: number;
+  alunos: number;
+  total: { escolas: number; alunos: number };
+}) {
   const [estado, acao, enviando] = useActionState<EstadoAcao | null, FormData>(numerosDoSiteAction, null);
   return (
     <form
@@ -36,7 +44,10 @@ export function FormNumerosDoSite({ escolas, alunos }: { escolas: number; alunos
           {enviando ? "Salvando…" : "Salvar números"}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">É o que aparece no topo da página inicial do site.</p>
+      <p className="text-xs text-muted-foreground">
+        Estes números são a base. O site soma a eles as escolas e os alunos das turmas cadastrados aqui na gestão — hoje
+        mostra {total.escolas.toLocaleString("pt-BR")} escolas e {total.alunos.toLocaleString("pt-BR")} alunos.
+      </p>
       <Aviso estado={estado} />
     </form>
   );

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { lerNumero, mensagemDeErro, validarBolsa, validarNumerosDoSite } from "@/lib/api/gestao/validacao";
+import { lerNumero, mensagemDeErro, validarBolsa, validarNumerosDoSite, validarTurma } from "@/lib/api/gestao/validacao";
 import { montarPendencias } from "@/lib/api/gestao/pendencias";
 import { mapMembro } from "@/lib/api/gestao/equipe";
 import type { MembroEquipe } from "@/lib/api/gestao/types";
@@ -124,5 +124,20 @@ describe("números da página inicial (spec 019)", () => {
     expect(mensagemDeErro(new Error("gestao: só a coordenação muda os números do site"))).toBe(
       "Só a coordenação muda os números do site.",
     );
+  });
+});
+
+describe("validarTurma — número de alunos opcional", () => {
+  const TURMA = { escolaId: "e1", nome: "Lego tarde", modalidade: "Lego", inicio: "2026-09-01" };
+
+  it("sem número fica nulo; com número vira inteiro", () => {
+    expect(validarTurma(form(TURMA))).toMatchObject({ ok: true, valor: { nAlunos: null } });
+    expect(validarTurma(form({ ...TURMA, nAlunos: "25" }))).toMatchObject({ ok: true, valor: { nAlunos: 25 } });
+  });
+
+  it("recusa negativo, fracionário e acima de 1000", () => {
+    for (const nAlunos of ["-1", "2.5", "1001", "abc"]) {
+      expect(validarTurma(form({ ...TURMA, nAlunos })).ok).toBe(false);
+    }
   });
 });

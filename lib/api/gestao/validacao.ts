@@ -159,6 +159,7 @@ export function validarTurma(form: FormData): Validado<NovaTurma> {
   const modalidade = texto(form, "modalidade");
   const inicio = texto(form, "inicio");
   const fim = texto(form, "fim");
+  const alunos = texto(form, "nAlunos");
   if (!escolaId) return { ok: false, mensagem: "Escolha a escola." };
   if (nome.length < 2 || nome.length > 120) return { ok: false, mensagem: "Dê um nome à turma (até 120 caracteres)." };
   if (modalidade.length < 2) return { ok: false, mensagem: "Informe a atividade, como Lego ou IA." };
@@ -166,7 +167,10 @@ export function validarTurma(form: FormData): Validado<NovaTurma> {
   if (fim && (!DATA_ISO.test(fim) || fim < inicio)) {
     return { ok: false, mensagem: "O fim previsto não pode ser antes do início." };
   }
-  return { ok: true, valor: { escolaId, nome, modalidade, inicio, fim: fim || null } };
+  if (alunos && !(/^\d{1,4}$/.test(alunos) && Number(alunos) <= 1000)) {
+    return { ok: false, mensagem: "O número de alunos deve ser um número inteiro de 0 a 1000." };
+  }
+  return { ok: true, valor: { escolaId, nome, modalidade, inicio, fim: fim || null, nAlunos: alunos ? Number(alunos) : null } };
 }
 
 export function validarSituacaoTurma(form: FormData): Validado<{ status: StatusTurma; motivo: string | null }> {

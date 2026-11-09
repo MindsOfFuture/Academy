@@ -55,7 +55,7 @@ vi.mock("@/lib/api/gestao/pendencias", () => ({
 }));
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
 vi.mock("@/lib/api/content", () => ({
-  getHero: async () => ({ n_escolas: 35, n_alunos: 1499, subtitulo: "" }),
+  getHero: async () => ({ n_escolas: 36, n_alunos: 1524, subtitulo: "", base: { escolas: 35, alunos: 1499 } }),
 }));
 vi.mock("@/app/gestao/numeros-do-site", () => ({
   FormNumerosDoSite: ({ escolas, alunos }: { escolas: number; alunos: number }) => (

@@ -412,6 +412,7 @@ export interface TurmaRow {
     fim: string | null;
     status: StatusTurma;
     motivo: string | null;
+    n_alunos: number | null;
     escola: { nome: string } | { nome: string }[] | null;
 }
 
@@ -425,6 +426,7 @@ export interface Turma {
     fim: string | null;
     status: StatusTurma;
     motivo: string | null;
+    nAlunos: number | null;
 }
 
 export interface AlocacaoRow {
@@ -514,6 +516,7 @@ export interface NovaTurma {
     modalidade: string;
     inicio: string;
     fim: string | null;
+    nAlunos: number | null;
 }
 
 export interface NovaEscola {

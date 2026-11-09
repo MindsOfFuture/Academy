@@ -82,6 +82,7 @@ function mapTurma(row: TurmaRow): Turma {
     fim: row.fim,
     status: row.status,
     motivo: row.motivo,
+    nAlunos: row.n_alunos,
   };
 }
 
@@ -148,7 +149,7 @@ export async function listarTurmas(): Promise<Turma[]> {
   const { data, error } = await supabase
     .schema("gestao")
     .from("turma")
-    .select("id, escola_id, nome, modalidade, inicio, fim, status, motivo, escola(nome)")
+    .select("id, escola_id, nome, modalidade, inicio, fim, status, motivo, n_alunos, escola(nome)")
     .order("inicio", { ascending: false });
   throwOnError(error);
   return ((data ?? []) as unknown as TurmaRow[]).map(mapTurma);
@@ -162,6 +163,7 @@ export async function cadastrarTurma(turma: NovaTurma): Promise<void> {
     modalidade: turma.modalidade,
     inicio: turma.inicio,
     fim: turma.fim,
+    n_alunos: turma.nAlunos,
   });
   throwOnError(error);
 }
@@ -175,7 +177,13 @@ export async function editarTurma(id: string, turma: Omit<NovaTurma, "escolaId">
   const { error } = await supabase
     .schema("gestao")
     .from("turma")
-    .update({ nome: turma.nome, modalidade: turma.modalidade, inicio: turma.inicio, fim: turma.fim })
+    .update({
+      nome: turma.nome,
+      modalidade: turma.modalidade,
+      inicio: turma.inicio,
+      fim: turma.fim,
+      n_alunos: turma.nAlunos,
+    })
     .eq("id", id);
   throwOnError(error);
 }

@@ -43,6 +43,7 @@ export default async function TurmasPage() {
                 <p className="text-sm text-muted-foreground">
                   {t.modalidade} · {t.escolaNome} · desde {dataBr(t.inicio)}
                   {t.fim && ` até ${dataBr(t.fim)}`}
+                  {t.nAlunos !== null && ` · ${t.nAlunos} ${t.nAlunos === 1 ? "aluno" : "alunos"}`}
                 </p>
               </div>
               {/* As chaves remontam os formulários com o que foi salvo (ver a página do encontro). */}
@@ -50,7 +51,7 @@ export default async function TurmasPage() {
               <details className="text-sm">
                 <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
                 <div className="pt-3">
-                  <FormTurma key={[t.nome, t.modalidade, t.inicio, t.fim].join("|")} escolas={opcoesEscola} turma={t} />
+                  <FormTurma key={[t.nome, t.modalidade, t.inicio, t.fim, t.nAlunos].join("|")} escolas={opcoesEscola} turma={t} />
                 </div>
               </details>
             </li>
