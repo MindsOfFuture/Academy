@@ -5,7 +5,6 @@ const createClientMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: createClientMock,
-  createServiceRoleClient: () => createClientMock(),
 }));
 
 import { GET } from "@/app/auth/callback/route";
@@ -31,6 +30,9 @@ function mockSuccessfulCompleteProfile() {
   createClientMock.mockResolvedValue({
     auth: { exchangeCodeForSession, getUser },
     from: vi.fn(() => profileQuery),
+    rpc: vi.fn().mockResolvedValue({
+      data: [{ phone: "3200000000", address: "Juiz de Fora", document: "00000000000", birth_date: "2000-01-01" }],
+    }),
   });
   return { exchangeCodeForSession, getUser };
 }

@@ -5,7 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 
 const MIGRATION = readFileSync("supabase/migrations/20261109_perfil_sem_dados_pessoais_no_navegador.sql", "utf8");
+const MEUS_DADOS = readFileSync("supabase/migrations/20261109_meus_dados_pessoais.sql", "utf8");
 const EU = "11111111-1111-4111-8111-111111111111";
+const OUTRA = "22222222-2222-4222-8222-222222222222";
 
 describe("colunas pessoais de user_profile fora do navegador", () => {
   const db = new PGlite();
@@ -34,7 +36,7 @@ describe("colunas pessoais de user_profile fora do navegador", () => {
         birth_date date, verification_status text, specialties text[], certifications text[],
         timezone text, notification_preferences jsonb
       );
-      insert into public.user_profile (id, full_name, phone, document) values ('${EU}', 'Eu', '32', '123');
+      insert into public.user_profile (id, full_name, phone, document) values ('${EU}', 'Eu', '32', '123'), ('${OUTRA}', 'Outra', '11', '999');
       alter table public.user_profile enable row level security;
       create policy own_select on public.user_profile for select to authenticated using (id = auth.uid());
       create policy own_update on public.user_profile for update to authenticated using (id = auth.uid());
@@ -42,6 +44,8 @@ describe("colunas pessoais de user_profile fora do navegador", () => {
     `);
     await db.exec(MIGRATION);
     await db.exec(MIGRATION); // reexecutável
+    await db.exec(MEUS_DADOS);
+    await db.exec(MEUS_DADOS);
   }, 60_000);
 
   afterAll(async () => {
@@ -60,7 +64,13 @@ describe("colunas pessoais de user_profile fora do navegador", () => {
     await como("authenticated", `update public.user_profile set phone = '99', address = 'Rua' where id = '${EU}'`);
     const anon = await como("anon", "select id, full_name from public.user_profile");
     expect(anon.rows).toEqual([]);
-    const gravado = await db.query<{ phone: string }>("select phone from public.user_profile");
+    const gravado = await db.query<{ phone: string }>(`select phone from public.user_profile where id = '${EU}'`);
     expect(gravado.rows[0].phone).toBe("99");
+  });
+
+  it("cada pessoa lê os próprios dados pessoais pela função, nunca os de outra", async () => {
+    const meus = await como("authenticated", "select document from public.meus_dados_pessoais()");
+    expect(meus.rows).toEqual([{ document: "123" }]); // só a própria linha, não a de OUTRA
+    await expect(como("anon", "select * from public.meus_dados_pessoais()")).rejects.toThrow(/permission denied/);
   });
 });

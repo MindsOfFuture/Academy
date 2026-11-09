@@ -180,14 +180,14 @@ export async function getCurrentUserProfile(): Promise<{
 
     const role = await fetchRoleForUser(user.id, supabase);
 
-    // Telefone e endereço não são legíveis pelo papel `authenticated`; service role
-    // preso ao id que o getUser() acabou de verificar.
-    const serviceRole = await createServiceRoleClient();
-    const { data: profileRow } = await serviceRole
+    const { data: profileRow } = await supabase
         .from("user_profile")
-        .select("full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status")
+        .select("full_name, email, avatar_url, bio, specialties, certifications, verification_status")
         .eq("id", user.id)
         .maybeSingle();
+    // Telefone e endereço não são legíveis por `authenticated`; a função devolve só os de auth.uid().
+    const { data: pessoais } = await supabase.rpc("meus_dados_pessoais");
+    const meusDados = (pessoais as { phone: string | null; address: string | null }[] | null)?.[0];
 
     // Fetch teacher-specific details if applicable
     let teacherDetails: { schools: string[]; education_level: string | null; degree: string | null } | null = null;
@@ -224,7 +224,10 @@ export async function getCurrentUserProfile(): Promise<{
         teacherRequest?.qualification_document_url ||
         teacherRequestWithDocument?.qualification_document_url ||
         ((user.user_metadata?.qualification_document_url as string | undefined) || null);
-    const documentoAssinado = documento ? (await assinarComprovantes(serviceRole, [documento])).get(documento) : undefined;
+    // Só quem tem comprovante precisa de URL assinada (storage com service role).
+    const documentoAssinado = documento
+        ? (await assinarComprovantes(await createServiceRoleClient(), [documento])).get(documento)
+        : undefined;
 
     return {
         id: user.id,
@@ -233,8 +236,8 @@ export async function getCurrentUserProfile(): Promise<{
         role,
         avatarUrl: profileRow?.avatar_url || null,
         bio: profileRow?.bio || null,
-        phone: profileRow?.phone || null,
-        address: profileRow?.address || null,
+        phone: meusDados?.phone || null,
+        address: meusDados?.address || null,
         specialties: profileRow?.specialties || [],
         certifications: profileRow?.certifications || [],
         verificationStatus: (profileRow?.verification_status || null) as TeacherVerificationStatus,

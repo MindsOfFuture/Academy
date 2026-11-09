@@ -1,4 +1,4 @@
-import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { normalizeNextPath } from "@/lib/utils";
 import { redirectToInternalPath } from "@/lib/supabase/redirect";
 
@@ -45,13 +45,15 @@ export async function GET(request: Request) {
         const user = authData.user;
 
         // Check if user profile exists. CPF, nascimento, telefone e endereço não são
-        // legíveis pelo papel `authenticated`: service role preso ao id já verificado.
-        const serviceRole = await createServiceRoleClient();
-        const { data: existingProfile } = await serviceRole
+        // legíveis por `authenticated`: a função devolve só os de quem acabou de entrar.
+        const { data: perfil } = await supabase
             .from("user_profile")
-            .select("id, full_name, phone, address, document, birth_date")
+            .select("id, full_name")
             .eq("id", user.id)
             .maybeSingle();
+        const { data: pessoais } = await supabase.rpc("meus_dados_pessoais");
+        const dados = (pessoais as { phone: string | null; address: string | null; document: string | null; birth_date: string | null }[] | null)?.[0];
+        const existingProfile = perfil ? { ...perfil, ...dados } : null;
 
         // If profile exists and has required data, redirect to protected
         if (
