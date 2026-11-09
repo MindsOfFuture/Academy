@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient, createServiceRoleClient, usuarioDaRequisicao } from "@/lib/supabase/server";
+import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { limitesDoMes } from "./alocacao";
 import type { AtividadeRelatorio, EncontroDoRelatorio, NovaAtividade, SituacaoAlocacao } from "./types";
 
@@ -113,15 +113,15 @@ export async function cadastrarAtividade(atividade: NovaAtividade): Promise<void
 
 /**
  * Nome e CPF de quem está logado, para o cabeçalho do relatório. O CPF não é
- * legível pelo papel `authenticated`; lê-se com service role, preso ao id verificado.
+ * legível por `authenticated`; a função do banco devolve só a linha de auth.uid().
  */
 export async function meuPerfilParaRelatorio(): Promise<{ nome: string; cpf: string | null }> {
-  const eu = await usuarioAtual();
-  const supabase = await createServiceRoleClient();
-  const { data, error } = await supabase.from("user_profile").select("full_name, document").eq("id", eu).maybeSingle();
+  await usuarioAtual();
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("gestao").rpc("meu_perfil_para_relatorio");
   if (error) throw new Error(error.message);
-  const perfil = data as { full_name: string | null; document: string | null } | null;
-  return { nome: perfil?.full_name ?? "", cpf: perfil?.document ?? null };
+  const perfil = (data as { nome: string; cpf: string | null }[] | null)?.[0];
+  return { nome: perfil?.nome ?? "", cpf: perfil?.cpf ?? null };
 }
 
 const MES_FECHADO = "gestao: atividade não encontrada ou de mês já encerrado";
