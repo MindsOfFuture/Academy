@@ -53,8 +53,10 @@ describe("colunas pessoais de user_profile fora do navegador", () => {
   });
 
   it("ninguém no navegador lê CPF, nascimento, telefone ou endereço", async () => {
-    for (const coluna of ["document", "birth_date", "phone", "address"]) {
-      await expect(como("authenticated", `select ${coluna} from public.user_profile`)).rejects.toThrow(/permission denied/);
+    for (const papel of ["authenticated", "anon"] as const) {
+      for (const coluna of ["document", "birth_date", "phone", "address"]) {
+        await expect(como(papel, `select ${coluna} from public.user_profile`), `${papel} ${coluna}`).rejects.toThrow(/permission denied/);
+      }
     }
   });
 

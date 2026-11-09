@@ -138,7 +138,7 @@ describe("migration de telemetria em PostgreSQL real", () => {
       await expect(db.query(
         "select public.ingest_learning_events($1::jsonb)",
         [JSON.stringify(event(route).map((item) => ({ ...item, event_id: eventId })))],
-      )).rejects.toThrow();
+      ), route).rejects.toThrow(/route_check/);
     }
 
     await expect(db.exec(`
