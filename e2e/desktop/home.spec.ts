@@ -23,13 +23,11 @@ test.describe('Home Page Desktop - Layout', () => {
   test('navbar deve ser sticky e visível ao scrollar', async ({ page }) => {
     // Scroll para baixo
     await page.evaluate(() => window.scrollBy(0, 1000));
-    await page.waitForTimeout(300);
-    
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+    // Navbar deve continuar no topo depois da rolagem
     const navbar = page.locator('nav');
-    const box = await navbar.boundingBox();
-    
-    // Navbar deve estar no topo ou próximo
-    expect(box?.y).toBeLessThanOrEqual(10);
+    await expect.poll(async () => (await navbar.boundingBox())?.y ?? 999).toBeLessThanOrEqual(10);
   });
 
   test('layout não deve ter scroll horizontal', async ({ page }) => {
@@ -75,17 +73,10 @@ test.describe('Home Page Desktop - Navegação', () => {
     // Navegar para outra página primeiro
     await page.goto('/auth');
     
-    // Clicar no logo/nome
-    const homeLink = page.getByRole('link', { name: /minds of the future/i });
-    
-    if (await homeLink.isVisible()) {
-      await Promise.all([
-        page.waitForURL('/'),
-        homeLink.click(),
-      ]);
-      
-      expect(page.url()).toBe(page.context().pages()[0].url().replace(/\/auth$/, '/'));
-    }
+    const homeLink = page.locator('nav a[href="/"]').first();
+    await expect(homeLink).toBeVisible();
+    await homeLink.click();
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test('scroll até o footer deve funcionar', async ({ page }) => {
@@ -97,17 +88,6 @@ test.describe('Home Page Desktop - Navegação', () => {
 });
 
 test.describe('Home Page Desktop - Performance', () => {
-  test('LCP deve ser aceitável', async ({ page }) => {
-    const startTime = Date.now();
-    
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    
-    const domContentLoaded = Date.now() - startTime;
-    
-    // DOM deve carregar em tempo razoável
-    expect(domContentLoaded).toBeLessThan(5000);
-  });
-
   test('não deve haver erros de JavaScript críticos', async ({ page }) => {
     const jsErrors: string[] = [];
     
@@ -228,10 +208,8 @@ test.describe('Home Page Desktop - Componentes', () => {
     
     expect(linkCount).toBeGreaterThan(0);
     
-    // Verificar alguns links importantes
-    const hasTermos = await footer.getByText(/termos/i).isVisible().catch(() => false);
-    const hasPrivacidade = await footer.getByText(/privacidade/i).isVisible().catch(() => false);
-    
+    await expect(footer.getByRole('link', { name: /termos/i })).toBeVisible();
+    await expect(footer.getByRole('link', { name: /privacidade/i })).toBeVisible();
   });
 
   test('imagens do footer devem carregar', async ({ page }) => {

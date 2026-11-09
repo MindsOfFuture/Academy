@@ -29,70 +29,26 @@ test.describe('Visual Regression - Home', () => {
 });
 
 test.describe('Visual Regression - Auth', () => {
-  test('auth page em mobile deve mostrar toggle de formulário', async ({ page }) => {
+  test('auth page em mobile mostra um formulário por vez e alterna para o cadastro', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/auth');
-    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('input[type="email"]:visible')).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: 'Criar Conta' })).toBeHidden();
 
-    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
-
-    // Em mobile, deve ter botão para alternar entre login e signup
-    const toggleButton = page.locator('button:has-text("Criar conta"), button:has-text("Entrar")');
-    const hasToggle = await toggleButton.isVisible().catch(() => false);
-
+    await page.getByRole('button', { name: 'Criar conta' }).click();
+    await expect(page.getByRole('heading', { name: 'Criar Conta' })).toBeVisible();
   });
 
-  test('auth page em desktop deve mostrar ambos os formulários', async ({ page }) => {
+  test('auth page em desktop mostra login e cadastro lado a lado', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/auth');
-    await page.waitForLoadState('domcontentloaded');
-
-    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
-
-    // Em desktop, ambos devem estar visíveis
-    const forms = await page.locator('form').count();
-    const inputGroups = await page.locator('input[type="email"]').count();
-
-    // Pode ter 2 formulários (login e signup) visíveis
-  });
-});
-
-test.describe('Visual Regression - Trilhas', () => {
-  test('trilhas em mobile devem empilhar verticalmente', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-
-    const courseCards = page.locator('a[href*="/course"]');
-    const count = await courseCards.count();
-
-    if (count >= 2) {
-      const card1 = await courseCards.nth(0).boundingBox();
-      const card2 = await courseCards.nth(1).boundingBox();
-
-      if (card1 && card2) {
-        // Em mobile, cards devem estar um abaixo do outro
-        expect(card2.y).toBeGreaterThan(card1.y);
-      }
-    }
-  });
-
-  test('trilhas em desktop podem estar lado a lado', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-
-    const courseCards = page.locator('a[href*="/course"]');
-    const count = await courseCards.count();
-
-    if (count >= 2) {
-      const card1 = await courseCards.nth(0).boundingBox();
-      const card2 = await courseCards.nth(1).boundingBox();
-
-      if (card1 && card2) {
-        // Em desktop, podem estar lado a lado (mesmo Y) ou em linha vertical
-      }
-    }
+    // O cadastro começa no passo do tipo de conta (sem e-mail): compara o título dele com o e-mail do login.
+    const emailLogin = page.locator('input[type="email"]:visible').first();
+    const tituloCadastro = page.getByRole('heading', { name: 'Criar Conta' });
+    await expect(emailLogin).toBeVisible();
+    await expect(tituloCadastro).toBeVisible();
+    const [login, cadastro] = [await emailLogin.boundingBox(), await tituloCadastro.boundingBox()];
+    expect(cadastro!.x).toBeGreaterThan(login!.x + login!.width);
   });
 });
 

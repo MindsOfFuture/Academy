@@ -46,11 +46,9 @@ test.describe('Fluxo de Login Desktop', () => {
     // Clicar no botão de mostrar senha
     const toggleButton = page.getByLabel(/mostrar senha|ocultar senha/i).first();
     
-    if (await toggleButton.isVisible()) {
-      await toggleButton.click();
-
-      await expect(passwordInput).toHaveAttribute('type', 'text');
-    }
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+    await toggleButton.click();
+    await expect(passwordInput).toHaveAttribute('type', 'text');
   });
 
   test('validação de email deve funcionar', async ({ page }) => {
@@ -104,12 +102,11 @@ test.describe('Fluxo de Login Desktop', () => {
     await passwordInput.fill('senhaerrada123');
     await loginButton.click();
     
-    // Aguardar resposta do servidor e mensagem de erro
-    // Toast ou mensagem de erro deve aparecer
-    await page.waitForTimeout(3000);
-    
-    // Verificar que não redirecionou para /protected
-    expect(page.url()).not.toContain('/protected');
+    // A mensagem do Supabase aparece no formulário (e num toast); a página fica no login.
+    const erro = page.locator('form p.text-red-500').first();
+    await expect(erro).toBeVisible({ timeout: 15000 });
+    await expect(erro).not.toBeEmpty();
+    expect(new URL(page.url()).pathname).toBe('/auth');
   });
 });
 
@@ -120,37 +117,14 @@ test.describe('Fluxo de Cadastro Desktop', () => {
   });
 
   test('formulário de cadastro deve ter seleção de tipo de usuário', async ({ page }) => {
-    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
-    
-    const viewport = page.viewportSize();
-    
-    // Em desktop, signup form deve estar visível
-    if (viewport && viewport.width >= 768) {
-      // Procurar opções de aluno/professor
-      const studentOption = page.getByText(/aluno/i);
-      const teacherOption = page.getByText(/professor/i);
-      
-      const hasStudent = await studentOption.isVisible().catch(() => false);
-      const hasTeacher = await teacherOption.isVisible().catch(() => false);
-      
-      // Pelo menos uma opção de tipo de usuário deve existir
-    }
+    await expect(page.getByRole('heading', { name: 'Criar Conta' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'Aluno', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Professor', exact: true })).toBeVisible();
   });
 
   test('cadastro deve ter múltiplos passos', async ({ page }) => {
-    await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
-    
-    const viewport = page.viewportSize();
-    
-    if (viewport && viewport.width >= 768) {
-      // Procurar indicadores de passo ou botão "Próximo"
-      const nextButton = page.getByRole('button', { name: /próximo|continuar|avançar/i });
-      const stepIndicator = page.locator('[class*="step"], [class*="progress"]');
-      
-      const hasNextButton = await nextButton.isVisible().catch(() => false);
-      const hasStepIndicator = await stepIndicator.first().isVisible().catch(() => false);
-      
-    }
+    await expect(page.getByText('Passo 1 de 4')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /Próximo/ })).toBeVisible();
   });
 });
 
@@ -186,11 +160,9 @@ test.describe('Recuperação de Senha Desktop', () => {
   test('deve ter link para voltar ao login', async ({ page }) => {
     await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
     
-    const backLink = page.getByRole('link', { name: /voltar|login|entrar/i });
-    const hasBackLink = await backLink.isVisible().catch(() => false);
-    
-    // Deve ter alguma forma de voltar
-    expect(hasBackLink || page.locator('button:has-text("voltar")').isVisible()).toBeTruthy();
+    const voltar = page.getByRole('link', { name: 'Voltar para o login' });
+    await expect(voltar).toBeVisible();
+    await expect(voltar).toHaveAttribute('href', '/auth');
   });
 });
 
@@ -225,13 +197,14 @@ test.describe('Acessibilidade Auth Desktop', () => {
     const emailInput = page.locator('input[type="email"]:visible').first();
     await emailInput.focus();
     
-    // Verificar que tem estilo de foco
-    const hasFocusStyle = await emailInput.evaluate(el => {
+    await page.keyboard.press('Tab'); // foco por teclado, que é quando o anel de foco aparece
+    await page.keyboard.press('Shift+Tab');
+    await expect(emailInput).toBeFocused();
+    const focoVisivel = await emailInput.evaluate((el) => {
       const style = window.getComputedStyle(el);
-      return style.outlineWidth !== '0px' || style.boxShadow !== 'none';
+      return (style.outlineStyle !== 'none' && style.outlineWidth !== '0px') || style.boxShadow !== 'none';
     });
-    
-    // Focus deve ser visível (a menos que use focus-visible)
+    expect(focoVisivel).toBe(true);
   });
 
   test('contraste de texto deve ser adequado', async ({ page }) => {
@@ -240,14 +213,9 @@ test.describe('Acessibilidade Auth Desktop', () => {
     
     // Verificar que títulos têm cor contrastante
     const heading = page.locator('h2').first();
-    
-    if (await heading.isVisible()) {
-      const color = await heading.evaluate(el => {
-        return window.getComputedStyle(el).color;
-      });
-      
-      // Cor deve estar definida (não transparente)
-      expect(color).not.toBe('rgba(0, 0, 0, 0)');
-    }
+    await expect(heading).toBeVisible({ timeout: 15000 });
+    const color = await heading.evaluate((el) => window.getComputedStyle(el).color);
+    // Cor deve estar definida (não transparente)
+    expect(color).not.toBe('rgba(0, 0, 0, 0)');
   });
 });

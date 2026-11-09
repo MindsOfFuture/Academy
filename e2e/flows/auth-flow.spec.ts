@@ -128,26 +128,8 @@ test.describe('Área Protegida - Dashboard', () => {
     }
   });
 
-  test('cards de curso devem ser clicáveis', async ({ page }) => {
-    const user = TEST_USERS.student;
-    if (!user) {
-      test.skip();
-      return;
-    }
-
-    await loginViaUI(page, user);
-
-    const courseCard = page.locator('a[href*="/course"]').first();
-
-    if (await courseCard.isVisible()) {
-      await Promise.all([
-        page.waitForURL(/\/course/),
-        courseCard.click(),
-      ]);
-
-      expect(page.url()).toContain('/course');
-    }
-  });
+  // "cards de curso clicáveis" saiu: o clique em card até o curso é conferido, com
+  // verificação, em e2e/desktop/trilhas.spec.ts.
 });
 
 test.describe('Funcionalidades Admin', () => {

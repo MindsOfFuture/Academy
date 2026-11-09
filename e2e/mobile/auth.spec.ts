@@ -54,14 +54,9 @@ test.describe('Fluxo de Cadastro Mobile', () => {
     // Aguardar página carregar
     await page.locator('input[type="email"]:visible').first().waitFor({ timeout: 15000 });
     
-    // Em mobile (md:hidden), deve ter botão para alternar
-    const signupToggle = page.getByRole('button', { name: /criar conta/i });
-    
-    // Verificar se existe (pode não aparecer em viewports maiores)
-    const isVisible = await signupToggle.isVisible().catch(() => false);
-    
-    // Não falhar se não existir - pode ser viewport grande
-    expect(true).toBeTruthy();
+    // Em mobile (md:hidden) só o login aparece; o botão troca para o cadastro.
+    await page.getByRole('button', { name: /criar conta/i }).click();
+    await expect(page.getByRole('heading', { name: 'Criar Conta' })).toBeVisible();
   });
 });
 

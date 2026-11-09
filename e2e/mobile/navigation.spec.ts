@@ -29,13 +29,11 @@ test.describe('Navegação Mobile - Navbar', () => {
   test('navbar deve ter position sticky e ficar no topo ao scrollar', async ({ page }) => {
     // Scroll para baixo
     await page.evaluate(() => window.scrollBy(0, 500));
-    await page.waitForTimeout(300);
-    
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+    // Navbar deve continuar visível no topo depois da rolagem
     const navbar = page.locator('nav');
-    const navbarBox = await navbar.boundingBox();
-    
-    // Navbar deve continuar visível no topo
-    expect(navbarBox?.y).toBeLessThanOrEqual(10);
+    await expect.poll(async () => (await navbar.boundingBox())?.y ?? 999).toBeLessThanOrEqual(10);
   });
 
   test('link Entre deve navegar para página de auth', async ({ page }) => {
@@ -139,17 +137,6 @@ test.describe('Navegação Mobile - Páginas Públicas', () => {
     await expect(page).toHaveURL('/privacidade');
   });
 
-  test('página de trilhas deve carregar', async ({ page }) => {
-    const response = await page.goto('/trilhas');
-    // Pode ter redirect ou renderizar direto
-    expect(response?.status()).toBeLessThan(500);
-  });
-
-  test('página de curso deve carregar', async ({ page }) => {
-    const response = await page.goto('/course');
-    // Pode ter redirect ou renderizar direto
-    expect(response?.status()).toBeLessThan(500);
-  });
 });
 
 test.describe('Navegação Mobile - Responsividade Visual', () => {

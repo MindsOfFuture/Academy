@@ -15,7 +15,7 @@ e2e/
 │   ├── auth.spec.ts       # Fluxos de login/cadastro/recuperação desktop
 │   ├── home.spec.ts       # Layout, navegação, performance, SEO
 │   ├── trilhas.spec.ts    # Página de trilhas de aprendizagem
-│   ├── course.spec.ts     # Detalhes de curso
+│   ├── course.spec.ts     # Página de curso, logado como aluno
 │   └── legal-pages.spec.ts # Termos de uso e privacidade
 │
 ├── mobile/            # EXISTENTE - Já tinha testes
@@ -26,7 +26,6 @@ e2e/
 │
 ├── flows/             # NOVO - Testes de fluxo E2E completo
 │   ├── auth-flow.spec.ts  # Login real, logout, proteção de rotas
-│   ├── course-flow.spec.ts # Descoberta, matrícula, progresso
 │   └── smoke-producao.spec.ts # Smoke pós-deploy; só roda com PLAYWRIGHT_BASE_URL (RUNBOOK §2.4)
 │
 ├── visual/            # NOVO - Testes de responsividade

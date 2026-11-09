@@ -112,32 +112,20 @@ test.describe('Página de Política de Privacidade', () => {
 test.describe('Navegação entre Termos e Privacidade', () => {
   test('deve navegar de Termos para Auth', async ({ page }) => {
     await page.goto('/termos');
-    
+
     const backLink = page.locator('a[href*="/auth"]').first();
-    
-    if (await backLink.isVisible()) {
-      await Promise.all([
-        page.waitForURL('/auth'),
-        backLink.click(),
-      ]);
-      
-      expect(page.url()).toContain('/auth');
-    }
+    await expect(backLink).toBeVisible();
+    await backLink.click();
+    await expect(page).toHaveURL(/\/auth/);
   });
 
   test('deve navegar de Privacidade para Auth', async ({ page }) => {
     await page.goto('/privacidade');
-    
+
     const backLink = page.locator('a[href*="/auth"]').first();
-    
-    if (await backLink.isVisible()) {
-      await Promise.all([
-        page.waitForURL('/auth'),
-        backLink.click(),
-      ]);
-      
-      expect(page.url()).toContain('/auth');
-    }
+    await expect(backLink).toBeVisible();
+    await backLink.click();
+    await expect(page).toHaveURL(/\/auth/);
   });
 });
 
