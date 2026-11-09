@@ -5,7 +5,7 @@ Decisões e o porquê: `docs/decisions.md` (001, 002, 003, 008).
 
 ## Qual cliente usar
 
-`lib/supabase/` expõe quatro fábricas. Escolher errado é a fonte nº 1 de bug de auth.
+`lib/supabase/` expõe cinco fábricas e um atalho. Escolher errado é a fonte nº 1 de bug de auth.
 
 | Fábrica | Onde roda | Chave | RLS | Usar quando |
 |---|---|---|---|---|
@@ -13,6 +13,14 @@ Decisões e o porquê: `docs/decisions.md` (001, 002, 003, 008).
 | `server.ts#createClient` | SSR / route handler | anon + cookie | sim | **padrão no servidor** |
 | `server.ts#createAdminClient` | servidor | service role | **não** | mutação de admin |
 | `server.ts#createServiceRoleClient` | servidor | service role | **não** | último recurso |
+| `server.ts#createPublicClient` | servidor | anon, **sem sessão** | sim (como anônimo) | página guardada pronta (`revalidate`/estática) — ADR 022 |
+| `server.ts#usuarioDaRequisicao` | servidor | — | — | id de quem está logado; uma consulta por requisição (`cache`) — ADR 023 |
+
+Página com `revalidate` ou estática **só** lê com `createPublicClient()`: o resultado
+fica guardado e é servido a todos, então não pode depender de quem está logado.
+Para saber quem está logado no servidor, use `usuarioDaRequisicao()` em vez de
+chamar `auth.getUser()` de novo: layout, página e dados da mesma requisição
+reaproveitam a resposta.
 
 `createAdminClient()` valida antes de devolver: exige sessão, lê `user_role` →
 `role`, exige `name === 'admin'`. Lança `Error` com mensagem em português se falhar
@@ -24,7 +32,10 @@ Todo uso precisa de guarda escrita à mão. Regra de review: um `createServiceRo
 novo sem guarda visível no mesmo arquivo é bloqueio de merge.
 
 `middleware.ts` usa `createServerClient` direto. **Nada entre `createServerClient` e
-`auth.getUser()`** — código no meio quebra o refresh de sessão de forma intermitente.
+`auth.getClaims()`** — código no meio quebra o refresh de sessão de forma intermitente.
+`getClaims()` (no lugar do antigo `getUser()`) confere a assinatura do JWT e renova os
+cookies. Com a chave simétrica antiga ele ainda consulta o Supabase; com chave
+assimétrica (Settings → JWT Keys) confere no próprio servidor — ADR 023.
 
 ## Variáveis
 

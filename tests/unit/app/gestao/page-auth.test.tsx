@@ -55,7 +55,7 @@ vi.mock("@/lib/api/gestao/pendencias", () => ({
 }));
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
 vi.mock("@/lib/api/content", () => ({
-  getHero: async () => ({ n_escolas: 35, n_alunos: 1499, subtitulo: "" }),
+  getHero: async () => ({ n_escolas: 36, n_alunos: 1524, subtitulo: "", base: { escolas: 35, alunos: 1499 } }),
 }));
 vi.mock("@/app/gestao/numeros-do-site", () => ({
   FormNumerosDoSite: ({ escolas, alunos }: { escolas: number; alunos: number }) => (
@@ -132,11 +132,11 @@ describe("rota /gestao", () => {
   it("devolve 404 ao bolsista na tela de equipe", async () => {
     flagLigada = true;
     papelMembro = "bolsista";
-    await expect(EquipePage()).rejects.toThrow(/NEXT_NOT_FOUND/);
+    await expect(EquipePage({ searchParams: Promise.resolve({}) })).rejects.toThrow(/NEXT_NOT_FOUND/);
   });
 
   it("dá a aba Equipe só à coordenação e Melhorias aos dois", () => {
-    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Alocação", "Equipe", "Melhorias"]);
-    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Melhorias"]);
+    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Alocação", "Equipe", "Relatório", "Melhorias"]);
+    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Relatório", "Melhorias"]);
   });
 });

@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { listarEquipe } from "./equipe";
 import { listarMelhorias, pendenciasDeMelhoria } from "./melhorias";
 import type { GestaoPapel, MembroEquipe, Pendencia } from "./types";
@@ -101,7 +101,7 @@ export async function listarPendencias(papel: GestaoPapel): Promise<Pendencia[]>
   const hoje = hojeEmSaoPaulo();
   const inicio = new Date(Date.now() - DIAS_PASSADOS * 86_400_000).toISOString().slice(0, 10);
 
-  const [{ data, error }, { data: auth }, melhorias] = await Promise.all([
+  const [{ data, error }, eu, melhorias] = await Promise.all([
     supabase
       .schema("gestao")
       .from("agenda")
@@ -110,13 +110,13 @@ export async function listarPendencias(papel: GestaoPapel): Promise<Pendencia[]>
       // Encontro cancelado (spec 014) não é aula a registrar nem próxima aula.
       .is("cancelado_em", null)
       .order("data"),
-    supabase.auth.getUser(),
+    usuarioDaRequisicao(),
     listarMelhorias(),
   ]);
   if (error) throw new Error(error.message);
 
   const equipe = papel === "coordenacao" ? await listarEquipe() : [];
   const base = montarPendencias({ papel, hoje, agendas: (data ?? []) as AgendaPendenciaRow[], equipe });
-  const deMelhoria = pendenciasDeMelhoria(papel, auth.user?.id ?? "", melhorias, new Date());
+  const deMelhoria = pendenciasDeMelhoria(papel, eu ?? "", melhorias, new Date());
   return [...deMelhoria, ...base];
 }

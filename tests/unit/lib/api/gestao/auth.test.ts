@@ -10,6 +10,7 @@ const mockClient = {
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => mockClient),
+  usuarioDaRequisicao: vi.fn(async () => (await mockClient.auth.getUser()).data.user?.id ?? null),
 }));
 
 import { ensureGestaoMember, getGestaoPapel } from "@/lib/api/gestao/auth";

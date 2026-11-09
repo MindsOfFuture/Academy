@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient as createServerSupabase } from "@/lib/supabase/server";
+import { createPublicClient, createClient as createServerSupabase } from "@/lib/supabase/server";
 import { type ArticleSummary, type ArticleRow, getMediaUrl } from "./types";
 
 export interface ArticleDetail extends ArticleSummary {
@@ -58,8 +58,9 @@ export async function getArticleById(id: string): Promise<ArticleDetail | null> 
     };
 }
 
+/** Artigos da home: sem login, só os publicados (a home é a mesma para todos). */
 export async function getArticles(): Promise<ArticleSummary[]> {
-    const supabase = await createServerSupabase();
+    const supabase = createPublicClient();
     const { data, error } = await supabase
         .from("article")
         .select(

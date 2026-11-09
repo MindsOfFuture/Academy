@@ -417,3 +417,97 @@ Consequência: a correção de `1e55a63` foi feita reescrevendo o arquivo de
 2026-09-05, e produção recebeu a parte do `e_membro` como migration à parte
 (`gestao_e_membro_search_path`), sem arquivo no repo. O resultado final é o
 mesmo, mas é exatamente o que a convenção acima passa a proibir.
+
+## 022 — Página inicial guardada pronta, lida só sem login
+Status: aceita (2026-11-09, spec 023)
+
+A home era montada a cada visita (~750 ms) com o cliente que lê o login de quem visita.
+Por isso admin/autor logado via artigo em rascunho na home e professor via curso de
+professor. Guardar essa versão pronta vazaria o que um usuário vê para todos.
+
+`app/page.tsx` tem `revalidate = 60` e todo dado dela vem de `createPublicClient()`
+(`lib/supabase/server.ts`): cliente sem sessão, que só lê o que o anônimo lê. Escrita que
+muda a home (números do site, escola, turma) chama `revalidatePath("/")`.
+
+Regra: **página com `revalidate` ou estática nunca usa `createClient()` (com cookie)**.
+O build denuncia a quebra: `/` deixa de sair como `○` e vira `ƒ`. Consequência aceita:
+o conteúdo da home pode atrasar até 1 min para quem não disparou a revalidação, e
+quem está logado vê a home pública.
+
+## 023 — Login conferido uma vez por requisição; middleware com `getClaims()`
+Status: aceita (2026-11-09, spec 023)
+
+Telas da gestão faziam até ~8 idas ao Supabase em fila (~250 ms cada): middleware,
+guard no layout e na página (cada um com `getUser` duas vezes + RPC do papel) e de
+novo nas leituras.
+
+- `usuarioDaRequisicao()` e `getGestaoPapel()` usam `cache` do React: uma resposta por
+  requisição, reaproveitada por layout, página, ações e dados. O `cache` nunca cruza
+  requisições, então não mistura pessoas.
+- O middleware usa `auth.getClaims()` no lugar de `getUser()`. Ele confere a
+  assinatura do JWT e renova os cookies da sessão como antes.
+- O papel continua conferido pelo banco a cada página (RPC com o login de quem chama),
+  e a RLS segue valendo em toda query.
+
+Pendente: o projeto ainda usa a chave simétrica antiga (`jwks.json` vazio), e com ela
+`getClaims()` consulta o Supabase igual ao `getUser()`. Ativar a chave assimétrica
+(Settings → JWT Keys) faz a conferência acontecer no próprio servidor. Consequência
+dessa ativação: sessão encerrada em outro aparelho continua aceita pelo middleware até
+o JWT expirar (1 h por padrão); o acesso a dado não muda, porque o banco valida.
+
+## 024 — Atividades do relatório: o dono escreve, a coordenação lê, mês encerrado não muda
+Status: aceita (2026-11-08, spec 022)
+
+`gestao.atividade_relatorio` começou privada (só o dono lia). A coordenação precisa
+conferir o mês de cada bolsista, então passou a ler — respeitando a separação do E2E
+(ADR 021 / migration 20261019). Escrita é sempre do dono: cadastro em nome próprio
+(`user_profile_id = auth.uid()`), edição só de nome, data e comprovação, e edição e
+exclusão só enquanto `gestao.mes_aberto(data)` (mês de Brasília) for verdadeiro.
+
+A regra do mês mora na RLS; a tela e as ações repetem só para dar mensagem clara
+(`rotulos.ts#mesEditavel`). Mudar o prazo (ex.: "até o dia 5 do mês seguinte") é trocar
+`gestao.mes_aberto` e `mesEditavel` juntos. Cadastrar em mês passado continua
+permitido — só editar e apagar fecham.
+
+## 025 — Quem cobriu um colega enxerga o encontro
+Status: aceita (2026-11-09, spec 022)
+
+Desde 20261009 "Quem cobriu" (`agenda_bolsista.coberto_por`) ganha as horas na carga,
+mas `gestao.bolsista_na_agenda` só liberava o encontro para quem tinha alocação
+própria. Resultado: o encontro e as horas apareciam para a coordenação e sumiam do
+relatório e do .docx de quem cobriu.
+
+`bolsista_na_agenda` passou a aceitar `bolsista_id = auth.uid() or coberto_por =
+auth.uid()`. Como a função guarda leitura **e** escrita de `agenda`, `agenda_bolsista`,
+`aula`, `presenca` e `turma`, quem cobriu também abre a página do encontro, lê a equipe
+dele e registra aula e presença — quem deu a aula é quem registra. Também passa a ver
+o encontro em "Próximas aulas" e, se passou sem registro, na pendência da tela Hoje.
+
+## 026 — O .docx do relatório é o modelo do projeto preenchido por troca de texto
+Status: aceita (2026-11-08, spec 022)
+
+O formulário mensal precisa sair idêntico ao modelo da coordenação (cabeçalho, logos,
+assinaturas). Gerar um .docx do zero não garantiria isso.
+
+O modelo fica no repositório (`lib/api/gestao/modelos/relatorio-mensal.docx`) e
+`relatorio-docx.ts` abre o zip (`fflate`), troca os textos "XX…" e o nome fixo do
+exemplo, e repete a linha vazia da tabela. Cada campo esperado é conferido: se o modelo
+mudar e um texto sumir, o download falha alto. `next.config.ts#outputFileTracingIncludes`
+leva o arquivo para o build `standalone`; a rota lê de `process.cwd()`, que no
+`standalone` é a própria pasta (`server.js` faz `chdir`).
+
+Trocar o modelo: substituir o arquivo, manter os textos que a função procura (ou
+ajustá-la) e rodar `tests/unit/lib/api/gestao/relatorio-docx.test.ts`, que gera a partir
+do arquivo real.
+
+## 027 — Chave ECC assinando os logins; a HS256 antiga fica como "previous"
+Status: aceita (2026-11-09) — completa o pendente da 023
+
+Segredo legado migrado para JWT Signing Keys e chave ECC (P-256) promovida a atual
+(`/auth/v1/.well-known/jwks.json` publica `ES256`). Com isso `getClaims()` confere o
+login no próprio servidor, sem ida ao Supabase.
+
+A chave HS256 antiga **não pode ser revogada** enquanto o projeto usar as chaves de API
+legadas (`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`): elas são JWTs
+assinados com ela, e revogar derruba o site inteiro. Revogar só depois de migrar para as
+chaves novas de API (`sb_publishable_…`/`sb_secret_…`), em outra decisão.

@@ -24,10 +24,23 @@ export const STATUS_TURMA: Record<StatusTurma, string> = {
 
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/** Hoje em Brasília, "2026-10-05". Única fonte de "hoje" e "mês corrente" das telas. */
+export function hojeIso(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+}
+
+export function mesCorrente(): string {
+  return hojeIso().slice(0, 7);
+}
+
+/** Até o mês terminar (horário de Brasília), a pessoa edita e apaga as atividades dele no relatório. */
+export function mesEditavel(mes: string): boolean {
+  return mes >= mesCorrente();
+}
+
 /** Mês da URL ("2026-10") ou o mês corrente em São Paulo. */
 export function mesDaUrl(valor: string | undefined): string {
-  if (valor && MES.test(valor)) return valor;
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()).slice(0, 7);
+  return valor && MES.test(valor) ? valor : mesCorrente();
 }
 
 export function mesVizinho(mes: string, passo: number): string {

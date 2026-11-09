@@ -1,0 +1,48 @@
+import { atividadesDoMes, encontrosDoMes } from "@/lib/api/gestao/relatorio";
+import { exigirMembro } from "../guard";
+import { diaCurto, hojeIso, mesCorrente, mesDaUrl, mesEditavel } from "../alocacao/rotulos";
+import { FormAtividade, LinhaAtividade } from "./forms";
+import { SeletorMes } from "../seletor-mes";
+import { RegistroDoMes } from "./registro";
+
+/**
+ * Relatório do mês de quem está logado (bolsista ou coordenação): os encontros
+ * em que esteve e as atividades que cadastrou para o projeto.
+ */
+export default async function RelatorioPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
+  await exigirMembro("/gestao/relatorio");
+  const mes = mesDaUrl((await searchParams).mes);
+  const [encontros, atividades] = await Promise.all([encontrosDoMes(mes), atividadesDoMes(mes)]);
+
+  const hoje = hojeIso();
+  const dataPadrao = hoje.startsWith(mes) ? hoje : `${mes}-01`;
+  // Mês que já terminou fica como foi para o relatório.
+  const editavel = mesEditavel(mes);
+  const dataMinima = `${mesCorrente()}-01`;
+
+  return (
+    <div className="space-y-8">
+      <SeletorMes mes={mes} titulo="Relatório de" />
+
+      <div className="flex justify-end">
+        {/* Link comum: o navegador baixa o arquivo que a rota devolve. */}
+        <a
+          href={`/gestao/relatorio/docx?mes=${mes}`}
+          className="rounded-md bg-[#684A97] px-4 py-2 text-sm font-medium text-white hover:bg-[#684A97]/90"
+        >
+          Baixar relatório (.docx)
+        </a>
+      </div>
+
+      <RegistroDoMes
+        encontros={encontros}
+        atividades={atividades}
+        linhaAtividade={
+          editavel ? (a) => <LinhaAtividade atividade={a} dataMinima={dataMinima} dia={diaCurto(a.data)} /> : undefined
+        }
+      >
+        <FormAtividade key={mes} dataPadrao={dataPadrao} />
+      </RegistroDoMes>
+    </div>
+  );
+}

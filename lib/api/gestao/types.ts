@@ -412,6 +412,7 @@ export interface TurmaRow {
     fim: string | null;
     status: StatusTurma;
     motivo: string | null;
+    n_alunos: number | null;
     escola: { nome: string } | { nome: string }[] | null;
 }
 
@@ -425,6 +426,7 @@ export interface Turma {
     fim: string | null;
     status: StatusTurma;
     motivo: string | null;
+    nAlunos: number | null;
 }
 
 export interface AlocacaoRow {
@@ -514,6 +516,7 @@ export interface NovaTurma {
     modalidade: string;
     inicio: string;
     fim: string | null;
+    nAlunos: number | null;
 }
 
 export interface NovaEscola {
@@ -614,4 +617,32 @@ export interface PassoLote {
 export interface PlanoLote {
     passos: PassoLote[];
     pulados: { encontro: Encontro; motivo: string }[];
+}
+
+/** Encontro em que a pessoa esteve no mês (relatório). */
+export interface EncontroDoRelatorio {
+    encontroId: string;
+    data: string;
+    horario: string;
+    descricao: string;
+    escolaNome: string | null;
+    turmaNome: string | null;
+    /** "cobertura" quando a pessoa cobriu alguém. */
+    situacao: SituacaoAlocacao | "cobertura";
+    horas: number;
+}
+
+/** Atividade do relatório: o dono e a coordenação veem; só o dono edita. */
+export interface AtividadeRelatorio {
+    id: string;
+    nome: string;
+    data: string;
+    /** Link ou descrição curta; vai para "Fonte de comprovação" no .docx. */
+    comprovacao: string | null;
+}
+
+export interface NovaAtividade {
+    nome: string;
+    data: string;
+    comprovacao: string | null;
 }

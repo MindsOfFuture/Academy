@@ -3,7 +3,8 @@ import { cargaDoMes, listarAfastamentos } from "@/lib/api/gestao/alocacao";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import { exigirMembro } from "../../guard";
 import { FormAfastamento, FormSubstituirTodos } from "../forms";
-import { diaCurto, horasTexto, mesDaUrl, mesVizinho, nomeDoMes } from "../rotulos";
+import { SeletorMes } from "../../seletor-mes";
+import { diaCurto, horasTexto, mesDaUrl } from "../rotulos";
 
 /**
  * Carga do mês (spec 014): horas que contam por bolsista, divididas por escola
@@ -29,15 +30,7 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <Link href={`?mes=${mesVizinho(mes, -1)}`} className="text-sm text-[#684A97] hover:underline">
-          ← Anterior
-        </Link>
-        <h2 className="text-xl font-semibold">Carga de {nomeDoMes(mes).toLowerCase()}</h2>
-        <Link href={`?mes=${mesVizinho(mes, 1)}`} className="text-sm text-[#684A97] hover:underline">
-          Próximo →
-        </Link>
-      </div>
+      <SeletorMes mes={mes} titulo="Carga de" />
       <p className="text-sm text-muted-foreground">
         Conta o que foi cumprido. Encontro que já passou sem marcação conta como cumprido; falta, substituição,
         encontro cancelado e turma que não abriu não contam. Quando alguém cobre outra pessoa, as horas cobertas vão

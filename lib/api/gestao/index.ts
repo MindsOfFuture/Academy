@@ -18,3 +18,5 @@ export * from "./validacao";
 export * from "./melhorias";
 export * from "./alocacao";
 export * from "./site";
+export * from "./relatorio";
+export * from "./relatorio-docx";

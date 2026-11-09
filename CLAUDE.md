@@ -66,14 +66,16 @@ Get a token at hPanel → API. The package also accepts `API_TOKEN`/`APITOKEN`.
 
 ## Architecture
 
-### Three Supabase clients — pick deliberately
+### Supabase clients — pick deliberately
 
-`lib/supabase/` exposes four factories, and choosing wrong is the most common source of auth bugs:
+`lib/supabase/` exposes five factories plus a per-request user helper, and choosing wrong is the most common source of auth bugs:
 
 - `client.ts` → `createClient()` — browser, anon key, RLS applies.
 - `server.ts` → `createClient()` — SSR/route handlers, anon key + cookie session, RLS applies.
 - `server.ts` → `createAdminClient()` — **verifies the caller has the `admin` role via `user_role`/`role` before** returning a service-role client. Throws on failure. Use this for admin mutations.
 - `server.ts` → `createServiceRoleClient()` — raw service-role client, **no permission check at all**. Only for flows that legitimately have no authenticated caller (e.g. notification fan-out). Guard it yourself.
+- `server.ts` → `createPublicClient()` — anon key, **no session**: reads only what an anonymous visitor reads. The only client allowed on a cached page (`revalidate`/static), e.g. the homepage (ADR 022). Never use the cookie client there — `next build` must keep showing `/` as `○`.
+- `server.ts` → `usuarioDaRequisicao()` — id of the logged-in user, verified with `getClaims()` and memoized per request with React `cache` (ADR 023). Prefer it over calling `auth.getUser()` again in server code.
 
 ### Data access layer: `lib/api/`
 
@@ -81,7 +83,7 @@ All Supabase queries live here; UI components import from `lib/api/*`, never tal
 
 **The `-server` filename suffix is unreliable.** Some modules with no suffix are server-only. Check the first line of the file before importing:
 
-- `import "server-only"` → `articles.ts`, `content.ts`, `credits.ts`, `learning-paths.ts`, `profiles-server.ts`
+- `import "server-only"` → `articles.ts`, `content.ts`, `credits.ts`, `learning-paths.ts`, `profiles-server.ts`, `gestao/relatorio.ts` (and every other `gestao/*` query module)
 - `"use server"` (Server Actions) → `courses-server.ts`, `enrollments-server.ts`
 - server client, no directive → `notifications-server.ts`
 - browser client → `activity-chat.ts`, `assignments.ts`, `certificates.ts`, `courses.ts`, `enrollments.ts`, `oauth.ts`, `profiles.ts`
@@ -90,7 +92,7 @@ All Supabase queries live here; UI components import from `lib/api/*`, never tal
 
 ### Auth & route protection
 
-`middleware.ts` → `lib/supabase/middleware.ts#updateSession`. It calls `supabase.auth.getUser()` and redirects unauthenticated users to `/auth?next=<path>` unless the path matches `PUBLIC_PATH_PREFIXES` (an explicit allowlist: `/auth`, `/oauth/consent`, `/termos`, `/privacidade`, `/artigos`, `/api/articles`, three `/api/auth/*` routes, `/api/notifications`) or is exactly `/`. **New public pages or public API routes must be added to that array**, and public API routes are then responsible for their own auth checks. Never insert code between `createServerClient` and `auth.getUser()` in this file.
+`middleware.ts` → `lib/supabase/middleware.ts#updateSession`. It calls `supabase.auth.getClaims()` (verifies the JWT and refreshes cookies; local once the project uses asymmetric JWT keys — still pending, ADR 023) and redirects unauthenticated users to `/auth?next=<path>` unless the path matches `PUBLIC_PATH_PREFIXES` (an explicit allowlist: `/auth`, `/oauth/consent`, `/termos`, `/privacidade`, `/artigos`, `/api/articles`, three `/api/auth/*` routes, `/api/notifications`) or is exactly `/`. **New public pages or public API routes must be added to that array**, and public API routes are then responsible for their own auth checks. Never insert code between `createServerClient` and `auth.getClaims()` in this file.
 
 ### Roles & the teacher-verification gate
 
@@ -113,9 +115,12 @@ Each is a `lib/api` module plus components:
 - **Certificates** — `lib/api/certificates.ts` checks completion, issues a verification code, `app/validar` validates it; PDF via `lib/utils/pdfGenerator.ts` (jsPDF).
 - **Notifications + email** — `lib/api/notifications-server.ts` writes `notification` rows and calls `sendNotificationEmail`. Email failures are logged and swallowed so they never break the notification write.
 - **Activity chat** — `activity_chat_message`, uses Supabase realtime (`subscribeToMessages`).
+- **Gestão — relatório mensal** (spec 022) — `/gestao/relatorio`: encontros of the month (from `gestao.v_carga`) + `gestao.atividade_relatorio` (owner writes; coordenação reads; edit/delete only while the month is open, enforced by RLS via `gestao.mes_aberto`). `.docx` export fills the project template `lib/api/gestao/modelos/relatorio-mensal.docx` by text replacement (`relatorio-docx.ts`, `fflate`; ADR 026) — the file is shipped to the standalone build via `outputFileTracingIncludes`. Coordenação opens a bolsista's record from Equipe (`?registro=<id>&mes=`). Month navigation everywhere: `app/gestao/seletor-mes.tsx`; "today/current month" in Brasília only from `app/gestao/alocacao/rotulos.ts#hojeIso`/`mesCorrente`.
 - **Telemetry** — `lib/services/tracking.service.ts` is a client-side singleton that batches events (flush at 10 events or 2s, plus on `visibilitychange`/`beforeunload`) into `telemetry_video_interaction` and `telemetry_content_review` (the `telemetry_assessment_interaction` writer was removed as unused; the table remains). Append-only. Payload types in `lib/api/telemetry-types.ts`, examples in `docs/telemetry-examples.json`. Call `trackingService.init()` once.
 
 ## Conventions & gotchas
+
+- **No explanatory helper text in the UI.** Don't add captions that explain rules or permissions ("Você e a coordenação veem…", "Dá para editar até o fim do mês", "Só você vê…"). The interface shows the rule by behaving (buttons appear or not); write such text only when the user asks for it.
 
 - `@/*` resolves to the **repo root** (`tsconfig.json` and the Vitest alias). So `@/lib/...`, `@/components/...`, `@/tests/mocks/supabase`.
 - Supabase joins can return a single object *or* an array depending on the relationship shape. Always go through `getMediaUrl()` in `lib/api/types.ts` (typed as `MediaRef`) instead of reading `.url` directly.

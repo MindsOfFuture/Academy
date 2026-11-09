@@ -19,10 +19,10 @@ import { editarEscola, editarTurma } from "@/lib/api/gestao/alocacao";
 
 describe("edição de turma e escola", () => {
   it("editar a turma não manda a escola, mesmo que venha junto", async () => {
-    const dados = { nome: "Lego tarde", modalidade: "Lego", inicio: "2026-09-01", fim: null, escolaId: "outra" };
+    const dados = { nome: "Lego tarde", modalidade: "Lego", inicio: "2026-09-01", fim: null, nAlunos: 20, escolaId: "outra" };
     await editarTurma("t1", dados);
     expect(from).toHaveBeenLastCalledWith("turma");
-    expect(update).toHaveBeenLastCalledWith({ nome: "Lego tarde", modalidade: "Lego", inicio: "2026-09-01", fim: null });
+    expect(update).toHaveBeenLastCalledWith({ nome: "Lego tarde", modalidade: "Lego", inicio: "2026-09-01", fim: null, n_alunos: 20 });
     expect(eq).toHaveBeenLastCalledWith("id", "t1");
   });
 

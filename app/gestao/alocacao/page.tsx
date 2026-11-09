@@ -6,7 +6,8 @@ import type { Encontro } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../guard";
 import { FormEncontro } from "./forms";
 import { CaixaLote, SelecaoLote } from "./lote";
-import { diaCurto, mesDaUrl, mesVizinho, nomeDoMes } from "./rotulos";
+import { SeletorMes } from "../seletor-mes";
+import { diaCurto, mesDaUrl } from "./rotulos";
 
 /**
  * Calendário da alocação (spec 014): o mês inteiro, cada encontro com a equipe.
@@ -95,15 +96,7 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <Link href={`?mes=${mesVizinho(mes, -1)}`} className="text-sm text-[#684A97] hover:underline">
-          ← Anterior
-        </Link>
-        <h2 className="text-xl font-semibold">{nomeDoMes(mes)}</h2>
-        <Link href={`?mes=${mesVizinho(mes, 1)}`} className="text-sm text-[#684A97] hover:underline">
-          Próximo →
-        </Link>
-      </div>
+      <SeletorMes mes={mes} />
 
       <SelecaoLote turmas={turmasDoMes} pessoas={pessoas}>
         {/* Telas largas: grade do mês. */}

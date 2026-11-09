@@ -696,6 +696,10 @@ export function FormTurma({ escolas, turma }: { escolas: Opcao[]; turma?: Turma 
           <span className={rotuloCampo}>Fim previsto (opcional)</span>
           <Input name="fim" type="date" defaultValue={turma?.fim ?? ""} />
         </label>
+        <label className="space-y-1">
+          <span className={rotuloCampo}>Número de alunos (opcional)</span>
+          <Input name="nAlunos" type="number" min={0} max={1000} step={1} defaultValue={turma?.nAlunos ?? ""} />
+        </label>
       </div>
       <Button type="submit" disabled={enviando}>
         {turma ? "Salvar alterações" : "Salvar turma"}
