@@ -47,6 +47,10 @@ que encapsula os passos abaixo.
 - Acesso SSH por chave: `ssh root@179.199.131.19` (o device de uso tem acesso
   direto).
 - Node 20+ (no VPS, v22), `npm ci` disponível, `rsync` (`/usr/bin/rsync`).
+- LibreOffice sem interface + fonte Carlito, para o relatório da gestão em PDF
+  (`/gestao/relatorio/pdf` converte o .docx): `apt-get install --no-install-recommends
+  libreoffice-writer-nogui fonts-crosextra-carlito fonts-crosextra-caladea fonts-liberation2`
+  (instalado em 09/11/2026, LibreOffice 24.2). Sem ele o download do PDF dá 500; o .docx segue.
 - `/etc/academy.env` **precisa estar carregado no build**, não só no systemd:
   o build de produção **falha sem `RESEND_API_KEY`**
   (`Missing API key ... new Resend("re_123")` em `api/notifications` e
