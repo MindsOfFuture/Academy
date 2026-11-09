@@ -179,7 +179,10 @@ export async function getCurrentUserProfile(): Promise<{
 
     const role = await fetchRoleForUser(user.id, supabase);
 
-    const { data: profileRow } = await supabase
+    // Telefone e endereço não são legíveis pelo papel `authenticated`; service role
+    // preso ao id que o getUser() acabou de verificar.
+    const serviceRole = await createServiceRoleClient();
+    const { data: profileRow } = await serviceRole
         .from("user_profile")
         .select("full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status")
         .eq("id", user.id)
@@ -241,11 +244,37 @@ export async function getCurrentUserProfile(): Promise<{
     };
 }
 
+type Contato = { phone: string | null; address: string | null };
+
+/**
+ * Telefone e endereço dos usuários listados, só para admin. Essas colunas não
+ * são legíveis pelo papel `authenticated` (senão qualquer conta com relação de
+ * matrícula lia os dados pessoais da outra); `createAdminClient` confere o papel.
+ * Quem não é admin recebe vazio.
+ */
+async function contatosParaAdmin(ids: string[]): Promise<Record<string, Contato>> {
+    if (ids.length === 0) return {};
+    try {
+        const admin = await createAdminClient();
+        const { data } = await admin.from("user_profile").select("id, phone, address").in("id", ids);
+        return Object.fromEntries((data ?? []).map((row) => [row.id as string, { phone: row.phone ?? null, address: row.address ?? null }]));
+    } catch {
+        return {};
+    }
+}
+
+/** Mesma leitura para a tabela de usuários, que pagina no navegador. */
+export async function contatosDosUsuariosAction(ids: string[]): Promise<Record<string, Contato>> {
+    "use server";
+    if (!Array.isArray(ids) || ids.length > 100 || !ids.every((id) => typeof id === "string")) return {};
+    return contatosParaAdmin(ids);
+}
+
 export async function getAllUsers(): Promise<UserProfileSummary[]> {
     const supabase = await createServerSupabase();
     const { data, error } = await supabase
         .from("user_profile")
-        .select("id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active, created_at")
+        .select("id, full_name, email, avatar_url, bio, specialties, certifications, verification_status, is_active, created_at")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
@@ -265,6 +294,7 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
         .in("user_id", userIds);
 
     const latestTeacherRequestByUser = mapLatestTeacherRequestByUser(teacherRequests as TeacherRequestRow[]);
+    const contatos = await contatosParaAdmin(userIds);
 
     return data.map<UserProfileSummary>((row) => {
         const latestTeacherRequest = latestTeacherRequestByUser[row.id];
@@ -274,8 +304,8 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
             fullName: row.full_name,
             avatarUrl: row.avatar_url,
             bio: row.bio,
-            phone: row.phone,
-            address: row.address,
+            phone: contatos[row.id]?.phone ?? null,
+            address: contatos[row.id]?.address ?? null,
             specialties: row.specialties || [],
             certifications: row.certifications || [],
             verificationStatus: (row.verification_status || null) as TeacherVerificationStatus,
@@ -300,7 +330,7 @@ export async function getUsersPage(
 
     let query = supabase
         .from("user_profile")
-        .select("id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active, created_at", { count: "exact" })
+        .select("id, full_name, email, avatar_url, bio, specialties, certifications, verification_status, is_active, created_at", { count: "exact" })
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
@@ -327,6 +357,7 @@ export async function getUsersPage(
         .in("user_id", userIds);
 
     const latestTeacherRequestByUser = mapLatestTeacherRequestByUser(teacherRequests as TeacherRequestRow[]);
+    const contatos = await contatosParaAdmin(userIds);
 
     const users = (data || []).map<UserProfileSummary>((row) => {
         const latestTeacherRequest = latestTeacherRequestByUser[row.id];
@@ -336,8 +367,8 @@ export async function getUsersPage(
             fullName: row.full_name,
             avatarUrl: row.avatar_url,
             bio: row.bio,
-            phone: row.phone,
-            address: row.address,
+            phone: contatos[row.id]?.phone ?? null,
+            address: contatos[row.id]?.address ?? null,
             specialties: row.specialties || [],
             certifications: row.certifications || [],
             verificationStatus: (row.verification_status || null) as TeacherVerificationStatus,

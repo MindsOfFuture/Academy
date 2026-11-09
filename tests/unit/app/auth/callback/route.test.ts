@@ -5,6 +5,7 @@ const createClientMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: createClientMock,
+  createServiceRoleClient: () => createClientMock(),
 }));
 
 import { GET } from "@/app/auth/callback/route";

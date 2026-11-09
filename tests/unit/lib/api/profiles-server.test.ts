@@ -220,7 +220,7 @@ describe("getCurrentUserProfile", () => {
 
   it("monta perfil de professor reprovado com detalhes e motivo", async () => {
     queueRole(mockClient, "teacher");
-    mockQueryResponse(mockClient, {
+    mockQueryResponse(serviceRoleClient, {
       full_name: "Prof Ana",
       email: "ana@escola.br",
       avatar_url: "ana.png",
@@ -257,7 +257,7 @@ describe("getCurrentUserProfile", () => {
   it("usa fallbacks quando o perfil do estudante está vazio", async () => {
     mockAuthenticatedUser(mockClient, "student-1");
     queueRole(mockClient, "student", 3);
-    mockQueryResponse(mockClient, null);
+    mockQueryResponse(serviceRoleClient, null);
 
     const profile = await getCurrentUserProfile();
 
@@ -291,7 +291,7 @@ describe("getCurrentUserProfile", () => {
       },
     });
     queueRole(mockClient, "teacher");
-    mockQueryResponse(mockClient, {});
+    mockQueryResponse(serviceRoleClient, {});
     mockQueryResponse(mockClient, null); // teacher_details ausente
     mockQueryResponse(mockClient, { status: "approved", observations: "ok", qualification_document_url: null });
     mockQueryResponse(mockClient, { qualification_document_url: "segunda.pdf" });
@@ -425,6 +425,25 @@ describe("getUsersPage", () => {
     expect(result.users[0]).toMatchObject({ id: "u1", role: "student", verificationReason: null });
     expect(mockClient.filters.range).toHaveBeenCalledWith(0, 9);
     expect(mockClient.filters.or).not.toHaveBeenCalled();
+  });
+
+  it("telefone e endereço vêm só do cliente que exige admin", async () => {
+    mockCountedResponse(mockClient, [{ id: "u1", full_name: "Ana", email: "a@b", is_active: true }], 1);
+    mockQueryResponse(mockClient, []);
+    mockQueryResponse(mockClient, []);
+    mockQueryResponse(adminClient, [{ id: "u1", phone: "3299", address: "Rua 1" }]);
+
+    const admin = await getUsersPage();
+    expect(admin.users[0]).toMatchObject({ phone: "3299", address: "Rua 1" });
+    expect(mockClient.chain.select.mock.calls[0][0]).not.toMatch(/phone|address/);
+
+    mockCountedResponse(mockClient, [{ id: "u1", full_name: "Ana", email: "a@b", is_active: true }], 1);
+    mockQueryResponse(mockClient, []);
+    mockQueryResponse(mockClient, []);
+    mockedCreateAdminClient.mockRejectedValueOnce(new Error("Acesso negado"));
+
+    const naoAdmin = await getUsersPage();
+    expect(naoAdmin.users[0]).toMatchObject({ phone: null, address: null });
   });
 
   it("limita página/tamanho e higieniza o termo de busca", async () => {
