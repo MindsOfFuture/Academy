@@ -1,12 +1,20 @@
 # 021 — Números da página inicial somam o que está cadastrado na gestão
 
-Status: implementada (commit `ca0d95f`, 2026-11-08; migration aplicada em produção)
+Status: implementada (commit `ca0d95f`, 2026-11-08; em produção desde o merge `096c307`, 2026-11-09)
 Constituição: `specs/constitution.md`
 
 ## Problema
 
 A coordenação atualizava à mão os números "escolas atendidas" e "alunos impactados"
 da página inicial, mesmo com escolas e turmas já cadastradas na gestão.
+
+**Antes de começar (2026-11-08):** a coordenação pediu para limpar os dados de teste
+da gestão em produção. Foram apagados os 69 encontros do E2E (datas em 2001, nas escolas
+"Escola E2E 1/2"), a escola "teste" com a "Turma 02 escola teste" e seus 2 encontros, e
+a escola "escola teste" (vazia). Ficaram, de propósito, as escolas "Escola E2E 1/2"
+(fixtures do E2E da alocação, ver `e2e/README.md`), a turma da E.E. Antônio Carlos e o
+encontro "Aula de IA" de 21/10, que são reais. A exclusão ficou na auditoria em nome da
+conta de quem pediu.
 
 ## Escopo
 

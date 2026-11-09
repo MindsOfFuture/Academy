@@ -1,6 +1,6 @@
 # 022 — Relatório mensal do bolsista
 
-Status: implementada (2026-11-08/09; migrations aplicadas em produção, código sem commit)
+Status: implementada (commit `4e5bf21`; em produção desde o merge `096c307`, 2026-11-09; migrations aplicadas)
 Constituição: `specs/constitution.md`
 
 ## Problema
