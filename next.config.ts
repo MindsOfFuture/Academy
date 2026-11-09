@@ -33,6 +33,8 @@ const lg2FrameHeaders = [
 const nextConfig: NextConfig = {
   // Deploy autocontido em .next/standalone — único alvo é o VPS (ADR 018).
   output: "standalone",
+  // O modelo .docx do relatório é lido do disco pela rota; o standalone precisa levá-lo junto.
+  outputFileTracingIncludes: { "/gestao/relatorio/docx": ["./lib/api/gestao/modelos/relatorio-mensal.docx"] },
   images: {
     remotePatterns: [
       // Storage do Supabase (avatares, capas, mídia dos cursos)

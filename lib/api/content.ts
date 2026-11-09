@@ -1,5 +1,7 @@
 import "server-only";
-import { createClient as createServerSupabase } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createPublicClient } from "@/lib/supabase/server";
+import { type CourseRow, type CourseSummary, mapCourse } from "./types";
 
 export interface HeroData {
     n_alunos: number;
@@ -12,8 +14,9 @@ export interface HeroData {
 export interface AboutUsSlide { src: string; alt: string; }
 export interface FooterLink { href: string; iconSrc: string; alt: string; nome: string; }
 
+/** Números e chamada da home: dados públicos, lidos sem login (a home é guardada pronta). */
 export async function getHero(): Promise<HeroData | null> {
-    const supabase = await createServerSupabase();
+    const supabase = createPublicClient();
     const keys = ["alunos_atendidos", "escolas_atendidas", "hero1"];
     const [{ data }, { data: numeros }] = await Promise.all([
         supabase.from("system_config").select("key, value").in("key", keys),
@@ -39,4 +42,38 @@ export async function getAboutUs(): Promise<{ aboutUsSlides: AboutUsSlide[] } | 
 export async function getFooter(): Promise<FooterLink[]> {
     // Sem tabela específica; devolve lista vazia para manter compatibilidade.
     return [];
+}
+
+/**
+ * Cursos ativos, do mais procurado ao menos. O cliente decide o que se vê: com
+ * login (Trilhas), o professor vê também os cursos de professor; na home, sem login.
+ */
+export async function consultarCursosAtivos(supabase: SupabaseClient): Promise<CourseSummary[]> {
+    const { data, error } = await supabase
+        .from("course")
+        .select(`
+            id,
+            title,
+            description,
+            level,
+            status,
+            audience,
+            thumb:media_file!course_thumb_id_fkey(url),
+            enrollments:enrollment(count)
+        `)
+        .eq("status", "active");
+
+    if (error || !data) return [];
+
+    const mapped = data.map((row) => ({
+        ...mapCourse(row as unknown as CourseRow),
+        enrollmentCount: (row as { enrollments?: { count: number }[] }).enrollments?.[0]?.count ?? 0,
+    }));
+
+    return mapped.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0));
+}
+
+/** Cursos da home: só o que o visitante anônimo vê, porque a página é a mesma para todos. */
+export async function listarCursosDaHome(): Promise<CourseSummary[]> {
+    return consultarCursosAtivos(createPublicClient());
 }

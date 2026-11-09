@@ -1,5 +1,6 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { gestaoHabilitada } from "./feature-flags";
 import type { GestaoPapel } from "./types";
 
@@ -25,17 +26,18 @@ const RPC_PAPEL_MEMBRO = "gestao_membro_papel";
  * Papel de membro do usuário autenticado, ou `null` quando ele não tem nenhum
  * papel no projeto (ou quando a rota não está autenticada).
  */
-export async function getGestaoPapel(): Promise<GestaoPapel | null> {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return null;
+// Uma vez por requisição: layout, página e ações pedem o papel e reaproveitam.
+export const getGestaoPapel = cache(async (): Promise<GestaoPapel | null> => {
+  if (!(await usuarioDaRequisicao())) return null;
 
+  // A RPC roda no banco com o login de quem chama (auth.uid()): o Supabase confere de novo.
+  const supabase = await createClient();
   const { data, error } = await supabase.rpc(RPC_PAPEL_MEMBRO);
   if (error) throw new Error(error.message);
 
   const papel = (data as GestaoPapel | null | undefined) ?? null;
   return papel === "coordenacao" || papel === "bolsista" ? papel : null;
-}
+});
 
 /**
  * Garante que o módulo está ligado e que o chamador é membro do projeto
@@ -51,9 +53,7 @@ export async function ensureGestaoMember(): Promise<GestaoPapel> {
     throw new Error("Acesso negado. O módulo de gestão está desligado.");
   }
 
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) {
+  if (!(await usuarioDaRequisicao())) {
     throw new Error("Usuário não autenticado.");
   }
 

@@ -1,7 +1,13 @@
+import Link from "next/link";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
+import { atividadesDoMes, encontrosDoMes } from "@/lib/api/gestao/relatorio";
 import type { MembroEquipe, ModalidadeBolsa } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../guard";
+import { mesDaUrl } from "../alocacao/rotulos";
+import { RegistroDoMes } from "../relatorio/registro";
+import { SeletorMes } from "../seletor-mes";
 import { AcoesMembro, FormBolsa, FormConcederPapel } from "./forms";
+import { JanelaRegistro } from "./janela-registro";
 
 /** Equipe do projeto (spec 003) — só a coordenação chega aqui. */
 
@@ -18,9 +24,20 @@ function dataBr(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-export default async function EquipePage() {
+export default async function EquipePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ registro?: string; mes?: string }>;
+}) {
   await exigirMembro("/gestao/equipe", "coordenacao");
+  const params = await searchParams;
   const equipe = await listarEquipe();
+  // Só abre o registro de quem é bolsista nesta equipe (a lista já separa o E2E).
+  const doRegistro = equipe.find((m) => m.bolsista && m.userProfileId === params.registro);
+  const mes = mesDaUrl(params.mes);
+  const registro = doRegistro
+    ? await Promise.all([encontrosDoMes(mes, doRegistro.userProfileId), atividadesDoMes(mes, doRegistro.userProfileId)])
+    : null;
 
   const ativos = equipe.filter((m) => !m.desligadoEm);
   const desligados = equipe.filter((m) => m.desligadoEm);
@@ -50,6 +67,13 @@ export default async function EquipePage() {
           </p>
           <ListaMembros membros={desligados} />
         </section>
+      )}
+
+      {doRegistro && registro && (
+        <JanelaRegistro titulo={`Registro de atividades · ${doRegistro.nome}`}>
+          <SeletorMes mes={mes} titulo="Relatório de" parametros={{ registro: doRegistro.userProfileId }} />
+          <RegistroDoMes encontros={registro[0]} atividades={registro[1]} vazio="do bolsista" />
+        </JanelaRegistro>
       )}
     </div>
   );
@@ -84,6 +108,11 @@ function ListaMembros({ membros }: { membros: MembroEquipe[] }) {
               </p>
             )}
             {m.desligadoEm && <p className="text-sm text-muted-foreground">Desligado em {dataBr(m.desligadoEm)}</p>}
+            {m.bolsista && (
+              <Link href={`?registro=${m.userProfileId}`} scroll={false} className="text-sm text-[#684A97] hover:underline">
+                Registro de atividades
+              </Link>
+            )}
           </div>
           <AcoesMembro
             userProfileId={m.userProfileId}

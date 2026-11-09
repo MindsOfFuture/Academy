@@ -65,6 +65,8 @@ async function executar(escrita: () => Promise<unknown>, mensagem: string): Prom
     await escrita();
     // "/gestao" inteiro: a página do encontro do bolsista e a tela "Hoje" também mudam.
     revalidatePath("/gestao", "layout");
+    // Escolas e alunos das turmas entram nos números da home, que fica guardada pronta.
+    revalidatePath("/");
     return sucesso(mensagem);
   } catch (error) {
     return falha(mensagemDeErro(error));

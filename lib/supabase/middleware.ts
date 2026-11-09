@@ -121,17 +121,18 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // IMPORTANT: DO NOT REMOVE auth.getUser()
-
-  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null = null;
+  // IMPORTANT: DO NOT REMOVE auth.getClaims() — it also refreshes the session cookies.
+  // Confere a assinatura do login: com chave assimétrica no projeto, localmente; com a
+  // chave antiga, consultando o Supabase como o getUser fazia.
+  let user: { sub: string } | null = null;
   try {
-    const { data } = await supabase.auth.getUser();
-    user = data.user ?? null;
+    const { data } = await supabase.auth.getClaims();
+    user = data?.claims ?? null;
   } catch (error) {
-    console.error("[supabase/middleware] getUser failed", error);
+    console.error("[supabase/middleware] getClaims failed", error);
   }
 
   if (!user && !isPublicPath(request.nextUrl.pathname)) {

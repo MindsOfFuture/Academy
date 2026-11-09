@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
@@ -24,6 +25,28 @@ export async function createClient() {
       },
     },
   );
+}
+
+/**
+ * Id de quem está logado, com a assinatura do login conferida (`getClaims`).
+ * Uma consulta por requisição: layout, página e dados reaproveitam (`cache` do
+ * React vale só para a requisição atual, nunca entre pessoas).
+ */
+export const usuarioDaRequisicao = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims.sub ?? null;
+});
+
+/**
+ * Cliente sem login: lê só o que um visitante anônimo pode ler. É o único que
+ * pode alimentar página guardada pronta (`revalidate`), porque o resultado é o
+ * mesmo para todo mundo.
+ */
+export function createPublicClient() {
+  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export async function createAdminClient() {

@@ -132,11 +132,11 @@ describe("rota /gestao", () => {
   it("devolve 404 ao bolsista na tela de equipe", async () => {
     flagLigada = true;
     papelMembro = "bolsista";
-    await expect(EquipePage()).rejects.toThrow(/NEXT_NOT_FOUND/);
+    await expect(EquipePage({ searchParams: Promise.resolve({}) })).rejects.toThrow(/NEXT_NOT_FOUND/);
   });
 
   it("dá a aba Equipe só à coordenação e Melhorias aos dois", () => {
-    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Alocação", "Equipe", "Melhorias"]);
-    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Melhorias"]);
+    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Alocação", "Equipe", "Relatório", "Melhorias"]);
+    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Relatório", "Melhorias"]);
   });
 });

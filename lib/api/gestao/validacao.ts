@@ -5,6 +5,7 @@ import type {
   NovaBolsa,
   NovaEscola,
   NovaMelhoria,
+  NovaAtividade,
   NovaTurma,
   NovoAfastamento,
   NovoEncontro,
@@ -359,6 +360,17 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
     return "Você não tem permissão para fazer isso.";
   }
   return padrao;
+}
+
+/** Atividade do relatório: nome, o dia em que aconteceu e, se houver, a comprovação. */
+export function validarAtividade(form: FormData): Validado<NovaAtividade> {
+  const nome = texto(form, "nome");
+  const data = texto(form, "data");
+  const comprovacao = texto(form, "comprovacao");
+  if (nome.length < 2 || nome.length > 200) return { ok: false, mensagem: "Dê um nome à atividade (até 200 caracteres)." };
+  if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe o dia em que a atividade aconteceu." };
+  if (comprovacao.length > 500) return { ok: false, mensagem: "A comprovação pode ter até 500 caracteres." };
+  return { ok: true, valor: { nome, data, comprovacao: comprovacao || null } };
 }
 
 export function falha(mensagem: string): EstadoAcao {

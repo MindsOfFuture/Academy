@@ -26,7 +26,7 @@ import { NextRequest } from "next/server";
 const VALID_URL = "https://project.supabase.co";
 const VALID_ANON_KEY = "anon-key-de-teste";
 
-/** Última implementação de `getUser` injetada no mock do createServerClient. */
+/** Quem está logado no mock; o middleware lê pelo `getClaims` (claims.sub = id). */
 let getUserImpl: () => Promise<{ data: { user: unknown | null } }>;
 let sessionCookieToSet: { name: string; value: string } | null;
 /** Resposta da RPC `gestao_membro_papel` no mock. */
@@ -35,11 +35,13 @@ let papelGestao: { data: unknown; error: unknown };
 vi.mock("@supabase/ssr", () => ({
     createServerClient: vi.fn((_url, _key, options) => ({
         auth: {
-            getUser: async () => {
+            getClaims: async () => {
                 if (sessionCookieToSet) {
                     options.cookies.setAll([{ ...sessionCookieToSet, options: { httpOnly: true } }]);
                 }
-                return getUserImpl();
+                const { data } = await getUserImpl();
+                const user = data.user as { id: string } | null;
+                return { data: user ? { claims: { sub: user.id } } : null };
             },
         },
         rpc: vi.fn(async () => papelGestao),

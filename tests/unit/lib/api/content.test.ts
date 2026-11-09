@@ -16,7 +16,7 @@ const CONFIG = [
 let rpcResposta: { data: unknown; error: unknown };
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({
+  createPublicClient: () => ({
     from: () => ({ select: () => ({ in: async () => ({ data: CONFIG, error: null }) }) }),
     rpc: (nome: string) => {
       expect(nome).toBe("numeros_da_home");
