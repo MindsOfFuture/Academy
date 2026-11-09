@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 
 const MIGRATION = readFileSync("supabase/migrations/20261109_nota_e_certificado_so_pelo_banco.sql", "utf8");
+const AUXILIARES = readFileSync("supabase/migrations/20261109_auxiliares_so_para_quem_tem_relacao.sql", "utf8");
 
 const ADMIN = "11111111-1111-4111-8111-111111111111";
 const DONO = "22222222-2222-4222-8222-222222222222";
@@ -64,6 +65,7 @@ describe("nota e certificado conferidos no banco", () => {
     `);
     await db.exec(MIGRATION);
     await db.exec(MIGRATION); // reexecutável
+    await db.exec(AUXILIARES); // regras abaixo seguem valendo com as auxiliares restritas
   }, 60_000);
 
   afterAll(async () => {

@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 
 const MIGRATION = readFileSync("supabase/migrations/20261109_professor_so_no_proprio_curso.sql", "utf8");
+const AUXILIARES = readFileSync("supabase/migrations/20261109_auxiliares_so_para_quem_tem_relacao.sql", "utf8");
 
 const ADMIN = "11111111-1111-4111-8111-111111111111";
 const DONO = "22222222-2222-4222-8222-222222222222"; // professor aprovado, dono do curso
@@ -92,6 +93,14 @@ describe("professor só age no próprio curso, em PostgreSQL real", () => {
     `);
     await db.exec(MIGRATION);
     await db.exec(MIGRATION); // reexecutável
+    await db.exec(`
+      create table if not exists public.lesson_progress (enrollment_id uuid, is_completed boolean);
+      create table if not exists public.assignment_submission (assignment_id uuid, user_id uuid, graded_at timestamptz, score numeric);
+      alter table public.lesson add column if not exists course_id uuid;
+      alter table public.assignment add column if not exists max_score numeric;
+    `);
+    await db.exec(AUXILIARES);
+    await db.exec(AUXILIARES);
   }, 60_000);
 
   afterAll(async () => {
@@ -136,5 +145,21 @@ describe("professor só age no próprio curso, em PostgreSQL real", () => {
     expect(await conta(ADMIN, "select * from public.telemetry_video_interaction")).toBe(1);
     await expect(como(PENDENTE, () => db.exec(`insert into public.tag (name) values ('x')`))).rejects.toThrow(/row-level/);
     await como(OUTRO, () => db.exec(`insert into public.tag (name) values ('robótica')`));
+  });
+
+  it("auxiliares não revelam curso nem conclusão de matrícula alheia", async () => {
+    const curso = (uid: string) => como(uid, async () =>
+      (await db.query<{ c: string | null }>(`select public.curso_da_matricula('${MATRICULA}') as c`)).rows[0].c);
+    expect(await curso(ALUNO)).toBe(CURSO);
+    expect(await curso(DONO)).toBe(CURSO);
+    expect(await curso(OUTRO)).toBeNull();
+    expect(await curso(PENDENTE)).toBeNull();
+    const tarefa = (uid: string) => como(uid, async () =>
+      (await db.query<{ c: string | null }>(`select public.curso_da_tarefa('${TAREFA}') as c`)).rows[0].c);
+    expect(await tarefa(DONO)).toBe(CURSO);
+    expect(await tarefa(OUTRO)).toBeNull();
+    const concluiu = (uid: string) => como(uid, async () =>
+      (await db.query<{ c: boolean }>(`select public.matricula_concluida('${MATRICULA}') as c`)).rows[0].c);
+    expect(await concluiu(OUTRO)).toBe(false);
   });
 });
