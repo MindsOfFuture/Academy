@@ -16,7 +16,10 @@ jobs:
     # do package-lock; ao subir um, suba o outro (o passo "Conferir versão" acusa a diferença).
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
-      options: --user 1001
+      # Root para instalar o LibreOffice (relatório em PDF); HOME=/root porque o
+      # Firefox recusa rodar como root com o HOME de outro usuário.
+      env:
+        HOME: /root
     # No container o shell padrão é sh; o passo de segredos usa ${!v}, que é bash.
     defaults:
       run:
