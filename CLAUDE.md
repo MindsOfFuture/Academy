@@ -141,7 +141,7 @@ vi.mock('@/lib/supabase/client', () => ({ createClient: () => mockClient }));
 import { listCourses } from '@/lib/api/courses';   // import AFTER vi.mock
 ```
 
-The mock returns a thenable chain draining a FIFO queue — queue responses with `mockQueryResponse(client, data)`, or override the specific terminal method the code under test awaits (`mockClient.chain.order.mockResolvedValueOnce(...)`). Helpers: `mockAuthenticatedUser`, `mockUnauthenticatedUser`, `resetMockClient`.
+The mock returns a thenable chain draining a FIFO queue — queue responses with `mockQueryResponse(client, data)`, or override the specific terminal method the code under test awaits (`mockClient.chain.order.mockResolvedValueOnce(...)`). Helpers: `mockAuthenticatedUser`, `mockUnauthenticatedUser`. Create a fresh client per test (`beforeEach`) instead of resetting one: the queue and `mockResolvedValueOnce` values would leak.
 
 E2E is organized by target, and `playwright.config.ts` maps directories to projects — put a spec in the right folder or it won't run:
 

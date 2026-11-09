@@ -138,13 +138,3 @@ export function mockUnauthenticatedUser(client: MockSupabaseClient) {
   });
 }
 
-/**
- * Reseta todos os mocks do cliente
- */
-export function resetMockClient(client: MockSupabaseClient) {
-  vi.clearAllMocks();
-  client.from.mockClear();
-  client.rpc.mockClear();
-  client.auth.getUser.mockClear();
-  Object.values(client.chain).forEach(mock => mock.mockClear());
-}

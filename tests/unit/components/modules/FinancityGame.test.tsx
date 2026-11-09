@@ -225,11 +225,11 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
         expect(JSON.parse(window.localStorage.getItem(`${SESSOES_STORAGE_KEY}:user-b`) ?? "[]")[0].nome).toBe("Bia");
 
         unmount();
-        render(<FinancityGame userId="user-b" />);
+        const deB = render(<FinancityGame userId="user-b" />);
         expect(screen.getByText("Bia")).toBeInTheDocument();
         expect(screen.queryByText("Ana")).not.toBeInTheDocument();
 
-        unmount();
+        deB.unmount(); // o primeiro `unmount` já foi usado; sem este, as duas telas ficavam montadas
         render(<FinancityGame userId="user-a" />);
         expect(screen.getByText("Ana")).toBeInTheDocument();
         expect(screen.queryByText("Legado")).not.toBeInTheDocument();

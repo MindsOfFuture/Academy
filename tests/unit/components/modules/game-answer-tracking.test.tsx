@@ -61,8 +61,12 @@ function preencher(rotulo: RegExp | string, valor: string) {
 async function forcarEnvio(condicao: () => void) {
   Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
   window.dispatchEvent(new Event("visibilitychange"));
-  await waitFor(condicao, { timeout: 3000 });
-  Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+  try {
+    await waitFor(condicao, { timeout: 3000 });
+  } finally {
+    // Sem o finally, um timeout deixaria a aba "escondida" para os testes seguintes.
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+  }
 }
 
 beforeEach(() => {

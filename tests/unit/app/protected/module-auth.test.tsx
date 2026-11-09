@@ -36,11 +36,6 @@ vi.mock("@/components/navbar/navbar", () => ({ default: () => <nav /> }));
 vi.mock("@/components/dashboard/courses-section", () => ({ default: () => <div /> }));
 vi.mock("@/components/dashboard/users-table", () => ({ default: () => <div /> }));
 vi.mock("@/components/yourCourses/yourCoursers", () => ({ YourCourses: () => <div /> }));
-vi.mock("@/lib/api/enrollments-server", () => ({ getUserCoursesServer: async () => [] }));
-vi.mock("@/lib/api/profiles-server", () => ({
-    getUserTypeServer: async () => currentUserType,
-    getCurrentUserProfile: async () => ({ role: currentUserType, verificationStatus: "approved" }),
-}));
 vi.mock("@/lib/api/enrollments-read-server", () => ({ readUserCourses: async () => [] }));
 vi.mock("@/lib/api/dashboard-server", () => ({
     getDashboardAccess: async () => ({ role: currentUserType, verificationStatus: "approved" }),

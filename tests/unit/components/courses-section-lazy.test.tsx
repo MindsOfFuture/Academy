@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 const loaded = vi.hoisted(() => ({ analytics: false, courseDetail: false }));
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 vi.mock('@/lib/api/courses', () => ({
@@ -22,9 +22,15 @@ vi.mock('@/components/dashboard/GameResearch/GameResearchPanel', () => ({ defaul
 import CoursesSection from '@/components/dashboard/courses-section';
 
 describe('Painéis pesados sob demanda', () => {
+  // No afterEach: no fim do teste, uma falha antes pularia a limpeza.
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
   it('não importa gráficos e certificados no carregamento inicial e abre ambos quando solicitados', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
-    const { unmount } = render(<CoursesSection isAdmin />);
+    render(<CoursesSection isAdmin />);
     expect(await screen.findByText('Robótica')).toBeInTheDocument();
     expect(loaded.analytics).toBe(false);
     expect(loaded.courseDetail).toBe(false);
@@ -35,7 +41,5 @@ describe('Painéis pesados sob demanda', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
     await waitFor(() => expect(screen.getByText('Analytics carregado')).toBeInTheDocument());
     expect(loaded.analytics).toBe(true);
-    unmount();
-    vi.unstubAllGlobals();
   });
 });

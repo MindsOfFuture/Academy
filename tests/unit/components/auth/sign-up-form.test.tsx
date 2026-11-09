@@ -1,6 +1,6 @@
 // tests/unit/components/auth/sign-up-form.test.tsx
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import userEvent from "@testing-library/user-event";
 import toast from "react-hot-toast";
@@ -31,6 +31,8 @@ vi.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
+const locationOriginal = window.location;
+
 describe("SignUpForm Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,10 +43,15 @@ describe("SignUpForm Integration", () => {
       writable: true,
     });
     // Mock fetch for teacher qualification upload
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ url: "https://example.com/qualification.pdf" }),
-    });
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(window, "location", { value: locationOriginal, writable: true });
   });
 
   const defaultProps = {
