@@ -34,8 +34,9 @@ export async function loginViaUI(page: Page, user: TestUser, nextPath = '/protec
   await page.goto(`/auth?next=${encodeURIComponent(nextPath)}`);
   
   // Preencher formulário de login
-  await page.getByPlaceholder('Email').first().fill(user.email);
-  await page.getByPlaceholder('Senha').first().fill(user.password);
+  // Só os campos visíveis: no celular o formulário de desktop existe escondido e vem primeiro.
+  await page.getByPlaceholder('Email').filter({ visible: true }).first().fill(user.email);
+  await page.getByPlaceholder('Senha').filter({ visible: true }).first().fill(user.password);
   
   // Submeter
   await page.getByRole('button', { name: /entrar|login/i }).click();

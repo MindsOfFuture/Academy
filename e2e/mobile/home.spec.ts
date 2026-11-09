@@ -172,8 +172,8 @@ test.describe('Home Page Mobile - Interações Touch', () => {
 
   test('scroll vertical deve ser suave', async ({ page }) => {
     // Múltiplos scrolls
-    // Uma rolagem só: com scroll-behavior smooth, rolagens seguidas se interrompem.
-    await page.evaluate(() => window.scrollBy(0, 900));
+    // Instantâneo: a rolagem suave era interrompida no CI e parava no meio.
+    await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
   });
 

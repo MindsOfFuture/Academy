@@ -28,7 +28,7 @@ test.describe('Navegação Mobile - Navbar', () => {
 
   test('navbar deve ter position sticky e ficar no topo ao scrollar', async ({ page }) => {
     // Scroll para baixo
-    await page.evaluate(() => window.scrollBy(0, 500));
+    await page.evaluate(() => window.scrollTo({ top: 500, behavior: 'instant' }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
     // Navbar deve continuar visível no topo depois da rolagem
