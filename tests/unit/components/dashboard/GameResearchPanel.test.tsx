@@ -106,7 +106,8 @@ describe("Painel de respostas dos jogos", () => {
     render(<GameResearchPanel />);
 
     expect(await screen.findByText("Cidadania Financeira")).toBeInTheDocument();
-    expect(screen.getByText("240")).toBeInTheDocument();
+    // O nome do jogo pode aparecer antes de os números chegarem: espera por eles.
+    expect(await screen.findByText("240")).toBeInTheDocument();
     // 615 segundos são lidos como minutos e segundos, não como número cru.
     expect(screen.getByText("10 min 15s")).toBeInTheDocument();
   });
