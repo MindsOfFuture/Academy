@@ -22,9 +22,12 @@ test.describe('Home Page Desktop - Layout', () => {
 
   test('navbar deve ser sticky e visível ao scrollar', async ({ page }) => {
     // Scroll para baixo
-    // Instantâneo: a rolagem suave da página era interrompida no CI e não saía do topo.
-    await page.evaluate(() => window.scrollTo({ top: 1000, behavior: 'instant' }));
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    // Rola e confere juntos, repetindo: logo após o carregamento o Next devolve a página
+    // ao topo ao hidratar, e uma rolagem feita antes disso se perde.
+    await expect(async () => {
+      await page.evaluate(() => window.scrollTo({ top: 1000, behavior: 'instant' }));
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    }).toPass({ timeout: 15000 });
 
     // Navbar deve continuar no topo depois da rolagem
     const navbar = page.locator('nav');

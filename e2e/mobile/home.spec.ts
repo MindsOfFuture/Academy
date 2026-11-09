@@ -19,10 +19,12 @@ test.describe('Home Page Mobile - Hero Section', () => {
     for (let i = 0; i < imageCount; i++) {
       const img = heroImages.nth(i);
       if (await img.isVisible()) {
-        // A foto do hero tem loading="lazy" e no celular fica abaixo da dobra: só baixa ao rolar.
-        await img.scrollIntoViewIfNeeded();
-        // Depois de rolar ainda pode estar baixando: espera terminar e então exige naturalWidth > 0.
-        await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+        // A foto do hero tem loading="lazy" e no celular fica abaixo da dobra: só baixa ao
+        // rolar. Rola e confere juntos, repetindo — ao hidratar o Next volta a página ao topo.
+        await expect(async () => {
+          await img.scrollIntoViewIfNeeded();
+          expect(await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+        }).toPass({ timeout: 20000 });
       }
     }
   });
@@ -172,9 +174,11 @@ test.describe('Home Page Mobile - Interações Touch', () => {
 
   test('scroll vertical deve ser suave', async ({ page }) => {
     // Múltiplos scrolls
-    // Instantâneo: a rolagem suave era interrompida no CI e parava no meio.
-    await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' }));
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+    // Rola e confere juntos, repetindo: ao hidratar o Next devolve a página ao topo.
+    await expect(async () => {
+      await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' }));
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+    }).toPass({ timeout: 15000 });
   });
 
   test('elementos interativos devem ter feedback visual', async ({ page }) => {
