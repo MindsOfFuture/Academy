@@ -82,7 +82,9 @@ describe("UsersTableClient", () => {
 
     const actions = {
         deleteUserAction: vi.fn(),
-        updateUserAction: vi.fn()
+        updateUserAction: vi.fn(),
+        contatosDosUsuariosAction: vi.fn().mockResolvedValue({}),
+        assinarComprovantesAction: vi.fn().mockResolvedValue({})
     };
     
   beforeEach(() => {

@@ -22,9 +22,11 @@ interface UsersTableClientProps {
     initialPageSize: number;
     deleteUserAction: (formData: FormData) => Promise<void>;
     updateUserAction: (formData: FormData) => Promise<void>;
+    contatosDosUsuariosAction: (ids: string[]) => Promise<Record<string, { phone: string | null; address: string | null }>>;
+    assinarComprovantesAction: (urls: string[]) => Promise<Record<string, string>>;
 }
 
-export default function UsersTableClient({ initialUsers, initialTotal, initialPage, initialPageSize, deleteUserAction, updateUserAction }: UsersTableClientProps) {
+export default function UsersTableClient({ initialUsers, initialTotal, initialPage, initialPageSize, deleteUserAction, updateUserAction, contatosDosUsuariosAction, assinarComprovantesAction }: UsersTableClientProps) {
 
     const [open, setOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserProfileSummary | null>(null);
@@ -78,7 +80,7 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
             const selectedStatus = overrideStatus ?? statusFilter;
             let query = supabase
                 .from('user_profile')
-                .select('id, full_name, email, avatar_url, bio, phone, address, specialties, certifications, verification_status, is_active', { count: 'exact' })
+                .select('id, full_name, email, avatar_url, bio, specialties, certifications, verification_status, is_active', { count: 'exact' })
                 .eq('is_active', true)
                 .order('created_at', { ascending: false });
 
@@ -105,6 +107,9 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                 .from("teacher_request")
                 .select("user_id, status, observations, qualification_document_url, created_at")
                 .in("user_id", ids);
+
+            // Telefone e endereço só chegam pelo servidor, que confere se é admin.
+            const contatos = await contatosDosUsuariosAction(ids);
 
             const { data: teacherDetails } = await supabase
                 .from("teacher_details")
@@ -137,6 +142,11 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                 }
             });
 
+            // Comprovantes abrem por URL assinada, gerada no servidor só para admin.
+            const comprovantes = await assinarComprovantesAction(
+                [...latestTeacherRequestByUser.values()].map((r) => r.qualification_document_url).filter((u): u is string => !!u),
+            );
+
             const mapped = (data || []).map((row) => {
                 const latestTeacherRequest = latestTeacherRequestByUser.get(row.id);
                 const td = teacherDetailsByUser.get(row.id);
@@ -146,13 +156,13 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                     fullName: row.full_name,
                     avatarUrl: row.avatar_url,
                     bio: row.bio,
-                    phone: row.phone,
-                    address: row.address,
+                    phone: contatos[row.id]?.phone ?? null,
+                    address: contatos[row.id]?.address ?? null,
                     specialties: row.specialties || [],
                     certifications: row.certifications || [],
                     verificationStatus: row.verification_status || null,
                     verificationReason: latestTeacherRequest?.status === "rejected" ? latestTeacherRequest?.observations || null : null,
-                    verificationDocumentUrl: latestTeacherRequest?.qualification_document_url || null,
+                    verificationDocumentUrl: (latestTeacherRequest?.qualification_document_url && comprovantes[latestTeacherRequest.qualification_document_url]) || latestTeacherRequest?.qualification_document_url || null,
                     isActive: row.is_active,
                     role: mapRole(row.id, roleLinks || []),
                     schools: td?.schools || [],

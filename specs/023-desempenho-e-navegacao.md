@@ -1,6 +1,6 @@
 # 023 — Site mais rápido e troca de mês mais fácil
 
-Status: implementada (2026-11-09, código sem commit)
+Status: implementada (commit `4e5bf21`; em produção desde o merge `096c307`, 2026-11-09)
 Constituição: `specs/constitution.md`
 
 ## Problema
@@ -32,7 +32,7 @@ projeto Supabase fica longe da VPS, que está no Brasil; mudar de região foi de
 - [x] `next build` marca `/` como estática com revalidação de 1 min (prova de que nada
   na home lê cookie ou sessão).
 - [x] Home servida da cópia pronta: ~5 ms no servidor de produção local contra ~750 ms
-  da versão anterior no ar (`x-nextjs-cache: HIT`).
+  da versão anterior no ar (`x-nextjs-cache: HIT`). No ar após o deploy: ~0,07 s.
 - [x] A home mostra só o que o visitante anônimo vê (antes, admin/autor logado via
   artigo em rascunho e professor via curso de professor na home).
 - [x] Middleware: sem sessão em rota protegida continua redirecionando; cookies

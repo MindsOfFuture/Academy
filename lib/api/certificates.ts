@@ -214,12 +214,13 @@ export async function issueCertificate(courseId: string): Promise<CertificateInf
     // Buscar dados do aluno
     const { data: profile } = await supabase
         .from("user_profile")
-        .select("full_name, document")
+        .select("full_name")
         .eq("id", user.id)
         .maybeSingle();
 
     const studentName = profile?.full_name || "Aluno";
-    const studentCpf = profile?.document || "";
+    // O CPF não é legível no navegador; o gatilho enforce_certificate_fields grava o do perfil.
+    const studentCpf = "";
 
     // Buscar dados do curso
     const { data: course } = await supabase
@@ -463,12 +464,13 @@ export async function issueCertificateForStudent(courseId: string, enrollmentId:
     // Buscar dados do aluno
     const { data: profile } = await supabase
         .from("user_profile")
-        .select("full_name, document")
+        .select("full_name")
         .eq("id", userId)
         .maybeSingle();
 
     const studentName = profile?.full_name || "Aluno";
-    const studentCpf = profile?.document || "";
+    // O CPF não é legível no navegador; o gatilho enforce_certificate_fields grava o do perfil.
+    const studentCpf = "";
 
     // Buscar dados do curso
     const { data: course } = await supabase

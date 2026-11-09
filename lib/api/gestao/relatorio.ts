@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { limitesDoMes } from "./alocacao";
 import type { AtividadeRelatorio, EncontroDoRelatorio, NovaAtividade, SituacaoAlocacao } from "./types";
 
@@ -111,10 +111,13 @@ export async function cadastrarAtividade(atividade: NovaAtividade): Promise<void
   if (error) throw new Error(error.message);
 }
 
-/** Nome e CPF de quem está logado, para o cabeçalho do relatório (a RLS só deixa ler o próprio perfil). */
+/**
+ * Nome e CPF de quem está logado, para o cabeçalho do relatório. O CPF não é
+ * legível pelo papel `authenticated`; lê-se com service role, preso ao id verificado.
+ */
 export async function meuPerfilParaRelatorio(): Promise<{ nome: string; cpf: string | null }> {
-  const supabase = await createClient();
   const eu = await usuarioAtual();
+  const supabase = await createServiceRoleClient();
   const { data, error } = await supabase.from("user_profile").select("full_name, document").eq("id", eu).maybeSingle();
   if (error) throw new Error(error.message);
   const perfil = data as { full_name: string | null; document: string | null } | null;
