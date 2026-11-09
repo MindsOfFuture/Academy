@@ -157,3 +157,15 @@ test('sem papel na gestão não alcança a alocação', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Lançar encontro' }), rota).toHaveCount(0);
   }
 });
+
+test('relatório do mês baixa em PDF e em .docx', async ({ page }) => {
+  const coord = exigir(COORD, 'TEST_GESTAO_COORD_EMAIL/PASSWORD');
+  await loginViaUI(page, coord, `/gestao/relatorio?mes=${MES}`);
+  for (const [nome, tipo] of [['Baixar relatório (.pdf)', '%PDF-'], ['Baixar relatório (.docx)', 'PK']]) {
+    const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: nome }).click()]);
+    expect(download.suggestedFilename()).toContain(MES);
+    const caminho = await download.path();
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync(caminho).subarray(0, tipo.length).toString('latin1'), nome).toBe(tipo);
+  }
+});

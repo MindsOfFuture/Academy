@@ -38,7 +38,7 @@ export function linhasDoRelatorio(encontros: EncontroDoRelatorio[], atividades: 
   return [...deEncontros, ...outras].sort((x, y) => x.data.localeCompare(y.data));
 }
 
-function dataBr(iso: string): string {
+export function dataBr(iso: string): string {
   const [ano, mes, dia] = iso.split("-");
   return `${dia}/${mes}/${ano}`;
 }
