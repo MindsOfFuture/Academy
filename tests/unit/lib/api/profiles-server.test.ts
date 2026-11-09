@@ -220,17 +220,16 @@ describe("getCurrentUserProfile", () => {
 
   it("monta perfil de professor reprovado com detalhes e motivo", async () => {
     queueRole(mockClient, "teacher");
-    mockQueryResponse(serviceRoleClient, {
+    mockQueryResponse(mockClient, {
       full_name: "Prof Ana",
       email: "ana@escola.br",
       avatar_url: "ana.png",
       bio: "bio",
-      phone: "31999",
-      address: "Rua 1",
       specialties: ["robótica"],
       certifications: ["cert-1"],
       verification_status: "rejected",
     });
+    mockQueryResponse(mockClient, [{ phone: "31999", address: "Rua 1" }]); // meus_dados_pessoais
     mockQueryResponse(mockClient, { schools: ["EE Central"], education_level: "superior", degree: "Engenharia" });
     mockQueryResponse(mockClient, {
       status: "rejected",
@@ -251,13 +250,16 @@ describe("getCurrentUserProfile", () => {
       schools: ["EE Central"],
       educationLevel: "superior",
       degree: "Engenharia",
+      phone: "31999",
+      address: "Rua 1",
     });
   });
 
   it("usa fallbacks quando o perfil do estudante está vazio", async () => {
     mockAuthenticatedUser(mockClient, "student-1");
     queueRole(mockClient, "student", 3);
-    mockQueryResponse(serviceRoleClient, null);
+    mockQueryResponse(mockClient, null);
+    mockQueryResponse(mockClient, []); // meus_dados_pessoais
 
     const profile = await getCurrentUserProfile();
 
@@ -291,7 +293,8 @@ describe("getCurrentUserProfile", () => {
       },
     });
     queueRole(mockClient, "teacher");
-    mockQueryResponse(serviceRoleClient, {});
+    mockQueryResponse(mockClient, {});
+    mockQueryResponse(mockClient, []); // meus_dados_pessoais
     mockQueryResponse(mockClient, null); // teacher_details ausente
     mockQueryResponse(mockClient, { status: "approved", observations: "ok", qualification_document_url: null });
     mockQueryResponse(mockClient, { qualification_document_url: "segunda.pdf" });
