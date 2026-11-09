@@ -1,181 +1,39 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { contaDeTeste, loginViaUI } from '../fixtures/auth.fixture';
+
+/**
+ * /course exige login: sem ele o middleware manda para /auth, e um teste
+ * anônimo acaba conferindo a tela de login. Por isso todos entram como aluno.
+ */
+async function abrirPrimeiroCurso(page: Page) {
+  const aluno = contaDeTeste('student');
+
+  await loginViaUI(page, aluno, '/trilhas');
+  const link = page.locator('a[href*="/course?id="]').first();
+  await expect(link, 'nenhum curso listado em /trilhas').toBeVisible();
+  await page.goto((await link.getAttribute('href'))!);
+  await expect(page).toHaveURL(/\/course\?id=/);
+  await expect(page.locator('h1').first()).not.toBeEmpty({ timeout: 15000 });
+}
 
 test.describe('Página de Curso Desktop', () => {
-  test('página de curso deve carregar', async ({ page }) => {
-    const response = await page.goto('/course');
-    expect(response?.status()).toBeLessThan(500);
+  test('mostra título, módulos e o quadro de matrícula', async ({ page }) => {
+    await abrirPrimeiroCurso(page);
+    await expect(page.getByText('Curso não encontrado.')).toHaveCount(0);
+    await expect(page.getByText(/^Módulo \d+:/).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Matrícula' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Matricular-se|Já matriculado/ })).toBeVisible();
   });
 
-  test('navbar deve estar presente', async ({ page }) => {
-    await page.goto('/course');
-    await page.waitForLoadState('domcontentloaded');
-    
-    const navbar = page.locator('nav');
-    await expect(navbar).toBeVisible();
+  test('conteúdo cabe na largura da janela', async ({ page }) => {
+    await abrirPrimeiroCurso(page);
+    const sobra = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(sobra).toBeLessThanOrEqual(1);
   });
 
-  test('botão voltar deve existir', async ({ page }) => {
-    await page.goto('/course');
-    await page.waitForLoadState('networkidle');
-    
-    const backButton = page.locator('button:has-text("Voltar"), a:has-text("Voltar")');
-    
-    if (await backButton.isVisible()) {
-      await expect(backButton).toBeVisible();
-    }
-  });
-
-  test('layout deve ser responsivo para detalhes do curso', async ({ page }) => {
-    await page.goto('/course');
-    await page.waitForLoadState('networkidle');
-    
-    const viewport = page.viewportSize();
-    const content = page.locator('main, .container, [class*="max-w"]').first();
-    
-    if (await content.isVisible()) {
-      const box = await content.boundingBox();
-      
-      if (box && viewport) {
-        // Conteúdo não deve exceder viewport
-        expect(box.width).toBeLessThanOrEqual(viewport.width);
-      }
-    }
-  });
-});
-
-test.describe('Página de Curso com ID', () => {
-  test('curso específico deve mostrar detalhes', async ({ page }) => {
-    // Primeiro, pegar um ID de curso válido das trilhas
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/course?id="]').first();
-    
-    if (await courseLink.isVisible()) {
-      const href = await courseLink.getAttribute('href');
-      
-      if (href) {
-        await page.goto(href);
-        await page.waitForLoadState('networkidle');
-        
-        // Deve mostrar título do curso ou loading
-        const courseTitle = page.locator('h1, h2').first();
-        await expect(courseTitle).toBeVisible({ timeout: 10000 });
-      }
-    }
-  });
-
-  test('módulos do curso devem ser exibidos se existirem', async ({ page }) => {
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/course?id="]').first();
-    
-    if (await courseLink.isVisible()) {
-      const href = await courseLink.getAttribute('href');
-      
-      if (href) {
-        await page.goto(href);
-        await page.waitForLoadState('networkidle');
-        
-        // Aguardar carregamento
-        await page.waitForTimeout(2000);
-        
-        // Procurar por módulos
-        const modules = page.locator('text=/módulo|module/i');
-        const hasModules = await modules.first().isVisible().catch(() => false);
-        
-      }
-    }
-  });
-});
-
-test.describe('Matrícula em Curso', () => {
-  test('botão de matrícula deve existir para usuários não matriculados', async ({ page }) => {
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/course?id="]').first();
-    
-    if (await courseLink.isVisible()) {
-      const href = await courseLink.getAttribute('href');
-      
-      if (href) {
-        await page.goto(href);
-        await page.waitForLoadState('networkidle');
-        
-        // Procurar botão de matrícula
-        const matriculaButton = page.getByRole('button', { name: /matricular|inscrever/i });
-        const hasMatricula = await matriculaButton.isVisible().catch(() => false);
-        
-        // Pode não aparecer se não estiver logado
-      }
-    }
-  });
-
-  test('progresso deve ser exibido para usuários matriculados', async ({ page }) => {
-    // Este teste seria mais completo com autenticação
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/course?id="]').first();
-    
-    if (await courseLink.isVisible()) {
-      const href = await courseLink.getAttribute('href');
-      
-      if (href) {
-        await page.goto(href);
-        await page.waitForLoadState('networkidle');
-        
-        // Procurar indicadores de progresso
-        const progress = page.locator('[class*="progress"], [class*="check"], text=/concluíd/i');
-        const hasProgress = await progress.first().isVisible().catch(() => false);
-        
-      }
-    }
-  });
-});
-
-test.describe('Acessibilidade da Página de Curso', () => {
-  test('imagens devem ter alt text', async ({ page }) => {
-    await page.goto('/trilhas');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/course?id="]').first();
-    
-    if (await courseLink.isVisible()) {
-      const href = await courseLink.getAttribute('href');
-      
-      if (href) {
-        await page.goto(href);
-        await page.waitForLoadState('networkidle');
-        
-        const images = page.locator('img');
-        const count = await images.count();
-        
-        for (let i = 0; i < count; i++) {
-          const img = images.nth(i);
-          
-          if (await img.isVisible()) {
-            const alt = await img.getAttribute('alt');
-            expect(alt).toBeTruthy();
-          }
-        }
-      }
-    }
-  });
-
-  test('títulos devem ter hierarquia correta', async ({ page }) => {
-    await page.goto('/course');
-    await page.waitForLoadState('networkidle');
-    
-    // Verificar que existe pelo menos um h1 ou h2
-    const h1 = page.locator('h1');
-    const h2 = page.locator('h2');
-    
-    const h1Count = await h1.count();
-    const h2Count = await h2.count();
-    
-    expect(h1Count + h2Count).toBeGreaterThan(0);
+  test('toda imagem tem texto alternativo', async ({ page }) => {
+    await abrirPrimeiroCurso(page);
+    await expect(page.locator('img').first()).toBeVisible(); // a capa do curso: garante que há imagem a conferir
+    await expect(page.locator('img:not([alt])')).toHaveCount(0);
   });
 });

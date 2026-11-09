@@ -39,7 +39,10 @@ beforeAll(() => {
   };
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  criar.mockClear(); // as contagens de chamada de um teste não passam para o seguinte
+});
 
 function preencher() {
   render(

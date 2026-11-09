@@ -16,7 +16,7 @@ jobs:
     # do package-lock; ao subir um, suba o outro (o passo "Conferir versão" acusa a diferença).
     container:
       image: mcr.microsoft.com/playwright:v1.57.0-noble
-      options: --user 1001
+      # Root (sem --user) para instalar o LibreOffice do relatório em PDF.
     # No container o shell padrão é sh; o passo de segredos usa ${!v}, que é bash.
     defaults:
       run:
@@ -33,9 +33,13 @@ jobs:
         TEST_STUDENT_PASSWORD: ${{ secrets.TEST_STUDENT_PASSWORD }}
         TEST_GESTAO_COORD_EMAIL: ${{ secrets.TEST_GESTAO_COORD_EMAIL }}
         TEST_GESTAO_COORD_PASSWORD: ${{ secrets.TEST_GESTAO_COORD_PASSWORD }}
+        TEST_TEACHER_EMAIL: ${{ secrets.TEST_TEACHER_EMAIL }}
+        TEST_TEACHER_PASSWORD: ${{ secrets.TEST_TEACHER_PASSWORD }}
+        TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+        TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
       run: |
         faltam=""
-        for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY TEST_STUDENT_EMAIL TEST_STUDENT_PASSWORD TEST_GESTAO_COORD_EMAIL TEST_GESTAO_COORD_PASSWORD; do
+        for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY TEST_STUDENT_EMAIL TEST_STUDENT_PASSWORD TEST_GESTAO_COORD_EMAIL TEST_GESTAO_COORD_PASSWORD TEST_TEACHER_EMAIL TEST_TEACHER_PASSWORD TEST_ADMIN_EMAIL TEST_ADMIN_PASSWORD; do
           [ -n "${!v}" ] || faltam="$faltam $v"
         done
         if [ -n "$faltam" ]; then
@@ -56,6 +60,9 @@ jobs:
     - name: Run Playwright tests
       run: npx playwright test
       env:
+        # Como root o Firefox recusa um HOME de outro dono; o GitHub força HOME=/github/home
+        # no container, então o passo sobrescreve.
+        HOME: /root
         # Sem estas o middleware responde 503 e todo spec autenticado quebra ou pula.
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

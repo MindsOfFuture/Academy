@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 const state=vi.hoisted(()=>({push:vi.fn(),gestao:false,user:{id:'fixture-user',email:'fixture@example.invalid',user_metadata:{full_name:'Aluno'}}}));
 vi.mock('next/navigation',()=>({usePathname:()=> '/',useRouter:()=>({push:state.push})}));
 vi.mock('next/link',()=>({default:({children,...props}:React.PropsWithChildren<React.AnchorHTMLAttributes<HTMLAnchorElement>>)=><a {...props}>{children}</a>}));
@@ -16,6 +16,7 @@ vi.mock('@/lib/supabase/client',()=>({createClient:()=>client}));
 vi.mock('@/app/gestao/actions',()=>({temAcessoGestaoAction:async()=>state.gestao}));
 import { AuthButtonClient } from '@/components/auth/auth-button-client';
 describe('Navegação autenticada',()=>{
+ beforeEach(()=>{state.gestao=false;});
  it('usa links nativos para carregar o painel antes de precisar dele',async()=>{
   render(<AuthButtonClient/>);
   expect(await screen.findByRole('link',{name:'Dashboard'})).toHaveAttribute('href','/protected');
@@ -27,7 +28,6 @@ describe('Navegação autenticada',()=>{
   render(<AuthButtonClient/>);
   expect(await screen.findByRole('link',{name:'Gestão'})).toHaveAttribute('href','/gestao');
   expect(within(screen.getByTestId('menu-usuario')).queryByRole('link',{name:'Gestão'})).toBeNull();
-  state.gestao=false;
  });
  it('não mostra Gestão para quem não é da equipe',async()=>{
   render(<AuthButtonClient/>);

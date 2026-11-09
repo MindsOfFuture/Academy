@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAntes, comoUsuario } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -12,13 +13,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * papel da bolsa não muda.
  */
 
-const ATE_AQUI = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-  "supabase/migrations/20260928_gestao_papeis_acumulados.sql",
-].map((path) => readFileSync(path, "utf8"));
+const ATE_AQUI = gestaoAntes("20260928_gestao_sem_valor_na_bolsa");
 const SEM_VALOR = readFileSync("supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql", "utf8");
 
 const COORD = "20000000-0000-4000-8000-000000000001";
@@ -28,16 +23,7 @@ const CAIO = "20000000-0000-4000-8000-000000000003";
 describe("bolsa sem valor em dinheiro (spec 003, 28/09/2026)", () => {
   const db = new PGlite({ extensions: { pgcrypto } });
 
-  async function como<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-    await db.exec(`set role authenticated`);
-    await db.exec(`set request.jwt.claim.sub = '${uid}'`);
-    try {
-      return await fn();
-    } finally {
-      await db.exec(`reset role`);
-      await db.exec(`reset request.jwt.claim.sub`);
-    }
-  }
+  const como = comoUsuario(db);
 
   async function linhas<T = Record<string, unknown>>(sql: string): Promise<T[]> {
     return (await db.query<T>(sql)).rows;

@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { scrollToElement } from '../fixtures/mobile.fixture';
 
 test.describe('Home Page Mobile - Hero Section', () => {
   test.beforeEach(async ({ page }) => {
@@ -13,19 +12,16 @@ test.describe('Home Page Mobile - Hero Section', () => {
     const hero = page.locator('section').first();
     await expect(hero).toBeVisible();
     
-    // Imagens do hero devem carregar
-    const heroImages = hero.locator('img');
-    const imageCount = await heroImages.count();
-    
-    for (let i = 0; i < imageCount; i++) {
-      const img = heroImages.nth(i);
-      if (await img.isVisible()) {
-        // A foto do hero tem loading="lazy" e no celular fica abaixo da dobra: só baixa ao rolar.
-        await img.scrollIntoViewIfNeeded();
-        // Depois de rolar ainda pode estar baixando: espera terminar e então exige naturalWidth > 0.
-        await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-      }
-    }
+    // A foto da equipe é a imagem do hero. Tem loading="lazy" e no celular fica abaixo
+    // da dobra: só baixa ao rolar. Rola e confere juntos, repetindo — ao hidratar o
+    // Next volta a página ao topo.
+    const foto = page.getByAltText('Equipe Minds of the Future');
+    await expect(foto).toHaveCount(1);
+    await expect(async () => {
+      await foto.scrollIntoViewIfNeeded();
+      const estado = await foto.evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, src: el.currentSrc }));
+      expect(estado.ok, `foto do hero não carregou: ${estado.src}`).toBe(true);
+    }).toPass({ timeout: 20000 });
   });
 
   test('CTA buttons devem ser tocáveis e visíveis', async ({ page }) => {
@@ -49,22 +45,6 @@ test.describe('Home Page Mobile - Hero Section', () => {
 test.describe('Home Page Mobile - Cursos Section', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-  });
-
-  test('seção de cursos deve ser scrollável horizontalmente ou em grid', async ({ page }) => {
-    // Procurar seção de cursos
-    const coursesSection = page.locator('[class*="course"], [class*="Course"]').first();
-    
-    if (await coursesSection.isVisible()) {
-      await coursesSection.scrollIntoViewIfNeeded();
-      
-      // Verificar se tem overflow-x ou é grid responsivo
-      const hasHorizontalScroll = await coursesSection.evaluate(el => {
-        return el.scrollWidth > el.clientWidth;
-      });
-      
-      // Pode ter scroll horizontal OU ser grid (ambos são válidos)
-    }
   });
 
   test('cards de curso devem ter tamanho legível', async ({ page }) => {
@@ -135,26 +115,12 @@ test.describe('Home Page Mobile - Footer', () => {
     const termosLink = footer.getByRole('link', { name: /termos/i });
     const privacidadeLink = footer.getByRole('link', { name: /privacidade/i });
     
-    // Pelo menos um deve existir
-    const hasTermos = await termosLink.isVisible().catch(() => false);
-    const hasPrivacidade = await privacidadeLink.isVisible().catch(() => false);
-    
-    expect(hasTermos || hasPrivacidade).toBeTruthy();
+    await expect(termosLink).toBeVisible();
+    await expect(privacidadeLink).toBeVisible();
   });
 });
 
 test.describe('Home Page Mobile - Performance', () => {
-  test('página deve carregar rapidamente', async ({ page }) => {
-    const startTime = Date.now();
-    
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    
-    const loadTime = Date.now() - startTime;
-    
-    // Página deve carregar DOM em menos de 10 segundos (ambiente de dev pode ser mais lento)
-    expect(loadTime).toBeLessThan(10000);
-  });
-
   test('imagens devem ter lazy loading', async ({ page }) => {
     await page.goto('/');
     
@@ -171,7 +137,8 @@ test.describe('Home Page Mobile - Performance', () => {
       }
     }
     
-    // Next.js Image component geralmente adiciona lazy loading automaticamente
+    // Imagens abaixo da dobra vêm com loading="lazy" (padrão do next/image sem priority).
+    expect(lazyCount).toBeGreaterThan(0);
   });
 
   test('não deve haver erros de JavaScript críticos', async ({ page }) => {
@@ -202,13 +169,11 @@ test.describe('Home Page Mobile - Interações Touch', () => {
 
   test('scroll vertical deve ser suave', async ({ page }) => {
     // Múltiplos scrolls
-    for (let i = 0; i < 3; i++) {
-      await page.evaluate(() => window.scrollBy(0, 300));
-      await page.waitForTimeout(200);
-    }
-    
-    const scrollY = await page.evaluate(() => window.scrollY);
-    expect(scrollY).toBeGreaterThan(500);
+    // Rola e confere juntos, repetindo: ao hidratar o Next devolve a página ao topo.
+    await expect(async () => {
+      await page.evaluate(() => window.scrollTo({ top: 900, behavior: 'instant' }));
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+    }).toPass({ timeout: 15000 });
   });
 
   test('elementos interativos devem ter feedback visual', async ({ page }) => {

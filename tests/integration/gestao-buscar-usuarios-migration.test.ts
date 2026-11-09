@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAte } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -11,15 +11,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * aluno): mínimo de 3 letras, teto de 10, e-mail parcial e só por prefixo.
  */
 
-const MIGRATIONS = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-  "supabase/migrations/20260928_gestao_papeis_acumulados.sql",
-  "supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql",
-  "supabase/migrations/20261009_gestao_buscar_usuarios.sql",
-].map((path) => readFileSync(path, "utf8"));
+const MIGRATIONS = gestaoAte("20261009_gestao_buscar_usuarios");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const BOLSISTA = "20000000-0000-4000-8000-000000000001";

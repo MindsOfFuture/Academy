@@ -89,6 +89,7 @@ afterEach(() => {
 describe("rota /gestao", () => {
   it("responde 404 com a flag desligada, sem checar autenticação", async () => {
     flagLigada = false;
+    autenticado = false; // se o login fosse checado antes da flag, viria redirect para /auth
     await expect(GestaoPage()).rejects.toThrow(/NEXT_NOT_FOUND/);
     expect(notFoundMock).toHaveBeenCalled();
     expect(redirectMock).not.toHaveBeenCalled();

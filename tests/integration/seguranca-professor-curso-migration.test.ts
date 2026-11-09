@@ -90,6 +90,9 @@ describe("professor só age no próprio curso, em PostgreSQL real", () => {
           execute format('grant select, insert, update, delete on public.%I to authenticated', t);
         end loop;
       end $$;
+      -- Leitura liberada: update/delete com WHERE também passam pela policy de SELECT,
+      -- e sem ela todo update/delete afetaria 0 linhas e os testes não provariam nada.
+      create policy ler_tudo on public.enrollment for select using (true);
     `);
     await db.exec(MIGRATION);
     await db.exec(MIGRATION); // reexecutável
@@ -98,6 +101,10 @@ describe("professor só age no próprio curso, em PostgreSQL real", () => {
       create table if not exists public.assignment_submission (assignment_id uuid, user_id uuid, graded_at timestamptz, score numeric);
       alter table public.lesson add column if not exists course_id uuid;
       alter table public.assignment add column if not exists max_score numeric;
+      -- Matrícula concluída de verdade, para matricula_concluida responder "sim" a quem pode ver.
+      update public.lesson set course_id = '${CURSO}';
+      insert into public.lesson_progress values ('${MATRICULA}', true);
+      insert into public.assignment_submission values ('${TAREFA}', '${ALUNO}', now(), 10);
     `);
     await db.exec(AUXILIARES);
     await db.exec(AUXILIARES);
@@ -120,11 +127,16 @@ describe("professor só age no próprio curso, em PostgreSQL real", () => {
     await expect(como(OUTRO, () =>
       db.exec(`insert into public.enrollment values (gen_random_uuid(),'${CURSO}','${OUTRO}','active')`))).rejects.toThrow(/row-level/);
     await como(DONO, () => db.exec(`insert into public.certificate (enrollment_id) values ('${MATRICULA}')`));
-    await como(DONO, () => db.exec(`update public.enrollment set status = 'completed' where id = '${MATRICULA}'`));
+    const alterada = await como(DONO, () => db.query(`update public.enrollment set status = 'completed' where id = '${MATRICULA}'`));
+    expect(alterada.affectedRows).toBe(1);
+    const deFora = await como(OUTRO, () => db.query(`update public.enrollment set status = 'active' where id = '${MATRICULA}'`));
+    expect(deFora.affectedRows).toBe(0);
     await como(ADMIN, () => db.exec(`insert into public.enrollment values (gen_random_uuid(),'${CURSO}','${ADMIN}','active')`));
   });
 
   it("professor de fora não apaga matrícula alheia", async () => {
+    // OUTRO é aprovado: só a checagem de dono do curso o barra.
+    await como(OUTRO, () => db.exec(`delete from public.enrollment where id = '${MATRICULA}'`));
     await como(PENDENTE, () => db.exec(`delete from public.enrollment where id = '${MATRICULA}'`));
     const r = await db.query(`select 1 from public.enrollment where id = '${MATRICULA}'`);
     expect(r.rows).toHaveLength(1);
@@ -134,6 +146,7 @@ describe("professor só age no próprio curso, em PostgreSQL real", () => {
     expect(await conta(ALUNO, "select * from public.activity_chat_message")).toBe(1);
     expect(await conta(DONO, "select * from public.activity_chat_message")).toBe(1);
     expect(await conta(PENDENTE, "select * from public.activity_chat_message")).toBe(0);
+    expect(await conta(OUTRO, "select * from public.activity_chat_message")).toBe(0);
     await como(DONO, () => db.exec(`insert into public.activity_chat_message (assignment_id, student_id, sender_id, content)
       values ('${TAREFA}','${ALUNO}','${DONO}','resposta')`));
     await expect(como(OUTRO, () => db.exec(`insert into public.activity_chat_message (assignment_id, student_id, sender_id, content)
@@ -160,6 +173,7 @@ describe("professor só age no próprio curso, em PostgreSQL real", () => {
     expect(await tarefa(OUTRO)).toBeNull();
     const concluiu = (uid: string) => como(uid, async () =>
       (await db.query<{ c: boolean }>(`select public.matricula_concluida('${MATRICULA}') as c`)).rows[0].c);
+    expect(await concluiu(ALUNO)).toBe(true); // a matrícula está concluída: o "false" abaixo é a guarda
     expect(await concluiu(OUTRO)).toBe(false);
   });
 });

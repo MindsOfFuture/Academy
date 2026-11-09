@@ -4,7 +4,7 @@
 
 A estrutura anterior tinha apenas:
 - `e2e/mobile/` - 4 arquivos de testes focados em mobile
-- `e2e/fixtures/` - 2 fixtures (auth e mobile)
+- `e2e/fixtures/` - login e contas de teste (`contaDeTeste`)
 - `e2e/global.setup.ts` - Setup básico
 
 ## Nova Estrutura Implementada
@@ -15,7 +15,7 @@ e2e/
 │   ├── auth.spec.ts       # Fluxos de login/cadastro/recuperação desktop
 │   ├── home.spec.ts       # Layout, navegação, performance, SEO
 │   ├── trilhas.spec.ts    # Página de trilhas de aprendizagem
-│   ├── course.spec.ts     # Detalhes de curso
+│   ├── course.spec.ts     # Página de curso, logado como aluno
 │   └── legal-pages.spec.ts # Termos de uso e privacidade
 │
 ├── mobile/            # EXISTENTE - Já tinha testes
@@ -26,15 +26,13 @@ e2e/
 │
 ├── flows/             # NOVO - Testes de fluxo E2E completo
 │   ├── auth-flow.spec.ts  # Login real, logout, proteção de rotas
-│   ├── course-flow.spec.ts # Descoberta, matrícula, progresso
 │   └── smoke-producao.spec.ts # Smoke pós-deploy; só roda com PLAYWRIGHT_BASE_URL (RUNBOOK §2.4)
 │
 ├── visual/            # NOVO - Testes de responsividade
 │   └── responsive.spec.ts # Visual regression, WCAG
 │
 ├── fixtures/
-│   ├── auth.fixture.ts
-│   └── mobile.fixture.ts
+│   └── auth.fixture.ts
 │
 └── global.setup.ts
 ```
@@ -149,8 +147,11 @@ e a coordenação de teste só enxerga o que é de teste (migration
 `20261019_gestao_dados_de_teste.sql`). Escola criada pela coordenação de teste
 já nasce marcada.
 
-Os encontros vão para um dia de 2001, fora do calendário real, e acumulam a cada
-execução (nada se apaga na alocação). O servidor precisa de `GESTAO_ENABLED=true`.
+Os encontros vão para um dia de 2001, fora do calendário real. A alocação não
+apaga encontro; no início do spec a coordenação de teste chama
+`gestao.limpar_encontros_de_teste()`, que apaga só encontro de 2001 de escola e
+equipe de teste criado há mais de uma hora (a outra execução do CI pode estar
+rodando). O servidor precisa de `GESTAO_ENABLED=true`.
 
 No CI a credencial ausente **falha** o teste em vez de pular, e o passo
 "Conferir que o E2E da alocação rodou" lê `test-results/results.json` e quebra se

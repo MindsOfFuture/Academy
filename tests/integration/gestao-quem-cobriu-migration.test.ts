@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAte, sqlDaMigracao, comoUsuario } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -11,29 +11,8 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * `encontrosDoMes` lê — `v_carga` e o encontro — e precisa achar as 4 h.
  */
 
-const MIGRATIONS = [
-  "20260905_gestao_modelo_operacional",
-  "20260905_gestao_membro_rpc",
-  "20260923_gestao_fundacao",
-  "20260924_gestao_melhorias",
-  "20260928_gestao_papeis_acumulados",
-  "20260928_gestao_sem_valor_na_bolsa",
-  "20261009_gestao_alocacao",
-  "20261009_gestao_alocacao_coberto_sem_fk",
-  "20261009_gestao_agenda_sem_escola",
-  "20261009_gestao_substituir_quem_ja_esta",
-  "20261009_gestao_substituto_de_fora",
-  "20261009_gestao_remover_do_encontro",
-  "20261009_gestao_concluir_encontro",
-  "20261009_gestao_concluir_depois_do_inicio",
-  "20261009_gestao_horas_de_quem_cobriu",
-  "20261009_gestao_gestor_lembrete",
-  "20261009_gestao_lembrete_no_modelo",
-  "20261018_gestao_notas_de_encerramento",
-  "20261018_gestao_sem_gestor",
-  "20261108_gestao_quem_cobriu_ve_o_encontro",
-  "20261108_gestao_quem_cobriu_ve_o_encontro", // idempotência
-].map((nome) => readFileSync(`supabase/migrations/${nome}.sql`, "utf8"));
+// A última de novo: idempotência.
+const MIGRATIONS = [...gestaoAte("20261108_gestao_quem_cobriu_ve_o_encontro"), sqlDaMigracao("20261108_gestao_quem_cobriu_ve_o_encontro")];
 
 const COORD = "70000000-0000-4000-8000-000000000001";
 const BIA = "70000000-0000-4000-8000-000000000002";
@@ -45,16 +24,7 @@ describe("quem cobriu vê o encontro (20261108)", () => {
   const db = new PGlite({ extensions: { pgcrypto } });
   let encontro = "";
 
-  async function como<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-    await db.exec(`set role authenticated`);
-    await db.exec(`set request.jwt.claim.sub = '${uid}'`);
-    try {
-      return await fn();
-    } finally {
-      await db.exec(`reset role`);
-      await db.exec(`reset request.jwt.claim.sub`);
-    }
-  }
+  const como = comoUsuario(db);
 
   /** O que o relatório lê: horas em `v_carga` e o encontro em `agenda`. */
   async function relatorio(uid: string) {
@@ -82,6 +52,7 @@ describe("quem cobriu vê o encontro (20261108)", () => {
 
       create table public.user_profile (id uuid primary key, full_name text not null, email text not null);
       alter table public.user_profile enable row level security;
+      create table public.system_config (key text primary key, value text);
       grant usage on schema public to anon, authenticated;
       grant select on public.user_profile to authenticated;
       create table public.notification (

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 import { TEST_USERS, loginViaUI, type TestUser } from '../fixtures/auth.fixture';
 
 /**
@@ -68,6 +69,22 @@ async function lancarIgnorandoSobreposicao(page: Page) {
 }
 
 test.describe.configure({ mode: 'serial' });
+
+// Os encontros de 2001 acumulariam a cada execução (a alocação não apaga). Antes
+// de lançar novos, a coordenação de teste apaga os de execuções anteriores pela
+// função do banco, que só aceita conta de teste e só mexe em dado de teste com
+// mais de uma hora (20261109_gestao_limpar_encontros_de_teste.sql).
+test.beforeAll(async () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const chave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!COORD || !url || !chave) return; // sem conta, os testes abaixo já pulam (local) ou falham (CI)
+  const supabase = createClient(url, chave, { auth: { persistSession: false } });
+  const { error: login } = await supabase.auth.signInWithPassword({ email: COORD.email, password: COORD.password });
+  if (login) throw new Error(`login da coordenação de teste: ${login.message}`);
+  const { error } = await supabase.schema('gestao').rpc('limpar_encontros_de_teste');
+  if (error) throw new Error(`limpeza dos encontros de teste: ${error.message}`);
+  await supabase.auth.signOut();
+});
 
 test('coordenação: cria, edita, conclui e confere no histórico', async ({ page }) => {
   const coord = exigir(COORD, 'TEST_GESTAO_COORD_EMAIL/PASSWORD');

@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { GESTAO_EM_ORDEM, comoUsuario, gestaoAte } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { buildEmailHtml } from "@/lib/email/template";
 
@@ -13,27 +13,7 @@ import { buildEmailHtml } from "@/lib/email/template";
  * e depois e que nada que valeu é apagado.
  */
 
-const MIGRATIONS = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-  "supabase/migrations/20260928_gestao_papeis_acumulados.sql",
-  "supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql",
-].map((path) => readFileSync(path, "utf8"));
-const ALOCACAO = readFileSync("supabase/migrations/20261009_gestao_alocacao.sql", "utf8");
-const COBERTO_SEM_FK = readFileSync("supabase/migrations/20261009_gestao_alocacao_coberto_sem_fk.sql", "utf8");
-const SEM_ESCOLA = readFileSync("supabase/migrations/20261009_gestao_agenda_sem_escola.sql", "utf8");
-const SUBSTITUIR = readFileSync("supabase/migrations/20261009_gestao_substituir_quem_ja_esta.sql", "utf8");
-const SUBSTITUTO_DE_FORA = readFileSync("supabase/migrations/20261009_gestao_substituto_de_fora.sql", "utf8");
-const REMOVER = readFileSync("supabase/migrations/20261009_gestao_remover_do_encontro.sql", "utf8");
-const CONCLUIR = readFileSync("supabase/migrations/20261009_gestao_concluir_encontro.sql", "utf8");
-const CONCLUIR_INICIO = readFileSync("supabase/migrations/20261009_gestao_concluir_depois_do_inicio.sql", "utf8");
-const HORAS_COBRIU = readFileSync("supabase/migrations/20261009_gestao_horas_de_quem_cobriu.sql", "utf8");
-const GESTOR = readFileSync("supabase/migrations/20261009_gestao_gestor_lembrete.sql", "utf8");
-const MODELO = readFileSync("supabase/migrations/20261009_gestao_lembrete_no_modelo.sql", "utf8");
-const NOTAS = readFileSync("supabase/migrations/20261018_gestao_notas_de_encerramento.sql", "utf8");
-const SEM_GESTOR = readFileSync("supabase/migrations/20261018_gestao_sem_gestor.sql", "utf8");
+const MIGRATIONS = gestaoAte("20261018_gestao_sem_gestor");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const A = (n: number) => `a0000000-0000-4000-8000-00000000000${n}`;
@@ -44,16 +24,7 @@ const ESCOLA2 = "40000000-0000-4000-8000-000000000002";
 describe("migration da alocação (spec 014)", () => {
   const db = new PGlite({ extensions: { pgcrypto } });
 
-  async function como<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-    await db.exec(`set role authenticated`);
-    await db.exec(`set request.jwt.claim.sub = '${uid}'`);
-    try {
-      return await fn();
-    } finally {
-      await db.exec(`reset role`);
-      await db.exec(`reset request.jwt.claim.sub`);
-    }
-  }
+  const como = comoUsuario(db);
 
   async function linhas<T = Record<string, unknown>>(sql: string): Promise<T[]> {
     return (await db.query<T>(sql)).rows;
@@ -143,33 +114,8 @@ describe("migration da alocação (spec 014)", () => {
     `);
 
     for (const sql of MIGRATIONS) await db.exec(sql);
-    await db.exec(ALOCACAO);
-    await db.exec(COBERTO_SEM_FK);
-    await db.exec(SEM_ESCOLA);
-    await db.exec(SUBSTITUIR);
-    await db.exec(SUBSTITUTO_DE_FORA);
-    await db.exec(REMOVER);
-    await db.exec(CONCLUIR);
-    await db.exec(CONCLUIR_INICIO);
-    await db.exec(HORAS_COBRIU);
-    await db.exec(GESTOR);
-    await db.exec(MODELO);
-    await db.exec(NOTAS);
-    await db.exec(SEM_GESTOR);
-    // Idempotência.
-    await db.exec(ALOCACAO);
-    await db.exec(COBERTO_SEM_FK);
-    await db.exec(SEM_ESCOLA);
-    await db.exec(SUBSTITUIR);
-    await db.exec(SUBSTITUTO_DE_FORA);
-    await db.exec(REMOVER);
-    await db.exec(CONCLUIR);
-    await db.exec(CONCLUIR_INICIO);
-    await db.exec(HORAS_COBRIU);
-    await db.exec(GESTOR);
-    await db.exec(MODELO);
-    await db.exec(NOTAS);
-    await db.exec(SEM_GESTOR);
+    // Idempotência: a cadeia da alocação de novo.
+    for (const sql of MIGRATIONS.slice(GESTAO_EM_ORDEM.indexOf("20261009_gestao_alocacao"))) await db.exec(sql);
 
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`

@@ -35,10 +35,11 @@ function chain(resp: Resp) {
     ...resp,
     then: (resolve: (r: Resp) => void) => resolve(resp),
   };
+  // Espiões: os testes de filtro conferem com que coluna e valor a query foi feita.
   for (const m of ["select", "eq", "not", "order", "in", "limit", "maybeSingle", "single"]) {
-    terminal[m] = () => terminal;
+    terminal[m] = vi.fn(() => terminal);
   }
-  return terminal;
+  return terminal as Record<string, ReturnType<typeof vi.fn>>;
 }
 
 describe("lib/api/gestao/entities — registro operacional", () => {
@@ -71,8 +72,7 @@ describe("lib/api/gestao/entities — registro operacional", () => {
   });
 
   it("mapeia aluno (snake_case → camelCase) e filtra por escola", async () => {
-    from.mockReturnValue(
-      chain({
+    const query = chain({
         data: [{
           id: "a1",
           nome: "Alice",
@@ -85,10 +85,11 @@ describe("lib/api/gestao/entities — registro operacional", () => {
           cidade: "Juiz de Fora",
         }],
         error: null,
-      }),
-    );
+      });
+    from.mockReturnValue(query);
 
     const result = await listAlunos("e1");
+    expect(query.eq).toHaveBeenCalledWith("escola_id", "e1");
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       id: "a1",
@@ -123,13 +124,13 @@ describe("lib/api/gestao/entities — registro operacional", () => {
   });
 
   it("mapeia presença com status de assinatura e filtro por aula", async () => {
-    from.mockReturnValue(
-      chain({
-        data: [{ id: "p1", aula_id: "aul1", aluno_id: "a1", presente: true, assinatura_status: "assinado", bolsista_id: "b1", professor_id: null }],
-        error: null,
-      }),
-    );
+    const query = chain({
+      data: [{ id: "p1", aula_id: "aul1", aluno_id: "a1", presente: true, assinatura_status: "assinado", bolsista_id: "b1", professor_id: null }],
+      error: null,
+    });
+    from.mockReturnValue(query);
     const result = await listPresencas("aul1");
+    expect(query.eq).toHaveBeenCalledWith("aula_id", "aul1");
     expect(result[0]).toEqual({
       id: "p1", aulaId: "aul1", alunoId: "a1", presente: true,
       assinaturaStatus: "assinado", bolsistaId: "b1", professorId: null,

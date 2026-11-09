@@ -42,7 +42,7 @@ CI (`.github/workflows/`): `tests.yml` runs lint + `npm test -- --run --coverage
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | email dispatch |
 | `RESEND_TEST_RECIPIENT` | if set, **all** outbound email is redirected to it (`lib/email/resend.ts`) |
 | `NEXT_PUBLIC_APP_URL`, `VERCEL_URL` | absolute-URL construction |
-| `TEST_{STUDENT,TEACHER,ADMIN}_{EMAIL,PASSWORD}` | Playwright auth fixtures; those specs skip without them |
+| `TEST_{STUDENT,TEACHER,ADMIN}_{EMAIL,PASSWORD}` | Playwright test accounts (`contaDeTeste`): specs skip locally without them and fail in CI |
 
 ## MCP servers (`.mcp.json`)
 
@@ -141,7 +141,7 @@ vi.mock('@/lib/supabase/client', () => ({ createClient: () => mockClient }));
 import { listCourses } from '@/lib/api/courses';   // import AFTER vi.mock
 ```
 
-The mock returns a thenable chain draining a FIFO queue — queue responses with `mockQueryResponse(client, data)`, or override the specific terminal method the code under test awaits (`mockClient.chain.order.mockResolvedValueOnce(...)`). Helpers: `mockAuthenticatedUser`, `mockUnauthenticatedUser`, `resetMockClient`.
+The mock returns a thenable chain draining a FIFO queue — queue responses with `mockQueryResponse(client, data)`, or override the specific terminal method the code under test awaits (`mockClient.chain.order.mockResolvedValueOnce(...)`). Helpers: `mockAuthenticatedUser`, `mockUnauthenticatedUser`. Create a fresh client per test (`beforeEach`) instead of resetting one: the queue and `mockResolvedValueOnce` values would leak.
 
 E2E is organized by target, and `playwright.config.ts` maps directories to projects — put a spec in the right folder or it won't run:
 
@@ -152,7 +152,6 @@ E2E is organized by target, and `playwright.config.ts` maps directories to proje
 | `e2e/flows/` | chromium |
 | `e2e/visual/` | chromium (specs set their own viewports) |
 
-All projects depend on the `setup` project (`e2e/global.setup.ts`). Shared helpers in `e2e/fixtures/` (`auth.fixture.ts`, `mobile.fixture.ts`). `e2e/README.md` inventories the suite.
 
 ## Database migrations
 

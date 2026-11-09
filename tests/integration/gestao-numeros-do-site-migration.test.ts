@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAntes, sqlDaMigracao } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -11,15 +11,8 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * RLS ligada e nenhuma policy de escrita. Só a função da migration escreve.
  */
 
-const MIGRATIONS = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-  "supabase/migrations/20260928_gestao_papeis_acumulados.sql",
-  "supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql",
-];
-const NOVA = "supabase/migrations/20261021_gestao_numeros_do_site.sql";
+const MIGRATIONS = gestaoAntes("20261021_gestao_numeros_do_site");
+const NOVA = sqlDaMigracao("20261021_gestao_numeros_do_site");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const BOLSISTA = "20000000-0000-4000-8000-000000000001";
@@ -83,10 +76,10 @@ describe("números da página inicial (spec 019)", () => {
       insert into public.user_profile (id, full_name) values
         ('${COORD}', 'Cris Coordenação'), ('${BOLSISTA}', 'Bia Bolsista'), ('${ALUNO}', 'Ana Aluna');
     `);
-    for (const path of MIGRATIONS) await db.exec(readFileSync(path, "utf8"));
+    for (const sql of MIGRATIONS) await db.exec(sql);
     // Duas vezes: a migration é idempotente.
-    await db.exec(readFileSync(NOVA, "utf8"));
-    await db.exec(readFileSync(NOVA, "utf8"));
+    await db.exec(NOVA);
+    await db.exec(NOVA);
     await db.exec(`set request.jwt.claim.sub = '${COORD}'`);
     await db.exec(`
       insert into gestao.papel_membro (user_profile_id, coordenacao, bolsista) values

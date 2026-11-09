@@ -190,8 +190,7 @@ describe("migration do modelo operacional de gestão em PostgreSQL real", () => 
     await expect(db.exec(`
       insert into gestao.lista_enviada (escola_id, nomes, criado_por)
       values ('${ESCOLA_ID}', array[${nomes30.map((n) => `'${n}'`).join(",")}], '${COORD_ID}')
-    `)).rejects.toThrow();
-    await db.exec("reset role");
+    `).finally(() => db.exec("reset role"))).rejects.toThrow(/nomes_check/);
   });
 
   it("não expõe campo de documento sensível no modelo (minimização LGPD)", async () => {

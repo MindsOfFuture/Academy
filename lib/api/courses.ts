@@ -246,9 +246,8 @@ export async function removeModule(moduleId: string): Promise<boolean> {
     const supabase = createBrowserSupabase();
     const { userId, role } = await getCurrentUserAndRole(supabase);
     const courseId = await getCourseIdByModuleId(supabase, moduleId);
-    if (courseId) {
-        await ensureCourseOwnerOrAdmin(supabase, courseId, userId, role);
-    }
+    // Sem curso achado, o professor não passa (antes a checagem era pulada e o delete seguia).
+    await ensureCourseOwnerOrAdmin(supabase, courseId ?? "", userId, role);
     await supabase.from("lesson").delete().eq("module_id", moduleId);
     const { error } = await supabase.from("course_module").delete().eq("id", moduleId);
     return !error;
@@ -293,9 +292,8 @@ export async function removeLesson(lessonId: string): Promise<boolean> {
     const supabase = createBrowserSupabase();
     const { userId, role } = await getCurrentUserAndRole(supabase);
     const courseId = await getCourseIdByLessonId(supabase, lessonId);
-    if (courseId) {
-        await ensureCourseOwnerOrAdmin(supabase, courseId, userId, role);
-    }
+    // Sem curso achado, o professor não passa (antes a checagem era pulada e o delete seguia).
+    await ensureCourseOwnerOrAdmin(supabase, courseId ?? "", userId, role);
     await supabase.from("lesson_progress").delete().eq("lesson_id", lessonId);
     const { error } = await supabase.from("lesson").delete().eq("id", lessonId);
     return !error;

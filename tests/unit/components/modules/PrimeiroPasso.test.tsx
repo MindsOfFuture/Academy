@@ -33,6 +33,7 @@ describe("Primeiro Passo — smoke de interação", () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.unstubAllGlobals(); // restoreAllMocks não desfaz stubGlobal (print, confirm)
     });
 
     it("conclui a etapa 1, persiste no localStorage e retoma após remontar", async () => {

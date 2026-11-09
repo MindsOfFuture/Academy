@@ -1,5 +1,5 @@
 import React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -23,10 +23,15 @@ import TrilhasClient from "@/components/trilhas/TrilhasClient";
 import ActivityChat from "@/components/activities/activity-chat";
 
 describe("instrumentação dos fluxos reais", () => {
+  afterEach(() => {
+    delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     fetchMessages.mockResolvedValue([]);
     subscribeToMessages.mockReturnValue(vi.fn());
+    // O jsdom não tem scrollIntoView: stub só durante o teste.
     HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 

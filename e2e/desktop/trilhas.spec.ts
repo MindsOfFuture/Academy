@@ -1,122 +1,51 @@
 import { test, expect } from '@playwright/test';
-import { TEST_USERS, loginViaUI } from '../fixtures/auth.fixture';
+import { contaDeTeste, loginViaUI } from '../fixtures/auth.fixture';
 
 // /trilhas exige login: sem ele os testes abaixo rodavam sobre a tela de /auth.
 // O redirect de quem não está logado é coberto em e2e/flows/auth-hardening.spec.ts.
 test.beforeEach(async ({ page }) => {
-  const student = TEST_USERS.student;
-  test.skip(!student, 'Requer TEST_STUDENT_EMAIL/PASSWORD');
-  await loginViaUI(page, student!, '/trilhas');
-  await page.waitForLoadState('networkidle');
+  const student = contaDeTeste('student');
+  await loginViaUI(page, student, '/trilhas');
+  // Cada teste parte de uma lista com cursos: sem isso os demais não teriam o que conferir.
+  await expect(page.locator('a[href*="/course?id="]').first(), 'nenhum curso listado em /trilhas').toBeVisible();
 });
 
 test.describe('Página de Trilhas Desktop', () => {
-
-  test('página deve carregar sem erros', async ({ page }) => {
-    // Verificar que não há erro 500
-    const content = page.locator('body');
-    await expect(content).toBeVisible();
-    
-    // Verificar que não está na página de erro
-    const errorPage = page.locator('text=500');
-    const hasError = await errorPage.isVisible().catch(() => false);
-    expect(hasError).toBeFalsy();
+  test('mostra a navbar e nenhuma página de erro', async ({ page }) => {
+    await expect(page.locator('nav')).toBeVisible();
+    await expect(page.getByText(/Application error|Internal Server Error/i)).toHaveCount(0);
   });
 
-  test('navbar deve estar presente', async ({ page }) => {
-    const navbar = page.locator('nav');
-    await expect(navbar).toBeVisible();
+  test('cards levam a um curso com id', async ({ page }) => {
+    const href = await page.locator('a[href*="/course?id="]').first().getAttribute('href');
+    expect(href).toMatch(/\/course\?id=[\w-]+/);
   });
 
-  test('deve exibir trilhas ou mensagem de vazio', async ({ page }) => {
-    // Aguardar carregamento
-    await page.waitForTimeout(2000);
-    
-    // Deve ter trilhas OU mensagem de que não há trilhas
-    const trilhas = page.locator('section').filter({ hasText: /jornada|trilha|curso/i });
-    const emptyMessage = page.locator('text=/nenhuma trilha|sem trilhas/i');
-    
-    const hasTrilhas = await trilhas.first().isVisible().catch(() => false);
-    const hasEmptyMessage = await emptyMessage.isVisible().catch(() => false);
-    
-    expect(hasTrilhas || hasEmptyMessage).toBeTruthy();
+  test('cursos de uma trilha ficam lado a lado em desktop', async ({ page }) => {
+    const cards = page.locator('a[href*="/course?id="]');
+    test.skip((await cards.count()) < 2, 'menos de dois cursos listados');
+    // Cada trilha põe seus cursos em linha (md:flex-row); trilhas ficam uma abaixo da outra.
+    const topos = await cards.evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    expect(new Set(topos).size, 'nenhum par de cursos na mesma linha').toBeLessThan(topos.length);
   });
 
-  test('cards de curso devem ter link para página de curso', async ({ page }) => {
-    const courseLinks = page.locator('a[href*="/course"]');
-    const count = await courseLinks.count();
-    
-    if (count > 0) {
-      const firstLink = courseLinks.first();
-      const href = await firstLink.getAttribute('href');
-      
-      expect(href).toContain('/course');
-    }
+  test('cards têm título', async ({ page }) => {
+    await expect(page.locator('a[href*="/course?id="]').first()).not.toBeEmpty();
   });
 
-  test('layout deve ser responsivo em desktop', async ({ page }) => {
-    const viewport = page.viewportSize();
-    
-    if (viewport && viewport.width >= 768) {
-      // Em desktop, cursos podem estar em linha horizontal
-      const courseCards = page.locator('a[href*="/course"]');
-      const count = await courseCards.count();
-      
-      if (count >= 2) {
-        const card1 = await courseCards.nth(0).boundingBox();
-        const card2 = await courseCards.nth(1).boundingBox();
-        
-        if (card1 && card2) {
-          // Em desktop, podem estar na mesma linha (y similar)
-        }
-      }
-    }
-  });
-
-  test('cards devem ter imagem e título', async ({ page }) => {
-    const courseCards = page.locator('a[href*="/course"]');
-    const count = await courseCards.count();
-    
-    if (count > 0) {
-      const firstCard = courseCards.first();
-      
-      // Deve ter imagem
-      const hasImage = await firstCard.locator('img').isVisible().catch(() => false);
-      
-      // Deve ter texto (título)
-      const text = await firstCard.textContent();
-      const hasText = text && text.trim().length > 0;
-      
-      expect(hasImage || hasText).toBeTruthy();
-    }
-  });
-
-  test('botão "Ver curso" deve ser clicável', async ({ page }) => {
-    const verCursoButton = page.locator('text=/ver curso/i').first();
-    
-    if (await verCursoButton.isVisible()) {
-      const box = await verCursoButton.boundingBox();
-      
-      if (box) {
-        // Botão deve ter tamanho clicável
-        expect(box.width).toBeGreaterThan(50);
-        expect(box.height).toBeGreaterThan(20);
-      }
-    }
+  test('botão "Ver curso" tem tamanho clicável', async ({ page }) => {
+    const botao = page.getByText(/ver curso/i).first();
+    await expect(botao).toBeVisible();
+    const caixa = await botao.boundingBox();
+    expect(caixa!.width).toBeGreaterThan(50);
+    expect(caixa!.height).toBeGreaterThan(20);
   });
 });
 
 test.describe('Navegação de Trilhas para Curso', () => {
-  test('clicar em card de curso deve navegar para detalhes', async ({ page }) => {
-    const courseLink = page.locator('a[href*="/course"]').first();
-    
-    if (await courseLink.isVisible()) {
-      await Promise.all([
-        page.waitForURL(/\/course/),
-        courseLink.click(),
-      ]);
-      
-      expect(page.url()).toContain('/course');
-    }
+  test('clicar em card de curso navega para os detalhes', async ({ page }) => {
+    await page.locator('a[href*="/course?id="]').first().click();
+    await expect(page).toHaveURL(/\/course\?id=/);
+    await expect(page.locator('h1').first()).not.toBeEmpty({ timeout: 15000 });
   });
 });

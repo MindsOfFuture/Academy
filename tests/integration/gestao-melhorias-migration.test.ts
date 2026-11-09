@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAte, comoUsuario } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -12,12 +12,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * aviso no sino e acesso só de membro ativo.
  */
 
-const MIGRATIONS = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-].map((path) => readFileSync(path, "utf8"));
+const MIGRATIONS = gestaoAte("20260924_gestao_melhorias");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const COORD2 = "10000000-0000-4000-8000-000000000002";
@@ -36,16 +31,7 @@ const PEDIDO = {
 describe("migration do pedido de melhoria (spec 011)", () => {
   const db = new PGlite({ extensions: { pgcrypto } });
 
-  async function como<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-    await db.exec(`set role authenticated`);
-    await db.exec(`set request.jwt.claim.sub = '${uid}'`);
-    try {
-      return await fn();
-    } finally {
-      await db.exec(`reset role`);
-      await db.exec(`reset request.jwt.claim.sub`);
-    }
-  }
+  const como = comoUsuario(db);
 
   async function linhas<T = Record<string, unknown>>(sql: string): Promise<T[]> {
     return (await db.query<T>(sql)).rows;

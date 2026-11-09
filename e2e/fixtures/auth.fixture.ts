@@ -1,4 +1,4 @@
-import { test as base, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Tipos de usuário para testes
 export type UserRole = 'student' | 'teacher' | 'admin' | 'anonymous';
@@ -34,8 +34,9 @@ export async function loginViaUI(page: Page, user: TestUser, nextPath = '/protec
   await page.goto(`/auth?next=${encodeURIComponent(nextPath)}`);
   
   // Preencher formulário de login
-  await page.getByPlaceholder('Email').first().fill(user.email);
-  await page.getByPlaceholder('Senha').first().fill(user.password);
+  // Só os campos visíveis: no celular o formulário de desktop existe escondido e vem primeiro.
+  await page.getByPlaceholder('Email').filter({ visible: true }).first().fill(user.email);
+  await page.getByPlaceholder('Senha').filter({ visible: true }).first().fill(user.password);
   
   // Submeter
   await page.getByRole('button', { name: /entrar|login/i }).click();
@@ -62,47 +63,14 @@ export async function logout(page: Page) {
   await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
 }
 
-// Extend base test com fixtures de autenticação
-type AuthFixtures = {
-  authenticatedPage: Page;
-  studentPage: Page;
-  teacherPage: Page;
-  adminPage: Page;
-};
-
-export const test = base.extend<AuthFixtures>({
-  // Página autenticada genérica (student por padrão)
-  authenticatedPage: async ({ page }, use) => {
-    const user = TEST_USERS.student;
-    if (user) {
-      await loginViaUI(page, user);
-    }
-    await use(page);
-  },
-
-  studentPage: async ({ page }, use) => {
-    const user = TEST_USERS.student;
-    if (user) {
-      await loginViaUI(page, user);
-    }
-    await use(page);
-  },
-
-  teacherPage: async ({ page }, use) => {
-    const user = TEST_USERS.teacher;
-    if (user) {
-      await loginViaUI(page, user);
-    }
-    await use(page);
-  },
-
-  adminPage: async ({ page }, use) => {
-    const user = TEST_USERS.admin;
-    if (user) {
-      await loginViaUI(page, user);
-    }
-    await use(page);
-  },
-});
-
-export { expect };
+/**
+ * Conta de teste do papel. Fora do CI, sem a credencial, o teste pula; no CI
+ * falha — pular deixaria o CI verde sem ter testado nada (ADR 012).
+ */
+export function contaDeTeste(papel: Exclude<UserRole, 'anonymous'>): TestUser {
+  const user = TEST_USERS[papel];
+  const nome = `TEST_${papel.toUpperCase()}_EMAIL/PASSWORD`;
+  test.skip(!user && !process.env.CI, `${nome} não configurados`);
+  if (!user) throw new Error(`CI sem ${nome}: o teste não pode pular em silêncio.`);
+  return user;
+}

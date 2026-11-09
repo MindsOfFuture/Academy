@@ -11,12 +11,6 @@ const estado = vi.hoisted(() => ({
     gerar: vi.fn(),
 }));
 
-vi.mock("@/lib/utils/pdfGenerator", () => {
-    estado.pdfCarregado = true;
-    if (estado.falharImport) throw new Error("Failed to fetch dynamically imported module");
-    return { generateAndDownloadCertificate: estado.gerar };
-});
-
 const certificados = vi.hoisted(() => ({
     getExistingCertificate: vi.fn(),
     checkCourseCompletion: vi.fn(),
@@ -89,8 +83,6 @@ describe("YourCourses — certificado com gerador sob demanda", () => {
         expect(toast.error.mock.calls[0][0]).not.toMatch(/dynamically imported/);
         expect(certificados.issueCertificate).not.toHaveBeenCalled();
         expect(await screen.findByRole("button", { name: /Emitir Certificado/ })).not.toBeDisabled();
-        estado.falharImport = false;
-        estado.pdfCarregado = false;
     });
 
     it("não carrega o PDF antes do clique e emite + gera no clique", async () => {
