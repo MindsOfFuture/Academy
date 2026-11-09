@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAntes, sqlDaMigracao, comoUsuario } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -12,22 +12,11 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  */
 
 const MIGRATIONS = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-  "supabase/migrations/20260928_gestao_papeis_acumulados.sql",
-  "supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql",
-  "supabase/migrations/20261019_gestao_dados_de_teste.sql",
-  "supabase/migrations/20261108_gestao_relatorio.sql",
-  "supabase/migrations/20261108_gestao_relatorio.sql", // idempotência
-  "supabase/migrations/20261108_gestao_relatorio_coordenacao.sql",
-  "supabase/migrations/20261108_gestao_relatorio_coordenacao.sql",
-  "supabase/migrations/20261108_gestao_relatorio_editar.sql",
-  "supabase/migrations/20261108_gestao_relatorio_editar.sql",
-  "supabase/migrations/20261108_gestao_relatorio_comprovacao.sql",
-  "supabase/migrations/20261108_gestao_relatorio_comprovacao.sql",
-].map((path) => readFileSync(path, "utf8"));
+  ...gestaoAntes("20261108_gestao_relatorio"),
+  // As do relatório duas vezes cada: idempotência.
+  ...(["20261108_gestao_relatorio", "20261108_gestao_relatorio_coordenacao", "20261108_gestao_relatorio_editar", "20261108_gestao_relatorio_comprovacao"] as const)
+    .flatMap((nome) => [sqlDaMigracao(nome), sqlDaMigracao(nome)]),
+];
 
 const COORD = "60000000-0000-4000-8000-000000000001";
 const BIA = "60000000-0000-4000-8000-000000000002";
@@ -38,16 +27,7 @@ const COORD_E2E = "60000000-0000-4000-8000-000000000005";
 describe("atividades privadas do relatório (20261108)", () => {
   const db = new PGlite({ extensions: { pgcrypto } });
 
-  async function como<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-    await db.exec(`set role authenticated`);
-    await db.exec(`set request.jwt.claim.sub = '${uid}'`);
-    try {
-      return await fn();
-    } finally {
-      await db.exec(`reset role`);
-      await db.exec(`reset request.jwt.claim.sub`);
-    }
-  }
+  const como = comoUsuario(db);
 
   async function nomes(uid: string): Promise<string[]> {
     const { rows } = await como(uid, () =>
@@ -76,6 +56,7 @@ describe("atividades privadas do relatório (20261108)", () => {
         user_id uuid references public.user_profile (id), channel text, type text, payload jsonb,
         read_at timestamptz, created_at timestamptz default now()
       );
+      create table public.system_config (key text primary key, value text);
       grant usage on schema public to anon, authenticated;
 
       insert into auth.users (id) values ${pessoas.map((p) => `('${p}')`).join(", ")};

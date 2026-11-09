@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAte, sqlDaMigracao } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -11,18 +11,8 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * lê-los, e que escola de teste e turma que não abriu ficam de fora.
  */
 
-const MIGRATIONS = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-  "supabase/migrations/20260928_gestao_papeis_acumulados.sql",
-  "supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql",
-  "supabase/migrations/20261009_gestao_alocacao.sql",
-  "supabase/migrations/20261019_gestao_dados_de_teste.sql",
-  "supabase/migrations/20261108_gestao_numeros_da_home.sql",
-  "supabase/migrations/20261108_gestao_numeros_da_home.sql", // idempotência
-].map((path) => readFileSync(path, "utf8"));
+// A última de novo: idempotência.
+const MIGRATIONS = [...gestaoAte("20261108_gestao_numeros_da_home"), sqlDaMigracao("20261108_gestao_numeros_da_home")];
 
 const COORD = "50000000-0000-4000-8000-000000000001";
 const REAL = "50000000-0000-4000-8000-000000000011";

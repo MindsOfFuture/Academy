@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAntes, comoUsuario } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -12,14 +13,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * marcada — o E2E continua achando tudo o que usa.
  */
 
-const ATE_AQUI = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-  "supabase/migrations/20260924_gestao_melhorias.sql",
-  "supabase/migrations/20260928_gestao_papeis_acumulados.sql",
-  "supabase/migrations/20260928_gestao_sem_valor_na_bolsa.sql",
-].map((path) => readFileSync(path, "utf8"));
+const ATE_AQUI = gestaoAntes("20261019_gestao_dados_de_teste");
 const DADOS_DE_TESTE = readFileSync("supabase/migrations/20261019_gestao_dados_de_teste.sql", "utf8");
 
 const COORD = "30000000-0000-4000-8000-000000000001";
@@ -30,16 +24,7 @@ const BOLSISTA_E2E = "30000000-0000-4000-8000-000000000004";
 describe("dados do E2E separados da equipe real (20261019)", () => {
   const db = new PGlite({ extensions: { pgcrypto } });
 
-  async function como<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-    await db.exec(`set role authenticated`);
-    await db.exec(`set request.jwt.claim.sub = '${uid}'`);
-    try {
-      return await fn();
-    } finally {
-      await db.exec(`reset role`);
-      await db.exec(`reset request.jwt.claim.sub`);
-    }
-  }
+  const como = comoUsuario(db);
 
   async function nomes(uid: string, sql: string): Promise<string[]> {
     const { rows } = await como(uid, () => db.query<{ nome: string }>(sql));

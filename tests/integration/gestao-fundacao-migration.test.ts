@@ -1,8 +1,8 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { gestaoAte, comoUsuario } from "./helpers/gestao";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 /**
@@ -11,11 +11,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
  * leitura de equipe que a RLS de `user_profile` não dá à coordenação.
  */
 
-const MIGRATIONS = [
-  "supabase/migrations/20260905_gestao_modelo_operacional.sql",
-  "supabase/migrations/20260905_gestao_membro_rpc.sql",
-  "supabase/migrations/20260923_gestao_fundacao.sql",
-].map((path) => readFileSync(path, "utf8"));
+const MIGRATIONS = gestaoAte("20260923_gestao_fundacao");
 
 const COORD = "10000000-0000-4000-8000-000000000001";
 const COORD2 = "10000000-0000-4000-8000-000000000002";
@@ -34,17 +30,7 @@ const ALUNO_B = "70000000-0000-4000-8000-00000000000b";
 describe("migration da fundação da gestão (spec 003)", () => {
   const db = new PGlite({ extensions: { pgcrypto } });
 
-  /** Executa `fn` autenticado como `uid`, sempre voltando ao superusuário. */
-  async function como<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-    await db.exec(`set role authenticated`);
-    await db.exec(`set request.jwt.claim.sub = '${uid}'`);
-    try {
-      return await fn();
-    } finally {
-      await db.exec(`reset role`);
-      await db.exec(`reset request.jwt.claim.sub`);
-    }
-  }
+  const como = comoUsuario(db);
 
   async function linhas<T = Record<string, unknown>>(sql: string): Promise<T[]> {
     return (await db.query<T>(sql)).rows;
