@@ -1,13 +1,8 @@
-"use client";
-
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
-import { type ArticleDetail } from "@/lib/api/articles";
+import { getArticleBySlug, getArticleById } from "@/lib/api/articles";
 import { ArrowLeft, Calendar, Clock, Share2, Users, BookOpen, ExternalLink } from "lucide-react";
-import { motion } from "framer-motion";
 import { sanitizeRichText } from "@/lib/sanitize";
 
 // Extrai metadados do artigo (Authors, Published in, Link) do conteúdo HTML
@@ -63,11 +58,8 @@ function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publi
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.5 }}
-      className="my-10 p-6 bg-gradient-to-br from-gray-50 to-purple-50/30 border border-gray-200 rounded-2xl shadow-sm"
+    <div
+      className="motion-safe:animate-artigo-meta my-10 p-6 bg-gradient-to-br from-gray-50 to-purple-50/30 border border-gray-200 rounded-2xl shadow-sm"
     >
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5 flex items-center gap-2">
         <BookOpen size={16} className="text-[#684A97]" />
@@ -121,70 +113,28 @@ function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publi
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-async function fetchArticle(slug: string): Promise<ArticleDetail | null> {
-  const res = await fetch(`/api/articles/${encodeURIComponent(slug)}`);
-  if (!res.ok) return null;
-  return res.json();
-}
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    // Formatada no servidor (UTC): sem o fuso, artigo da noite sairia com a data do dia seguinte.
+    timeZone: "America/Sao_Paulo",
+  });
 
-function ArticlePageContent() {
-  const searchParams = useSearchParams();
-  const slug = searchParams.get("slug");
-
-  const [article, setArticle] = useState<ArticleDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadArticle = async () => {
-      if (!slug) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const data = await fetchArticle(slug);
-        setArticle(data);
-      } catch (err) {
-        console.error("Erro ao buscar artigo:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadArticle();
-  }, [slug]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  // Loading Skeleton
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar showTextLogo={true} />
-        <div className="container mx-auto px-4 py-12 max-w-4xl">
-          <div className="animate-pulse space-y-8">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-12 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-96 bg-gray-200 rounded-2xl w-full shadow-lg"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-full"></div>
-              <div className="h-4 bg-gray-200 rounded w-full"></div>
-              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+export default async function ArticlePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ slug?: string | string[] }>;
+}) {
+  const { slug: bruto } = await searchParams;
+  const slug = Array.isArray(bruto) ? bruto[0] : bruto;
+  // Mesma ordem da rota de API: slug primeiro, depois id
+  const article = slug ? (await getArticleBySlug(slug)) ?? (await getArticleById(slug)) : null;
 
   // Not Found State
   if (!slug || !article) {
@@ -192,11 +142,7 @@ function ArticlePageContent() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar showTextLogo={true} />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-md"
-          >
+          <div className="motion-safe:animate-artigo-vazio max-w-md">
             <h1 className="text-3xl font-bold text-gray-800 mb-4">
               Artigo não encontrado
             </h1>
@@ -210,7 +156,7 @@ function ArticlePageContent() {
               <ArrowLeft size={18} />
               Voltar para a biblioteca
             </Link>
-          </motion.div>
+          </div>
         </div>
       </div>
     );
@@ -252,11 +198,7 @@ function ArticlePageContent() {
 
           {/* Hero Content */}
           <div className="relative z-20 container mx-auto px-4 h-full flex flex-col justify-end pb-16 max-w-4xl">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-            >
+            <div className="motion-safe:animate-artigo-hero">
               <Link
                 href="/#our-articles"
                 className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 xl:hidden text-sm font-medium backdrop-blur-sm bg-black/20 px-3 py-1.5 rounded-full w-fit"
@@ -298,7 +240,7 @@ function ArticlePageContent() {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -307,17 +249,14 @@ function ArticlePageContent() {
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-12">
 
             {/* Main Article Content */}
-            <motion.article
-              className="prose prose-lg prose-slate max-w-none
+            <article
+              className="motion-safe:animate-artigo-corpo prose prose-lg prose-slate max-w-none
                 prose-headings:text-gray-900 prose-headings:font-bold 
                 prose-p:text-gray-800 prose-p:leading-loose text-lg
                 prose-a:text-[#684A97] prose-a:font-medium hover:prose-a:text-[#5a3f7d]
                 prose-blockquote:border-l-[#684A97] prose-blockquote:bg-gray-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
                 prose-img:rounded-xl prose-img:shadow-lg
                 prose-li:text-gray-700"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
             >
               {article.excerpt && (
                 <div className="text-xl md:text-2xl text-gray-800 font-serif leading-relaxed mb-10 pb-10 border-b border-gray-100 italic">
@@ -343,7 +282,7 @@ function ArticlePageContent() {
                   Conteúdo não disponível.
                 </p>
               )}
-            </motion.article>
+            </article>
 
             {/* Sidebar / Share (Optional) */}
             <aside className="hidden md:block w-12 pt-4">
@@ -375,19 +314,5 @@ function ArticlePageContent() {
         </div>
       </main>
     </div>
-  );
-}
-
-export default function ArticlePage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="w-10 h-10 border-4 border-[#684A97] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      }
-    >
-      <ArticlePageContent />
-    </Suspense>
   );
 }

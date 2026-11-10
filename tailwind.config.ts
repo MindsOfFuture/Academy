@@ -15,8 +15,17 @@ export default {
       },
       animation: {
         'scale-in-out': 'scale-in-out 15s ease-in-out infinite',
+        // backwards, não both: terminada a entrada, o elemento volta ao normal (sem transform),
+        // como o framer-motion fazia; manter o transform muda o desfoque do selo e o traço das letras.
+        'artigo-hero': 'artigo-sobe-30 0.7s ease-out 0.1s backwards',
+        'artigo-corpo': 'artigo-sobe-20 0.5s ease-out 0.4s backwards',
+        'artigo-meta': 'artigo-sobe-20 0.5s ease-out 0.5s backwards',
+        'artigo-vazio': 'artigo-pop 0.3s ease-out backwards',
       },
       keyframes: {
+        'artigo-sobe-30': { from: { opacity: '0', transform: 'translateY(30px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        'artigo-sobe-20': { from: { opacity: '0', transform: 'translateY(20px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        'artigo-pop': { from: { opacity: '0', transform: 'scale(0.9)' }, to: { opacity: '1', transform: 'scale(1)' } },
         'scale-in-out': {
           '0%, 100%': { transform: 'scale(1)  rotate(-12deg)' },
           '50%': { transform: 'scale(1.2)  rotate(12deg)' },

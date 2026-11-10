@@ -42,11 +42,39 @@ function CoursePageContent() {
   const ocupado = useRef(false);
   const [pendente, setPendente] = useState<string | null>(null);
 
+  // Só a busca mais recente grava: trocar de curso (ou tentar de novo) descarta respostas antigas.
+  const ultimaBusca = useRef(0);
+
   const fetchCourse = useCallback(async () => {
+      const busca = ++ultimaBusca.current;
+      const atual = () => busca === ultimaBusca.current;
       setErroCarga(false);
       setLoading(true);
+      setIsMatriculado(null);
+      setEnrollmentId(null);
+      setProgresso([]);
+      // Matrícula e progresso saem junto com o curso, sem esperá-lo
+      if (courseId) {
+        verifyEnrollment(courseId)
+          .then((matricula) => {
+            if (!atual()) return;
+            setIsMatriculado(!!matricula);
+            setEnrollmentId(matricula?.id ?? null);
+          })
+          .catch((error) => {
+            console.error("Erro ao verificar matrícula:", error);
+            if (atual()) setIsMatriculado(false);
+          });
+        fetchLessonProgress(courseId)
+          .then((data) => { if (atual()) setProgresso(Array.isArray(data) ? data : []); })
+          .catch((e) => {
+            console.error("Erro ao buscar progresso:", e);
+            if (atual()) setProgresso([]);
+          });
+      }
       try {
         const data = await getCourseDetail(courseId || "");
+        if (!atual()) return;
         if (data) {
           setCourse(data);
           void trackingService.trackLearningEvent("course_opened", {
@@ -56,40 +84,15 @@ function CoursePageContent() {
         }
       } catch (err) {
         console.error("Erro ao buscar curso:", err);
-        setErroCarga(true);
+        if (atual()) setErroCarga(true);
       } finally {
-        setLoading(false);
+        if (atual()) setLoading(false);
       }
   }, [courseId, learningPathId]);
 
   useEffect(() => {
     fetchCourse();
   }, [fetchCourse]);
-
-  useEffect(() => {
-    if (course?.id) {
-      verifyEnrollment(course.id)
-        .then((matricula) => {
-          setIsMatriculado(!!matricula);
-          setEnrollmentId(matricula?.id ?? null);
-        })
-        .catch((error) => {
-          console.error("Erro ao verificar matrícula:", error);
-          setIsMatriculado(false);
-        });
-    }
-  }, [course]);
-
-  useEffect(() => {
-    if (course?.id) {
-      fetchLessonProgress(course.id)
-        .then((data) => setProgresso(Array.isArray(data) ? data : []))
-        .catch((e) => {
-          console.error("Erro ao buscar progresso:", e);
-          setProgresso([]);
-        });
-    }
-  }, [course]);
 
   // Buscar atividades do curso quando matriculado
   useEffect(() => {

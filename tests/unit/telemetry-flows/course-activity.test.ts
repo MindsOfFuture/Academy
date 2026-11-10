@@ -157,6 +157,8 @@ describe("telemetria do fluxo de curso", () => {
   it("não registra abertura quando o carregamento falha", async () => {
     mocks.params = new Map([["id", COURSE_ID]]);
     mocks.getCourseDetail.mockRejectedValue(new Error("falha"));
+    mocks.verifyEnrollment.mockResolvedValue(null);
+    mocks.fetchLessonProgress.mockResolvedValue([]);
     render(React.createElement(CoursePage));
     await screen.findByText("Não foi possível carregar o curso.");
     expect(mocks.track).not.toHaveBeenCalled();
@@ -165,6 +167,46 @@ describe("telemetria do fluxo de curso", () => {
     await userEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
     await screen.findByText("Curso comportamental");
     expect(mocks.getCourseDetail).toHaveBeenCalledTimes(2);
+    expect(mocks.verifyEnrollment).toHaveBeenCalledTimes(2);
+  });
+
+  it("busca matrícula e progresso sem esperar o curso", async () => {
+    mocks.params = new Map([["id", COURSE_ID]]);
+    const pendente = deferred<typeof course>();
+    mocks.getCourseDetail.mockReturnValue(pendente.promise);
+    mocks.verifyEnrollment.mockResolvedValue(null);
+    mocks.fetchLessonProgress.mockResolvedValue([]);
+    render(React.createElement(CoursePage));
+    await waitFor(() => {
+      expect(mocks.verifyEnrollment).toHaveBeenCalledWith(COURSE_ID);
+      expect(mocks.fetchLessonProgress).toHaveBeenCalledWith(COURSE_ID);
+    });
+    pendente.resolve(course);
+    await screen.findByText("Curso comportamental");
+  });
+
+  it("ao trocar de curso, a resposta atrasada do anterior não aparece", async () => {
+    const OUTRO_ID = "323e4567-e89b-42d3-a456-426614174000";
+    const atrasado = deferred<typeof course>();
+    const matriculaAtrasada = deferred<unknown>();
+    mocks.params = new Map([["id", COURSE_ID]]);
+    mocks.getCourseDetail.mockImplementation((id: string) =>
+      id === COURSE_ID ? atrasado.promise : Promise.resolve({ ...course, id: OUTRO_ID, title: "Outro curso" }));
+    mocks.verifyEnrollment.mockImplementation((id: string) =>
+      id === COURSE_ID ? matriculaAtrasada.promise : Promise.resolve(null));
+    mocks.fetchLessonProgress.mockResolvedValue([]);
+    const { rerender } = render(React.createElement(CoursePage));
+
+    mocks.params = new Map([["id", OUTRO_ID]]);
+    rerender(React.createElement(CoursePage));
+    await screen.findByText("Outro curso");
+
+    atrasado.resolve(course);
+    matriculaAtrasada.resolve({ id: "matricula-do-anterior" });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByText("Curso comportamental")).not.toBeInTheDocument();
+    expect(screen.getByText("Outro curso")).toBeInTheDocument();
+    expect(mocks.listCourseAssignments).not.toHaveBeenCalled();
   });
 
   it("ignora segundo toque em concluir aula enquanto o primeiro não termina", async () => {
