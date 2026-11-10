@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     );
 
     // Excluir conta auth e perfil
-    await serviceRole.auth.admin.deleteUser(userId);
+    await runOrThrow(serviceRole.auth.admin.deleteUser(userId), "Falha ao excluir conta de acesso");
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -34,7 +34,7 @@ function createClientMock(): MockClient {
   client.filters = Object.fromEntries(
     EXTRA_FILTERS.map((name) => [name, vi.fn()]),
   ) as MockClient["filters"];
-  client.auth.admin = { deleteUser: vi.fn(), updateUserById: vi.fn() };
+  client.auth.admin = { deleteUser: vi.fn().mockResolvedValue({ data: null, error: null }), updateUserById: vi.fn() };
 
   type Link = Record<string, unknown>;
   const wrap = (link: Link): Link => {
@@ -510,7 +510,32 @@ describe("deleteUserAction", () => {
   });
 });
 
+describe("deleteUserAction com falha no acesso", () => {
+  it("rejeita e não limpa dados quando a exclusão da conta falha", async () => {
+    queueRole(mockClient, "admin", 1);
+    adminClient.auth.admin.deleteUser.mockResolvedValue({ data: null, error: new Error("falhou") });
+
+    await expect(deleteUserAction(formDataOf({ id: "u-9" }))).rejects.toThrow(
+      "Não foi possível excluir o usuário.",
+    );
+    expect(adminClient.from).not.toHaveBeenCalled();
+  });
+});
+
 describe("updateUserAction", () => {
+  it("rejeita quando o vínculo de papel não é gravado", async () => {
+    mockAuthenticatedUser(mockClient, "admin-1");
+    queueRole(mockClient, "admin", 1);
+    mockQueryResponse(adminClient, null); // update de perfil
+    mockQueryResponse(adminClient, { id: 2 }); // ensureRoleId
+    mockQueryResponse(adminClient, null); // delete user_role
+    mockQueryResponse(adminClient, null, new Error("insert falhou"));
+
+    await expect(updateUserAction(formDataOf({ id: "u-9", type: "teacher" }))).rejects.toThrow(
+      "Não foi possível atualizar o papel do usuário.",
+    );
+  });
+
   it("não faz nada sem id no formulário", async () => {
     await expect(updateUserAction(formDataOf({ display_name: "Ana" }))).resolves.toBeUndefined();
     expect(mockClient.auth.getUser).not.toHaveBeenCalled();
@@ -709,6 +734,19 @@ describe("setOnboardingRole", () => {
 });
 
 describe("updateCurrentTeacherProfileWithReverification", () => {
+  it("rejeita quando a gravação de teacher_details falha", async () => {
+    queueRole(mockClient, "teacher");
+    mockQueryResponse(mockClient, { verification_status: "approved", full_name: "Prof Ana" });
+    mockQueryResponse(mockClient, { qualification_document_url: null });
+    mockQueryResponse(serviceRoleClient, null); // update de perfil
+    mockQueryResponse(serviceRoleClient, null); // teacher_details ausente
+    mockQueryResponse(serviceRoleClient, null, new Error("insert falhou"));
+
+    await expect(updateCurrentTeacherProfileWithReverification({ schools: ["E"] })).rejects.toThrow(
+      "Não foi possível salvar os dados de professor.",
+    );
+  });
+
   it("exige sessão autenticada", async () => {
     mockUnauthenticatedUser(mockClient);
 
@@ -887,6 +925,15 @@ describe("ensureCurrentTeacherVerifiedForPublishing", () => {
       );
     },
   );
+
+  it("rejeita quando a consulta do status falha", async () => {
+    queueRole(mockClient, "teacher");
+    mockQueryResponse(mockClient, null, new Error("db"));
+
+    await expect(ensureCurrentTeacherVerifiedForPublishing()).rejects.toThrow(
+      "Erro ao consultar o status do professor.",
+    );
+  });
 
   it("permite professor aprovado", async () => {
     queueTeacher("approved");

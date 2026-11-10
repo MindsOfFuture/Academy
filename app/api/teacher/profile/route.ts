@@ -27,7 +27,14 @@ export async function PATCH(request: Request) {
         return NextResponse.json(result);
     } catch (error) {
         const message = error instanceof Error ? error.message : "Erro ao atualizar perfil do professor";
-        const status = message.toLowerCase().includes("não autenticado") ? 401 : 400;
+        const msg = message.toLowerCase();
+        const status = msg.includes("não autenticado")
+            ? 401
+            : msg.includes("apenas professores")
+                ? 403
+                : msg.includes("envie o comprovante") || error instanceof SyntaxError
+                    ? 400
+                    : 500;
         return NextResponse.json({ error: message }, { status });
     }
 }

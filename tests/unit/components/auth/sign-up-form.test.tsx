@@ -33,7 +33,8 @@ vi.mock("@/lib/supabase/client", () => ({
 
 const locationOriginal = window.location;
 
-describe("SignUpForm Integration", () => {
+// Fluxos de 4 passos digitam tecla a tecla (~3s sozinhos); com a suíte inteira em paralelo passavam dos 5s padrão.
+describe("SignUpForm Integration", { timeout: 15_000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.defineProperty(window, "location", {

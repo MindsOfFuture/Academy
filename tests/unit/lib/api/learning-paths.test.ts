@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockSupabaseClient, type MockSupabaseClient } from "@/tests/mocks/supabase";
+import { createMockSupabaseClient, mockQueryResponse, type MockSupabaseClient } from "@/tests/mocks/supabase";
 
 let mockClient: MockSupabaseClient;
 const papel = vi.hoisted(() => ({ atual: "student" }));
@@ -72,6 +72,33 @@ describe("permissões das trilhas", () => {
       .mockResolvedValueOnce({ data: { owner_id: "outro" }, error: null }); // curso
     await expect(addCourseToPath("p1", "c1", 1)).rejects.toThrow("Acesso negado.");
     nadaGravado();
+  });
+
+  describe("reordenar como professor", () => {
+    const reordenar = () => reorderCoursesInPath("p1", [{ courseId: "c1", order: 1 }]);
+
+    beforeEach(() => {
+      papel.atual = "teacher";
+      mockClient.chain.maybeSingle.mockResolvedValue({ data: { owner_id: "test-user-id" }, error: null });
+    });
+
+    it("erro na consulta dos cursos não grava nada", async () => {
+      mockQueryResponse(mockClient, null, new Error("db"));
+      await expect(reordenar()).rejects.toThrow("Erro ao verificar os cursos da trilha.");
+      nadaGravado();
+    });
+
+    it("curso que a consulta não devolveu é recusado", async () => {
+      mockQueryResponse(mockClient, []);
+      await expect(reordenar()).rejects.toThrow("Acesso negado.");
+      nadaGravado();
+    });
+
+    it("cursos próprios são reordenados", async () => {
+      mockQueryResponse(mockClient, [{ id: "c1", owner_id: "test-user-id" }]);
+      expect(await reordenar()).toBe(true);
+      expect(mockClient.chain.update).toHaveBeenCalled();
+    });
   });
 
   it("admin apaga trilha sem ser dono", async () => {
