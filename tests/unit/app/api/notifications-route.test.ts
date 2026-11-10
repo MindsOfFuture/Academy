@@ -21,6 +21,7 @@ vi.mock("@/lib/supabase/server", () => ({
     createClient: async () => ({
         auth: { getUser: async () => ({ data: { user: state.caller ? { id: state.caller } : null } }) },
     }),
+    usuarioDaRequisicao: async () => state.caller,
     createServiceRoleClient: async () => state.db,
     createAdminClient: async () => state.db,
 }));
@@ -30,12 +31,12 @@ vi.mock("@/lib/api/notifications-server", () => ({
     createNotification,
     notifyAdmins: vi.fn(),
     getUserNotifications: vi.fn(),
-    getUnreadCount: vi.fn(),
+    getUnreadCount: vi.fn(async () => 3),
     markNotificationRead: vi.fn(),
     markAllNotificationsRead: vi.fn(),
 }));
 
-import { POST } from "@/app/api/notifications/route";
+import { GET, PATCH, POST } from "@/app/api/notifications/route";
 
 function seed() {
     return createFakeDb({
@@ -170,5 +171,28 @@ describe("POST /api/notifications — quem pode avisar quem", () => {
             expect((await post(ADMIN_RATE, body)).status).toBe(200);
         }
         expect((await post(ADMIN_RATE, body)).status).toBe(429);
+    });
+});
+
+describe("GET e PATCH /api/notifications", () => {
+    it("GET sem sessão devolve 401", async () => {
+        state.caller = null;
+        const res = await GET(new Request("http://local/api/notifications"));
+        expect(res.status).toBe(401);
+    });
+
+    it("GET countOnly com sessão devolve a contagem", async () => {
+        state.caller = STUDENT;
+        const res = await GET(new Request("http://local/api/notifications?countOnly=true"));
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ count: 3 });
+    });
+
+    it("PATCH sem sessão devolve 401", async () => {
+        state.caller = null;
+        const res = await PATCH(
+            new Request("http://local/api/notifications", { method: "PATCH", body: JSON.stringify({ all: true }) }),
+        );
+        expect(res.status).toBe(401);
     });
 });

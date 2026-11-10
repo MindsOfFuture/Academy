@@ -11,6 +11,7 @@ import {
   responderMelhoriaAction,
   retirarMelhoriaAction,
 } from "./actions";
+import { confirmarEnvio } from "@/components/ui/confirmar";
 
 /*
  * Os rótulos chegam do servidor como props: este arquivo é cliente e não pode
@@ -101,9 +102,7 @@ export function FormEditarMelhoria({ areas, pedido }: { areas: Record<AreaMelhor
         </Button>
         <form
           action={retirar}
-          onSubmit={(e) => {
-            if (!window.confirm("Retirar este pedido? Ele some da lista.")) e.preventDefault();
-          }}
+          onSubmit={confirmarEnvio("Retirar este pedido? Ele some da lista.", { rotulo: "Retirar", destrutivo: true })}
         >
           <input type="hidden" name="id" value={pedido.id} />
           <Button type="submit" variant="destructive" size="sm" disabled={retirando}>

@@ -127,8 +127,8 @@ describe("LoginForm", () => {
 
     await waitFor(() => {
       expect(signInWithPasswordMock).toHaveBeenCalled();
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
-      expect(toast.error).toHaveBeenCalledWith(errorMessage);
+      expect(screen.getByText("E-mail ou senha incorretos.")).toBeInTheDocument();
+      expect(toast.error).toHaveBeenCalledWith("E-mail ou senha incorretos.");
     });
   });
 

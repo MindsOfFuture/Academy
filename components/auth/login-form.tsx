@@ -4,6 +4,7 @@ import { cn, normalizeNextPath } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { mensagemDeAuth } from "@/lib/auth-errors";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -41,7 +42,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       toast.success("Login realizado com sucesso!");
       router.push(nextPath);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro.";
+      const errorMessage = mensagemDeAuth(error, "Ocorreu um erro.");
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

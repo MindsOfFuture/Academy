@@ -33,6 +33,7 @@ import {
   substituirAction,
   substituirTodosAction,
 } from "./actions";
+import { confirmarEnvio } from "@/components/ui/confirmar";
 
 type Opcao = { id: string; nome: string };
 
@@ -315,9 +316,7 @@ export function FormCancelarEncontro({ encontroId }: { encontroId: string }) {
   return (
     <form
       action={acao}
-      onSubmit={(e) => {
-        if (!window.confirm("Cancelar este encontro? Ele deixa de contar carga e continua no histórico.")) e.preventDefault();
-      }}
+      onSubmit={confirmarEnvio("Cancelar este encontro? Ele deixa de contar carga e continua no histórico.", { rotulo: "Cancelar encontro", destrutivo: true })}
       className="flex flex-col gap-2 sm:flex-row sm:items-end"
     >
       <input type="hidden" name="encontroId" value={encontroId} />
@@ -361,9 +360,7 @@ export function FormConcluirEncontro({
     return (
       <form
         action={acao}
-        onSubmit={(e) => {
-          if (!window.confirm("Reabrir este encontro? Ele volta a aparecer como não confirmado.")) e.preventDefault();
-        }}
+        onSubmit={confirmarEnvio("Reabrir este encontro? Ele volta a aparecer como não confirmado.", { rotulo: "Reabrir" })}
         className="inline-flex flex-col items-start gap-1"
       >
         <input type="hidden" name="encontroId" value={encontroId} />
@@ -464,9 +461,7 @@ export function FormRemoverAlocacao({ alocacaoId, nome }: { alocacaoId: string; 
   return (
     <form
       action={acao}
-      onSubmit={(e) => {
-        if (!window.confirm(`Remover ${nome} deste encontro? Fica registrado no histórico.`)) e.preventDefault();
-      }}
+      onSubmit={confirmarEnvio(`Remover ${nome} deste encontro? Fica registrado no histórico.`, { rotulo: "Remover", destrutivo: true })}
       className="inline-flex flex-col items-start gap-1"
     >
       <input type="hidden" name="alocacaoId" value={alocacaoId} />

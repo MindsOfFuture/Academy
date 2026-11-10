@@ -19,8 +19,16 @@ test.describe('Home Page Mobile - Hero Section', () => {
     await expect(foto).toHaveCount(1);
     await expect(async () => {
       await foto.scrollIntoViewIfNeeded();
-      const estado = await foto.evaluate((el: HTMLImageElement) => ({ ok: el.complete && el.naturalWidth > 0, src: el.currentSrc }));
-      expect(estado.ok, `foto do hero não carregou: ${estado.src}`).toBe(true);
+      const estado = await foto.evaluate((el: HTMLImageElement) => ({
+        ok: el.complete && el.naturalWidth > 0,
+        // Sem trace/screenshot no CI: o que a imagem e a página mostram vai na mensagem.
+        info: {
+          src: el.currentSrc, srcset: el.srcset.slice(0, 80), loading: el.loading, complete: el.complete, w: el.naturalWidth,
+          topo: Math.round(el.getBoundingClientRect().top), scrollY: Math.round(scrollY), altura: innerHeight,
+          visivel: document.visibilityState, canvas: document.querySelectorAll("canvas").length,
+        },
+      }));
+      expect(estado.ok, `foto do hero não carregou: ${JSON.stringify(estado.info)}`).toBe(true);
     }).toPass({ timeout: 20000 });
   });
 

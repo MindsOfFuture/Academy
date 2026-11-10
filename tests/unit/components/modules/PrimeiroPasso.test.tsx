@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/components/ui/confirmar", () => ({ confirmar: vi.fn(async () => true) }));
 import PrimeiroPasso from "@/components/modules/laboratorio-gestao/PrimeiroPasso";
 import { ETAPAS, STORAGE_KEY } from "@/components/modules/laboratorio-gestao/data";
 
@@ -33,7 +34,7 @@ describe("Primeiro Passo — smoke de interação", () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
-        vi.unstubAllGlobals(); // restoreAllMocks não desfaz stubGlobal (print, confirm)
+        vi.unstubAllGlobals(); // restoreAllMocks não desfaz stubGlobal (print)
     });
 
     it("conclui a etapa 1, persiste no localStorage e retoma após remontar", async () => {
@@ -113,17 +114,16 @@ describe("Primeiro Passo — smoke de interação", () => {
         window.localStorage.setItem(`${STORAGE_KEY}:user-a`, JSON.stringify({ "1": { __ok: true } }));
         window.localStorage.setItem(`${STORAGE_KEY}:user-b`, JSON.stringify({ "2": { __ok: true } }));
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ "3": { __ok: true } }));
-        vi.stubGlobal("confirm", vi.fn(() => true));
 
         const user = userEvent.setup();
         render(<PrimeiroPasso userId="user-a" />);
 
         await user.click(screen.getByRole("button", { name: /Recomeçar do zero/ }));
 
-        expect(window.localStorage.getItem(`${STORAGE_KEY}:user-a`)).toBeNull();
+        await waitFor(() => expect(window.localStorage.getItem(`${STORAGE_KEY}:user-a`)).toBeNull());
         expect(window.localStorage.getItem(`${STORAGE_KEY}:user-b`)).not.toBeNull();
         expect(window.localStorage.getItem(STORAGE_KEY)).not.toBeNull();
-        expect(screen.getByRole("button", { name: "Começar" })).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: "Começar" })).toBeInTheDocument();
     }, 30000);
 
     it("isola respostas entre A e B e ignora dados legados sem escopo", () => {

@@ -9,7 +9,7 @@ import {
     type NotificationType,
 } from "@/lib/api/notifications-server";
 import { authorizeNotification } from "@/lib/api/notification-rules";
-import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient as createServerSupabase, createServiceRoleClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -19,9 +19,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
  */
 export async function GET(request: Request) {
     try {
-        const supabase = await createServerSupabase();
-        const { data: authData } = await supabase.auth.getUser();
-        if (!authData?.user) {
+        if (!(await usuarioDaRequisicao())) {
             return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
         }
 
@@ -174,9 +172,7 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
     try {
-        const supabase = await createServerSupabase();
-        const { data: authData } = await supabase.auth.getUser();
-        if (!authData?.user) {
+        if (!(await usuarioDaRequisicao())) {
             return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
         }
 

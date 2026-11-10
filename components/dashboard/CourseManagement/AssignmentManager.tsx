@@ -10,6 +10,8 @@ import {
 import { Plus, Trash2, Edit2, Save, X, FileText, Users, MessageSquare } from "lucide-react";
 import SubmissionsList from "./SubmissionsList";
 import StudentChatList from "@/components/activities/student-chat-list";
+import { confirmar } from "@/components/ui/confirmar";
+import toast from "react-hot-toast";
 
 interface AssignmentManagerProps {
     lessonId: string;
@@ -47,7 +49,7 @@ export default function AssignmentManager({
 
     const handleAdd = async () => {
         if (!title.trim()) {
-            alert("Título é obrigatório!");
+            toast.error("Título é obrigatório!");
             return;
         }
 
@@ -64,7 +66,7 @@ export default function AssignmentManager({
             onUpdate();
         } catch (error) {
             console.error("Erro ao criar atividade:", error);
-            alert("Erro ao criar atividade.");
+            toast.error("Erro ao criar atividade.");
         } finally {
             setLoading(false);
         }
@@ -72,7 +74,7 @@ export default function AssignmentManager({
 
     const handleUpdate = async (assignmentId: string) => {
         if (!title.trim()) {
-            alert("Título é obrigatório!");
+            toast.error("Título é obrigatório!");
             return;
         }
 
@@ -88,14 +90,14 @@ export default function AssignmentManager({
             onUpdate();
         } catch (error) {
             console.error("Erro ao atualizar atividade:", error);
-            alert("Erro ao atualizar atividade.");
+            toast.error("Erro ao atualizar atividade.");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (assignmentId: string) => {
-        if (!confirm("Deseja realmente excluir esta atividade?")) return;
+        if (!(await confirmar("Deseja realmente excluir esta atividade?", { rotulo: "Excluir", destrutivo: true }))) return;
 
         setLoading(true);
         try {
@@ -103,7 +105,7 @@ export default function AssignmentManager({
             onUpdate();
         } catch (error) {
             console.error("Erro ao excluir atividade:", error);
-            alert("Erro ao excluir atividade.");
+            toast.error("Erro ao excluir atividade.");
         } finally {
             setLoading(false);
         }

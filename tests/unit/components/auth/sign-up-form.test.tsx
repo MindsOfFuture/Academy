@@ -64,6 +64,8 @@ describe("SignUpForm Integration", { timeout: 15_000 }, () => {
     const docInput = screen.getByPlaceholderText("CPF ou RG");
     const dateInput = screen.getByPlaceholderText("Data de nascimento");
 
+    expect(screen.getByLabelText("Data de nascimento")).toBe(dateInput);
+
     await userEvent.type(nameInput, overrides.name || "João da Silva");
     await userEvent.type(docInput, overrides.document || "12345678901"); // 11 chars
     fireEvent.change(dateInput, { target: { value: overrides.birthDate || "2000-01-01" } }); // Adult
@@ -131,6 +133,7 @@ describe("SignUpForm Integration", { timeout: 15_000 }, () => {
 
     // STEP 4
     const emailInput = await screen.findByPlaceholderText("Seu melhor E-mail");
+    expect(emailInput).toHaveAttribute("autocomplete", "email");
     await userEvent.type(emailInput, "aluno@test.com");
     await userEvent.type(screen.getByPlaceholderText("Senha segura"), "123456");
     await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "123456");

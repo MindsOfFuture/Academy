@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/navbar/navbar";
 import { Hero } from "@/components/hero_1/hero";
 import { OurCourses } from "@/components/ourCourses/ourCourses";
@@ -8,9 +9,10 @@ import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us/about-us";
 import OurArticles from "@/components/ourArticles/ourArticles";
 import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
-import Aurora from "@/components/aurora/aurora";
 import { type CourseSummary, type ArticleSummary } from "@/lib/api/types";
 import { type HeroData, type AboutUsSlide, type FooterLink } from "@/lib/api/content";
+
+const Aurora = dynamic(() => import("@/components/aurora/aurora"), { ssr: false });
 
 // Fora do componente para manter a mesma referência entre renders e não reiniciar o Aurora
 const AURORA_COLOR_STOPS = ["#684A97", "#FFD300", "#684A97"];

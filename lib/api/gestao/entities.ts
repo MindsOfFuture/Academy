@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import type {
   AgendaRow,
   AgendaSummary,
@@ -29,9 +29,9 @@ import type {
  * coisa (ou nada).
  */
 
-function asserirAutenticado(user: { id: string } | null): string {
-  if (!user) throw new Error("Usuário não autenticado.");
-  return user.id;
+function asserirAutenticado(userId: string | null): string {
+  if (!userId) throw new Error("Usuário não autenticado.");
+  return userId;
 }
 
 function mapEscola(row: EscolaRow): EscolaSummary {
@@ -109,7 +109,7 @@ function mapListaEnviada(row: ListaEnviadaRow): ListaEnviadaSummary {
 
 export async function listEscolas(): Promise<EscolaSummary[]> {
   const supabase = await createClient();
-  asserirAutenticado((await supabase.auth.getUser()).data.user);
+  asserirAutenticado(await usuarioDaRequisicao());
   const { data, error } = await supabase.schema("gestao").from("escola").select("*").order("nome");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapEscola);
@@ -117,7 +117,7 @@ export async function listEscolas(): Promise<EscolaSummary[]> {
 
 export async function listAlunos(escolaId?: string): Promise<AlunoSummary[]> {
   const supabase = await createClient();
-  asserirAutenticado((await supabase.auth.getUser()).data.user);
+  asserirAutenticado(await usuarioDaRequisicao());
   let query = supabase.schema("gestao").from("aluno").select("*");
   if (escolaId) query = query.eq("escola_id", escolaId);
   const { data, error } = await query.order("nome");
@@ -127,7 +127,7 @@ export async function listAlunos(escolaId?: string): Promise<AlunoSummary[]> {
 
 export async function listReservas(): Promise<ReservaSummary[]> {
   const supabase = await createClient();
-  asserirAutenticado((await supabase.auth.getUser()).data.user);
+  asserirAutenticado(await usuarioDaRequisicao());
   const { data, error } = await supabase.schema("gestao").from("reserva").select("*").order("criado_em", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapReserva);
@@ -135,7 +135,7 @@ export async function listReservas(): Promise<ReservaSummary[]> {
 
 export async function listAgendas(): Promise<AgendaSummary[]> {
   const supabase = await createClient();
-  asserirAutenticado((await supabase.auth.getUser()).data.user);
+  asserirAutenticado(await usuarioDaRequisicao());
   const { data, error } = await supabase.schema("gestao").from("agenda").select("*").order("data", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapAgenda);
@@ -143,7 +143,7 @@ export async function listAgendas(): Promise<AgendaSummary[]> {
 
 export async function listAulas(agendaId?: string): Promise<AulaSummary[]> {
   const supabase = await createClient();
-  asserirAutenticado((await supabase.auth.getUser()).data.user);
+  asserirAutenticado(await usuarioDaRequisicao());
   let query = supabase.schema("gestao").from("aula").select("*");
   if (agendaId) query = query.eq("agenda_id", agendaId);
   const { data, error } = await query.order("realizada_em", { ascending: false });
@@ -153,7 +153,7 @@ export async function listAulas(agendaId?: string): Promise<AulaSummary[]> {
 
 export async function listPresencas(aulaId?: string): Promise<PresencaSummary[]> {
   const supabase = await createClient();
-  asserirAutenticado((await supabase.auth.getUser()).data.user);
+  asserirAutenticado(await usuarioDaRequisicao());
   let query = supabase.schema("gestao").from("presenca").select("*");
   if (aulaId) query = query.eq("aula_id", aulaId);
   const { data, error } = await query;
@@ -163,7 +163,7 @@ export async function listPresencas(aulaId?: string): Promise<PresencaSummary[]>
 
 export async function listListasEnviadas(): Promise<ListaEnviadaSummary[]> {
   const supabase = await createClient();
-  asserirAutenticado((await supabase.auth.getUser()).data.user);
+  asserirAutenticado(await usuarioDaRequisicao());
   const { data, error } = await supabase.schema("gestao").from("lista_enviada").select("*").order("criado_em", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapListaEnviada);

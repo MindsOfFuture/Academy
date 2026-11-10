@@ -12,6 +12,7 @@ import {
   desligamentoAction,
   removerMembroAction,
 } from "./actions";
+import { confirmarEnvio } from "@/components/ui/confirmar";
 
 type Acao = (anterior: EstadoAcao | null, form: FormData) => Promise<EstadoAcao>;
 
@@ -248,9 +249,7 @@ function BotaoAcao({
   return (
     <form
       action={executar}
-      onSubmit={(e) => {
-        if (confirmar && !window.confirm(confirmar)) e.preventDefault();
-      }}
+      onSubmit={confirmar ? confirmarEnvio(confirmar, { rotulo, destrutivo: variante === "destructive" }) : undefined}
       className="inline-flex flex-col items-start gap-1"
     >
       {Object.entries(campos).map(([nome, valor]) => (

@@ -11,6 +11,7 @@ import {
   FileText, Calendar, School, GraduationCap, Users,
   Plus, X, ChevronRight, ChevronLeft, Check, ArrowLeft, Upload
 } from "lucide-react";
+import { mensagemDeAuth } from "@/lib/auth-errors";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -247,7 +248,7 @@ export function SignUpForm({
       setSignUpComplete(true);
       toast.success("Conta criada com sucesso! Verifique seu e-mail.");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Ocorreu um erro ao criar a conta.");
+      setError(mensagemDeAuth(error, "Ocorreu um erro ao criar a conta."));
     } finally {
       setIsLoading(false);
     }
@@ -362,20 +363,23 @@ export function SignUpForm({
 
               <div className="relative flex items-center">
                 <User className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input type="text" placeholder="Nome completo" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} autoFocus />
+                <Input aria-label="Nome completo" autoComplete="name" type="text" placeholder="Nome completo" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} autoFocus />
               </div>
 
               <div className="relative flex items-center">
                 <FileText className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input type="text" placeholder="CPF ou RG" value={document} onChange={(e) => setDocument(e.target.value)} className={inputClass} />
+                <Input aria-label="CPF ou RG" type="text" placeholder="CPF ou RG" value={document} onChange={(e) => setDocument(e.target.value)} className={inputClass} />
               </div>
 
+              <div className="space-y-1">
+              <label htmlFor="birthDate" className="text-sm text-white/70 ml-2">Data de nascimento</label>
               <div className="relative flex items-center">
                 <Calendar className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input type="date" placeholder="Data de nascimento" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cn(inputClass, "pr-4")} />
+                <Input id="birthDate" type="date" autoComplete="bday" placeholder="Data de nascimento" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cn(inputClass, "pr-4")} />
                 {age !== null && (
                   <span className="absolute right-4 text-[#6A4A98] text-sm font-medium">{age} anos</span>
                 )}
+              </div>
               </div>
             </motion.div>
           )}
@@ -393,12 +397,12 @@ export function SignUpForm({
             >
               <div className="relative flex items-center">
                 <MapPin className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input type="text" placeholder="Endereço (Cidade/Estado)" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} autoFocus />
+                <Input aria-label="Endereço (Cidade/Estado)" type="text" placeholder="Endereço (Cidade/Estado)" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} autoFocus />
               </div>
 
               <div className="relative flex items-center">
                 <Phone className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input type="tel" placeholder="Telefone / Celular" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+                <Input aria-label="Telefone / Celular" autoComplete="tel" type="tel" placeholder="Telefone / Celular" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
               </div>
 
               <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm border border-white/10">
@@ -424,17 +428,17 @@ export function SignUpForm({
                 <>
                   <div className="relative flex items-center">
                     <Users className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                    <Input type="text" placeholder="Nome do responsável" value={parentName} onChange={(e) => setParentName(e.target.value)} className={inputClass} autoFocus />
+                    <Input aria-label="Nome do responsável" type="text" placeholder="Nome do responsável" value={parentName} onChange={(e) => setParentName(e.target.value)} className={inputClass} autoFocus />
                   </div>
 
                   <div className="relative flex items-center">
                     <School className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                    <Input type="text" placeholder="Escola atual" value={school} onChange={(e) => setSchool(e.target.value)} className={inputClass} />
+                    <Input aria-label="Escola atual" type="text" placeholder="Escola atual" value={school} onChange={(e) => setSchool(e.target.value)} className={inputClass} />
                   </div>
 
                   <div className="relative flex items-center">
                     <GraduationCap className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                    <Input type="text" placeholder="Série / Ano" value={grade} onChange={(e) => setGrade(e.target.value)} className={inputClass} />
+                    <Input aria-label="Série / Ano" type="text" placeholder="Série / Ano" value={grade} onChange={(e) => setGrade(e.target.value)} className={inputClass} />
                   </div>
                 </>
               ) : (
@@ -447,6 +451,7 @@ export function SignUpForm({
                         <Input
                           type="text"
                           placeholder={`Escola ${index + 1}`}
+                          aria-label={`Escola ${index + 1}`}
                           value={s}
                           onChange={(e) => updateSchool(index, e.target.value)}
                           className={cn(inputClass, "flex-1")}
@@ -490,7 +495,7 @@ export function SignUpForm({
 
                   <div className="relative flex items-center">
                     <FileText className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                    <Input type="text" placeholder="Formação (ex: Matemática)" value={degree} onChange={(e) => setDegree(e.target.value)} className={inputClass} />
+                    <Input aria-label="Formação (ex: Matemática)" type="text" placeholder="Formação (ex: Matemática)" value={degree} onChange={(e) => setDegree(e.target.value)} className={inputClass} />
                   </div>
 
                   <div className="rounded-2xl bg-white/10 border border-white/20 p-4">
@@ -532,7 +537,7 @@ export function SignUpForm({
             >
               <div className="relative flex items-center">
                 <Mail className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input type="email" placeholder="Seu melhor E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoFocus />
+                <Input aria-label="Seu melhor E-mail" autoComplete="email" type="email" placeholder="Seu melhor E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoFocus />
               </div>
 
               <div className="relative flex items-center">
@@ -541,6 +546,8 @@ export function SignUpForm({
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Senha segura"
+                  aria-label="Senha segura"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
@@ -548,7 +555,7 @@ export function SignUpForm({
                 <button
                   type="button"
                   onClick={() => setShowPassword(p => !p)}
-                  aria-label="Alternar visibilidade"
+                  aria-label="Mostrar ou ocultar senha"
                   className="absolute right-4 text-[#6A4A98] transition-colors z-20"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -560,6 +567,8 @@ export function SignUpForm({
                 <Input
                   type={showRepeatPassword ? "text" : "password"}
                   placeholder="Confirme a senha"
+                  aria-label="Confirme a senha"
+                  autoComplete="new-password"
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
                   className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
@@ -567,7 +576,7 @@ export function SignUpForm({
                 <button
                   type="button"
                   onClick={() => setShowRepeatPassword(p => !p)}
-                  aria-label="Alternar visibilidade"
+                  aria-label="Mostrar ou ocultar senha"
                   className="absolute right-4 text-[#6A4A98] transition-colors z-20"
                 >
                   {showRepeatPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -602,6 +611,7 @@ export function SignUpForm({
       {/* Error Message */}
       {error && (
         <motion.p
+          role="alert"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center text-sm bg-red-500/20 text-red-100 py-2 px-4 rounded-lg font-medium border border-red-500/30"

@@ -4,6 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { type UserProfileSummary } from "@/lib/api/types";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 interface UserDeleteConfirmModalProps {
     user: UserProfileSummary;
@@ -19,7 +20,7 @@ export function UserDeleteConfirmModal({ user, onClose, onConfirm }: UserDeleteC
         try {
             await onConfirm(formData);
         } catch (err) {
-            alert(err instanceof Error ? err.message : "Falha ao excluir usuário");
+            toast.error(err instanceof Error ? err.message : "Falha ao excluir usuário");
         } finally {
             setLoading(false);
         }

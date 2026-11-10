@@ -22,6 +22,7 @@ import {
     MessageSquare
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { confirmar } from "@/components/ui/confirmar";
 
 type SubTab = "pending" | "history";
 
@@ -89,7 +90,7 @@ export default function PendingCorrections() {
     };
 
     const handleDeleteGrade = async (sub: PendingSubmission) => {
-        if (!confirm(`Tem certeza que deseja remover a correção de "${sub.studentName}" na atividade "${sub.assignmentTitle}"?\n\nA submissão voltará para pendente.`)) return;
+        if (!(await confirmar(`Tem certeza que deseja remover a correção de "${sub.studentName}" na atividade "${sub.assignmentTitle}"?\n\nA submissão voltará para pendente.`, { rotulo: "Remover correção", destrutivo: true }))) return;
         
         setDeletingId(sub.id);
         try {

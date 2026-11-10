@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { DeleteAccountModal } from "@/components/profile/delete-account-modal";
+import { confirmar } from "@/components/ui/confirmar";
 
 interface ProfileClientProps {
     userId: string;
@@ -150,7 +151,7 @@ export function ProfileClient({
     const handleRemoveAvatar = async () => {
         if (!avatarUrl) return;
 
-        const confirmRemove = window.confirm("Deseja remover sua foto de perfil?");
+        const confirmRemove = await confirmar("Deseja remover sua foto de perfil?", { rotulo: "Remover", destrutivo: true });
         if (!confirmRemove) return;
 
         setRemovingAvatar(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -37,11 +37,44 @@ function CoursePageContent() {
   const [certificate, setCertificate] = useState<CertificateInfo | null>(null);
   const [issuingCert, setIssuingCert] = useState(false);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
+  const [erroCarga, setErroCarga] = useState(false);
+  // Trava síncrona contra duplo toque; o estado só reflete na UI
+  const ocupado = useRef(false);
+  const [pendente, setPendente] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCourse = async () => {
+  // Só a busca mais recente grava: trocar de curso (ou tentar de novo) descarta respostas antigas.
+  const ultimaBusca = useRef(0);
+
+  const fetchCourse = useCallback(async () => {
+      const busca = ++ultimaBusca.current;
+      const atual = () => busca === ultimaBusca.current;
+      setErroCarga(false);
+      setLoading(true);
+      setIsMatriculado(null);
+      setEnrollmentId(null);
+      setProgresso([]);
+      // Matrícula e progresso saem junto com o curso, sem esperá-lo
+      if (courseId) {
+        verifyEnrollment(courseId)
+          .then((matricula) => {
+            if (!atual()) return;
+            setIsMatriculado(!!matricula);
+            setEnrollmentId(matricula?.id ?? null);
+          })
+          .catch((error) => {
+            console.error("Erro ao verificar matrícula:", error);
+            if (atual()) setIsMatriculado(false);
+          });
+        fetchLessonProgress(courseId)
+          .then((data) => { if (atual()) setProgresso(Array.isArray(data) ? data : []); })
+          .catch((e) => {
+            console.error("Erro ao buscar progresso:", e);
+            if (atual()) setProgresso([]);
+          });
+      }
       try {
         const data = await getCourseDetail(courseId || "");
+        if (!atual()) return;
         if (data) {
           setCourse(data);
           void trackingService.trackLearningEvent("course_opened", {
@@ -51,37 +84,15 @@ function CoursePageContent() {
         }
       } catch (err) {
         console.error("Erro ao buscar curso:", err);
+        if (atual()) setErroCarga(true);
       } finally {
-        setLoading(false);
+        if (atual()) setLoading(false);
       }
-    };
-    fetchCourse();
   }, [courseId, learningPathId]);
 
   useEffect(() => {
-    if (course?.id) {
-      verifyEnrollment(course.id)
-        .then((matricula) => {
-          setIsMatriculado(!!matricula);
-          setEnrollmentId(matricula?.id ?? null);
-        })
-        .catch((error) => {
-          console.error("Erro ao verificar matrícula:", error);
-          setIsMatriculado(false);
-        });
-    }
-  }, [course]);
-
-  useEffect(() => {
-    if (course?.id) {
-      fetchLessonProgress(course.id)
-        .then((data) => setProgresso(Array.isArray(data) ? data : []))
-        .catch((e) => {
-          console.error("Erro ao buscar progresso:", e);
-          setProgresso([]);
-        });
-    }
-  }, [course]);
+    fetchCourse();
+  }, [fetchCourse]);
 
   // Buscar atividades do curso quando matriculado
   useEffect(() => {
@@ -143,7 +154,9 @@ function CoursePageContent() {
   };
 
   async function handleMatricula() {
-    if (!course?.id) return;
+    if (!course?.id || ocupado.current) return;
+    ocupado.current = true;
+    setPendente("matricula");
     try {
       const enrollment = await enrollInCourse(course.id);
       setIsMatriculado(true);
@@ -159,11 +172,16 @@ function CoursePageContent() {
     } catch (error) {
       console.error("Erro ao matricular:", error);
       toast.error("Falha ao realizar matrícula.");
+    } finally {
+      ocupado.current = false;
+      setPendente(null);
     }
   }
 
   async function handleConcluirAula(lessonId: string) {
-    if (!course?.id) return;
+    if (!course?.id || ocupado.current) return;
+    ocupado.current = true;
+    setPendente(lessonId);
     try {
       const isNowCompleted = await toggleLessonProgress(course.id, lessonId);
       if (isNowCompleted) {
@@ -209,6 +227,9 @@ function CoursePageContent() {
     } catch (error) {
       console.error("Erro ao atualizar progresso:", error);
       toast.error("Não foi possível atualizar o progresso.");
+    } finally {
+      ocupado.current = false;
+      setPendente(null);
     }
   }
 
@@ -218,7 +239,7 @@ function CoursePageContent() {
     try {
       const cert = await issueCertificate(course.id);
       setCertificate(cert);
-      generateAndDownloadCertificate({
+      await generateAndDownloadCertificate({
         studentName: cert.studentName,
         studentCpf: cert.studentCpf,
         courseName: cert.courseTitle,
@@ -239,15 +260,20 @@ function CoursePageContent() {
     }
   }
 
-  function handleDownloadCertificate() {
+  async function handleDownloadCertificate() {
     if (!certificate) return;
-    generateAndDownloadCertificate({
-      studentName: certificate.studentName,
-      studentCpf: certificate.studentCpf,
-      courseName: certificate.courseTitle,
-      completionDate: new Date(certificate.issuedAt).toLocaleDateString("pt-BR"),
-      verificationCode: certificate.verificationCode,
-    });
+    try {
+      await generateAndDownloadCertificate({
+        studentName: certificate.studentName,
+        studentCpf: certificate.studentCpf,
+        courseName: certificate.courseTitle,
+        completionDate: new Date(certificate.issuedAt).toLocaleDateString("pt-BR"),
+        verificationCode: certificate.verificationCode,
+      });
+    } catch (error) {
+      console.error("Erro ao gerar certificado:", error);
+      toast.error("Não foi possível gerar o certificado.");
+    }
   }
 
   return (
@@ -360,7 +386,9 @@ function CoursePageContent() {
                             </div>
                             <button
                               onClick={() => handleConcluirAula(lesson.id)}
-                              className={`px-3 py-1 text-sm rounded flex-shrink-0 ${isCompleted
+                              disabled={pendente !== null}
+                              aria-busy={pendente === lesson.id}
+                              className={`px-3 py-1 text-sm rounded flex-shrink-0 disabled:opacity-60 ${isCompleted
                                 ? "bg-green-100 text-green-700 border border-green-200"
                                 : "bg-purple-100 text-purple-700 border border-purple-200"
                                 }`}
@@ -462,8 +490,9 @@ function CoursePageContent() {
 
               <button
                 onClick={handleMatricula}
-                disabled={isMatriculado === null || isMatriculado}
-                className={`w-full py-2 rounded-lg font-semibold transition ${isMatriculado
+                disabled={isMatriculado === null || isMatriculado || pendente !== null}
+                aria-busy={pendente === "matricula"}
+                className={`w-full py-2 rounded-lg font-semibold transition ${pendente === "matricula" ? "opacity-60 cursor-wait " : ""}${isMatriculado
                   ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                   : "bg-purple-600 text-white hover:bg-purple-700"
                   }`}
@@ -590,6 +619,16 @@ function CoursePageContent() {
                 </div>
               )}
             </div>
+          </div>
+        ) : erroCarga ? (
+          <div className="text-center space-y-3">
+            <p className="text-gray-600">Não foi possível carregar o curso.</p>
+            <button
+              onClick={fetchCourse}
+              className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition"
+            >
+              Tentar novamente
+            </button>
           </div>
         ) : (
           <p className="text-center text-gray-600">Curso não encontrado.</p>

@@ -29,6 +29,7 @@ import ActivityChat from "@/components/activities/activity-chat";
 import { getCurrentChatUser } from "@/lib/api/activity-chat";
 import type { ChatUser } from "@/lib/api/types";
 import { trackingService } from "@/lib/services/tracking.service";
+import { confirmar } from "@/components/ui/confirmar";
 
 function ActivitiePageContent() {
   const searchParams = useSearchParams();
@@ -244,7 +245,7 @@ function ActivitiePageContent() {
   const handleDelete = async () => {
     if (!submission) return;
 
-    if (!confirm("Tem certeza que deseja remover sua resposta?")) return;
+    if (!(await confirmar("Tem certeza que deseja remover sua resposta?", { rotulo: "Remover", destrutivo: true }))) return;
 
     try {
       await deleteSubmission(submission.id);

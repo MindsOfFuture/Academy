@@ -214,7 +214,8 @@ export async function authorizeNotification(
 ): Promise<AuthorizedNotification | null> {
     const targetId = texto(request.userId);
     const type = texto(request.type);
-    if (!targetId || !type || !(type in BUILDERS)) return null;
+    // hasOwn, não `in`: "toString"/"constructor" vêm do protótipo e passariam como tipo válido.
+    if (!targetId || !type || !Object.hasOwn(BUILDERS, type)) return null;
 
     const builder = BUILDERS[type as keyof typeof BUILDERS];
     const payload = await builder(db, callerId, targetId, request.payload ?? {});

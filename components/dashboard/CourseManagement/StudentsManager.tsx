@@ -68,14 +68,19 @@ export default function StudentsManager({
     setFiltered(result);
   }, [search, alunosDisponiveis]);
 
-  function handleDownloadCertificate(cert: CertificateInfo) {
-    generateAndDownloadCertificate({
-      studentName: cert.studentName,
-      studentCpf: cert.studentCpf,
-      courseName: cert.courseTitle,
-      completionDate: new Date(cert.issuedAt).toLocaleDateString("pt-BR"),
-      verificationCode: cert.verificationCode,
-    });
+  async function handleDownloadCertificate(cert: CertificateInfo) {
+    try {
+      await generateAndDownloadCertificate({
+        studentName: cert.studentName,
+        studentCpf: cert.studentCpf,
+        courseName: cert.courseTitle,
+        completionDate: new Date(cert.issuedAt).toLocaleDateString("pt-BR"),
+        verificationCode: cert.verificationCode,
+      });
+    } catch (error) {
+      console.error("Erro ao gerar certificado:", error);
+      toast.error("Não foi possível gerar o certificado.");
+    }
   }
 
   async function handleIssueCertificate(enrollmentId: string, userId: string) {

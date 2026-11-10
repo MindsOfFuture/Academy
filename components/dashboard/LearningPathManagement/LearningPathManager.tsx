@@ -5,6 +5,8 @@ import { type LearningPathSummary, type CourseSummary } from "@/lib/api/types";
 import LearningPathCourseManager from "./LearningPathCourseManager";
 import { Plus, ChevronRight, Trash2, Edit2 } from "lucide-react";
 import LearningPathEditor from "./LearningPathEditor";
+import { confirmar } from "@/components/ui/confirmar";
+import toast from "react-hot-toast";
 
 interface LearningPathManagerProps {
     initialPaths: LearningPathSummary[];
@@ -48,11 +50,11 @@ export default function LearningPathManager({
                 await refreshPaths();
                 setIsCreating(false);
             } else {
-                alert("Erro ao criar trilha");
+                toast.error("Erro ao criar trilha");
             }
         } catch (error) {
             console.error("Erro ao criar trilha:", error);
-            alert("Erro ao criar trilha");
+            toast.error("Erro ao criar trilha");
         } finally {
             setLoading(false);
         }
@@ -70,18 +72,18 @@ export default function LearningPathManager({
                 await refreshPaths();
                 setEditingPath(null);
             } else {
-                alert("Erro ao atualizar trilha");
+                toast.error("Erro ao atualizar trilha");
             }
         } catch (error) {
             console.error("Erro ao atualizar trilha:", error);
-            alert("Erro ao atualizar trilha");
+            toast.error("Erro ao atualizar trilha");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (pathId: string) => {
-        if (!confirm("Deseja realmente excluir esta trilha?")) return;
+        if (!(await confirmar("Deseja realmente excluir esta trilha?", { rotulo: "Excluir", destrutivo: true }))) return;
 
         setLoading(true);
         try {
@@ -94,11 +96,11 @@ export default function LearningPathManager({
                     setSelectedPathId(null);
                 }
             } else {
-                alert("Erro ao excluir trilha");
+                toast.error("Erro ao excluir trilha");
             }
         } catch (error) {
             console.error("Erro ao excluir trilha:", error);
-            alert("Erro ao excluir trilha");
+            toast.error("Erro ao excluir trilha");
         } finally {
             setLoading(false);
         }

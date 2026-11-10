@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type UserProfileSummary } from "@/lib/api/types";
+import toast from "react-hot-toast";
 
 type EditFormState = { display_name: string; type: 'admin' | 'teacher' | 'student'; email: string };
 
@@ -30,7 +31,7 @@ export function UserEditModal({ user, onClose, updateUserAction }: UserEditModal
         } catch (err) {
             console.error("Falha ao atualizar usuário", err);
             const message = err instanceof Error ? err.message : "Falha ao atualizar usuário";
-            alert(message);
+            toast.error(message);
         } finally {
             setLoading(false);
         }

@@ -7,6 +7,7 @@ const mockClient = {
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => mockClient),
+  usuarioDaRequisicao: async () => (await mockClient.auth.getUser()).data.user?.id ?? null,
 }));
 
 import { POST } from "@/app/api/telemetry/events/route";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type SubmissionWithStudent } from "@/lib/api/types";
 import { gradeSubmission } from "@/lib/api/assignments";
 import { X, User, Link2, MessageSquare, Award, Save, Clock } from "lucide-react";
@@ -24,6 +24,23 @@ export default function GradingModal({
     );
     const [feedback, setFeedback] = useState(submission.feedback || "");
     const [loading, setLoading] = useState(false);
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const editado =
+        score !== (submission.score !== null ? String(submission.score) : "") ||
+        feedback !== (submission.feedback || "");
+
+    useEffect(() => {
+        dialogRef.current?.focus();
+    }, []);
+
+    useEffect(() => {
+        const aoTeclar = (e: KeyboardEvent) => {
+            // Esc não descarta nota/feedback digitados nem interrompe o salvamento.
+            if (e.key === "Escape" && !loading && !editado) onClose();
+        };
+        document.addEventListener("keydown", aoTeclar);
+        return () => document.removeEventListener("keydown", aoTeclar);
+    }, [onClose, loading, editado]);
 
     const effectiveMaxScore = maxScore ?? 10;
 
@@ -74,14 +91,15 @@ export default function GradingModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="grading-modal-title" className="outline-none bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 id="grading-modal-title" className="text-lg font-semibold text-gray-900">
                         Corrigir Atividade
                     </h2>
                     <button
                         onClick={onClose}
+                        aria-label="Fechar"
                         className="p-1 text-gray-500 hover:text-gray-700 rounded"
                     >
                         <X className="w-5 h-5" />
@@ -162,12 +180,13 @@ export default function GradingModal({
                     {/* Formulário de Correção */}
                     <div className="space-y-4">
                         <div>
-                            <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+                            <label htmlFor="grading-score" className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                                 <Award className="w-4 h-4 text-purple-600" />
                                 Nota *
                             </label>
                             <div className="flex items-center gap-2">
                                 <input
+                                    id="grading-score"
                                     type="number"
                                     min="0"
                                     max={effectiveMaxScore}
@@ -184,11 +203,12 @@ export default function GradingModal({
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+                            <label htmlFor="grading-feedback" className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                                 <MessageSquare className="w-4 h-4 text-purple-600" />
                                 Feedback para o Aluno *
                             </label>
                             <textarea
+                                id="grading-feedback"
                                 value={feedback}
                                 onChange={(e) => setFeedback(e.target.value)}
                                 placeholder="Escreva um feedback construtivo para o aluno..."

@@ -1,4 +1,4 @@
-import { createClient as createServerSupabase, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient as createServerSupabase, createServiceRoleClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { sendNotificationEmail } from "@/lib/email/resend";
 import { buildEmailHtml, escaparHtml } from "@/lib/email/template";
 import { normalizeNextPath } from "@/lib/utils";
@@ -125,13 +125,13 @@ export async function getUserNotifications(options?: {
     limit?: number;
 }): Promise<Notification[]> {
     const supabase = await createServerSupabase();
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) return [];
+    const userId = await usuarioDaRequisicao();
+    if (!userId) return [];
 
     let query = supabase
         .from("notification")
         .select("id, user_id, type, payload, read_at, created_at")
-        .eq("user_id", authData.user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(options?.limit ?? 50);
 
@@ -157,13 +157,13 @@ export async function getUserNotifications(options?: {
  */
 export async function getUnreadCount(): Promise<number> {
     const supabase = await createServerSupabase();
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) return 0;
+    const userId = await usuarioDaRequisicao();
+    if (!userId) return 0;
 
     const { count, error } = await supabase
         .from("notification")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", authData.user.id)
+        .eq("user_id", userId)
         .is("read_at", null);
 
     if (error) return 0;
@@ -175,14 +175,14 @@ export async function getUnreadCount(): Promise<number> {
  */
 export async function markNotificationRead(notificationId: string): Promise<boolean> {
     const supabase = await createServerSupabase();
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) return false;
+    const userId = await usuarioDaRequisicao();
+    if (!userId) return false;
 
     const { error } = await supabase
         .from("notification")
         .update({ read_at: new Date().toISOString() })
         .eq("id", notificationId)
-        .eq("user_id", authData.user.id); // RLS-safe: only own notifications
+        .eq("user_id", userId); // RLS-safe: only own notifications
 
     return !error;
 }
@@ -192,13 +192,13 @@ export async function markNotificationRead(notificationId: string): Promise<bool
  */
 export async function markAllNotificationsRead(): Promise<boolean> {
     const supabase = await createServerSupabase();
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) return false;
+    const userId = await usuarioDaRequisicao();
+    if (!userId) return false;
 
     const { error } = await supabase
         .from("notification")
         .update({ read_at: new Date().toISOString() })
-        .eq("user_id", authData.user.id)
+        .eq("user_id", userId)
         .is("read_at", null);
 
     return !error;

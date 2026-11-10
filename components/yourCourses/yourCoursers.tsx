@@ -123,7 +123,7 @@ export function YourCourses({ initialCursos = [] }: YourCoursesProps) {
 
       const existing = certificates[courseId];
       if (existing) {
-        generateAndDownloadCertificate({
+        await generateAndDownloadCertificate({
           studentName: existing.studentName,
           studentCpf: existing.studentCpf,
           courseName: existing.courseTitle,
@@ -135,7 +135,7 @@ export function YourCourses({ initialCursos = [] }: YourCoursesProps) {
 
       const cert = await issueCertificate(courseId);
       setCertificates(prev => ({ ...prev, [courseId]: cert }));
-      generateAndDownloadCertificate({
+      await generateAndDownloadCertificate({
         studentName: cert.studentName,
         studentCpf: cert.studentCpf,
         courseName: cert.courseTitle,

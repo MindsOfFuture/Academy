@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type UserProfileSummary } from "@/lib/api/types";
+import toast from "react-hot-toast";
 
 interface TeacherVerificationModalProps {
     user: UserProfileSummary;
@@ -16,7 +17,7 @@ export default function TeacherVerificationModal({ user, onClose, onSubmit }: Te
 
     async function handleApprove() {
         if (!user.verificationDocumentUrl) {
-            alert("Este professor ainda não enviou o comprovante de qualificação.");
+            toast.error("Este professor ainda não enviou o comprovante de qualificação.");
             return;
         }
 
@@ -31,7 +32,7 @@ export default function TeacherVerificationModal({ user, onClose, onSubmit }: Te
 
     async function handleReject() {
         if (!reason.trim()) {
-            alert("Informe um motivo para reprovar.");
+            toast.error("Informe um motivo para reprovar.");
             return;
         }
 

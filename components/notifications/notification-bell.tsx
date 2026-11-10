@@ -123,9 +123,16 @@ export function NotificationBell() {
     // Poll for unread count every 30s — só com usuário logado e sessão válida
     useEffect(() => {
         if (!isLoggedIn || sessionInvalidRef.current) return;
-        fetchCount();
-        const interval = setInterval(fetchCount, 30_000);
-        return () => clearInterval(interval);
+        const tick = () => {
+            if (!document.hidden) fetchCount();
+        };
+        tick();
+        const interval = setInterval(tick, 30_000);
+        document.addEventListener("visibilitychange", tick);
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", tick);
+        };
     }, [isLoggedIn, fetchCount]);
 
     // When dropdown opens, fetch full list
