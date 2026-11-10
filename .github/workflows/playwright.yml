@@ -7,6 +7,11 @@ on:
     branches: [ main, development ]
   pull_request:
     branches: [ main, development ]
+# Banco e contas de teste são os mesmos para todas as execuções: duas ao mesmo tempo
+# (push na development e merge na main) derrubavam o login uma da outra no logout.
+concurrency:
+  group: e2e-banco-compartilhado
+  cancel-in-progress: false
 jobs:
   test:
     timeout-minutes: 60
