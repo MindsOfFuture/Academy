@@ -53,21 +53,22 @@ export function SeletorMes({
     return () => window.removeEventListener("keydown", tecla);
   }, [router, anterior, proximo]);
 
-  const seta = "inline-flex h-11 w-11 items-center justify-center rounded-md border bg-white text-xl text-[#684A97] hover:bg-[#684A97]/10";
+  const seta = "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border bg-white text-xl text-[#684A97] hover:bg-[#684A97]/10";
 
+  // Sem quebra na linha de fora: as setas ficam sempre nas pontas e só o mês quebra no celular.
   return (
-    <div ref={raiz} className="flex flex-wrap items-center justify-between gap-2">
+    <div ref={raiz} className="flex items-center gap-2">
       <Link href={anterior} scroll={false} aria-label="Mês anterior" className={seta}>
         ‹
       </Link>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <h2 className="flex items-center gap-2 text-xl font-semibold">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
+        <h2 className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xl font-semibold">
           {titulo && <span>{titulo}</span>}
           <select
             aria-label="Mês"
             value={mes}
             onChange={(e) => router.push(href(e.target.value), { scroll: false })}
-            className="rounded-md border border-input bg-white px-2 py-1 text-xl font-semibold"
+            className="max-w-full rounded-md border border-input bg-white px-2 py-1 text-xl font-semibold"
           >
             {opcoes.map((m) => (
               <option key={m} value={m}>
