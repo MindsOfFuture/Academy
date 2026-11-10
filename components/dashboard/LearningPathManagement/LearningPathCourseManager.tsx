@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { type LearningPathSummary, type CourseSummary } from "@/lib/api/types";
 import { ArrowLeft, Plus, X, Search, GripVertical } from "lucide-react";
 import { Reorder } from "framer-motion";
+import { confirmar } from "@/components/ui/confirmar";
+import toast from "react-hot-toast";
 
 interface LearningPathCourseManagerProps {
     path: LearningPathSummary;
@@ -58,18 +60,18 @@ export default function LearningPathCourseManager({
                 // Também atualiza no pai para manter sincronizado
                 onUpdate();
             } else {
-                alert("Erro ao adicionar curso");
+                toast.error("Erro ao adicionar curso");
             }
         } catch (error) {
             console.error("Erro ao adicionar curso:", error);
-            alert("Erro ao adicionar curso");
+            toast.error("Erro ao adicionar curso");
         } finally {
             setLoading(false);
         }
     };
 
     const handleRemoveCourse = async (courseId: string) => {
-        if (!confirm("Remover este curso da trilha?")) return;
+        if (!(await confirmar("Remover este curso da trilha?", { rotulo: "Remover", destrutivo: true }))) return;
 
         setLoading(true);
         try {
@@ -81,11 +83,11 @@ export default function LearningPathCourseManager({
                 setCourses(prev => prev.filter(c => c.id !== courseId));
                 onUpdate();
             } else {
-                alert("Erro ao remover curso");
+                toast.error("Erro ao remover curso");
             }
         } catch (error) {
             console.error("Erro ao remover curso:", error);
-            alert("Erro ao remover curso");
+            toast.error("Erro ao remover curso");
         } finally {
             setLoading(false);
         }

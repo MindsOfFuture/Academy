@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { APP, ETAPAS, FECHAMENTO, STORAGE_KEY, type Etapa, type Pergunta } from "./data";
 import { GAME_CONTENT_VERSIONS } from "@/lib/api/game-telemetry-types";
 import { startGameRun, type GameRun } from "@/lib/services/game-tracking.service";
+import { confirmar } from "@/components/ui/confirmar";
+import toast from "react-hot-toast";
 
 const GAME_KEY = "primeiro-passo" as const;
 const CONTENT_VERSION = GAME_CONTENT_VERSIONS[GAME_KEY];
@@ -81,7 +83,7 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
       (question) => question.obrigatorio && parseNumber(data[question.id]) === null,
     );
     if (missing) {
-      window.alert(`Preencha: ${missing.p}`);
+      toast.error(`Preencha: ${missing.p}`);
       return;
     }
     recordStage(stage, data);
@@ -150,8 +152,8 @@ export default function PrimeiroPasso({ userId }: { userId: string }) {
     }
   }
 
-  function reset() {
-    if (!window.confirm("Apagar suas respostas e recomeçar?")) return;
+  async function reset() {
+    if (!(await confirmar("Apagar suas respostas e recomeçar?", { rotulo: "Recomeçar", destrutivo: true }))) return;
     run.current?.abandon();
     run.current = null;
     setAnswers({});

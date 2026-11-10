@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 interface LearningPathEditorProps {
     initialTitle?: string;
@@ -28,7 +29,7 @@ export default function LearningPathEditor({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim()) {
-            alert("Título é obrigatório");
+            toast.error("Título é obrigatório");
             return;
         }
         onSave(title.trim(), description.trim(), audience);

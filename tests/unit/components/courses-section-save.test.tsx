@@ -10,6 +10,8 @@ vi.mock('@/components/dashboard/LearningPathManagement/LearningPathManager', () 
 vi.mock('@/components/dashboard/ChatsPanel', () => ({ default: () => null }));
 vi.mock('@/components/dashboard/PendingCorrections', () => ({ default: () => null }));
 vi.mock('@/components/dashboard/GameResearch/GameResearchPanel', () => ({ default: () => null }));
+vi.mock('react-hot-toast', () => ({ default: { error: vi.fn(), success: vi.fn() } }));
+import toast from 'react-hot-toast';
 import CoursesSection from '@/components/dashboard/courses-section';
 
 async function abrirEPreencher() {
@@ -28,11 +30,10 @@ describe('Salvar curso', () => {
   });
 
   it('mantém o modal e o que foi digitado quando a criação falha', async () => {
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
     createCourse.mockResolvedValue(null);
     await abrirEPreencher();
     fireEvent.click(screen.getByRole('button', { name: 'Criar Curso' }));
-    await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Erro ao criar curso.'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Erro ao criar curso.'));
     expect(screen.getByPlaceholderText('Título do curso')).toHaveValue('Robótica');
   });
 

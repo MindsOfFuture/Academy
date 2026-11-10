@@ -18,6 +18,7 @@ import type {
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
 import { conflitosLoteAction, loteAction } from "./actions";
 import { JanelaConflitos } from "./forms";
+import { confirmar } from "@/components/ui/confirmar";
 
 /**
  * Ações em vários encontros de uma vez (spec 020). Envolve o calendário: ligada
@@ -138,16 +139,18 @@ export function SelecaoLote({
     const dados = new FormData(e.currentTarget);
     if (
       acao === "cancelar" &&
-      !window.confirm(
+      !(await confirmar(
         `Cancelar ${marcados} ${marcados === 1 ? "encontro" : "encontros"}? Eles deixam de contar horas e continuam no histórico.`,
-      )
+        { rotulo: "Cancelar encontros", destrutivo: true },
+      ))
     )
       return;
     if (
       acao === "retirar" &&
-      !window.confirm(
+      !(await confirmar(
         `Tirar a pessoa de ${marcados} ${marcados === 1 ? "encontro" : "encontros"}? Fica registrado no histórico.`,
-      )
+        { rotulo: "Tirar", destrutivo: true },
+      ))
     )
       return;
     if (acao === "alocar" || acao === "trocar") {

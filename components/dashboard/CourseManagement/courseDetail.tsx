@@ -7,6 +7,8 @@ import CourseEditor from "@/components/dashboard/CourseManagement/CourseEditor";
 import ModuleManager from "./ModuleManager";
 import StudentsManager from "./StudentsManager";
 import HistoryTab from "./HistoryTab";
+import { confirmar } from "@/components/ui/confirmar";
+import toast from "react-hot-toast";
 
 type Props = {
   courseId: string;
@@ -42,14 +44,14 @@ export default function CourseDetail({ courseId, onBack, onCourseDeleted }: Prop
   const handleSave = async () => {
     await updateCurso(courseId, form);
     await refreshCourse();
-    alert("Curso atualizado!");
+    toast.success("Curso atualizado!");
   };
 
   const handleDelete = async () => {
-    if (!confirm("Deseja realmente deletar este curso?")) return;
+    if (!(await confirmar("Deseja realmente deletar este curso?", { rotulo: "Deletar", destrutivo: true }))) return;
     const success = await deleteCurso(courseId);
     if (success) {
-      alert("Curso deletado com sucesso!");
+      toast.success("Curso deletado com sucesso!");
       onCourseDeleted?.();
       onBack();
     }

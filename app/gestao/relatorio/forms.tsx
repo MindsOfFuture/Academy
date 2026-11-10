@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import type { AtividadeRelatorio, EstadoAcao } from "@/lib/api/gestao/types";
 import { Aviso, rotuloCampo } from "../equipe/forms";
 import { apagarAtividadeAction, cadastrarAtividadeAction, editarAtividadeAction } from "./actions";
+import { confirmarEnvio } from "@/components/ui/confirmar";
 
 /** Cadastra uma atividade; limpa o formulário depois de salvar. */
 export function FormAtividade({ dataPadrao }: { dataPadrao: string }) {
@@ -98,9 +99,7 @@ export function LinhaAtividade({ atividade, dataMinima, dia }: { atividade: Ativ
           </Button>
           <form
             action={apagar}
-            onSubmit={(e) => {
-              if (!window.confirm(`Apagar “${atividade.nome}”?`)) e.preventDefault();
-            }}
+            onSubmit={confirmarEnvio(`Apagar “${atividade.nome}”?`, { rotulo: "Apagar", destrutivo: true })}
           >
             <input type="hidden" name="id" value={atividade.id} />
             <Button type="submit" size="sm" variant="outline" disabled={apagando} aria-label={`Apagar ${atividade.nome}`}>

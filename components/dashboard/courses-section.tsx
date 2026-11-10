@@ -15,6 +15,7 @@ import ChatsPanel from "@/components/dashboard/ChatsPanel";
 import PendingCorrections from "@/components/dashboard/PendingCorrections";
 import GameResearchPanel from "@/components/dashboard/GameResearch/GameResearchPanel";
 import { listUsersClient } from "@/lib/api/profiles";
+import toast from "react-hot-toast";
 
 const loadingPanel = () => <p role="status">Carregando painel...</p>;
 const CourseDetail = dynamic(() => import("@/components/dashboard/CourseManagement/courseDetail"), { loading: loadingPanel });
@@ -107,7 +108,7 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
   const handleSaveCourse = async () => {
     if (savingRef.current) return;
     if (!title || !description) {
-      alert("Preencha título e descrição!");
+      toast.error("Preencha título e descrição!");
       return;
     }
 
@@ -124,7 +125,7 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
         });
         if (updated) handleCourseUpdated(updated);
         else {
-          alert("Erro ao atualizar curso.");
+          toast.error("Erro ao atualizar curso.");
           return;
         }
       } else {
@@ -137,13 +138,13 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
         });
         if (newCourse) setCourses((prev) => [...prev, newCourse]);
         else {
-          alert("Erro ao criar curso.");
+          toast.error("Erro ao criar curso.");
           return;
         }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao salvar curso.";
-      alert(message);
+      toast.error(message);
       return;
     } finally {
       savingRef.current = false;

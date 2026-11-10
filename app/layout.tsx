@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Comfortaa } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { JanelaConfirmacao } from "@/components/ui/confirmar";
 import TrackingProvider from "@/components/tracking/TrackingProvider";
 
 const defaultUrl =
@@ -112,6 +113,8 @@ export default function RootLayout({
               },
             },
             error: {
+              // Erro precisa de tempo para ser lido; o alert de antes esperava o OK.
+              duration: 6000,
               style: {
                 background: '#f44336',
                 color: '#fff',
@@ -119,6 +122,7 @@ export default function RootLayout({
             },
           }}
         />
+        <JanelaConfirmacao />
       </body>
     </html>
   );
