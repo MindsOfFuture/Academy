@@ -158,8 +158,38 @@ describe("telemetria do fluxo de curso", () => {
     mocks.params = new Map([["id", COURSE_ID]]);
     mocks.getCourseDetail.mockRejectedValue(new Error("falha"));
     render(React.createElement(CoursePage));
-    await screen.findByText("Curso não encontrado.");
+    await screen.findByText("Não foi possível carregar o curso.");
     expect(mocks.track).not.toHaveBeenCalled();
+
+    mocks.getCourseDetail.mockResolvedValue(course);
+    await userEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    await screen.findByText("Curso comportamental");
+    expect(mocks.getCourseDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignora segundo toque em concluir aula enquanto o primeiro não termina", async () => {
+    await renderCourse(true);
+    const pending = deferred<boolean>();
+    mocks.toggleLessonProgress.mockReturnValue(pending.promise);
+    const button = await screen.findByRole("button", { name: "Marcar como concluída" });
+    await userEvent.click(button);
+    await userEvent.click(button);
+    expect(mocks.toggleLessonProgress).toHaveBeenCalledTimes(1);
+    expect(button).toBeDisabled();
+    pending.resolve(true);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Concluída" })).toBeEnabled());
+  });
+
+  it("ignora segundo toque em matricular-se enquanto o primeiro não termina", async () => {
+    await renderCourse();
+    const pending = deferred<{ id: string }>();
+    mocks.enrollInCourse.mockReturnValue(pending.promise);
+    const button = screen.getByRole("button", { name: "Matricular-se" });
+    await userEvent.click(button);
+    await userEvent.click(button);
+    expect(mocks.enrollInCourse).toHaveBeenCalledTimes(1);
+    pending.resolve({ id: "enrollment-1" });
+    await waitFor(() => expect(mocks.track).toHaveBeenCalledWith("course_enrolled", { courseId: COURSE_ID }));
   });
 
   it("espera matrícula e progresso concluírem antes de registrar", async () => {

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { mensagemDeAuth } from "@/lib/auth-errors";
 import { Lock, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -49,7 +50,7 @@ export function UpdatePasswordForm({
         router.push("/protected");
       }, 2000);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Ocorreu um erro ao atualizar a senha.");
+      setError(mensagemDeAuth(error, "Ocorreu um erro ao atualizar a senha."));
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +100,7 @@ export function UpdatePasswordForm({
           />
         </div>
 
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+        {error && <p role="alert" className="text-center text-sm text-red-500">{error}</p>}
         {message && <p className="text-center text-sm text-green-600">{message}</p>}
 
         <Button

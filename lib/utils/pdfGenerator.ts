@@ -1,5 +1,3 @@
-import { jsPDF } from "jspdf";
-
 export interface CertificateData {
   studentName: string;
   studentCpf: string;
@@ -8,7 +6,10 @@ export interface CertificateData {
   verificationCode: string;
 }
 
-export function generateAndDownloadCertificate(data: CertificateData) {
+export async function generateAndDownloadCertificate(data: CertificateData): Promise<void> {
+  const { jsPDF } = await import("jspdf").catch(() => {
+    throw new Error("Não foi possível carregar o gerador de certificado. Tente novamente.");
+  });
   // A4 Landscape
   const doc = new jsPDF({
     orientation: "landscape",

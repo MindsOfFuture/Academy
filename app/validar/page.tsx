@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { validateCertificate, type CertificateInfo } from "@/lib/api/certificates";
 import { generateAndDownloadCertificate } from "@/lib/utils/pdfGenerator";
+import toast from "react-hot-toast";
 import Navbar from "@/components/navbar/navbar";
 import { Search, CheckCircle, XCircle, Download, ShieldCheck } from "lucide-react";
 
@@ -27,15 +28,20 @@ export default function ValidarPage() {
     }
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     if (!result) return;
-    generateAndDownloadCertificate({
-      studentName: result.studentName,
-      studentCpf: result.studentCpf,
-      courseName: result.courseTitle,
-      completionDate: new Date(result.issuedAt).toLocaleDateString("pt-BR"),
-      verificationCode: result.verificationCode,
-    });
+    try {
+      await generateAndDownloadCertificate({
+        studentName: result.studentName,
+        studentCpf: result.studentCpf,
+        courseName: result.courseTitle,
+        completionDate: new Date(result.issuedAt).toLocaleDateString("pt-BR"),
+        verificationCode: result.verificationCode,
+      });
+    } catch (err) {
+      console.error("Erro ao gerar certificado:", err);
+      toast.error("Não foi possível gerar o certificado.");
+    }
   }
 
   function formatCpfPartial(cpf: string) {

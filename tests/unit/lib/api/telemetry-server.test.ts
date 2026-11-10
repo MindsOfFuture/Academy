@@ -9,6 +9,7 @@ vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => mockClient),
+  usuarioDaRequisicao: async () => (await mockClient.auth.getUser()).data.user?.id ?? null,
 }));
 
 import { persistLearningEvents } from "@/lib/api/telemetry-server";

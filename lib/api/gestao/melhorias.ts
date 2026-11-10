@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import type {
   AreaMelhoria,
   GestaoPapel,
@@ -141,15 +141,15 @@ export async function obterMelhoria(id: string): Promise<Melhoria | null> {
 
 export async function criarMelhoria(pedido: NovaMelhoria): Promise<string> {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("Usuário não autenticado.");
+  const userId = await usuarioDaRequisicao();
+  if (!userId) throw new Error("Usuário não autenticado.");
   const { data, error } = await supabase
     .schema("gestao")
     .from("melhoria")
     .insert({
       // O banco sobrescreve o autor com auth.uid(); mandar o mesmo valor só
       // satisfaz o with check da policy.
-      autor: auth.user.id,
+      autor: userId,
       titulo: pedido.titulo,
       area: pedido.area,
       problema: pedido.problema,
@@ -204,17 +204,15 @@ export async function responderMelhoria(id: string, resposta: RespostaMelhoria):
 
 export async function alternarApoio(id: string, apoiar: boolean): Promise<void> {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("Usuário não autenticado.");
+  const userId = await usuarioDaRequisicao();
+  if (!userId) throw new Error("Usuário não autenticado.");
   const tabela = supabase.schema("gestao").from("melhoria_apoio");
   const { error } = apoiar
-    ? await tabela.insert({ melhoria_id: id, user_profile_id: auth.user.id })
-    : await tabela.delete().eq("melhoria_id", id).eq("user_profile_id", auth.user.id);
+    ? await tabela.insert({ melhoria_id: id, user_profile_id: userId })
+    : await tabela.delete().eq("melhoria_id", id).eq("user_profile_id", userId);
   throwOnError(error);
 }
 
 export async function usuarioAtualId(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
+  return usuarioDaRequisicao();
 }

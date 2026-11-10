@@ -34,8 +34,13 @@ export async function createClient() {
  */
 export const usuarioDaRequisicao = cache(async (): Promise<string | null> => {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  return data?.claims.sub ?? null;
+  // Falha de rede ao conferir a chave conta como sem login (401), como no middleware.
+  try {
+    const { data } = await supabase.auth.getClaims();
+    return data?.claims.sub ?? null;
+  } catch {
+    return null;
+  }
 });
 
 /**

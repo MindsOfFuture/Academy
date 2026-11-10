@@ -285,10 +285,11 @@ export async function fetchAllActiveChats(): Promise<ActiveChatGroup[]> {
     const { userId, role } = await getCurrentUserAndRole(supabase);
     if (!userId) return [];
 
-    // Buscar todas as mensagens agrupando por assignment_id + student_id
+    // Buscar todas as mensagens, da mais nova para a mais antiga
+    // shortcut: PostgREST corta em 1000 mensagens; passar para RPC com distinct on quando o chat crescer
     const { data: chatPairs, error } = await supabase
         .from("activity_chat_message")
-        .select("assignment_id, student_id")
+        .select("assignment_id, student_id, content, created_at, sender_id")
         .order("created_at", { ascending: false });
 
     if (error || !chatPairs || chatPairs.length === 0) return [];
@@ -296,11 +297,14 @@ export async function fetchAllActiveChats(): Promise<ActiveChatGroup[]> {
     // Deduplicar pares (assignment_id, student_id)
     const seen = new Set<string>();
     const uniquePairs: { assignment_id: string; student_id: string }[] = [];
+    // Primeira ocorrência de cada par já é a última mensagem
+    const lastMsgMap = new Map<string, { content: string; created_at: string; sender_id: string }>();
     for (const row of chatPairs) {
         const key = `${row.assignment_id}:${row.student_id}`;
         if (!seen.has(key)) {
             seen.add(key);
             uniquePairs.push(row);
+            lastMsgMap.set(key, row);
         }
     }
 
@@ -326,12 +330,6 @@ export async function fetchAllActiveChats(): Promise<ActiveChatGroup[]> {
         .select("id, full_name, avatar_url")
         .in("id", studentIds);
 
-    // Buscar última mensagem de cada chat
-    const { data: lastMessages } = await supabase
-        .from("activity_chat_message")
-        .select("assignment_id, student_id, content, created_at, sender_id")
-        .order("created_at", { ascending: false });
-
     // Mapear dados
     const assignmentMap = new Map<string, Record<string, unknown>>();
     if (assignments) {
@@ -347,16 +345,6 @@ export async function fetchAllActiveChats(): Promise<ActiveChatGroup[]> {
         }
     }
 
-    // Mapear última mensagem por par
-    const lastMsgMap = new Map<string, { content: string; created_at: string; sender_id: string }>();
-    if (lastMessages) {
-        for (const m of lastMessages) {
-            const key = `${m.assignment_id}:${m.student_id}`;
-            if (!lastMsgMap.has(key)) {
-                lastMsgMap.set(key, m);
-            }
-        }
-    }
 
     // Agrupar por curso
     const courseGroups = new Map<string, ActiveChatGroup>();

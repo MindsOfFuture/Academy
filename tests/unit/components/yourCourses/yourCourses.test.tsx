@@ -102,6 +102,16 @@ describe("YourCourses — certificado com gerador sob demanda", () => {
         expect(await screen.findByRole("button", { name: /Baixar Certificado/ })).not.toBeDisabled();
     });
 
+    it("falha ao gerar o PDF avisa o erro e não anuncia sucesso", async () => {
+        estado.gerar.mockRejectedValue(new Error("Não foi possível carregar o gerador de certificado. Tente novamente."));
+        render(<YourCourses initialCursos={[curso]} />);
+        fireEvent.click(await screen.findByRole("button", { name: /Emitir Certificado/ }));
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+        expect(toast.error.mock.calls[0][0]).toMatch(/gerador de certificado/);
+        expect(toast.success).not.toHaveBeenCalled();
+    });
+
     it("certificado existente: baixa sem reemitir", async () => {
         certificados.getExistingCertificate.mockResolvedValue(cert);
         render(<YourCourses initialCursos={[curso]} />);

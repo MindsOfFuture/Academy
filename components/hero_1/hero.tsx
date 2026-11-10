@@ -13,7 +13,7 @@ export function Hero({ escolas_atendidas, alunos_impactados, subtitulo, logoRef 
   return (
     <div className="flex flex-col gap-8 items-center mt-[50px] ">
       <div className='relative p-8 rounded-lg  flex flex-col items-center justify-center'>
-        <Image className='transition-all duration-300 hover:scale-[1.02]' src="logo.svg" alt="Hero Image" width={400} height={180} ref={logoRef} />
+        <Image className='transition-all duration-300 hover:scale-[1.02]' src="/logo.svg" priority alt="Hero Image" width={400} height={180} ref={logoRef} />
       </div>
       <h1 className="text-2xl text-[#767676] font-bold text-center p-1" dangerouslySetInnerHTML={{ __html: sanitizeRichText(subtitulo) }}>
       </h1>

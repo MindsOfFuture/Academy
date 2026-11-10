@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { mensagemDeAuth } from "@/lib/auth-errors";
 import { Mail, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
@@ -30,7 +31,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
       if (error) throw error;
       setMessage("Link de redefinição enviado! Verifique sua caixa de entrada.");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Ocorreu um erro ao enviar o e-mail.");
+      setError(mensagemDeAuth(error, "Ocorreu um erro ao enviar o e-mail."));
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +68,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
           />
         </div>
 
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+        {error && <p role="alert" className="text-center text-sm text-red-500">{error}</p>}
         {message && <p className="text-center text-sm text-green-600">{message}</p>}
 
         <Button

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { validateLearningEventBatch } from "./telemetry-validation";
 
 export class TelemetryHttpError extends Error {
@@ -10,8 +10,7 @@ export class TelemetryHttpError extends Error {
 export async function persistLearningEvents(input: unknown): Promise<number> {
   const events = validateLearningEventBatch(input);
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData?.user) {
+  if (!(await usuarioDaRequisicao())) {
     throw new TelemetryHttpError("Usuário não autenticado.", 401);
   }
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import type {
   IndicadorAlunos,
   IndicadorAulas,
@@ -77,8 +77,7 @@ function mapCarga(data: unknown): IndicadorCargaBolsistas {
 /** Indicador 1 — total de alunos participantes. */
 export async function getTotalAlunos(): Promise<IndicadorAlunos> {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) erroNaoAutenticado();
+  if (!(await usuarioDaRequisicao())) erroNaoAutenticado();
 
   const { error, count } = await supabase
     .schema("gestao")
@@ -91,8 +90,7 @@ export async function getTotalAlunos(): Promise<IndicadorAlunos> {
 /** Indicador 2 — número de reservas de ônibus. */
 export async function getReservasOnibus(): Promise<IndicadorReservasOnibus> {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) erroNaoAutenticado();
+  if (!(await usuarioDaRequisicao())) erroNaoAutenticado();
 
   const { error, count } = await supabase
     .schema("gestao")
@@ -106,8 +104,7 @@ export async function getReservasOnibus(): Promise<IndicadorReservasOnibus> {
 /** Indicador 3 — termos arquivados vs. pendentes. */
 export async function getTermos(): Promise<IndicadorTermos> {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) erroNaoAutenticado();
+  if (!(await usuarioDaRequisicao())) erroNaoAutenticado();
 
   const { data, error } = await supabase
     .schema("gestao")
@@ -127,8 +124,7 @@ export async function getTermos(): Promise<IndicadorTermos> {
 /** Indicador 4 — presença (presentes vs. ausentes). */
 export async function getPresenca(aulaId?: string): Promise<IndicadorPresenca> {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) erroNaoAutenticado();
+  if (!(await usuarioDaRequisicao())) erroNaoAutenticado();
 
   let query = supabase.schema("gestao").from("presenca").select("presente");
   if (aulaId) query = query.eq("aula_id", aulaId);
@@ -147,8 +143,7 @@ export async function getPresenca(aulaId?: string): Promise<IndicadorPresenca> {
 /** Indicador 5 — aulas/módulos realizados. */
 export async function getAulasRealizadas(): Promise<IndicadorAulas> {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) erroNaoAutenticado();
+  if (!(await usuarioDaRequisicao())) erroNaoAutenticado();
 
   const { error, count } = await supabase
     .schema("gestao")
@@ -162,8 +157,7 @@ export async function getAulasRealizadas(): Promise<IndicadorAulas> {
 /** Indicador 6 — alocação/carga dos bolsistas. */
 export async function getCargaBolsistas(): Promise<IndicadorCargaBolsistas> {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) erroNaoAutenticado();
+  if (!(await usuarioDaRequisicao())) erroNaoAutenticado();
 
   // Junção agenda_bolsista ⊗ papel_membro, filtrando quem tem o papel de
   // bolsista (spec 002, indicador 6). A RLS já restringe às linhas visíveis.
@@ -180,8 +174,7 @@ export async function getCargaBolsistas(): Promise<IndicadorCargaBolsistas> {
 /** Agregado dos seis indicadores, numa única chamada à fronteira de query. */
 export async function getIndicadores(): Promise<IndicadoresGestao> {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) erroNaoAutenticado();
+  if (!(await usuarioDaRequisicao())) erroNaoAutenticado();
 
   const [
     alunosRes,

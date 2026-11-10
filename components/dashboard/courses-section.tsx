@@ -37,6 +37,9 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
   const [paths, setPaths] = useState<LearningPathSummary[]>([]);
   const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  // Trava síncrona: dois cliques no mesmo render veem o mesmo `saving` antigo.
+  const savingRef = useRef(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   // Lê o parâmetro ?tab= da URL para permitir deep-linking via notificações
@@ -102,11 +105,14 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
 
   // Criar ou atualizar curso
   const handleSaveCourse = async () => {
+    if (savingRef.current) return;
     if (!title || !description) {
       alert("Preencha título e descrição!");
       return;
     }
 
+    savingRef.current = true;
+    setSaving(true);
     try {
       if (editingCourse) {
         const updated = await updateCourse(editingCourse.id, {
@@ -117,7 +123,10 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
           audience: isTeacherOnly ? "teacher" : "student",
         });
         if (updated) handleCourseUpdated(updated);
-        else alert("Erro ao atualizar curso.");
+        else {
+          alert("Erro ao atualizar curso.");
+          return;
+        }
       } else {
         const newCourse = await createCourse({
           title,
@@ -127,12 +136,18 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
           audience: isTeacherOnly ? "teacher" : "student",
         });
         if (newCourse) setCourses((prev) => [...prev, newCourse]);
-        else alert("Erro ao criar curso.");
+        else {
+          alert("Erro ao criar curso.");
+          return;
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao salvar curso.";
       alert(message);
       return;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
 
     resetForm();
@@ -394,7 +409,8 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
                   </button>
                   <button
                     onClick={handleSaveCourse}
-                    className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                    disabled={saving}
+                    className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
                   >
                     {editingCourse ? "Salvar alterações" : "Criar Curso"}
                   </button>
