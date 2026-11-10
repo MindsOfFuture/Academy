@@ -18,6 +18,8 @@ export function UserDeleteConfirmModal({ user, onClose, onConfirm }: UserDeleteC
         setLoading(true);
         try {
             await onConfirm(formData);
+        } catch (err) {
+            alert(err instanceof Error ? err.message : "Falha ao excluir usuário");
         } finally {
             setLoading(false);
         }

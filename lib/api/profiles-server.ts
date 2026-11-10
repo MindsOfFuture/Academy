@@ -423,7 +423,8 @@ export async function deleteUserAction(formData: FormData) {
 
     // 1. Delete auth user — triggers scrub_deleted_user_personal_data()
     //    which anonymizes user_profile and deletes personal data tables.
-    await adminClient.auth.admin.deleteUser(id);
+    const { error: deleteAuthError } = await adminClient.auth.admin.deleteUser(id);
+    if (deleteAuthError) throw new Error("Não foi possível excluir o usuário.");
 
     // 2. Clean up remaining personal-data tables (safety net if trigger missed any)
     await adminClient.from("user_role").delete().eq("user_profile_id", id);
@@ -480,12 +481,14 @@ export async function updateUserAction(formData: FormData) {
     }
 
     // A tabela user_role não possui unique constraint em user_profile_id; realizamos delete + insert.
-    await adminClient.from("user_role").delete().eq("user_profile_id", id);
-    await adminClient.from("user_role").insert({
+    const { error: roleDeleteError } = await adminClient.from("user_role").delete().eq("user_profile_id", id);
+    if (roleDeleteError) throw new Error("Não foi possível atualizar o papel do usuário.");
+    const { error: roleInsertError } = await adminClient.from("user_role").insert({
         user_profile_id: id,
         role_id: roleId,
         granted_by: currentUser.id,
     });
+    if (roleInsertError) throw new Error("Não foi possível atualizar o papel do usuário.");
 
     if (desiredRole === "teacher") {
         const { data: profile } = await adminClient
@@ -597,12 +600,13 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
             .maybeSingle();
 
         if (existingTd) {
-            await serviceRoleClient
+            const { error: tdError } = await serviceRoleClient
                 .from("teacher_details")
                 .update(teacherDetailsUpdate)
                 .eq("user_id", user.id);
+            if (tdError) throw new Error("Não foi possível salvar os dados de professor.");
         } else {
-            await serviceRoleClient
+            const { error: tdError } = await serviceRoleClient
                 .from("teacher_details")
                 .insert({
                     user_id: user.id,
@@ -610,6 +614,7 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
                     education_level: params.educationLevel?.trim() || '',
                     degree: params.degree?.trim() || '',
                 });
+            if (tdError) throw new Error("Não foi possível salvar os dados de professor.");
         }
     }
 
@@ -646,12 +651,13 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
             .maybeSingle();
 
         if (requestRow?.id) {
-            await serviceRoleClient
+            const { error: trError } = await serviceRoleClient
                 .from("teacher_request")
                 .update({ qualification_document_url: nextQualificationDocumentUrl })
                 .eq("id", requestRow.id);
+            if (trError) throw new Error("Não foi possível salvar os dados de professor.");
         } else {
-            await serviceRoleClient
+            const { error: trError } = await serviceRoleClient
                 .from("teacher_request")
                 .insert({
                     user_id: user.id,
@@ -659,6 +665,7 @@ export async function updateCurrentTeacherProfileWithReverification(params: {
                     qualification_document_url: nextQualificationDocumentUrl,
                     observations: "Comprovante de qualificação atualizado.",
                 });
+            if (trError) throw new Error("Não foi possível salvar os dados de professor.");
         }
     }
 
@@ -700,12 +707,13 @@ export async function ensureCurrentTeacherVerifiedForPublishing(): Promise<void>
         throw new Error("Apenas professores aprovados podem executar esta ação.");
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from("user_profile")
         .select("verification_status")
         .eq("id", user.id)
         .maybeSingle();
 
+    if (error) throw new Error("Erro ao consultar o status do professor.");
     if (data?.verification_status !== "approved") {
         throw new Error("Professor não verificado. Aguarde aprovação do administrador.");
     }

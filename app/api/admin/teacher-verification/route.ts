@@ -12,7 +12,11 @@ export async function GET() {
         return NextResponse.json(pendingTeachers);
     } catch (error) {
         console.error("Erro ao listar professores pendentes:", error);
-        return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+        const msg = error instanceof Error ? error.message.toLowerCase() : "";
+        if (msg.includes("acesso negado") || msg.includes("não autenticado")) {
+            return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+        }
+        return NextResponse.json({ error: "Erro ao listar professores pendentes" }, { status: 500 });
     }
 }
 
@@ -40,7 +44,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Erro ao atualizar verificação";
-        const status = message.toLowerCase().includes("acesso negado") ? 403 : 500;
+        const msg = message.toLowerCase();
+        const status = msg.includes("acesso negado")
+            ? 403
+            : msg.includes("não é professor") || msg.includes("sem anexo")
+                ? 400
+                : 500;
         return NextResponse.json({ error: message }, { status });
     }
 }

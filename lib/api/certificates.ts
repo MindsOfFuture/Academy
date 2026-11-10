@@ -38,38 +38,45 @@ export async function checkCourseCompletion(courseId: string): Promise<CourseCom
     if (!user) throw new Error("Usuário não autenticado.");
 
     // 1. Buscar enrollment
-    const { data: enrollment } = await supabase
+    const { data: enrollment, error: enrollmentError } = await supabase
         .from("enrollment")
         .select("id")
         .eq("course_id", courseId)
         .eq("user_id", user.id)
         .maybeSingle();
 
+    if (enrollmentError) throw new Error("Não foi possível verificar a conclusão do curso.");
     if (!enrollment) throw new Error("Usuário não matriculado neste curso.");
 
     // 2. Buscar total de aulas do curso
-    const { data: lessons } = await supabase
+    const { data: lessons, error: lessonsError } = await supabase
         .from("lesson")
         .select("id")
         .eq("course_id", courseId);
 
+    if (lessonsError) throw new Error("Não foi possível verificar a conclusão do curso.");
+
     const totalLessons = lessons?.length ?? 0;
 
     // 3. Buscar aulas concluídas
-    const { data: completedProgress } = await supabase
+    const { data: completedProgress, error: progressError } = await supabase
         .from("lesson_progress")
         .select("lesson_id")
         .eq("enrollment_id", enrollment.id)
         .eq("is_completed", true);
 
+    if (progressError) throw new Error("Não foi possível verificar a conclusão do curso.");
+
     const completedLessons = completedProgress?.length ?? 0;
     const allLessonsCompleted = totalLessons > 0 && completedLessons >= totalLessons;
 
     // 4. Buscar todas as atividades do curso
-    const { data: assignments } = await supabase
+    const { data: assignments, error: assignmentsError } = await supabase
         .from("assignment")
         .select("id, title, max_score, lesson!inner(course_id)")
         .eq("lesson.course_id", courseId);
+
+    if (assignmentsError) throw new Error("Não foi possível verificar a conclusão do curso.");
 
     const totalAssignments = assignments?.length ?? 0;
 
@@ -93,11 +100,13 @@ export async function checkCourseCompletion(courseId: string): Promise<CourseCom
 
     // 6. Buscar submissões do aluno para essas atividades
     const assignmentIds = assignments!.map(a => a.id);
-    const { data: submissions } = await supabase
+    const { data: submissions, error: submissionsError } = await supabase
         .from("assignment_submission")
         .select("assignment_id, score, graded_at")
         .in("assignment_id", assignmentIds)
         .eq("user_id", user.id);
+
+    if (submissionsError) throw new Error("Não foi possível verificar a conclusão do curso.");
 
     const submissionMap = new Map<string, { score: number | null; gradedAt: string | null }>();
     for (const sub of (submissions || [])) {

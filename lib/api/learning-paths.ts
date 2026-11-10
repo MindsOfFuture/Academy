@@ -321,12 +321,12 @@ export async function reorderCoursesInPath(
     if (role === "teacher" && userId) {
         const courseIds = courseOrders.map((item) => item.courseId);
         if (courseIds.length > 0) {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from("course")
                 .select("id, owner_id")
                 .in("id", courseIds);
-            const allOwned = (data || []).every((row) => row.owner_id === userId);
-            if (!allOwned) {
+            if (error) throw new Error("Erro ao verificar os cursos da trilha.");
+            if (!data || data.length !== new Set(courseIds).size || !data.every((row) => row.owner_id === userId)) {
                 throw new Error("Acesso negado.");
             }
         }
