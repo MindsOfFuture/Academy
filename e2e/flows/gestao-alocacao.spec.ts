@@ -83,7 +83,8 @@ test.beforeAll(async () => {
   if (login) throw new Error(`login da coordenação de teste: ${login.message}`);
   const { error } = await supabase.schema('gestao').rpc('limpar_encontros_de_teste');
   if (error) throw new Error(`limpeza dos encontros de teste: ${error.message}`);
-  await supabase.auth.signOut();
+  // local: o padrão (global) encerraria também a sessão da coordenação no navegador dos testes.
+  await supabase.auth.signOut({ scope: 'local' });
 });
 
 test('coordenação: cria, edita, conclui e confere no histórico', async ({ page }) => {
