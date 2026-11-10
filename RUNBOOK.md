@@ -42,6 +42,24 @@ procedimento de release com snapshot, health check e rollback automático.
 roda de fato é o script de release (`deploy-exact-<commit>.sh` em `/root/`),
 que encapsula os passos abaixo.
 
+### 2.0 Do commit à produção
+
+Push na `main` dispara o deploy (`.github/workflows/deploy.yml`), então nada
+chega à `main` sem passar pelo CI antes:
+
+1. Commit e push na `development`.
+2. Esperar **Tests** e **Playwright Tests** verdes nesse commit. Vermelho: parar
+   e corrigir na `development`, nunca mergear "porque passa aqui".
+3. `git fetch`, `main` atualizada com `origin/main` (`--ff-only`), merge
+   `--no-ff` da `origin/development` e push da `main`.
+4. Conferir **Deploy (VPS)** e o smoke (§2.4) verdes.
+
+O E2E roda **em fila** (`concurrency: e2e-banco-compartilhado`, sem cancelar a
+anterior): todas as execuções usam o mesmo banco de teste e as mesmas contas, e
+duas ao mesmo tempo derrubavam o login uma da outra (10/11/2026). Pelo mesmo
+motivo, spec que sai da conta usa `signOut({ scope: 'local' })`; o padrão
+(`global`) encerra a sessão da conta em toda execução paralela.
+
 ### 2.1 Pré-requisitos
 
 - Acesso SSH por chave: `ssh root@179.199.131.19` (o device de uso tem acesso
@@ -317,6 +335,9 @@ Sintomas → ação (todos verificáveis):
 | `duplicate listen options` no reload | `.bak` dentro de `sites-enabled` | Mover backup para `/root/nginx-backups/`, `nginx -t`, reload |
 | Build falha `Missing API key` | Env não carregado no build | `set -a; . /etc/academy.env; set +a` antes do `npm run build` |
 | Email nunca chega | `RESEND_TEST_RECIPIENT` preenchida / endereço sem regra no routing | Esvaziar a env / conferir regras do Cloudflare |
+| Ping responde, mas 22/80/443 dão timeout (inclusive SSH) | VPS presa em **modo de emergência** após boot: disco `/boot` demorou a aparecer e `local-fs.target` falhou. Visto de 23/10/2026 19:35 a 24/10/2026 14:30 UTC, após parada abrupta do host às 18:30 | Reiniciar pelo hPanel. Prevenção aplicada em 24/10/2026: `/boot` e `/boot/efi` com `nofail,x-systemd.device-timeout=60` no `/etc/fstab` (backup em `/root/fstab.bak-20261024-144448`). Confirmar com `journalctl -b -1 \| grep -i emergency` |
+| Logado, mas notificações, telemetria ou gestão respondem como sem login (401 / volta para `/auth`) | Desde 10/11/2026 essas leituras conferem o login localmente (`usuarioDaRequisicao`, `getClaims`, ADR 023); falha na conferência conta como sem login, de propósito | Ver o status do Supabase Auth e se as chaves JWT do projeto mudaram; sair e entrar de novo renova o token. Não trocar para "deixar passar" |
+| E2E vermelho no CI só em "hero deve ser exibido corretamente em mobile" (foto da equipe não carrega em 20s), resto verde | Visto uma vez em 10/11/2026, nos três celulares e nas três tentativas; passou na execução seguinte sem mudança no site. Mais provável: o preparo da foto (`/_next/image`) travou no servidor de teste e os pedidos seguintes da mesma imagem esperaram o primeiro | Rodar o CI de novo. A mensagem do teste mostra o estado da imagem (pedida ou não, posição, rolagem). Se repetir: servir a foto sem preparo (`unoptimized`, arquivo de 117 KB) |
 | App fora do ar, causa desconhecida | — | `rollback-academy-current.sh apply` (§3) ou snapshot `academy.rollback-*` |
 | Botão de formulário preso em "Lançando…"/"Concluindo…", mas o dado gravou (a gestão mostra certo ao recarregar) | Corrida conhecida do Next 15 + React 19 no build de produção: a resposta da ação chega e a tela não confirma ([vercel/next.js#82289](https://github.com/vercel/next.js/discussions/82289), [#88767](https://github.com/vercel/next.js/discussions/88767)). Visto em 19/10/2026 no E2E com o build (Next 15.5.21, React 19.1.0); sem relato de usuário até então | Recarregar a página. Se a coordenação relatar com frequência: trocar a versão do Next/React (decisão adiada em 19/10/2026), não mexer nos formulários |
 
