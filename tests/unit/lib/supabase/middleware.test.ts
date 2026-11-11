@@ -15,6 +15,9 @@ describe("isPublicPath", () => {
         expect(isPublicPath("/")).toBe(true);
         expect(isPublicPath("/auth")).toBe(true);
         expect(isPublicPath("/api/auth/teacher-qualification-upload")).toBe(true);
+        expect(isPublicPath("/teste")).toBe(true);
+        expect(isPublicPath("/teste/resultado")).toBe(true);
+        expect(isPublicPath("/testemunhos")).toBe(false);
     });
 
     it("só aceita o prefixo público em uma fronteira de segmento", () => {
