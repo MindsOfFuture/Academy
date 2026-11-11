@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
-import { getArticleBySlug, getArticleById } from "@/lib/api/articles";
+import Footer from "@/components/footer/footer";
+import ArticleCard from "@/components/ourArticles/articleCard";
+import { getArticles, getArticleBySlug, getArticleById } from "@/lib/api/articles";
+import type { ArticleSummary } from "@/lib/api/types";
 import { ArrowLeft, Calendar, Clock, Share2, Users, BookOpen, ExternalLink, Fingerprint, Tags } from "lucide-react";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { separarMetadados, type MetadadosArtigo } from "@/lib/utils/artigo-metadados";
@@ -114,6 +117,62 @@ const formatDate = (dateString: string) =>
     timeZone: "America/Sao_Paulo",
   });
 
+function ListaDeArtigos({ articles }: { articles: ArticleSummary[] }) {
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      <Navbar showTextLogo={true} />
+
+      <header className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-16 mt-8">
+        <div className="rounded-[14px] bg-[#684A97] px-6 py-10 md:px-12 md:py-14 text-white">
+          <h1 className="text-3xl md:text-5xl font-bold text-[#FFD300]">Nossos Artigos</h1>
+          <p className="mt-3 max-w-[560px]">
+            Descubra tudo o que o nosso projeto já publicou. Escolha um artigo e boa leitura!
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#684A97]"
+          >
+            <ArrowLeft size={16} />
+            Voltar para o início
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-16 py-12">
+        {articles.length > 0 ? (
+          <>
+            <p className="mb-6 flex items-center gap-2 text-sm text-gray-600">
+              <span className="h-2 w-2 rounded-full bg-[#E8473A]" />
+              {articles.length} {articles.length === 1 ? "artigo" : "artigos"}
+            </p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+              {articles.map((a, i) => (
+                <li key={a.id}>
+                  <ArticleCard article={a} index={i % 3} />
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <div className="flex flex-col items-center text-center py-16">
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">Ainda não temos artigos por aqui</h2>
+            <p className="text-gray-600 mb-8">Volte em breve para conferir as novidades.</p>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full bg-[#684A97] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#5a3f7d]"
+            >
+              <ArrowLeft size={18} />
+              Voltar para o início
+            </Link>
+          </div>
+        )}
+      </main>
+
+      <Footer socials={[]} />
+    </div>
+  );
+}
+
 export default async function ArticlePage({
   searchParams,
 }: {
@@ -121,11 +180,13 @@ export default async function ArticlePage({
 }) {
   const { slug: bruto } = await searchParams;
   const slug = Array.isArray(bruto) ? bruto[0] : bruto;
+  if (!slug) return <ListaDeArtigos articles={await getArticles()} />;
+
   // Mesma ordem da rota de API: slug primeiro, depois id
-  const article = slug ? (await getArticleBySlug(slug)) ?? (await getArticleById(slug)) : null;
+  const article = (await getArticleBySlug(slug)) ?? (await getArticleById(slug));
 
   // Not Found State
-  if (!slug || !article) {
+  if (!article) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar showTextLogo={true} />
@@ -138,7 +199,7 @@ export default async function ArticlePage({
               O conteúdo que você procura pode ter sido removido ou não está mais disponível.
             </p>
             <Link
-              href="/#our-articles"
+              href="/artigos"
               className="inline-flex items-center gap-2 bg-[#684A97] text-white px-6 py-3 rounded-full font-medium hover:bg-[#5a3f7d] transition-transform hover:scale-105 shadow-md"
             >
               <ArrowLeft size={18} />
@@ -146,6 +207,7 @@ export default async function ArticlePage({
             </Link>
           </div>
         </div>
+        <Footer socials={[]} />
       </div>
     );
   }
@@ -158,7 +220,7 @@ export default async function ArticlePage({
         {/* Floating Back Button - Desktop */}
         <div className="fixed left-8 top-32 z-40 hidden xl:block">
           <Link
-            href="/#our-articles"
+            href="/artigos"
             className="flex items-center justify-center w-12 h-12 bg-white/80 backdrop-blur-md border border-gray-200 text-gray-600 rounded-full shadow-sm hover:text-[#684A97] hover:border-[#684A97] transition-all duration-300 group"
             title="Voltar"
           >
@@ -188,7 +250,7 @@ export default async function ArticlePage({
           <div className="relative z-20 container mx-auto px-4 h-full flex flex-col justify-end pb-16 max-w-4xl">
             <div className="motion-safe:animate-artigo-hero">
               <Link
-                href="/#our-articles"
+                href="/artigos"
                 className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 xl:hidden text-sm font-medium backdrop-blur-sm bg-black/20 px-3 py-1.5 rounded-full w-fit"
               >
                 <ArrowLeft size={16} />
@@ -287,7 +349,7 @@ export default async function ArticlePage({
           {/* Footer Navigation */}
           <div className="mt-20 pt-10 border-t border-gray-100 flex justify-between items-center">
             <Link
-              href="/#our-articles"
+              href="/artigos"
               className="group flex items-center gap-3 text-gray-500 hover:text-[#684A97] transition-colors"
             >
               <div className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center group-hover:border-[#684A97] group-hover:bg-[#684A97] group-hover:text-white transition-all">
@@ -301,6 +363,7 @@ export default async function ArticlePage({
           </div>
         </div>
       </main>
+      <Footer socials={[]} />
     </div>
   );
 }

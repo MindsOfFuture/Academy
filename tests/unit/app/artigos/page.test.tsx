@@ -3,11 +3,15 @@ import { render, screen } from "@testing-library/react";
 
 const getArticleBySlug = vi.fn();
 const getArticleById = vi.fn();
+const getArticles = vi.fn();
 vi.mock("@/lib/api/articles", () => ({
+  getArticles: () => getArticles(),
   getArticleBySlug: (s: string) => getArticleBySlug(s),
   getArticleById: (s: string) => getArticleById(s),
 }));
 vi.mock("@/components/navbar/navbar", () => ({ default: () => <nav /> }));
+vi.mock("@/components/footer/footer", () => ({ default: () => <footer /> }));
+vi.mock("framer-motion", () => ({ motion: { div: ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={className}>{children}</div> } }));
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
   default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
@@ -33,6 +37,7 @@ describe("ArticlePage", () => {
   beforeEach(() => {
     getArticleBySlug.mockReset();
     getArticleById.mockReset();
+    getArticles.mockReset();
   });
 
   it("mostra o artigo achado por slug e remove script", async () => {
@@ -75,11 +80,27 @@ describe("ArticlePage", () => {
     expect(screen.getByText("Robôs na escola")).toBeTruthy();
   });
 
-  it("sem slug não consulta", async () => {
+  it("sem slug lista os artigos publicados", async () => {
+    getArticles.mockResolvedValue([
+      { id: "1", title: "Robôs na escola", slug: "robos", excerpt: null, coverUrl: null, authorId: null, publishedAt: null },
+      { id: "2", title: "Lego no recreio", slug: null, excerpt: null, coverUrl: null, authorId: null, publishedAt: null },
+    ]);
     await renderiza(undefined);
-    expect(screen.getByText("Artigo não encontrado")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Nossos Artigos");
+    expect(screen.getByText("2 artigos")).toBeTruthy();
+    expect(screen.getByText("Robôs na escola")).toBeTruthy();
+    const links = screen.getAllByText("Ler mais →").map((a) => a.closest("a")?.getAttribute("href"));
+    expect(links).toEqual(["/artigos?slug=robos", "/artigos?slug=2"]);
+    expect(screen.queryByText("Artigo não encontrado")).toBeNull();
     expect(getArticleBySlug).not.toHaveBeenCalled();
     expect(getArticleById).not.toHaveBeenCalled();
+  });
+
+  it("sem slug e sem artigos mostra o estado vazio", async () => {
+    getArticles.mockResolvedValue([]);
+    await renderiza(undefined);
+    expect(screen.getByText("Ainda não temos artigos por aqui")).toBeTruthy();
+    expect(screen.queryByRole("list")).toBeNull();
   });
 
   it("nenhum acha", async () => {
@@ -87,5 +108,7 @@ describe("ArticlePage", () => {
     getArticleById.mockResolvedValue(null);
     await renderiza("x");
     expect(screen.getByText("Artigo não encontrado")).toBeTruthy();
+    expect(getArticles).not.toHaveBeenCalled();
+    expect(screen.getByText("Voltar para a biblioteca").closest("a")?.getAttribute("href")).toBe("/artigos");
   });
 });
