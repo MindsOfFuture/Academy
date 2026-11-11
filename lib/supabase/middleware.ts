@@ -13,6 +13,7 @@ const PUBLIC_PATH_PREFIXES = [
   "/artigos",
   "/validar",
   "/creditos",
+  "/teste",
   "/api/articles",
   "/api/auth/oauth-complete-profile",
   "/api/auth/oauth-ensure-teacher-role",
