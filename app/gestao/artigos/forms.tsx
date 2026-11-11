@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ArtigoGestao, EstadoAcao } from "@/lib/api/gestao/types";
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
+import { separarMetadados } from "@/lib/utils/artigo-metadados";
 import { salvarArtigoAction } from "./actions";
 
 const areaTexto =
@@ -14,6 +15,7 @@ const areaTexto =
 
 export function FormArtigo({ artigo }: { artigo: ArtigoGestao | null }) {
   const [estado, acao, enviando] = useActionState<EstadoAcao | null, FormData>(salvarArtigoAction, null);
+  const { corpo, metadados } = separarMetadados(artigo?.conteudo ?? "");
   return (
     <form action={acao} className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
       <input type="hidden" name="id" value={artigo?.id ?? ""} />
@@ -22,17 +24,30 @@ export function FormArtigo({ artigo }: { artigo: ArtigoGestao | null }) {
         <Input name="titulo" required maxLength={200} defaultValue={artigo?.titulo} />
       </label>
       <label className="block space-y-1">
-        <span className={rotuloCampo}>Endereço</span>
-        <Input name="slug" maxLength={80} defaultValue={artigo?.slug} />
-      </label>
-      <label className="block space-y-1">
         <span className={rotuloCampo}>Resumo</span>
         <textarea name="resumo" rows={3} maxLength={500} className={areaTexto} defaultValue={artigo?.resumo ?? ""} />
       </label>
       <label className="block space-y-1">
         <span className={rotuloCampo}>Conteúdo</span>
-        <textarea name="conteudo" rows={20} className={areaTexto} defaultValue={artigo?.conteudo ?? ""} />
+        <textarea name="conteudo" rows={20} className={areaTexto} defaultValue={corpo} />
       </label>
+      <fieldset className="space-y-3 rounded-md border p-3">
+        <legend className={`${rotuloCampo} px-1`}>Informações da Publicação</legend>
+        {(
+          [
+            ["autores", "Autores", "text"],
+            ["publicadoEm", "Publicado em", "text"],
+            ["doi", "DOI", "url"],
+            ["palavrasChave", "Palavras-chave", "text"],
+            ["link", "Link", "url"],
+          ] as const
+        ).map(([nome, rotulo, tipo]) => (
+          <label key={nome} className="block space-y-1">
+            <span className={rotuloCampo}>{rotulo}</span>
+            <Input name={nome} type={tipo} maxLength={500} defaultValue={metadados[nome] ?? ""} />
+          </label>
+        ))}
+      </fieldset>
       <div className="space-y-1">
         <label htmlFor="capa-artigo" className={rotuloCampo}>
           Capa

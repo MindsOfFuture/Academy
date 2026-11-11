@@ -2,58 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
 import { getArticleBySlug, getArticleById } from "@/lib/api/articles";
-import { ArrowLeft, Calendar, Clock, Share2, Users, BookOpen, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Share2, Users, BookOpen, ExternalLink, Fingerprint, Tags } from "lucide-react";
 import { sanitizeRichText } from "@/lib/sanitize";
-
-// Extrai metadados do artigo (Authors, Published in, Link) do conteúdo HTML
-function extractArticleMetadata(htmlContent: string): {
-  cleanedContent: string;
-  metadata: {
-    authors?: string;
-    publishedIn?: string;
-    link?: string;
-  };
-} {
-  const metadata: { authors?: string; publishedIn?: string; link?: string } = {};
-  let cleanedContent = htmlContent;
-
-  // O conteúdo vem em formato Markdown com **texto**
-  // Formato: **Authors:** texto **Published in:** texto **Link:** url
-
-  // Extrai Authors - formato **Authors:** texto
-  const authorsMatch = htmlContent.match(/\*\*Authors?:\*\*\s*([^*]+?)(?=\s*\*\*|$)/i);
-  if (authorsMatch) {
-    metadata.authors = authorsMatch[1].trim();
-  }
-
-  // Extrai Published in - formato **Published in:** texto
-  const publishedMatch = htmlContent.match(/\*\*Published\s*in:\*\*\s*([^*]+?)(?=\s*\*\*|$)/i);
-  if (publishedMatch) {
-    metadata.publishedIn = publishedMatch[1].trim();
-  }
-
-  // Extrai Link - formato **Link:** url
-  const linkMatch = htmlContent.match(/\*\*Link:\*\*\s*(https?:\/\/[^\s<"*]+)/i);
-  if (linkMatch) {
-    metadata.link = linkMatch[1].trim();
-  }
-
-  // Remove a linha/parágrafo que contém os metadados do conteúdo principal
-  // Procura pelo padrão completo e remove
-  if (metadata.authors || metadata.publishedIn || metadata.link) {
-    // Remove o trecho que contém **Authors:** ... **Published in:** ... **Link:** ...
-    cleanedContent = cleanedContent.replace(
-      /\*\*Authors?:\*\*\s*[^*]+?\s*\*\*Published\s*in:\*\*\s*[^*]+?\s*\*\*Link:\*\*\s*https?:\/\/[^\s<"]+/gi,
-      ''
-    );
-  }
-
-  return { cleanedContent, metadata };
-}
+import { separarMetadados, type MetadadosArtigo } from "@/lib/utils/artigo-metadados";
 
 // Componente para exibir metadados do artigo de forma elegante
-function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publishedIn?: string; link?: string } }) {
-  if (!metadata.authors && !metadata.publishedIn && !metadata.link) {
+function ArticleMetadataCard({ metadata }: { metadata: MetadadosArtigo }) {
+  const link = metadata.link && /^https?:\/\//i.test(metadata.link) ? metadata.link : undefined;
+  const doiHref = metadata.doi && (/^https?:\/\//i.test(metadata.doi) ? metadata.doi : `https://doi.org/${metadata.doi}`);
+  if (!metadata.autores && !metadata.publicadoEm && !metadata.doi && !metadata.palavrasChave && !link) {
     return null;
   }
 
@@ -67,31 +24,62 @@ function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publi
       </h3>
 
       <div className="space-y-4">
-        {metadata.authors && (
+        {metadata.autores && (
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
               <Users size={18} className="text-[#684A97]" />
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Autores</p>
-              <p className="text-gray-800 font-medium">{metadata.authors}</p>
+              <p className="text-gray-800 font-medium">{metadata.autores}</p>
             </div>
           </div>
         )}
 
-        {metadata.publishedIn && (
+        {metadata.publicadoEm && (
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
               <BookOpen size={18} className="text-[#684A97]" />
             </div>
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Publicado em</p>
-              <p className="text-gray-800">{metadata.publishedIn}</p>
+              <p className="text-gray-800">{metadata.publicadoEm}</p>
             </div>
           </div>
         )}
 
-        {metadata.link && (
+        {metadata.doi && (
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
+              <Fingerprint size={18} className="text-[#684A97]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">DOI</p>
+              <a
+                href={doiHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-[#684A97] hover:text-[#5a3f7d] underline underline-offset-2 decoration-[#684A97]/30 hover:decoration-[#684A97]"
+              >
+                {metadata.doi}
+              </a>
+            </div>
+          </div>
+        )}
+
+        {metadata.palavrasChave && (
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
+              <Tags size={18} className="text-[#684A97]" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Palavras-chave</p>
+              <p className="text-gray-800">{metadata.palavrasChave}</p>
+            </div>
+          </div>
+        )}
+
+        {link && (
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#684A97]/10 flex items-center justify-center">
               <ExternalLink size={18} className="text-[#684A97]" />
@@ -99,7 +87,7 @@ function ArticleMetadataCard({ metadata }: { metadata: { authors?: string; publi
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Link Original</p>
               <a
-                href={metadata.link}
+                href={link}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-[#684A97] hover:text-[#5a3f7d] font-medium transition-colors group"
@@ -266,14 +254,14 @@ export default async function ArticlePage({
 
               {article.content ? (
                 (() => {
-                  const { cleanedContent, metadata } = extractArticleMetadata(article.content);
+                  const { corpo, metadados } = separarMetadados(article.content);
                   return (
                     <>
                       {/* /artigos é rota pública: o HTML do artigo precisa ser
                           sanitizado antes de virar innerHTML, senão vira XSS
                           armazenado para todo visitante. */}
-                      <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(cleanedContent) }} />
-                      <ArticleMetadataCard metadata={metadata} />
+                      <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(corpo) }} />
+                      <ArticleMetadataCard metadata={metadados} />
                     </>
                   );
                 })()

@@ -44,6 +44,29 @@ describe("ArticlePage", () => {
     expect(getArticleById).not.toHaveBeenCalled();
   });
 
+  it("mostra os metadados só no quadro, com DOI e palavras-chave", async () => {
+    getArticleBySlug.mockResolvedValue({
+      ...artigo,
+      content: [
+        "Corpo do artigo.",
+        "**Authors:** Ana Souza",
+        "**Published in:** ARACÊ, 2025",
+        "**DOI:** https://doi.org/10.1/x",
+        "**Keywords:** Robótica, Escola",
+        "**Link:** https://site.org/a",
+      ].join("\n\n"),
+    });
+    const { container } = await renderiza("x");
+    const texto = container.textContent ?? "";
+    expect(texto).not.toContain("**Authors:**");
+    expect(texto).not.toContain("**DOI:**");
+    expect(screen.getByText("Ana Souza")).toBeTruthy();
+    expect(screen.getByText("ARACÊ, 2025")).toBeTruthy();
+    expect(screen.getByText("https://doi.org/10.1/x").closest("a")?.getAttribute("href")).toBe("https://doi.org/10.1/x");
+    expect(screen.getByText("Robótica, Escola")).toBeTruthy();
+    expect(screen.getByText("Acessar publicação").closest("a")?.getAttribute("href")).toBe("https://site.org/a");
+  });
+
   it("cai para o id quando o slug não acha", async () => {
     getArticleBySlug.mockResolvedValue(null);
     getArticleById.mockResolvedValue(artigo);

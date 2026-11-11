@@ -16,6 +16,7 @@ import type {
   StatusMelhoria,
   StatusTurma,
 } from "./types";
+import { montarConteudo } from "@/lib/utils/artigo-metadados";
 
 /**
  * Validadores pequenos dos formulários da gestão (sem biblioteca de validação,
@@ -389,14 +390,29 @@ export function slugDe(valor: string): string {
 
 export function validarArtigo(form: FormData): Validado<DadosArtigo> {
   const titulo = texto(form, "titulo");
-  const slug = slugDe(texto(form, "slug") || titulo);
+  const slug = slugDe(titulo);
   const status = form.get("status");
   const resumo = texto(form, "resumo") || null;
-  const conteudo = texto(form, "conteudo") || null;
+  const corpo = texto(form, "conteudo");
+  const metadados = {
+    autores: texto(form, "autores"),
+    publicadoEm: texto(form, "publicadoEm"),
+    doi: texto(form, "doi"),
+    palavrasChave: texto(form, "palavrasChave"),
+    link: texto(form, "link"),
+  };
   if (!titulo || titulo.length > 200) return { ok: false, mensagem: "Dê um título ao artigo (até 200 caracteres)." };
-  if (!slug) return { ok: false, mensagem: "Informe um endereço com letras ou números." };
+  if (!slug) return { ok: false, mensagem: "O título precisa ter letras ou números." };
   if (status !== "draft" && status !== "published") return { ok: false, mensagem: "Escolha o status." };
-  if (status === "published" && !conteudo) return { ok: false, mensagem: "Escreva o conteúdo antes de publicar." };
+  if (status === "published" && !corpo) return { ok: false, mensagem: "Escreva o conteúdo antes de publicar." };
+  for (const valor of [metadados.autores, metadados.publicadoEm, metadados.palavrasChave]) {
+    if (valor.length > 500) return { ok: false, mensagem: "Os campos da publicação podem ter até 500 caracteres." };
+    if (/[*<\r\n]/.test(valor)) return { ok: false, mensagem: "Os campos da publicação não aceitam * nem <." };
+  }
+  const url = (v: string) => !v || (v.length <= 500 && /^https?:\/\/[^\s<"*]+$/i.test(v));
+  if (!url(metadados.doi)) return { ok: false, mensagem: "O DOI precisa começar com http:// ou https://." };
+  if (!url(metadados.link)) return { ok: false, mensagem: "O link precisa começar com http:// ou https://." };
+  const conteudo = montarConteudo(corpo, metadados) || null;
   return { ok: true, valor: { titulo, slug, resumo, conteudo, status } };
 }
 

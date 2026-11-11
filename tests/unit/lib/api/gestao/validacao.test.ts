@@ -158,19 +158,56 @@ describe("artigos do site", () => {
     expect(slugDe("a".repeat(100))).toHaveLength(80);
   });
 
-  it("validarArtigo usa o título quando o endereço vem vazio", () => {
-    const r = validarArtigo(form({ titulo: "Lego na Sala", slug: "", resumo: "  ", conteudo: "", status: "draft" }));
+  it("validarArtigo tira o endereço do título e ignora o slug enviado", () => {
+    const r = validarArtigo(form({ titulo: "Lego na Sala", slug: "outro", resumo: "  ", conteudo: "", status: "draft" }));
     expect(r).toEqual({
       ok: true,
       valor: { titulo: "Lego na Sala", slug: "lego-na-sala", resumo: null, conteudo: null, status: "draft" },
     });
   });
 
+  it("validarArtigo grava os campos da publicação no fim do conteúdo", () => {
+    const r = validarArtigo(
+      form({
+        titulo: "Ok",
+        conteudo: "Corpo.",
+        status: "published",
+        autores: "Ana, Bia",
+        doi: "https://doi.org/10.1/x",
+        link: "https://site.org/a",
+      }),
+    );
+    expect(r.ok && r.valor.conteudo).toBe("Corpo.\n\n**Autores:** Ana, Bia\n\n**DOI:** https://doi.org/10.1/x\n\n**Link:** https://site.org/a");
+  });
+
+  it("validarArtigo recusa campos da publicação inválidos e publicar só com metadados", () => {
+    const base = { titulo: "Ok", conteudo: "Corpo.", status: "draft" };
+    expect(validarArtigo(form({ ...base, autores: "A **B**" }))).toEqual({
+      ok: false,
+      mensagem: "Os campos da publicação não aceitam * nem <.",
+    });
+    expect(validarArtigo(form({ ...base, palavrasChave: "<b>x" })).ok).toBe(false);
+    expect(validarArtigo(form({ ...base, doi: "10.1/x" }))).toEqual({
+      ok: false,
+      mensagem: "O DOI precisa começar com http:// ou https://.",
+    });
+    expect(validarArtigo(form({ ...base, link: "javascript:alert(1)" }))).toEqual({
+      ok: false,
+      mensagem: "O link precisa começar com http:// ou https://.",
+    });
+    expect(validarArtigo(form({ titulo: "Ok", status: "published", autores: "Ana" }))).toEqual({
+      ok: false,
+      mensagem: "Escreva o conteúdo antes de publicar.",
+    });
+  });
+
   it("validarArtigo recusa sem título, status inválido e publicado sem conteúdo", () => {
     expect(validarArtigo(form({ titulo: "", status: "draft" })).ok).toBe(false);
     expect(validarArtigo(form({ titulo: "x".repeat(201), status: "draft" })).ok).toBe(false);
-    expect(validarArtigo(form({ titulo: "Ok", slug: "???", status: "draft" })).ok).toBe(false);
-    expect(validarArtigo(form({ titulo: "???", status: "draft" })).ok).toBe(false);
+    expect(validarArtigo(form({ titulo: "???", status: "draft" }))).toEqual({
+      ok: false,
+      mensagem: "O título precisa ter letras ou números.",
+    });
     expect(validarArtigo(form({ titulo: "Ok", status: "arquivado" })).ok).toBe(false);
     expect(validarArtigo(form({ titulo: "Ok", status: "published", conteudo: " " }))).toEqual({
       ok: false,

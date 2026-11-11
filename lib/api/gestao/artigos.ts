@@ -75,21 +75,32 @@ export async function enviarCapa(arquivo: File): Promise<string> {
 }
 
 function colunas(dados: DadosArtigo) {
-  return { title: dados.titulo, slug: dados.slug, excerpt: dados.resumo, content: dados.conteudo, status: dados.status };
+  // Sem slug: o endereço é fixado na criação e nunca muda.
+  return { title: dados.titulo, excerpt: dados.resumo, content: dados.conteudo, status: dados.status };
 }
 
+/** Cria o artigo; se o endereço já existe, tenta `-2`, `-3`… */
 export async function criarArtigo(dados: DadosArtigo, capaId: string | null): Promise<string> {
   const supabase = await createClient();
-  const id = crypto.randomUUID();
-  const { error } = await supabase.from("article").insert({
-    id,
-    ...colunas(dados),
-    cover_media_id: capaId,
-    author_id: await usuario(),
-    published_at: dados.status === "published" ? new Date().toISOString() : null,
-  });
-  if (error) throw new Error(error.message);
-  return id;
+  const autor = await usuario();
+  let ultimo = "";
+  for (let n = 1; n <= 50; n++) {
+    const sufixo = n > 1 ? `-${n}` : "";
+    const slug = dados.slug.slice(0, 80 - sufixo.length).replace(/-+$/, "") + sufixo;
+    const id = crypto.randomUUID();
+    const { error } = await supabase.from("article").insert({
+      id,
+      ...colunas(dados),
+      slug,
+      cover_media_id: capaId,
+      author_id: autor,
+      published_at: dados.status === "published" ? new Date().toISOString() : null,
+    });
+    if (!error) return id;
+    if (error.code !== "23505" || !error.message?.includes("article_slug_key")) throw new Error(error.message);
+    ultimo = error.message;
+  }
+  throw new Error(ultimo);
 }
 
 export async function atualizarArtigo(id: string, dados: DadosArtigo, capaId: string | null): Promise<void> {
