@@ -1,7 +1,8 @@
 import { atividadesDoMes, encontrosDoMes } from "@/lib/api/gestao/relatorio";
 import { exigirMembro } from "../guard";
 import { diaCurto, hojeIso, mesCorrente, mesDaUrl, mesEditavel } from "../alocacao/rotulos";
-import { FormAtividade, LinhaAtividade } from "./forms";
+import { FormAtividade, FormLinkEncontro, LinhaAtividade } from "./forms";
+import { jaComecou } from "../alocacao/resumo";
 import { SeletorMes } from "../seletor-mes";
 import { RegistroDoMes } from "./registro";
 
@@ -43,6 +44,10 @@ export default async function RelatorioPage({ searchParams }: { searchParams: Pr
       <RegistroDoMes
         encontros={encontros}
         atividades={atividades}
+        linhaEncontro={(e) =>
+          (e.situacao === "prevista" || e.situacao === "cumprida") &&
+          jaComecou(e) && <FormLinkEncontro key={`${e.encontroId}-${e.meuLink}`} encontroId={e.encontroId} link={e.meuLink} />
+        }
         linhaAtividade={
           editavel ? (a) => <LinhaAtividade atividade={a} dataMinima={dataMinima} dia={diaCurto(a.data)} /> : undefined
         }

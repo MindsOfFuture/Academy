@@ -634,6 +634,9 @@ export interface EncontroDoRelatorio {
     horas: number;
     /** Links de comprovação dos bolsistas do encontro, sem repetição. */
     links: string[];
+    inicio: string | null;
+    /** Link da própria pessoa; null quando não informou ou só cobriu. */
+    meuLink: string | null;
 }
 
 /** Atividade do relatório: o dono e a coordenação veem; só o dono edita. */

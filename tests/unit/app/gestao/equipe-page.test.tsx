@@ -60,7 +60,7 @@ vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => EQUIPE }))
 
 const { encontrosDoMes, atividadesDoMes } = vi.hoisted(() => ({
   encontrosDoMes: vi.fn(async (_mes: string, _pessoa?: string) => [
-    { encontroId: "e1", data: "2026-10-06", horario: "8h às 12h", descricao: "Lego", escolaNome: "EE A", turmaNome: null, situacao: "cumprida", horas: 4, links: [] },
+    { encontroId: "e1", data: "2026-10-06", horario: "8h às 12h", descricao: "Lego", escolaNome: "EE A", turmaNome: null, situacao: "cumprida", horas: 4, links: [], inicio: null, meuLink: null },
   ]),
   atividadesDoMes: vi.fn(async (_mes: string, _pessoa?: string) => [{ id: "a1", nome: "Preparei o material", data: "2026-10-08" }]),
 }));

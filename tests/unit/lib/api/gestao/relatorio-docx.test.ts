@@ -35,6 +35,8 @@ const ENCONTRO: EncontroDoRelatorio = {
   situacao: "cumprida",
   horas: 4,
   links: [],
+  inicio: null,
+  meuLink: null,
 };
 
 describe("relatório no modelo .docx", () => {

@@ -7,7 +7,7 @@ import { montarEncontros, type AgendaDoRelatorio } from "@/lib/api/gestao/relato
 import { validarAtividade } from "@/lib/api/gestao/validacao";
 
 function agenda(id: string, data: string, extra: Partial<AgendaDoRelatorio> = {}): AgendaDoRelatorio {
-  return { id, data, horario: "8h às 12h", modalidade: "Lego", aulas: null, cancelado_em: null, escola: { nome: "EE A" }, turma: null, agenda_bolsista: [], ...extra };
+  return { id, data, horario: "8h às 12h", inicio: null, modalidade: "Lego", aulas: null, cancelado_em: null, escola: { nome: "EE A" }, turma: null, agenda_bolsista: [], ...extra };
 }
 
 describe("montarEncontros — encontros do relatório", () => {
@@ -29,8 +29,8 @@ describe("montarEncontros — encontros do relatório", () => {
       ],
     );
     expect(lista).toEqual([
-      { encontroId: "a", data: "2026-11-03", horario: "8h às 12h", descricao: "Robótica", escolaNome: "EE A", turmaNome: "Turma 1", situacao: "cobertura", horas: 2, links: [] },
-      { encontroId: "b", data: "2026-11-05", horario: "8h às 12h", descricao: "Lego", escolaNome: null, turmaNome: null, situacao: "cumprida", horas: 4, links: [] },
+      { encontroId: "a", data: "2026-11-03", horario: "8h às 12h", descricao: "Robótica", escolaNome: "EE A", turmaNome: "Turma 1", situacao: "cobertura", horas: 2, links: [], inicio: null, meuLink: null },
+      { encontroId: "b", data: "2026-11-05", horario: "8h às 12h", descricao: "Lego", escolaNome: null, turmaNome: null, situacao: "cumprida", horas: 4, links: [], inicio: null, meuLink: null },
     ]);
   });
 
@@ -40,16 +40,38 @@ describe("montarEncontros — encontros do relatório", () => {
       [
         agenda("a", "2026-11-03", {
           agenda_bolsista: [
-            { situacao: "cumprida", link_comprovacao: "https://b.org" },
-            { situacao: "prevista", link_comprovacao: "https://a.org" },
-            { situacao: "cumprida", link_comprovacao: "https://b.org" },
-            { situacao: "faltou_avisou", link_comprovacao: "https://faltou.org" },
-            { situacao: "cumprida", link_comprovacao: null },
+            { bolsista_id: "p1", situacao: "cumprida", link_comprovacao: "https://b.org" },
+            { bolsista_id: "p2", situacao: "prevista", link_comprovacao: "https://a.org" },
+            { bolsista_id: "p3", situacao: "cumprida", link_comprovacao: "https://b.org" },
+            { bolsista_id: "p4", situacao: "faltou_avisou", link_comprovacao: "https://faltou.org" },
+            { bolsista_id: "p5", situacao: "cumprida", link_comprovacao: null },
           ],
         }),
       ],
     );
     expect(encontro.links).toEqual(["https://a.org", "https://b.org"]);
+  });
+
+  it("meuLink é o da própria pessoa, só se esteve no encontro", () => {
+    const encontros = (pessoa?: string) =>
+      montarEncontros(
+        [{ agenda_id: "a", situacao: "cumprida", horas: 4 }],
+        [
+          agenda("a", "2026-11-03", {
+            inicio: "08:00",
+            agenda_bolsista: [
+              { bolsista_id: "eu", situacao: "cumprida", link_comprovacao: "https://meu.org" },
+              { bolsista_id: "outro", situacao: "cumprida", link_comprovacao: "https://outro.org" },
+              { bolsista_id: "faltou", situacao: "faltou_avisou", link_comprovacao: "https://faltou.org" },
+            ],
+          }),
+        ],
+        pessoa,
+      )[0];
+    expect(encontros("eu")).toMatchObject({ inicio: "08:00", meuLink: "https://meu.org" });
+    expect(encontros("faltou").meuLink).toBeNull();
+    expect(encontros("ninguem").meuLink).toBeNull();
+    expect(encontros().meuLink).toBeNull();
   });
 });
 

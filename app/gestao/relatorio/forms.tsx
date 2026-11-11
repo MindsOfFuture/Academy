@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AtividadeRelatorio, EstadoAcao } from "@/lib/api/gestao/types";
 import { Aviso, rotuloCampo } from "../equipe/forms";
-import { apagarAtividadeAction, cadastrarAtividadeAction, editarAtividadeAction } from "./actions";
+import { apagarAtividadeAction, cadastrarAtividadeAction, editarAtividadeAction, salvarLinkEncontroAction } from "./actions";
 import { confirmarEnvio } from "@/components/ui/confirmar";
 
 /** Cadastra uma atividade; limpa o formulário depois de salvar. */
@@ -128,5 +128,43 @@ export function Comprovacao({ texto }: { texto: string | null }) {
         texto
       )}
     </p>
+  );
+}
+
+/** Link de comprovação de um encontro: botão que abre o campo no lugar. */
+export function FormLinkEncontro({ encontroId, link }: { encontroId: string; link: string | null }) {
+  const [aberto, setAberto] = useState(false);
+  const [valor, setValor] = useState(link ?? "");
+  const [estado, salvar, salvando] = useActionState<EstadoAcao | null, FormData>(salvarLinkEncontroAction, null);
+
+  useEffect(() => {
+    if (estado?.ok) setAberto(false);
+  }, [estado]);
+
+  if (!aberto) {
+    return (
+      <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setAberto(true)}>
+        {link ? "Editar link" : "Adicionar link"}
+      </Button>
+    );
+  }
+
+  return (
+    <form action={salvar} className="mt-2 space-y-2">
+      <input type="hidden" name="encontroId" value={encontroId} />
+      <label className="block space-y-1">
+        <span className={rotuloCampo}>Link de comprovação</span>
+        <Input name="link" type="url" maxLength={500} value={valor} onChange={(e) => setValor(e.target.value)} />
+      </label>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={salvando}>
+          {salvando ? "Salvando…" : "Salvar"}
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => setAberto(false)}>
+          Cancelar
+        </Button>
+      </div>
+      {estado && !estado.ok && <Aviso estado={estado} />}
+    </form>
   );
 }
