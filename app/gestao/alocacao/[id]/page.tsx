@@ -37,6 +37,7 @@ const CAMPO: Record<string, string> = {
   concluido_em: "concluído em",
   relatorio: "relatório",
   nota_encerramento: "nota de encerramento",
+  link_comprovacao: "link de comprovação",
 };
 
 function valorLegivel(v: unknown): string {

@@ -14,6 +14,7 @@ export function RegistroDoMes({
   atividades,
   vazio = "seu",
   linhaAtividade,
+  linhaEncontro,
   children,
 }: {
   encontros: EncontroDoRelatorio[];
@@ -22,6 +23,8 @@ export function RegistroDoMes({
   vazio?: string;
   /** Troca o texto da atividade (na aba Relatório em mês aberto, por editar/apagar). */
   linhaAtividade?: (a: AtividadeRelatorio) => ReactNode;
+  /** Embaixo do encontro (o link de comprovação, na aba Relatório). */
+  linhaEncontro?: (e: EncontroDoRelatorio) => ReactNode;
   /** Embaixo das outras atividades (o formulário, na aba Relatório). */
   children?: ReactNode;
 }) {
@@ -47,6 +50,10 @@ export function RegistroDoMes({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+                {e.links.map((l) => (
+                  <Comprovacao key={l} texto={l} />
+                ))}
+                {linhaEncontro?.(e)}
               </div>
               <p className="shrink-0 text-sm tabular-nums">{horasTexto(e.horas)}</p>
             </li>

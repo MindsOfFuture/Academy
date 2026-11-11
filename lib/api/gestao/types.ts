@@ -439,6 +439,7 @@ export interface AlocacaoRow {
     motivo: string | null;
     carga: string;
     nota_encerramento: string | null;
+    link_comprovacao: string | null;
 }
 
 export interface Alocacao {
@@ -455,6 +456,7 @@ export interface Alocacao {
     carga: string;
     /** Escrita pela própria pessoa depois do início; a última nota conclui o encontro. */
     notaEncerramento: string | null;
+    linkComprovacao: string | null;
 }
 
 export interface EncontroRow {
@@ -630,6 +632,11 @@ export interface EncontroDoRelatorio {
     /** "cobertura" quando a pessoa cobriu alguém. */
     situacao: SituacaoAlocacao | "cobertura";
     horas: number;
+    /** Links de comprovação dos bolsistas do encontro, sem repetição. */
+    links: string[];
+    inicio: string | null;
+    /** Link da própria pessoa; null quando não informou ou só cobriu. */
+    meuLink: string | null;
 }
 
 /** Atividade do relatório: o dono e a coordenação veem; só o dono edita. */
@@ -645,4 +652,48 @@ export interface NovaAtividade {
     nome: string;
     data: string;
     comprovacao: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Artigos do site (aba "Artigos" da coordenação)
+// ---------------------------------------------------------------------------
+
+export type StatusArtigo = "draft" | "published";
+
+export interface DadosArtigo {
+    titulo: string;
+    slug: string;
+    resumo: string | null;
+    conteudo: string | null;
+    status: StatusArtigo;
+}
+
+export interface ArtigoGestao extends DadosArtigo {
+    id: string;
+    capaUrl: string | null;
+    publicadoEm: string | null;
+    criadoEm: string;
+}
+
+// ---------------------------------------------------------------------------
+// Importação da planilha de calendário
+// ---------------------------------------------------------------------------
+
+/** Contagens do lote: as de importar sempre; as de desfazer depois de desfeito. */
+export interface ResumoImportacao {
+    encontros: number;
+    pulados: number;
+    escolas: number;
+    concluidos: number;
+    apagados: number | null;
+    escolasApagadas: number | null;
+    escolasMantidas: number | null;
+}
+
+export interface Importacao {
+    id: string;
+    arquivo: string;
+    criadoEm: string;
+    desfeitaEm: string | null;
+    resumo: ResumoImportacao;
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { createPublicClient, createClient as createServerSupabase } from "@/lib/supabase/server";
+// Rascunho nunca aparece no site, nem para quem a RLS deixa ler (admin, coordenação).
 import { type ArticleSummary, type ArticleRow, getMediaUrl } from "./types";
 
 export interface ArticleDetail extends ArticleSummary {
@@ -14,6 +15,7 @@ export async function getArticleBySlug(slug: string): Promise<ArticleDetail | nu
             `id, title, slug, excerpt, content, published_at, author:author_id(full_name), cover:media_file!article_cover_media_id_fkey(url)`
         )
         .eq("slug", slug)
+        .eq("status", "published")
         .single();
 
     if (error || !data) return null;
@@ -40,6 +42,7 @@ export async function getArticleById(id: string): Promise<ArticleDetail | null> 
             `id, title, slug, excerpt, content, published_at, author:author_id(full_name), cover:media_file!article_cover_media_id_fkey(url)`
         )
         .eq("id", id)
+        .eq("status", "published")
         .single();
 
     if (error || !data) return null;
@@ -66,6 +69,7 @@ export async function getArticles(): Promise<ArticleSummary[]> {
         .select(
             `id, title, slug, excerpt, published_at, author:author_id(full_name), cover:media_file!article_cover_media_id_fkey(url)`
         )
+        .eq("status", "published")
         .order("published_at", { ascending: false });
 
     if (error || !data) return [];

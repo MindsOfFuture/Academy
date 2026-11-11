@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ArticleSummary } from "@/lib/api/types";
 
 vi.mock("next/image", () => ({ default: () => null }));
-vi.mock("next/link", () => ({ default: ({ children }: { children: React.ReactNode }) => <span>{children}</span> }));
+vi.mock("next/link", () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
 vi.mock("swiper/react", () => ({
   Swiper: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SwiperSlide: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -34,5 +34,12 @@ describe("Datas de publicação", () => {
     browserTimezone = "Asia/Tokyo";
     rerender(<OurArticles articles={[article]} />);
     expect(screen.getByText("01/03/2026")).toBeInTheDocument();
+  });
+});
+
+describe("Link para a página de artigos", () => {
+  it("leva para /artigos", () => {
+    render(<OurArticles articles={[article]} />);
+    expect(screen.getByRole("link", { name: "Ver todos os artigos" })).toHaveAttribute("href", "/artigos");
   });
 });

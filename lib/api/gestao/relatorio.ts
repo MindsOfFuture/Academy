@@ -23,19 +23,30 @@ export interface AgendaDoRelatorio {
   id: string;
   data: string;
   horario: string;
+  inicio: string | null;
   modalidade: string;
   aulas: string | null;
   cancelado_em: string | null;
   escola: { nome: string } | { nome: string }[] | null;
   turma: { nome: string } | { nome: string }[] | null;
+  agenda_bolsista: { bolsista_id: string; situacao: SituacaoAlocacao; link_comprovacao: string | null }[];
 }
 
 function primeiro<T>(valor: T | T[] | null): T | null {
   return Array.isArray(valor) ? (valor[0] ?? null) : valor;
 }
 
-/** Junta as linhas de `v_carga` aos encontros, sem cancelados nem faltas. Em ordem de data. */
-export function montarEncontros(cargas: CargaDoRelatorio[], agendas: AgendaDoRelatorio[]): EncontroDoRelatorio[] {
+const PRESENTE = (b: { situacao: SituacaoAlocacao }) => b.situacao === "prevista" || b.situacao === "cumprida";
+
+/**
+ * Junta as linhas de `v_carga` aos encontros, sem cancelados nem faltas. Em ordem
+ * de data. `pessoa` escolhe de quem é o `meuLink`.
+ */
+export function montarEncontros(
+  cargas: CargaDoRelatorio[],
+  agendas: AgendaDoRelatorio[],
+  pessoa?: string,
+): EncontroDoRelatorio[] {
   const porId = new Map(agendas.map((a) => [a.id, a]));
   return cargas
     .filter((c) => ESTEVE.has(c.situacao))
@@ -52,6 +63,16 @@ export function montarEncontros(cargas: CargaDoRelatorio[], agendas: AgendaDoRel
           turmaNome: primeiro(a.turma)?.nome ?? null,
           situacao: c.situacao,
           horas: Number(c.horas),
+          links: [
+            ...new Set(
+              (a.agenda_bolsista ?? [])
+                .filter((b) => b.link_comprovacao && PRESENTE(b))
+                .map((b) => b.link_comprovacao as string),
+            ),
+          ].sort(),
+          inicio: a.inicio,
+          meuLink:
+            (a.agenda_bolsista ?? []).find((b) => pessoa && b.bolsista_id === pessoa && PRESENTE(b))?.link_comprovacao ?? null,
         },
       ];
     })
@@ -81,10 +102,12 @@ export async function encontrosDoMes(mes: string, pessoaId?: string): Promise<En
   const { data: agendas, error: erro } = await supabase
     .schema("gestao")
     .from("agenda")
-    .select("id, data, horario, modalidade, aulas, cancelado_em, escola(nome), turma(nome)")
+    .select(
+      "id, data, horario, inicio, modalidade, aulas, cancelado_em, escola(nome), turma(nome), agenda_bolsista(bolsista_id, situacao, link_comprovacao)",
+    )
     .in("id", ids);
   if (erro) throw new Error(erro.message);
-  return montarEncontros((cargas ?? []) as CargaDoRelatorio[], (agendas ?? []) as unknown as AgendaDoRelatorio[]);
+  return montarEncontros((cargas ?? []) as CargaDoRelatorio[], (agendas ?? []) as unknown as AgendaDoRelatorio[], pessoa);
 }
 
 export async function atividadesDoMes(mes: string, pessoaId?: string): Promise<AtividadeRelatorio[]> {
@@ -102,6 +125,15 @@ export async function atividadesDoMes(mes: string, pessoaId?: string): Promise<A
     .order("criado_em");
   if (error) throw new Error(error.message);
   return (data ?? []) as AtividadeRelatorio[];
+}
+
+/** Só o link de quem está logado no encontro; quem pode o banco decide. Vazio apaga. */
+export async function escreverLinkComprovacao(encontroId: string, link: string | null): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .schema("gestao")
+    .rpc("escrever_link_comprovacao", { p_agenda: encontroId, p_link: link });
+  if (error) throw new Error(error.message);
 }
 
 /** O banco grava em nome de quem está logado (`auth.uid()`). */

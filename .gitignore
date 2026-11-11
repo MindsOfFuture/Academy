@@ -22,6 +22,8 @@
 
 # misc
 .DS_Store
+# planilhas soltas na raiz (dados reais da coordenação)
+/*.xlsx
 *.pem
 
 # debug

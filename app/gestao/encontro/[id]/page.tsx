@@ -45,7 +45,7 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
         )}
         <Relatorio encontro={encontro} />
         <NotasPendentes encontro={encontro} />
-        {podeEscrever && <FormNotaEncerramento encontroId={encontro.id} nota={minha.notaEncerramento} />}
+        {podeEscrever && <FormNotaEncerramento encontroId={encontro.id} nota={minha.notaEncerramento} link={minha.linkComprovacao} />}
       </section>
 
       <section aria-labelledby="equipe" className="space-y-3">

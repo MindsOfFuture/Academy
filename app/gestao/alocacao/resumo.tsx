@@ -15,7 +15,7 @@ export function dataHoraBr(iso: string): string {
 }
 
 /** Concluir só depois da hora de início (decisão 10 da spec 014), no horário de Brasília. */
-export function jaComecou(encontro: Encontro): boolean {
+export function jaComecou(encontro: Pick<Encontro, "data" | "inicio">): boolean {
   const agora = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "America/Sao_Paulo",
     dateStyle: "short",

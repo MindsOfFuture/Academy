@@ -1,10 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { Swiper, SwiperSlide } from "swiper/react"
 import { Autoplay, Pagination, Navigation } from "swiper/modules"
-import { motion } from 'framer-motion'
+import ArticleCard from './articleCard'
 import "swiper/css"
 import "swiper/css/navigation"
 import "swiper/css/pagination"
@@ -15,15 +14,6 @@ interface OurArticlesProps {
 }
 
 export default function OurArticles({ articles }: OurArticlesProps) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      timeZone: 'UTC'
-    });
-  };
-
   return (
     <section id="our-articles" className="w-full py-12 px-4">
       <div className="flex flex-col items-center">
@@ -32,6 +22,12 @@ export default function OurArticles({ articles }: OurArticlesProps) {
           <p className="max-w-[480px]">
             Confira os últimos artigos e descobertas do nosso projeto educacional
           </p>
+          <Link
+            href="/artigos"
+            className="mt-4 inline-flex items-center rounded-full bg-[#684A97] px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#5a3f7d]"
+          >
+            Ver todos os artigos
+          </Link>
         </div>
 
         <div className="w-full max-w-[1400px] px-4 sm:px-8 lg:px-16 relative">
@@ -61,53 +57,7 @@ export default function OurArticles({ articles }: OurArticlesProps) {
             {articles.map((article, index) => (
               <SwiperSlide key={article.id}>
                 <div className="p-2 sm:p-4">
-                  <motion.div
-                    className="bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] rounded-xl overflow-hidden h-[450px] flex flex-col"
-                    initial={{ opacity: 0, y: 50 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    viewport={{ once: true }}
-                    whileHover={{
-                      scale: 1.02,
-                      transition: { duration: 0.3 }
-                    }}
-                  >
-                    <div className="relative h-48 overflow-hidden">
-                      <Image
-                        src={article.coverUrl || "/logo_navbar.svg"}
-                        alt={article.title}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover"
-                      />
-                    </div>
-
-                    <div className="p-6 flex-1 flex flex-col">
-                      <div className="flex items-center text-sm text-gray-600 mb-3">
-                        <span>{article.authorId || "Equipe"}</span>
-                        <span className="mx-2">•</span>
-                        <span>{article.publishedAt ? formatDate(article.publishedAt) : ""}</span>
-                        <span className="mx-2">•</span>
-                        <span>leitura rápida</span>
-                      </div>
-
-                      <h3 className="text-xl font-bold text-gray-800 mb-3 overflow-hidden text-ellipsis line-clamp-2">
-                        {article.title}
-                      </h3>
-
-                      <p className="text-gray-600 text-sm leading-relaxed flex-1 overflow-hidden text-ellipsis line-clamp-3">
-                        {article.excerpt || ""}
-                      </p>
-
-                      <Link
-                        href={`/artigos?slug=${article.slug || article.id}`}
-                        className="mt-4 text-[#684A97] font-semibold hover:text-[#5a3f7d] transition-colors duration-200 self-start relative z-10 cursor-pointer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Ler mais →
-                      </Link>
-                    </div>
-                  </motion.div>
+                  <ArticleCard article={article} index={index} />
                 </div>
               </SwiperSlide>
             ))}

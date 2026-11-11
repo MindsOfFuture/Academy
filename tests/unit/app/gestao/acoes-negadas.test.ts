@@ -13,6 +13,7 @@ const { ensureGestaoMember } = vi.hoisted(() => ({ ensureGestaoMember: vi.fn() }
 vi.mock("@/lib/api/gestao/auth", () => ({ ensureGestaoMember }));
 // Camada de dados inteira automockada: nenhuma escrita pode ser chamada.
 vi.mock("@/lib/api/gestao/alocacao");
+vi.mock("@/lib/api/gestao/artigos");
 vi.mock("@/lib/api/gestao/avisos");
 vi.mock("@/lib/api/gestao/equipe");
 vi.mock("@/lib/api/gestao/melhorias");
@@ -20,11 +21,13 @@ vi.mock("@/lib/api/gestao/relatorio");
 vi.mock("@/lib/api/gestao/site");
 
 import * as alocacao from "@/app/gestao/alocacao/actions";
+import * as artigos from "@/app/gestao/artigos/actions";
 import * as equipe from "@/app/gestao/equipe/actions";
 import * as melhorias from "@/app/gestao/melhorias/actions";
 import * as relatorio from "@/app/gestao/relatorio/actions";
 import * as raiz from "@/app/gestao/actions";
 import * as dadosAlocacao from "@/lib/api/gestao/alocacao";
+import * as dadosArtigos from "@/lib/api/gestao/artigos";
 import * as dadosAvisos from "@/lib/api/gestao/avisos";
 import * as dadosEquipe from "@/lib/api/gestao/equipe";
 import * as dadosMelhorias from "@/lib/api/gestao/melhorias";
@@ -41,6 +44,7 @@ const AJUSTES: Record<string, Record<string, string>> = {
   cadastrarBolsaAction: { inicio: "2099-01-10", fim: "2099-06-30" },
   definirPapelAction: { acao: "dar" },
   responderMelhoriaAction: { status: "aceita" },
+  salvarArtigoAction: { status: "published", conteudo: "Texto do artigo" },
 };
 
 /**
@@ -78,7 +82,7 @@ function chamar(nome: string, acao: Acao) {
 const recusou = (r: unknown) => r === false || (Array.isArray(r) && r.length === 0) || (r as { ok?: boolean })?.ok === false;
 
 const escritas = () =>
-  [dadosAlocacao, dadosAvisos, dadosEquipe, dadosMelhorias, dadosRelatorio, dadosSite].flatMap((m) =>
+  [dadosAlocacao, dadosArtigos, dadosAvisos, dadosEquipe, dadosMelhorias, dadosRelatorio, dadosSite].flatMap((m) =>
     Object.entries(m).filter(([, f]) => vi.isMockFunction(f) && f.mock.calls.length > 0).map(([n]) => n),
   );
 
@@ -90,7 +94,7 @@ beforeEach(() => {
 });
 
 describe("ações da gestão recusam quem não pode", () => {
-  const todas = [alocacao, equipe, melhorias, relatorio, raiz].flatMap(acoes);
+  const todas = [alocacao, artigos, equipe, melhorias, relatorio, raiz].flatMap(acoes);
 
   it.each(todas)("%s: fora da gestão é recusado sem ir ao banco", async (nome, acao) => {
     ensureGestaoMember.mockRejectedValue(new Error("Acesso negado. Você não faz parte da gestão."));
@@ -103,6 +107,7 @@ describe("ações da gestão recusam quem não pode", () => {
   const soCoordenacao = [
     ...acoes(alocacao).filter(([n]) => n !== "escreverNotaAction"),
     ...acoes(equipe),
+    ...acoes(artigos),
     ...acoes(melhorias).filter(([n]) => n === "responderMelhoriaAction"),
     ...acoes(raiz).filter(([n]) => n === "numerosDoSiteAction"),
   ];

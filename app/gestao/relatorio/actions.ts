@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
-import { apagarAtividade, cadastrarAtividade, editarAtividade } from "@/lib/api/gestao/relatorio";
+import { apagarAtividade, cadastrarAtividade, editarAtividade, escreverLinkComprovacao } from "@/lib/api/gestao/relatorio";
 import { mesEditavel } from "../alocacao/rotulos";
 import type { EstadoAcao } from "@/lib/api/gestao/types";
 import { falha, mensagemDeErro, sucesso, validarAtividade } from "@/lib/api/gestao/validacao";
@@ -61,4 +61,17 @@ export async function apagarAtividadeAction(_anterior: EstadoAcao | null, form: 
   if (negado) return negado;
   if (!id(form)) return falha("Atividade não informada.");
   return executar(() => apagarAtividade(id(form)), "Atividade apagada.");
+}
+
+/** Só o link de comprovação de um encontro; quem pode o banco decide. Vazio apaga. */
+export async function salvarLinkEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirMembro();
+  if (negado) return negado;
+  const encontroId = form.get("encontroId");
+  const link = String(form.get("link") ?? "").trim();
+  if (typeof encontroId !== "string" || !encontroId) return falha("Encontro não informado.");
+  if (link && (link.length > 500 || !/^https?:\/\/\S+$/.test(link))) {
+    return falha("O link precisa começar com http:// ou https://, sem espaços, com até 500 caracteres.");
+  }
+  return executar(() => escreverLinkComprovacao(encontroId, link || null), "Link salvo.");
 }
