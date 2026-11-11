@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
     "/gestao/relatorio/docx": ["./lib/api/gestao/modelos/relatorio-mensal.docx"],
     "/gestao/relatorio/pdf": ["./lib/api/gestao/modelos/relatorio-mensal.docx"],
   },
+  // Capa de artigo (até 5 MB, limite do bucket) sobe pela server action da gestão.
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
   images: {
     remotePatterns: [
       // Storage do Supabase (avatares, capas, mídia dos cursos)

@@ -334,7 +334,7 @@ Professor que colar URL de fora vê a imagem falhar; o caminho é subir o arquiv
 para o Storage.
 
 ## 021 — Gestão interna: cinco guardrails e duas correções da prática
-Status: aceita
+Status: aceita — exceção ao guardrail 1 registrada em 028
 
 O plano `docs/plans/sistema-interno-gestao.md` fixou regras para o módulo interno
 antes da primeira tabela. O schema já está em produção (migrations aplicadas de
@@ -511,3 +511,22 @@ A chave HS256 antiga **não pode ser revogada** enquanto o projeto usar as chave
 legadas (`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`): elas são JWTs
 assinados com ela, e revogar derruba o site inteiro. Revogar só depois de migrar para as
 chaves novas de API (`sb_publishable_…`/`sb_secret_…`), em outra decisão.
+
+## 028 — A coordenação escreve os artigos do site
+Status: aceita (2026-11-11) — exceção ao guardrail 1 do 021
+
+A coordenação passou a criar e editar os artigos do site pela aba "Artigos" da
+gestão. Artigo é conteúdo do site, não dado da gestão: continua em
+`public.article`, com a capa no bucket `site-media`.
+
+Decisão: a migration `20261111_gestao_artigos_do_site` dá à coordenação ativa
+(`gestao.usuario_com_papel('coordenacao')`) leitura, criação (só como autora) e
+edição em `public.article`, e envio de capa em `storage.objects` só em
+`site-media/covers/`. A função do trigger `enforce_verified_teacher_for_content`
+ganha uma saída para a coordenação apenas quando a tabela é `article`; `course` e
+`learning_path` seguem exigindo admin ou professor aprovado. Sem service role.
+Apagar artigo continua só com o admin.
+
+Consequência: o site filtra `status = 'published'` em `lib/api/articles.ts`,
+porque a RLS agora deixa a coordenação (e o admin) ler rascunhos pelo cliente com
+sessão. Capas trocadas ficam no bucket sem limpeza.

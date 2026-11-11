@@ -650,3 +650,24 @@ export interface NovaAtividade {
     data: string;
     comprovacao: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Artigos do site (aba "Artigos" da coordenação)
+// ---------------------------------------------------------------------------
+
+export type StatusArtigo = "draft" | "published";
+
+export interface DadosArtigo {
+    titulo: string;
+    slug: string;
+    resumo: string | null;
+    conteudo: string | null;
+    status: StatusArtigo;
+}
+
+export interface ArtigoGestao extends DadosArtigo {
+    id: string;
+    capaUrl: string | null;
+    publicadoEm: string | null;
+    criadoEm: string;
+}

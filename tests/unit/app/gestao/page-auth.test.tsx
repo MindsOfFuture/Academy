@@ -54,6 +54,8 @@ vi.mock("@/lib/api/gestao/pendencias", () => ({
   ],
 }));
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
+vi.mock("@/lib/api/gestao/artigos", () => ({ listarArtigos: async () => [], buscarArtigo: async () => null }));
+vi.mock("@/app/gestao/artigos/forms", () => ({ FormArtigo: () => <div /> }));
 vi.mock("@/lib/api/content", () => ({
   getHero: async () => ({ n_escolas: 36, n_alunos: 1524, subtitulo: "", base: { escolas: 35, alunos: 1499 } }),
 }));
@@ -72,6 +74,7 @@ vi.mock("@/app/gestao/equipe/forms", () => ({
 
 import GestaoPage from "@/app/gestao/page";
 import EquipePage from "@/app/gestao/equipe/page";
+import ArtigosPage from "@/app/gestao/artigos/page";
 import { abasDoPapel } from "@/app/gestao/abas";
 
 beforeEach(() => {
@@ -136,8 +139,22 @@ describe("rota /gestao", () => {
     await expect(EquipePage({ searchParams: Promise.resolve({}) })).rejects.toThrow(/NEXT_NOT_FOUND/);
   });
 
+  it("devolve 404 ao bolsista na tela de artigos", async () => {
+    flagLigada = true;
+    papelMembro = "bolsista";
+    await expect(ArtigosPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(/NEXT_NOT_FOUND/);
+  });
+
+  it("devolve 404 à coordenação num artigo que não existe", async () => {
+    flagLigada = true;
+    papelMembro = "coordenacao";
+    await expect(
+      ArtigosPage({ searchParams: Promise.resolve({ artigo: "11111111-1111-4111-8111-111111111111" }) }),
+    ).rejects.toThrow(/NEXT_NOT_FOUND/);
+  });
+
   it("dá a aba Equipe só à coordenação e Melhorias aos dois", () => {
-    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Alocação", "Equipe", "Testes", "Relatório", "Melhorias"]);
+    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Alocação", "Equipe", "Testes", "Artigos", "Relatório", "Melhorias"]);
     expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Relatório", "Melhorias"]);
   });
 });

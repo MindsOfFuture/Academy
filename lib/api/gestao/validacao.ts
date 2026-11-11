@@ -1,5 +1,6 @@
 import type {
   AreaMelhoria,
+  DadosArtigo,
   EstadoAcao,
   ModalidadeBolsa,
   NovaBolsa,
@@ -347,6 +348,8 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
     return "A pessoa precisa ficar com ao menos um papel. Para tirar o acesso, use “Desligar”.";
   }
   if (texto.includes("agenda_bolsista_agenda_id_bolsista_id_key")) return "Esta pessoa já está neste encontro.";
+  if (texto.includes("article_slug_key")) return "Já existe um artigo com esse endereço.";
+  if (texto.includes("Professor não verificado")) return "Você não tem permissão para fazer isso.";
   if (texto.includes("papel_membro_pkey") || texto.includes("duplicate key")) {
     return "Esta pessoa já faz parte da equipe.";
   }
@@ -371,6 +374,42 @@ export function validarAtividade(form: FormData): Validado<NovaAtividade> {
   if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe o dia em que a atividade aconteceu." };
   if (comprovacao.length > 500) return { ok: false, mensagem: "A comprovação pode ter até 500 caracteres." };
   return { ok: true, valor: { nome, data, comprovacao: comprovacao || null } };
+}
+
+/** Endereço do artigo: minúsculo, sem acento, palavras ligadas por hífen. */
+export function slugDe(valor: string): string {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 80)
+    .replace(/^-+|-+$/g, "");
+}
+
+export function validarArtigo(form: FormData): Validado<DadosArtigo> {
+  const titulo = texto(form, "titulo");
+  const slug = slugDe(texto(form, "slug") || titulo);
+  const status = form.get("status");
+  const resumo = texto(form, "resumo") || null;
+  const conteudo = texto(form, "conteudo") || null;
+  if (!titulo || titulo.length > 200) return { ok: false, mensagem: "Dê um título ao artigo (até 200 caracteres)." };
+  if (!slug) return { ok: false, mensagem: "Informe um endereço com letras ou números." };
+  if (status !== "draft" && status !== "published") return { ok: false, mensagem: "Escolha o status." };
+  if (status === "published" && !conteudo) return { ok: false, mensagem: "Escreva o conteúdo antes de publicar." };
+  return { ok: true, valor: { titulo, slug, resumo, conteudo, status } };
+}
+
+const TIPOS_CAPA = ["image/jpeg", "image/png", "image/webp"];
+/** Mesmo limite do bucket `site-media`. */
+export const LIMITE_CAPA = 5 * 1024 * 1024;
+
+/** Capa opcional: arquivo vazio conta como "sem capa nova". */
+export function validarCapa(valor: FormDataEntryValue | null): Validado<File | null> {
+  if (!(valor instanceof File) || valor.size === 0) return { ok: true, valor: null };
+  if (!TIPOS_CAPA.includes(valor.type)) return { ok: false, mensagem: "A capa precisa ser JPG, PNG ou WebP." };
+  if (valor.size > LIMITE_CAPA) return { ok: false, mensagem: "A capa pode ter até 5 MB." };
+  return { ok: true, valor };
 }
 
 export function falha(mensagem: string): EstadoAcao {
