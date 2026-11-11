@@ -34,6 +34,7 @@ const ENCONTRO: EncontroDoRelatorio = {
   turmaNome: "Turma A",
   situacao: "cumprida",
   horas: 4,
+  links: [],
 };
 
 describe("relatório no modelo .docx", () => {
@@ -63,6 +64,20 @@ describe("relatório no modelo .docx", () => {
       ["Preparei o material", "05/11/2026", "https://drive.google.com/x"],
       ["Lego — E.E. Antônio Carlos, Turma A (8h às 12h)", "10/11/2026", ""],
     ]);
+  });
+
+  it("links de comprovação do encontro vão juntos, separados por espaço, escapados no XML", () => {
+    const doc = documento(
+      preencherRelatorio(MODELO, {
+        mes: "2026-11",
+        nome: "Bia",
+        cpf: null,
+        encontros: [{ ...ENCONTRO, links: ["https://a.org/x?y=1&z=2", "https://b.org"] }],
+        atividades: [],
+      }),
+    );
+    expect(doc).toContain("https://a.org/x?y=1&amp;z=2 https://b.org");
+    expect(celulas(doc)[1][2]).toBe("https://a.org/x?y=1&amp;z=2 https://b.org");
   });
 
   it("mês sem nada mantém a linha vazia do modelo", () => {

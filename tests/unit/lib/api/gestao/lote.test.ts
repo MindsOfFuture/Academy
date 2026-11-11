@@ -33,6 +33,7 @@ function alocacao(bolsistaId: string, situacao: SituacaoAlocacao = "prevista"): 
     motivo: null,
     carga: "4",
     notaEncerramento: null,
+    linkComprovacao: null,
   };
 }
 

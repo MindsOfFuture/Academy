@@ -28,6 +28,7 @@ export interface AgendaDoRelatorio {
   cancelado_em: string | null;
   escola: { nome: string } | { nome: string }[] | null;
   turma: { nome: string } | { nome: string }[] | null;
+  agenda_bolsista: { situacao: SituacaoAlocacao; link_comprovacao: string | null }[];
 }
 
 function primeiro<T>(valor: T | T[] | null): T | null {
@@ -52,6 +53,13 @@ export function montarEncontros(cargas: CargaDoRelatorio[], agendas: AgendaDoRel
           turmaNome: primeiro(a.turma)?.nome ?? null,
           situacao: c.situacao,
           horas: Number(c.horas),
+          links: [
+            ...new Set(
+              (a.agenda_bolsista ?? [])
+                .filter((b) => b.link_comprovacao && (b.situacao === "prevista" || b.situacao === "cumprida"))
+                .map((b) => b.link_comprovacao as string),
+            ),
+          ].sort(),
         },
       ];
     })
@@ -81,7 +89,7 @@ export async function encontrosDoMes(mes: string, pessoaId?: string): Promise<En
   const { data: agendas, error: erro } = await supabase
     .schema("gestao")
     .from("agenda")
-    .select("id, data, horario, modalidade, aulas, cancelado_em, escola(nome), turma(nome)")
+    .select("id, data, horario, modalidade, aulas, cancelado_em, escola(nome), turma(nome), agenda_bolsista(situacao, link_comprovacao)")
     .in("id", ids);
   if (erro) throw new Error(erro.message);
   return montarEncontros((cargas ?? []) as CargaDoRelatorio[], (agendas ?? []) as unknown as AgendaDoRelatorio[]);

@@ -31,7 +31,7 @@ export function linhasDoRelatorio(encontros: EncontroDoRelatorio[], atividades: 
     return {
       atividade: `${e.descricao}${onde ? ` — ${onde}` : ""} (${e.horario}${cobertura})`,
       data: e.data,
-      fonte: "",
+      fonte: e.links.join(" "),
     };
   });
   const outras = atividades.map((a) => ({ atividade: a.nome, data: a.data, fonte: a.comprovacao ?? "" }));

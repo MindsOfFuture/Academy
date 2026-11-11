@@ -439,6 +439,7 @@ export interface AlocacaoRow {
     motivo: string | null;
     carga: string;
     nota_encerramento: string | null;
+    link_comprovacao: string | null;
 }
 
 export interface Alocacao {
@@ -455,6 +456,7 @@ export interface Alocacao {
     carga: string;
     /** Escrita pela própria pessoa depois do início; a última nota conclui o encontro. */
     notaEncerramento: string | null;
+    linkComprovacao: string | null;
 }
 
 export interface EncontroRow {
@@ -630,6 +632,8 @@ export interface EncontroDoRelatorio {
     /** "cobertura" quando a pessoa cobriu alguém. */
     situacao: SituacaoAlocacao | "cobertura";
     horas: number;
+    /** Links de comprovação dos bolsistas do encontro, sem repetição. */
+    links: string[];
 }
 
 /** Atividade do relatório: o dono e a coordenação veem; só o dono edita. */

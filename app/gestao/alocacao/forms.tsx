@@ -426,10 +426,19 @@ export function FormConcluirEncontro({
  * A nota de encerramento do próprio bolsista. Pode ser reescrita; quando a
  * última pessoa da equipe escreve a sua, o encontro se conclui.
  */
-export function FormNotaEncerramento({ encontroId, nota }: { encontroId: string; nota: string | null }) {
+export function FormNotaEncerramento({
+  encontroId,
+  nota,
+  link,
+}: {
+  encontroId: string;
+  nota: string | null;
+  link: string | null;
+}) {
   const [estado, acao, enviando] = useAcao(escreverNotaAction);
   // Controlado: o React limpa o formulário depois do envio, e uma nota recusada não pode sumir.
   const [texto, setTexto] = useState(nota ?? "");
+  const [url, setUrl] = useState(link ?? "");
   return (
     <form action={acao} className="space-y-2">
       <input type="hidden" name="encontroId" value={encontroId} />
@@ -446,6 +455,10 @@ export function FormNotaEncerramento({ encontroId, nota }: { encontroId: string;
           placeholder="O que foi feito, como a turma respondeu, o que faltou, o que levar na próxima."
           className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
+      </label>
+      <label className="block space-y-1">
+        <span className={rotuloCampo}>Link de comprovação</span>
+        <Input name="link" type="url" maxLength={500} value={url} onChange={(e) => setUrl(e.target.value)} />
       </label>
       <Button type="submit" size="sm" disabled={enviando}>
         {enviando ? "Salvando…" : nota ? "Atualizar nota" : "Salvar nota"}

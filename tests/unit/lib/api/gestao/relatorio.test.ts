@@ -7,7 +7,7 @@ import { montarEncontros, type AgendaDoRelatorio } from "@/lib/api/gestao/relato
 import { validarAtividade } from "@/lib/api/gestao/validacao";
 
 function agenda(id: string, data: string, extra: Partial<AgendaDoRelatorio> = {}): AgendaDoRelatorio {
-  return { id, data, horario: "8h às 12h", modalidade: "Lego", aulas: null, cancelado_em: null, escola: { nome: "EE A" }, turma: null, ...extra };
+  return { id, data, horario: "8h às 12h", modalidade: "Lego", aulas: null, cancelado_em: null, escola: { nome: "EE A" }, turma: null, agenda_bolsista: [], ...extra };
 }
 
 describe("montarEncontros — encontros do relatório", () => {
@@ -29,9 +29,27 @@ describe("montarEncontros — encontros do relatório", () => {
       ],
     );
     expect(lista).toEqual([
-      { encontroId: "a", data: "2026-11-03", horario: "8h às 12h", descricao: "Robótica", escolaNome: "EE A", turmaNome: "Turma 1", situacao: "cobertura", horas: 2 },
-      { encontroId: "b", data: "2026-11-05", horario: "8h às 12h", descricao: "Lego", escolaNome: null, turmaNome: null, situacao: "cumprida", horas: 4 },
+      { encontroId: "a", data: "2026-11-03", horario: "8h às 12h", descricao: "Robótica", escolaNome: "EE A", turmaNome: "Turma 1", situacao: "cobertura", horas: 2, links: [] },
+      { encontroId: "b", data: "2026-11-05", horario: "8h às 12h", descricao: "Lego", escolaNome: null, turmaNome: null, situacao: "cumprida", horas: 4, links: [] },
     ]);
+  });
+
+  it("junta os links de quem esteve no encontro, sem repetir, em ordem; quem faltou fica de fora", () => {
+    const [encontro] = montarEncontros(
+      [{ agenda_id: "a", situacao: "cumprida", horas: 4 }],
+      [
+        agenda("a", "2026-11-03", {
+          agenda_bolsista: [
+            { situacao: "cumprida", link_comprovacao: "https://b.org" },
+            { situacao: "prevista", link_comprovacao: "https://a.org" },
+            { situacao: "cumprida", link_comprovacao: "https://b.org" },
+            { situacao: "faltou_avisou", link_comprovacao: "https://faltou.org" },
+            { situacao: "cumprida", link_comprovacao: null },
+          ],
+        }),
+      ],
+    );
+    expect(encontro.links).toEqual(["https://a.org", "https://b.org"]);
   });
 });
 

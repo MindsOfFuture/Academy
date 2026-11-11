@@ -40,7 +40,7 @@ import type {
 const SELECT_ENCONTRO =
   "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, relatorio, " +
   "escola(nome), turma(nome, status), " +
-  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, nota_encerramento)";
+  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, nota_encerramento, link_comprovacao)";
 
 function throwOnError(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
@@ -99,6 +99,7 @@ function mapAlocacao(row: AlocacaoRow, nomes: Map<string, string>): Alocacao {
     motivo: row.motivo,
     carga: row.carga,
     notaEncerramento: row.nota_encerramento,
+    linkComprovacao: row.link_comprovacao,
   };
 }
 
@@ -475,11 +476,11 @@ export async function concluirEncontro(id: string, concluir: boolean, relatorio:
  * encontro e que ele já começou; devolve true quando foi a última nota e o
  * encontro se concluiu.
  */
-export async function escreverNotaEncerramento(encontroId: string, nota: string): Promise<boolean> {
+export async function escreverNotaEncerramento(encontroId: string, nota: string, link: string | null): Promise<boolean> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .schema("gestao")
-    .rpc("escrever_nota_encerramento", { p_agenda: encontroId, p_nota: nota });
+    .rpc("escrever_nota_encerramento", { p_agenda: encontroId, p_nota: nota, p_link: link });
   throwOnError(error);
   return data === true;
 }

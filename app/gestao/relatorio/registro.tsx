@@ -47,6 +47,9 @@ export function RegistroDoMes({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+                {e.links.map((l) => (
+                  <Comprovacao key={l} texto={l} />
+                ))}
               </div>
               <p className="shrink-0 text-sm tabular-nums">{horasTexto(e.horas)}</p>
             </li>
