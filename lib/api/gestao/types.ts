@@ -674,3 +674,26 @@ export interface ArtigoGestao extends DadosArtigo {
     publicadoEm: string | null;
     criadoEm: string;
 }
+
+// ---------------------------------------------------------------------------
+// Importação da planilha de calendário
+// ---------------------------------------------------------------------------
+
+/** Contagens do lote: as de importar sempre; as de desfazer depois de desfeito. */
+export interface ResumoImportacao {
+    encontros: number;
+    pulados: number;
+    escolas: number;
+    concluidos: number;
+    apagados: number | null;
+    escolasApagadas: number | null;
+    escolasMantidas: number | null;
+}
+
+export interface Importacao {
+    id: string;
+    arquivo: string;
+    criadoEm: string;
+    desfeitaEm: string | null;
+    resumo: ResumoImportacao;
+}

@@ -41,6 +41,7 @@ export const GESTAO_EM_ORDEM = [
   "20261110_gestao_link_de_comprovacao",
   "20261111_gestao_artigos_do_site",
   "20261112_gestao_link_no_relatorio",
+  "20261113_gestao_importar_planilha",
 ] as const;
 
 export type MigracaoGestao = (typeof GESTAO_EM_ORDEM)[number];
