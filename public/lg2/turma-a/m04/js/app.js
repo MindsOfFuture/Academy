@@ -67,6 +67,18 @@
   const M1 = "lg2-turma-a-m01", M2 = "lg2-turma-b-m02", M3 = "lg2-turma-a-m03", M5 = "lg2-turma-a-m05";
   const textoDe = (r) => (r && r.estado === "valor" && typeof r.valor === "string" && r.valor.trim() ? r.valor.trim() : "");
   const opcaoDe = (r) => (r && r.estado === "opcao" && r.opcao ? String(r.opcao) : "");
+  /* pergunta do cliente no Módulo 3: "Ainda não tenho clientes" (versão nova) e "Não sei" não definem um cliente */
+  const SEM_CLIENTE = /^(ainda n[ãa]o tenho clientes?|n[ãa]o sei)\.?$/i;
+  /* texto que descreve o público de forma ampla demais para um primeiro teste */
+  const PUBLICO_AMPLO = /todo mundo|qualquer pessoa|qualquer um|p[úu]blico em geral|pessoas em geral|de todas as idades|todas as idades|todos os p[úu]blicos/i;
+  /* aviso da pergunta do primeiro cliente quando o público trazido é amplo; não trava */
+  function avisoAmplo(h) {
+    if (!h || !h.amplo) return "";
+    const t = h.amplo === "varios"
+      ? `No Módulo ${h.de} você marcou mais de um tipo de cliente (${h.grupos.join(" e ")}). Tudo bem. Para o primeiro teste, escolha o grupo principal para começar e deixe os outros para depois. Se preferir, pode seguir assim.`
+      : `O público que veio do Módulo ${h.de} ainda está amplo. Para o primeiro teste, escolha o grupo principal para começar, por exemplo “mães que trabalham fora, do meu bairro”. Se preferir, pode seguir assim.`;
+    return `<div class="bloco b-proximo aviso-amplo" id="aviso-amplo"><b>Para começar</b>${esc(t)}</div>`;
+  }
   const tipoCurto = (s) => (/^produto/i.test(s) ? "Produto" : /^mercadoria/i.test(s) ? "Mercadoria" : /^servi/i.test(s) ? "Serviço" : "");
   /* resposta já dada em outro módulo para a mesma pergunta; "Não sei" não conta */
   function herdado(cod) {
@@ -80,14 +92,18 @@
     }
     if (cod === "M4.P08") {
       const r = lerOutro(M3, "M3.P10");
-      /* o Módulo 3 pode guardar mais de uma opção marcada (opcoes); a antiga, só opcao */
+      /* o Módulo 3 pode guardar mais de uma opção marcada (opcoes); a antiga, só opcao.
+         "Ainda não tenho clientes" (e "Não sei") = sem cliente definido: não entra */
       const ops = r && r.estado === "opcao" ? (Array.isArray(r.opcoes) && r.opcoes.length ? r.opcoes : [opcaoDe(r)]) : [];
-      const quem = ops.map((o) => String(o || "").replace(/\s*\(.*\)\s*$/, "")).filter(Boolean).join(" e ");
+      const grupos = ops.map((o) => String(o || "").replace(/\s*\(.*\)\s*$/, "").trim()).filter((o) => o && !SEM_CLIENTE.test(o));
+      const quem = grupos.join(" e ");
       const c = (r && r.campos) || {};
       const partes = Object.keys(c).filter((k) => !/resolver/i.test(k) && String(c[k] || "").trim()).map((k) => `${k.toLowerCase()}: ${String(c[k]).trim()}`);
-      if (quem && partes.length) return { valor: `${quem} (${partes.join("; ")})`, de: 3 };
-      const b = textoDe(lerOutro(M2, "M2.P02")); if (b) return { valor: b, de: 2 };
-      if (quem) return { valor: quem, de: 3 };
+      /* público amplo: mais de um grupo marcado, só a categoria (sem detalhe) ou texto do tipo "todo mundo" */
+      const amplo = (v, n, soCategoria) => (n > 1 ? "varios" : soCategoria || PUBLICO_AMPLO.test(v) ? "amplo" : "");
+      if (quem && partes.length) { const v = `${quem} (${partes.join("; ")})`; return { valor: v, de: 3, amplo: amplo(v, grupos.length, false), grupos }; }
+      const b = textoDe(lerOutro(M2, "M2.P02")); if (b) return { valor: b, de: 2, amplo: amplo(b, 1, false) };
+      if (quem) return { valor: quem, de: 3, amplo: amplo(quem, grupos.length, true), grupos };
     }
     if (cod === "M4.P09") {
       const a = textoDe(lerOutro(M3, "M3.P11")); if (a) return { valor: a, de: 3 };
@@ -398,6 +414,7 @@
             ${q.conceito_destaque ? conceitoAberto(q.conceito_destaque) : ""}
             ${q.conceitos_destaque ? conceitosJuntos(q.conceitos_destaque, V.opcoesLista) : ""}
             ${her && her.nota ? `<p class="selo-m"><b>${esc(her.nota)}</b> · Confira e ajuste se quiser.</p>` : origem && origem.de && (origem.valor || origem.opcao) ? selo(origem.de) : ""}
+            ${cod === "M4.P08" ? avisoAmplo(her) : ""}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>

@@ -30,6 +30,24 @@ describe("Jornada completa do LG2", () => {
     expect(jornada).toContain("Abrir para revisar");
     expect(jornada).toContain("'Escape'");
   });
+
+  it("tem a trava numa constante só, com o comentário de como voltar a travar", () => {
+    expect(jornada).toMatch(/var TRAVAR = (true|false); \/\/ .*mude para true para voltar a travar/);
+    expect(jornada.match(/var TRAVAR =/g)).toHaveLength(1);
+    expect(jornada).toContain("if (!TRAVAR) return i >= 0;");
+  });
+
+  it("tem o diagnóstico final no fim da jornada e no painel, com imprimir", () => {
+    const html = readFileSync(path.join(process.cwd(), "public/lg2/jornada/index.html"), "utf8");
+    expect(html).toContain('id="ver-diag-fim">Ver o diagnóstico final</button>');
+    expect(html).toContain('id="ver-diag-painel">Ver o diagnóstico final</button>');
+    expect(html).toContain('id="imprime-diag">Imprimir ou salvar em PDF</button>');
+    expect(html.indexOf("js/diagnostico.js")).toBeGreaterThan(0);
+    expect(html.indexOf("js/diagnostico.js")).toBeLessThan(html.indexOf("js/jornada.js"));
+    expect(jornada).toContain("window.print()");
+    const css = readFileSync(path.join(process.cwd(), "public/lg2/jornada/css/jornada.css"), "utf8");
+    expect(css).toMatch(/@page\{size:A4/);
+  });
 });
 
 describe("cabeçalhos de moldura", () => {

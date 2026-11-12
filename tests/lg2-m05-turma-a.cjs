@@ -706,6 +706,94 @@ const server = http.createServer(async (req, res) => {
     await shot('m05_resultado_faturamento_m1.png');
     console.log('PASS-stage: números exagerados (avisos que não travam)');
 
+    /* ===== 8. Lote 4 (Ana Luiza): ajustar valores na tela do resultado, "Recalcular" e "Limpar" ===== */
+    {
+      const R0 = {
+        'M5.P00': { estado: 'opcao', opcao: 'Já vendo sempre' },
+        'M5.P01': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' },
+        'M5.P02': { estado: 'valor', valor: 'Bolo de pote' },
+        'M5.P03': { estado: 'valor', valor: ['Farinha', 'Ovo'] },
+        'M5.P04': { estado: 'valor', valor: ['10', '12'] },
+        'M5.P05': { estado: 'valor', valor: [{ q: '1', u: 'kg' }, { q: '12', u: 'unidade' }] },
+        'M5.P06': { estado: 'valor', valor: [{ q: '500', u: 'g' }, { q: '6', u: 'unidade' }] },
+        'M5.P07': { estado: 'valor', valor: '10' },
+        'M5.P08': { estado: 'opcao', opcao: 'Sim' },
+        'M5.P09': { estado: 'valor', valor: { preco: '20', qtd: '10' } },
+        'M5.PG': { estado: 'valor', valor: ['Pix'] },
+        'M5.P24': { estado: 'opcao', opcao: 'Não' }, 'M5.P26': { estado: 'opcao', opcao: 'Não' },
+        'M5.P28': { estado: 'opcao', opcao: 'Sim' }, 'M5.P29': { estado: 'valor', valor: '300' },
+        'M5.P30': { estado: 'opcao', opcao: 'Não' },
+        'M5.P32': { estado: 'opcao', opcao: 'Sim' }, 'M5.P33': { estado: 'valor', valor: [{ nome: 'Internet', v: '100' }] },
+        'M5.P34': { estado: 'opcao', opcao: 'Não' },
+        'M5.P37': { estado: 'valor', valor: '50' }, 'M5.P36': { estado: 'valor', valor: '15' },
+      };
+      const hist0 = Object.keys(R0).concat('RESULTADO');
+      await page.goto(URL0);
+      await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { versao: 3, R: R0, hist: hist0 }]);
+      await page.reload(); await page.click('#ir');
+      ok(await atual() === 'RESULTADO' && (await texto('#tela')).includes('R$ 3,10'), 'ajuste: resultado aberto com custo de uma unidade R$ 3,10');
+      ok(await page.locator('details#ajuste').count() === 1 && !(await page.evaluate(() => document.getElementById('ajuste').open)) && norm(await page.textContent('#ajuste summary')) === 'Ajustar valores e recalcular', 'ajuste: caixa "Ajustar valores e recalcular" no resultado, recolhida');
+      ok(await clicar('[data-ir-ajuste]', 'Mudou algum valor? Ajuste aqui e recalcule ↓') && await page.evaluate(() => document.getElementById('ajuste').open), 'ajuste: atalho embaixo da composição do custo abre a caixa');
+      const campos = () => page.evaluate(() => [...document.querySelectorAll('#ajuste tr')].map((tr) => ({ rot: tr.cells[0].textContent.trim().replace(/\s*\([^)]*\)$/, ''), un: tr.cells[0].textContent.trim(), v: (tr.querySelector('input') || {}).value })));
+      const cs = await campos();
+      const pega = (rot, n = 0) => cs.filter((x) => x.rot === rot)[n];
+      ok(pega('Farinha') && pega('Preço que você paga').v === '10' && pega('Quanto vem quando compra').v === '1' && pega('Quanto usa').v === '500' && pega('Preço que você paga', 1).v === '12'
+        && pega('Quantas unidades você faz com essas quantidades').v === '10' && pega('Preço do pacote').v === '20' && pega('Quantas vêm no pacote').v === '10', 'ajuste: tabela traz os materiais, o rendimento e a embalagem com os valores respondidos ' + JSON.stringify(cs));
+      ok(pega('Quanto vem quando compra').un === 'Quanto vem quando compra (kg)' && pega('Quanto usa').un === 'Quanto usa (g)', 'ajuste: unidade respondida aparece ao lado do nome');
+      ok(pega('Aluguel').v === '300' && pega('Água e luz').v === '' && pega('Internet').v === '100' && pega('Preço de venda').v === '15' && pega('Vendas no mês').v === '50', 'ajuste: gastos do mês, preço e vendas na tabela');
+      ok(await page.evaluate(() => [...document.querySelectorAll('#ajuste input')].every((i) => i.inputMode === 'decimal')), 'ajuste: campos com teclado numérico');
+      ok(!/M5\.|\bP\d{2}\b|Rafael|Grupo \d/.test(await texto('#ajuste')), 'ajuste: sem códigos na tela');
+      await page.locator('#ajuste').scrollIntoViewIfNeeded();
+      await shot('l4_m05_resultado_ajuste.png');
+      const idx = (rot, n = 0) => cs.findIndex((x, i) => x.rot === rot && cs.slice(0, i).filter((y) => y.rot === rot).length === n) ;
+      const inp = (rot, n = 0) => page.locator('#ajuste tr').nth(idx(rot, n)).locator('input');
+      const antes = JSON.stringify((await state()).R);
+      await inp('Preço que você paga').fill('dez'); await page.click('#aj-recalcular');
+      ok(!(await page.locator('#ajuste-erro').isHidden()) && (await texto('#ajuste-erro')) === Motor.MSG_NUMERO && JSON.stringify((await state()).R) === antes, 'ajuste: texto no campo -> "Digite só números", não grava');
+      await inp('Preço que você paga').fill('-5'); await page.click('#aj-recalcular');
+      ok((await texto('#ajuste-erro')) === 'O valor não pode ser negativo.' && JSON.stringify((await state()).R) === antes, 'ajuste: valor negativo não grava');
+      await inp('Preço que você paga').fill(''); await page.click('#aj-recalcular');
+      ok((await texto('#ajuste-erro')).startsWith('Preencha todos os valores') && JSON.stringify((await state()).R) === antes, 'ajuste: material em branco não grava');
+      await inp('Quanto vem quando compra').fill('0'); await inp('Preço que você paga').fill('20'); await page.click('#aj-recalcular');
+      ok((await texto('#ajuste-erro')) === 'A quantidade deve ser maior que zero.' && JSON.stringify((await state()).R) === antes, 'ajuste: quantidade da embalagem zero não grava');
+      await inp('Quanto vem quando compra').fill('1');
+      await inp('Aluguel').fill('500'); await inp('Água e luz').fill('50'); await inp('Internet').fill('');
+      await page.click('#aj-recalcular');
+      let st = await state();
+      ok(st.R['M5.P04'].valor[0] === '20' && st.R['M5.P04'].valor[1] === '12' && JSON.stringify(st.R['M5.P05'].valor) === JSON.stringify(R0['M5.P05'].valor), 'Recalcular: preço da farinha gravado na mesma resposta da pergunta (mesmo formato)');
+      ok(st.R['M5.P29'].valor === '500' && st.R['M5.P30'].opcao === 'Sim' && st.R['M5.P31'].valor === '50' && st.R['M5.P32'].opcao === 'Não' && !st.R['M5.P33'], 'Recalcular: aluguel, água e luz (passa a "Sim") e outro gasto apagado (passa a "Não")');
+      ok(JSON.stringify(st.hist) === JSON.stringify(hist0) && st.versao === 3 && st.ajusteOrig && st.ajusteOrig['M5.P04'].valor[0] === '10', 'Recalcular: continua no resultado, versão do estado igual, cópia para o Limpar');
+      // custo 1,00 + 0,60 + 2,00 = 3,60; gastos 550; sobra 11,40; 550/11,4 = 48,2 -> 49
+      let tr = await texto('#tela');
+      ok(tr.includes('R$ 3,60') && tr.includes('R$ 550,00') && /Ponto de equilíbrio\s*49/.test(tr) && await page.evaluate(() => document.getElementById('ajuste').open), 'Recalcular: custo R$ 3,60, gastos R$ 550,00 e 49 vendas para cobrir, sem refazer o módulo');
+      ok((await texto('#ajuste-msg')).includes('Recalculamos'), 'Recalcular: mensagem de confirmação');
+      ok(await page.evaluate(() => { const r = document.getElementById('ajuste').getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; }), 'Recalcular: a tela fica na caixa do ajuste');
+      ok(JSON.parse(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m05-historico')))[0].estado.R['M5.P04'].valor[0] === '20', 'Recalcular: "Minhas análises" guarda os valores novos');
+      await semNaN('resultado ajustado');
+      await shot('l4_m05_resultado_recalculado.png');
+      await page.reload(); await page.click('#ir');
+      ok((await texto('#tela')).includes('R$ 3,60') && (await state()).R['M5.P29'].valor === '500', 'ajuste: valores novos continuam depois de recarregar');
+      /* quantidade usada maior que a embalagem: aviso que não trava */
+      await page.evaluate(() => { document.getElementById('ajuste').open = true; });
+      await page.locator('#ajuste tr').nth(idx('Quanto usa')).locator('input').fill('2000');
+      await page.click('#aj-recalcular');
+      ok((await texto('#ajuste-msg')).includes(Motor.MSG_QTD_ALTA) && (await state()).R['M5.P06'].valor[0].q === '2000', 'ajuste: usar mais do que vem na embalagem -> aviso, mas recalcula');
+      /* Limpar: volta às respostas dadas nas perguntas */
+      await page.click('#aj-limpar');
+      st = await state();
+      ok(JSON.stringify(st.R) === JSON.stringify(R0) && !st.ajusteOrig, 'Limpar: volta exatamente às respostas das perguntas');
+      tr = await texto('#tela');
+      ok(tr.includes('R$ 3,10') && tr.includes('R$ 400,00') && (await texto('#ajuste-msg')).includes('Voltamos aos valores das suas respostas'), 'Limpar: resultado volta a R$ 3,10 e R$ 400,00');
+      ok(await page.locator('.lg2-proximo').count() === 1, 'ajuste: botão do próximo módulo continua no fim');
+      /* responder de novo nas perguntas zera a cópia do Limpar */
+      await page.locator('#ajuste tr').nth(idx('Aluguel')).locator('input').fill('700'); await page.click('#aj-recalcular');
+      ok((await state()).ajusteOrig, 'ajuste: cópia guardada');
+      ok(await clicar('#rev', 'Revisar respostas'), 'Revisar respostas');
+      await continuar();
+      ok(!(await state()).ajusteOrig, 'responder nas perguntas tira a cópia do Limpar');
+      console.log('PASS-stage: ajustar valores no resultado (Recalcular/Limpar)');
+    }
+
     ok(errors.length === 0, 'sem erros de JavaScript: ' + errors.join(' | '));
   } catch (e) {
     falhas.push('exceção: ' + (e && e.stack || e));

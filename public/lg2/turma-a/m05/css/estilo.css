@@ -276,3 +276,19 @@ a{color:var(--m-purple)}
 .ver-mais{margin-top:4px}
 .ver-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:14.5px}
 @media print{.voltar-topo,.revisar{display:none!important}.ver-mais summary{display:none}}
+
+/* ajustar valores no resultado e recalcular (relatório de 12/11/2026) */
+.ajuste .aj-intro{font-size:14.5px;color:var(--m-gray);margin:8px 0}
+.ajuste .aj-tit{margin-top:14px}
+.ajuste-tab td{vertical-align:middle}
+.ajuste-tab td:first-child{font-weight:400;color:inherit;padding-right:8px}
+.ajuste-tab td:last-child{width:1%}
+.ajuste-tab .linha{margin:0;justify-content:flex-end;gap:6px}
+.ajuste-tab .campo{flex:0 0 6.2em;width:6.2em;min-width:0;padding:8px 10px;text-align:right}
+.ajuste-tab .aj-unid{color:var(--m-gray);font-size:14px;white-space:nowrap}
+.ajuste-tab .pre{font-size:14px}
+.ajuste-tab .aj-cab td{font-weight:700;color:var(--m-purple);text-align:left;width:auto;padding-top:12px;border-bottom:none}
+.ajuste-tab input[aria-invalid]{border-color:var(--m-coral)}
+.aj-botoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.aj-botoes .btn{flex:1 1 140px}
+@media print{.ajuste,[data-ir-ajuste]{display:none!important}}

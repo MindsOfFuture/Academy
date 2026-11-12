@@ -466,6 +466,7 @@
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
+      delete S.ajusteOrig;          // respondeu de novo nas perguntas: o "Limpar" do resultado passa a valer a partir daqui
       if (resp && resp.herdado && r0.estado === "opcao" && r0.opcao === resp.opcao) r0 = Object.assign({}, r0, { herdado: resp.herdado });
       S.R[cod] = r0;
       const r = Motor.regra(M, q, r0);
@@ -789,6 +790,146 @@
     return p;
   }
 
+  /* ================= ajustar valores no resultado (relatório de 12/11/2026) =================
+     A pessoa corrige preços e quantidades na própria tela do resultado e toca em "Recalcular", sem refazer
+     as perguntas. Os valores são gravados nas MESMAS respostas das perguntas (P04–P09, P11–P16, P20–P22,
+     P27–P35, P36, P37), no mesmo formato, porque outros módulos leem essas respostas. Antes do primeiro
+     ajuste guardamos uma cópia das respostas (S.ajusteOrig) para o "Limpar" voltar ao que estava. */
+  let msgAjuste = null;   // mensagem depois de recalcular ou limpar (mostrada uma vez)
+  const MSG_AJ_VAZIO = "Preencha todos os valores. Para voltar ao que estava, toque em “Limpar”.";
+  const MSG_AJ_NEG = "O valor não pode ser negativo.";
+  const MSG_AJ_ZERO = "A quantidade deve ser maior que zero.";
+  /* gastos do mês: pergunta Sim/Não que abre cada valor */
+  const GASTOS = [["M5.P29", "M5.P28", "Aluguel"], ["M5.P31", "M5.P30", "Água e luz"], ["M5.P27", "M5.P26", "Perdas no mês"]];
+  function camposAjuste() {
+    const R = S.R, tipo = tipoAtual();
+    const val = (cod) => (R[cod] && R[cod].estado === "valor" ? R[cod].valor : null);
+    const sim = (cod) => !!(R[cod] && R[cod].estado === "opcao" && /^Sim\b/.test(R[cod].opcao));
+    const cada = tipo === "Serviço" ? "O que vai em cada atendimento" : "O que vai em cada unidade";
+    const grupos = [{ titulo: cada, linhas: [] }, { titulo: "Gastos do mês", linhas: [] }, { titulo: "Preço e vendas", linhas: [] }];
+    const [custo, mes, venda] = grupos.map((g) => g.linhas);
+    const L = (rot, cod, v, o) => Object.assign({ rot, cod, v: v === null || v === undefined ? "" : String(v) }, o);
+    function materiais(pLista, pPreco, pComp, pUsa, usaRot) {
+      const nomes = (val(pLista) || []).filter((s) => String(s).trim());
+      const pr = val(pPreco) || [], co = val(pComp) || [], us = val(pUsa) || [];
+      nomes.forEach((nome, i) => {
+        custo.push({ cab: nome });
+        custo.push(L("Preço que você paga", pPreco, pr[i], { i, pre: "R$", regra: "nn" }));
+        custo.push(L("Quanto vem quando compra", pComp, co[i] && co[i].q, { i, k: "q", suf: (co[i] && co[i].u) || "unidade", regra: "pos" }));
+        custo.push(L(usaRot, pUsa, us[i] && us[i].q, { i, k: "q", suf: (us[i] && us[i].u) || "unidade", regra: "nn" }));
+      });
+    }
+    function pacote(pPac) {
+      const pk = val(pPac);
+      if (!pk) return;
+      custo.push({ cab: "Embalagem" });
+      custo.push(L("Preço do pacote", pPac, pk.preco, { k: "preco", pre: "R$", regra: "nn" }));
+      custo.push(L("Quantas vêm no pacote", pPac, pk.qtd, { k: "qtd", regra: "pos" }));
+    }
+    if (tipo === "Produto") {
+      materiais("M5.P03", "M5.P04", "M5.P05", "M5.P06", "Quanto usa");
+      if (val("M5.P07") !== null) custo.push(L("Quantas unidades você faz com essas quantidades", "M5.P07", val("M5.P07"), { regra: "pos" }));
+      if (sim("M5.P08")) pacote("M5.P09");
+    } else if (tipo === "Mercadoria") {
+      if (val("M5.P11") !== null) custo.push(L("Quanto você paga na compra", "M5.P11", val("M5.P11"), { pre: "R$", regra: "nn" }));
+      if (val("M5.P12") !== null) custo.push(L("Quantas unidades vêm nessa compra", "M5.P12", val("M5.P12"), { regra: "pos" }));
+      if (sim("M5.P13") && val("M5.P14") !== null) custo.push(L("Frete do pedido", "M5.P14", val("M5.P14"), { pre: "R$", regra: "nn" }));
+      if (sim("M5.P15")) pacote("M5.P16");
+    } else if (tipo === "Serviço" && sim("M5.P18")) {
+      materiais("M5.P19", "M5.P20", "M5.P21", "M5.P22", "Quanto usa em cada atendimento");
+    }
+    GASTOS.forEach(([cod, gate, rot]) => mes.push(L(rot, cod, sim(gate) ? val(cod) : "", { gate, pre: "R$", regra: "gasto" })));
+    (sim("M5.P32") ? val("M5.P33") || [] : []).forEach((x, i) => mes.push(L(String(x.nome || "").trim() || "Outro gasto", "M5.P33", x.v, { i, k: "v", pre: "R$", regra: "gasto" })));
+    mes.push(L("O que você separa para você (seu trabalho)", "M5.P35", sim("M5.P34") ? val("M5.P35") : "", { gate: "M5.P34", pre: "R$", regra: "gasto" }));
+    if (val("M5.P36") !== null) venda.push(L("Preço de venda", "M5.P36", val("M5.P36"), { pre: "R$", regra: "nn" }));
+    if (val("M5.P37") !== null) venda.push(L(tipo === "Serviço" ? "Atendimentos no mês" : "Vendas no mês", "M5.P37", val("M5.P37"), { regra: "nn" }));
+    return grupos.filter((g) => g.linhas.some((l) => !l.cab));
+  }
+  /* tabela editável: devolve o HTML e a lista dos campos (na ordem dos inputs #aj-0, #aj-1…) */
+  function blocoAjuste() {
+    const gs = camposAjuste();
+    const specs = [];
+    if (!gs.length) return { html: "", specs };
+    const linha = (l) => {
+      if (l.cab) return `<tr class="aj-cab"><td colspan="2">${esc(l.cab)}</td></tr>`;
+      const n = specs.push(l) - 1;
+      return `<tr><td><label for="aj-${n}">${esc(l.rot)}${l.suf ? ` <span class="aj-unid">(${esc(l.suf)})</span>` : ""}</label></td><td><div class="linha">${l.pre ? `<span class="pre">${l.pre}</span>` : ""}<input class="campo aj" id="aj-${n}" inputmode="decimal" value="${esc(l.v)}"></div></td></tr>`;
+    };
+    const html = `<details class="saiba ajuste" id="ajuste"${msgAjuste ? " open" : ""}><summary>Ajustar valores e recalcular</summary>
+      <p class="aj-intro">Algum preço ou quantidade mudou? Corrija na tabela e toque em “Recalcular”. Não precisa refazer as perguntas. Gasto do mês em branco conta como zero.</p>
+      ${msgAjuste ? `<div class="bloco b-proximo" id="ajuste-msg" role="status">${msgAjuste.map((m) => `<p>${esc(m)}</p>`).join("")}</div>` : ""}
+      ${gs.map((g) => `<div class="secao-titulo aj-tit">${esc(g.titulo)}</div><table class="comp ajuste-tab">${g.linhas.map(linha).join("")}</table>`).join("")}
+      <div class="erro" id="ajuste-erro" hidden></div>
+      <div class="aj-botoes"><button class="btn btn-primario" id="aj-recalcular">Recalcular</button><button class="btn btn-claro" id="aj-limpar">Limpar</button></div>
+      <p class="aj-intro">“Limpar” desfaz os ajustes feitos aqui e volta aos valores das suas respostas.</p>
+    </details>`;
+    return { html, specs };
+  }
+  /* grava um valor ajustado na resposta da pergunta correspondente (mesmo formato das perguntas) */
+  function gravarAjuste(s, t) {
+    const R = S.R;
+    const sim = (cod) => !!(R[cod] && R[cod].estado === "opcao" && /^Sim\b/.test(R[cod].opcao));
+    if (s.cod === "M5.P33") { R["M5.P33"].valor[s.i] = Object.assign({}, R["M5.P33"].valor[s.i], { v: t }); return; }
+    if (s.gate) {
+      if (!t || Motor.num(t) === 0) {                       // sem esse gasto: a pergunta Sim/Não passa a "Não"
+        if (sim(s.gate) || R[s.cod]) { R[s.gate] = { estado: "opcao", opcao: "Não" }; delete R[s.cod]; }
+        return;
+      }
+      if (!sim(s.gate)) R[s.gate] = { estado: "opcao", opcao: "Sim" };
+      R[s.cod] = Object.assign({}, R[s.cod], { estado: "valor", valor: t });
+      return;
+    }
+    const r = R[s.cod] = Object.assign({}, R[s.cod], { estado: "valor" });
+    if (s.i !== undefined) {
+      const arr = Array.isArray(r.valor) ? r.valor.slice() : [];
+      arr[s.i] = s.k ? Object.assign({}, arr[s.i] || { [s.k]: "", u: s.suf || "unidade" }, { [s.k]: t }) : t;
+      r.valor = arr;
+    } else if (s.k) r.valor = Object.assign({}, r.valor, { [s.k]: t });
+    else r.valor = t;
+  }
+  function ligarAjuste(p, specs) {
+    const rec = p.querySelector("#aj-recalcular");
+    if (!rec) return;
+    const det = p.querySelector("#ajuste");
+    p.querySelectorAll("[data-ir-ajuste]").forEach((a) => { a.onclick = (e) => { e.preventDefault(); det.open = true; det.scrollIntoView({ behavior: "smooth", block: "start" }); }; });
+    const erroBox = p.querySelector("#ajuste-erro");
+    det.addEventListener("input", (e) => { e.target.removeAttribute("aria-invalid"); erroBox.hidden = true; });
+    rec.onclick = () => {
+      let erro = null, primeiro = null;
+      const vals = specs.map((s, n) => {
+        const inp = p.querySelector(`#aj-${n}`), t = inp.value.trim(), x = Motor.num(t);
+        let e = null;
+        if (!t) e = s.regra === "gasto" ? null : MSG_AJ_VAZIO;
+        else if (x === null) e = Motor.MSG_NUMERO;
+        else if (x < 0) e = MSG_AJ_NEG;
+        else if (s.regra === "pos" && x <= 0) e = MSG_AJ_ZERO;
+        inp.toggleAttribute("aria-invalid", !!e);
+        if (e && !erro) { erro = e; primeiro = inp; }
+        return t;
+      });
+      if (erro) { erroBox.textContent = erro; erroBox.hidden = false; primeiro.focus(); return; }
+      if (!S.ajusteOrig) S.ajusteOrig = JSON.parse(JSON.stringify(S.R));
+      specs.forEach((s, n) => gravarAjuste(s, vals[n]));
+      /* outros gastos zerados saem da lista; lista vazia = "Não" na pergunta dos outros gastos */
+      const r33 = S.R["M5.P33"];
+      if (r33 && Array.isArray(r33.valor)) {
+        r33.valor = r33.valor.filter((x) => Motor.num(x.v) > 0);
+        if (!r33.valor.length) { delete S.R["M5.P33"]; S.R["M5.P32"] = { estado: "opcao", opcao: "Não" }; }
+      }
+      salvar();
+      const msgs = ["Pronto! Recalculamos o resultado com os valores novos."];
+      ["M5.P06", "M5.P22"].forEach((c) => { const r = S.R[c]; const a = r && r.estado === "valor" && Motor.avisoQuantidade(M, M.porCodigo[c], r.valor, S.R); if (a) msgs.push(a); });
+      msgAjuste = msgs;
+      ir(telaResultado);
+    };
+    p.querySelector("#aj-limpar").onclick = () => {
+      if (S.ajusteOrig) { S.R = S.ajusteOrig; delete S.ajusteOrig; salvar(); msgAjuste = ["Voltamos aos valores das suas respostas."]; }
+      else msgAjuste = ["Os campos voltaram aos valores das suas respostas."];
+      ir(telaResultado);
+    };
+    if (msgAjuste) { msgAjuste = null; setTimeout(() => det.scrollIntoView({ block: "start" }), 0); }   // depois de a tela entrar
+  }
+
   /* ================= resultado ================= */
   function telaResultado() {
     const aPreco = Motor.analisarPreco(M, S.R, S.lucro, faixaM3());
@@ -810,6 +951,7 @@
     const card = (t, v, sub) => `<div class="mini"><span>${v}</span><small>${esc(t)}</small>${sub ? `<em>${esc(sub)}</em>` : ""}</div>`;
     const t = TIPOS[c.tipo];
     const abaixo = c.precoInformado !== null ? Motor.abaixoCusto(c.precoInformado, c.custoUnidade) : null;
+    const aj = blocoAjuste();
 
     const p = el(`
       <div class="pag">
@@ -849,7 +991,8 @@
             <div class="bloco b-alerta"><b>Atenção</b>${esc(regraFinal.alerta)}</div>
             ${c.linhas.length ? `<details class="saiba" open><summary>${esc(regraFinal.proximo)}</summary>
               <table class="comp">${c.linhas.map((l) => `<tr><td>${esc(l.nome)}</td><td>${brl(l.valor)}</td></tr>`).join("")}
-              ${c.taxa ? `<tr><td>${esc(bt("05").conceito)} (${pct(c.taxaPct)} do preço)</td><td>${brl(c.taxa)}</td></tr>` : ""}</table></details>` : ""}
+              ${c.taxa ? `<tr><td>${esc(bt("05").conceito)} (${pct(c.taxaPct)} do preço)</td><td>${brl(c.taxa)}</td></tr>` : ""}</table>
+              ${aj.html ? `<p class="nota"><a href="#ajuste" data-ir-ajuste>Mudou algum valor? Ajuste aqui e recalcule ↓</a></p>` : ""}</details>` : ""}
           ` : ""}
 
           ${c.mc !== null ? `
@@ -877,6 +1020,7 @@
             ${c.trabalho ? `<tr><td>${esc(bt("07").conceito)}</td><td>${brl(c.trabalho)}</td></tr>` : ""}
             <tr class="total"><td>Total</td><td>${brl(c.mensal)}</td></tr>
           </table>
+          ${aj.html}
 
           ${c.pe !== null && c.mensal > 0 ? `
             <div class="res-num coral">
@@ -945,6 +1089,7 @@
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, pularHerdadas(PRIMEIRA)); };
     p.querySelector("#minhas").onclick = () => ir(telaAnalises, telaResultado);
     p.querySelector("#ver").onclick = (e) => { e.preventDefault(); p.querySelector("#numeros").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if (aj.specs.length) ligarAjuste(p, aj.specs);
     return p;
   }
 

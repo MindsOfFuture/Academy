@@ -1,5 +1,6 @@
 /* Motor do Módulo 3 (22 perguntas reescritas pelo grupo).
-   Decide a próxima pergunta (único desvio: "Não" na pergunta 2 pula as perguntas 3 a 8)
+   Decide a próxima pergunta (único desvio: "Não" na pergunta 2 pula as perguntas 3 a 8; perguntas com
+   "oculta" nos dados não aparecem, mas o código e a resposta salva continuam existindo)
    e escolhe, para cada resposta, a linha da aba "Caminhos por resposta" que vale.
    Não cria texto: só escolhe entre os textos da planilha. */
 (function (raiz) {
@@ -26,6 +27,9 @@
     const t = String(q.tipo || "");
     /* "Seleção múltipla + campos" (perfil do cliente): marca uma ou mais opções e cada uma abre os seus campos */
     if (/\+\s*campos/i.test(t)) return "escolhacampos";
+    /* lista de nomes (um nome por campo) e tabela Melhor / Igual / Pior (lote 4, relatório da Ana Luiza) */
+    if (/lista de nomes/i.test(t)) return "lista";
+    if (/^tabela/i.test(t)) return "tabela";
     if (/m[uú]ltipla/i.test(t)) return "multipla";
     if (/sele[cç][aã]o [uú]nica/i.test(t)) return "escolha";
     if (/2 campos/.test(t)) return "doiscampos";
@@ -33,31 +37,32 @@
     return "texto";
   }
 
+  /* visivel = não foi pulada pelo desvio (o que sai do caminho é descartado); mostrada = visível e não escondida */
   const visivel = (q, R) => !(DESVIO.pula.includes(q.codigo) && R[DESVIO.de] && R[DESVIO.de].opcao === DESVIO.se);
-  const visiveis = (M, R) => M.perguntas.filter((q) => visivel(q, R));
+  const mostrada = (q, R) => visivel(q, R) && !q.oculta;
+  const visiveis = (M, R) => M.perguntas.filter((q) => mostrada(q, R));
 
   /* ---- telas: perguntas puladas por já terem resposta e perguntas que dividem a mesma tela ----
      H = o que veio de outros módulos ({ ideia, tipo, estagio }), montado pelo app. */
   const PESSOAS = "Pessoas comuns (consumidor final)", DOR = "O que precisa resolver (a dor)";
-  /* concorrentes: duas perguntas curtas na mesma tela (cada uma guarda a sua resposta) */
-  const PARES = [["M3.P15", "M3.P16"], ["M3.P17", "M3.P18"]];
+  /* lote 4: cada pergunta na sua tela (antes 15+16 e 17+18 dividiam a tela) */
+  const PARES = [];
   /* escolha + campos que aceita mais de uma opção (perfil do cliente: pessoas comuns e/ou empresas) */
   const varias = (q) => campo(q) === "escolhacampos" && /m[uú]ltipla/i.test(String(q.tipo || ""));
   /* opções marcadas: a resposta nova guarda "opcoes" (e "opcao" = a primeira, que os outros módulos leem); a antiga só "opcao" */
   const opcoesDe = (r) => (r && Array.isArray(r.opcoes) && r.opcoes.length ? r.opcoes : r && r.opcao ? [r.opcao] : []);
+  /* marcadores "Não sei" / "Não sei dizer" não contam como resposta */
+  const ehNS = (x) => /^Não sei/.test(String(x || "").trim());
   function dorDoPerfil(R) {
     const r = R["M3.P10"];
-    const d = r && r.estado === "opcao" && opcoesDe(r).includes(PESSOAS) && r.campos ? String(r.campos[DOR] || "").trim() : "";
+    const d = r && r.estado === "opcao" && opcoesDe(r).includes(PESSOAS) && r.campos ? String(r.campos[DOR] || "").split(/;\s*/).map((x) => x.trim()).filter((x) => x && !ehNS(x) && x !== "Outro").map((x) => x.replace(/^Outro:\s*/, "")).join("; ") : "";
     return d || null;
   }
-  /* o que vende já veio do Módulo 1; a dor já foi escrita no perfil do cliente */
-  function pulada(q, R, H) {
-    if (q.codigo === "M3.P01") return !!(H && H.ideia);
-    if (q.codigo === "M3.P11") return !!dorDoPerfil(R);
-    return false;
-  }
+  /* lote 4: nenhuma pergunta é pulada por herança (o que veio do Módulo 1 aparece num bloco para confirmar;
+     a pergunta da dor ficou escondida e recebe a dor marcada no perfil do cliente) */
+  function pulada() { return false; }
   function telas(M, R, H) {
-    const lista = M.perguntas.filter((q) => visivel(q, R) && !pulada(q, R, H)).map((q) => q.codigo);
+    const lista = M.perguntas.filter((q) => mostrada(q, R) && !pulada(q, R, H)).map((q) => q.codigo);
     const out = [];
     for (let i = 0; i < lista.length; i++) {
       const par = PARES.find((p) => p[0] === lista[i]);
@@ -79,6 +84,9 @@
 
   /* ---- leitura das respostas ---- */
   const curta = (v) => String(v || "").trim().length < 10;
+  const vazioTxt = (v) => !String(v || "").trim();
+  const NAO = "Não";
+  const ehNao = (q, r) => !!(q.nao && r && r.estado === "valor" && String(r.valor || "").trim() === NAO);
   const sem = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   /* "só termos como 'qualidade' ou 'bom atendimento'" */
   const GENERICOS = new Set(("qualidade bom boa bons boas otimo otima otimos otimas excelente atendimento preco precos " +
@@ -134,7 +142,7 @@
     return { opcao: c.opcao, tipo: c.tipo, texto: troca ? t.replace(/\[valor\]/g, troca) : t };
   }
   const linha = linhaE;
-  const linhaNaoSei = (q) => (q.caminhos || []).find((x) => /^Não sei/.test(x.opcao));
+  const linhasNaoSei = (q) => (q.caminhos || []).filter((x) => /^Não sei/.test(x.opcao));
 
   /* linhas da aba 2 que valem para a resposta r (inclui as do tipo "Nenhum") */
   function retornos(q, r, est) {
@@ -143,8 +151,7 @@
     const linha = (q, o, troca) => linhaE(q, o, troca, est);
     let lista = [];
     if (r.estado === "naosei") {
-      const ns = linhaNaoSei(q);
-      lista = [ns && linha(q, ns.opcao)];
+      lista = linhasNaoSei(q).map((ns) => linha(q, ns.opcao));
       if (q.criterios && piores(r.tabela) >= 3) lista.push(linha(q, "Marcou 'Pior' em 3 ou mais critérios"));
     } else if (tipo === "escolha") lista = [linha(q, r.opcao)];
     else if (tipo === "escolhacampos") {
@@ -152,6 +159,11 @@
       lista = ops.map((o) => linha(q, o));
       const vals = [].concat(...ops.map((o) => q.campos[o])).map((c) => (r.campos || {})[c]);
       if (vals.some((v) => !String(v || "").trim())) lista.push(linha(q, "Campos complementares incompletos"));
+    } else if (tipo === "lista") {
+      lista = [(r.nomes || []).length || !vazioTxt(r.valor) ? linha(q, "Resposta preenchida") : null];
+    } else if (tipo === "tabela") {
+      lista = [linha(q, "Sei comparar (texto livre)")];
+      if (piores(r.tabela) >= 3) lista.push(linha(q, "Marcou 'Pior' em 3 ou mais critérios"));
     } else if (tipo === "multipla") {
       const ops = r.opcoes || [];
       lista = ops.length ? q.opcoes.filter((o) => ops.includes(o)).map((o) => linha(q, o)) : [linha(q, "Nenhuma opção marcada")];
@@ -170,7 +182,8 @@
         lista = [linha(q, generica(r.valor) ? "Resposta muito genérica" : "Resposta preenchida")];
       } else {
         const cheia = ops.find((o) => !/^Não sei/.test(o) && o !== "Resposta vazia ou muito curta");
-        lista = [linha(q, curta(r.valor) ? "Resposta vazia ou muito curta" : cheia)];
+        /* o botão "Não" (pergunta aberta que aceita um não) é resposta completa */
+        lista = [linha(q, curta(r.valor) && !ehNao(q, r) ? "Resposta vazia ou muito curta" : cheia)];
       }
     }
     return lista.filter(Boolean);
@@ -202,7 +215,11 @@
     }
     if (tipo === "escolha") return r.opcao;
     if (tipo === "escolhacampos") { const ops = opcoesDe(r).filter((o) => q.campos[o]); return [ops.join(" e ")].concat(pares(r.campos, [].concat(...ops.map((o) => q.campos[o])))).join(" — "); }
-    if (tipo === "multipla") return (r.opcoes || []).join("; ") + (r.detalhe ? ` — ${r.detalhe}` : "");
+    if (tipo === "multipla") {
+      /* resposta antiga em texto (antes de a pergunta virar de marcar) continua aparecendo */
+      if (r.estado === "valor") return String(r.valor || "").trim();
+      return (r.opcoes || []).join("; ") + (r.detalhe ? ` — ${r.detalhe}` : "");
+    }
     if (tipo === "doiscampos") return pares(r.campos, q.campos).join(" — ");
     return String(r.valor || "").trim();
   }
@@ -213,7 +230,7 @@
     return !!String(r.valor || "").trim();
   }
 
-  const API = { montar, campo, visivel, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, naoVende, varias, opcoesDe, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
+  const API = { montar, campo, visivel, mostrada, ehNS, ehNao, NAO, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, naoVende, varias, opcoesDe, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
                 mostraveis, bloqueia, corrigir, lerPreco, faixaPreco, PRECO_ALTO, PRECO_RAZAO, partesPrompt, passos, pendente, texto, hipotese, NS, DESVIO };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

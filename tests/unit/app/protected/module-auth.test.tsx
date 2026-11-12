@@ -132,7 +132,8 @@ describe.each(PAGINAS)("página $nome", ({ caminho, Page, marcador }) => {
 describe("Laboratório de Gestão — abas por turma", () => {
     it.each([
         ["b", /Módulos da Turma B/],
-        ["demo", /Primeiro Passo/],
+        ["jornada", /Jornada completa/],
+        ["demo", /Módulos da Turma A/],
         ["qualquer", /Módulos da Turma A/],
     ])("?aba=%s abre a aba certa", async (aba, marcador) => {
         currentUser = { id: "user-1", user_metadata: {} };

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import ModulePageShell from "@/components/modules/ModulePageShell";
 import ModulosTurma from "@/components/modules/laboratorio-gestao/ModulosTurma";
-import PrimeiroPasso from "@/components/modules/laboratorio-gestao/PrimeiroPasso";
 import { requireModuleUser } from "../require-user";
 
 const PATH = "/protected/modulos/laboratorio-de-gestao";
@@ -10,7 +9,6 @@ const ABAS = [
   { id: "a", rotulo: "Turma A" },
   { id: "b", rotulo: "Turma B" },
   { id: "jornada", rotulo: "Jornada completa" },
-  { id: "demo", rotulo: "Demonstração" },
 ] as const;
 type Aba = (typeof ABAS)[number]["id"];
 
@@ -19,7 +17,7 @@ export default async function LaboratorioDeGestaoPage({
 }: {
   searchParams: Promise<{ aba?: string }>;
 }) {
-  const user = await requireModuleUser(PATH);
+  await requireModuleUser(PATH);
   const pedida = (await searchParams)?.aba;
   const aba: Aba = ABAS.some((a) => a.id === pedida) ? (pedida as Aba) : "a";
 
@@ -44,16 +42,11 @@ export default async function LaboratorioDeGestaoPage({
           </Link>
         ))}
       </nav>
-      {aba === "demo" ? (
-        <>
-          <h2 className="mb-4 text-xl font-bold text-purple-900">Primeiro Passo</h2>
-          <PrimeiroPasso userId={user.id} />
-        </>
-      ) : aba === "jornada" ? (
+      {aba === "jornada" ? (
         <>
           <h2 className="mb-4 text-xl font-bold text-purple-900">Jornada completa</h2>
           <p className="mb-5 max-w-2xl text-purple-900">
-            Todos os módulos, do 1 ao 10, num caminho só. Cada módulo libera quando você chega ao resultado do anterior.
+            Todos os módulos, do 1 ao 10, num caminho só. No fim, você vê o diagnóstico final com todas as suas respostas.
             Os módulos são os mesmos das turmas, então qualquer melhoria feita pelos grupos já aparece aqui.
           </p>
           <a

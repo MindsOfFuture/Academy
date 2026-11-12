@@ -350,6 +350,117 @@
     const corpo = t.includes(":") ? t.slice(t.indexOf(":") + 1) : t;
     return corpo.split(/,\s+|\s+e\s+(?=registrar)/).map((s) => s.trim()).filter(Boolean);
   }
+  /* título + objetivo, sem o parágrafo técnico da regra (relatório de 12/11: a explicação confundia) */
+  function cabSimples(l) {
+    return `<div class="secao-titulo"${ID_QUADRO[l.codigo] ? ` id="${ID_QUADRO[l.codigo]}"` : ""}>${esc(l.nome)}</div>
+      <p class="ajuda">${esc(l.objetivo)}</p>`;
+  }
+
+  /* ---- roteiro de entrevista: para que serve e como usar (relatório de 12/11) ---- */
+  function blocoUsoRoteiro() {
+    const itens = [
+      ["Para que serve", "Descobrir, conversando, como as pessoas compram hoje e se o problema que você imagina existe mesmo. Não é para vender nem para apresentar a sua ideia."],
+      ["Com quem conversar", "Com pessoas do público que você imagina e que já compraram algo parecido. Prefira quem não é da sua família nem amigo próximo: elas tendem a concordar por educação."],
+      ["Quantas conversas", "Comece com 3 nesta semana e chegue a pelo menos 5. O ideal é ouvir de 8 a 10 pessoas."],
+      ["O que anotar", "Logo depois de cada conversa, registre a pessoa na ficha de perfil de cliente, aqui embaixo: quem é, de quanto em quanto tempo compra, por que escolhe e se mostrou interesse de verdade."],
+      ["O que fazer com as respostas", "Depois das conversas, veja no quadro de evidências quantas pessoas mostraram interesse de verdade e use o quadro para comparar os grupos para decidir por quem começar."],
+    ];
+    return `<div class="cartao roteiro-uso" id="roteiro-uso"><h3>Como usar este roteiro</h3>
+      <dl>${itens.map(([t, d]) => `<dt>${t}</dt><dd>${d}</dd>`).join("")}</dl></div>`;
+  }
+  /* as perguntas do roteiro: as do exemplo da planilha (aba 5, saída esperada), sem reescrever */
+  function perguntasRoteiro() {
+    const t = String(I("M2.I01").ex_saida || ""), m = t.match(/sobre\s+(.+?)\.?$/);
+    return m ? m[1].split(/,\s+|\s+e\s+(?=se\s)/).map((x) => x.trim()).filter(Boolean) : [];
+  }
+  /* perguntas a mais que as próprias respostas da pessoa pediram ("Pergunte, nas entrevistas, …") */
+  function perguntasDasRespostas() {
+    return [...new Set(Motor.regrasTodas(M, S.R).map((r) => r.proximo)
+      .filter((x) => /^Pergunte,?\s+nas entrevistas/i.test(String(x || ""))).map((x) => Motor.limpa(x)))];
+  }
+  function blocoPassosRoteiro() {
+    const bt = D.base.find((b) => /Entrevista com cliente/i.test(b.conceito)) || D.base[2] || {};
+    const extras = perguntasDasRespostas();
+    const passos = [
+      ["Antes da conversa", `<p>${esc(bt.definicao)}</p>`],
+      ["Comece pelo passado", `<p>Peça para a pessoa lembrar da última vez que comprou algo parecido. Por exemplo:</p><p class="ex">${esc(bt.exemplo)}</p>`],
+      ["Faça as perguntas, uma de cada vez", `<p>Deixe a pessoa falar e não corrija. Pergunte sobre:</p>
+        <ul>${perguntasRoteiro().map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+        ${extras.length ? `<p id="roteiro-extras-tit">Pelas suas respostas neste módulo, vale perguntar também:</p><ul id="roteiro-extras">${extras.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`],
+      ["Feche a conversa", `<p>Agradeça. Só agora, se quiser, conte da sua ideia. Repare se a pessoa toma alguma atitude, como pedir orçamento ou indicar alguém.</p>`],
+      ["Anote no mesmo dia", `<p>Registre a conversa na ficha de perfil de cliente, logo abaixo. <a href="#form">Ir para a ficha</a></p>`],
+    ];
+    return `<div class="cartao"><h3>O roteiro, passo a passo</h3>
+      <ol class="roteiro-passos" id="roteiro-passos">${passos.map(([t, h]) => `<li><b>${t}</b>${h}</li>`).join("")}</ol></div>`;
+  }
+
+  /* ---- ficha de perfil e quadro para comparar os grupos: o que preencher, com exemplo (relatório de 12/11) ---- */
+  const FICHA_EX = { situacao: "Ex.: mãe de 2 filhos, compra bolo para aniversário", frequencia: "Ex.: 1 vez por mês", motivo: "Ex.: preço, perto de casa" };
+  function blocoComoFicha() {
+    return `<div class="cartao como-preencher" id="como-ficha"><h3>Como preencher (uma pessoa por vez)</h3>
+      <dl>
+        <dt>Situação</dt><dd>Quem é a pessoa e em que momento compra. ${esc(FICHA_EX.situacao)}.</dd>
+        <dt>Frequência de compra</dt><dd>De quanto em quanto tempo ela compra. ${esc(FICHA_EX.frequencia)}.</dd>
+        <dt>Motivo de escolha</dt><dd>Por que ela comprou onde comprou. ${esc(FICHA_EX.motivo)}.</dd>
+        <dt>Sinal de interesse</dt><dd><b>Forte</b>: fez algo concreto (pediu orçamento, reservou, pagou sinal ou indicou alguém). <b>Fraco</b>: só elogiou. <b>Nenhum</b>: não mostrou interesse.</dd>
+      </dl></div>`;
+  }
+  const soNumero = (t) => /^[\d\s.,]+$/.test(t);
+  function validarFicha(f) {
+    if (!f.situacao) return { erro: "Escreva quem é a pessoa entrevistada. Ex.: mãe de 2 filhos, compra bolo para aniversário.", campo: "#f-sit" };
+    if (soNumero(f.situacao)) return { erro: "Na situação, escreva com palavras quem é a pessoa, e não um número. Ex.: mãe de 2 filhos, compra bolo para aniversário.", campo: "#f-sit" };
+    if (!f.sinal) return { erro: "Escolha o sinal de interesse: forte, fraco ou nenhum.", campo: "#f-sinal .opcao" };
+    if (f.frequencia && soNumero(f.frequencia)) return { aviso: `Na frequência, diga de quanto em quanto tempo. Ex.: “${f.frequencia} vez(es) por mês”. Se estiver certo assim, toque em “Salvar na ficha” de novo.` };
+    if (!f.motivo) return { aviso: "Faltou o motivo de escolha (por que a pessoa comprou onde comprou). Se ela não disse, toque em “Salvar na ficha” de novo." };
+    return {};
+  }
+
+  const NOTAS = [
+    { k: "alcancar", nome: "Facilidade de alcançar", escala: "1 = difícil encontrar essas pessoas; 3 = você encontra fácil" },
+    { k: "necessidade", nome: "Necessidade", escala: "1 = precisam pouco; 3 = precisam muito" },
+    { k: "pagar", nome: "Capacidade de pagar", escala: "1 = pagam pouco; 3 = pagam bem" },
+  ];
+  const GRUPO_EX = "Ex.: mães que compram para festa infantil";
+  /* exemplo preenchido: os grupos e notas do exemplo da planilha (aba 5, entrada), sem "Grupo A/B" */
+  function exemploGrupos(l) {
+    const re = /Grupo [A-Z] \(([^)]+)\):\s*alcançar (\d),\s*necessidade (\d),\s*pagar (\d)/g, out = [];
+    let m; while ((m = re.exec(String(l.ex_entrada || "")))) out.push({ nome: m[1], n: [+m[2], +m[3], +m[4]] });
+    return out;
+  }
+  function blocoComoQuadro(l) {
+    const ex = exemploGrupos(l);
+    const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    return `<div class="cartao como-preencher" id="como-quadro"><h3>Como preencher</h3>
+      <ol>
+        <li>Escreva o nome de um grupo de clientes e toque em “Adicionar grupo”. Faça o mesmo para cada grupo.</li>
+        <li>Pensando nas conversas, dê a cada grupo uma nota de 1 a 3 em cada ponto:
+          <ul>${NOTAS.map((n) => `<li><b>${esc(n.nome)}</b>: ${esc(n.escala)}.</li>`).join("")}</ul></li>
+        <li>O app soma as três notas (de 3 a 9 pontos) e põe em primeiro o grupo com mais pontos. A soma ajuda a pensar; quem decide é você.</li>
+      </ol>
+      ${ex.length ? `<p class="mini-info"><b>Exemplo preenchido</b></p>
+      <div class="tabela-ex"><table id="ex-quadro"><thead><tr><th>Grupo</th><th>Alcançar</th><th>Necessidade</th><th>Pagar</th><th>Total</th></tr></thead>
+        <tbody>${ex.map((g) => `<tr><td>${esc(cap(g.nome))}</td>${g.n.map((x) => `<td>${x}</td>`).join("")}<td><b>${g.n.reduce((a, b) => a + b, 0)}</b></td></tr>`).join("")}</tbody></table></div>` : ""}
+    </div>`;
+  }
+  /* frase da saída esperada da planilha (aba 5): "Com as notas informadas, … merece ser testado primeiro; confirme com mais conversas." */
+  function fraseGrupos(SG, l) {
+    const prontos = SG.filter((g) => g.total !== null);
+    if (prontos.length < 2) return SG.length === 1 ? `<p class="mini-info" id="frase-grupos">Adicione pelo menos mais um grupo para comparar.</p>` : "";
+    if (prontos[0].total === prontos[1].total) {
+      const emp = prontos.filter((g) => g.total === prontos[0].total).map((g) => `“${esc(g.nome)}”`);
+      return `<p class="r-texto" id="frase-grupos">Empate: ${emp.join(" e ")} ficaram com ${prontos[0].total} pontos. Converse com mais pessoas desses grupos para desempatar.</p>`;
+    }
+    const m = String(l.ex_saida || "").match(/(Com as notas informadas, )o Grupo [A-Z]( merece[^"”]*)/);
+    const frase = m ? `${m[1]}“${esc(prontos[0].nome)}”${esc(m[2])}` : `“${esc(prontos[0].nome)}” ficou com mais pontos.`;
+    return `<p class="r-texto" id="frase-grupos">${frase}</p>`;
+  }
+  function validarGrupo(v) {
+    if (!v) return `Escreva o nome do grupo antes de adicionar. ${GRUPO_EX}.`;
+    if (soNumero(v)) return `Escreva o nome do grupo com palavras, e não um número. ${GRUPO_EX}.`;
+    if ((S.grupos || []).some((g) => String(g.nome).trim().toLowerCase() === v.toLowerCase())) return "Esse grupo já está no quadro. Dê as notas nele, logo acima.";
+    return "";
+  }
+
   /* voltar: a tela de onde a pessoa veio (capa, resultado ou a pergunta que mandou para o quadro) */
   function telaInstrumentos(voltar) {
     const i1 = I("M2.I01"), i2 = I("M2.I02"), i3 = I("M2.I03"), i4 = I("M2.I04"), i5 = I("M2.I05");
@@ -364,18 +475,20 @@
         ${heroi({ titulo: "Instrumentos" })}
         <main class="corpo">
           ${botaoVoltar()}
-          ${cabInst(i1)}
-          <div class="cartao"><h3>Antes da conversa</h3><p>${esc(D.base[2] ? D.base[2].definicao : "")}</p><p class="ex">${esc(D.base[2] ? D.base[2].exemplo : "")}</p></div>
+          ${cabSimples(i1)}
+          ${blocoUsoRoteiro()}
+          ${blocoPassosRoteiro()}
           ${blocoEducativo(D.educativo.filter((e) => e.tipo === "Faça"))}
           <div class="aviso">${esc(i1.limite)}</div>
 
-          ${cabInst(i2)}
+          ${cabSimples(i2)}
+          ${blocoComoFicha()}
           <div class="cartao" id="form">
             <h3>Registrar uma pessoa entrevistada</h3>
-            <label class="mini-info">situação</label><textarea class="campo" rows="2" id="f-sit"></textarea>
-            <label class="mini-info">frequência de compra</label><input class="campo" id="f-freq">
-            <label class="mini-info">motivo de escolha</label><input class="campo" id="f-mot">
-            <label class="mini-info">sinal de interesse (forte, fraco ou nenhum)</label>
+            <label class="mini-info" for="f-sit">Situação</label><textarea class="campo" rows="2" id="f-sit" placeholder="${esc(FICHA_EX.situacao)}"></textarea>
+            <label class="mini-info" for="f-freq">Frequência de compra</label><input class="campo" id="f-freq" placeholder="${esc(FICHA_EX.frequencia)}">
+            <label class="mini-info" for="f-mot">Motivo de escolha</label><input class="campo" id="f-mot" placeholder="${esc(FICHA_EX.motivo)}">
+            <label class="mini-info">Sinal de interesse (forte, fraco ou nenhum)</label>
             <div class="opcoes" id="f-sinal">${Motor.SINAIS.map((s) => opcaoHtml(s, false, ` data-s="${esc(s)}"`)).join("")}</div>
             <div class="erro" id="f-erro" hidden></div>
             <div class="acoes"><button class="btn btn-primario" id="f-ok">Salvar na ficha</button></div>
@@ -404,13 +517,15 @@
           ${Q.total ? `<p class="r-texto" id="frase">${esc(Q.frase)}</p>` : ""}
           <div class="aviso">${esc(i4.limite)}</div>
 
-          ${i5.codigo ? `${cabInst(i5)}
+          ${i5.codigo ? `${cabSimples(i5)}
+          ${blocoComoQuadro(i5)}
           <div class="cartao" id="grupos">
             ${SG.map((g) => `<div class="item"><div class="etapa-topo"><b>${esc(g.nome)}</b>${g.total !== null ? `<span class="etq">${g.total}</span>` : ""}<button class="voltar x" data-gx="${g.i}">remover</button></div>
-              <label class="mini-info">facilidade de alcançar</label>${nota(g, "alcancar")}
-              <label class="mini-info">necessidade</label>${nota(g, "necessidade")}
-              <label class="mini-info">capacidade de pagar</label>${nota(g, "pagar")}</div>`).join("")}
-            <label class="mini-info">Novo grupo</label><input class="campo" id="g-nome" value="${S.grupos.length ? "" : esc(Motor.valor(S.R, "M2.P06") && Motor.valor(S.R, "M2.P06") !== Motor.NS ? Motor.valor(S.R, "M2.P06") : "")}">
+              ${NOTAS.map((n) => `<label class="mini-info">${esc(n.nome)} <span class="escala">(${esc(n.escala)})</span></label>${nota(g, n.k)}`).join("")}
+              ${g.total === null ? `<p class="falta-nota">Falta dar nota: ${esc(NOTAS.filter((n) => !(+g[n.k] >= 1 && +g[n.k] <= 3)).map((n) => n.nome.toLowerCase()).join(", "))}.</p>` : ""}</div>`).join("")}
+            ${fraseGrupos(SG, i5)}
+            <label class="mini-info" for="g-nome">Novo grupo</label><input class="campo" id="g-nome" placeholder="${esc(GRUPO_EX)}" value="${S.grupos.length ? "" : esc(Motor.valor(S.R, "M2.P06") && Motor.valor(S.R, "M2.P06") !== Motor.NS ? Motor.valor(S.R, "M2.P06") : "")}">
+            <div class="erro" id="g-erro" hidden></div>
             <div class="acoes"><button class="btn btn-claro" id="g-ok">Adicionar grupo</button></div>
           </div>
           <div class="aviso">${esc(i5.limite)}</div>` : ""}
@@ -422,10 +537,16 @@
     p.querySelectorAll("#f-sinal .opcao").forEach((b) => (b.onclick = () => {
       sinal = b.dataset.s; p.querySelectorAll("#f-sinal .opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel");
     }));
+    let avisoFicha = "";   // aviso que não trava: o segundo toque em "Salvar na ficha", com os mesmos dados, salva
     p.querySelector("#f-ok").onclick = () => {
       const g = (id) => p.querySelector(id).value.trim();
-      if (!sinal) { const e = p.querySelector("#f-erro"); e.textContent = "Escolha o sinal de interesse."; e.hidden = false; return; }
-      S.fichas.push({ situacao: g("#f-sit"), frequencia: g("#f-freq"), motivo: g("#f-mot"), sinal });
+      const f = { situacao: g("#f-sit"), frequencia: g("#f-freq"), motivo: g("#f-mot"), sinal };
+      const e = p.querySelector("#f-erro");
+      const v = validarFicha(f);
+      if (v.erro) { e.textContent = v.erro; e.className = "erro"; e.hidden = false; p.querySelector(v.campo).focus(); return; }
+      const chave = JSON.stringify(f);
+      if (v.aviso && avisoFicha !== chave) { avisoFicha = chave; e.textContent = v.aviso; e.className = "aviso aviso-ficha"; e.hidden = false; return; }
+      S.fichas.push(f);
       salvar(); refazer(voltar);
     };
     p.querySelectorAll("#fichas .x").forEach((b) => (b.onclick = () => { S.fichas.splice(+b.dataset.n, 1); salvar(); refazer(voltar); }));
@@ -437,7 +558,12 @@
     };
     p.querySelector("#p-prazo").onchange = (e) => { S.plano.prazo = e.target.value; salvar(); };
     const gok = p.querySelector("#g-ok");
-    if (gok) gok.onclick = () => { const v = p.querySelector("#g-nome").value.trim(); if (!v) return; S.grupos.push({ nome: v }); salvar(); refazer(voltar); };
+    if (gok) gok.onclick = () => {
+      const v = p.querySelector("#g-nome").value.trim().replace(/\s+/g, " "), e = p.querySelector("#g-erro");
+      const erro = validarGrupo(v);
+      if (erro) { e.textContent = erro; e.hidden = false; p.querySelector("#g-nome").focus(); return; }
+      S.grupos.push({ nome: v }); salvar(); refazer(voltar);
+    };
     p.querySelectorAll("#grupos .opcao").forEach((b) => (b.onclick = () => { S.grupos[+b.dataset.g][b.dataset.k] = +b.dataset.n; salvar(); refazer(voltar); }));
     p.querySelectorAll("#grupos [data-gx]").forEach((b) => (b.onclick = () => { S.grupos.splice(+b.dataset.gx, 1); salvar(); refazer(voltar); }));
     p.querySelector("#v").onclick = () => ir(voltar || telaCapa);
