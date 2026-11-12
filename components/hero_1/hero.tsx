@@ -6,10 +6,11 @@ import CountUp from '../counting/couting';
 interface HeroProps {
   escolas_atendidas: number;
   alunos_impactados: number;
+  aulas_realizadas: number;
   subtitulo: string;
   logoRef: React.Ref<HTMLImageElement>;
 }
-export function Hero({ escolas_atendidas, alunos_impactados, subtitulo, logoRef }: HeroProps) {
+export function Hero({ escolas_atendidas, alunos_impactados, aulas_realizadas, subtitulo, logoRef }: HeroProps) {
   return (
     <div className="flex flex-col gap-8 items-center mt-[50px] ">
       <div className='relative p-8 rounded-lg  flex flex-col items-center justify-center'>
@@ -17,7 +18,7 @@ export function Hero({ escolas_atendidas, alunos_impactados, subtitulo, logoRef 
       </div>
       <h1 className="text-2xl text-[#767676] font-bold text-center p-1" dangerouslySetInnerHTML={{ __html: sanitizeRichText(subtitulo) }}>
       </h1>
-      <div className='flex text-center gap-6 transition-all duration-300 hover:shadow-lg p-3 rounded-lg'>
+      <div className='flex text-center gap-3 sm:gap-6 transition-all duration-300 hover:shadow-lg p-3 rounded-lg'>
         <div className="flex flex-col items-center justify-center  gap-0">
           <p className="text-black font-bold text-3xl">
             <CountUp
@@ -44,6 +45,20 @@ export function Hero({ escolas_atendidas, alunos_impactados, subtitulo, logoRef 
           /></p>
           <p className="text-lg text-[#767676]">
             Alunos impactados
+          </p>
+        </div>
+        <div className='border-l-2 border-dotted border-black'></div>
+        <div className="flex flex-col items-center justify-center">
+          <p className="text-black font-bold text-3xl"><CountUp
+            from={0}
+            to={aulas_realizadas}
+            separator=","
+            direction="up"
+            duration={0.3}
+            className="count-up-text"
+          /></p>
+          <p className="text-lg text-[#767676]">
+            Aulas realizadas
           </p>
         </div>
       </div>

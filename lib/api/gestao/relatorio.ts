@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { limitesDoMes } from "./alocacao";
-import type { AtividadeRelatorio, EncontroDoRelatorio, NovaAtividade, SituacaoAlocacao } from "./types";
+import type { AtividadeRelatorio, EncontroDoRelatorio, NovaAtividade, SituacaoAlocacao, TipoEncontro } from "./types";
 
 /**
  * Relatório do mês de uma pessoa: os encontros em que esteve e as atividades
@@ -27,8 +27,10 @@ export interface AgendaDoRelatorio {
   modalidade: string;
   aulas: string | null;
   cancelado_em: string | null;
+  tipo: TipoEncontro;
   escola: { nome: string } | { nome: string }[] | null;
   turma: { nome: string } | { nome: string }[] | null;
+  espaco: { nome: string } | { nome: string }[] | null;
   agenda_bolsista: { bolsista_id: string; situacao: SituacaoAlocacao; link_comprovacao: string | null }[];
 }
 
@@ -61,6 +63,8 @@ export function montarEncontros(
           descricao: a.aulas || a.modalidade,
           escolaNome: primeiro(a.escola)?.nome ?? null,
           turmaNome: primeiro(a.turma)?.nome ?? null,
+          tipo: a.tipo ?? "aula",
+          espacoNome: primeiro(a.espaco ?? null)?.nome ?? null,
           situacao: c.situacao,
           horas: Number(c.horas),
           links: [
@@ -103,7 +107,7 @@ export async function encontrosDoMes(mes: string, pessoaId?: string): Promise<En
     .schema("gestao")
     .from("agenda")
     .select(
-      "id, data, horario, inicio, modalidade, aulas, cancelado_em, escola(nome), turma(nome), agenda_bolsista(bolsista_id, situacao, link_comprovacao)",
+      "id, data, horario, inicio, modalidade, aulas, cancelado_em, tipo, escola(nome), turma(nome), espaco(nome), agenda_bolsista(bolsista_id, situacao, link_comprovacao)",
     )
     .in("id", ids);
   if (erro) throw new Error(erro.message);

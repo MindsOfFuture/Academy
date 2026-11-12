@@ -29,7 +29,7 @@ export async function numerosDoSiteAction(_anterior: EstadoAcao | null, form: Fo
   const numeros = validarNumerosDoSite(form);
   if (!numeros.ok) return falha(numeros.mensagem);
   try {
-    await definirNumerosDoSite(numeros.valor.escolas, numeros.valor.alunos);
+    await definirNumerosDoSite(numeros.valor.escolas, numeros.valor.alunos, numeros.valor.aulas);
   } catch (error) {
     return falha(mensagemDeErro(error));
   }

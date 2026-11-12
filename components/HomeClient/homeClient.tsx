@@ -54,6 +54,7 @@ export default function HomeClient({ heroData, courses, aboutUsSlides, socialLin
             <Hero
                 escolas_atendidas={heroData?.n_escolas ?? 0}
                 alunos_impactados={heroData?.n_alunos ?? 0}
+                aulas_realizadas={heroData?.n_aulas ?? 0}
                 subtitulo={heroData?.subtitulo ?? ""}
                 logoRef={heroLogoRef}
             />

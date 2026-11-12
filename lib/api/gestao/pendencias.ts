@@ -2,6 +2,7 @@ import "server-only";
 import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
 import { listarEquipe } from "./equipe";
 import { listarMelhorias, pendenciasDeMelhoria } from "./melhorias";
+import { listarMetas, pendenciasDeMeta } from "./metas";
 import type { GestaoPapel, MembroEquipe, Pendencia } from "./types";
 
 /**
@@ -101,7 +102,7 @@ export async function listarPendencias(papel: GestaoPapel): Promise<Pendencia[]>
   const hoje = hojeEmSaoPaulo();
   const inicio = new Date(Date.now() - DIAS_PASSADOS * 86_400_000).toISOString().slice(0, 10);
 
-  const [{ data, error }, eu, melhorias] = await Promise.all([
+  const [{ data, error }, eu, melhorias, metas] = await Promise.all([
     supabase
       .schema("gestao")
       .from("agenda")
@@ -112,11 +113,12 @@ export async function listarPendencias(papel: GestaoPapel): Promise<Pendencia[]>
       .order("data"),
     usuarioDaRequisicao(),
     listarMelhorias(),
+    listarMetas(),
   ]);
   if (error) throw new Error(error.message);
 
   const equipe = papel === "coordenacao" ? await listarEquipe() : [];
   const base = montarPendencias({ papel, hoje, agendas: (data ?? []) as AgendaPendenciaRow[], equipe });
   const deMelhoria = pendenciasDeMelhoria(papel, eu ?? "", melhorias, new Date());
-  return [...deMelhoria, ...base];
+  return [...pendenciasDeMeta(eu ?? "", metas, hoje), ...deMelhoria, ...base];
 }

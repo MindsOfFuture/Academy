@@ -93,6 +93,10 @@ describe("interpretarCalendario", () => {
     ]);
   });
 
+  it("o número da aula é o primeiro número depois de \"aula\"; sem aulas, nulo", () => {
+    expect(leitura.eventos.map((e) => e.numeroAula)).toEqual([1, 3, 3, null, null, 1, 5, 1, 1]);
+  });
+
   it("bloco sem horário vai para os ignorados", () => {
     expect(leitura.ignorados).toEqual([{ celula: "A6", data: "2026-10-05", texto: "Feriado" }]);
   });
@@ -183,7 +187,8 @@ describe("validarEventos", () => {
   const bom = { celula: "A4", data: "2026-10-05", inicio: "08:00", fim: "12:00", escola: "E.M. X", modalidade: "Lego", descricao: "" };
 
   it("aceita evento bom e descarta campos a mais", () => {
-    expect(validarEventos([{ ...bom, extra: 1 }])).toEqual({ ok: true, valor: [bom] });
+    expect(validarEventos([{ ...bom, extra: 1 }])).toEqual({ ok: true, valor: [{ ...bom, numeroAula: null }] });
+    expect(validarEventos([{ ...bom, numeroAula: 7 }])).toEqual({ ok: true, valor: [{ ...bom, numeroAula: 7 }] });
   });
 
   it("recusa lixo", () => {
@@ -199,6 +204,10 @@ describe("validarEventos", () => {
       [{ ...bom, descricao: "x".repeat(201) }],
       [{ ...bom, escola: "x".repeat(121) }],
       [{ ...bom, celula: "A4'; drop" }],
+      [{ ...bom, numeroAula: 0 }],
+      [{ ...bom, numeroAula: 1000 }],
+      [{ ...bom, numeroAula: 1.5 }],
+      [{ ...bom, numeroAula: "3" }],
       Array.from({ length: 401 }, () => bom),
     ]) {
       expect(validarEventos(lixo).ok).toBe(false);
@@ -238,7 +247,7 @@ describe("gerarModelo", () => {
     expect(interpretarCalendario(grade, "2026-09-28").eventos).toEqual([
       {
         celula: "A4", data: "2026-09-28", inicio: "13:00", fim: "17:00",
-        escola: "E.M. Nome da Escola", modalidade: "Lego", descricao: "Aulas 01 e 02",
+        escola: "E.M. Nome da Escola", modalidade: "Lego", descricao: "Aulas 01 e 02", numeroAula: 1,
       },
     ]);
   });

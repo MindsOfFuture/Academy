@@ -17,6 +17,7 @@ vi.mock("@/lib/supabase/server", () => {
 });
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
 vi.mock("@/lib/api/gestao/melhorias", () => ({ listarMelhorias: async () => [], pendenciasDeMelhoria: () => [] }));
+vi.mock("@/lib/api/gestao/metas", () => ({ listarMetas: async () => [], pendenciasDeMeta: () => [] }));
 
 import { listarPendencias } from "@/lib/api/gestao/pendencias";
 

@@ -1,5 +1,5 @@
 import type { Alocacao, Encontro } from "@/lib/api/gestao/types";
-import { SITUACAO } from "./rotulos";
+import { FUNCAO, SITUACAO } from "./rotulos";
 
 /**
  * Peças da página do encontro usadas pela coordenação (`/gestao/alocacao/[id]`)
@@ -24,11 +24,15 @@ export function jaComecou(encontro: Pick<Encontro, "data" | "inicio">): boolean 
   return `${encontro.data} ${encontro.inicio ?? "00:00"}` <= agora;
 }
 
-export function Resumo({ a }: { a: Alocacao }) {
+/** `mostrarAtraso`: só na página da coordenação. */
+export function Resumo({ a, mostrarAtraso = false }: { a: Alocacao; mostrarAtraso?: boolean }) {
   return (
     <p className="text-sm">
-      <span className="font-medium">{a.bolsistaNome}</span> · {SITUACAO[a.situacao]}
+      <span className="font-medium">{a.bolsistaNome}</span>{" "}
+      <span className="rounded-full bg-[#684A97]/10 px-2 py-0.5 text-xs font-medium text-[#684A97]">{FUNCAO[a.funcao]}</span> ·{" "}
+      {SITUACAO[a.situacao]}
       {a.inicio && ` · das ${a.inicio} às ${a.fim}`}
+      {mostrarAtraso && a.atrasoMinutos && ` · atraso de ${a.atrasoMinutos} min`}
       {a.cobertoPorNome &&
         (a.situacao === "substituida" ? ` · substituída por ${a.cobertoPorNome}` : ` · coberta por ${a.cobertoPorNome}`)}
       {a.motivo && <span className="block text-muted-foreground">{a.motivo}</span>}

@@ -55,9 +55,26 @@ vi.mock("@/lib/api/gestao/pendencias", () => ({
 }));
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
 vi.mock("@/lib/api/gestao/artigos", () => ({ listarArtigos: async () => [], buscarArtigo: async () => null }));
-vi.mock("@/app/gestao/artigos/forms", () => ({ FormArtigo: () => <div /> }));
+vi.mock("@/app/gestao/pesquisa/artigos/forms", () => ({ FormArtigo: () => <div /> }));
+vi.mock("@/lib/api/gestao/pesquisa", () => ({
+  listarReunioes: async () => [],
+  buscarReuniao: async () => null,
+  listarProducoes: async () => [],
+  buscarProducao: async () => null,
+}));
+vi.mock("@/app/gestao/pesquisa/forms", () => ({ FormReuniao: () => <div />, FormProducao: () => <div /> }));
+vi.mock("@/lib/supabase/server", async (original) => ({
+  ...(await original<typeof import("@/lib/supabase/server")>()),
+  usuarioDaRequisicao: async () => "u-1",
+}));
 vi.mock("@/lib/api/content", () => ({
-  getHero: async () => ({ n_escolas: 36, n_alunos: 1524, subtitulo: "", base: { escolas: 35, alunos: 1499 } }),
+  getHero: async () => ({
+    n_escolas: 36,
+    n_alunos: 1524,
+    n_aulas: 130,
+    subtitulo: "",
+    base: { escolas: 35, alunos: 1499, aulas: 120 },
+  }),
 }));
 vi.mock("@/app/gestao/numeros-do-site", () => ({
   FormNumerosDoSite: ({ escolas, alunos }: { escolas: number; alunos: number }) => (
@@ -74,7 +91,8 @@ vi.mock("@/app/gestao/equipe/forms", () => ({
 
 import GestaoPage from "@/app/gestao/page";
 import EquipePage from "@/app/gestao/equipe/page";
-import ArtigosPage from "@/app/gestao/artigos/page";
+import ArtigosPage from "@/app/gestao/pesquisa/artigos/page";
+import PesquisaPage from "@/app/gestao/pesquisa/page";
 import { abasDoPapel } from "@/app/gestao/abas";
 
 beforeEach(() => {
@@ -153,8 +171,42 @@ describe("rota /gestao", () => {
     ).rejects.toThrow(/NEXT_NOT_FOUND/);
   });
 
-  it("dá a aba Equipe só à coordenação e Melhorias aos dois", () => {
-    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual(["Hoje", "Alocação", "Equipe", "Testes", "Artigos", "Treinamentos", "Relatório", "Melhorias"]);
-    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Treinamentos", "Relatório", "Melhorias"]);
+  it("devolve 404 ao bolsista numa reunião de pesquisa que não existe", async () => {
+    flagLigada = true;
+    papelMembro = "bolsista";
+    await expect(
+      PesquisaPage({ searchParams: Promise.resolve({ id: "11111111-1111-4111-8111-111111111111" }) }),
+    ).rejects.toThrow(/NEXT_NOT_FOUND/);
+  });
+
+  it("devolve 404 na pesquisa com id que não é uuid", async () => {
+    flagLigada = true;
+    papelMembro = "coordenacao";
+    await expect(PesquisaPage({ searchParams: Promise.resolve({ parte: "producoes", id: "abc" }) })).rejects.toThrow(
+      /NEXT_NOT_FOUND/,
+    );
+  });
+
+  it("mostra a pesquisa vazia ao bolsista", async () => {
+    flagLigada = true;
+    papelMembro = "bolsista";
+    render(await PesquisaPage({ searchParams: Promise.resolve({}) }));
+    expect(screen.getByText("Nenhuma reunião ainda.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Reuniões" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("link", { name: "Artigos" })).not.toBeInTheDocument();
+  });
+
+  it("mostra Artigos dentro da pesquisa só à coordenação", async () => {
+    flagLigada = true;
+    papelMembro = "coordenacao";
+    render(await PesquisaPage({ searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("link", { name: "Artigos" })).toHaveAttribute("href", "/gestao/pesquisa/artigos");
+  });
+
+  it("dá a aba Equipe só à coordenação; Metas, Pesquisa e Melhorias aos dois", () => {
+    expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual([
+      "Hoje", "Alocação", "Equipe", "Testes", "Treinamentos", "Relatório", "Metas", "Pesquisa", "Melhorias",
+    ]);
+    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Treinamentos", "Relatório", "Metas", "Pesquisa", "Melhorias"]);
   });
 });

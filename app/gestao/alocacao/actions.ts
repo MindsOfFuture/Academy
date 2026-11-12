@@ -6,20 +6,25 @@ import {
   alocar,
   atualizarAlocacao,
   cadastrarEscola,
+  cadastrarEspaco,
   cadastrarTurma,
   cancelarEncontro,
   concluirEncontro,
+  conflitosDeEspaco,
   conflitosDeHorario,
   criarEncontro,
   criarEncontros,
   definirSituacaoTurma,
+  definirTipoEspaco,
   editarEscola,
+  editarEspaco,
   editarTurma,
   escreverNotaEncerramento,
   mensagemDoLote,
   obterEncontros,
   planejarLote,
   registrarAfastamento,
+  registrarPresentes,
   removerAlocacao,
   substituirAlocacao,
 } from "@/lib/api/gestao/alocacao";
@@ -32,10 +37,12 @@ import {
   validarAfastamento,
   validarEncontro,
   validarEscola,
+  validarEspaco,
   validarLote,
   validarMudancaAlocacao,
   validarRepeticao,
   validarSituacaoTurma,
+  validarTipoEspaco,
   validarTurma,
 } from "@/lib/api/gestao/validacao";
 
@@ -120,6 +127,35 @@ export async function situacaoTurmaAction(_anterior: EstadoAcao | null, form: Fo
   return executar(() => definirSituacaoTurma(id, situacao.valor.status, situacao.valor.motivo), "Situação atualizada.");
 }
 
+export async function cadastrarEspacoAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const espaco = validarEspaco(form);
+  if (!espaco.ok) return falha(espaco.mensagem);
+  return executar(() => cadastrarEspaco(espaco.valor.nome), "Espaço cadastrado.");
+}
+
+export async function editarEspacoAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "espacoId");
+  const espaco = validarEspaco(form);
+  if (!id) return falha("Espaço não informado.");
+  if (!espaco.ok) return falha(espaco.mensagem);
+  return executar(() => editarEspaco(id, espaco.valor), "Espaço atualizado.");
+}
+
+/** Tipo e espaço de um encontro já lançado (os importados chegam sem espaço). */
+export async function tipoEspacoEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "encontroId");
+  const mudanca = validarTipoEspaco(form);
+  if (!id) return falha("Encontro não informado.");
+  if (!mudanca.ok) return falha(mudanca.mensagem);
+  return executar(() => definirTipoEspaco(id, mudanca.valor.tipo, mudanca.valor.espacoId), "Encontro atualizado.");
+}
+
 export async function criarEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   const negado = await exigirCoordenacao();
   if (negado) return negado;
@@ -146,7 +182,7 @@ export async function criarEncontroAction(_anterior: EstadoAcao | null, form: Fo
 
 /**
  * Antes de lançar: quem da equipe escolhida já está em outro encontro no mesmo
- * horário, em cada data da repetição. É aviso, não trava — a coordenação decide
+ * horário, e se o espaço escolhido já está ocupado, em cada data da repetição. É aviso, não trava — a coordenação decide
  * se revisa ou lança mesmo assim. Formulário incompleto devolve lista vazia; a
  * validação de verdade é a do lançamento.
  */
@@ -156,9 +192,13 @@ export async function conflitosEncontroAction(form: FormData): Promise<ConflitoH
   if (!encontro.ok) return [];
   const datas = validarRepeticao(form, encontro.valor.data);
   if (!datas.ok) return [];
-  const { inicio, fim, equipe } = encontro.valor;
+  const { inicio, fim, equipe, espacoId } = encontro.valor;
   try {
-    return (await Promise.all(datas.valor.map((data) => conflitosDeHorario(data, inicio, fim, equipe)))).flat();
+    const [pessoas, espaco] = await Promise.all([
+      Promise.all(datas.valor.map((data) => conflitosDeHorario(data, inicio, fim, equipe))),
+      espacoId ? Promise.all(datas.valor.map((data) => conflitosDeEspaco(data, inicio, fim, espacoId))) : [],
+    ]);
+    return [...pessoas.flat(), ...espaco.flat()];
   } catch {
     return [];
   }
@@ -249,6 +289,20 @@ export async function escreverNotaAction(_anterior: EstadoAcao | null, form: For
     concluiu = await escreverNotaEncerramento(id, nota, link || null);
   }, "Nota salva.");
   return estado.ok && concluiu ? sucesso("Nota salva. Era a última: o encontro foi concluído.") : estado;
+}
+
+/** Alunos presentes: uma vez por encontro, por quem esteve nele ou pela coordenação (o banco decide). */
+export async function registrarPresentesAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  try {
+    await ensureGestaoMember();
+  } catch (error) {
+    return falha(error instanceof Error ? error.message : "Acesso negado.");
+  }
+  const id = campo(form, "encontroId");
+  const presentes = campo(form, "presentes");
+  if (!id) return falha("Encontro não informado.");
+  if (!/^\d{1,4}$/.test(presentes)) return falha("Informe quantos alunos estavam presentes (de 0 a 9999).");
+  return executar(() => registrarPresentes(id, Number(presentes)), "Presentes registrados.");
 }
 
 export async function substituirAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {

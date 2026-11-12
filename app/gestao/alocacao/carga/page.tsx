@@ -57,6 +57,11 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
                 {c.porTurma.map((t) => `${t.nome}: ${horasTexto(t.horas)}`).join(" · ")}
               </p>
             )}
+            {c.atrasos > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {c.atrasos} {c.atrasos === 1 ? "atraso" : "atrasos"} · {c.minutosDeAtraso} min
+              </p>
+            )}
           </li>
         ))}
         {carga.length === 0 && <li className="p-4 text-sm text-muted-foreground">Nenhum bolsista na equipe.</li>}

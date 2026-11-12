@@ -21,7 +21,8 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ sch
 import { importarPlanilha } from "@/lib/api/gestao/importacao";
 
 const evento = (data: string, escola: string | null) => ({
-  celula: "A4", data, inicio: "08:00", fim: "12:00", escola, modalidade: "Lego", descricao: data === "2026-10-07" ? "" : "Aulas 01 e 02",
+  celula: "A4", data, inicio: "08:00", fim: "12:00", escola, modalidade: "Lego",
+  descricao: data === "2026-10-07" ? "" : "Aulas 01 e 02", numeroAula: data === "2026-10-07" ? null : 1,
 });
 
 describe("importarPlanilha", () => {
@@ -42,8 +43,8 @@ describe("importarPlanilha", () => {
       p_arquivo: "calendario.xlsx",
       p_escolas: [{ nome: "E.E. de Belmiro Braga", categoria: "estadual", cidade: "Belmiro Braga (MG)" }],
       p_encontros: [
-        { data: "2026-10-06", inicio: "08:00", fim: "12:00", modalidade: "Lego", aulas: "Aulas 01 e 02", escola_id: null, escola_nova: "E.E. de Belmiro Braga" },
-        { data: "2026-10-07", inicio: "08:00", fim: "12:00", modalidade: "Lego", aulas: "Lego", escola_id: null, escola_nova: null },
+        { data: "2026-10-06", inicio: "08:00", fim: "12:00", modalidade: "Lego", aulas: "Aulas 01 e 02", escola_id: null, escola_nova: "E.E. de Belmiro Braga", numero_aula: 1 },
+        { data: "2026-10-07", inicio: "08:00", fim: "12:00", modalidade: "Lego", aulas: "Lego", escola_id: null, escola_nova: null, numero_aula: null },
       ],
     });
   });

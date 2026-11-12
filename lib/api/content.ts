@@ -6,9 +6,10 @@ import { type CourseRow, type CourseSummary, mapCourse } from "./types";
 export interface HeroData {
     n_alunos: number;
     n_escolas: number;
+    n_aulas: number;
     subtitulo: string;
     /** O que a coordenação digitou em "Números da página inicial", sem os cadastros da gestão. */
-    base: { escolas: number; alunos: number };
+    base: { escolas: number; alunos: number; aulas: number };
 }
 
 export interface AboutUsSlide { src: string; alt: string; }
@@ -17,11 +18,11 @@ export interface FooterLink { href: string; iconSrc: string; alt: string; nome: 
 /** Números e chamada da home: dados públicos, lidos sem login (a home é guardada pronta). */
 export async function getHero(): Promise<HeroData | null> {
     const supabase = createPublicClient();
-    const keys = ["alunos_atendidos", "escolas_atendidas", "hero1"];
+    const keys = ["alunos_atendidos", "escolas_atendidas", "public_aulas_realizadas", "hero1"];
     const [{ data }, { data: numeros }] = await Promise.all([
         supabase.from("system_config").select("key, value").in("key", keys),
-        // Base do system_config + escolas e alunos da gestão (migration 20261108).
-        supabase.rpc("numeros_da_home").maybeSingle<{ escolas: number; alunos: number }>(),
+        // Base do system_config + escolas, alunos e encontros concluídos da gestão (migrations 20261108 e 20261114).
+        supabase.rpc("numeros_da_home").maybeSingle<{ escolas: number; alunos: number; aulas?: number }>(),
     ]);
 
     // Sem a função (erro), cai só na base.
@@ -29,8 +30,13 @@ export async function getHero(): Promise<HeroData | null> {
     return {
         n_alunos: Number(numeros?.alunos ?? lookup.alunos_atendidos ?? 0) || 0,
         n_escolas: Number(numeros?.escolas ?? lookup.escolas_atendidas ?? 0) || 0,
+        n_aulas: Number(numeros?.aulas ?? lookup.public_aulas_realizadas ?? 0) || 0,
         subtitulo: lookup.hero1 || "",
-        base: { escolas: Number(lookup.escolas_atendidas) || 0, alunos: Number(lookup.alunos_atendidos) || 0 },
+        base: {
+            escolas: Number(lookup.escolas_atendidas) || 0,
+            alunos: Number(lookup.alunos_atendidos) || 0,
+            aulas: Number(lookup.public_aulas_realizadas) || 0,
+        },
     };
 }
 

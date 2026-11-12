@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { obterEncontro } from "@/lib/api/gestao/alocacao";
 import { usuarioAtualId } from "@/lib/api/gestao/melhorias";
-import { FormNotaEncerramento } from "../../alocacao/forms";
+import { FormNotaEncerramento, FormPresentes } from "../../alocacao/forms";
 import { NotasPendentes, Relatorio, Resumo, jaComecou } from "../../alocacao/resumo";
-import { diaCurto } from "../../alocacao/rotulos";
+import { TIPO_ENCONTRO, diaCurto } from "../../alocacao/rotulos";
 import { exigirMembro } from "../../guard";
 
 /**
@@ -38,13 +38,20 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
         <p className="text-sm text-muted-foreground">
           {encontro.turmaNome ?? "Sem turma"}
           {` · ${encontro.escolaNome ?? "Fora de escola"}`}
+          {encontro.tipo !== "aula" && ` · ${TIPO_ENCONTRO[encontro.tipo]}`}
+          {encontro.espacoNome && ` · ${encontro.espacoNome}`}
           {encontro.descricao !== encontro.modalidade && ` · ${encontro.descricao}`}
+          {encontro.numeroAula !== null && ` · Aula ${encontro.numeroAula}`}
+          {encontro.presentes !== null && ` · ${encontro.presentes} presentes`}
         </p>
         {encontro.canceladoEm && (
           <p className="rounded-md bg-gray-100 p-2 text-sm">Cancelado: {encontro.motivoCancelamento}</p>
         )}
         <Relatorio encontro={encontro} />
         <NotasPendentes encontro={encontro} />
+        {podeEscrever && (encontro.escolaId || encontro.turmaId) && (
+          <FormPresentes encontroId={encontro.id} presentes={encontro.presentes} />
+        )}
         {podeEscrever && <FormNotaEncerramento encontroId={encontro.id} nota={minha.notaEncerramento} link={minha.linkComprovacao} />}
       </section>
 

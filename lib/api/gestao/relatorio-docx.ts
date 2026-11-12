@@ -1,6 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { limitesDoMes } from "./alocacao";
-import type { AtividadeRelatorio, EncontroDoRelatorio } from "./types";
+import { TIPO_ENCONTRO, type AtividadeRelatorio, type EncontroDoRelatorio } from "./types";
 
 /**
  * Preenche o "Formulário de execução de atividades" (modelos/relatorio-mensal.docx)
@@ -26,7 +26,9 @@ export interface LinhaDoRelatorio {
 /** Encontros e outras atividades juntos, em ordem de data. */
 export function linhasDoRelatorio(encontros: EncontroDoRelatorio[], atividades: AtividadeRelatorio[]): LinhaDoRelatorio[] {
   const deEncontros = encontros.map((e) => {
-    const onde = [e.escolaNome, e.turmaNome].filter(Boolean).join(", ");
+    const onde = [e.escolaNome ?? (e.tipo !== "aula" ? TIPO_ENCONTRO[e.tipo] : null), e.turmaNome, e.espacoNome]
+      .filter(Boolean)
+      .join(", ");
     const cobertura = e.situacao === "cobertura" ? ", cobrindo outro bolsista" : "";
     return {
       atividade: `${e.descricao}${onde ? ` — ${onde}` : ""} (${e.horario}${cobertura})`,

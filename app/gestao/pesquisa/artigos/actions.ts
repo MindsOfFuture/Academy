@@ -37,12 +37,12 @@ export async function salvarArtigoAction(_anterior: EstadoAcao | null, form: For
     } else {
       criado = await criarArtigo(dados.valor, capaId);
     }
-    revalidatePath("/gestao/artigos");
+    revalidatePath("/gestao/pesquisa/artigos");
     revalidatePath("/");
   } catch (error) {
     return falha(mensagemDeErro(error));
   }
   if (id) return sucesso("Artigo salvo.");
   // Fora do try: o redirect do Next funciona lançando.
-  redirect(`/gestao/artigos?artigo=${criado}`);
+  redirect(`/gestao/pesquisa/artigos?artigo=${criado}`);
 }

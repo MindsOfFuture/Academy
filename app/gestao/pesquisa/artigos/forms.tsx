@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ArtigoGestao, EstadoAcao } from "@/lib/api/gestao/types";
-import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
+import { Aviso, campoSelect, rotuloCampo } from "../../equipe/forms";
 import { separarMetadados } from "@/lib/utils/artigo-metadados";
 import { salvarArtigoAction } from "./actions";
 

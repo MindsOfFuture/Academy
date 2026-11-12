@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { historicoDoEncontro, obterEncontro } from "@/lib/api/gestao/alocacao";
+import { historicoDoEncontro, listarEspacos, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import { exigirMembro } from "../../guard";
 import {
@@ -8,10 +8,12 @@ import {
   FormAlocar,
   FormCancelarEncontro,
   FormConcluirEncontro,
+  FormPresentes,
   FormRemoverAlocacao,
+  FormTipoEspaco,
 } from "../forms";
 import { NotasPendentes, Relatorio, Resumo, dataHoraBr, jaComecou } from "../resumo";
-import { SITUACAO, STATUS_TURMA, diaCurto } from "../rotulos";
+import { FUNCAO, SITUACAO, STATUS_TURMA, TIPO_ENCONTRO, diaCurto } from "../rotulos";
 
 /** Um encontro (spec 014): equipe, o que aconteceu com cada um e o histórico. */
 
@@ -25,6 +27,7 @@ const CAMPO: Record<string, string> = {
   fim: "fim",
   coberto_por: "coberto por",
   motivo: "motivo",
+  atraso_minutos: "atraso (min)",
   carga: "horas",
   data: "data",
   horario: "horário",
@@ -38,11 +41,19 @@ const CAMPO: Record<string, string> = {
   relatorio: "relatório",
   nota_encerramento: "nota de encerramento",
   link_comprovacao: "link de comprovação",
+  numero_aula: "número da aula",
+  presentes: "presentes",
+  funcao: "função",
+  tipo: "tipo",
+  espaco_id: "espaço",
 };
 
-function valorLegivel(v: unknown): string {
+function valorLegivel(v: unknown, espacos: Map<string, string> = new Map()): string {
   if (v === null || v === undefined || v === "") return "—";
   if (typeof v === "string" && v in SITUACAO) return SITUACAO[v as keyof typeof SITUACAO];
+  if (typeof v === "string" && v in FUNCAO) return FUNCAO[v as keyof typeof FUNCAO];
+  if (typeof v === "string" && v in TIPO_ENCONTRO) return TIPO_ENCONTRO[v as keyof typeof TIPO_ENCONTRO];
+  if (typeof v === "string" && espacos.has(v)) return espacos.get(v)!;
   if (typeof v === "string" && /^\d{2}:\d{2}:\d{2}$/.test(v)) return v.slice(0, 5);
   return String(v);
 }
@@ -52,7 +63,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
   await exigirMembro(`/gestao/alocacao/${id}`, "coordenacao");
   if (!UUID.test(id)) notFound();
 
-  const [encontro, equipe] = await Promise.all([obterEncontro(id), listarEquipe()]);
+  const [encontro, equipe, espacos] = await Promise.all([obterEncontro(id), listarEquipe(), listarEspacos()]);
   if (!encontro) notFound();
   const historico = await historicoDoEncontro(encontro);
 
@@ -62,6 +73,9 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
   const foraDoEncontro = ativos.filter((p) => !jaAlocados.has(p.id));
   const cancelado = Boolean(encontro.canceladoEm);
   const comecou = jaComecou(encontro);
+  const nomeDoEspaco = new Map(espacos.map((s) => [s.id, s.nome]));
+  // O espaço atual continua na lista mesmo se ficou inativo.
+  const opcoesEspaco = espacos.filter((s) => s.ativo || s.id === encontro.espacoId).map((s) => ({ id: s.id, nome: s.nome }));
 
   return (
     <div className="space-y-6">
@@ -85,8 +99,21 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
         <p className="text-sm text-muted-foreground">
           {encontro.turmaNome ?? "Sem turma"}
           {` · ${encontro.escolaNome ?? "Fora de escola"}`}
+          {encontro.tipo !== "aula" && ` · ${TIPO_ENCONTRO[encontro.tipo]}`}
+          {encontro.espacoNome && ` · ${encontro.espacoNome}`}
           {encontro.descricao !== encontro.modalidade && ` · ${encontro.descricao}`}
+          {encontro.numeroAula !== null && ` · Aula ${encontro.numeroAula}`}
+          {encontro.presentes !== null && ` · ${encontro.presentes} presentes`}
         </p>
+        {!cancelado && (
+          <FormTipoEspaco
+            key={`${encontro.tipo}|${encontro.espacoId}`}
+            encontroId={encontro.id}
+            tipo={encontro.tipo}
+            espacoId={encontro.espacoId}
+            espacos={opcoesEspaco}
+          />
+        )}
         {encontro.turmaStatus === "nao_abriu" && (
           <p className="rounded-md bg-[#FDCF60]/40 p-2 text-sm">
             A turma está como “{STATUS_TURMA.nao_abriu}”: este encontro fica visível como previsto e não conta horas.
@@ -94,6 +121,9 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
         )}
         <Relatorio encontro={encontro} />
         <NotasPendentes encontro={encontro} />
+        {!cancelado && comecou && (encontro.escolaId || encontro.turmaId) && (
+          <FormPresentes encontroId={encontro.id} presentes={encontro.presentes} />
+        )}
         {cancelado ? (
           <p className="rounded-md bg-gray-100 p-2 text-sm">
             Cancelado em {dataHoraBr(encontro.canceladoEm!)}: {encontro.motivoCancelamento}. Não conta horas.
@@ -111,7 +141,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
           {encontro.alocacoes.map((a) => (
             <li key={a.id} className="space-y-3 p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <Resumo a={a} />
+                <Resumo a={a} mostrarAtraso />
                 {!cancelado && (
                   <FormRemoverAlocacao alocacaoId={a.id} nome={a.bolsistaNome} />
                 )}
@@ -120,7 +150,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
                 <FormAlocacao
                   // Remonta com o que foi salvo: depois de enviar, o React volta o formulário
                   // ao valor com que ele nasceu, e o campo mostraria o valor antigo.
-                  key={[a.situacao, a.inicio, a.fim, a.cobertoPor, a.motivo].join("|")}
+                  key={[a.situacao, a.inicio, a.fim, a.cobertoPor, a.motivo, a.atrasoMinutos, a.funcao].join("|")}
                   alocacao={a}
                   pessoas={ativos}
                   substitutos={foraDoEncontro}
@@ -155,7 +185,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
                 <ul className="mt-1">
                   {h.mudancas.map((m) => (
                     <li key={m.campo}>
-                      {CAMPO[m.campo] ?? m.campo}: {valorLegivel(m.antes)} → {valorLegivel(m.depois)}
+                      {CAMPO[m.campo] ?? m.campo}: {valorLegivel(m.antes, nomeDoEspaco)} → {valorLegivel(m.depois, nomeDoEspaco)}
                     </li>
                   ))}
                 </ul>

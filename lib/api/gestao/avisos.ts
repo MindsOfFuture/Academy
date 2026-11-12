@@ -64,7 +64,7 @@ export async function avisarLote(motivo: MotivoAviso, itens: ItemAviso[]): Promi
               .map((a) => a.bolsistaId)
           : item.pessoas;
       const [, mes, dia] = encontro.data.split("-");
-      const onde = [encontro.turmaNome, encontro.escolaNome ?? "fora de escola"].filter(Boolean).join(" · ");
+      const onde = [encontro.turmaNome, encontro.escolaNome ?? "fora de escola", encontro.espacoNome].filter(Boolean).join(" · ");
       const linha = `${dia}/${mes} · ${encontro.horario} · ${encontro.modalidade} · ${onde}`;
       const extra = motivo === "cancelado" && encontro.motivoCancelamento ? `Motivo: ${encontro.motivoCancelamento}` : "";
       for (const pessoa of new Set(destino)) {

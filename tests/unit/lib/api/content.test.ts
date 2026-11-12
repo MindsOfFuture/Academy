@@ -11,6 +11,7 @@ vi.mock("server-only", () => ({}));
 const CONFIG = [
   { key: "escolas_atendidas", value: "35" },
   { key: "alunos_atendidos", value: "1499" },
+  { key: "public_aulas_realizadas", value: "120" },
   { key: "hero1", value: "Projeto da UFJF" },
 ];
 let rpcResposta: { data: unknown; error: unknown };
@@ -29,17 +30,18 @@ import { getHero } from "@/lib/api/content";
 
 describe("getHero", () => {
   it("mostra o total do banco e guarda a base à parte", async () => {
-    rpcResposta = { data: { escolas: 36, alunos: 1524 }, error: null };
+    rpcResposta = { data: { escolas: 36, alunos: 1524, aulas: 130 }, error: null };
     expect(await getHero()).toEqual({
       n_escolas: 36,
       n_alunos: 1524,
+      n_aulas: 130,
       subtitulo: "Projeto da UFJF",
-      base: { escolas: 35, alunos: 1499 },
+      base: { escolas: 35, alunos: 1499, aulas: 120 },
     });
   });
 
   it("se o banco não calcular, mostra só a base", async () => {
     rpcResposta = { data: null, error: { message: "function does not exist" } };
-    expect(await getHero()).toMatchObject({ n_escolas: 35, n_alunos: 1499 });
+    expect(await getHero()).toMatchObject({ n_escolas: 35, n_alunos: 1499, n_aulas: 120 });
   });
 });
