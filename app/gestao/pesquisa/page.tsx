@@ -7,8 +7,9 @@ import { TIPO_PRODUCAO } from "@/lib/api/gestao/validacao";
 import { cn } from "@/lib/utils";
 import { exigirMembro } from "../guard";
 import { FormProducao, FormReuniao } from "./forms";
+import { PartesDaPesquisa } from "./partes";
 
-/** Pesquisa: reuniões e produções, para todos os membros. */
+/** Pesquisa: reuniões e produções para todos os membros; artigos do site para a coordenação. */
 
 const LISTA = "/gestao/pesquisa";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -61,10 +62,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: Pro
         Pesquisa
       </h2>
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-200">
-        <nav aria-label="Partes da pesquisa" className="flex gap-1">
-          <Parte href={LISTA} ativa={!producoes} rotulo="Reuniões" />
-          <Parte href={`${LISTA}?parte=producoes`} ativa={producoes} rotulo="Produções" />
-        </nav>
+        <PartesDaPesquisa atual={producoes ? "producoes" : "reunioes"} coordenacao={coordenacao} />
         <Link
           href={producoes ? `${LISTA}?parte=producoes&id=novo` : `${LISTA}?id=novo`}
           className="mb-2 rounded-md bg-[#684A97] px-4 py-2 text-sm font-medium text-white hover:bg-[#684A97]/90"
@@ -78,21 +76,6 @@ export default async function PesquisaPage({ searchParams }: { searchParams: Pro
         <ListaReunioes reunioes={await listarReunioes()} podeEditar={podeEditar} />
       )}
     </section>
-  );
-}
-
-function Parte({ href, ativa, rotulo }: { href: string; ativa: boolean; rotulo: string }) {
-  return (
-    <Link
-      href={href}
-      aria-current={ativa ? "page" : undefined}
-      className={cn(
-        "whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors",
-        ativa ? "border-[#684A97] text-[#684A97]" : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900",
-      )}
-    >
-      {rotulo}
-    </Link>
   );
 }
 

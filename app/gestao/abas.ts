@@ -11,7 +11,6 @@ export function abasDoPapel(papel: GestaoPapel): AbaGestao[] {
     abas.push({ href: "/gestao/alocacao", rotulo: "Alocação" });
     abas.push({ href: "/gestao/equipe", rotulo: "Equipe" });
     abas.push({ href: "/gestao/testes", rotulo: "Testes" });
-    abas.push({ href: "/gestao/artigos", rotulo: "Artigos" });
   }
   abas.push({ href: "/gestao/treinamentos", rotulo: "Treinamentos" });
   abas.push({ href: "/gestao/relatorio", rotulo: "Relatório" });

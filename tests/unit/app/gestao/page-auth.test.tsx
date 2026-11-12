@@ -55,7 +55,7 @@ vi.mock("@/lib/api/gestao/pendencias", () => ({
 }));
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
 vi.mock("@/lib/api/gestao/artigos", () => ({ listarArtigos: async () => [], buscarArtigo: async () => null }));
-vi.mock("@/app/gestao/artigos/forms", () => ({ FormArtigo: () => <div /> }));
+vi.mock("@/app/gestao/pesquisa/artigos/forms", () => ({ FormArtigo: () => <div /> }));
 vi.mock("@/lib/api/gestao/pesquisa", () => ({
   listarReunioes: async () => [],
   buscarReuniao: async () => null,
@@ -91,7 +91,7 @@ vi.mock("@/app/gestao/equipe/forms", () => ({
 
 import GestaoPage from "@/app/gestao/page";
 import EquipePage from "@/app/gestao/equipe/page";
-import ArtigosPage from "@/app/gestao/artigos/page";
+import ArtigosPage from "@/app/gestao/pesquisa/artigos/page";
 import PesquisaPage from "@/app/gestao/pesquisa/page";
 import { abasDoPapel } from "@/app/gestao/abas";
 
@@ -193,6 +193,14 @@ describe("rota /gestao", () => {
     render(await PesquisaPage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByText("Nenhuma reunião ainda.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Reuniões" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("link", { name: "Artigos" })).not.toBeInTheDocument();
+  });
+
+  it("mostra Artigos dentro da pesquisa só à coordenação", async () => {
+    flagLigada = true;
+    papelMembro = "coordenacao";
+    render(await PesquisaPage({ searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("link", { name: "Artigos" })).toHaveAttribute("href", "/gestao/pesquisa/artigos");
   });
 
   it("dá a aba Equipe só à coordenação; Metas, Pesquisa e Melhorias aos dois", () => {

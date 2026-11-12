@@ -23,7 +23,7 @@ vi.mock("@/lib/api/gestao/relatorio");
 vi.mock("@/lib/api/gestao/site");
 
 import * as alocacao from "@/app/gestao/alocacao/actions";
-import * as artigos from "@/app/gestao/artigos/actions";
+import * as artigos from "@/app/gestao/pesquisa/artigos/actions";
 import * as equipe from "@/app/gestao/equipe/actions";
 import * as melhorias from "@/app/gestao/melhorias/actions";
 import * as metas from "@/app/gestao/metas/actions";
