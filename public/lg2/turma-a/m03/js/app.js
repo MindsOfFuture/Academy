@@ -372,6 +372,8 @@
       Object.assign(rasc, ini.campos);
       notaPerfil = Object.keys(ini.campos).length > 0;
     }
+    /* pedido da equipe (12/11): em pergunta de escrever, a dica fica dentro do campo (some quando a pessoa digita) */
+    const dicaNoCampo = tipo === "texto" && !vazio(q.dica);
     const rotNS = q.rotulo_naosei || Motor.NS;
     const rotOp = (op) => (op === Motor.NS ? rotNS : op);
 
@@ -386,7 +388,7 @@
           <div class="pergunta">
             <h2 class="q">${esc(enunciado(q))}</h2>
             ${seloTxt ? selo(seloTxt) : ""}
-            ${q.dica ? `<div class="bloco dica-q" role="note"><b>Dica</b>${textoCurto(q.dica)}</div>` : ""}
+            ${q.dica && !dicaNoCampo ? `<div class="bloco dica-q" role="note"><b>Dica</b>${textoCurto(q.dica)}</div>` : ""}
             ${tipo === "multipla" || varias ? `<p class="mini-info">Você pode marcar mais de uma opção.</p>` : ""}
             ${AJUDA_UNICA[cod] ? `<p class="mini-info">${esc(AJUDA_UNICA[cod])}</p>` : ""}
             ${confirmar ? `<div class="herdado" id="herdado"><p class="herdado-txt">${esc(H.p01)}</p><button class="btn-alt" id="trocar" type="button">Trocar</button></div>` : ""}
@@ -515,7 +517,8 @@
       ent.appendChild(el(`<div class="alt"></div>`)).appendChild(bo);
       ent.appendChild(outroT);
     } else {
-      ent.appendChild(el(`<textarea class="campo" rows="4">${esc(resp && resp.estado === "valor" ? resp.valor : "")}</textarea>`));
+      const linhas = dicaNoCampo ? Math.min(8, Math.max(4, Math.ceil(q.dica.length / 34))) : 4;
+      ent.appendChild(el(`<textarea class="campo${dicaNoCampo ? " dica-campo" : ""}" rows="${linhas}"${dicaNoCampo ? ` placeholder="Dica: ${esc(q.dica)}"` : ""} aria-label="${esc(enunciado(q))}">${esc(resp && resp.estado === "valor" ? resp.valor : "")}</textarea>`));
     }
     ent.addEventListener("input", () => { reabrir(); marcarNao(); });
 

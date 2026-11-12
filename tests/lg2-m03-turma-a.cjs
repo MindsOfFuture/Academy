@@ -170,6 +170,13 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   /* ============ 2. dica junto da pergunta (sem tocar em nada) ============ */
   for (const n of TELAS_SIM.filter((n) => n !== 1)) {
     await abrir(n);
+    /* pergunta de escrever (um campo só): a dica fica dentro do campo, antes de digitar; nas outras, no cartão */
+    if (Motor.campo(P(n)) === 'texto') {
+      const c = await page.evaluate(() => { const t = document.querySelector('#ent textarea'); return { ph: t && t.placeholder, vazio: t && !t.value, cx: !!document.querySelector('.dica-q') }; });
+      check(c.vazio && norm(c.ph) === norm('Dica: ' + DICAS[n]) && !c.cx, `pergunta ${n}: dica dentro do campo de escrever, texto literal, sem cartão repetido`);
+      await semCodigos(`pergunta ${n}`);
+      continue;
+    }
     const d = await page.evaluate(() => { const b = document.querySelector('.dica-q'); return b && { t: b.querySelector('b').textContent, txt: [...b.querySelectorAll('p')].map((p) => p.textContent).join(' '), vis: b.offsetParent !== null }; });
     check(d && d.vis && d.t === 'Dica' && norm(d.txt) === norm(DICAS[n]), `pergunta ${n}: dica aparece com a pergunta, texto literal`);
     await semCodigos(`pergunta ${n}`);

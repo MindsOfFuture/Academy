@@ -217,6 +217,7 @@ textarea.campo{resize:vertical;font-family:inherit}
 /* lote 4 (relatórios da Ana Luiza): dica junto da pergunta, aviso de IA, bloco do Módulo 1, lista de nomes, quadro */
 .dica-q{background:var(--m-lavender);border-left:4px solid var(--m-purple);color:#3d2f5c;margin:10px 0 4px}
 .dica-q b{color:var(--m-purple)}
+.dica-campo::placeholder{color:#5c4d78;opacity:1;line-height:1.45}
 .b-ia .ia-aviso{font-weight:700;color:#2b2340}
 .b-ia .antes{color:var(--m-gray)}
 .herdado{border:2px solid var(--m-lavender-mid);border-radius:12px;padding:12px 14px;margin-top:12px;background:#fff}
