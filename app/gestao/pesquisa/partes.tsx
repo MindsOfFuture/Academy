@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { classeSubaba } from "../subabas-estilo";
 
 export type ParteDaPesquisa = "reunioes" | "producoes" | "artigos";
 
@@ -16,14 +16,7 @@ export function PartesDaPesquisa({ atual, coordenacao }: { atual: ParteDaPesquis
 
 function Parte({ href, ativa, rotulo }: { href: string; ativa: boolean; rotulo: string }) {
   return (
-    <Link
-      href={href}
-      aria-current={ativa ? "page" : undefined}
-      className={cn(
-        "whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors",
-        ativa ? "border-[#684A97] text-[#684A97]" : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900",
-      )}
-    >
+    <Link href={href} aria-current={ativa ? "page" : undefined} className={classeSubaba(ativa)}>
       {rotulo}
     </Link>
   );
