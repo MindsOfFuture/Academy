@@ -46,7 +46,7 @@ afterEach(() => {
 
 function preencher() {
   render(
-    <FormEncontro turmas={[]} escolas={[]} pessoas={[{ id: "bia", nome: "Bia" }]} equipes={{}} dataPadrao="2026-10-05" />,
+    <FormEncontro turmas={[]} escolas={[]} espacos={[]} pessoas={[{ id: "bia", nome: "Bia" }]} equipes={{}} dataPadrao="2026-10-05" />,
   );
   fireEvent.change(screen.getByLabelText("Início"), { target: { value: "14:00" } });
   fireEvent.change(screen.getByLabelText("Fim"), { target: { value: "16:00" } });

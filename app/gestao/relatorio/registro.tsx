@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { AtividadeRelatorio, EncontroDoRelatorio } from "@/lib/api/gestao/types";
-import { diaCurto, horasTexto } from "../alocacao/rotulos";
+import { TIPO_ENCONTRO, diaCurto, horasTexto } from "../alocacao/rotulos";
 import { Comprovacao } from "./forms";
 
 /**
@@ -46,7 +46,12 @@ export function RegistroDoMes({
                   {diaCurto(e.data)} · {e.horario} · {e.descricao}
                 </Link>
                 <p className="text-sm text-muted-foreground">
-                  {[e.escolaNome ?? "Fora de escola", e.turmaNome, e.situacao === "cobertura" && "cobrindo alguém"]
+                  {[
+                    e.escolaNome ?? (e.tipo !== "aula" ? TIPO_ENCONTRO[e.tipo] : "Fora de escola"),
+                    e.turmaNome,
+                    e.espacoNome,
+                    e.situacao === "cobertura" && "cobrindo alguém",
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { equipesRecentes, listarEncontrosDoMes, listarTurmas } from "@/lib/api/gestao/alocacao";
+import { equipesRecentes, listarEncontrosDoMes, listarEspacos, listarTurmas } from "@/lib/api/gestao/alocacao";
 import { listEscolas } from "@/lib/api/gestao/entities";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import type { Encontro } from "@/lib/api/gestao/types";
@@ -7,7 +7,7 @@ import { exigirMembro } from "../guard";
 import { FormEncontro } from "./forms";
 import { CaixaLote, SelecaoLote } from "./lote";
 import { SeletorMes } from "../seletor-mes";
-import { diaCurto, mesDaUrl } from "./rotulos";
+import { diaCurto, mesDaUrl, TIPO_ENCONTRO } from "./rotulos";
 
 /**
  * Calendário da alocação (spec 014): o mês inteiro, cada encontro com a equipe.
@@ -49,8 +49,10 @@ function CartaoEncontro({ e }: { e: Encontro }) {
           {e.horario}
         </span>{" "}
         · {e.modalidade}
+        {e.tipo !== "aula" && <span className="block text-gray-600">{TIPO_ENCONTRO[e.tipo]}</span>}
         {e.turmaNome && <span className="block text-gray-600">{e.turmaNome}</span>}
         {e.escolaNome && <span className="block text-gray-600">{e.escolaNome}</span>}
+        {e.espacoNome && <span className="block text-gray-600">{e.espacoNome}</span>}
         <span className="mt-1 block">
           {equipe.length ? equipe.map((a) => a.bolsistaNome.split(" ")[0]).join(", ") : "Sem equipe"}
         </span>
@@ -59,17 +61,31 @@ function CartaoEncontro({ e }: { e: Encontro }) {
   );
 }
 
-export default async function AlocacaoPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
+export default async function AlocacaoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string; espaco?: string }>;
+}) {
   await exigirMembro("/gestao/alocacao", "coordenacao");
-  const mes = mesDaUrl((await searchParams).mes);
+  const params = await searchParams;
+  const mes = mesDaUrl(params.mes);
 
-  const [encontros, turmas, escolas, equipe, equipes] = await Promise.all([
+  const [encontros, turmas, escolas, equipe, equipes, espacos] = await Promise.all([
     listarEncontrosDoMes(mes),
     listarTurmas(),
     listEscolas(),
     listarEquipe(),
     equipesRecentes(),
+    listarEspacos(),
   ]);
+
+  // Id desconhecido na URL vale como sem filtro.
+  const filtro = espacos.find((s) => s.id === params.espaco) ?? null;
+  const visiveis = filtro ? encontros.filter((e) => e.espacoId === filtro.id) : encontros;
+  const usados = new Set(encontros.map((e) => e.espacoId));
+  const espacosDoFiltro = espacos.filter((s) => s.ativo || usados.has(s.id));
+  const linkEspaco = (id: string | null) =>
+    `?${new URLSearchParams(id ? { mes, espaco: id } : { mes })}`;
 
   const pessoas = equipe
     .filter((m) => !m.desligadoEm)
@@ -79,12 +95,12 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
   // Turmas com encontro no mês, para marcar todos os de uma turma de uma vez (spec 020).
   const turmasDoMes = [
     ...new Map(
-      encontros.filter((e) => e.turmaId).map((e) => [e.turmaId!, { id: e.turmaId!, nome: e.turmaNome ?? "Turma" }]),
+      visiveis.filter((e) => e.turmaId).map((e) => [e.turmaId!, { id: e.turmaId!, nome: e.turmaNome ?? "Turma" }]),
     ).values(),
   ].sort((a, b) => a.nome.localeCompare(b.nome));
 
   const porDia = new Map<string, Encontro[]>();
-  for (const e of encontros) porDia.set(e.data, [...(porDia.get(e.data) ?? []), e]);
+  for (const e of visiveis) porDia.set(e.data, [...(porDia.get(e.data) ?? []), e]);
 
   const [ano, m] = mes.split("-").map(Number);
   const primeiroDia = new Date(Date.UTC(ano, m - 1, 1)).getUTCDay();
@@ -96,7 +112,26 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <SeletorMes mes={mes} />
+      <SeletorMes mes={mes} parametros={filtro ? { espaco: filtro.id } : undefined} />
+
+      {espacosDoFiltro.length > 0 && (
+        <nav aria-label="Espaço" className="flex flex-wrap gap-2 text-sm">
+          {[{ id: null, nome: "Todos" }, ...espacosDoFiltro].map((s) => {
+            const atual = (filtro?.id ?? null) === s.id;
+            return (
+              <Link
+                key={s.id ?? "todos"}
+                href={linkEspaco(s.id)}
+                scroll={false}
+                aria-current={atual ? "page" : undefined}
+                className={`rounded-full border px-3 py-1 ${atual ? "border-[#684A97] bg-[#684A97] text-white" : "bg-white text-[#684A97] hover:bg-[#684A97]/10"}`}
+              >
+                {s.nome}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       <SelecaoLote turmas={turmasDoMes} pessoas={pessoas}>
         {/* Telas largas: grade do mês. */}
@@ -125,7 +160,7 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
             </li>
           ))}
         </ul>
-        {encontros.length === 0 && (
+        {visiveis.length === 0 && (
           <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhum encontro lançado neste mês.</p>
         )}
       </SelecaoLote>
@@ -133,6 +168,7 @@ export default async function AlocacaoPage({ searchParams }: { searchParams: Pro
       <FormEncontro
         turmas={turmas}
         escolas={escolas.map((e) => ({ id: e.id, nome: e.nome }))}
+        espacos={espacos.filter((s) => s.ativo).map((s) => ({ id: s.id, nome: s.nome }))}
         pessoas={pessoas}
         equipes={equipes}
         dataPadrao={`${mes}-01`}

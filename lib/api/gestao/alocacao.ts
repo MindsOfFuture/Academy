@@ -8,6 +8,8 @@ import type {
   CargaBolsista,
   ConflitoHorario,
   Encontro,
+  Espaco,
+  FuncaoAlocacao,
   EncontroDoDiaRow,
   EncontroRow,
   NovaEscola,
@@ -19,6 +21,7 @@ import type {
   RegistroHistorico,
   SituacaoAlocacao,
   StatusTurma,
+  TipoEncontro,
   Turma,
   TurmaRow,
   VCargaRow,
@@ -38,9 +41,9 @@ import type {
  */
 
 const SELECT_ENCONTRO =
-  "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, relatorio, " +
-  "escola(nome), turma(nome, status), " +
-  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, nota_encerramento, link_comprovacao)";
+  "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, relatorio, numero_aula, presentes, tipo, espaco_id, " +
+  "escola(nome), turma(nome, status), espaco(nome), " +
+  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, nota_encerramento, link_comprovacao, atraso_minutos, funcao)";
 
 function throwOnError(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
@@ -57,7 +60,7 @@ function hhmm(valor: string | null): string | null {
 }
 
 /** Nomes da equipe para qualquer membro: o bolsista também abre a página do encontro (spec 016). */
-async function nomesDaEquipe(): Promise<Map<string, string>> {
+export async function nomesDaEquipe(): Promise<Map<string, string>> {
   const supabase = await createClient();
   const { data, error } = await supabase.schema("gestao").rpc("nomes_da_equipe");
   throwOnError(error);
@@ -100,6 +103,8 @@ function mapAlocacao(row: AlocacaoRow, nomes: Map<string, string>): Alocacao {
     carga: row.carga,
     notaEncerramento: row.nota_encerramento,
     linkComprovacao: row.link_comprovacao,
+    atrasoMinutos: row.atraso_minutos ?? null,
+    funcao: row.funcao ?? "apoio",
   };
 }
 
@@ -122,9 +127,19 @@ export function mapEncontro(row: EncontroRow, nomes: Map<string, string>): Encon
     motivoCancelamento: row.motivo_cancelamento,
     concluidoEm: row.concluido_em,
     relatorio: row.relatorio,
+    numeroAula: row.numero_aula,
+    presentes: row.presentes,
+    tipo: row.tipo ?? "aula",
+    espacoId: row.espaco_id ?? null,
+    espacoNome: row.espaco_id ? (primeiro(row.espaco)?.nome ?? "Espaço") : null,
+    // Responsável primeiro, depois por nome.
     alocacoes: (row.agenda_bolsista ?? [])
       .map((a) => mapAlocacao(a, nomes))
-      .sort((a, b) => a.bolsistaNome.localeCompare(b.bolsistaNome)),
+      .sort(
+        (a, b) =>
+          Number(b.funcao === "responsavel") - Number(a.funcao === "responsavel") ||
+          a.bolsistaNome.localeCompare(b.bolsistaNome),
+      ),
   };
 }
 
@@ -268,12 +283,15 @@ export async function criarEncontro(novo: NovoEncontro): Promise<string> {
       aulas: novo.descricao || novo.modalidade,
       escola_id: novo.escolaId,
       turma_id: novo.turmaId,
+      numero_aula: novo.numeroAula,
+      tipo: novo.tipo,
+      espaco_id: novo.espacoId,
     })
     .select("id")
     .single();
   throwOnError(error);
   const id = (data as { id: string }).id;
-  if (novo.equipe.length > 0) await alocar(id, novo.equipe);
+  if (novo.equipe.length > 0) await alocar(id, novo.equipe, novo.responsaveis);
   return id;
 }
 
@@ -287,7 +305,8 @@ export async function criarEncontros(novo: NovoEncontro, datas: string[]): Promi
     .schema("gestao")
     .from("agenda")
     .insert(
-      datas.map((dia) => ({
+      // As datas vêm em ordem crescente: cada semana é a aula seguinte.
+      datas.map((dia, i) => ({
         data: dia,
         inicio: novo.inicio,
         fim: novo.fim,
@@ -295,6 +314,9 @@ export async function criarEncontros(novo: NovoEncontro, datas: string[]): Promi
         aulas: novo.descricao || novo.modalidade,
         escola_id: novo.escolaId,
         turma_id: novo.turmaId,
+        numero_aula: novo.numeroAula === null ? null : novo.numeroAula + i,
+        tipo: novo.tipo,
+        espaco_id: novo.espacoId,
       })),
     )
     .select("id, data");
@@ -304,7 +326,11 @@ export async function criarEncontros(novo: NovoEncontro, datas: string[]): Promi
     const { error: erroEquipe } = await supabase
       .schema("gestao")
       .from("agenda_bolsista")
-      .insert(criados.flatMap((e) => novo.equipe.map((bolsista_id) => ({ agenda_id: e.id, bolsista_id }))));
+      .insert(
+        criados.flatMap((e) =>
+          novo.equipe.map((bolsista_id) => ({ agenda_id: e.id, bolsista_id, funcao: funcaoDe(bolsista_id, novo.responsaveis) })),
+        ),
+      );
     throwOnError(erroEquipe);
   }
   return criados.map((e) => e.id);
@@ -438,12 +464,101 @@ export async function conflitosDeHorario(
   }));
 }
 
-export async function alocar(encontroId: string, bolsistas: string[]): Promise<void> {
+/**
+ * Encontros do mesmo dia no mesmo espaço que se sobrepõem a [inicio, fim).
+ * Encostar não é sobrepor. Só avisa: o espaço pode ser dividido.
+ */
+export function acharEspacoOcupado(
+  novo: { inicio: string; fim: string },
+  encontros: Omit<EncontroDoDiaRow, "agenda_bolsista">[],
+  espaco: { id: string; nome: string },
+): ConflitoHorario[] {
+  const conflitos: ConflitoHorario[] = [];
+  for (const e of encontros) {
+    const turma = primeiro(e.turma);
+    if (!e.inicio || !e.fim || turma?.status === "nao_abriu") continue;
+    if (hhmm(e.inicio)! < novo.fim && novo.inicio < hhmm(e.fim)!) {
+      conflitos.push({
+        bolsistaId: espaco.id,
+        bolsistaNome: espaco.nome,
+        encontroId: e.id,
+        horario: e.horario,
+        modalidade: e.modalidade,
+        turmaNome: turma?.nome ?? null,
+      });
+    }
+  }
+  return conflitos;
+}
+
+export async function conflitosDeEspaco(
+  data: string,
+  inicio: string,
+  fim: string,
+  espacoId: string,
+): Promise<ConflitoHorario[]> {
+  const supabase = await createClient();
+  const { data: linhas, error } = await supabase
+    .schema("gestao")
+    .from("agenda")
+    .select("id, inicio, fim, horario, modalidade, turma(nome, status), espaco(nome)")
+    .eq("data", data)
+    .eq("espaco_id", espacoId)
+    .is("cancelado_em", null);
+  throwOnError(error);
+  const rows = (linhas ?? []) as unknown as (Omit<EncontroDoDiaRow, "agenda_bolsista"> & {
+    espaco: { nome: string } | { nome: string }[] | null;
+  })[];
+  const nome = primeiro(rows[0]?.espaco ?? null)?.nome ?? "Espaço";
+  return acharEspacoOcupado({ inicio, fim }, rows, { id: espacoId, nome }).map((c) => ({ ...c, data }));
+}
+
+function funcaoDe(bolsistaId: string, responsaveis: string[]): FuncaoAlocacao {
+  return responsaveis.includes(bolsistaId) ? "responsavel" : "apoio";
+}
+
+export async function alocar(encontroId: string, bolsistas: string[], responsaveis: string[] = []): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
     .schema("gestao")
     .from("agenda_bolsista")
-    .insert(bolsistas.map((bolsista_id) => ({ agenda_id: encontroId, bolsista_id })));
+    .insert(
+      bolsistas.map((bolsista_id) => ({ agenda_id: encontroId, bolsista_id, funcao: funcaoDe(bolsista_id, responsaveis) })),
+    );
+  throwOnError(error);
+}
+
+/** Tipo e espaço de um encontro já lançado (os importados chegam sem espaço). */
+export async function definirTipoEspaco(encontroId: string, tipo: TipoEncontro, espacoId: string | null): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .schema("gestao")
+    .from("agenda")
+    .update({ tipo, espaco_id: espacoId })
+    .eq("id", encontroId);
+  throwOnError(error);
+}
+
+// ---------------------------------------------------------------------------
+// Espaço
+// ---------------------------------------------------------------------------
+
+export async function listarEspacos(): Promise<Espaco[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("gestao").from("espaco").select("id, nome, ativo").order("nome");
+  throwOnError(error);
+  return (data ?? []) as Espaco[];
+}
+
+export async function cadastrarEspaco(nome: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("gestao").from("espaco").insert({ nome });
+  throwOnError(error);
+}
+
+export async function editarEspaco(id: string, espaco: { nome: string; ativo: boolean }): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("gestao").from("espaco").update(espaco).eq("id", id);
   throwOnError(error);
 }
 
@@ -485,6 +600,15 @@ export async function escreverNotaEncerramento(encontroId: string, nota: string,
   return data === true;
 }
 
+/** Quantos alunos estavam no encontro. O banco confere quem pode e quando. */
+export async function registrarPresentes(encontroId: string, presentes: number): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .schema("gestao")
+    .rpc("registrar_presentes", { p_agenda: encontroId, p_presentes: presentes });
+  throwOnError(error);
+}
+
 /**
  * Situação, intervalo parcial e quem cobriu. Voltar a "prevista" ou "cumprida"
  * limpa o motivo; o histórico guarda o que era.
@@ -497,6 +621,8 @@ export async function atualizarAlocacao(
     fim: string | null;
     cobertoPor: string | null;
     motivo: string | null;
+    atrasoMinutos: number | null;
+    funcao: FuncaoAlocacao;
   },
 ): Promise<void> {
   const supabase = await createClient();
@@ -509,6 +635,8 @@ export async function atualizarAlocacao(
       fim: mudanca.fim,
       coberto_por: mudanca.cobertoPor,
       motivo: mudanca.motivo,
+      atraso_minutos: mudanca.atrasoMinutos,
+      funcao: mudanca.funcao,
     })
     .eq("id", id);
   throwOnError(error);
@@ -643,7 +771,15 @@ export function agruparCarga(
   bolsistas: { id: string; nome: string; ativo: boolean }[],
   escolas: Map<string, string>,
   turmas: Map<string, string>,
+  atrasos: { bolsista_id: string; atraso_minutos: number }[] = [],
 ): CargaBolsista[] {
+  const atrasoPorPessoa = new Map<string, { atrasos: number; minutos: number }>();
+  for (const a of atrasos) {
+    const acc = atrasoPorPessoa.get(a.bolsista_id) ?? { atrasos: 0, minutos: 0 };
+    acc.atrasos += 1;
+    acc.minutos += a.atraso_minutos;
+    atrasoPorPessoa.set(a.bolsista_id, acc);
+  }
   const porPessoa = new Map<string, { total: number; escola: Map<string | null, number>; turma: Map<string | null, number> }>();
   for (const l of linhas) {
     const horas = Number(l.horas);
@@ -677,6 +813,8 @@ export function agruparCarga(
           nome: turmaId ? (turmas.get(turmaId) ?? "Turma") : "Fora de turma",
           horas: h,
         })),
+      atrasos: atrasoPorPessoa.get(b.id)?.atrasos ?? 0,
+      minutosDeAtraso: atrasoPorPessoa.get(b.id)?.minutos ?? 0,
     }))
     .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome));
 }
@@ -684,7 +822,7 @@ export function agruparCarga(
 export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
   const supabase = await createClient();
   const { de, ate } = limitesDoMes(mes);
-  const [{ data, error }, escolas, turmas, equipe] = await Promise.all([
+  const [{ data, error }, escolas, turmas, equipe, atrasos] = await Promise.all([
     supabase
       .schema("gestao")
       .from("v_carga")
@@ -694,13 +832,27 @@ export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
     supabase.schema("gestao").from("escola").select("id, nome"),
     supabase.schema("gestao").from("turma").select("id, nome"),
     listarEquipe(),
+    // Atraso é só informativo: fora da v_carga, não muda as horas.
+    supabase
+      .schema("gestao")
+      .from("agenda_bolsista")
+      .select("bolsista_id, atraso_minutos, agenda!inner(data)")
+      .not("atraso_minutos", "is", null)
+      .gte("agenda.data", de)
+      .lte("agenda.data", ate),
   ]);
-  for (const res of [{ error }, escolas, turmas]) throwOnError(res.error);
+  for (const res of [{ error }, escolas, turmas, atrasos]) throwOnError(res.error);
   const mapa = (linhas: unknown) => new Map(((linhas ?? []) as { id: string; nome: string }[]).map((l) => [l.id, l.nome]));
   const bolsistas = equipe
     .filter((m) => m.bolsista)
     .map((m) => ({ id: m.userProfileId, nome: m.nome, ativo: !m.desligadoEm }));
-  return agruparCarga((data ?? []) as VCargaRow[], bolsistas, mapa(escolas.data), mapa(turmas.data));
+  return agruparCarga(
+    (data ?? []) as VCargaRow[],
+    bolsistas,
+    mapa(escolas.data),
+    mapa(turmas.data),
+    (atrasos.data ?? []) as { bolsista_id: string; atraso_minutos: number }[],
+  );
 }
 
 // ---------------------------------------------------------------------------

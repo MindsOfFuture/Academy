@@ -12,14 +12,14 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ sch
 import { definirNumerosDoSite } from "@/lib/api/gestao/site";
 
 describe("definirNumerosDoSite (spec 019)", () => {
-  it("chama a função do banco com os dois números", async () => {
+  it("chama a função do banco com os três números", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: null });
-    await definirNumerosDoSite(36, 1520);
-    expect(rpc).toHaveBeenCalledWith("definir_numeros_do_site", { p_escolas: 36, p_alunos: 1520 });
+    await definirNumerosDoSite(36, 1520, 300);
+    expect(rpc).toHaveBeenCalledWith("definir_numeros_do_site", { p_escolas: 36, p_alunos: 1520, p_aulas: 300 });
   });
 
   it("repassa a recusa do banco", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { message: "gestao: só a coordenação muda os números do site" } });
-    await expect(definirNumerosDoSite(1, 1)).rejects.toThrow(/só a coordenação/);
+    await expect(definirNumerosDoSite(1, 1, 1)).rejects.toThrow(/só a coordenação/);
   });
 });

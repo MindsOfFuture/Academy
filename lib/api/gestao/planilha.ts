@@ -25,6 +25,8 @@ export interface EventoPlanilha {
   escola: string | null;
   modalidade: string;
   descricao: string;
+  /** "Aulas 05 e 06" → 5; nulo quando o título não traz número de aula. */
+  numeroAula: number | null;
 }
 
 export interface LeituraPlanilha {
@@ -404,11 +406,14 @@ function interpretarBloco(bloco: Bloco): Interpretado {
 
   let escola: string | null = null;
   let descricao = "";
+  let numeroAula: number | null = null;
   const aulas = titulo.search(AULAS);
   const traco = titulo.indexOf(" - ");
   if (aulas !== -1) {
     escola = semTracoNoFim(titulo.slice(0, aulas)) || null;
     descricao = descricaoDasAulas(titulo.slice(aulas));
+    const n = Number(/\d+/.exec(titulo.slice(aulas))?.[0]);
+    numeroAula = n >= 1 && n <= 999 ? n : null;
   } else if (traco !== -1) {
     escola = titulo.slice(0, traco).trim() || null;
     const direita = modalidadeCanonica(titulo.slice(traco + 3));
@@ -422,7 +427,7 @@ function interpretarBloco(bloco: Bloco): Interpretado {
 
   return {
     tipo: "evento",
-    evento: { inicio, fim, escola: escola ? nomeCanonicoEscola(escola) : null, modalidade, descricao },
+    evento: { inicio, fim, escola: escola ? nomeCanonicoEscola(escola) : null, modalidade, descricao, numeroAula },
   };
 }
 
@@ -532,6 +537,7 @@ export function validarEventos(valor: unknown): Validado<EventoPlanilha[]> {
     const modalidade = textoOuVazio(o.modalidade) ?? "";
     const descricao = textoOuVazio(o.descricao) ?? "";
     const escola = o.escola === null || o.escola === undefined ? null : textoOuVazio(o.escola);
+    const numeroAula = o.numeroAula ?? null;
 
     if (!/^[A-Z]{1,3}\d{1,7}$/.test(celula)) return { ok: false, mensagem: "A lista de eventos veio com defeito." };
     if (!dataValida(data)) return { ok: false, mensagem: `A data do evento da célula ${celula} não é válida.` };
@@ -547,7 +553,11 @@ export function validarEventos(valor: unknown): Validado<EventoPlanilha[]> {
     if (escola !== null && (escola.length < 2 || escola.length > 120)) {
       return { ok: false, mensagem: `O nome da escola do evento da célula ${celula} precisa ter de 2 a 120 caracteres.` };
     }
-    eventos.push({ celula, data, inicio, fim, escola, modalidade, descricao });
+    const numeroOk = numeroAula === null || (Number.isInteger(numeroAula) && (numeroAula as number) >= 1 && (numeroAula as number) <= 999);
+    if (!numeroOk) {
+      return { ok: false, mensagem: "A lista de eventos veio com defeito." };
+    }
+    eventos.push({ celula, data, inicio, fim, escola, modalidade, descricao, numeroAula: numeroAula as number | null });
   }
   return { ok: true, valor: eventos };
 }

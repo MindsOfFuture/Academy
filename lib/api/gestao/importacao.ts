@@ -76,6 +76,7 @@ export async function importarPlanilha(
       aulas: e.descricao || e.modalidade,
       escola_id: e.escolaId,
       escola_nova: e.escolaNova,
+      numero_aula: e.numeroAula,
     }));
   if (encontros.length === 0) recusar("nada novo para importar");
 

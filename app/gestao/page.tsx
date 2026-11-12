@@ -85,7 +85,12 @@ export default async function GestaoPage() {
           <h2 id="numeros-do-site" className="text-xl font-semibold">
             Números da página inicial
           </h2>
-          <FormNumerosDoSite escolas={site.base.escolas} alunos={site.base.alunos} total={{ escolas: site.n_escolas, alunos: site.n_alunos }} />
+          <FormNumerosDoSite
+            escolas={site.base.escolas}
+            alunos={site.base.alunos}
+            aulas={site.base.aulas}
+            total={{ escolas: site.n_escolas, alunos: site.n_alunos, aulas: site.n_aulas }}
+          />
         </section>
       )}
     </div>

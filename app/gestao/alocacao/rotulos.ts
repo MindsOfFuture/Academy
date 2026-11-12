@@ -1,4 +1,6 @@
-import type { SituacaoAlocacao, StatusTurma } from "@/lib/api/gestao/types";
+import type { FuncaoAlocacao, SituacaoAlocacao, StatusTurma } from "@/lib/api/gestao/types";
+
+export { TIPO_ENCONTRO } from "@/lib/api/gestao/types";
 
 /**
  * Rótulos da alocação (spec 014). Fora de `forms.tsx` porque a página, que é
@@ -20,6 +22,11 @@ export const STATUS_TURMA: Record<StatusTurma, string> = {
   em_andamento: "Em andamento",
   encerrada: "Encerrada",
   nao_abriu: "Não abriu",
+};
+
+export const FUNCAO: Record<FuncaoAlocacao, string> = {
+  responsavel: "Responsável",
+  apoio: "Apoio",
 };
 
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/;

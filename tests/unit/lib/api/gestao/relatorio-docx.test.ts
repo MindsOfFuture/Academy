@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { formatarCpf, preencherRelatorio } from "@/lib/api/gestao/relatorio-docx";
+import { formatarCpf, linhasDoRelatorio, preencherRelatorio } from "@/lib/api/gestao/relatorio-docx";
 import type { EncontroDoRelatorio } from "@/lib/api/gestao/types";
 
 /** Gera a partir do modelo de verdade: se alguém trocar o .docx, o teste mostra o que quebrou. */
@@ -32,6 +32,8 @@ const ENCONTRO: EncontroDoRelatorio = {
   descricao: "Lego",
   escolaNome: "E.E. Antônio Carlos",
   turmaNome: "Turma A",
+  tipo: "aula",
+  espacoNome: null,
   situacao: "cumprida",
   horas: 4,
   links: [],
@@ -80,6 +82,18 @@ describe("relatório no modelo .docx", () => {
     );
     expect(doc).toContain("https://a.org/x?y=1&amp;z=2 https://b.org");
     expect(celulas(doc)[1][2]).toBe("https://a.org/x?y=1&amp;z=2 https://b.org");
+  });
+
+  it("sem escola: tipo que não é aula e espaço entram no onde; aula sem escola não ganha rótulo", () => {
+    const [impressao, aula] = linhasDoRelatorio(
+      [
+        { ...ENCONTRO, escolaNome: null, turmaNome: null, tipo: "impressao", espacoNome: "Sala 3", descricao: "Peças" },
+        { ...ENCONTRO, data: "2026-11-11", escolaNome: null, turmaNome: null },
+      ],
+      [],
+    );
+    expect(impressao.atividade).toBe("Peças — Impressão, Sala 3 (8h às 12h)");
+    expect(aula.atividade).toBe("Lego (8h às 12h)");
   });
 
   it("mês sem nada mantém a linha vazia do modelo", () => {

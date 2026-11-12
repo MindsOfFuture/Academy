@@ -2,11 +2,15 @@ import type {
   AreaMelhoria,
   DadosArtigo,
   EstadoAcao,
+  FuncaoAlocacao,
   ModalidadeBolsa,
   NovaBolsa,
   NovaEscola,
   NovaMelhoria,
+  NovaMeta,
   NovaAtividade,
+  NovaProducaoPesquisa,
+  NovaReuniaoPesquisa,
   NovaTurma,
   NovoAfastamento,
   NovoEncontro,
@@ -15,6 +19,8 @@ import type {
   SituacaoAlocacao,
   StatusMelhoria,
   StatusTurma,
+  TipoEncontro,
+  TipoProducao,
 } from "./types";
 import { montarConteudo } from "@/lib/utils/artigo-metadados";
 
@@ -137,13 +143,15 @@ const STATUS_TURMA: readonly StatusTurma[] = ["prevista", "em_andamento", "encer
 const INTEIRO = /^\d{1,7}$/;
 
 /** Números da página inicial (spec 019): inteiros de 0 a 1.000.000. */
-export function validarNumerosDoSite(form: FormData): Validado<{ escolas: number; alunos: number }> {
+export function validarNumerosDoSite(form: FormData): Validado<{ escolas: number; alunos: number; aulas: number }> {
   const escolas = texto(form, "escolas").replace(/\./g, "");
   const alunos = texto(form, "alunos").replace(/\./g, "");
+  const aulas = texto(form, "aulas").replace(/\./g, "");
   const valido = (v: string) => INTEIRO.test(v) && Number(v) <= 1_000_000;
   if (!valido(escolas)) return { ok: false, mensagem: "Informe o número de escolas (de 0 a 1.000.000, sem vírgula)." };
   if (!valido(alunos)) return { ok: false, mensagem: "Informe o número de alunos (de 0 a 1.000.000, sem vírgula)." };
-  return { ok: true, valor: { escolas: Number(escolas), alunos: Number(alunos) } };
+  if (!valido(aulas)) return { ok: false, mensagem: "Informe o número de aulas (de 0 a 1.000.000, sem vírgula)." };
+  return { ok: true, valor: { escolas: Number(escolas), alunos: Number(alunos), aulas: Number(aulas) } };
 }
 
 export function validarEscola(form: FormData): Validado<NovaEscola> {
@@ -250,6 +258,9 @@ export function validarLote(form: FormData): Validado<PedidoLote> {
   return { ok: true, valor: { acao, encontros, pessoas, pessoa, substituto, motivo } };
 }
 
+const TIPOS: readonly TipoEncontro[] = ["aula", "impressao", "gravacao", "reuniao", "outro"];
+const FUNCOES: readonly FuncaoAlocacao[] = ["responsavel", "apoio"];
+
 export function validarEncontro(form: FormData): Validado<NovoEncontro> {
   const data = texto(form, "data");
   const inicio = texto(form, "inicio");
@@ -258,6 +269,9 @@ export function validarEncontro(form: FormData): Validado<NovoEncontro> {
   const escolaId = texto(form, "escolaId");
   const modalidade = texto(form, "modalidade");
   const descricao = texto(form, "descricao");
+  const numeroAula = texto(form, "numeroAula");
+  const tipo = (texto(form, "tipo") || "aula") as TipoEncontro;
+  const espacoId = texto(form, "espacoId");
   const equipe = form.getAll("equipe").filter((v): v is string => typeof v === "string" && v.length > 0);
 
   if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe a data do encontro." };
@@ -265,6 +279,12 @@ export function validarEncontro(form: FormData): Validado<NovoEncontro> {
   if (fim <= inicio) return { ok: false, mensagem: "O fim precisa ser depois do início." };
   if (modalidade.length < 2) return { ok: false, mensagem: "Informe a atividade, como Lego ou Organizar materiais." };
   if (descricao.length > 200) return { ok: false, mensagem: "A descrição passou de 200 caracteres." };
+  if (numeroAula && (!/^\d{1,3}$/.test(numeroAula) || Number(numeroAula) === 0)) {
+    return { ok: false, mensagem: "O número da aula precisa ser um inteiro de 1 a 999." };
+  }
+  if (!TIPOS.includes(tipo)) return { ok: false, mensagem: "Escolha o tipo da atividade." };
+  if (espacoId && !UUID.test(espacoId)) return { ok: false, mensagem: "Escolha o espaço de novo." };
+  const responsaveis = form.getAll("responsaveis").filter((v): v is string => typeof v === "string" && equipe.includes(v));
 
   return {
     ok: true,
@@ -277,7 +297,11 @@ export function validarEncontro(form: FormData): Validado<NovoEncontro> {
       turmaId: turmaId || null,
       // Com turma, o banco usa a escola da turma; sem turma, a escola é opcional.
       escolaId: turmaId ? null : escolaId || null,
+      numeroAula: numeroAula ? Number(numeroAula) : null,
+      tipo,
+      espacoId: espacoId || null,
       equipe: [...new Set(equipe)],
+      responsaveis: [...new Set(responsaveis)],
     },
   };
 }
@@ -288,6 +312,9 @@ export interface MudancaAlocacao {
   fim: string | null;
   cobertoPor: string | null;
   motivo: string | null;
+  /** Só faz sentido para quem esteve no encontro (prevista ou cumprida). */
+  atrasoMinutos: number | null;
+  funcao: FuncaoAlocacao;
 }
 
 /** Situação de uma alocação, com o intervalo parcial e quem cobriu. */
@@ -297,10 +324,13 @@ export function validarMudancaAlocacao(form: FormData): Validado<MudancaAlocacao
   const fim = texto(form, "fim");
   const cobertoPor = texto(form, "cobertoPor");
   const motivo = texto(form, "motivo");
+  const atraso = texto(form, "atrasoMinutos");
+  const funcao = (texto(form, "funcao") || "apoio") as FuncaoAlocacao;
 
   if (!SITUACOES.includes(situacao) || situacao === "substituida") {
     return { ok: false, mensagem: "Escolha a situação." };
   }
+  if (!FUNCOES.includes(funcao)) return { ok: false, mensagem: "Escolha a função." };
   if (Boolean(inicio) !== Boolean(fim)) {
     return { ok: false, mensagem: "Para horário parcial, informe a chegada e a saída." };
   }
@@ -311,10 +341,119 @@ export function validarMudancaAlocacao(form: FormData): Validado<MudancaAlocacao
     return { ok: false, mensagem: "Retirar alguém do encontro exige o motivo." };
   }
   if (motivo.length > 500) return { ok: false, mensagem: "O motivo passou de 500 caracteres." };
+  if (atraso && (!/^\d{1,3}$/.test(atraso) || Number(atraso) < 1 || Number(atraso) > 600)) {
+    return { ok: false, mensagem: "O atraso vai de 1 a 600 minutos." };
+  }
+  const esteve = situacao === "prevista" || situacao === "cumprida";
 
   return {
     ok: true,
-    valor: { situacao, inicio: inicio || null, fim: fim || null, cobertoPor: cobertoPor || null, motivo: motivo || null },
+    valor: {
+      situacao,
+      inicio: inicio || null,
+      fim: fim || null,
+      cobertoPor: cobertoPor || null,
+      motivo: motivo || null,
+      atrasoMinutos: atraso && esteve ? Number(atraso) : null,
+      funcao,
+    },
+  };
+}
+
+/** Espaço da agenda: o mesmo limite do check de `gestao.espaco`. */
+export function validarEspaco(form: FormData): Validado<{ nome: string; ativo: boolean }> {
+  const nome = texto(form, "nome");
+  if (nome.length < 2 || nome.length > 80) return { ok: false, mensagem: "O nome do espaço vai de 2 a 80 caracteres." };
+  return { ok: true, valor: { nome, ativo: form.get("ativo") !== null } };
+}
+
+/** Tipo e espaço de um encontro já lançado; espaço vazio tira o espaço. */
+export function validarTipoEspaco(form: FormData): Validado<{ tipo: TipoEncontro; espacoId: string | null }> {
+  const tipo = texto(form, "tipo") as TipoEncontro;
+  const espacoId = texto(form, "espacoId");
+  if (!TIPOS.includes(tipo)) return { ok: false, mensagem: "Escolha o tipo da atividade." };
+  if (espacoId && !UUID.test(espacoId)) return { ok: false, mensagem: "Escolha o espaço de novo." };
+  return { ok: true, valor: { tipo, espacoId: espacoId || null } };
+}
+
+/** Meta: mesmos limites dos checks de `gestao.meta`; ao menos um responsável. */
+export function validarMeta(form: FormData): Validado<NovaMeta> {
+  const titulo = texto(form, "titulo");
+  const descricao = texto(form, "descricao");
+  const prazo = texto(form, "prazo");
+  const responsaveis = form.getAll("responsaveis").filter((v): v is string => typeof v === "string" && v.length > 0);
+
+  if (titulo.length < 3 || titulo.length > 200) {
+    return { ok: false, mensagem: "Dê um título à meta (de 3 a 200 caracteres)." };
+  }
+  if (descricao.length > 2000) return { ok: false, mensagem: "A descrição vai até 2000 caracteres." };
+  if (!DATA_ISO.test(prazo)) return { ok: false, mensagem: "Informe o prazo." };
+  if (responsaveis.length === 0) return { ok: false, mensagem: "Escolha ao menos um responsável." };
+  if (new Set(responsaveis).size !== responsaveis.length) {
+    return { ok: false, mensagem: "Cada responsável entra uma vez só." };
+  }
+
+  return { ok: true, valor: { titulo, descricao: descricao || null, prazo, responsaveis } };
+}
+
+/** Registro de andamento de uma meta. */
+export function validarAndamento(form: FormData): Validado<{ texto: string }> {
+  const valor = texto(form, "texto");
+  if (valor.length < 2 || valor.length > 2000) {
+    return { ok: false, mensagem: "Conte o andamento (de 2 a 2000 caracteres)." };
+  }
+  return { ok: true, valor: { texto: valor } };
+}
+
+export const TIPO_PRODUCAO: Record<TipoProducao, string> = {
+  artigo_congresso: "Artigo em congresso",
+  artigo_publicado: "Artigo publicado",
+  relatorio: "Relatório",
+  substack: "Substack",
+  ebook: "E-book",
+  outro: "Outro",
+};
+
+/** Reunião de pesquisa: mesmos limites dos checks de `gestao.reuniao_pesquisa`. */
+export function validarReuniao(form: FormData): Validado<NovaReuniaoPesquisa> {
+  const data = texto(form, "data");
+  const participantes = texto(form, "participantes");
+  const feito = texto(form, "feito");
+  const desdobramentos = texto(form, "desdobramentos");
+  if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe a data da reunião." };
+  if (participantes.length < 2 || participantes.length > 1000) {
+    return { ok: false, mensagem: "Diga quem participou (de 2 a 1000 caracteres)." };
+  }
+  if (feito.length < 2 || feito.length > 5000) {
+    return { ok: false, mensagem: "Conte o que foi feito (de 2 a 5000 caracteres)." };
+  }
+  if (desdobramentos.length > 5000) return { ok: false, mensagem: "Os desdobramentos vão até 5000 caracteres." };
+  return { ok: true, valor: { data, participantes, feito, desdobramentos: desdobramentos || null } };
+}
+
+/** Produção de pesquisa: mesmos limites dos checks de `gestao.producao_pesquisa`. */
+export function validarProducao(form: FormData): Validado<NovaProducaoPesquisa> {
+  const tipo = texto(form, "tipo");
+  const titulo = texto(form, "titulo");
+  const autores = texto(form, "autores");
+  const data = texto(form, "data");
+  const onde = texto(form, "onde");
+  const link = texto(form, "link");
+  if (!Object.hasOwn(TIPO_PRODUCAO, tipo)) return { ok: false, mensagem: "Escolha o tipo da produção." };
+  if (titulo.length < 2 || titulo.length > 300) {
+    return { ok: false, mensagem: "Dê um título à produção (de 2 a 300 caracteres)." };
+  }
+  if (autores.length < 2 || autores.length > 1000) {
+    return { ok: false, mensagem: "Informe os autores (de 2 a 1000 caracteres)." };
+  }
+  if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe a data da produção." };
+  if (onde.length > 300) return { ok: false, mensagem: "O campo “onde” vai até 300 caracteres." };
+  if (link && (link.length > 500 || !/^https?:\/\/\S+$/i.test(link))) {
+    return { ok: false, mensagem: "O link precisa começar com http:// ou https:// (até 500 caracteres)." };
+  }
+  return {
+    ok: true,
+    valor: { tipo: tipo as TipoProducao, titulo, autores, data, onde: onde || null, link: link || null },
   };
 }
 
@@ -351,6 +490,7 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
   if (texto.includes("agenda_bolsista_agenda_id_bolsista_id_key")) return "Esta pessoa já está neste encontro.";
   if (texto.includes("article_slug_key")) return "Já existe um artigo com esse endereço.";
   if (texto.includes("Professor não verificado")) return "Você não tem permissão para fazer isso.";
+  if (texto.includes("espaco_nome_unico")) return "Já existe um espaço com esse nome.";
   if (texto.includes("papel_membro_pkey") || texto.includes("duplicate key")) {
     return "Esta pessoa já faz parte da equipe.";
   }

@@ -313,7 +313,13 @@ export interface NovaBolsa {
 
 /** Item da tela “Hoje”: o que a pessoa tem a fazer, sempre com link. */
 export interface Pendencia {
-    tipo: "proxima_aula" | "aula_sem_registro" | "bolsista_sem_bolsa" | "melhoria_sem_resposta" | "melhoria_respondida";
+    tipo:
+        | "proxima_aula"
+        | "aula_sem_registro"
+        | "bolsista_sem_bolsa"
+        | "melhoria_sem_resposta"
+        | "melhoria_respondida"
+        | "meta_atrasada";
     titulo: string;
     detalhe: string;
     href: string;
@@ -403,6 +409,24 @@ export type SituacaoAlocacao =
     | "substituida"
     | "retirada";
 
+export type TipoEncontro = "aula" | "impressao" | "gravacao" | "reuniao" | "outro";
+export type FuncaoAlocacao = "responsavel" | "apoio";
+
+export const TIPO_ENCONTRO: Record<TipoEncontro, string> = {
+    aula: "Aula",
+    impressao: "Impressão",
+    gravacao: "Gravação",
+    reuniao: "Reunião",
+    outro: "Outro",
+};
+
+/** Sala ou outro lugar da agenda; a coordenação cadastra. */
+export interface Espaco {
+    id: string;
+    nome: string;
+    ativo: boolean;
+}
+
 export interface TurmaRow {
     id: string;
     escola_id: string;
@@ -440,6 +464,8 @@ export interface AlocacaoRow {
     carga: string;
     nota_encerramento: string | null;
     link_comprovacao: string | null;
+    atraso_minutos: number | null;
+    funcao: FuncaoAlocacao;
 }
 
 export interface Alocacao {
@@ -457,6 +483,10 @@ export interface Alocacao {
     /** Escrita pela própria pessoa depois do início; a última nota conclui o encontro. */
     notaEncerramento: string | null;
     linkComprovacao: string | null;
+    /** Só informativo: não muda as horas. */
+    atrasoMinutos: number | null;
+    /** Responsável e apoio contam as mesmas horas. */
+    funcao: FuncaoAlocacao;
 }
 
 export interface EncontroRow {
@@ -473,6 +503,11 @@ export interface EncontroRow {
     motivo_cancelamento: string | null;
     concluido_em: string | null;
     relatorio: string | null;
+    numero_aula: number | null;
+    presentes: number | null;
+    tipo: TipoEncontro;
+    espaco_id: string | null;
+    espaco: { nome: string } | { nome: string }[] | null;
     escola: { nome: string } | { nome: string }[] | null;
     turma: { nome: string; status: StatusTurma } | { nome: string; status: StatusTurma }[] | null;
     agenda_bolsista: AlocacaoRow[] | null;
@@ -498,6 +533,12 @@ export interface Encontro {
     concluidoEm: string | null;
     /** Opcional, da coordenação ao concluir (spec 016). */
     relatorio: string | null;
+    numeroAula: number | null;
+    /** Alunos presentes, registrado por quem esteve no encontro ou pela coordenação. */
+    presentes: number | null;
+    tipo: TipoEncontro;
+    espacoId: string | null;
+    espacoNome: string | null;
     alocacoes: Alocacao[];
 }
 
@@ -509,7 +550,13 @@ export interface NovoEncontro {
     descricao: string;
     escolaId: string | null;
     turmaId: string | null;
+    /** Na repetição semanal, cada semana soma 1. */
+    numeroAula: number | null;
+    tipo: TipoEncontro;
+    espacoId: string | null;
     equipe: string[];
+    /** Subconjunto de `equipe`; o resto entra como apoio. */
+    responsaveis: string[];
 }
 
 export interface NovaTurma {
@@ -556,6 +603,9 @@ export interface CargaBolsista {
     total: number;
     porEscola: { escolaId: string | null; nome: string; horas: number }[];
     porTurma: { turmaId: string | null; nome: string; horas: number }[];
+    /** Encontros do mês com atraso registrado e a soma dos minutos. */
+    atrasos: number;
+    minutosDeAtraso: number;
 }
 
 export interface RegistroHistorico {
@@ -569,6 +619,7 @@ export interface RegistroHistorico {
 
 /** Encontro do mesmo dia que se sobrepõe ao que está sendo lançado (spec 014). */
 export interface ConflitoHorario {
+    /** No conflito de espaço, bolsistaId/bolsistaNome guardam o espaço. */
     bolsistaId: string;
     bolsistaNome: string;
     encontroId: string;
@@ -629,6 +680,8 @@ export interface EncontroDoRelatorio {
     descricao: string;
     escolaNome: string | null;
     turmaNome: string | null;
+    tipo: TipoEncontro;
+    espacoNome: string | null;
     /** "cobertura" quando a pessoa cobriu alguém. */
     situacao: SituacaoAlocacao | "cobertura";
     horas: number;
@@ -696,4 +749,72 @@ export interface Importacao {
     criadoEm: string;
     desfeitaEm: string | null;
     resumo: ResumoImportacao;
+}
+
+// ---------------------------------------------------------------------------
+// Metas (aba "Metas")
+// ---------------------------------------------------------------------------
+
+/** Derivado: concluída vence; senão, atrasada se o prazo já passou. */
+export type StatusMeta = "em_dia" | "atrasada" | "concluida";
+
+export interface MetaRow {
+    id: string;
+    titulo: string;
+    descricao: string | null;
+    prazo: string;
+    concluida_em: string | null;
+    criado_em: string;
+    meta_responsavel: { user_profile_id: string }[] | null;
+    meta_andamento?: { id: string; autor: string; texto: string; criado_em: string }[] | null;
+}
+
+export interface Meta {
+    id: string;
+    titulo: string;
+    descricao: string | null;
+    prazo: string;
+    concluidaEm: string | null;
+    criadoEm: string;
+    responsaveis: { id: string; nome: string }[];
+    andamentos: { id: string; autorId: string; autorNome: string; texto: string; criadoEm: string }[];
+}
+
+export interface NovaMeta {
+    titulo: string;
+    descricao: string | null;
+    prazo: string;
+    responsaveis: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Pesquisa (aba "Pesquisa")
+// ---------------------------------------------------------------------------
+
+export type TipoProducao = "artigo_congresso" | "artigo_publicado" | "relatorio" | "substack" | "ebook" | "outro";
+
+export interface NovaReuniaoPesquisa {
+    data: string;
+    participantes: string;
+    feito: string;
+    desdobramentos: string | null;
+}
+
+export interface ReuniaoPesquisa extends NovaReuniaoPesquisa {
+    id: string;
+    criadoPor: string | null;
+}
+
+export interface NovaProducaoPesquisa {
+    tipo: TipoProducao;
+    titulo: string;
+    autores: string;
+    data: string;
+    onde: string | null;
+    link: string | null;
+}
+
+export interface ProducaoPesquisa extends NovaProducaoPesquisa {
+    id: string;
+    criadoPor: string | null;
 }

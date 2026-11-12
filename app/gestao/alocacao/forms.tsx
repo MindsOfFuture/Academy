@@ -8,30 +8,37 @@ import type {
   Alocacao,
   ConflitoHorario,
   EscolaSummary,
+  Espaco,
   EstadoAcao,
+  FuncaoAlocacao,
   SituacaoAlocacao,
   StatusTurma,
+  TipoEncontro,
   Turma,
 } from "@/lib/api/gestao/types";
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
-import { SITUACAO, STATUS_TURMA } from "./rotulos";
+import { FUNCAO, SITUACAO, STATUS_TURMA, TIPO_ENCONTRO } from "./rotulos";
 import {
   afastamentoAction,
   alocarAction,
   atualizarAlocacaoAction,
   cadastrarEscolaAction,
+  cadastrarEspacoAction,
   cadastrarTurmaAction,
   cancelarEncontroAction,
   concluirEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
   editarEscolaAction,
+  editarEspacoAction,
   editarTurmaAction,
   escreverNotaAction,
+  registrarPresentesAction,
   removerAlocacaoAction,
   situacaoTurmaAction,
   substituirAction,
   substituirTodosAction,
+  tipoEspacoEncontroAction,
 } from "./actions";
 import { confirmarEnvio } from "@/components/ui/confirmar";
 
@@ -56,6 +63,18 @@ function Escolha({ name, opcoes, vazio, defaultValue = "", required }: {
       {opcoes.map((o) => (
         <option key={o.id} value={o.id}>
           {o.nome}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function SelectTipo({ defaultValue = "aula" }: { defaultValue?: TipoEncontro }) {
+  return (
+    <select name="tipo" defaultValue={defaultValue} className={campoSelect}>
+      {(Object.keys(TIPO_ENCONTRO) as TipoEncontro[]).map((t) => (
+        <option key={t} value={t}>
+          {TIPO_ENCONTRO[t]}
         </option>
       ))}
     </select>
@@ -92,10 +111,7 @@ export function JanelaConflitos({
         <h4 id="sobreposicao-titulo" className="text-lg font-semibold">
           Horário sobreposto
         </h4>
-        <p className="text-sm text-muted-foreground">
-          {conflitos.length === 1 ? "Esta pessoa já está" : "Estas pessoas já estão"} em outro encontro nesse dia e
-          horário:
-        </p>
+        <p className="text-sm text-muted-foreground">Já há outro encontro nesse dia e horário:</p>
         <ul className="max-h-72 divide-y overflow-y-auto rounded-md border text-sm">
           {conflitos.map((c) => (
             <li key={`${c.bolsistaId}-${c.encontroId}`} className="p-3">
@@ -147,12 +163,15 @@ function contarSemanas(data: string, ate: string): number {
 export function FormEncontro({
   turmas,
   escolas,
+  espacos,
   pessoas,
   equipes,
   dataPadrao,
 }: {
   turmas: Turma[];
   escolas: Opcao[];
+  /** Só os ativos. */
+  espacos: Opcao[];
   pessoas: Opcao[];
   equipes: Record<string, string[]>;
   dataPadrao: string;
@@ -166,6 +185,7 @@ export function FormEncontro({
   const [turmaId, setTurmaId] = useState("");
   const [modalidade, setModalidade] = useState("");
   const [equipe, setEquipe] = useState<Set<string>>(new Set());
+  const [responsaveis, setResponsaveis] = useState<Set<string>>(new Set());
   const [data, setData] = useState(dataPadrao);
   const [repetirAte, setRepetirAte] = useState("");
   const semanas = repetirAte ? contarSemanas(data, repetirAte) : 1;
@@ -180,6 +200,7 @@ export function FormEncontro({
     const turma = turmas.find((t) => t.id === id);
     if (turma) setModalidade(turma.modalidade);
     setEquipe(new Set(equipes[id] ?? []));
+    setResponsaveis(new Set());
   }
 
   async function aoEnviar(e: React.FormEvent<HTMLFormElement>) {
@@ -208,6 +229,21 @@ export function FormEncontro({
 
   function alternar(id: string) {
     setEquipe((atual) => {
+      const nova = new Set(atual);
+      if (nova.has(id)) nova.delete(id);
+      else nova.add(id);
+      return nova;
+    });
+    // Quem sai da equipe deixa de ser responsável.
+    setResponsaveis((atual) => {
+      const nova = new Set(atual);
+      nova.delete(id);
+      return nova;
+    });
+  }
+
+  function alternarResponsavel(id: string) {
+    setResponsaveis((atual) => {
       const nova = new Set(atual);
       if (nova.has(id)) nova.delete(id);
       else nova.add(id);
@@ -263,6 +299,10 @@ export function FormEncontro({
           <Input name="descricao" maxLength={200} placeholder="Competição, encerramento…" />
         </label>
         <label className="space-y-1">
+          <span className={rotuloCampo}>Número da aula (opcional)</span>
+          <Input name="numeroAula" type="number" min={1} max={999} step={1} />
+        </label>
+        <label className="space-y-1">
           <span className={rotuloCampo}>Repetir toda semana até (opcional)</span>
           <Input
             name="repetirAte"
@@ -272,6 +312,14 @@ export function FormEncontro({
             onChange={(e) => setRepetirAte(e.target.value)}
           />
         </label>
+        <label className="space-y-1">
+          <span className={rotuloCampo}>Tipo</span>
+          <SelectTipo />
+        </label>
+        <label className="space-y-1">
+          <span className={rotuloCampo}>Espaço (opcional)</span>
+          <Escolha name="espacoId" opcoes={espacos} vazio="Sem espaço" />
+        </label>
       </div>
 
       <fieldset className="space-y-2">
@@ -280,17 +328,33 @@ export function FormEncontro({
         </legend>
         <div className="grid gap-1 sm:grid-cols-3">
           {pessoas.map((p) => (
-            <label key={p.id} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="equipe"
-                value={p.id}
-                checked={equipe.has(p.id)}
-                onChange={() => alternar(p.id)}
-                className="h-4 w-4 accent-[#684A97]"
-              />
-              {p.nome}
-            </label>
+            <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="equipe"
+                  value={p.id}
+                  checked={equipe.has(p.id)}
+                  onChange={() => alternar(p.id)}
+                  className="h-4 w-4 accent-[#684A97]"
+                />
+                {p.nome}
+              </label>
+              {equipe.has(p.id) && (
+                <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    name="responsaveis"
+                    value={p.id}
+                    checked={responsaveis.has(p.id)}
+                    onChange={() => alternarResponsavel(p.id)}
+                    aria-label={`${p.nome} é responsável`}
+                    className="h-3.5 w-3.5 accent-[#684A97]"
+                  />
+                  Responsável
+                </label>
+              )}
+            </div>
           ))}
         </div>
       </fieldset>
@@ -468,6 +532,37 @@ export function FormNotaEncerramento({
   );
 }
 
+/** Quantos alunos estavam no encontro; quem registra depois sobrescreve. */
+export function FormPresentes({ encontroId, presentes }: { encontroId: string; presentes: number | null }) {
+  const [estado, acao, enviando] = useAcao(registrarPresentesAction);
+  const [valor, setValor] = useState(presentes === null ? "" : String(presentes));
+  return (
+    <form action={acao} className="space-y-2">
+      <input type="hidden" name="encontroId" value={encontroId} />
+      <label className="block space-y-1">
+        <span className={rotuloCampo}>Alunos presentes</span>
+        <div className="flex gap-2">
+          <Input
+            name="presentes"
+            type="number"
+            required
+            min={0}
+            max={9999}
+            step={1}
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            className="w-28"
+          />
+          <Button type="submit" size="sm" disabled={enviando}>
+            {enviando ? "Salvando…" : "Salvar"}
+          </Button>
+        </div>
+      </label>
+      <Aviso estado={estado} />
+    </form>
+  );
+}
+
 /** Tira a pessoa do encontro (decisão 9). Quem removeu e como estava ficam no histórico. */
 export function FormRemoverAlocacao({ alocacaoId, nome }: { alocacaoId: string; nome: string }) {
   const [estado, acao, enviando] = useAcao(removerAlocacaoAction);
@@ -589,7 +684,21 @@ export function FormAlocacao({
           <span className={rotuloCampo}>Quem cobriu</span>
           <Escolha name="cobertoPor" opcoes={outras} vazio="Ninguém" defaultValue={alocacao.cobertoPor ?? ""} />
         </label>
-        <label className="space-y-1 sm:col-span-5">
+        <label className="space-y-1">
+          <span className={rotuloCampo}>Atraso (min)</span>
+          <Input name="atrasoMinutos" type="number" min={1} max={600} defaultValue={alocacao.atrasoMinutos ?? ""} />
+        </label>
+        <label className="space-y-1">
+          <span className={rotuloCampo}>Função</span>
+          <select name="funcao" defaultValue={alocacao.funcao} className={campoSelect}>
+            {(Object.keys(FUNCAO) as FuncaoAlocacao[]).map((f) => (
+              <option key={f} value={f}>
+                {FUNCAO[f]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1 sm:col-span-3">
           <span className={rotuloCampo}>Motivo ou observação</span>
           <Input name="motivo" maxLength={500} defaultValue={alocacao.motivo ?? ""} placeholder="Aula na faculdade até 14h…" />
         </label>
@@ -623,9 +732,73 @@ export function FormAlocacao({
   );
 }
 
+/** Tipo e espaço de um encontro já lançado; os importados chegam sem espaço. */
+export function FormTipoEspaco({
+  encontroId,
+  tipo,
+  espacoId,
+  espacos,
+}: {
+  encontroId: string;
+  tipo: TipoEncontro;
+  espacoId: string | null;
+  espacos: Opcao[];
+}) {
+  const [estado, acao, enviando] = useAcao(tipoEspacoEncontroAction);
+  return (
+    <form action={acao} className="grid gap-2 sm:grid-cols-3 sm:items-end">
+      <input type="hidden" name="encontroId" value={encontroId} />
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Tipo</span>
+        <SelectTipo defaultValue={tipo} />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Espaço</span>
+        <Escolha name="espacoId" opcoes={espacos} vazio="Sem espaço" defaultValue={espacoId ?? ""} />
+      </label>
+      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+        Salvar tipo e espaço
+      </Button>
+      <div className="sm:col-span-3">
+        <Aviso estado={estado} />
+      </div>
+    </form>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Escola e turma
 // ---------------------------------------------------------------------------
+
+/** Cadastra; com `espaco`, edita o nome ou desativa. */
+export function FormEspaco({ espaco }: { espaco?: Espaco }) {
+  const [estado, acao, enviando] = useAcao(espaco ? editarEspacoAction : cadastrarEspacoAction);
+  return (
+    <form action={acao} className={espaco ? "space-y-3" : caixa}>
+      {espaco ? (
+        <input type="hidden" name="espacoId" value={espaco.id} />
+      ) : (
+        <h3 className="font-semibold">Cadastrar espaço</h3>
+      )}
+      <div className="grid gap-3 sm:grid-cols-3 sm:items-end">
+        <label className="space-y-1 sm:col-span-2">
+          <span className={rotuloCampo}>Nome</span>
+          <Input name="nome" required minLength={2} maxLength={80} defaultValue={espaco?.nome} />
+        </label>
+        {espaco && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="ativo" defaultChecked={espaco.ativo} className="h-4 w-4 accent-[#684A97]" />
+            Ativo
+          </label>
+        )}
+        <Button type="submit" disabled={enviando} className="sm:col-span-3 sm:w-fit">
+          {espaco ? "Salvar alterações" : "Salvar espaço"}
+        </Button>
+      </div>
+      <Aviso estado={estado} />
+    </form>
+  );
+}
 
 /** Cadastra; com `escola`, edita. Nada se apaga: cadastro errado se corrige aqui. */
 export function FormEscola({ escola }: { escola?: EscolaSummary }) {
