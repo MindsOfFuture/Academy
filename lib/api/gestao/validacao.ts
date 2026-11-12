@@ -14,6 +14,7 @@ import type {
   NovaTurma,
   NovoAfastamento,
   NovoEncontro,
+  Ocorrencia,
   PedidoLote,
   RespostaMelhoria,
   SituacaoAlocacao,
@@ -216,17 +217,51 @@ export function datasSemanais(inicio: string, ate: string): string[] {
   return datas;
 }
 
-/** "Repetir toda semana até": vazio = só a data do encontro. */
-export function validarRepeticao(form: FormData, data: string): Validado<string[]> {
+function somarDias(iso: string, dias: number): string {
+  const dia = new Date(`${iso}T00:00:00Z`);
+  dia.setUTCDate(dia.getUTCDate() + dias);
+  return dia.toISOString().slice(0, 10);
+}
+
+/**
+ * As datas de um lançamento, em ordem: "toda semana até" (`repetirAte`) e/ou
+ * outros dias da mesma semana (`dias`, 1 = segunda … 6 = sábado, depois do dia
+ * do encontro). Cada outro dia usa a equipe do encontro, ou a sua própria
+ * (`equipePropria-<dia>`, `equipe-<dia>`, `responsaveis-<dia>`). Nada marcado =
+ * só a data do encontro.
+ */
+export function validarRepeticao(form: FormData, encontro: NovoEncontro): Validado<Ocorrencia[]> {
+  const { data } = encontro;
   const ate = texto(form, "repetirAte");
-  if (!ate) return { ok: true, valor: [data] };
-  if (!DATA_ISO.test(ate)) return { ok: false, mensagem: "Informe até quando o encontro se repete." };
-  if (ate < data) return { ok: false, mensagem: "A repetição precisa terminar depois da data do encontro." };
-  const datas = datasSemanais(data, ate);
-  if (datas.length > REPETICOES_MAXIMAS) {
-    return { ok: false, mensagem: `A repetição vai até ${REPETICOES_MAXIMAS} semanas. Escolha uma data mais próxima.` };
+  let semanas = [data];
+  if (ate) {
+    if (!DATA_ISO.test(ate)) return { ok: false, mensagem: "Informe até quando o encontro se repete." };
+    if (ate < data) return { ok: false, mensagem: "A repetição precisa terminar depois da data do encontro." };
+    semanas = datasSemanais(data, ate);
+    if (semanas.length > REPETICOES_MAXIMAS) {
+      return { ok: false, mensagem: `A repetição vai até ${REPETICOES_MAXIMAS} semanas. Escolha uma data mais próxima.` };
+    }
   }
-  return { ok: true, valor: datas };
+
+  const diaDaSemana = new Date(`${data}T00:00:00Z`).getUTCDay();
+  const dias = [...new Set(form.getAll("dias").map(Number))].sort((x, y) => x - y);
+  if (dias.some((d) => !Number.isInteger(d) || d <= diaDaSemana || d > 6)) {
+    return { ok: false, mensagem: "Os outros dias precisam ser depois do dia do encontro, na mesma semana." };
+  }
+  const outros = dias.map((d) => {
+    if (!form.has(`equipePropria-${d}`)) return { deslocamento: d - diaDaSemana, equipe: encontro.equipe, responsaveis: encontro.responsaveis };
+    const equipe = [...new Set(form.getAll(`equipe-${d}`).filter((v): v is string => typeof v === "string" && v.length > 0))];
+    const responsaveis = form.getAll(`responsaveis-${d}`).filter((v): v is string => typeof v === "string" && equipe.includes(v));
+    return { deslocamento: d - diaDaSemana, equipe, responsaveis: [...new Set(responsaveis)] };
+  });
+
+  return {
+    ok: true,
+    valor: semanas.flatMap((semana) => [
+      { data: semana, equipe: encontro.equipe, responsaveis: encontro.responsaveis },
+      ...outros.map((o) => ({ data: somarDias(semana, o.deslocamento), equipe: o.equipe, responsaveis: o.responsaveis })),
+    ]),
+  };
 }
 
 function ids(form: FormData, campo: string): string[] {
@@ -368,14 +403,6 @@ export function validarEspaco(form: FormData): Validado<{ nome: string; ativo: b
 }
 
 /** Tipo e espaço de um encontro já lançado; espaço vazio tira o espaço. */
-export function validarTipoEspaco(form: FormData): Validado<{ tipo: TipoEncontro; espacoId: string | null }> {
-  const tipo = texto(form, "tipo") as TipoEncontro;
-  const espacoId = texto(form, "espacoId");
-  if (!TIPOS.includes(tipo)) return { ok: false, mensagem: "Escolha o tipo da atividade." };
-  if (espacoId && !UUID.test(espacoId)) return { ok: false, mensagem: "Escolha o espaço de novo." };
-  return { ok: true, valor: { tipo, espacoId: espacoId || null } };
-}
-
 /** Meta: mesmos limites dos checks de `gestao.meta`; ao menos um responsável. */
 export function validarMeta(form: FormData): Validado<NovaMeta> {
   const titulo = texto(form, "titulo");

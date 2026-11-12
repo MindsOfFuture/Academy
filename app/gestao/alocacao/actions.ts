@@ -15,12 +15,13 @@ import {
   criarEncontro,
   criarEncontros,
   definirSituacaoTurma,
-  definirTipoEspaco,
+  editarEncontro,
   editarEscola,
   editarEspaco,
   editarTurma,
   escreverNotaEncerramento,
   mensagemDoLote,
+  obterEncontro,
   obterEncontros,
   planejarLote,
   registrarAfastamento,
@@ -42,7 +43,6 @@ import {
   validarMudancaAlocacao,
   validarRepeticao,
   validarSituacaoTurma,
-  validarTipoEspaco,
   validarTurma,
 } from "@/lib/api/gestao/validacao";
 
@@ -145,15 +145,32 @@ export async function editarEspacoAction(_anterior: EstadoAcao | null, form: For
   return executar(() => editarEspaco(id, espaco.valor), "Espaço atualizado.");
 }
 
-/** Tipo e espaço de um encontro já lançado (os importados chegam sem espaço). */
-export async function tipoEspacoEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+/** Data, horário, atividade, aula, tipo e espaço de um encontro já lançado. */
+export async function editarEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   const negado = await exigirCoordenacao();
   if (negado) return negado;
   const id = campo(form, "encontroId");
-  const mudanca = validarTipoEspaco(form);
+  const encontro = validarEncontro(form);
   if (!id) return falha("Encontro não informado.");
-  if (!mudanca.ok) return falha(mudanca.mensagem);
-  return executar(() => definirTipoEspaco(id, mudanca.valor.tipo, mudanca.valor.espacoId), "Encontro atualizado.");
+  if (!encontro.ok) return falha(encontro.mensagem);
+  const novo = encontro.valor;
+  return executar(async () => {
+    const antes = await obterEncontro(id);
+    await editarEncontro(id, novo);
+    // Tipo, aula ou observação não mudam onde nem quando a equipe vai.
+    const mudou =
+      antes &&
+      (antes.data !== novo.data ||
+        antes.inicio !== novo.inicio ||
+        antes.fim !== novo.fim ||
+        antes.modalidade !== novo.modalidade ||
+        antes.espacoId !== novo.espacoId);
+    if (mudou) {
+      const [, mes, dia] = antes.data.split("-");
+      const onde = antes.espacoNome ? ` · ${antes.espacoNome}` : "";
+      await avisar("alterado", id, "equipe", `Antes: ${dia}/${mes} · ${antes.horario} · ${antes.modalidade}${onde}`);
+    }
+  }, "Encontro atualizado.");
 }
 
 export async function criarEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
@@ -161,23 +178,24 @@ export async function criarEncontroAction(_anterior: EstadoAcao | null, form: Fo
   if (negado) return negado;
   const encontro = validarEncontro(form);
   if (!encontro.ok) return falha(encontro.mensagem);
-  const datas = validarRepeticao(form, encontro.valor.data);
-  if (!datas.ok) return falha(datas.mensagem);
-  const pessoas = encontro.valor.equipe.length;
+  const repeticao = validarRepeticao(form, encontro.valor);
+  if (!repeticao.ok) return falha(repeticao.mensagem);
+  const ocorrencias = repeticao.valor;
+  const pessoas = new Set(ocorrencias.flatMap((o) => o.equipe)).size;
   const comQuem = pessoas ? ` com ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"}` : ", ainda sem equipe";
 
-  if (datas.valor.length === 1) {
+  if (ocorrencias.length === 1) {
     return executar(
       async () => avisar("alocado", await criarEncontro(encontro.valor), encontro.valor.equipe),
       `Encontro lançado${comQuem}.`,
     );
   }
-  // Spec 020: toda semana até a data escolhida; um e-mail por pessoa com todas as datas.
+  // Spec 020: várias datas; um e-mail por pessoa com todas as datas dela.
   const dia = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
   return executar(async () => {
-    const ids = await criarEncontros(encontro.valor, datas.valor);
-    await avisarLote("alocado", ids.map((encontroId) => ({ encontroId, pessoas: encontro.valor.equipe })));
-  }, `${datas.valor.length} encontros lançados, de ${dia(datas.valor[0])} a ${dia(datas.valor.at(-1)!)}${comQuem}.`);
+    const ids = await criarEncontros(encontro.valor, ocorrencias);
+    await avisarLote("alocado", ids.map((encontroId, i) => ({ encontroId, pessoas: ocorrencias[i].equipe })));
+  }, `${ocorrencias.length} encontros lançados, de ${dia(ocorrencias[0].data)} a ${dia(ocorrencias.at(-1)!.data)}${comQuem}.`);
 }
 
 /**
@@ -190,13 +208,13 @@ export async function conflitosEncontroAction(form: FormData): Promise<ConflitoH
   if (await exigirCoordenacao()) return [];
   const encontro = validarEncontro(form);
   if (!encontro.ok) return [];
-  const datas = validarRepeticao(form, encontro.valor.data);
-  if (!datas.ok) return [];
-  const { inicio, fim, equipe, espacoId } = encontro.valor;
+  const repeticao = validarRepeticao(form, encontro.valor);
+  if (!repeticao.ok) return [];
+  const { inicio, fim, espacoId } = encontro.valor;
   try {
     const [pessoas, espaco] = await Promise.all([
-      Promise.all(datas.valor.map((data) => conflitosDeHorario(data, inicio, fim, equipe))),
-      espacoId ? Promise.all(datas.valor.map((data) => conflitosDeEspaco(data, inicio, fim, espacoId))) : [],
+      Promise.all(repeticao.valor.map((o) => conflitosDeHorario(o.data, inicio, fim, o.equipe))),
+      espacoId ? Promise.all(repeticao.valor.map((o) => conflitosDeEspaco(o.data, inicio, fim, espacoId))) : [],
     ]);
     return [...pessoas.flat(), ...espaco.flat()];
   } catch {

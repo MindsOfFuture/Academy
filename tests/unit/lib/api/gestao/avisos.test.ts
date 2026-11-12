@@ -36,7 +36,7 @@ vi.mock("@/lib/api/gestao/equipe", () => ({
   ],
 }));
 
-import { avisar, avisarLote } from "@/lib/api/gestao/avisos";
+import { avisar, avisarLote, avisarMeta } from "@/lib/api/gestao/avisos";
 
 describe("avisos por e-mail", () => {
   beforeEach(() => enviar.mockClear());
@@ -71,5 +71,25 @@ describe("avisos por e-mail", () => {
     const caio = chamadas.find(([para]) => para === "caio@ufjf.br")!;
     expect(caio[1]).toBe("Você foi alocado(a) em um encontro: 05/10 · 13h às 17h · Lego · Lego segunda · EE Teste");
     expect(obterEncontros).toHaveBeenLastCalledWith(["e1", "e2"]);
+  });
+
+  it("encontro alterado leva a linha de antes para a equipe", async () => {
+    await avisar("alterado", "e1", "equipe", "Antes: 04/10 · 8h às 12h · Lego");
+    expect(enviar).toHaveBeenCalledTimes(1);
+    const [para, assunto, html] = enviar.mock.calls[0] as unknown as [string, string, string];
+    expect(para).toBe("bia@ufjf.br");
+    expect(assunto).toMatch(/^Encontro alterado: 05\/10/);
+    expect(html).toContain("Antes: 04/10 · 8h às 12h · Lego");
+  });
+
+  it("meta: um e-mail por responsável com e-mail, com o prazo e o link da meta", async () => {
+    await avisarMeta("atribuida", { id: "m1", titulo: "Relatório <final>", prazo: "2026-12-01" }, ["bia", "duda", "bia"]);
+    expect(enviar).toHaveBeenCalledTimes(1);
+    const [para, assunto, html] = enviar.mock.calls[0] as unknown as [string, string, string];
+    expect(para).toBe("bia@ufjf.br");
+    expect(assunto).toBe("Você é responsável por uma meta: Relatório <final>");
+    expect(html).toContain("Relatório &#60;final&#62;");
+    expect(html).toContain("Prazo: 01/12/2026");
+    expect(html).toContain("/gestao/metas/m1");
   });
 });

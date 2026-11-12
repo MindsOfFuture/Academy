@@ -18,7 +18,6 @@ import {
   validarNumerosDoSite,
   validarProducao,
   validarReuniao,
-  validarTipoEspaco,
   validarTurma,
 } from "@/lib/api/gestao/validacao";
 import { montarPendencias } from "@/lib/api/gestao/pendencias";
@@ -300,13 +299,6 @@ describe("agenda por espaço", () => {
     for (const nome of ["A", "x".repeat(81)]) {
       expect(validarEspaco(form({ nome }))).toEqual({ ok: false, mensagem: "O nome do espaço vai de 2 a 80 caracteres." });
     }
-  });
-
-  it("validarTipoEspaco: tipo da lista e espaço vazio ou UUID", () => {
-    expect(validarTipoEspaco(form({ tipo: "gravacao", espacoId: ESPACO }))).toEqual({ ok: true, valor: { tipo: "gravacao", espacoId: ESPACO } });
-    expect(validarTipoEspaco(form({ tipo: "aula", espacoId: "" }))).toEqual({ ok: true, valor: { tipo: "aula", espacoId: null } });
-    expect(validarTipoEspaco(form({ tipo: "", espacoId: "" }))).toEqual({ ok: false, mensagem: "Escolha o tipo da atividade." });
-    expect(validarTipoEspaco(form({ tipo: "aula", espacoId: "x" }))).toMatchObject({ ok: false });
   });
 
   it("mensagemDeErro traduz espaço repetido antes do duplicate key genérico", () => {

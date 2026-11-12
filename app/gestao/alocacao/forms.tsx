@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import type {
   Alocacao,
   ConflitoHorario,
+  Encontro,
   EscolaSummary,
   Espaco,
   EstadoAcao,
@@ -29,6 +30,7 @@ import {
   concluirEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
+  editarEncontroAction,
   editarEscolaAction,
   editarEspacoAction,
   editarTurmaAction,
@@ -38,7 +40,6 @@ import {
   situacaoTurmaAction,
   substituirAction,
   substituirTodosAction,
-  tipoEspacoEncontroAction,
 } from "./actions";
 import { confirmarEnvio } from "@/components/ui/confirmar";
 
@@ -147,6 +148,78 @@ function contarSemanas(data: string, ate: string): number {
   return Math.floor(dias / 7) + 1;
 }
 
+const NOME_DIA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+/** Dia da semana (0 = domingo) de uma data "AAAA-MM-DD"; 7 se a data não vale. */
+function diaDaSemana(iso: string): number {
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00Z`).getUTCDay() : 7;
+}
+function somarDias(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+type EquipeDia = { equipe: Set<string>; responsaveis: Set<string> };
+
+function alternado(atual: Set<string>, id: string): Set<string> {
+  const nova = new Set(atual);
+  if (nova.has(id)) nova.delete(id);
+  else nova.add(id);
+  return nova;
+}
+
+/** Quem vai e quem é responsável. `sufixo` separa a equipe de cada outro dia no formulário. */
+function EscolhaEquipe({
+  pessoas,
+  valor,
+  aoMudar,
+  sufixo = "",
+}: {
+  pessoas: Opcao[];
+  valor: EquipeDia;
+  aoMudar: (valor: EquipeDia) => void;
+  sufixo?: string;
+}) {
+  const { equipe, responsaveis } = valor;
+  return (
+    <div className="grid gap-1 sm:grid-cols-3">
+      {pessoas.map((p) => (
+        <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name={`equipe${sufixo}`}
+              value={p.id}
+              checked={equipe.has(p.id)}
+              // Quem sai da equipe deixa de ser responsável.
+              onChange={() =>
+                aoMudar({ equipe: alternado(equipe, p.id), responsaveis: new Set([...responsaveis].filter((r) => r !== p.id)) })
+              }
+              className="h-4 w-4 accent-[#684A97]"
+            />
+            {p.nome}
+          </label>
+          {equipe.has(p.id) && (
+            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                name={`responsaveis${sufixo}`}
+                value={p.id}
+                checked={responsaveis.has(p.id)}
+                onChange={() => aoMudar({ equipe, responsaveis: alternado(responsaveis, p.id) })}
+                aria-label={`${p.nome} é responsável`}
+                className="h-3.5 w-3.5 accent-[#684A97]"
+              />
+              Responsável
+            </label>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Encontro
 // ---------------------------------------------------------------------------
@@ -184,14 +257,27 @@ export function FormEncontro({
   const [conferindo, setConferindo] = useState(false);
   const [turmaId, setTurmaId] = useState("");
   const [modalidade, setModalidade] = useState("");
-  const [equipe, setEquipe] = useState<Set<string>>(new Set());
-  const [responsaveis, setResponsaveis] = useState<Set<string>>(new Set());
+  const [numeroAula, setNumeroAula] = useState("");
+  const [principal, setPrincipal] = useState<EquipeDia>({ equipe: new Set(), responsaveis: new Set() });
   const [data, setData] = useState(dataPadrao);
+  const [toda, setToda] = useState(false);
   const [repetirAte, setRepetirAte] = useState("");
-  const semanas = repetirAte ? contarSemanas(data, repetirAte) : 1;
+  const [variosDias, setVariosDias] = useState(false);
+  /** Outros dias marcados; `null` = mesma equipe do encontro. */
+  const [dias, setDias] = useState<Record<number, EquipeDia | null>>({});
+  const dow = diaDaSemana(data);
+  const diasPossiveis = [1, 2, 3, 4, 5, 6].filter((d) => d > dow);
+  const diasMarcados = variosDias ? diasPossiveis.filter((d) => d in dias) : [];
+  const semanas = toda && repetirAte ? contarSemanas(data, repetirAte) : 1;
+  const total = semanas * (1 + diasMarcados.length);
   useEffect(() => {
     // Lançou: a repetição não fica armada para o próximo lançamento.
-    if (estado?.ok) setRepetirAte("");
+    if (estado?.ok) {
+      setToda(false);
+      setRepetirAte("");
+      setVariosDias(false);
+      setDias({});
+    }
   }, [estado]);
   const abertas = turmas.filter((t) => t.status === "prevista" || t.status === "em_andamento");
 
@@ -199,8 +285,16 @@ export function FormEncontro({
     setTurmaId(id);
     const turma = turmas.find((t) => t.id === id);
     if (turma) setModalidade(turma.modalidade);
-    setEquipe(new Set(equipes[id] ?? []));
-    setResponsaveis(new Set());
+    setPrincipal({ equipe: new Set(equipes[id] ?? []), responsaveis: new Set() });
+  }
+
+  function marcarDia(d: number) {
+    setDias((atual) => {
+      const novo = { ...atual };
+      if (d in novo) delete novo[d];
+      else novo[d] = null;
+      return novo;
+    });
   }
 
   async function aoEnviar(e: React.FormEvent<HTMLFormElement>) {
@@ -225,30 +319,6 @@ export function FormEncontro({
     janelaRef.current?.close();
     liberado.current = true;
     formRef.current?.requestSubmit();
-  }
-
-  function alternar(id: string) {
-    setEquipe((atual) => {
-      const nova = new Set(atual);
-      if (nova.has(id)) nova.delete(id);
-      else nova.add(id);
-      return nova;
-    });
-    // Quem sai da equipe deixa de ser responsável.
-    setResponsaveis((atual) => {
-      const nova = new Set(atual);
-      nova.delete(id);
-      return nova;
-    });
-  }
-
-  function alternarResponsavel(id: string) {
-    setResponsaveis((atual) => {
-      const nova = new Set(atual);
-      if (nova.has(id)) nova.delete(id);
-      else nova.add(id);
-      return nova;
-    });
   }
 
   return (
@@ -300,16 +370,14 @@ export function FormEncontro({
         </label>
         <label className="space-y-1">
           <span className={rotuloCampo}>Número da aula (opcional)</span>
-          <Input name="numeroAula" type="number" min={1} max={999} step={1} />
-        </label>
-        <label className="space-y-1">
-          <span className={rotuloCampo}>Repetir toda semana até (opcional)</span>
           <Input
-            name="repetirAte"
-            type="date"
-            min={data || undefined}
-            value={repetirAte}
-            onChange={(e) => setRepetirAte(e.target.value)}
+            name="numeroAula"
+            type="number"
+            min={1}
+            max={999}
+            step={1}
+            value={numeroAula}
+            onChange={(e) => setNumeroAula(e.target.value)}
           />
         </label>
         <label className="space-y-1">
@@ -324,39 +392,98 @@ export function FormEncontro({
 
       <fieldset className="space-y-2">
         <legend className={rotuloCampo}>
-          Equipe ({equipe.size}){turmaId && equipes[turmaId] ? " — veio do último encontro da turma" : ""}
+          Equipe ({principal.equipe.size}){turmaId && equipes[turmaId] ? " — veio do último encontro da turma" : ""}
         </legend>
-        <div className="grid gap-1 sm:grid-cols-3">
-          {pessoas.map((p) => (
-            <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="equipe"
-                  value={p.id}
-                  checked={equipe.has(p.id)}
-                  onChange={() => alternar(p.id)}
-                  className="h-4 w-4 accent-[#684A97]"
-                />
-                {p.nome}
-              </label>
-              {equipe.has(p.id) && (
-                <label className="flex items-center gap-1 text-xs text-muted-foreground">
+        <EscolhaEquipe pessoas={pessoas} valor={principal} aoMudar={setPrincipal} />
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className={rotuloCampo}>Repetição</legend>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={toda} onChange={(e) => setToda(e.target.checked)} className="h-4 w-4 accent-[#684A97]" />
+          Repetir toda semana
+        </label>
+        {toda && (
+          <label className="ml-6 block max-w-xs space-y-1">
+            <span className={rotuloCampo}>Até</span>
+            <Input
+              name="repetirAte"
+              type="date"
+              required
+              min={data || undefined}
+              value={repetirAte}
+              onChange={(e) => setRepetirAte(e.target.value)}
+            />
+          </label>
+        )}
+        {diasPossiveis.length > 0 && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={variosDias}
+              onChange={(e) => setVariosDias(e.target.checked)}
+              className="h-4 w-4 accent-[#684A97]"
+            />
+            Também em outros dias desta semana
+          </label>
+        )}
+        {variosDias && (
+          <div className="ml-6 space-y-2">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {diasPossiveis.map((d) => (
+                <label key={d} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    name="responsaveis"
-                    value={p.id}
-                    checked={responsaveis.has(p.id)}
-                    onChange={() => alternarResponsavel(p.id)}
-                    aria-label={`${p.nome} é responsável`}
-                    className="h-3.5 w-3.5 accent-[#684A97]"
+                    name="dias"
+                    value={d}
+                    checked={d in dias}
+                    onChange={() => marcarDia(d)}
+                    className="h-4 w-4 accent-[#684A97]"
                   />
-                  Responsável
+                  {NOME_DIA[d]} {diaMes(somarDias(data, d - dow))}
                 </label>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+            {diasMarcados.map((d, i) => {
+              const propria = dias[d];
+              return (
+                <div key={d} className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">
+                    {NOME_DIA[d]} {diaMes(somarDias(data, d - dow))}
+                    {numeroAula && ` · Aula ${Number(numeroAula) + i + 1}`}
+                  </p>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={!propria}
+                      onChange={(e) =>
+                        setDias((atual) => ({
+                          ...atual,
+                          [d]: e.target.checked
+                            ? null
+                            : { equipe: new Set(principal.equipe), responsaveis: new Set(principal.responsaveis) },
+                        }))
+                      }
+                      className="h-4 w-4 accent-[#684A97]"
+                    />
+                    Mesma equipe
+                  </label>
+                  {propria && (
+                    <>
+                      <input type="hidden" name={`equipePropria-${d}`} value="1" />
+                      <EscolhaEquipe
+                        pessoas={pessoas}
+                        valor={propria}
+                        sufixo={`-${d}`}
+                        aoMudar={(valor) => setDias((atual) => ({ ...atual, [d]: valor }))}
+                      />
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </fieldset>
 
       <Button type="submit" disabled={enviando || conferindo}>
@@ -364,8 +491,8 @@ export function FormEncontro({
           ? "Conferindo horários…"
           : enviando
             ? "Lançando…"
-            : semanas > 1
-              ? `Lançar ${semanas} encontros`
+            : total > 1
+              ? `Lançar ${total} encontros`
               : "Lançar encontro"}
       </Button>
       <Aviso estado={estado} />
@@ -732,33 +859,70 @@ export function FormAlocacao({
   );
 }
 
-/** Tipo e espaço de um encontro já lançado; os importados chegam sem espaço. */
-export function FormTipoEspaco({
-  encontroId,
-  tipo,
-  espacoId,
-  espacos,
-}: {
-  encontroId: string;
-  tipo: TipoEncontro;
-  espacoId: string | null;
-  espacos: Opcao[];
-}) {
-  const [estado, acao, enviando] = useAcao(tipoEspacoEncontroAction);
+/** Data, horário, atividade, aula, tipo e espaço de um encontro já lançado. */
+export function FormEditarEncontro({ encontro, espacos }: { encontro: Encontro; espacos: Opcao[] }) {
+  const [estado, acao, enviando] = useAcao(editarEncontroAction);
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => {
+    if (estado?.ok) setAberto(false);
+  }, [estado]);
+  if (!aberto) {
+    return (
+      <div className="space-y-1">
+        <Button type="button" size="sm" variant="outline" onClick={() => setAberto(true)}>
+          Editar encontro
+        </Button>
+        <Aviso estado={estado} />
+      </div>
+    );
+  }
   return (
-    <form action={acao} className="grid gap-2 sm:grid-cols-3 sm:items-end">
-      <input type="hidden" name="encontroId" value={encontroId} />
+    <form action={acao} className="grid gap-3 rounded-md border p-3 sm:grid-cols-3">
+      <input type="hidden" name="encontroId" value={encontro.id} />
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Data</span>
+        <Input name="data" type="date" required defaultValue={encontro.data} />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Início</span>
+        <Input name="inicio" type="time" required defaultValue={encontro.inicio ?? ""} />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Fim</span>
+        <Input name="fim" type="time" required defaultValue={encontro.fim ?? ""} />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Atividade</span>
+        <Input name="modalidade" required defaultValue={encontro.modalidade} />
+      </label>
+      <label className="space-y-1 sm:col-span-2">
+        <span className={rotuloCampo}>Observação (opcional)</span>
+        <Input
+          name="descricao"
+          maxLength={200}
+          defaultValue={encontro.descricao !== encontro.modalidade ? encontro.descricao : ""}
+        />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Número da aula (opcional)</span>
+        <Input name="numeroAula" type="number" min={1} max={999} step={1} defaultValue={encontro.numeroAula ?? ""} />
+      </label>
       <label className="space-y-1">
         <span className={rotuloCampo}>Tipo</span>
-        <SelectTipo defaultValue={tipo} />
+        <SelectTipo defaultValue={encontro.tipo} />
       </label>
       <label className="space-y-1">
         <span className={rotuloCampo}>Espaço</span>
-        <Escolha name="espacoId" opcoes={espacos} vazio="Sem espaço" defaultValue={espacoId ?? ""} />
+        <Escolha name="espacoId" opcoes={espacos} vazio="Sem espaço" defaultValue={encontro.espacoId ?? ""} />
       </label>
-      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
-        Salvar tipo e espaço
-      </Button>
+      <div className="flex flex-wrap gap-2 sm:col-span-3">
+        <Button type="submit" size="sm" disabled={enviando}>
+          {enviando ? "Salvando…" : "Salvar"}
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => setAberto(false)}>
+          Fechar
+        </Button>
+      </div>
       <div className="sm:col-span-3">
         <Aviso estado={estado} />
       </div>

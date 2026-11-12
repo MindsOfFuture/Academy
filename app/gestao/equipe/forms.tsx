@@ -46,6 +46,7 @@ function BuscaPessoa() {
     const t = termo.trim();
     if (escolhida || t.length < 3) {
       setOpcoes([]);
+      setBuscando(false);
       return;
     }
     let viva = true;
@@ -138,6 +139,7 @@ function BuscaPessoa() {
               {p.naEquipe && <span className="ml-2 text-xs text-[#684A97]">já na equipe</span>}
             </li>
           ))}
+          {buscando && opcoes.length === 0 && <li className="px-3 py-2 text-muted-foreground">Buscando…</li>}
           {!buscando && opcoes.length === 0 && (
             <li className="px-3 py-2 text-muted-foreground">Ninguém encontrado. A pessoa precisa ter conta no site.</li>
           )}

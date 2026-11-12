@@ -9,8 +9,8 @@ import {
   FormCancelarEncontro,
   FormConcluirEncontro,
   FormPresentes,
+  FormEditarEncontro,
   FormRemoverAlocacao,
-  FormTipoEspaco,
 } from "../forms";
 import { NotasPendentes, Relatorio, Resumo, dataHoraBr, jaComecou } from "../resumo";
 import { FUNCAO, SITUACAO, STATUS_TURMA, TIPO_ENCONTRO, diaCurto } from "../rotulos";
@@ -106,11 +106,8 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
           {encontro.presentes !== null && ` · ${encontro.presentes} presentes`}
         </p>
         {!cancelado && (
-          <FormTipoEspaco
-            key={`${encontro.tipo}|${encontro.espacoId}`}
-            encontroId={encontro.id}
-            tipo={encontro.tipo}
-            espacoId={encontro.espacoId}
+          <FormEditarEncontro
+            encontro={encontro}
             espacos={opcoesEspaco}
           />
         )}

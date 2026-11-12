@@ -7,6 +7,7 @@ import type {
   AlocacaoRow,
   CargaBolsista,
   ConflitoHorario,
+  EdicaoEncontro,
   Encontro,
   Espaco,
   FuncaoAlocacao,
@@ -16,12 +17,12 @@ import type {
   NovaTurma,
   NovoAfastamento,
   NovoEncontro,
+  Ocorrencia,
   PedidoLote,
   PlanoLote,
   RegistroHistorico,
   SituacaoAlocacao,
   StatusTurma,
-  TipoEncontro,
   Turma,
   TurmaRow,
   VCargaRow,
@@ -296,18 +297,19 @@ export async function criarEncontro(novo: NovoEncontro): Promise<string> {
 }
 
 /**
- * O mesmo encontro em várias datas (spec 020, "repetir toda semana"): um pedido
- * grava todos os encontros e outro, todas as equipes. Devolve os ids na ordem das datas.
+ * O mesmo encontro em várias datas (spec 020: toda semana e/ou outros dias da
+ * semana), cada data com a sua equipe: um pedido grava todos os encontros e
+ * outro, todas as equipes. Devolve os ids na ordem das datas.
  */
-export async function criarEncontros(novo: NovoEncontro, datas: string[]): Promise<string[]> {
+export async function criarEncontros(novo: NovoEncontro, ocorrencias: Ocorrencia[]): Promise<string[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .schema("gestao")
     .from("agenda")
     .insert(
-      // As datas vêm em ordem crescente: cada semana é a aula seguinte.
-      datas.map((dia, i) => ({
-        data: dia,
+      // As datas vêm em ordem crescente: cada uma é a aula seguinte.
+      ocorrencias.map((o, i) => ({
+        data: o.data,
         inicio: novo.inicio,
         fim: novo.fim,
         modalidade: novo.modalidade,
@@ -322,15 +324,14 @@ export async function criarEncontros(novo: NovoEncontro, datas: string[]): Promi
     .select("id, data");
   throwOnError(error);
   const criados = ((data ?? []) as { id: string; data: string }[]).sort((x, y) => x.data.localeCompare(y.data));
-  if (novo.equipe.length > 0 && criados.length > 0) {
-    const { error: erroEquipe } = await supabase
-      .schema("gestao")
-      .from("agenda_bolsista")
-      .insert(
-        criados.flatMap((e) =>
-          novo.equipe.map((bolsista_id) => ({ agenda_id: e.id, bolsista_id, funcao: funcaoDe(bolsista_id, novo.responsaveis) })),
-        ),
-      );
+  // Uma data por ocorrência, então a data acha a equipe do encontro criado.
+  const porData = new Map(ocorrencias.map((o) => [o.data, o]));
+  const equipes = criados.flatMap((e) => {
+    const o = porData.get(e.data);
+    return (o?.equipe ?? []).map((bolsista_id) => ({ agenda_id: e.id, bolsista_id, funcao: funcaoDe(bolsista_id, o!.responsaveis) }));
+  });
+  if (equipes.length > 0) {
+    const { error: erroEquipe } = await supabase.schema("gestao").from("agenda_bolsista").insert(equipes);
     throwOnError(erroEquipe);
   }
   return criados.map((e) => e.id);
@@ -528,13 +529,22 @@ export async function alocar(encontroId: string, bolsistas: string[], responsave
   throwOnError(error);
 }
 
-/** Tipo e espaço de um encontro já lançado (os importados chegam sem espaço). */
-export async function definirTipoEspaco(encontroId: string, tipo: TipoEncontro, espacoId: string | null): Promise<void> {
+/** Data, horário, atividade, aula, tipo e espaço de um encontro já lançado. */
+export async function editarEncontro(encontroId: string, e: EdicaoEncontro): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
     .schema("gestao")
     .from("agenda")
-    .update({ tipo, espaco_id: espacoId })
+    .update({
+      data: e.data,
+      inicio: e.inicio,
+      fim: e.fim,
+      modalidade: e.modalidade,
+      aulas: e.descricao || e.modalidade,
+      numero_aula: e.numeroAula,
+      tipo: e.tipo,
+      espaco_id: e.espacoId,
+    })
     .eq("id", encontroId);
   throwOnError(error);
 }

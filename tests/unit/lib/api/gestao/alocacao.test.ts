@@ -12,8 +12,8 @@ import {
   atualizarAlocacao,
   criarEncontro,
   criarEncontros,
-  definirTipoEspaco,
   diferencas,
+  editarEncontro,
   limitesDoMes,
   mapEncontro,
   registrarPresentes,
@@ -202,12 +202,12 @@ describe("gravação do número da aula e dos presentes", () => {
   };
 
   it("na repetição semanal, cada semana é a aula seguinte", async () => {
-    await criarEncontros({ ...novo, numeroAula: 3 }, ["2026-10-05", "2026-10-12", "2026-10-19"]);
+    await criarEncontros({ ...novo, numeroAula: 3 }, [{ data: "2026-10-05", equipe: [], responsaveis: [] }, { data: "2026-10-06", equipe: [], responsaveis: [] }, { data: "2026-10-12", equipe: [], responsaveis: [] }]);
     expect(inseridos.map((l) => l.numero_aula)).toEqual([3, 4, 5]);
   });
 
   it("sem número da aula, todas ficam sem", async () => {
-    await criarEncontros({ ...novo, numeroAula: null }, ["2026-10-05", "2026-10-12"]);
+    await criarEncontros({ ...novo, numeroAula: null }, [{ data: "2026-10-05", equipe: [], responsaveis: [] }, { data: "2026-10-12", equipe: [], responsaveis: [] }]);
     expect(inseridos.map((l) => l.numero_aula)).toEqual([null, null]);
   });
 
@@ -303,8 +303,11 @@ describe("gravação de tipo, espaço e função", () => {
     ]);
   });
 
-  it("criarEncontros repete tipo, espaço e função em cada semana", async () => {
-    await criarEncontros(novo, ["2026-10-05", "2026-10-12"]);
+  it("criarEncontros repete tipo e espaço; cada data leva a sua equipe com a função", async () => {
+    await criarEncontros(novo, [
+      { data: "2026-10-05", equipe: ["bia", "caio"], responsaveis: ["bia"] },
+      { data: "2026-10-12", equipe: ["caio"], responsaveis: [] },
+    ]);
     expect(chamadas.map((c) => c.valor)).toEqual([
       [
         { data: "2026-10-05", inicio: "08:00", fim: "12:00", modalidade: "Impressão 3D", aulas: "Impressão 3D", escola_id: null, turma_id: null, numero_aula: null, tipo: "impressao", espaco_id: "s1" },
@@ -313,7 +316,6 @@ describe("gravação de tipo, espaço e função", () => {
       [
         { agenda_id: "e0", bolsista_id: "bia", funcao: "responsavel" },
         { agenda_id: "e0", bolsista_id: "caio", funcao: "apoio" },
-        { agenda_id: "e1", bolsista_id: "bia", funcao: "responsavel" },
         { agenda_id: "e1", bolsista_id: "caio", funcao: "apoio" },
       ],
     ]);
@@ -345,12 +347,14 @@ describe("gravação de tipo, espaço e função", () => {
     ]);
   });
 
-  it("definirTipoEspaco muda tipo e espaço do encontro; espaço nulo tira", async () => {
-    await definirTipoEspaco("e1", "gravacao", "s2");
-    await definirTipoEspaco("e1", "aula", null);
+  it("editarEncontro grava data, horário, atividade, aula, tipo e espaço; sem observação, vale a atividade", async () => {
+    const edicao = { data: "2026-10-06", inicio: "09:00", fim: "11:00", modalidade: "Lego", numeroAula: 2, tipo: "gravacao" as const };
+    await editarEncontro("e1", { ...edicao, descricao: "Final", espacoId: "s2" });
+    await editarEncontro("e1", { ...edicao, descricao: "", espacoId: null });
+    const linha = { data: "2026-10-06", inicio: "09:00", fim: "11:00", modalidade: "Lego", numero_aula: 2, tipo: "gravacao" };
     expect(chamadas).toEqual([
-      { tabela: "agenda", op: "update", id: "e1", valor: { tipo: "gravacao", espaco_id: "s2" } },
-      { tabela: "agenda", op: "update", id: "e1", valor: { tipo: "aula", espaco_id: null } },
+      { tabela: "agenda", op: "update", id: "e1", valor: { ...linha, aulas: "Final", espaco_id: "s2" } },
+      { tabela: "agenda", op: "update", id: "e1", valor: { ...linha, aulas: "Lego", espaco_id: null } },
     ]);
   });
 });
