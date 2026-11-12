@@ -650,6 +650,14 @@ manual com um encontro de teste para o dia seguinte enviou 1 lembrete e marcou;
 a execução seguinte não reenviou. Depois, o lembrete passou a sair no modelo de
 e-mail da plataforma (abaixo) e foi reenviado e conferido na caixa de entrada.
 
+**Meta atrasada (12/11/2026)**: o mesmo script, na mesma execução, também manda
+um e-mail a cada responsável ativo de meta aberta com prazo vencido, uma vez por
+prazo (`gestao.lembretes_meta_pendentes()` / `gestao.marcar_lembrete_meta_enviado()`,
+migration `20261118_gestao_lembrete_meta_atrasada.sql`). Para ativar: aplicar a
+migration **antes** e reinstalar o script (passo 3, `sudo install …`); timer e
+unidade não mudam. Sem a migration, o script falha na parte das metas depois de
+enviar os lembretes de encontro, e o `OnFailure` avisa.
+
 #### Avisos de alocação (saem do site, não do VPS)
 
 Quem é alocado, removido ou substituído num encontro, e toda a equipe de um
