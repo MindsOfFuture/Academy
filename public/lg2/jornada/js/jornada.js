@@ -1,9 +1,12 @@
 /* Jornada completa do Laboratório de Gestão.
    Abre os módulos publicados (as mesmas páginas das turmas) em ordem, um de cada vez.
-   Um módulo só libera quando o anterior chega ao resultado (a tela que mostra o botão do próximo módulo).
+   Com TRAVAR = true, um módulo só libera quando o anterior chega ao resultado (a tela que mostra o botão do
+   próximo módulo); com TRAVAR = false, todos os módulos prontos ficam abertos (o "concluído" continua valendo).
    Como abre as próprias páginas das turmas, qualquer mudança num módulo já aparece aqui. */
 (function () {
   'use strict';
+
+  var TRAVAR = false; // false = todos os módulos liberados (fase de validação); mude para true para voltar a travar em ordem.
 
   // Ordem da jornada. caminho null = módulo ainda não entregue ("em breve"), não trava os seguintes.
   // Precisa bater com PRONTOS em components/modules/laboratorio-gestao/turmas.ts (há teste).
@@ -33,9 +36,10 @@
   function gravar() { try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {} }
 
   function feito(n) { return estado.feitos.indexOf(n) >= 0; }
-  // Liberado = primeiro pronto, ou o pronto anterior já foi concluído.
+  // Liberado = sem trava, primeiro pronto, ou o pronto anterior já foi concluído.
   function liberado(n) {
     var i = prontos.findIndex(function (m) { return m.n === n; });
+    if (!TRAVAR) return i >= 0;
     return i === 0 || (i > 0 && feito(prontos[i - 1].n));
   }
   function proximoPronto(n) {
@@ -105,7 +109,7 @@
     if (!feito(n)) {
       estado.feitos.push(n); gravar(); desenhar();
       var p = proximoPronto(n);
-      aviso.textContent = p ? 'Módulo ' + n + ' concluído! O Módulo ' + p.n + ' foi liberado.' : 'Módulo ' + n + ' concluído!';
+      aviso.textContent = p && TRAVAR ? 'Módulo ' + n + ' concluído! O Módulo ' + p.n + ' foi liberado.' : 'Módulo ' + n + ' concluído!';
     }
   }
 
@@ -192,8 +196,9 @@
       li.appendChild(chip);
       if (m.caminho && (liberado(m.n) || feito(m.n))) {
         var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'revisar';
-        bt.textContent = 'Abrir para revisar';
-        bt.setAttribute('aria-label', 'Abrir o Módulo ' + m.n + ' para revisar');
+        var rever = st !== 'nada';
+        bt.textContent = rever ? 'Abrir para revisar' : 'Abrir';
+        bt.setAttribute('aria-label', 'Abrir o Módulo ' + m.n + (rever ? ' para revisar' : ''));
         bt.addEventListener('click', function () { fecharPainel(); abrir(m.n); });
         li.appendChild(bt);
       } else if (m.caminho) {
@@ -205,6 +210,95 @@
       lista.appendChild(li);
     });
   }
+  // Diagnóstico final: cenário atual + todas as respostas, módulo por módulo (js/diagnostico.js).
+  var diag = document.getElementById('diagnostico');
+  var diagOrigem = null;
+  function situacaoDiag(m) { var a = andamento(m); return a === 'feito' ? 'feito' : a === 'andamento' ? 'andamento' : 'nada'; }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+  function montarDiagnostico() {
+    var D = window.DiagnosticoLG2;
+    var corpo = document.getElementById('diag-corpo');
+    corpo.textContent = '';
+    corpo.setAttribute('aria-busy', 'true');
+    var data = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('diag-data').textContent = 'Situação em ' + data;
+    D.carregarDados(prontos, function () {
+      corpo.textContent = '';
+      var mods = prontos.map(function (m) { return { n: m.n, nome: m.nome, caminho: m.caminho, situacao: situacaoDiag(m) }; });
+      var r = D.montar(mods, function (n) { return window['MODULO' + n] || null; });
+      // Como está o seu negócio hoje
+      var s1 = el('section', 'diag-secao diag-cenario');
+      s1.appendChild(el('h2', '', 'Como está o seu negócio hoje'));
+      var pars = [];
+      try { var RN = window.ResumoNegocio; pars = RN ? (RN.paragrafos ? RN.paragrafos() : [RN.frases().join(' ')]) : []; } catch (e) { pars = []; }
+      pars = pars.filter(Boolean);
+      if (pars.length) pars.forEach(function (t) { s1.appendChild(el('p', '', t)); });
+      else s1.appendChild(el('p', 'diag-vazio', 'Ainda não dá para montar o resumo. Continue respondendo os módulos e ele vai aparecer aqui.'));
+      corpo.appendChild(s1);
+      // Pontos em aberto
+      var s2 = el('section', 'diag-secao diag-abertos');
+      s2.appendChild(el('h2', '', 'Pontos em aberto'));
+      if (r.abertos.length) {
+        s2.appendChild(el('p', 'diag-nota', 'Perguntas em que você respondeu \u201cNão sei\u201d. Vale buscar essas respostas.'));
+        var ul = el('ul', 'diag-lista-abertos');
+        r.abertos.forEach(function (a) {
+          var li = el('li');
+          li.appendChild(el('span', 'diag-q', a.pergunta));
+          li.appendChild(el('span', 'diag-mod', 'Módulo ' + a.modulo));
+          ul.appendChild(li);
+        });
+        s2.appendChild(ul);
+      } else s2.appendChild(el('p', 'diag-vazio', 'Nenhuma pergunta ficou com \u201cNão sei\u201d.'));
+      corpo.appendChild(s2);
+      // Um bloco por módulo
+      var s3 = el('section', 'diag-secao diag-respostas');
+      s3.appendChild(el('h2', '', 'Suas respostas, módulo por módulo'));
+      r.blocos.forEach(function (b) {
+        var art = el('article', 'diag-modulo');
+        art.setAttribute('data-modulo', b.n);
+        var cab = el('div', 'diag-mod-topo');
+        var h = el('h3');
+        h.appendChild(el('b', '', 'Módulo ' + b.n));
+        h.appendChild(document.createTextNode(' · ' + b.nome));
+        cab.appendChild(h);
+        cab.appendChild(el('span', 'diag-estado ' + b.situacao, { feito: 'concluído', andamento: 'em andamento', nada: 'não começou' }[b.situacao]));
+        art.appendChild(cab);
+        if (b.itens.length) {
+          var dl = el('dl', 'diag-itens');
+          b.itens.forEach(function (it) {
+            var linha = el('div', 'diag-item' + (it.resposta === 'Não sei' ? ' naosei' : ''));
+            linha.appendChild(el('dt', '', it.pergunta));
+            linha.appendChild(el('dd', '', it.resposta));
+            dl.appendChild(linha);
+          });
+          art.appendChild(dl);
+        } else art.appendChild(el('p', 'diag-vazio', 'Nenhuma resposta ainda.'));
+        s3.appendChild(art);
+      });
+      corpo.appendChild(s3);
+      corpo.removeAttribute('aria-busy');
+    });
+  }
+  function abrirDiagnostico(ev) {
+    diagOrigem = ev && ev.currentTarget && ev.currentTarget !== window ? ev.currentTarget : null;
+    if (!painel.hidden) { painel.hidden = true; diagOrigem = abrePainel; }
+    montarDiagnostico();
+    diag.hidden = false;
+    document.body.classList.add('com-diagnostico');
+    diag.scrollTop = 0;
+    document.getElementById('fecha-diag').focus();
+  }
+  function fecharDiagnostico() {
+    if (diag.hidden) return;
+    diag.hidden = true;
+    document.body.classList.remove('com-diagnostico');
+    if (diagOrigem && diagOrigem.focus) diagOrigem.focus();
+  }
+  document.getElementById('ver-diag-fim').addEventListener('click', abrirDiagnostico);
+  document.getElementById('ver-diag-painel').addEventListener('click', abrirDiagnostico);
+  document.getElementById('fecha-diag').addEventListener('click', fecharDiagnostico);
+  document.getElementById('imprime-diag').addEventListener('click', function () { window.print(); });
+
   function abrirPainel() {
     montarPainel();
     painel.hidden = false;
@@ -219,7 +313,7 @@
   abrePainel.addEventListener('click', abrirPainel);
   fechaPainel.addEventListener('click', fecharPainel);
   painel.addEventListener('click', function (ev) { if (ev.target === painel) fecharPainel(); });
-  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') fecharPainel(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { if (!diag.hidden) fecharDiagnostico(); else fecharPainel(); } });
 
   // O resultado de cada módulo tem a caixa ".lg2-proximo". Quando ela aparece, o módulo está concluído.
   // O botão dela ("Ir para o Módulo N" / "Voltar aos módulos") passa a seguir a jornada.
@@ -237,7 +331,7 @@
       return;
     }
     if (estado.atual !== m.n) { estado.atual = m.n; gravar(); desenhar(); }
-    doc.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') fecharPainel(); });
+    doc.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { fecharDiagnostico(); fecharPainel(); } });
     doc.addEventListener('click', function (ev) {
       var a = ev.target && ev.target.closest && ev.target.closest('.lg2-proximo a');
       if (!a) return;

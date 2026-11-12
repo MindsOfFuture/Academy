@@ -1,6 +1,8 @@
 /* Jornada completa do LG2 (public/lg2/jornada/); execute: node tests/lg2-jornada.cjs.
    Percorre os módulos de verdade, dentro da jornada, respondendo cada tela com a primeira opção
-   ou um texto/número neutro, e confere que só o módulo seguinte libera. */
+   ou um texto/número neutro, e confere que só o módulo seguinte libera.
+   A trava é a constante TRAVAR do jornada.js. O teste roda os DOIS modos, seja qual for o valor do arquivo:
+   o servidor de teste troca a constante na hora de servir (com trava: percurso completo; sem trava: tudo aberto). */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
@@ -11,6 +13,11 @@ try { playwright = require('playwright'); } catch { playwright = require(process
 
 // Ordem esperada, escrita à parte do app.
 const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const JS_JORNADA = fs.readFileSync(path.join(publicRoot, 'lg2', 'jornada', 'js', 'jornada.js'), 'utf8');
+const LINHA_TRAVAR = /var TRAVAR = (true|false);/;
+assert.match(JS_JORNADA, LINHA_TRAVAR, 'jornada.js precisa da constante TRAVAR');
+const travarNoArquivo = LINHA_TRAVAR.exec(JS_JORNADA)[1] === 'true';
+let forcarTravar = null; // null = serve o arquivo como está
 
 (async () => {
   const server = http.createServer((req, res) => {
@@ -18,15 +25,65 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     if (!name.startsWith(publicRoot + path.sep)) { res.writeHead(403).end(); return; }
     fs.readFile(name, (error, bytes) => {
       if (error) { res.writeHead(404).end(); return; }
+      if (forcarTravar !== null && name.endsWith(path.join('jornada', 'js', 'jornada.js'))) {
+        bytes = Buffer.from(String(bytes).replace(LINHA_TRAVAR, `var TRAVAR = ${forcarTravar};`));
+      }
       const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf', '.webp': 'image/webp', '.jpg': 'image/jpeg' };
       res.writeHead(200, { 'Content-Type': types[path.extname(name)] || 'application/octet-stream' }).end(bytes);
     });
   });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => server.listen(Number(process.env.PORT) || 0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   let browser;
   try {
     browser = await playwright.chromium.launch({ headless: true });
+
+    // ---- Modo SEM trava (TRAVAR = false): todos os módulos prontos abrem, sem aviso de "Conclua" nem "Abre depois".
+    forcarTravar = false;
+    {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      const pg = await ctx.newPage();
+      const errs = [];
+      pg.on('pageerror', (e) => errs.push(e.message));
+      pg.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.url()); });
+      pg.on('dialog', (d) => d.accept());
+      const noModulo = (n) => pg.waitForFunction((n) => {
+        const f = document.getElementById('modulo');
+        try { return f.contentWindow.location.pathname.includes('/m' + String(n).padStart(2, '0') + '/') && f.contentDocument.readyState === 'complete'; } catch { return false; }
+      }, n, { timeout: 10000 });
+      await pg.goto(base + '/lg2/jornada/index.html');
+      await noModulo(1);
+      const sit = await pg.$$eval('#trilha li', (xs) => xs.map((x) => x.className.replace(' atual', '')));
+      assert.deepEqual(sit, Array(10).fill('liberado'), 'sem trava: os 10 módulos liberados na trilha');
+      // Tocar no Módulo 3 sem ter feito o 1 e o 2 abre o Módulo 3.
+      await pg.click('#trilha li:nth-child(3) button');
+      await noModulo(3);
+      assert.doesNotMatch(await pg.textContent('#aviso'), /Conclua/);
+      // Ir direto a outro módulo pelo endereço dentro da moldura também vale.
+      await pg.evaluate(() => { document.getElementById('modulo').contentWindow.location.href = '/lg2/turma-a/m05/index.html'; });
+      await noModulo(5);
+      await pg.waitForTimeout(400);
+      assert.equal(await pg.$eval('#trilha li.atual button', (b) => Number(b.textContent)), 5);
+      await pg.click('#abre-painel');
+      const lista = await pg.$$eval('#painel-lista li', (xs) => xs.map((li) => ({ revisar: !!li.querySelector('.revisar'), trava: !!li.querySelector('.trava'), txt: li.textContent })));
+      assert.deepEqual(lista.map((x) => x.revisar), Array(10).fill(true), 'sem trava: todos abrem pelo painel');
+      assert.ok(lista.every((x) => !x.trava && !/Abre depois/.test(x.txt)), 'sem trava: nada de "Abre depois do Módulo N"');
+      assert.ok(await pg.isVisible('#ver-diag-painel'), 'botão do diagnóstico no painel');
+      if (process.env.SHOTS) {
+        await pg.waitForTimeout(400);
+        await pg.$eval('.painel-corpo', (c) => { c.scrollTop = c.scrollHeight; });
+        await pg.waitForTimeout(300);
+        await pg.screenshot({ path: path.join(process.env.SHOTS, 'l4_jornada_sem_trava_painel.png') });
+        await pg.keyboard.press('Escape');
+        await pg.waitForTimeout(400);
+        await pg.screenshot({ path: path.join(process.env.SHOTS, 'l4_jornada_sem_trava_trilha.png') });
+      }
+      assert.deepEqual(errs, []);
+      await ctx.close();
+    }
+
+    // ---- Modo COM trava (TRAVAR = true): percurso completo, um módulo libera o seguinte.
+    forcarTravar = true;
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
@@ -209,6 +266,7 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     }
     await page.waitForSelector('#fim:not([hidden])');
     assert.deepEqual(await situacoes(), Array(10).fill('feito'));
+    assert.ok(await page.isVisible('#ver-diag-fim'), 'botão "Ver o diagnóstico final" no fim da jornada');
 
     // Concluído, qualquer módulo volta a abrir; recarregar mantém o progresso.
     await page.click('#trilha li:nth-child(5) button');
@@ -220,7 +278,7 @@ const PRONTOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     assert.deepEqual(escondidos, [7], 'o Módulo 7 esconde o botão do próximo até "Sim, pode seguir"');
     assert.deepEqual(errors, []);
-    console.log('jornada ok · telas respondidas por módulo:', JSON.stringify(passos));
+    console.log('jornada ok · modos testados: sem trava e com trava · TRAVAR no arquivo =', travarNoArquivo, '· telas respondidas por módulo:', JSON.stringify(passos));
   } finally {
     if (browser) await browser.close();
     server.close();

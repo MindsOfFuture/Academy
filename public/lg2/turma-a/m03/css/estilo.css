@@ -214,3 +214,24 @@ textarea.campo{resize:vertical;font-family:inherit}
 .cartao .ver-mais p{margin-top:4px}
 .grupo-campos{font-weight:700;color:#2b2340;font-size:16px;margin:14px 0 6px;padding-top:10px;border-top:2px solid var(--m-lavender)}
 @media print{.ver-mais>summary{display:none}}
+/* lote 4 (relatórios da Ana Luiza): dica junto da pergunta, aviso de IA, bloco do Módulo 1, lista de nomes, quadro */
+.dica-q{background:var(--m-lavender);border-left:4px solid var(--m-purple);color:#3d2f5c;margin:10px 0 4px}
+.dica-q b{color:var(--m-purple)}
+.b-ia .ia-aviso{font-weight:700;color:#2b2340}
+.b-ia .antes{color:var(--m-gray)}
+.herdado{border:2px solid var(--m-lavender-mid);border-radius:12px;padding:12px 14px;margin-top:12px;background:#fff}
+.herdado-txt{font-size:17px;font-weight:700;color:#2b2340}
+.herdado .btn-alt{margin-top:10px}
+.lista-capa{padding-left:20px;margin-top:4px}
+.lista-capa li{margin-bottom:6px}
+.t-ops.opcoes{flex-direction:row;gap:6px}
+.item-nome{margin-top:8px}
+.mais-nome{margin-top:10px;align-self:flex-start}
+.campo-outro{margin-top:4px;width:100%}
+.quadro{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+.q-cel{border:2px solid var(--m-lavender);border-left:4px solid var(--m-purple);border-radius:12px;padding:10px 12px;background:#fff}
+.q-cel h3{font-size:17px;color:#2b2340;margin-bottom:4px}
+.q-cel ul{padding-left:20px}
+.q-cel li{margin-bottom:4px}
+.q-fracos,.q-ameacas{border-left-color:var(--m-coral)}
+@media (min-width:640px){.quadro{grid-template-columns:1fr 1fr}}
