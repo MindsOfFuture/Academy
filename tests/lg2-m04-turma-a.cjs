@@ -642,6 +642,44 @@ async function caminho(page, respostas, outros) {
     check('Cliente: texto trazido junta as duas opções e os campos (Módulo 3)', campo === 'Pessoas comuns e Empresas (idade: 25 a 45; ocupação: trabalha no centro; ramo: salões de beleza)', campo);
     const m2 = await caminho(page, { 'M4.P02': 'Mercadoria' }, Object.assign({}, M1_JOIAS, { 'lg2-turma-b-m02': { R: { 'M2.P02': { estado: 'valor', valor: 'Mulheres de 25 a 45 anos que gostam de acessórios' } } } }));
     check('Cliente: sem perfil no Módulo 3, a pergunta 8 vem do Módulo 2 (selo "Veio do Módulo 2")', /Veio do Módulo 2/.test(m2.telas['M4.P08'].corpo) && /Confira e ajuste se quiser/.test(m2.telas['M4.P08'].corpo));
+    check('Cliente: público específico do Módulo 2 não gera o aviso de público amplo', !/escolha o grupo principal/.test(m2.telas['M4.P08'].corpo));
+  }
+  {
+    /* lote 4 (Ana Luiza, Pergunta 8): público amplo ou várias opções do Módulo 3 -> herdado + selo + aviso curto que não trava */
+    const abrir8 = async (m3, extra) => {
+      await abrirEm('M4.P08', { 'M4.P02': 'Mercadoria', 'M4.P08': undefined }, Object.assign({}, M1_JOIAS, extra || {}));
+      await page.evaluate((m3) => {
+        const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); delete s.R['M4.P08']; localStorage.setItem('lg2-turma-a-m04', JSON.stringify(s));
+        if (m3) localStorage.setItem('lg2-turma-a-m03', JSON.stringify(m3)); else localStorage.removeItem('lg2-turma-a-m03');
+      }, m3);
+      await page.reload(); await page.click('#ir');
+      return page.evaluate(() => ({ campo: document.querySelector('#ent textarea').value, txt: document.querySelector('.cartao-q').innerText, aviso: (document.getElementById('aviso-amplo') || {}).innerText || '' }));
+    };
+    const DUAS = { v: 5, R: { 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', opcoes: ['Pessoas comuns (consumidor final)', 'Empresas'], campos: { 'Idade': '25 a 45', 'Ramo': 'salões de beleza' } } } };
+    let t = await abrir8(DUAS);
+    check('Amplo: duas opções do Módulo 3 -> texto trazido, selo e aviso "escolha o grupo principal para começar"', /^Pessoas comuns e Empresas \(/.test(t.campo) && /Veio do Módulo 3/.test(t.txt) && /mais de um tipo de cliente \(Pessoas comuns e Empresas\)/.test(t.aviso) && /escolha o grupo principal para começar/.test(t.aviso) && /pode seguir assim/.test(t.aviso), t);
+    check('Amplo: o aviso não fala em "não generalizado" nem traz código', !/generaliz|M3\.|P10/.test(t.aviso), t.aviso);
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l4_m04_p08_publico_amplo.png') }); }
+    await page.evaluate(() => document.querySelector('#ok').click());
+    let s = await situacao('M4.P08');
+    check('Amplo: Continuar sem mudar nada grava o trazido e segue (não trava)', s.salvo && /^Pessoas comuns e Empresas/.test(s.salvo) && s.seguir && !s.erro, s);
+    check('Amplo: resposta mantida guarda a origem (Módulo 3)', (await estado())['M4.P08'].de === 3);
+    /* formato novo do Módulo 3: várias opções marcadas, sem campos */
+    t = await abrir8({ v: 7, R: { 'M3.P10': { estado: 'opcao', opcao: 'Mães que trabalham fora', opcoes: ['Mães que trabalham fora', 'Estudantes'] } } });
+    check('Amplo (formato novo do Módulo 3): várias opções viram o texto trazido + aviso', t.campo === 'Mães que trabalham fora e Estudantes' && /Veio do Módulo 3/.test(t.txt) && /Mães que trabalham fora e Estudantes/.test(t.aviso), t);
+    /* uma opção só, sem detalhe: categoria ampla */
+    t = await abrir8({ v: 6, R: { 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', opcoes: ['Pessoas comuns (consumidor final)'] } } });
+    check('Amplo: só "Pessoas comuns", sem detalhe -> aviso de público amplo', t.campo === 'Pessoas comuns' && /ainda está amplo/.test(t.aviso) && /escolha o grupo principal/.test(t.aviso), t);
+    /* "Ainda não tenho clientes" = sem cliente definido: não vira resposta nem aviso */
+    t = await abrir8({ v: 7, R: { 'M3.P10': { estado: 'opcao', opcao: 'Ainda não tenho clientes', opcoes: ['Ainda não tenho clientes'] } } });
+    check('"Ainda não tenho clientes" no Módulo 3: pergunta 8 vazia, sem selo e sem aviso', t.campo === '' && !/Veio do Módulo/.test(t.txt) && !t.aviso, t);
+    t = await abrir8({ v: 7, R: { 'M3.P10': { estado: 'opcao', opcao: 'Ainda não tenho clientes', opcoes: ['Ainda não tenho clientes'] } } }, { 'lg2-turma-b-m02': { R: { 'M2.P02': { estado: 'valor', valor: 'Mães que trabalham fora, do bairro Centro' } } } });
+    check('"Ainda não tenho clientes" no Módulo 3: vale o cliente do Módulo 2, sem aviso', t.campo === 'Mães que trabalham fora, do bairro Centro' && /Veio do Módulo 2/.test(t.txt) && !t.aviso, t);
+    t = await abrir8({ v: 7, R: { 'M3.P10': { estado: 'opcao', opcao: 'Ainda não tenho clientes', opcoes: ['Ainda não tenho clientes'] } } }, { 'lg2-turma-b-m02': { R: { 'M2.P02': { estado: 'valor', valor: 'Todo mundo que gosta de doce' } } } });
+    check('Texto amplo do Módulo 2 ("todo mundo") também gera o aviso', /Veio do Módulo 2/.test(t.txt) && /ainda está amplo/.test(t.aviso), t);
+    /* público específico (uma opção com detalhes): sem aviso */
+    t = await abrir8({ v: 6, R: { 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', opcoes: ['Pessoas comuns (consumidor final)'], campos: { 'Idade': '30 a 50', 'Onde mora': 'bairro São Pedro' } } } });
+    check('Público específico do Módulo 3: selo, sem aviso de público amplo', /Veio do Módulo 3/.test(t.txt) && !t.aviso, t);
   }
   {
     /* item 3: pergunta 11, "Outro" abre campo e grava o texto junto */

@@ -211,3 +211,23 @@ details.caixa[open] summary{margin-bottom:6px}
 .onde-quadro{background:var(--m-lavender);border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:14.5px;color:#3d2f5c}
 .onde-quadro .btn-alt{margin-top:6px}
 @media print{.voltar-topo,.onde-quadro .btn-alt,.ver-mais>summary{display:none!important}}
+
+/* roteiro de entrevista, ficha e quadro dos grupos: como usar e como preencher (relatório de 12/11) */
+.roteiro-uso dl,.como-preencher dl{margin:6px 0 0}
+.roteiro-uso dt,.como-preencher dt{font-weight:700;color:var(--m-purple);font-size:14.5px;margin-top:8px}
+.roteiro-uso dd,.como-preencher dd{margin:2px 0 0;font-size:14.5px;color:#4a4460;line-height:1.45}
+.roteiro-passos,.como-preencher ol{margin:6px 0 0 20px;font-size:14.5px;color:#4a4460;line-height:1.45}
+.roteiro-passos>li{margin:0 0 10px;padding-left:2px}
+.roteiro-passos>li>b{display:block;color:var(--m-purple)}
+.roteiro-passos ul,.como-preencher ul{margin:4px 0 4px 18px}
+.roteiro-passos .ex{color:var(--m-gray);font-style:italic}
+.como-preencher ol>li{margin-bottom:6px}
+.tabela-ex{overflow-x:auto}
+.tabela-ex table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:4px}
+.tabela-ex th,.tabela-ex td{border:1px solid var(--m-lavender-mid);padding:5px 6px;text-align:center}
+.tabela-ex th{background:var(--m-lavender);color:var(--m-purple)}
+.tabela-ex td:first-child,.tabela-ex th:first-child{text-align:left}
+label.mini-info .escala{font-weight:400;color:var(--m-gray)}
+#grupos .falta-nota{font-size:13.5px;color:var(--m-coral);margin-top:6px}
+#frase-grupos{margin:6px 0 10px}
+.aviso-ficha{margin:12px 0 0}

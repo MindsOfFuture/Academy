@@ -268,6 +268,47 @@ async function servidor() {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await clicarTexto('button', 'Instrumentos: roteiro, ficha, plano e quadro');
+    /* lote 4 (Ana Luiza, 12/11): roteiro com "para que serve / como usar" no topo e em passos */
+    const uso = norm(await page.locator('#roteiro-uso').innerText());
+    for (const t of ['Para que serve', 'Com quem conversar', 'Quantas conversas', 'O que anotar', 'O que fazer com as respostas'])
+      ok(uso.includes(t), `roteiro: explicação no topo sem "${t}"`);
+    ok(await page.evaluate(() => { const u = document.querySelector('#roteiro-uso'), t = document.querySelector('.secao-titulo'); return !!u && t.nextElementSibling.nextElementSibling === u; }), 'roteiro: explicação logo abaixo do título do roteiro');
+    ok((await page.locator('#roteiro-passos > li').count()) === 5, 'roteiro organizado em 5 passos');
+    const passosTxt = norm(await page.locator('#roteiro-passos').innerText());
+    const i1 = D.instrumentos.lista.find((l) => l.codigo === 'M2.I01');
+    for (const x of ['onde comprou da última vez', 'quanto pagou', 'o que faria diferente', 'se pediria orçamento de novo'])
+      ok(i1.ex_saida.includes(x) && passosTxt.includes(x), `roteiro: pergunta do grupo "${x}" (literal) ausente`);
+    ok(passosTxt.includes(norm(D.base.find((b) => /Entrevista com cliente/.test(b.conceito)).exemplo)), 'roteiro: exemplo de pergunta do grupo literal');
+    ok((await page.locator('#roteiro-extras').count()) === 0, 'roteiro: sem respostas, não há perguntas extras');
+    await page.evaluate(() => localStorage.setItem('lg2-turma-b-m02', JSON.stringify({ v: 3, R: { 'M2.P10': { estado: 'opcao', opcao: 'Busca o menor preço' } }, hist: [], fichas: [], plano: { meta: '', prazo: '', feitos: [] }, grupos: [] })));
+    await page.reload();
+    await clicarTexto('button', 'Instrumentos: roteiro, ficha, plano e quadro');
+    const extras = norm(await page.locator('#roteiro-extras').innerText().catch(() => ''));
+    ok(/quanto pagaram na última compra parecida/.test(extras) && !/M2\./.test(extras), `roteiro: pergunta extra pedida pela resposta (obtido "${extras}")`);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await clicarTexto('button', 'Instrumentos: roteiro, ficha, plano e quadro');
+    /* lote 4: ficha e quadro dos grupos com "como preencher", exemplo e validação simples */
+    ok(/Situação/.test(await page.locator('#como-ficha').innerText()) && /Forte/.test(await page.locator('#como-ficha').innerText()), 'ficha: como preencher cada coluna');
+    await page.click('#f-ok');
+    ok(/Escreva quem é a pessoa entrevistada/.test(await page.locator('#f-erro').textContent()) && (await page.locator('#fichas .cartao').count()) === 0, 'ficha vazia: mensagem simples e não salva');
+    await page.fill('#f-sit', '123');
+    await clicarTexto('#f-sinal .opcao', 'forte'); await page.click('#f-ok');
+    ok(/com palavras/.test(await page.locator('#f-erro').textContent()) && (await page.locator('#fichas .cartao').count()) === 0, 'ficha: situação só com número é recusada');
+    await page.fill('#f-sit', 'Vizinha, compra para aniversário'); await page.fill('#f-freq', '2'); await page.fill('#f-mot', 'preço');
+    await page.click('#f-ok');
+    ok(/de quanto em quanto tempo/.test(await page.locator('#f-erro').textContent()) && (await page.locator('#fichas .cartao').count()) === 0, 'ficha: frequência só com número gera aviso no 1º toque');
+    await page.click('#f-ok');
+    ok((await page.locator('#fichas .cartao').count()) === 1, 'ficha: o 2º toque com os mesmos dados salva (aviso não trava)');
+    await page.click('#fichas .x');
+    ok((await page.locator('#fichas .cartao').count()) === 0, 'ficha de teste removida');
+    const exQ = await page.evaluate(() => [...document.querySelectorAll('#ex-quadro tbody tr')].map((r) => r.lastElementChild.textContent));
+    ok(JSON.stringify(exQ) === '["8","5"]', `quadro dos grupos: exemplo preenchido com totais 8 e 5 (obtido ${exQ})`);
+    ok(/1 = difícil/.test(await page.locator('#como-quadro').innerText()), 'quadro dos grupos: o que significa cada nota');
+    await page.fill('#g-nome', ''); await page.click('#g-ok');
+    ok(/Escreva o nome do grupo/.test(await page.locator('#g-erro').textContent()) && (await page.locator('#grupos .item').count()) === 0, 'grupo sem nome: mensagem simples');
+    await page.fill('#g-nome', '42'); await page.click('#g-ok');
+    ok(/com palavras/.test(await page.locator('#g-erro').textContent()) && (await page.locator('#grupos .item').count()) === 0, 'grupo só com número é recusado');
     for (const s of ['forte', 'forte', 'fraco', 'fraco', 'nenhum']) {   // aba 5, M2.I04, entrada: 2 forte, 2 fraco, 1 sem interesse
       await page.fill('#f-sit', `Pessoa ${s}`);
       await page.fill('#f-mot', 'preço');
@@ -304,7 +345,14 @@ async function servidor() {
     const esperado5 = (i5.ex_saida.match(/Grupo [A-Z] = \d+ pontos/g) || []);
     ok(JSON.stringify(tot) === JSON.stringify(esperado5), `M2.I05: ${tot.join('; ')} ≠ ${esperado5.join('; ')}`);
     console.log(`M2.I05 obtido: ${tot.join('; ')} (ordem do maior para o menor)`);
-    if (!/Com as notas informadas/.test(await page.locator('#grupos').textContent())) div.push('M2.I05: a frase da saída esperada ("Com as notas informadas, o Grupo A merece ser testado primeiro…") não é exibida; o app mostra só os totais ordenados');
+    /* lote 4: a frase da saída esperada passou a aparecer (antes era só divergência relatada) */
+    const fraseG = norm(await page.locator('#frase-grupos').textContent().catch(() => ''));
+    ok(fraseG === 'Com as notas informadas, “Grupo A” merece ser testado primeiro; confirme com mais conversas.', `M2.I05: frase da saída esperada (obtido "${fraseG}")`);
+    await page.fill('#g-nome', 'grupo a'); await page.click('#g-ok');
+    ok(/já está no quadro/.test(await page.locator('#g-erro').textContent()) && (await page.locator('#grupos .item').count()) === 2, 'grupo repetido: mensagem simples e não duplica');
+    await page.fill('#g-nome', 'Grupo C'); await page.click('#g-ok');
+    ok(/Falta dar nota: facilidade de alcançar, necessidade, capacidade de pagar/.test(await page.locator('#grupos').innerText()), 'grupo sem notas: diz quais notas faltam');
+    await page.evaluate(() => [...document.querySelectorAll('#grupos .item')].find((x) => x.querySelector('b').textContent === 'Grupo C').querySelector('[data-gx]').click());
     await page.locator('#grupos').scrollIntoViewIfNeeded();
     await page.evaluate(() => document.querySelectorAll('.secao-titulo')[4].scrollIntoView());
     await shot('instrumentos');
@@ -397,7 +445,7 @@ async function servidor() {
         ok(/parece alto/.test(await page.locator('#erro').textContent()) && (await page.locator('#retorno .retorno').count()) === 0, 'P18 5000: aviso de valor alto no 1º toque');
         await page.click('#ok');
         ok((await page.locator('#retorno .retorno').count()) === 1, 'P18 5000: o 2º Continuar com o mesmo valor segue');
-        await clicarTexto('#acoes .btn', 'Corrigir minha resposta');
+        ok(await clicarTexto('#acoes .btn', 'Corrigir minha resposta'), 'botão "Corrigir minha resposta" mantido');
       }
       if (Motor.campo(q) === 'escolha') { if (!(await clicarTexto('#ent .opcao', v))) throw new Error(`herança: opção ${v} ausente em ${cod}`); await page.click('#ok'); }
       else if (v === 'Não sei') await page.click('#ns'); else { await page.fill('#ent input, #ent textarea', v); await page.click('#ok'); }
@@ -597,5 +645,5 @@ async function servidor() {
   console.log(`Casos da aba 8: ${D.casos.length} executados; divergências da planilha (não falham): ${div.length}`);
   div.forEach((d) => console.log('  DIVERGÊNCIA ' + d));
   if (falhas.length) { falhas.forEach((f) => console.log('  FALHA ' + f)); console.log(`FAIL (${falhas.length})`); process.exit(1); }
-  console.log(`PASS: lote 3 (Voltar no topo, menos texto, sem códigos na tela, P08 com várias respostas + Outra + migração v3, P15 com o quadro) · ${alcancadas.size} de ${nR} regras alcançadas; ${nP} perguntas (P21 reescrita); herança M1/M3, progresso pelo caminho e "O que entendemos" conferidos; M2.I04 e M2.I05 conferem com a aba 5; persistência ok · ${D.modulo.versao} ${D.modulo.data}`);
+  console.log(`PASS: lote 4 (roteiro com como usar + passos, ficha e quadro dos grupos com como preencher, exemplo e validação) · lote 3 (Voltar no topo, menos texto, sem códigos na tela, P08 com várias respostas + Outra + migração v3, P15 com o quadro) · ${alcancadas.size} de ${nR} regras alcançadas; ${nP} perguntas (P21 reescrita); herança M1/M3, progresso pelo caminho e "O que entendemos" conferidos; M2.I04 e M2.I05 conferem com a aba 5; persistência ok · ${D.modulo.versao} ${D.modulo.data}`);
 })();

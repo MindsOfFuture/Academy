@@ -1,15 +1,20 @@
-/* Teste do LG2 M03 (Turma A) — 22 perguntas reescritas (m03_reescritas.xlsx).
-   Execute: PW=<pacote playwright> NODE_OPTIONS=--no-experimental-webstorage node tests/lg2-m03-turma-a.cjs
+/* Teste do LG2 M03 (Turma A) — perguntas reescritas pelo grupo + correções dos testes da turma.
+   Lote 4 (relatórios da Ana Luiza, nov/2026): capa em linguagem simples, dica junto da pergunta, "Não sei" que
+   ajuda mas não responde (sem segundo campo), aviso de IA antes de todo prompt, perguntas fechadas (riscos,
+   comparação), perfil do cliente com opções, um nome por campo nos concorrentes, ordem nova, perguntas
+   escondidas, herança dos Módulos 1 e 2, botão "Não" e quadro dos concorrentes no resultado.
+   Execute: PW=<pacote playwright> node tests/lg2-m03-turma-a.cjs
    Opcional: SHOTS=<pasta> grava prints de celular (390x844). Sai com código 1 se algo falhar. */
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const { chromium } = require(process.env.PW || 'playwright');
 
 const DIR = path.resolve(__dirname, '../public/lg2/turma-a/m03');
 const CHAVE = 'lg2-turma-a-m03';
 const SHOTS = process.env.SHOTS || '';
-const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf' };
+const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf', '.webp': 'image/webp' };
 const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
@@ -17,657 +22,89 @@ const servidor = http.createServer((req, res) => {
   fs.createReadStream(f).pipe(res);
 });
 
-/* Aba "Caminhos por resposta": código, pergunta (B), resposta/opção (D), tipo de retorno (F), mensagem (G). Literal. */
-/* P13 (canais) e P20 (preço) revistos com os testes da turma (nov/2026): opções de pequeno negócio primeiro;
-   o preço virou campo de número (texto é erro, não mais a dica "Texto sem valor em reais"). */
-const LINHAS = [
- {
-  "codigo": "P01",
-  "pergunta": "Com suas palavras, em que ramo você trabalha e o que você vende? (Ex.: \"Vendo marmitas para trabalhadores do bairro\")",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P01",
-  "pergunta": "Com suas palavras, em que ramo você trabalha e o que você vende? (Ex.: \"Vendo marmitas para trabalhadores do bairro\")",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Diga o que você vende e para quem. Ex.: \"Vendo marmitas para trabalhadores do bairro\"."
- },
- {
-  "codigo": "P01",
-  "pergunta": "Com suas palavras, em que ramo você trabalha e o que você vende? (Ex.: \"Vendo marmitas para trabalhadores do bairro\")",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Mercado é o lugar, na rua ou na internet, onde quem vende encontra quem quer comprar. Prompt: \"Eu [descreva o que faz]. Me ajude a explicar em uma frase, em linguagem simples, em que ramo eu trabalho. Dê 3 exemplos de como outras pessoas descrevem esse ramo.\" Confira se a frase combina com o que você realmente faz."
- },
- {
-  "codigo": "P02",
-  "pergunta": "Você está procurando novas formas de vender mais ou de crescer agora?",
-  "opcao": "Sim",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P02",
-  "pergunta": "Você está procurando novas formas de vender mais ou de crescer agora?",
-  "opcao": "Não",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P03",
-  "pergunta": "Se o seu cliente não comprar de você, o que ele pode comprar no lugar? (Ex.: quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P03",
-  "pergunta": "Se o seu cliente não comprar de você, o que ele pode comprar no lugar? (Ex.: quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense: se o cliente não comprasse de você, o que ele faria? Ex.: quem vende bolo caseiro perde cliente para a padaria."
- },
- {
-  "codigo": "P03",
-  "pergunta": "Se o seu cliente não comprar de você, o que ele pode comprar no lugar? (Ex.: quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote)",
-  "opcao": "Não sei",
-  "tipo": "Dica",
-  "texto": "Tudo bem. Pense em onde o cliente compraria se você não existisse. Você pode voltar e preencher depois."
- },
- {
-  "codigo": "P04",
-  "pergunta": "Você viu alguma novidade ou mudança recente que pode ajudar você a vender mais? (Ex.: mais gente comprando pelo WhatsApp, uma obra ou um evento novo perto de você)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P04",
-  "pergunta": "Você viu alguma novidade ou mudança recente que pode ajudar você a vender mais? (Ex.: mais gente comprando pelo WhatsApp, uma obra ou um evento novo perto de você)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Conte uma novidade ou mudança recente. Ex.: mais gente comprando pelo WhatsApp, uma obra ou evento novo perto de você."
- },
- {
-  "codigo": "P04",
-  "pergunta": "Você viu alguma novidade ou mudança recente que pode ajudar você a vender mais? (Ex.: mais gente comprando pelo WhatsApp, uma obra ou um evento novo perto de você)",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Onde olhar: converse com clientes, veja as redes sociais e as novidades do bairro. Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Que mudanças recentes (jeito de comprar, tecnologia, eventos) podem ajudar quem vende isso? Separe o que é fato do que é suposição.\" Confira em fonte confiável ou pergunte a clientes."
- },
- {
-  "codigo": "P05",
-  "pergunta": "Por que você acredita que essa ideia pode dar certo no seu negócio?",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P05",
-  "pergunta": "Por que você acredita que essa ideia pode dar certo no seu negócio?",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Conte o motivo: já tem clientes pedindo? Já viu essa ideia dar certo? Quanto custa começar?"
- },
- {
-  "codigo": "P05",
-  "pergunta": "Por que você acredita que essa ideia pode dar certo no seu negócio?",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Minha ideia é [descreva a ideia]. Me faça 5 perguntas simples para eu descobrir se ela pode dar certo: se tem gente que compra, quanto custa começar e o que eu preciso ter.\" Responda cada pergunta com dados reais (clientes, preços, custos)."
- },
- {
-  "codigo": "P06",
-  "pergunta": "O que você já tem e o que ainda falta para colocar essa ideia em prática? (Ex.: dinheiro, equipamento, tempo, ajuda)",
-  "opcao": "Já sei o que tenho e o que falta",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Quero colocar em prática [ideia]. Já tenho [o que você tem]. Explique, em linguagem simples, o que ainda falta.\" Confira a lista com a sua realidade antes de decidir."
- },
- {
-  "codigo": "P06",
-  "pergunta": "O que você já tem e o que ainda falta para colocar essa ideia em prática? (Ex.: dinheiro, equipamento, tempo, ajuda)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense em dinheiro, equipamento, tempo, licença e ajuda. O que você já tem? O que ainda falta?"
- },
- {
-  "codigo": "P06",
-  "pergunta": "O que você já tem e o que ainda falta para colocar essa ideia em prática? (Ex.: dinheiro, equipamento, tempo, ajuda)",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Quero colocar em prática [ideia]. O que normalmente é preciso (dinheiro, equipamento, tempo, licença, ajuda)? Liste em ordem do que fazer primeiro.\""
- },
- {
-  "codigo": "P07",
-  "pergunta": "Existe alguma coisa que pode atrapalhar suas vendas? (Ex.: concorrente novo, preço dos insumos subindo, mudança de regra)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P07",
-  "pergunta": "Existe alguma coisa que pode atrapalhar suas vendas? (Ex.: concorrente novo, preço dos insumos subindo, mudança de regra)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense no que pode atrapalhar. Ex.: concorrente novo, preço dos insumos subindo, mudança de regra."
- },
- {
-  "codigo": "P07",
-  "pergunta": "Existe alguma coisa que pode atrapalhar suas vendas? (Ex.: concorrente novo, preço dos insumos subindo, mudança de regra)",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Eu vendo [produto ou serviço]. Quais riscos comuns podem atrapalhar as vendas de quem trabalha com isso? Diga também o que dá para fazer para se proteger.\""
- },
- {
-  "codigo": "P08",
-  "pergunta": "Nos próximos anos, o que você acha que vai mudar na forma como as pessoas compram o que você vende? (Ex.: mais pedidos pelo celular, pagamento por Pix, novas regras)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P08",
-  "pergunta": "Nos próximos anos, o que você acha que vai mudar na forma como as pessoas compram o que você vende? (Ex.: mais pedidos pelo celular, pagamento por Pix, novas regras)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense em como as pessoas vão comprar daqui a alguns anos. Ex.: mais pedidos pelo celular, pagamento por Pix, novas regras."
- },
- {
-  "codigo": "P08",
-  "pergunta": "Nos próximos anos, o que você acha que vai mudar na forma como as pessoas compram o que você vende? (Ex.: mais pedidos pelo celular, pagamento por Pix, novas regras)",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Quais mudanças (tecnologia, jeito de comprar, regras) podem afetar quem vende [produto ou serviço] nos próximos anos? Explique de forma simples e diga o que é suposição.\" Confirme em fontes confiáveis, como o portal do Sebrae."
- },
- {
-  "codigo": "P09",
-  "pergunta": "Até onde você vende hoje? No seu bairro ou cidade, na sua região, no Brasil todo ou até fora do país?",
-  "opcao": "No meu bairro e na minha cidade",
-  "tipo": "Dica",
-  "texto": "Seu foco é perto de você. Os concorrentes mais próximos tendem a ser os da mesma cidade."
- },
- {
-  "codigo": "P09",
-  "pergunta": "Até onde você vende hoje? No seu bairro ou cidade, na sua região, no Brasil todo ou até fora do país?",
-  "opcao": "Na minha região (estado e cidades próximas)",
-  "tipo": "Dica",
-  "texto": "Você pretende atender várias cidades. Pense em como a entrega ou o atendimento vai chegar até elas."
- },
- {
-  "codigo": "P09",
-  "pergunta": "Até onde você vende hoje? No seu bairro ou cidade, na sua região, no Brasil todo ou até fora do país?",
-  "opcao": "No Brasil todo",
-  "tipo": "Dica",
-  "texto": "Vender para o país todo costuma exigir pensar em frete, prazo de entrega e venda pela internet."
- },
- {
-  "codigo": "P09",
-  "pergunta": "Até onde você vende hoje? No seu bairro ou cidade, na sua região, no Brasil todo ou até fora do país?",
-  "opcao": "Também fora do Brasil",
-  "tipo": "Dica",
-  "texto": "Vender para fora costuma ter regras próprias, como documentos e impostos. Vale pesquisar antes."
- },
- {
-  "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
-  "opcao": "Pessoas comuns (consumidor final)",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
-  "opcao": "Empresas",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
-  "opcao": "Campos complementares incompletos",
-  "tipo": "Dica",
-  "texto": "Preencha o que você já sabe. O que ficar de fora dá para completar depois."
- },
- {
-  "codigo": "P10",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Me ajude a descrever quem seria o meu cliente ideal: idade, renda, profissão, onde mora e o que ele precisa resolver.\""
- },
- {
-  "codigo": "P11",
-  "pergunta": "Que problema ou vontade do seu cliente você resolve? (Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P11",
-  "pergunta": "Que problema ou vontade do seu cliente você resolve? (Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense no problema ou na vontade do cliente. Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa."
- },
- {
-  "codigo": "P11",
-  "pergunta": "Que problema ou vontade do seu cliente você resolve? (Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa)",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Eu vendo [produto ou serviço]. Que problemas ou vontades do cliente isso resolve? Dê exemplos do dia a dia, em linguagem simples.\" Pergunte a clientes se isso faz sentido para eles."
- },
- {
-  "codigo": "P12",
-  "pergunta": "Seria difícil para outra pessoa abrir um negócio igual ao seu e vender como você? O que dificulta? (Ex.: precisa de muito dinheiro, de licença, de máquina cara, ou o seu nome já é conhecido)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P12",
-  "pergunta": "Seria difícil para outra pessoa abrir um negócio igual ao seu e vender como você? O que dificulta? (Ex.: precisa de muito dinheiro, de licença, de máquina cara, ou o seu nome já é conhecido)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense também no que você já conquistou e que alguém começando agora não teria: clientes que voltam, um fornecedor bom, uma receita ou técnica sua, o ponto onde você está. Isso ajuda a ver o que protege o seu negócio."
- },
- {
-  "codigo": "P12",
-  "pergunta": "Seria difícil para outra pessoa abrir um negócio igual ao seu e vender como você? O que dificulta? (Ex.: precisa de muito dinheiro, de licença, de máquina cara, ou o seu nome já é conhecido)",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Quais são as dificuldades comuns para alguém abrir um negócio de [produto ou serviço]? Explique de forma simples.\""
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Indicação (boca a boca)",
-  "tipo": "Dica",
-  "texto": "Considere pedir a clientes satisfeitos que indiquem você. Para quem está começando, a indicação costuma ser o caminho mais forte."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "WhatsApp (WhatsApp Business)",
-  "tipo": "Dica",
-  "texto": "Considere atender e fechar pedidos pelo WhatsApp. O WhatsApp Business é gratuito e tem catálogo, horário de atendimento e respostas prontas."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Instagram e outras redes sociais (catálogo)",
-  "tipo": "Dica",
-  "texto": "Considere mostrar o seu trabalho com fotos e um catálogo no Instagram ou no Facebook, e fechar a venda por mensagem."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Atendimento direto ou presencial (loja, feira, ponto)",
-  "tipo": "Dica",
-  "texto": "Considere loja, feira, ponto de atendimento ou venda direta."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Atendimento em domicílio (vou até o cliente)",
-  "tipo": "Dica",
-  "texto": "Considere o tempo e o custo de ir até o cliente e em quais bairros você atende."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Aplicativos de entrega (iFood e outros)",
-  "tipo": "Dica",
-  "texto": "Considere que os aplicativos de entrega ficam com uma parte de cada venda. Confira a taxa antes de definir o seu preço."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Marketplace (ex.: Mercado Livre, Shopee)",
-  "tipo": "Dica",
-  "texto": "Considere plataformas onde o cliente procura e compra de vários vendedores."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Site ou aplicativo próprio",
-  "tipo": "Dica",
-  "texto": "Considere se o cliente consegue achar e comprar sem falar com você."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Outro",
-  "tipo": "Dica",
-  "texto": "Escreva onde mais o cliente encontra e compra de você."
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Eu vendo [produto ou serviço]. Quais são os melhores canais para um pequeno negócio vender isso (indicação, WhatsApp, Instagram, atendimento presencial ou em domicílio, aplicativo de entrega, marketplace, site)? Explique as vantagens de cada um.\""
- },
- {
-  "codigo": "P13",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?",
-  "opcao": "Nenhuma opção marcada",
-  "tipo": "Alerta",
-  "texto": "Marque pelo menos um canal ou escolha 'Não sei'."
- },
- {
-  "codigo": "P14",
-  "pergunta": "O que o seu negócio faz de melhor hoje? E o que ainda precisa melhorar?",
-  "opcao": "Preencheu os dois campos",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P14",
-  "pergunta": "O que o seu negócio faz de melhor hoje? E o que ainda precisa melhorar?",
-  "opcao": "Preencheu só um dos campos",
-  "tipo": "Dica",
-  "texto": "Todo negócio tem pontos fortes e pontos a melhorar. Tente escrever pelo menos um de cada."
- },
- {
-  "codigo": "P14",
-  "pergunta": "O que o seu negócio faz de melhor hoje? E o que ainda precisa melhorar?",
-  "opcao": "Não sei",
-  "tipo": "Dica",
-  "texto": "Pense no que os clientes elogiam e no que costumam reclamar."
- },
- {
-  "codigo": "P15",
-  "pergunta": "Quem vende o mesmo que você ou algo muito parecido? Cite lojas, pessoas ou perfis que você conhece.",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P15",
-  "pergunta": "Quem vende o mesmo que você ou algo muito parecido? Cite lojas, pessoas ou perfis que você conhece.",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Cite lojas, pessoas ou perfis que vendem o mesmo que você ou algo muito parecido."
- },
- {
-  "codigo": "P15",
-  "pergunta": "Quem vende o mesmo que você ou algo muito parecido? Cite lojas, pessoas ou perfis que você conhece.",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Me explique como encontrar quem vende o mesmo, só com o celular. Não invente nomes de lojas.\" Confirme cada nome encontrado no Google Maps ou no Instagram."
- },
- {
-  "codigo": "P16",
-  "pergunta": "Para você, quem é \"concorrente de verdade\"? O que essa pessoa ou loja tem que ter para tirar cliente de você?",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P16",
-  "pergunta": "Para você, quem é \"concorrente de verdade\"? O que essa pessoa ou loja tem que ter para tirar cliente de você?",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense no que faz alguém tirar cliente de você. Ex.: vende o mesmo produto, para o mesmo público, na mesma região."
- },
- {
-  "codigo": "P16",
-  "pergunta": "Para você, quem é \"concorrente de verdade\"? O que essa pessoa ou loja tem que ter para tirar cliente de você?",
-  "opcao": "Não sei",
-  "tipo": "Prompt de IA",
-  "texto": "Prompt: \"Eu vendo [produto ou serviço] para [tipo de cliente]. O que faz alguém ser meu concorrente de verdade? Dê exemplos simples, como mesmo produto, mesmo público e mesma região.\""
- },
- {
-  "codigo": "P17",
-  "pergunta": "Você sabe como descobrir quem vende o mesmo que você? (Ex.: procurar no Google Maps, no Instagram ou perguntando aos clientes)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P17",
-  "pergunta": "Você sabe como descobrir quem vende o mesmo que você? (Ex.: procurar no Google Maps, no Instagram ou perguntando aos clientes)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Conte como você encontra quem vende igual. Ex.: busca no Google Maps, Instagram ou conversa com clientes."
- },
- {
-  "codigo": "P17",
-  "pergunta": "Você sabe como descobrir quem vende o mesmo que você? (Ex.: procurar no Google Maps, no Instagram ou perguntando aos clientes)",
-  "opcao": "Não sei",
-  "tipo": "Passo a passo",
-  "texto": "Tudo bem, dá para aprender rápido. Quando tiver um tempo, um jeito simples de descobrir é: 1. Buscar no Google Maps o que você vende (ex.: \"bolos perto de mim\"). 2. No Instagram, buscar palavras do seu ramo e o nome da sua cidade. 3. Ver se há anúncios no Mercado Livre, Shopee ou OLX. 4. Perguntar a clientes onde mais já compraram. 5. Anotar os nomes que mais aparecem (esses passos também ficam no roteiro de pesquisa do seu resultado)."
- },
- {
-  "codigo": "P18",
-  "pergunta": "Você sabe onde esses concorrentes ficam e como eles trabalham na sua região? (Horário, entrega, forma de atender)",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P18",
-  "pergunta": "Você sabe onde esses concorrentes ficam e como eles trabalham na sua região? (Horário, entrega, forma de atender)",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Conte onde ficam e como trabalham. Ex.: horário, entrega, forma de atender."
- },
- {
-  "codigo": "P18",
-  "pergunta": "Você sabe onde esses concorrentes ficam e como eles trabalham na sua região? (Horário, entrega, forma de atender)",
-  "opcao": "Não sei",
-  "tipo": "Passo a passo",
-  "texto": "Tudo bem. Quando tiver um tempo, dá para descobrir assim: 1. Buscar o nome do concorrente ou o que ele vende no Google Maps. 2. Ver endereço, horário, fotos e avaliações. 3. Ver no Instagram ou no WhatsApp como ele atende e entrega. 4. Anotar tudo na tabela de concorrentes do seu resultado."
- },
- {
-  "codigo": "P19",
-  "pergunta": "Se você colocar o seu negócio ao lado dos outros, como você se sai? Pense em preço, qualidade, atendimento e prazo.",
-  "opcao": "Sei comparar (texto livre)",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P19",
-  "pergunta": "Se você colocar o seu negócio ao lado dos outros, como você se sai? Pense em preço, qualidade, atendimento e prazo.",
-  "opcao": "Resposta vazia ou muito curta",
-  "tipo": "Dica",
-  "texto": "Pense em preço, qualidade, atendimento e prazo. Em qual deles você se sai melhor ou pior?"
- },
- {
-  "codigo": "P19",
-  "pergunta": "Se você colocar o seu negócio ao lado dos outros, como você se sai? Pense em preço, qualidade, atendimento e prazo.",
-  "opcao": "Não sei (tabela guiada)",
-  "tipo": "Dica",
-  "texto": "Compare o seu negócio com os outros em cada item. Se não souber algum, deixe em branco e volte depois."
- },
- {
-  "codigo": "P19",
-  "pergunta": "Se você colocar o seu negócio ao lado dos outros, como você se sai? Pense em preço, qualidade, atendimento e prazo.",
-  "opcao": "Marcou 'Pior' em 3 ou mais critérios",
-  "tipo": "Resposta",
-  "texto": "Em vários pontos os outros parecem estar à frente. Vale investigar onde você pode se destacar."
- },
- {
-  "codigo": "P20",
-  "pergunta": "Quanto os outros costumam cobrar por algo parecido com o que você vende?",
-  "opcao": "Informou valores",
-  "tipo": "Resposta",
-  "texto": "Os outros costumam cobrar em torno de R$ [valor]. Compare com o seu preço."
- },
- {
-  "codigo": "P20",
-  "pergunta": "Quanto os outros costumam cobrar por algo parecido com o que você vende?",
-  "opcao": "Não sei",
-  "tipo": "Passo a passo",
-  "texto": "1. Escolha 3 concorrentes. 2. Veja o preço de algo parecido com o seu no Instagram, no WhatsApp (peça um orçamento) ou nos marketplaces. 3. Anote os valores. 4. Some os preços e divida por 3 para ter o preço médio."
- },
- {
-  "codigo": "P21",
-  "pergunta": "O que o seu cliente ganha comprando com você e não com o vizinho?",
-  "opcao": "Resposta preenchida",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P21",
-  "pergunta": "O que o seu cliente ganha comprando com você e não com o vizinho?",
-  "opcao": "Resposta muito genérica",
-  "tipo": "Dica",
-  "texto": "Tente dizer o que o cliente ganha de verdade. Ex.: entrega no mesmo dia, bolo sob medida, atendimento pelo WhatsApp."
- },
- {
-  "codigo": "P21",
-  "pergunta": "O que o seu cliente ganha comprando com você e não com o vizinho?",
-  "opcao": "Não sei",
-  "tipo": "Dica",
-  "texto": "Pense no que os clientes elogiam em você. Volte aqui depois de se comparar com os outros e ver o que eles fazem bem e onde deixam a desejar."
- },
- {
-  "codigo": "P22",
-  "pergunta": "O que os outros fazem bem e atraem clientes? E onde eles deixam a desejar? (Ex.: demoram para responder, entrega atrasada, preço alto)",
-  "opcao": "Preencheu os dois campos",
-  "tipo": "Nenhum",
-  "texto": "—"
- },
- {
-  "codigo": "P22",
-  "pergunta": "O que os outros fazem bem e atraem clientes? E onde eles deixam a desejar? (Ex.: demoram para responder, entrega atrasada, preço alto)",
-  "opcao": "Preencheu só um dos campos",
-  "tipo": "Dica",
-  "texto": "Tente escrever pelo menos um ponto forte e uma falha dos outros. Ex.: demoram para responder, entrega atrasada."
- },
- {
-  "codigo": "P22",
-  "pergunta": "O que os outros fazem bem e atraem clientes? E onde eles deixam a desejar? (Ex.: demoram para responder, entrega atrasada, preço alto)",
-  "opcao": "Não sei",
-  "tipo": "Passo a passo",
-  "texto": "1. No Google Maps, leia avaliações de 5 estrelas e de 1 ou 2 estrelas. 2. No Instagram, leia os comentários. 3. Anote os elogios e as reclamações que mais se repetem."
- }
-];
-/* Aba "Perguntas reescritas": bloco e nova pergunta, na ordem */
-const PERGUNTAS = [
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "Com suas palavras, em que ramo você trabalha e o que você vende? (Ex.: \"Vendo marmitas para trabalhadores do bairro\")"
- },
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "Você está procurando novas formas de vender mais ou de crescer agora?"
- },
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "Se o seu cliente não comprar de você, o que ele pode comprar no lugar? (Ex.: quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote)"
- },
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "Você viu alguma novidade ou mudança recente que pode ajudar você a vender mais? (Ex.: mais gente comprando pelo WhatsApp, uma obra ou um evento novo perto de você)"
- },
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "Por que você acredita que essa ideia pode dar certo no seu negócio?"
- },
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "O que você já tem e o que ainda falta para colocar essa ideia em prática? (Ex.: dinheiro, equipamento, tempo, ajuda)"
- },
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "Existe alguma coisa que pode atrapalhar suas vendas? (Ex.: concorrente novo, preço dos insumos subindo, mudança de regra)"
- },
- {
-  "bloco": "Bloco 1: Oportunidades do Negócio",
-  "pergunta": "Nos próximos anos, o que você acha que vai mudar na forma como as pessoas compram o que você vende? (Ex.: mais pedidos pelo celular, pagamento por Pix, novas regras)"
- },
- {
-  "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
-  "pergunta": "Até onde você vende hoje? No seu bairro ou cidade, na sua região, no Brasil todo ou até fora do país?"
- },
- {
-  "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
-  "pergunta": "Quem mais compra de você (ou quem você gostaria que comprasse)? Pessoas comuns, empresas ou os dois?"
- },
- {
-  "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
-  "pergunta": "Que problema ou vontade do seu cliente você resolve? (Ex.: falta de tempo para cozinhar, vontade de ficar bonita para uma festa)"
- },
- {
-  "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
-  "pergunta": "Seria difícil para outra pessoa abrir um negócio igual ao seu e vender como você? O que dificulta? (Ex.: precisa de muito dinheiro, de licença, de máquina cara, ou o seu nome já é conhecido)"
- },
- {
-  "bloco": "Bloco 3: Onde está o Negócio",
-  "pergunta": "Como o seu cliente encontra você e compra de você hoje? Por indicação, no WhatsApp, no Instagram, pessoalmente, em casa ou por aplicativo?"
- },
- {
-  "bloco": "Bloco 3: Onde está o Negócio",
-  "pergunta": "O que o seu negócio faz de melhor hoje? E o que ainda precisa melhorar?"
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "Quem vende o mesmo que você ou algo muito parecido? Cite lojas, pessoas ou perfis que você conhece."
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "Para você, quem é \"concorrente de verdade\"? O que essa pessoa ou loja tem que ter para tirar cliente de você?"
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "Você sabe como descobrir quem vende o mesmo que você? (Ex.: procurar no Google Maps, no Instagram ou perguntando aos clientes)"
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "Você sabe onde esses concorrentes ficam e como eles trabalham na sua região? (Horário, entrega, forma de atender)"
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "Se você colocar o seu negócio ao lado dos outros, como você se sai? Pense em preço, qualidade, atendimento e prazo."
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "Quanto os outros costumam cobrar por algo parecido com o que você vende?"
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "O que o seu cliente ganha comprando com você e não com o vizinho?"
- },
- {
-  "bloco": "Bloco 4: Definição da Concorrência",
-  "pergunta": "O que os outros fazem bem e atraem clientes? E onde eles deixam a desejar? (Ex.: demoram para responder, entrega atrasada, preço alto)"
- }
-];
-
 const falhas = [];
 let ok = 0;
 function check(cond, nome) { if (cond) ok++; else { falhas.push(nome); console.log('FALHA:', nome); } }
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-const P = (n) => PERGUNTAS[n - 1];
-const TEXTO_OK = 'Resposta de teste com bastante detalhe';
-/* concorrentes: 15+16 e 17+18 dividem a mesma tela */
-const PAR = { 15: 16, 16: 15, 17: 18, 18: 17 };
-const COD = (n) => 'M3.P' + String(n).padStart(2, '0');
-/* próxima tela depois de responder a pergunta n (sem herança; dor em branco) */
-const ALVO = (n) => (n === 22 ? null : { 15: 17, 16: 17, 17: 19, 18: 19 }[n] || n + 1);
-const DOR = 'O que precisa resolver (a dor)';
 
-/* texto esperado na tela para cada tipo de retorno (formatação definida pelas regras técnicas) */
-function esperado(l, valor) {
-  let g = l.texto;
-  if (valor) g = g.replace('[valor]', valor);
-  if (l.tipo === 'Prompt de IA') return norm(g.replace(/Prompt:\s*"/, '').replace(/"/g, ''));
-  if (l.tipo === 'Passo a passo') return norm(g.replace(/(^|\s)\d+\.\s+/g, ' '));
-  return norm(g);
-}
+/* ---------- dados (lidos do arquivo, comparados com o esperado escrito aqui) ---------- */
+const ctx = { window: {} };
+vm.runInNewContext(fs.readFileSync(path.join(DIR, 'dados/modulo3.js'), 'utf8'), ctx);
+const D = JSON.parse(JSON.stringify(ctx.window.MODULO3));
+const Q = Object.fromEntries(D.perguntas.map((q) => [q.codigo, q]));
+const COD = (n) => 'M3.P' + String(n).padStart(2, '0');
+const P = (n) => Q[COD(n)];
+const Motor = require(path.join(DIR, 'js/motor.js'));
+const MM = Motor.montar(D);
+
+/* Tabela "dicas" do relatório (22 perguntas), texto literal sem o "Dica:" */
+const DICAS = {
+  1: 'Diga com suas palavras o que você vende e para quem. Se não souber como explicar, pense em como você responderia a um vizinho na rua. Exemplo: "Faço bolos caseiros para festas no meu bairro".',
+  2: 'Marque Sim se você está ativamente tentando aumentar as vendas ou criar algo novo no momento. Marque Não se quer apenas manter o ritmo atual da sua loja ou serviço.',
+  3: 'Pense em quem "rouba" o seu cliente quando ele não compra com você. Se você vende marmitas, a alternativa pode ser a padaria da esquina, o salgado ou o mercado.',
+  4: 'Preste atenção ao seu redor! Mudou algo no bairro? Tem um evento novo, uma obra por perto ou mais pessoas pedindo entrega pelo WhatsApp? Isso é uma oportunidade.',
+  5: 'Explique o motivo de achar essa ideia boa. Exemplo: "Acho que vai dar certo porque meus clientes sempre pedem isso e não tem ninguém vendendo perto daqui".',
+  6: 'Faça duas listas rápidas: uma com o que já está na sua mão (como um celular ou fogão) e outra com o que precisa conseguir (dinheiro, embalagens ou ajuda).',
+  7: 'Pense no que pode dar errado no dia a dia. Pode ser o preço dos ingredientes subindo, a chuva forte que esvazia a rua ou um concorrente novo que abriu do lado.',
+  8: 'Pense no futuro do seu negócio. As pessoas vão comprar mais pela internet? Usar mais Pix? Exigir entregas mais rápidas? Anote o que você acha que vai mudar.',
+  9: 'Escolha o tamanho do seu alcance hoje: apenas no seu bairro/cidade, na região vizinha, no Brasil todo ou até para fora do país.',
+  10: 'Pense no seu cliente principal. Se for Pessoa, pense na idade, onde mora e no que ela precisa. Se for Empresa, pense no ramo e tamanho do negócio dela.',
+  11: 'Qual "alívio" ou "alegria" você entrega? Exemplos: economizar o tempo do cliente de cozinhar, deixar a pessoa bonita para uma festa ou consertar algo rápido.',
+  12: 'Pense no que impede qualquer pessoa de te copiar amanhã. É o valor das máquinas? Uma autorização difícil de conseguir? Ou o fato de seu nome já ser muito famoso?',
+  13: 'Marque os lugares onde você fecha negócio: na sua loja física, na conversa do WhatsApp, no perfil do Instagram, em feiras ou em sites/aplicativos.',
+  14: 'Seja sincero: escreva o seu "superpoder" (ex.: atendimento rápido e simpático) e o seu ponto fraco (ex.: demora para organizar as contas).',
+  15: 'Liste o nome das lojas, pessoas ou perfis do Instagram da sua região que vendem produtos ou serviços praticamente iguais aos seus.',
+  16: 'Pense no que faz o seu cliente sumir e ir comprar no vizinho. É o preço mais baixo? O prazo de entrega mais rápido? A variedade de produtos?',
+  17: 'Procure no Google Maps como se fosse um cliente (ex.: "salão de beleza perto de mim") ou busque hashtags da sua cidade no Instagram para ver quem aparece.',
+  18: 'Descubra detalhes dos vizinhos: qual o horário de funcionamento deles, quanto cobram pelo frete e como respondem no WhatsApp.',
+  19: 'Compare lado a lado o seu negócio com os outros em 4 pontos: Preço, Qualidade, Atendimento e Prazo de Entrega. Avalie se você é melhor, igual ou pior.',
+  20: 'Descubra o valor cobrado por 3 concorrentes. Anote o valor mais baixo, o mais alto e o valor médio cobrado por eles. Exemplo: "De R$ 30 a R$ 50".',
+  21: 'Diga o seu grande atrativo! Pode ser um brinde exclusivo, atendimento personalizado, entregar no mesmo dia ou garantia facilitada.',
+  22: 'Leia as avaliações no Google Maps ou comentários no Instagram dos concorrentes. Veja o que os clientes elogiam e do que mais reclamam (ex.: atraso na entrega).',
+};
+const AVISO_IA = 'Peça perguntas, não conclusões sobre o mercado. A IA pode ajudar a entender melhor seu negócio e público, mas não conhece o seu cliente real nem tem dados atualizados de mercado. Use-a para organizar o roteiro de entrevista e busque as respostas de verdade conversando com pessoas.';
+const CONFERIR_IA = 'Confira sempre se as respostas oferecidas pela IA combinam com o que você realmente faz, descarte qualquer número ou estatística que ela mencionar sem indicar uma fonte confiável.';
+const MSG_ESCREVA = 'Escreva a sua resposta no campo acima para continuar. Se não souber, toque em “Não sei” para ver uma sugestão.';
+const ESCONDIDAS = [6, 11, 16, 17, 21];
+/* telas na ordem nova (P02 = Sim): faixa de preço e pontos fortes/fracos dos outros antes da comparação */
+const TELAS_SIM = [1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 18, 20, 22, 19];
+const TELAS_NAO = [1, 2, 9, 10, 12, 13, 14, 15, 18, 20, 22, 19];
+const PROX = (n) => { const i = TELAS_SIM.indexOf(n); return i >= 0 && i + 1 < TELAS_SIM.length ? TELAS_SIM[i + 1] : null; };
+const LUGARES = ['No meu bairro ou arredores (local)', 'Em vários bairros da minha cidade', 'Em outras cidades da região', 'Em todo o Brasil (vendas online/entrega)', 'Não sei dizer'];
+const DORES = ['Economizar dinheiro / Buscar o menor preço', 'Economizar tempo / Praticidade no dia a dia', 'Resolver uma emergência ou problema imediato',
+  'Buscar qualidade, status ou experiência diferenciada', 'Estilo de vida, lazer ou bem-estar', 'Outro', 'Não sei dizer'];
+const DOR = 'O que precisa resolver (a dor)', PESSOAS = 'Pessoas comuns (consumidor final)';
+const TEXTO_OK = 'Resposta de teste com bastante detalhe';
+
+/* ============ 0. dados ============ */
+check(D.perguntas.length === 22 && Object.keys(Q).length === 22, 'dados: os 22 códigos continuam existindo');
+for (let n = 1; n <= 22; n++) check(P(n).dica === DICAS[n], `dados: dica nova literal na pergunta ${n}`);
+check(JSON.stringify(D.perguntas.filter((q) => q.oculta).map((q) => +q.codigo.slice(4))) === JSON.stringify(ESCONDIDAS), 'dados: escondidas = já tem/falta, problema do cliente, concorrente de verdade, como descobrir, o que o cliente ganha');
+check(P(6).pergunta.startsWith('O que você já tem e o que ainda falta') && P(11).pergunta.startsWith('Que problema ou vontade do seu cliente') && P(21).pergunta.startsWith('O que o seu cliente ganha'), 'dados: as escondidas são as da lista de exclusão');
+check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } }, {}).map((t) => +t[0].slice(4))) === JSON.stringify(TELAS_SIM), 'motor: 17 telas na ordem nova, uma pergunta por tela');
+check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Não' } }, {}).map((t) => +t[0].slice(4))) === JSON.stringify(TELAS_NAO), 'motor: P02 Não pula 3 a 8 (12 telas)');
+check(!/rafael/i.test(JSON.stringify(D)), 'dados: sem "Rafael"');
+const promptsVis = D.perguntas.filter((q) => !q.oculta).flatMap((q) => q.caminhos.filter((c) => c.tipo === 'Prompt de IA').map((c) => [q.codigo, Motor.partesPrompt(c.texto).prompt]));
+check(promptsVis.length >= 9 && promptsVis.every(([, p]) => /Me faça 5 perguntas simples/.test(p)), `prompts: todos no mesmo gabarito, pedindo perguntas (${promptsVis.filter(([, p]) => !/Me faça 5 perguntas/.test(p)).map((x) => x[0])})`);
+check(['M3.P01', 'M3.P04', 'M3.P08', 'M3.P12', 'M3.P13'].every((c) => promptsVis.some(([k, p]) => k === c && /^Eu /.test(p))), 'prompts 1, 4, 8, 12 e 13: começam pelo contexto da pessoa');
+check(Q['M3.P03'].caminhos.find((c) => c.opcao === 'Não sei').texto === 'Tudo bem. Pense em onde o cliente compraria se você não existisse.', 'P03: dica do Não sei sem "você pode voltar e preencher depois"');
+check(P(7).pergunta === 'Existe alguma coisa que pode atrapalhar suas vendas?' && !/\(Ex\./.test(P(7).variantes.ideia.pergunta), 'P07: enunciado sem o "(Ex.: …)"');
+check(JSON.stringify(P(7).opcoes) === JSON.stringify(['Concorrente novo', 'Preço dos insumos subindo', 'Queda nas vendas em certa época', 'Mudança de regra', 'Outro', 'Não sei']), 'P07: opções das figuras + Outro + Não sei por último');
+check(P(10).rotulo_naosei === 'Ainda não tenho clientes' && P(13).rotulo_naosei === 'Ainda não defini o canal de vendas' && P(13).opcoes[P(13).opcoes.length - 1] === 'Não sei', 'P10/P13: "Não sei" com o texto novo e por último');
+check(P(10).marcadores.Idade[0] === 'Até 10 anos (infantil)' && JSON.stringify(P(10).marcadores['Onde mora']) === JSON.stringify(LUGARES) && JSON.stringify(P(10).marcadores[DOR]) === JSON.stringify(DORES), 'P10: faixa infantil, onde vivem e problema com as opções do relatório');
+check(P(10).caminhos.find((c) => c.opcao === 'Campos complementares incompletos').texto === 'Preencha o que você já sabe.', 'P10: dica sem "o que ficar de fora dá para completar depois"');
+check(!P(12).exemplos && !P(7).exemplos, 'P12/P07: sem as opções que apareciam no Não sei');
+check(P(15).pergunta === 'Quem já vende o mesmo que você quer vender, ou algo muito parecido? Cite lojas, pessoas ou perfis que você conhece.' && P(15).campos_min === 3, 'P15: enunciado novo e pelo menos 3 campos');
+check(!/Perguntar a clientes onde mais já compraram/.test(JSON.stringify(P(17))) && !/Perguntar a clientes onde mais já compraram/.test(JSON.stringify(P(15))), 'passo a passo de como descobrir: sem a sugestão 4');
+check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, sem Não sei, com Outro ponto');
 
 (async () => {
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
   const URL = `http://127.0.0.1:${servidor.address().port}/index.html`;
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
-  await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: URL.replace('/index.html', '') });
-  const page = await ctx.newPage();
+  const ctxB = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  await ctxB.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: URL.replace('/index.html', '') });
+  const page = await ctxB.newPage();
   const erros = [];
   page.on('pageerror', (e) => erros.push(String(e)));
   page.on('dialog', (d) => d.accept());
@@ -680,10 +117,11 @@ function esperado(l, valor) {
   const titulo = () => page.evaluate(() => (document.querySelector('h2.q') || {}).textContent || '');
   const titulos = () => page.evaluate(() => [...document.querySelectorAll('h2.q')].map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
   const tela = () => page.evaluate(() => document.body.innerText);
-  async function semCodigos(onde) {
-    const t = await tela();
-    check(!/\bP\d{2}\b|M3\.|rafael/i.test(t), `sem códigos/nome na tela (${onde})`);
-  }
+  const estado = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
+  const RR = async () => (await estado()).R;
+  const erroTxt = () => page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden ? e.textContent : ''; });
+  const naTela = async (n) => norm(await titulo()) === norm(P(n).pergunta);
+  async function semCodigos(onde) { check(!/\bP\d{2}\b|M3\.|rafael/i.test(await tela()), `sem códigos/nome na tela (${onde})`); }
   async function fonte16(onde) {
     const pequenos = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => {
       const temTexto = [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
@@ -692,360 +130,385 @@ function esperado(l, valor) {
     }).map((e) => e.tagName + '.' + e.className));
     check(!pequenos.length, `letra >= 16px (${onde}) ${pequenos.slice(0, 3).join(',')}`);
   }
-  async function caixas(escopo = '') {
-    return page.evaluate((escopo) => [...document.querySelectorAll(escopo + '.caminho')].map((b) => {
-      const c = b.cloneNode(true);
-      c.querySelector('b').remove();
+  async function caixas(sel = '.caminho') {
+    return page.evaluate((sel) => [...document.querySelectorAll(sel)].map((b) => {
+      const c = b.cloneNode(true); const tit = c.querySelector('b').textContent; c.querySelector('b').remove();
       c.querySelectorAll('.btn-copiar').forEach((x) => x.remove());
-      return { op: b.dataset.op, tipo: b.dataset.tipo, txt: c.innerText.replace(/\s+/g, ' ').trim(),
-        li: [...b.querySelectorAll('li')].map((x) => x.textContent.trim()), antes: (b.querySelector('.b-passos .antes') || {}).textContent || '' };
-    }), escopo);
+      return { op: b.dataset.op, tipo: b.dataset.tipo, tit, txt: c.innerText.replace(/\s+/g, ' ').trim(), li: [...b.querySelectorAll('li')].map((x) => x.textContent.trim()),
+        aviso: (b.querySelector('.ia-aviso') || {}).textContent || '', conferir: (b.querySelector('.conferir') || {}).textContent || '', prompt: (b.querySelector('.prompt-txt') || {}).textContent || '' };
+    }), sel);
   }
-  const textoCaixa = (c) => (c.li.length ? norm([c.antes || ''].concat(c.li).join(' ')) : norm(c.txt));   // passo a passo: frase de abertura (se houver) + itens
   async function shot(nome) { if (!SHOTS) return; await espera(400); fs.mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: path.join(SHOTS, nome + '.png'), fullPage: false }); }
 
-  /* abre a pergunta n com respostas anteriores (só P02 muda a visibilidade) */
-  async function abrir(n, R = {}, m1 = null, txt = null) {
+  /* abre a pergunta n com respostas anteriores (P02 = Sim quando a pergunta é de 3 a 8) */
+  async function abrir(n, R = {}, outros = {}, txt = null, v = 7) {
     const base = n >= 3 && n <= 8 ? { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } } : {};
-    const cod = COD(n);
     await page.goto(URL);
-    await page.evaluate(([k, s, m1]) => { localStorage.clear(); localStorage.setItem(k, s); if (m1) localStorage.setItem('lg2-turma-a-m01', m1); },
-      [CHAVE, JSON.stringify({ v: 4, R: Object.assign(base, R), hist: [cod] }), m1 && JSON.stringify(m1)]);
+    await page.evaluate(([k, s, o]) => { localStorage.clear(); localStorage.setItem(k, s); Object.entries(o).forEach(([c, x]) => localStorage.setItem(c, JSON.stringify(x))); },
+      [CHAVE, JSON.stringify({ v, R: Object.assign(base, R), hist: [COD(n)] }), outros]);
     await page.reload();
     await clicar('button', 'Continuar de onde parei');
     await espera();
     check((await titulos()).includes(norm(txt || P(n).pergunta)), `abre pergunta ${n}`);
   }
-  /* perfil do cliente: toca a 1ª opção de cada grupo de marcadores e escreve nos campos livres */
-  async function perfil(livres) {
-    await page.evaluate(() => document.querySelectorAll('.campos .marcar').forEach((g) => g.querySelector('.chip').click()));
-    const n = await page.locator('.campos input').count();
-    for (let i = 0; i < n; i++) await page.locator('.campos input').nth(i).fill(livres[i] || '');
-  }
   async function digitar(txt, i = 0) { await page.locator('#ent textarea, #ent input').nth(i).fill(txt); }
-  async function preencherCampos(vals) {
-    const n = await page.locator('.campos input, #ent textarea').count();
-    for (let i = 0; i < n; i++) await page.locator('.campos input, #ent textarea').nth(i).fill(vals[i] || '');
+
+  /* ============ 1. capa em linguagem simples (Figura 2) ============ */
+  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
+  const capa = await page.evaluate(() => ({ h1: document.querySelector('h1').textContent.trim(), txt: document.querySelector('.heroi-txt p').textContent.trim(),
+    cart: [...document.querySelectorAll('.cartao')].map((c) => ({ h: c.querySelector('h3').textContent, li: [...c.querySelectorAll('li')].map((x) => x.textContent), p: (c.querySelector(':scope > p') || {}).textContent || '' })),
+    ir: document.querySelector('#ir').offsetParent !== null }));
+  check(capa.h1 === 'Conhecendo o mercado e os concorrentes' && capa.txt === D.mapa.objetivo && /^Aqui você vai descobrir quem são seus concorrentes/.test(capa.txt), `capa: título e texto simples (${capa.h1})`);
+  check(capa.cart[0].p === 'Para quem já tem uma ideia de negócio, mas quer pesquisar melhor o mercado, descobrir quem faz a mesma coisa e saber como se destacar na sua região.', 'capa: "Para quem é" simples');
+  check(capa.cart[1].li.length === 3 && capa.cart[1].li[0] === 'A descrição simples da sua ideia de negócio.', 'capa: "O que ter em mãos" em 3 itens curtos');
+  check(capa.cart[2].li.length === 3 && capa.cart[2].li.some((x) => /Módulo 4: Produto, proposta de valor e teste da ideia/.test(x)) && !/Oferta e experimentação|Oferta e Testes/.test(capa.cart[2].li.join(' ')), 'capa: entrega com o nome certo do Módulo 4');
+  check(capa.ir, 'capa: Começar visível');
+  await semCodigos('capa'); await fonte16('capa');
+  check(await page.evaluate(() => [...document.querySelectorAll('.rodape img')].map((i) => i.alt).join()) === 'FACC,UFJF,Governo de Minas Gerais', 'rodapé com FACC/UFJF/MG');
+  await shot('l4_m03_capa');
+
+  /* ============ 2. dica junto da pergunta (sem tocar em nada) ============ */
+  for (const n of TELAS_SIM.filter((n) => n !== 1)) {
+    await abrir(n);
+    const d = await page.evaluate(() => { const b = document.querySelector('.dica-q'); return b && { t: b.querySelector('b').textContent, txt: [...b.querySelectorAll('p')].map((p) => p.textContent).join(' '), vis: b.offsetParent !== null }; });
+    check(d && d.vis && d.t === 'Dica' && norm(d.txt) === norm(DICAS[n]), `pergunta ${n}: dica aparece com a pergunta, texto literal`);
+    await semCodigos(`pergunta ${n}`);
   }
 
-  /* ============ 1. cada linha da aba "Caminhos por resposta" ============ */
-  const CURTO = 'pouco';
-  for (const l of LINHAS) {
-    const n = parseInt(l.codigo.slice(1), 10);
-    const nome = `${l.codigo} "${l.opcao}"`;
-    check(norm(l.pergunta) === norm(P(n).pergunta), `${nome}: pergunta da aba 2 = aba 1`);
+  /* ============ 3. "Não sei": sugestão sem segundo campo; só segue depois de escrever no campo da pergunta ============ */
+  const ABERTAS = [1, 3, 4, 5, 8, 12, 14, 15, 18, 20, 22];
+  for (const n of ABERTAS) {
     await abrir(n);
-    let avancaSem = false, valor = null, alvoTela = ALVO(n);
-    const D = l.opcao;
-    /* tela com duas perguntas: escopo da pergunta testada; a outra recebe um texto completo */
-    const esc = PAR[n] ? `.pergunta[data-cod="${COD(n)}"] ` : '';
-    const outra = () => PAR[n] ? page.locator(`.pergunta[data-cod="${COD(PAR[n])}"] textarea`).fill(TEXTO_OK) : null;
-    if (PAR[n]) {
-      check(JSON.stringify(await titulos()) === JSON.stringify([n, PAR[n]].sort((a, b) => a - b).map((k) => norm(P(k).pergunta))), `${nome}: duas perguntas na mesma tela`);
-      if (/^Não sei/.test(D)) check(await clicar(esc + '.ns', 'Não sei'), `${nome}: botão Não sei`);
-      else if (D === 'Resposta vazia ou muito curta') { await page.locator(esc + 'textarea').fill(CURTO); await outra(); await clicar('#ok', 'Continuar'); }
-      else { await page.locator(esc + 'textarea').fill(TEXTO_OK); await outra(); avancaSem = true; await clicar('#ok', 'Continuar'); }
-    }
-    else if (D === 'Não sei' && n === 13) { await clicar('.opcao', 'Não sei'); }
-    else if (/^Não sei/.test(D)) { check(await clicar('#ns', 'Não sei'), `${nome}: botão Não sei`); }
-    else if (D === 'Resposta vazia ou muito curta') { await digitar(CURTO); await clicar('#ok', 'Continuar'); }
-    else if (D === 'Resposta muito genérica') { await digitar('qualidade e bom atendimento'); await clicar('#ok', 'Continuar'); }
-    else if (D === 'Texto sem valor em reais') { await digitar('Cobram mais ou menos o mesmo que eu'); await clicar('#ok', 'Continuar'); }
-    else if (D === 'Informou valores') { await digitar('R$ 40', 0); await digitar('70,50', 1); valor = '55,25'; await clicar('#ok', 'Continuar'); }
-    else if (D === 'Preencheu os dois campos') { await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); avancaSem = true; await clicar('#ok', 'Continuar'); }
-    else if (D === 'Preencheu só um dos campos') { await digitar(TEXTO_OK, 0); await clicar('#ok', 'Continuar'); }
-    else if (D === 'Campos complementares incompletos') { await clicar('.opcao', 'Empresas'); await espera(); await clicar('.chip', 'Comércio (lojas, mercados)'); await clicar('#ok', 'Continuar'); }
-    else if (n === 10) {
-      await clicar('.opcao', D); await espera(); await perfil(['Centro', 'Lavar o carro sem sair de casa']); avancaSem = true;
-      /* a dor escrita no perfil responde a pergunta seguinte (que é pulada) */
-      if (D === 'Pessoas comuns (consumidor final)') alvoTela = 12;
-      await clicar('#ok', 'Continuar');
-    }
-    else if (D === 'Nenhuma opção marcada') { await clicar('#ok', 'Continuar'); }
-    else if (D === "Marcou 'Pior' em 3 ou mais critérios") {
-      await clicar('#ns', 'Não sei');
-      for (const c of ['Preço', 'Qualidade', 'Atendimento']) await page.evaluate((c) => [...document.querySelectorAll('.t-linha')].find((x) => x.dataset.crit === c).querySelectorAll('.t-op')[2].click(), c);
-    }
-    else if (n === 2 || n === 9 || n === 13) { await clicar('.opcao', D); if (n === 2) { avancaSem = true; } }
-    else if (D === 'Resposta preenchida' && n === 21) { await digitar('Entrega no mesmo dia e bolo sob medida'); avancaSem = true; await clicar('#ok', 'Continuar'); }
-    else { await digitar(TEXTO_OK); avancaSem = l.tipo === 'Nenhum'; await clicar('#ok', 'Continuar'); }
-    await espera();
-    const cx = await caixas(esc);
-    if (l.tipo === 'Nenhum') {
-      check(cx.length === 0, `${nome}: Nenhum = sem mensagem (${cx.map((c) => c.op).join('|')})`);
-      if (n === 2) {
-        await clicar('#ok', 'Continuar'); await espera();
-        const alvo = D === 'Sim' ? 3 : 9;
-        check(norm(await titulo()) === norm(P(alvo).pergunta), `${nome}: segue para a pergunta ${alvo}`);
-      } else if (avancaSem) {
-        const alvo = alvoTela;
-        if (alvo) check(norm(await titulo()) === norm(P(alvo).pergunta), `${nome}: salva e segue para a pergunta ${alvo}`);
-        else check(await page.evaluate(() => !!document.querySelector('.res-bloco')), `${nome}: conclui e mostra o resumo`);
-      }
-      continue;
-    }
-    const alvoCaixa = cx.filter((c) => c.op === l.opcao);
-    const esperadoOps = D === "Marcou 'Pior' em 3 ou mais critérios" ? ['Não sei (tabela guiada)', D]
-      : D === 'Campos complementares incompletos' ? [D] : [D];
-    check(JSON.stringify(cx.map((c) => c.op).sort()) === JSON.stringify(esperadoOps.slice().sort()), `${nome}: conjunto exato de mensagens (${cx.map((c) => c.op).join('|')})`);
-    check(alvoCaixa.length === 1 && alvoCaixa[0].tipo === l.tipo, `${nome}: tipo ${l.tipo}`);
-    if (alvoCaixa[0]) check(textoCaixa(alvoCaixa[0]) === esperado(l, valor), `${nome}: texto literal\n   tela: ${textoCaixa(alvoCaixa[0])}\n   plan: ${esperado(l, valor)}`);
-    if (l.tipo === 'Alerta') {
-      check(norm(await titulo()) === norm(P(n).pergunta), `${nome}: Alerta bloqueia o avanço`);
-      const R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-      check(!R['M3.P13'], `${nome}: nada gravado com o Alerta`);
-    }
-    if (['Resposta vazia ou muito curta', 'Resposta muito genérica', 'Texto sem valor em reais', 'Preencheu só um dos campos', 'Campos complementares incompletos'].includes(D)) {
-      check(await clicar('#ok', 'Continuar mesmo assim'), `${nome}: não bloqueia (Continuar mesmo assim)`);
-      await espera();
-      const alvo = alvoTela;
-      if (alvo) check(norm(await titulo()) === norm(P(alvo).pergunta), `${nome}: segue para a pergunta ${alvo}`);
-      else check(await page.evaluate(() => !!document.querySelector('.res-bloco')), `${nome}: conclui e mostra o resumo`);
-    }
-    if (/^Não sei/.test(D) || D.startsWith('Marcou')) {
-      const R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-      const cod = 'M3.' + l.codigo;
-      if (n !== 13) check(R[cod] && R[cod].estado === 'naosei', `${nome}: fica pendente`);
-      if (n !== 13) {
-        if (PAR[n]) { await outra(); check(await clicar('#ok', 'Continuar'), `${nome}: Não sei não bloqueia`); }
-        else check(await clicar('#ok', 'Seguir'), `${nome}: Não sei não bloqueia`);
-        await espera();
-        const alvo = alvoTela;
-        if (alvo) check(norm(await titulo()) === norm(P(alvo).pergunta), `${nome}: segue para a pergunta ${alvo}`);
-        else check(await page.evaluate(() => !!document.querySelector('.res-bloco')), `${nome}: conclui e mostra o resumo`);
-      }
-    }
-    await semCodigos(nome);
-  }
-
-  /* ============ 2. prompts copiáveis ============ */
-  await abrir(4);
-  await clicar('#ns', 'Não sei'); await espera();
-  await shot('02-pergunta-texto-nao-sei-prompt');
-  await fonte16('pergunta com prompt');
-  const btn = page.locator('.btn-copiar').first();
-  await btn.click(); await espera(300);
-  const copiado = await page.evaluate(() => navigator.clipboard.readText());
-  const l04 = LINHAS.find((l) => l.codigo === 'P04' && l.opcao === 'Não sei');
-  check(copiado === l04.texto.match(/Prompt:\s*"([^"]*)"/)[1] && /\[cidade ou bairro\]/.test(copiado), 'prompt copiado com [colchetes]');
-  check(norm(await btn.textContent()) === 'Copiado', 'botão mostra Copiado');
-  check(await page.evaluate(() => !!document.querySelector('.b-ia .conferir')), 'prompt vem junto da instrução de conferir');
-
-  /* P01 Não sei: frase só é salva quando a pessoa confirma */
-  await abrir(1);
-  await clicar('#ns', 'Não sei'); await espera();
-  await page.locator('.frase textarea').fill('Eu vendo marmitas no bairro');
-  let R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(!R['M3.P01'].frase, 'P01: frase não salva sem confirmar');
-  await clicar('#salvar-frase', 'Salvar a frase'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(R['M3.P01'].frase === 'Eu vendo marmitas no bairro', 'P01: frase salva após confirmar');
-
-  /* P06 preenchida: salva e mostra o prompt de análise */
-  await abrir(6);
-  await digitar('Tenho fogão e tempo, falta dinheiro'); await clicar('#ok', 'Continuar'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(R['M3.P06'] && R['M3.P06'].valor === 'Tenho fogão e tempo, falta dinheiro', 'P06: texto salvo antes do prompt');
-
-  /* P07 e P12 Não sei: exemplos para marcar, salvos */
-  for (const [n, ex] of [[7, 'mudança de regra'], [12, 'clientes fiéis']]) {
-    await abrir(n);
+    const nsBtn = await page.locator('#ns').count();
+    check(nsBtn === 1, `pergunta ${n}: botão Não sei`);
     await clicar('#ns', 'Não sei'); await espera();
-    check(await clicar('.chip', ex), `pergunta ${n}: exemplo "${ex}" para marcar`);
-    await espera();
-    R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-    const cod = 'M3.P' + String(n).padStart(2, '0');
-    check(R[cod].estado === 'naosei' && R[cod].marcados.includes(ex), `pergunta ${n}: marcado salvo`);
+    const cx = await caixas('#ajudans .caminho');
+    const esperadas = P(n).caminhos.filter((c) => /^Não sei/.test(c.opcao)).map((c) => c.tipo);
+    check(JSON.stringify(cx.map((c) => c.tipo)) === JSON.stringify(esperadas), `pergunta ${n} Não sei: mostra a sugestão (${cx.map((c) => c.tipo)})`);
+    const campos = await page.evaluate(() => ({ fora: document.querySelectorAll('#ajudans textarea, #ajudans input, #msg textarea, #msg input').length, frase: !!document.querySelector('.frase'), nota: (document.querySelector('#nota-ns') || {}).textContent || '' }));
+    check(campos.fora === 0 && !campos.frase, `pergunta ${n} Não sei: nenhum segundo campo de resposta`);
+    check(/escreva a sua resposta no campo da pergunta/i.test(campos.nota), `pergunta ${n} Não sei: diz para responder no campo da pergunta`);
+    for (const c of cx.filter((c) => c.tipo === 'Prompt de IA')) {
+      check(c.tit === 'USE A IA COM CUIDADO' && norm(c.aviso) === AVISO_IA && norm(c.conferir) === CONFERIR_IA && /Me faça 5 perguntas/.test(c.prompt), `pergunta ${n}: aviso de IA antes do prompt e frase de conferir depois`);
+    }
+    await clicar('#ok', 'Continuar'); await espera();
+    const e = await erroTxt();
+    check(await naTela(n) && e && !(await RR())[COD(n)], `pergunta ${n} Não sei + Continuar vazio: não avança nem grava (${e})`);
+    if (n === 3 || n === 4) check(e === MSG_ESCREVA, `pergunta ${n}: mensagem pede a resposta no campo`);
+    if (n === 4) { await page.evaluate(() => document.querySelector('.b-ia').scrollIntoView({ block: 'center' })); await shot('l4_m03_nao_sei_ia'); await fonte16('pergunta com prompt'); }
+    /* responde no campo original e segue */
+    if (n === 20) { await digitar('40', 0); await digitar('60', 1); }
+    else if (n === 14 || n === 22) { await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); }
+    else if (n === 15) { await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana'); }
+    else await digitar(TEXTO_OK);
+    check(await page.evaluate(() => document.querySelectorAll('#ajudans .caminho').length > 0), `pergunta ${n}: a sugestão continua à vista enquanto escreve`);
+    await clicar('#ok', 'Continuar'); await espera();
+    const r = (await RR())[COD(n)];
+    check(r && r.estado === 'valor', `pergunta ${n}: grava a resposta escrita (não "Não sei")`);
+    if (PROX(n)) check(await naTela(PROX(n)), `pergunta ${n}: segue para a pergunta ${PROX(n)}`);
   }
-  const nChips = await page.locator('.chip').count();
-  check(nChips === 5, 'pergunta 12: 5 exemplos');
+  /* prompt copiável com [colchetes] */
+  await abrir(4); await clicar('#ns', 'Não sei'); await espera();
+  await page.locator('.btn-copiar').first().click(); await espera(300);
+  const copiado = await page.evaluate(() => navigator.clipboard.readText());
+  check(copiado === Motor.partesPrompt(P(4).caminhos.find((c) => c.opcao === 'Não sei').texto).prompt && /\[cidade ou bairro\]/.test(copiado), 'prompt copiado inteiro, com [colchetes]');
+  check(norm(await page.locator('.btn-copiar').first().textContent()) === 'Copiado', 'botão mostra Copiado');
+  /* resposta antiga "Não sei" (antes deste lote): reabre com a sugestão e espera a resposta */
+  await abrir(3, { 'M3.P03': { estado: 'naosei' } });
+  check((await caixas('#ajudans .caminho')).length === 1 && await page.inputValue('#ent textarea') === '', 'Não sei antigo: reabre com a sugestão e o campo vazio');
 
-  /* ============ itens da Júlia ============ */
-  /* (a) perfil do cliente: o prompt da IA é opcional e a tela diz isso; seguir não trava */
-  await abrir(10);
-  await clicar('#ns', 'Não sei'); await espera();
-  const nota = await page.evaluate(() => (document.querySelector('#nota-opcional') || {}).textContent || '');
-  check(/opcional/.test(nota) && /preencha os campos/.test(nota) && /lista de “Não sei”/.test(nota), `P10 Não sei: aviso de que colar a resposta da IA é opcional (${nota})`);
-  await shot('12-p10-ia-opcional');
-  check(await clicar('#ok', 'Seguir'), 'P10 Não sei: segue sem travar'); await espera();
-  check(norm(await titulo()) === norm(P(11).pergunta), 'P10 Não sei: vai para a pergunta seguinte');
-  await abrir(1); await clicar('#ns', 'Não sei'); await espera();
-  check(/Cole aqui a frase \(opcional\)/.test(await tela()), 'P01 Não sei: campo de colar marcado como opcional');
-  /* (b) "Você sabe como descobrir…?" + Não sei: abre com "Tudo bem" e oferece o caminho, sem ordem seca */
-  for (const [n, itens] of [[17, 5], [18, 4]]) {
+  /* ============ 4. botão "Não" ao lado do "Não sei" ============ */
+  for (const n of [4, 12]) {
     await abrir(n);
-    await clicar(`.pergunta[data-cod="${COD(n)}"] .ns`, 'Não sei'); await espera();
-    const bx = await page.evaluate((c) => { const b = document.querySelector(`.pergunta[data-cod="${c}"] .b-passos`); return b && { antes: (b.querySelector('.antes') || {}).textContent, li: b.querySelectorAll('li').length }; }, COD(n));
-    check(bx && /^Tudo bem/.test(bx.antes) && /Quando tiver um tempo/.test(bx.antes) && bx.li === itens, `pergunta ${n} Não sei: abertura que combina com a pergunta + ${itens} passos (${JSON.stringify(bx)})`);
-    if (n === 17) { await page.evaluate(() => document.querySelector('.b-passos').scrollIntoView({ block: 'center' })); await shot('13-p17-nao-sei'); }
+    const alt = await page.evaluate(() => [...document.querySelectorAll('#alt button')].map((b) => b.textContent));
+    check(JSON.stringify(alt) === '["Não","Não sei"]', `pergunta ${n}: "Não" ao lado do "Não sei"`);
+    await clicar('#nao', 'Não'); await espera();
+    check(await page.inputValue('#ent textarea') === 'Não' && await page.evaluate(() => document.querySelector('#nao').getAttribute('aria-pressed') === 'true'), `pergunta ${n}: "Não" responde sem digitar`);
+    await clicar('#ok', 'Continuar'); await espera();
+    check(JSON.stringify((await RR())[COD(n)]) === '{"estado":"valor","valor":"Não"}' && await naTela(PROX(n)), `pergunta ${n}: "Não" grava e segue sem dica de resposta curta`);
   }
-  /* (c) pergunta 12: a dica de resposta curta traz algo novo, não repete os exemplos do enunciado */
-  await abrir(12);
-  await digitar('pouco'); await clicar('#ok', 'Continuar'); await espera();
-  const d12 = (await caixas())[0];
-  check(d12 && !/muito dinheiro|máquina cara|nome já conhecido/.test(d12.txt) && /clientes que voltam/.test(d12.txt), `pergunta 12: dica nova, sem repetir o enunciado (${d12 && d12.txt})`);
 
-  /* ============ 3. P10 campos das duas escolhas ============ */
-  await abrir(10);
-  await clicar('#ok', 'Continuar'); await espera();
-  check(norm(await titulo()) === norm(P(10).pergunta) && await page.evaluate(() => !document.querySelector('#erro').hidden), 'P10 exige escolha (ou Não sei)');
-  await clicar('.opcao', 'Pessoas comuns (consumidor final)'); await espera();
-  const rotPF = await page.evaluate(() => [...document.querySelectorAll('.campos .item span')].map((s) => s.textContent));
-  check(JSON.stringify(rotPF) === JSON.stringify(['Idade', 'Renda', 'Ocupação', 'Onde mora', 'O que precisa resolver (a dor)']), 'P10 Pessoas comuns: 5 campos');
-  /* marcadores em todos os campos, menos "Onde mora" e a dor (texto livre) */
-  const gruposPF = await page.evaluate(() => [...document.querySelectorAll('.campos .item-marcar')].map((g) => [g.dataset.c, [...g.querySelectorAll('.chip')].map((c) => c.textContent)]));
-  const MARC = await page.evaluate(() => window.MODULO3.perguntas.find((q) => q.codigo === 'M3.P10').marcadores);
-  check(JSON.stringify(gruposPF.map((g) => g[0])) === '["Idade","Renda","Ocupação"]', 'P10 Pessoas comuns: marcadores em Idade, Renda e Ocupação');
-  check(gruposPF.every((g) => g[1].length >= 5 && g[1][g[1].length - 1] === 'Não sei' && JSON.stringify(g[1]) === JSON.stringify(MARC[g[0]])), 'P10: cada grupo com opções + "Não sei"');
-  const livresPF = await page.evaluate(() => [...document.querySelectorAll('.campos input')].map((i) => i.dataset.c));
-  check(JSON.stringify(livresPF) === '["Onde mora","O que precisa resolver (a dor)"]', 'P10 Pessoas comuns: texto livre só em Onde mora e na dor');
-  await clicar('.chip', '18 a 29 anos'); await clicar('.chip', '30 a 44 anos');
-  await clicar('.chip', 'De 1 a 3 salários mínimos');
-  await clicar('.chip', 'Estudantes'); await clicar('.item-marcar[data-c="Ocupação"] .chip', 'Não sei');
-  const ocup = await page.evaluate(() => [...document.querySelector('.item-marcar[data-c="Ocupação"]').querySelectorAll('.chip.sel')].map((c) => c.textContent));
-  check(JSON.stringify(ocup) === '["Não sei"]', 'P10: "Não sei" do marcador é exclusivo');
-  await page.locator('.campos input').nth(0).fill('Centro');
-  await page.locator('.campos input').nth(1).fill('Lavar o carro sem sair de casa');
-  await shot('03-p10-pessoas-comuns');
-  await clicar('#ok', 'Continuar'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(JSON.stringify(R['M3.P10'].campos) === JSON.stringify({ Idade: '18 a 29 anos; 30 a 44 anos', Renda: 'De 1 a 3 salários mínimos', 'Ocupação': 'Não sei', 'Onde mora': 'Centro', [DOR]: 'Lavar o carro sem sair de casa' }), 'P10 Pessoas comuns: marcadores salvos como texto');
-  check(R['M3.P11'] && R['M3.P11'].valor === 'Lavar o carro sem sair de casa' && R['M3.P11'].doPerfil, 'P10 dor: vira a resposta da pergunta seguinte');
-  check(norm(await titulo()) === norm(P(12).pergunta), 'P10 com a dor escrita: pula a pergunta repetida (vai para a 12)');
-  /* voltar ao perfil mostra as marcas */
-  await clicar('#v', 'Voltar'); await espera();
-  check(norm(await titulo()) === norm(P(10).pergunta), 'voltar da 12 abre o perfil (a 11 foi pulada)');
-  const selVolta = await page.evaluate(() => [...document.querySelectorAll('.campos .chip.sel')].map((c) => c.textContent));
-  check(JSON.stringify(selVolta) === '["18 a 29 anos","30 a 44 anos","De 1 a 3 salários mínimos","Não sei"]', 'P10: marcas voltam ao reabrir');
-  /* lote 3: pessoas comuns e empresas podem ser marcadas juntas (caixinhas, não bolinhas) */
-  check(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].every((b) => b.getAttribute('role') === 'checkbox') && document.querySelector('#ent').getAttribute('role') === 'group'), 'P10: opções do perfil são de marcar mais de uma');
-  check(/Você pode marcar mais de uma opção/.test(await tela()), 'P10: avisa que dá para marcar mais de uma');
-  await clicar('.opcao', 'Empresas'); await espera();
-  const doisGrupos = await page.evaluate(() => ({ sel: [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op), tit: [...document.querySelectorAll('.campos .grupo-campos')].map((x) => x.textContent),
-    rot: [...document.querySelectorAll('.campos .item > span')].map((s) => s.textContent), onde: (document.querySelector('.campos input[data-c="Onde mora"]') || {}).value }));
-  check(JSON.stringify(doisGrupos.sel) === '["Pessoas comuns (consumidor final)","Empresas"]' && JSON.stringify(doisGrupos.tit) === '["Pessoas comuns","Empresas"]', `P10: as duas opções marcadas, cada uma com o seu grupo de campos (${JSON.stringify(doisGrupos)})`);
-  check(doisGrupos.rot.length === 9 && doisGrupos.onde === 'Centro', 'P10: marcar Empresas mantém o que já estava escrito em Pessoas comuns');
-  await clicar('.chip', 'Comércio (lojas, mercados)');
-  await shot('03c-p10-os-dois');
-  await clicar('#ok', 'Continuar'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(R['M3.P10'].opcao === 'Pessoas comuns (consumidor final)' && JSON.stringify(R['M3.P10'].opcoes) === '["Pessoas comuns (consumidor final)","Empresas"]' && R['M3.P10'].campos.Ramo === 'Comércio (lojas, mercados)' && R['M3.P10'].campos['Onde mora'] === 'Centro',
-    'P10 os dois: guarda a lista e a 1ª opção no formato que os outros módulos leem');
-  check(R['M3.P11'] && R['M3.P11'].doPerfil, 'P10 os dois: a dor das pessoas comuns continua indo para a pergunta seguinte');
-  await clicar('#ok', 'Continuar mesmo assim'); await espera();
-  if (norm(await titulo()) !== norm(P(10).pergunta)) { await clicar('#v', 'Voltar'); await espera(); }
-  check(norm(await titulo()) === norm(P(10).pergunta), 'volta ao perfil');
-  /* desmarca Pessoas comuns: fica só Empresas */
-  await clicar('.opcao', 'Pessoas comuns (consumidor final)'); await espera();
-  await page.evaluate(() => { const b = [...document.querySelectorAll('.chip.sel')].find((c) => c.textContent === 'Comércio (lojas, mercados)'); if (b) b.click(); });
-  const rotPJ = await page.evaluate(() => [...document.querySelectorAll('.campos .item span')].map((s) => s.textContent));
-  check(JSON.stringify(rotPJ) === JSON.stringify(['Ramo', 'Tamanho', 'Equipe', 'Local']), 'P10 Empresas: 4 campos');
-  const gruposPJ = await page.evaluate(() => [...document.querySelectorAll('.campos .item-marcar')].map((g) => g.dataset.c));
-  check(JSON.stringify(gruposPJ) === '["Ramo","Tamanho","Equipe"]', 'P10 Empresas: marcadores em Ramo, Tamanho e Equipe; Local é livre');
-  await clicar('.chip', 'Restaurantes e alimentação'); await clicar('.chip', 'Micro ou pequena empresa'); await clicar('.chip', '2 a 9 pessoas');
-  await page.locator('.campos input').nth(0).fill('Juiz de Fora');
-  await shot('03b-p10-empresas');
-  await clicar('#ok', 'Continuar'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(R['M3.P10'].opcao === 'Empresas' && R['M3.P10'].campos.Equipe === '2 a 9 pessoas', 'P10 Empresas: campos salvos');
-  check(!R['M3.P11'], 'P10 Empresas: a dor copiada do perfil anterior sai');
-  check(norm(await titulo()) === norm(P(11).pergunta), 'P10 Empresas (sem dor) segue para a 11');
-
-  /* ============ 4. P13 seleção múltipla ============ */
-  await abrir(13);
-  await clicar('#ok', 'Continuar'); await espera();
-  check(norm(await titulo()) === norm(P(13).pergunta), 'P13: nenhum marcado bloqueia');
-  await clicar('.opcao', 'Atendimento direto ou presencial (loja, feira, ponto)'); await clicar('.opcao', 'WhatsApp (WhatsApp Business)'); await clicar('.opcao', 'Outro'); await espera();
-  check(await page.locator('.extra textarea').isVisible(), 'P13: Outro abre campo livre');
-  await page.locator('.extra textarea').fill('Feira de domingo');
-  check((await caixas()).length === 3, 'P13: uma dica por canal marcado');
-  await shot('04-p13-multipla');
+  /* ============ 5. riscos (P07): resposta fechada + Outro; Não sei não responde ============ */
+  await abrir(7);
+  const ops7 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent.trim()));
+  check(JSON.stringify(ops7) === JSON.stringify(P(7).opcoes), 'P07: opções fechadas na tela');
   await clicar('.opcao', 'Não sei'); await espera();
-  const opsNS = await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => x.dataset.op));
-  check(JSON.stringify(opsNS) === '["Não sei"]', 'P13: Não sei é exclusivo');
-  await clicar('.opcao', 'Não sei'); await clicar('.opcao', 'Atendimento direto ou presencial (loja, feira, ponto)'); await clicar('.opcao', 'Outro'); await page.locator('.extra textarea').fill('Feira de domingo');
+  const cx7 = await caixas('#msg .caminho');
+  check(cx7.length === 1 && cx7[0].tit === 'USE A IA COM CUIDADO' && norm(cx7[0].conferir) === CONFERIR_IA, 'P07 Não sei: sugestão da IA com o aviso');
   await clicar('#ok', 'Continuar'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(JSON.stringify(R['M3.P13']) === JSON.stringify({ estado: 'opcoes', opcoes: ['Atendimento direto ou presencial (loja, feira, ponto)', 'Outro'], detalhe: 'Feira de domingo' }), 'P13: canais + Outro salvos (mesmo formato que o Módulo 10 lê)');
-  /* item 6: canais de pequeno negócio primeiro; marketplace e site depois */
+  check(await naTela(7) && (await caixas('#msg .caminho')).some((c) => c.tipo === 'Alerta' && c.txt === 'Marque pelo menos uma opção para continuar.') && !(await RR())['M3.P07'], 'P07: só "Não sei" não deixa seguir');
+  await clicar('.opcao', 'Preço dos insumos subindo'); await clicar('.opcao', 'Outro'); await espera();
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op))) === '["Preço dos insumos subindo","Outro"]', 'P07: marcar uma opção tira o "Não sei"');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await erroTxt() === 'Escreva o que é “Outro” ou desmarque essa opção.', 'P07: Outro vazio pede o texto');
+  await page.locator('.extra textarea').fill('Chuva forte esvazia a feira');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P07']) === JSON.stringify({ estado: 'opcoes', opcoes: ['Preço dos insumos subindo', 'Outro'], detalhe: 'Chuva forte esvazia a feira' }) && await naTela(8), 'P07: grava opções + Outro e segue');
+  await abrir(7, { 'M3.P07': { estado: 'valor', valor: 'Concorrente abriu do lado' } });
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op))) === '["Outro"]' && await page.inputValue('.extra textarea') === 'Concorrente abriu do lado', 'P07: resposta antiga em texto reabre como "Outro" com o texto');
+
+  /* ============ 6. perfil do cliente (P10) ============ */
+  await abrir(10);
+  check(await page.evaluate(() => document.querySelector('#ns').textContent) === 'Ainda não tenho clientes', 'P10: "Não sei" virou "Ainda não tenho clientes"');
+  await clicar('#ns', 'Ainda não tenho clientes'); await espera();
+  const cx10 = await caixas('#ajudans .caminho');
+  check(cx10.length === 1 && cx10[0].tit === 'USE A IA COM CUIDADO' && /ainda não tenho clientes/.test(cx10[0].prompt) && /cliente ideal/.test(cx10[0].prompt), 'P10: sugestão de cliente ideal com o aviso de IA');
+  check(/marque acima quem você imagina/.test(await page.evaluate(() => document.querySelector('#nota-ns').textContent)) && !/lista de “Não sei”/.test(await tela()), 'P10: pede para marcar quem compraria (sem seguir com "Não sei")');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela(10) && /Escolha uma opção acima/.test(await erroTxt()) && !(await RR())['M3.P10'], 'P10: quem mais compra é obrigatório');
+  await clicar('.opcao', PESSOAS); await espera();
+  const rot10 = await page.evaluate(() => [...document.querySelectorAll('.campos .item > span')].map((s) => s.textContent));
+  check(JSON.stringify(rot10) === JSON.stringify(['Idade', 'Renda', 'Ocupação', 'Onde vivem os seus clientes?', 'Qual principal problema ou necessidade eles buscam resolver?']), `P10: perguntas do perfil (${rot10.join(' | ')})`);
+  check(await page.evaluate(() => document.querySelectorAll('.campos .item-marcar').length === 5 && document.querySelectorAll('.campos .campo-outro').length === 1), 'P10: todos os itens com opções; "Outro" com campo');
+  check(await page.evaluate(() => [...document.querySelectorAll('.item-marcar[data-c="Idade"] .chip')].some((c) => c.textContent === 'Até 10 anos (infantil)')), 'P10: faixa etária infantil');
+  check(await page.evaluate(() => document.querySelector('.campo-outro').offsetParent === null), 'P10: campo do Outro fechado até marcar');
+  await clicar('.item-marcar[data-c="Onde mora"] .chip', 'Em vários bairros da minha cidade');
+  await clicar('.item-marcar[data-c="Onde mora"] .chip', 'Não sei dizer');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.item-marcar[data-c="Onde mora"] .chip.sel')].map((c) => c.textContent))) === '["Não sei dizer"]', 'P10: "Não sei dizer" é exclusivo');
+  await clicar('.item-marcar[data-c="Onde mora"] .chip', 'No meu bairro ou arredores (local)');
+  await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]);
+  await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', 'Outro'); await espera();
+  await page.locator('.campo-outro').fill('Festa de aniversário');
+  await clicar('.chip', 'Até 10 anos (infantil)');
+  await shot('l4_m03_perfil');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await clicar('#ok', 'Continuar mesmo assim'), 'P10: perfil incompleto não trava (Continuar mesmo assim)');
+  await espera();
+  let R = await RR();
+  check(R['M3.P10'].opcao === PESSOAS && R['M3.P10'].campos['Onde mora'] === 'No meu bairro ou arredores (local)' && R['M3.P10'].campos[DOR] === `${DORES[1]}; Outro: Festa de aniversário` && R['M3.P10'].campos.Idade === 'Até 10 anos (infantil)',
+    `P10: marcas guardadas como texto, no formato que os outros módulos leem (${JSON.stringify(R['M3.P10'].campos)})`);
+  check(R['M3.P11'] && R['M3.P11'].valor === `${DORES[1]}; Festa de aniversário` && R['M3.P11'].doPerfil, 'P10: o problema marcado vai para a pergunta escondida da dor');
+  check(await naTela(12), 'P10: segue para a 12 (a pergunta da dor está escondida)');
+  /* herança do Módulo 2: tipo de cliente e marcas */
+  const M2 = { v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Os dois' }, 'M2.P11': { estado: 'opcao', opcao: 'Meu bairro' }, 'M2.P13': { estado: 'opcao', opcao: 'Qualidade' }, 'M2.P09': { estado: 'opcao', opcao: 'Idosos/aposentados' } } };
+  await abrir(10, {}, { 'lg2-turma-b-m02': M2 });
+  const h2 = await page.evaluate(() => ({ sel: [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op), selo: (document.querySelector('.selo-m') || {}).textContent,
+    chips: [...document.querySelectorAll('.campos .chip.sel')].map((c) => c.textContent), nota: (document.querySelector('.nota-perfil') || {}).textContent }));
+  check(JSON.stringify(h2.sel) === `["${PESSOAS}","Empresas"]` && h2.selo === 'Veio do Módulo 2. Confira e troque se quiser.', `P10: tipo de cliente do Módulo 2 já marcado, com selo (${JSON.stringify(h2)})`);
+  check(['60 anos ou mais', 'Aposentados', 'No meu bairro ou arredores (local)', DORES[3]].every((x) => h2.chips.includes(x)) && /já respondeu antes/.test(h2.nota || ''), 'P10: marcas do perfil vindas do Módulo 2');
+  await shot('l4_m03_perfil_modulo2');
+  await clicar('.opcao', 'Empresas'); await clicar('#ok', 'Continuar'); await espera();
+  if (await page.locator('#ok').textContent() === 'Continuar mesmo assim') await clicar('#ok', 'Continuar mesmo assim');
+  await espera();
+  R = await RR();
+  check(JSON.stringify(R['M3.P10'].opcoes) === `["${PESSOAS}"]` && R['M3.P10'].campos.Idade === '60 anos ou mais', 'P10: dá para trocar o que veio do Módulo 2');
+  check(await page.evaluate(() => localStorage.getItem('lg2-turma-b-m02')) === JSON.stringify(M2), 'Módulo 2 nunca é alterado');
+  /* sem o Módulo 2: onde vivem já vem marcado pelo que a pessoa disse sobre até onde vende */
+  await abrir(10, { 'M3.P09': { estado: 'opcao', opcao: 'Na minha região (estado e cidades próximas)' } });
+  await clicar('.opcao', PESSOAS); await espera();
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.item-marcar[data-c="Onde mora"] .chip.sel')].map((c) => c.textContent))) === '["Em outras cidades da região"]', 'P10: onde vivem pré-marcado pela resposta de até onde vende (sem repetir)');
+  /* empresas: local também com opções */
+  await clicar('.opcao', PESSOAS); await clicar('.opcao', 'Empresas'); await espera();
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.campos .item > span')].map((s) => s.textContent))) === '["Ramo","Tamanho","Equipe","Onde ficam essas empresas?"]', 'P10 Empresas: 4 itens com opções');
+
+  /* ============ 7. canais (P13) ============ */
   await abrir(13);
-  const ops13 = await page.evaluate(() => [...document.querySelectorAll('.opcao')].map((x) => x.dataset.op));
-  check(JSON.stringify(ops13.slice(0, 6)) === JSON.stringify(['Indicação (boca a boca)', 'WhatsApp (WhatsApp Business)', 'Instagram e outras redes sociais (catálogo)',
-    'Atendimento direto ou presencial (loja, feira, ponto)', 'Atendimento em domicílio (vou até o cliente)', 'Aplicativos de entrega (iFood e outros)']), `P13: canais de pequeno negócio primeiro (${ops13.slice(0, 6).join(' | ')})`);
-  check(ops13.indexOf('Marketplace (ex.: Mercado Livre, Shopee)') > 5 && ops13.indexOf('Site ou aplicativo próprio') > 5, 'P13: marketplace e site próprio continuam, depois');
-  await shot('04b-p13-canais');
-  /* estado da versão 4: "Loja física" e "Redes sociais" migram para as opções novas */
+  const ops13 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent.trim()));
+  check(ops13[ops13.length - 1] === 'Ainda não defini o canal de vendas' && ops13.length === 10, 'P13: "Ainda não defini o canal de vendas" por último');
+  await clicar('.opcao', 'Ainda não defini o canal de vendas'); await espera();
+  const cx13 = await caixas('#msg .caminho');
+  check(cx13.length === 1 && /ainda não defini como vou vender/.test(cx13[0].prompt) && cx13[0].tit === 'USE A IA COM CUIDADO', 'P13: prompt para quem ainda não definiu, com o aviso');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela(13) && (await caixas('#msg .caminho')).some((c) => c.txt === 'Marque pelo menos um canal para continuar.'), 'P13: precisa marcar um canal');
+  await clicar('.opcao', 'WhatsApp (WhatsApp Business)'); await clicar('.opcao', 'Outro'); await page.locator('.extra textarea').fill('Feira de domingo');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P13']) === JSON.stringify({ estado: 'opcoes', opcoes: ['WhatsApp (WhatsApp Business)', 'Outro'], detalhe: 'Feira de domingo' }), 'P13: canais + Outro no formato que o Módulo 10 lê');
+
+  /* ============ 8. concorrentes: um nome por campo; cada pergunta na sua tela ============ */
+  await abrir(15);
+  check(JSON.stringify(await titulos()) === JSON.stringify([norm(P(15).pergunta)]), 'P15: sozinha na tela');
+  check(await page.locator('#ent input[data-nome]').count() === 3, 'P15: 3 campos de nome');
+  await clicar('#mais-nome', '+ Adicionar outro nome'); await espera();
+  check(await page.locator('#ent input[data-nome]').count() === 4, 'P15: "Adicionar outro nome" abre mais um campo');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(/pelo menos um nome/.test(await erroTxt()) && await naTela(15), 'P15: sem nenhum nome não segue');
+  await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana');
+  await page.locator('#ent input[data-nome]').nth(1).fill('Padaria Central');
+  await shot('l4_m03_concorrentes_nomes');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P15']) === JSON.stringify({ estado: 'valor', valor: 'Doces da Ana, Padaria Central', nomes: ['Doces da Ana', 'Padaria Central'] }) && await naTela(18), 'P15: grava os nomes (e o texto que o Módulo 10 lê) e segue para "onde ficam"');
+  check(JSON.stringify(await titulos()) === JSON.stringify([norm(P(18).pergunta)]), 'P18: sozinha na tela');
+  await abrir(15, { 'M3.P15': { estado: 'valor', valor: 'Lava-jato do Zé e o posto da avenida' } });
+  check(await page.inputValue('#ent input[data-nome="1"]') === 'Lava-jato do Zé' && await page.inputValue('#ent input[data-nome="2"]') === 'O posto da avenida', 'P15: resposta antiga em texto abre separada, um nome por campo');
+
+  /* ============ 9. faixa de preço (P20): sem a "Resposta" extra; números com erro e aviso ============ */
+  await abrir(20);
+  check(await page.evaluate(() => [...document.querySelectorAll('#ent input')].every((i) => i.inputMode === 'decimal')), 'P20: teclado de números');
+  for (const [txt, msg] of [['Bolos caseiros de pote', 'Digite só números. Ex.: 12,50'], ['-5', 'O preço não pode ser negativo. Digite só números. Ex.: 12,50'], ['', 'Digite o menor preço que você viu ou toque em “Não sei”.']]) {
+    await digitar(txt, 0); await clicar('#ok', 'Continuar'); await espera();
+    check(await erroTxt() === msg && !(await RR())['M3.P20'] && await naTela(20), `P20 "${txt}": erro simples, não grava`);
+  }
+  await digitar('1.500', 0); await clicar('#ok', 'Continuar'); await espera();
+  check(/parece alto/.test(await erroTxt()) && await clicar('#ok', 'Continuar mesmo assim'), 'P20 R$ 1.500: aviso que não trava');
+  await espera();
+  check((await RR())['M3.P20'].min === 1500 && await naTela(22), 'P20: segundo toque grava e segue para a 22');
+  await abrir(20);
+  await digitar('40', 0); await digitar('60', 1); await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela(22) && JSON.stringify((await RR())['M3.P20']) === JSON.stringify({ estado: 'valor', valor: 'de R$ 40,00 a R$ 60,00', min: 40, max: 60 }), 'P20: segue direto, sem a caixa "Os outros costumam cobrar…", formato lido pelo Módulo 5');
+
+  /* ============ 10. comparação (P19) fechada ============ */
+  await abrir(19);
+  check(await page.locator('#ns').count() === 0, 'P19: sem "Não sei"');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.t-linha')].map((x) => x.dataset.crit))) === JSON.stringify(P(19).criterios), 'P19: tabela com os 4 pontos');
+  const marca = (c, i) => page.evaluate(([c, i]) => [...document.querySelectorAll('.t-linha')].find((x) => x.dataset.crit === c).querySelectorAll('.t-op')[i].click(), [c, i]);
+  await marca('Preço', 2); await marca('Qualidade', 2);
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await erroTxt() === 'Marque Melhor, Igual ou Pior em cada item para continuar.' && await naTela(19), 'P19: falta marcar = não segue');
+  await marca('Atendimento', 2); await espera();
+  check((await caixas('#msg .caminho')).some((c) => c.tipo === 'Resposta'), 'P19: 3 "Pior" mostra a mensagem do grupo');
+  await marca('Atendimento', 0); await marca('Prazo (tempo para entregar)', 1); await espera();
+  check(!(await caixas('#msg .caminho')).some((c) => c.tipo === 'Resposta'), 'P19: trocar volta a 2 "Pior"');
+  await clicar('#outro-t', 'Outro ponto'); await espera();
+  await clicar('#ok', 'Continuar'); await espera();
+  check(/outro ponto/.test(await erroTxt()), 'P19: Outro ponto vazio pede o texto');
+  await page.locator('.extra textarea').fill('Variedade de sabores: melhor');
+  await page.evaluate(() => document.querySelector('.tabela').scrollIntoView({ block: 'start' }));
+  await shot('l4_m03_comparacao');
+  await clicar('#ok', 'Continuar'); await espera();
+  R = await RR();
+  check(R['M3.P19'] && R['M3.P19'].valor === 'Preço: Pior; Qualidade: Pior; Atendimento: Melhor; Prazo (tempo para entregar): Igual; Outro ponto: Variedade de sabores: melhor' && R['M3.P19'].outro === 'Variedade de sabores: melhor', `P19: grava a tabela em texto (${R['M3.P19'] && R['M3.P19'].valor})`);
+  check(await page.evaluate(() => !!document.querySelector('#entendemos')), 'P19 é a última: vai ao resultado');
+
+  /* ============ 11. o que vende veio do Módulo 1: bloco fixo para confirmar ============ */
+  const SO_CABECA = { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' };
+  const M1 = (p01, extra = {}) => ({ v: 3, R: Object.assign({ 'M1.P01': p01, 'M1.P03': { estado: 'valor', valor: 'lavagem de carro em casa' },
+    'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } }, extra) });
+  await page.goto(URL);
+  await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA)));
+  await page.reload(); await clicar('button', 'Começar'); await espera();
+  const b1 = await page.evaluate(() => ({ kick: document.querySelector('.passo').textContent, bloco: (document.querySelector('.herdado-txt') || {}).textContent, campo: document.querySelector('#ent').offsetParent !== null,
+    selo: (document.querySelector('.selo-m') || {}).textContent, ns: !!document.querySelector('#ns') && document.querySelector('#ns').offsetParent !== null }));
+  check(b1.kick === 'Pergunta 1 de 17' && b1.bloco === 'lavagem de carro em casa (serviço)' && !b1.campo && !b1.ns && /^Veio do Módulo 1/.test(b1.selo), `P01: resposta do Módulo 1 em bloco fixo para confirmar (${JSON.stringify(b1)})`);
+  await shot('l4_m03_p01_modulo1');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'lavagem de carro em casa (serviço)', doM1: true }) && norm(await titulo()) === norm(P(2).variantes.ideia.pergunta), 'P01: confirmar grava com o selo e segue');
+  await clicar('#v', 'Voltar'); await espera();
+  await clicar('#trocar', 'Trocar'); await espera();
+  check(await page.evaluate(() => document.querySelector('#ent textarea').offsetParent !== null) && await page.inputValue('#ent textarea') === 'lavagem de carro em casa (serviço)', 'P01: "Trocar" abre o campo com o que veio do Módulo 1');
+  await digitar('Lava-jato que vai até a casa do cliente'); await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'Lava-jato que vai até a casa do cliente' }), 'P01: a troca fica guardada neste módulo');
+  check(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m01')) === JSON.stringify(M1(SO_CABECA)), 'Módulo 1 nunca é alterado');
+  await page.goto(URL);
+  await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA, { 'M1.P03': { estado: 'naosei' } })));
+  await page.reload(); await clicar('button', 'Começar'); await espera();
+  check(!(await page.locator('.herdado').count()) && await page.inputValue('#ent textarea') === '', 'P01: "Não sei" no Módulo 1 não conta como herança');
+
+  /* ============ 12. caminhos completos até o resultado ============ */
+  async function responderAtual(p02) {
+    const t = norm(await titulo());
+    const n = D.perguntas.findIndex((q) => norm(q.pergunta) === t || (q.variantes && Object.values(q.variantes).some((v) => norm(v.pergunta) === t))) + 1;
+    const q = D.perguntas[n - 1], num = +q.codigo.slice(4);
+    if (num === 2) { await clicar('.opcao', p02); }
+    else if (num === 9) await clicar('.opcao', 'No meu bairro e na minha cidade');
+    else if (num === 10) { await clicar('.opcao', PESSOAS); await espera(); await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]); }
+    else if (num === 7) await clicar('.opcao', 'Concorrente novo');
+    else if (num === 13) await clicar('.opcao', 'WhatsApp (WhatsApp Business)');
+    else if (num === 14) { await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); }
+    else if (num === 22) { await digitar('Entregam rápido', 0); await digitar('Demoram para responder', 1); }
+    else if (num === 15) { await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana'); await page.locator('#ent input[data-nome]').nth(1).fill('Padaria Central'); }
+    else if (num === 20) { await digitar('40', 0); await digitar('60', 1); }
+    else if (num === 19) { for (const [c, i] of [['Preço', 0], ['Qualidade', 1], ['Atendimento', 2], ['Prazo (tempo para entregar)', 2]]) await marca(c, i); }
+    else if (num === 4) await digitar('Mais gente pedindo pelo WhatsApp');
+    else if (num === 3) await digitar('Padaria da esquina');
+    else await digitar(`Resposta da pergunta ${num} com detalhe`);
+    await clicar('#ok', 'Continuar'); await espera();
+    for (let k = 0; k < 2; k++) { const b = await page.$('#ok'); if (b && /Seguir|mesmo/.test(await b.textContent())) { await b.click(); await espera(); } }
+    return num;
+  }
+  async function caminho(p02) {
+    await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload();
+    await clicar('button', 'Começar'); await espera();
+    const vistos = [];
+    for (let i = 0; i < 30; i++) {
+      if (await page.evaluate(() => !!document.querySelector('#entendemos'))) break;
+      vistos.push(await responderAtual(p02));
+      if (i === 3) {
+        const antes = norm(await titulo());
+        await page.reload(); await espera();
+        check(await clicar('button', 'Continuar de onde parei'), 'persistência: capa oferece continuar');
+        await espera();
+        check(norm(await titulo()) === antes, 'persistência: volta na mesma pergunta após recarregar');
+      }
+    }
+    return vistos;
+  }
+  const vSim = await caminho('Sim');
+  check(JSON.stringify(vSim) === JSON.stringify(TELAS_SIM), `P02 Sim: 17 telas na ordem nova (${vSim.join(',')})`);
+  await semCodigos('resultado'); await fonte16('resultado');
+  const res = await page.evaluate(() => ({
+    cont: document.querySelector('.res-num .val').textContent.trim(), sub: document.querySelector('.res-num .sub').textContent.trim(),
+    blocos: [...document.querySelectorAll('.bloco-titulo')].map((x) => x.textContent),
+    etapas: [...document.querySelectorAll('.etapa')].map((e) => e.dataset.cod),
+    ent: [...document.querySelectorAll('#entendemos p')].map((x) => x.textContent), li: document.querySelectorAll('#entendemos li').length,
+    conc: [...document.querySelectorAll('#tabela-conc .conc')].map((c) => [c.dataset.nome, ...[...c.querySelectorAll('dd')].map((x) => x.textContent)]),
+    quadro: Object.fromEntries([...document.querySelectorAll('#quadro-conc .q-cel')].map((c) => [c.dataset.q, [c.querySelector('h3').textContent, ...[...c.querySelectorAll('li')].map((x) => x.textContent), (c.querySelector('p') || {}).textContent || '']])),
+    prox: !!document.querySelector('.acoes.lg2-proximo a'), pend: document.querySelectorAll('.pend').length,
+  }));
+  check(res.cont === '17 de 17' && res.sub === 'nenhuma com “Não sei”' && res.pend === 0, `resultado: contagem igual à do topo (${res.cont}; ${res.sub})`);
+  check(!res.etapas.some((c) => ESCONDIDAS.map(COD).includes(c)) && res.etapas.length === 17, 'resultado: perguntas escondidas não aparecem');
+  check(res.ent.length >= 1 && res.ent.length <= 3 && res.li === 0 && res.ent.join(' ').includes('eles cobram em torno de R$ 50,00') && res.ent.join(' ').includes('Economizar tempo / Praticidade no dia a dia'), `resultado: "O que entendemos" em texto corrido (${res.ent.join(' / ')})`);
+  check(JSON.stringify(res.conc.map((c) => c[0])) === '["Doces da Ana","Padaria Central","Padaria da esquina"]' && res.conc[0][3] === 'Entregam rápido' && res.conc[0][2] === 'de R$ 40,00 a R$ 60,00', `resultado: tabela com um cartão por nome citado (${res.conc.map((c) => c[0])})`);
+  check(res.quadro.fortes && res.quadro.fortes[0] === 'Pontos fortes dos concorrentes' && res.quadro.fortes[1] === 'Entregam rápido', 'quadro: pontos fortes = o que os outros fazem bem');
+  check(res.quadro.fracos && res.quadro.fracos[1] === 'Demoram para responder', 'quadro: pontos fracos = onde os outros deixam a desejar');
+  check(res.quadro.oportunidades && res.quadro.oportunidades.includes('Novidade que pode ajudar: “Mais gente pedindo pelo WhatsApp”') && res.quadro.oportunidades.includes('Você se sai melhor em preço'), `quadro: oportunidades montadas com as respostas (${res.quadro.oportunidades})`);
+  check(res.quadro.ameacas && res.quadro.ameacas.includes('O que pode atrapalhar: concorrente novo') && res.quadro.ameacas.includes('O cliente pode comprar no lugar: “Padaria da esquina”') && res.quadro.ameacas.includes('Os outros se saem melhor em atendimento e prazo (tempo para entregar)'), `quadro: ameaças montadas com as respostas (${res.quadro.ameacas})`);
+  check(res.prox, 'resultado: botão do próximo módulo');
+  await page.evaluate(() => document.querySelector('#quadro-conc').scrollIntoView({ block: 'start' }));
+  await shot('l4_m03_quadro');
+  const vNao = await caminho('Não');
+  check(JSON.stringify(vNao) === JSON.stringify(TELAS_NAO), `P02 Não: 12 telas (${vNao.join(',')})`);
+  const qNao = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#quadro-conc .q-cel')].map((c) => [c.dataset.q, (c.querySelector('p') || {}).textContent || ''])));
+  check(qNao.oportunidades === '' && /a anotar/.test(await page.evaluate(() => document.querySelector('#quadro-conc').textContent)), 'quadro: só com o que foi respondido; sem invenção');
+  /* trocar Sim por Não descarta as respostas puladas, mas não as escondidas */
+  await abrir(2, { 'M3.P03': { estado: 'valor', valor: 'Padaria do bairro' }, 'M3.P21': { estado: 'valor', valor: 'Entrego no mesmo dia' }, 'M3.P16': { estado: 'valor', valor: 'Mesmo bairro' } });
+  await clicar('.opcao', 'Não'); await clicar('#ok', 'Continuar'); await espera();
+  R = await RR();
+  check(!R['M3.P03'] && R['M3.P21'] && R['M3.P16'], 'P02 Não: descarta 3 a 8; respostas das perguntas escondidas continuam salvas');
+
+  /* ============ 13. migração do estado salvo (versão 6 → 7) ============ */
+  await page.goto(URL);
+  await page.evaluate(([k, P, Dr]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 6, R: {
+    'M3.P02': { estado: 'opcao', opcao: 'Sim' },
+    'M3.P07': { estado: 'naosei', marcados: ['concorrente novo', 'mudança de regra'] },
+    'M3.P12': { estado: 'naosei', marcados: ['clientes fiéis'] },
+    'M3.P19': { estado: 'naosei', tabela: { 'Preço': 'Pior', Qualidade: 'Melhor' } },
+    'M3.P10': { estado: 'opcao', opcao: P, opcoes: [P], campos: { Idade: 'Até 17 anos; 18 a 29 anos', 'Onde mora': 'Centro', [Dr]: 'Falta de tempo' } },
+    'M3.P06': { estado: 'valor', valor: 'Tenho fogão' } }, hist: ['RESULTADO'] })); }, [CHAVE, PESSOAS, DOR]);
+  await page.reload(); await espera();
+  let S7 = await estado();
+  check(S7.v === 7, 'migração: estado da versão 6 vira 7 na abertura');
+  check(JSON.stringify(S7.R['M3.P07']) === '{"estado":"opcoes","opcoes":["Concorrente novo","Mudança de regra"]}', 'migração: exemplos marcados nos riscos viram resposta fechada');
+  check(JSON.stringify(S7.R['M3.P12']) === '{"estado":"valor","valor":"clientes fiéis"}', 'migração: exemplos marcados nas barreiras viram resposta');
+  check(S7.R['M3.P19'].estado === 'valor' && S7.R['M3.P19'].valor === 'Preço: Pior; Qualidade: Melhor', 'migração: tabela da comparação vira resposta');
+  check(S7.R['M3.P10'].campos.Idade === 'Até 10 anos (infantil); 11 a 17 anos; 18 a 29 anos' && S7.R['M3.P10'].campos['Onde mora'] === 'Centro', 'migração: "Até 17 anos" vira as duas faixas novas; texto antigo fica');
+  check(S7.R['M3.P06'] && S7.R['M3.P06'].valor === 'Tenho fogão', 'migração: resposta de pergunta escondida não é apagada');
+  await clicar('button', 'Continuar de onde parei'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#entendemos')), 'migração: o resultado abre com o estado migrado');
+  await abrir(10, { 'M3.P10': { estado: 'opcao', opcao: PESSOAS, opcoes: [PESSOAS], campos: { 'Onde mora': 'Centro', [DOR]: 'Falta de tempo' } } });
+  const antigo10 = await page.evaluate(() => [...document.querySelectorAll('.item-marcar .mini-info')].map((x) => x.textContent));
+  check(antigo10.includes('Você tinha escrito: Centro') && antigo10.includes('Você tinha escrito: Falta de tempo'), 'perfil antigo: o texto escrito antes aparece e não se perde');
+  await clicar('.item-marcar[data-c="Onde mora"] .chip', LUGARES[1]);
+  await clicar('#ok', 'Continuar'); await espera();
+  if (await page.locator('#ok').textContent() === 'Continuar mesmo assim') await clicar('#ok', 'Continuar mesmo assim');
+  check((await RR())['M3.P10'].campos['Onde mora'] === `${LUGARES[1]}; Centro`, 'perfil antigo: marcar uma opção mantém o texto antigo junto');
+  /* versões antigas: canais da versão 4 e estado de 15 perguntas */
   await page.goto(URL);
   await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 4, R: { 'M3.P13': { estado: 'opcoes', opcoes: ['Loja física', 'Redes sociais (Instagram, Facebook, WhatsApp)', 'Outro'], detalhe: 'Feira' } }, hist: ['M3.P13'] })); }, CHAVE);
   await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
-  const mig = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
-  const sel13 = await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => x.dataset.op));
-  check(JSON.stringify(sel13) === JSON.stringify(['WhatsApp (WhatsApp Business)', 'Instagram e outras redes sociais (catálogo)', 'Atendimento direto ou presencial (loja, feira, ponto)', 'Outro']), `versão 4: canais antigos migrados (${sel13.join(' | ')})`);
-  await clicar('#ok', 'Continuar'); await espera();
-  const mig2 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
-  check(mig2.v === 6 && mig2.R['M3.P13'].detalhe === 'Feira', 'versão 4: estado migrado para a versão atual (6), sem perder o "Outro"');
-  /* lote 3: o M10 lê os canais (M3.P13) como lista de opções + "detalhe" do Outro; o formato continua o mesmo */
-  check(mig2.R['M3.P13'].estado === 'opcoes' && Array.isArray(mig2.R['M3.P13'].opcoes) && mig2.R['M3.P13'].opcoes.includes('Outro'), 'canais: mesmo formato que o Módulo 10 lê (estado "opcoes", lista e detalhe)');
-  /* lote 3: perfil do cliente da versão 5 (só "opcao") ganha a lista "opcoes" */
-  await page.goto(URL);
-  await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 5, R: { 'M3.P10': { estado: 'opcao', opcao: 'Empresas', campos: { Ramo: 'Construção', Tamanho: '', Equipe: '', Local: 'Centro' } } }, hist: ['M3.P10'] })); }, CHAVE);
-  await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
-  const mig5 = await page.evaluate((k) => ({ s: JSON.parse(localStorage.getItem(k)), sel: [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op), ramo: (document.querySelector('.item-marcar[data-c="Ramo"]') || {}).dataset }), CHAVE);
-  check(norm(await titulo()) === norm(P(10).pergunta) && JSON.stringify(mig5.sel) === '["Empresas"]' && mig5.ramo && mig5.ramo.val === 'Construção', 'versão 5: perfil antigo reabre com a mesma opção e campos');
-  check(mig5.s.v === 6 && JSON.stringify(mig5.s.R['M3.P10'].opcoes) === '["Empresas"]' && mig5.s.R['M3.P10'].opcao === 'Empresas', 'versão 5: perfil migrado (opcoes = [opcao])');
-
-  /* ============ 5. P19 tabela + 3 Pior; P20 média ============ */
-  await abrir(19);
-  await clicar('#ns', 'Não sei'); await espera();
-  const crit = await page.evaluate(() => [...document.querySelectorAll('.t-linha')].map((x) => x.dataset.crit));
-  check(JSON.stringify(crit) === JSON.stringify(['Preço', 'Qualidade', 'Atendimento', 'Prazo (tempo para entregar)']), 'P19: 4 critérios');
-  const marca = (c, i) => page.evaluate(([c, i]) => [...document.querySelectorAll('.t-linha')].find((x) => x.dataset.crit === c).querySelectorAll('.t-op')[i].click(), [c, i]);
-  await marca('Preço', 2); await marca('Qualidade', 2); await espera();
-  check(!(await caixas()).some((c) => c.tipo === 'Resposta'), 'P19: 2 Pior sem mensagem');
-  await marca('Atendimento', 0); await marca('Prazo (tempo para entregar)', 2); await espera();
-  check((await caixas()).some((c) => c.tipo === 'Resposta'), 'P19: 3 Pior mostra a mensagem');
-  await page.evaluate(() => document.querySelector('.tabela').scrollIntoView({ block: 'start' }));
-  await shot('05-p19-tabela');
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(JSON.stringify(R['M3.P19'].tabela) === JSON.stringify({ 'Preço': 'Pior', Qualidade: 'Pior', Atendimento: 'Melhor', 'Prazo (tempo para entregar)': 'Pior' }), 'P19: marcas salvas');
-  await marca('Prazo (tempo para entregar)', 2); await espera();
-  check(!(await caixas()).some((c) => c.tipo === 'Resposta'), 'P19: desmarcar volta a 2 Pior');
-
-  for (const [a, b, media] of [['40', 'R$ 60', '50,00'], ['120,50', '130', '125,25'], ['R$ 30', '', '30,00'], ['59.9', '', '59,90']]) {
-    await abrir(20);
-    await digitar(a, 0); await digitar(b, 1); await clicar('#ok', 'Continuar'); await espera();
-    const c = (await caixas())[0];
-    check(c && c.txt === `Os outros costumam cobrar em torno de R$ ${media}. Compare com o seu preço.`, `P20 média de "${a}" e "${b}" = R$ ${media}`);
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => x.dataset.op))) === JSON.stringify(['WhatsApp (WhatsApp Business)', 'Instagram e outras redes sociais (catálogo)', 'Atendimento direto ou presencial (loja, feira, ponto)', 'Outro']) && (await estado()).v === 7, 'versão 4: canais antigos migrados até a versão 7');
+  const antigo = JSON.stringify({ v: 2, R: { 'M3.P01': { estado: 'valor', valor: 'bolo' } }, hist: ['M3.P01'] });
+  for (const [nome, chave] of [['mesma chave', CHAVE], ['chave antiga da turma B', 'lg2-turma-b-m03']]) {
+    await page.goto(URL);
+    await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, s); }, [chave, antigo]);
+    await page.reload(); await espera();
+    check(await page.evaluate(() => [...document.querySelectorAll('button')].some((b) => b.textContent === 'Começar')), `estado antigo (${nome}): começa do zero`);
   }
-  /* item 2 (receita B): texto no campo de preço é erro e não grava; número fora do comum só avisa */
-  await abrir(20);
-  const modos = await page.evaluate(() => [...document.querySelectorAll('#ent input')].map((i) => i.inputMode));
-  check(modos.length === 2 && modos.every((m) => m === 'decimal'), 'P20: dois campos com teclado de números (inputmode decimal)');
-  for (const [txt, msg] of [['Bolos caseiros de pote', 'Digite só números. Ex.: 12,50'], ['-5', 'O preço não pode ser negativo. Digite só números. Ex.: 12,50'], ['', 'Digite o menor preço que você viu ou toque em “Não sei”.']]) {
-    await digitar(txt, 0); await clicar('#ok', 'Continuar'); await espera();
-    const e = await page.evaluate(() => ({ vis: !document.querySelector('#erro').hidden, t: document.querySelector('#erro').textContent, bt: document.querySelector('#ok').textContent.trim() }));
-    R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-    check(e.vis && e.t === msg && e.bt === 'Continuar' && !R['M3.P20'] && norm(await titulo()) === norm(P(20).pergunta), `P20 "${txt}": erro simples, sem "Continuar mesmo assim", não grava (${e.t})`);
-  }
-  await shot('05b-p20-texto-recusado');
-  await digitar('1.500', 0); await clicar('#ok', 'Continuar'); await espera();
-  const av = await page.evaluate(() => ({ vis: !document.querySelector('#erro').hidden, t: document.querySelector('#erro').textContent, cls: document.querySelector('#erro').className }));
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(av.vis && /parece alto/.test(av.t) && /aviso-num/.test(av.cls) && !R['M3.P20'], `P20 R$ 1.500: aviso que não trava (${av.t})`);
-  await shot('05c-p20-aviso-valor-alto');
-  check(await clicar('#ok', 'Continuar mesmo assim'), 'P20 R$ 1.500: segundo toque com "Continuar mesmo assim"');
-  await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(R['M3.P20'] && R['M3.P20'].valor === 'R$ 1.500,00' && R['M3.P20'].min === 1500 && norm(await titulo()) === norm(P(21).pergunta), 'P20 R$ 1.500: grava e segue para a 21');
-  await abrir(20);
-  await digitar('10', 0); await digitar('200', 1); await clicar('#ok', 'Continuar'); await espera();
-  check(/mais de 10 vezes/.test(await page.evaluate(() => document.querySelector('#erro').textContent)) && await clicar('#ok', 'Continuar mesmo assim'), 'P20: maior preço mais de 10 vezes o menor só avisa');
-  /* receita A: com o teclado aberto (janela de 390x450), o campo e o Continuar continuam à vista */
+
+  /* ============ 14. receita A: teclado aberto ============ */
   check(await page.evaluate(() => /interactive-widget=resizes-content/.test(document.querySelector('meta[name=viewport]').content)), 'viewport com interactive-widget=resizes-content');
-  for (const [n, sel] of [[4, '#ent textarea'], [20, '#ent input[data-c="min"]'], [20, '#ent input[data-c="max"]'], [10, '.campos input']]) {
+  for (const [n, sel] of [[4, '#ent textarea'], [20, '#ent input[data-c="min"]'], [20, '#ent input[data-c="max"]'], [15, '#ent input[data-nome="3"]']]) {
     await page.setViewportSize({ width: 390, height: 844 });
     await abrir(n);
-    if (n === 10) { await clicar('.opcao', 'Pessoas comuns (consumidor final)'); await espera(); }
     await page.locator(sel).first().focus();
     await page.setViewportSize({ width: 390, height: 450 });
     await espera(700);
@@ -1054,428 +517,40 @@ function esperado(l, valor) {
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
-  /* ============ 6. caminhos completos até o resumo ============ */
-  async function responderAtual(modo) {
-    const t = norm(await titulo());
-    const n = PERGUNTAS.findIndex((p) => norm(p.pergunta) === t) + 1;
-    if (!n) throw new Error('pergunta desconhecida: ' + t);
-    if (PAR[n]) {
-      for (const k of [n, PAR[n]]) {
-        if (modo.ns && modo.ns.includes(k)) await clicar(`.pergunta[data-cod="${COD(k)}"] .ns`, 'Não sei');
-        else await page.locator(`.pergunta[data-cod="${COD(k)}"] textarea`).fill(`Resposta da pergunta ${k} com detalhe`);
-      }
-      await clicar('#ok', 'Continuar');
-    } else if (modo.ns && modo.ns.includes(n)) {
-      if (n === 13) { await clicar('.opcao', 'Não sei'); await clicar('#ok', 'Continuar'); await espera(); }
-      else await clicar('#ns', 'Não sei');
-      await espera(); await clicar('#ok', 'Seguir');
-    } else if (n === 2) { await clicar('.opcao', modo.p02); await clicar('#ok', 'Continuar'); }
-    else if (n === 9) { await clicar('.opcao', 'No meu bairro e na minha cidade'); await clicar('#ok', 'Continuar'); }
-    else if (n === 10) { await clicar('.opcao', 'Pessoas comuns (consumidor final)'); await espera(); await perfil(['Centro', modo.dor === undefined ? 'falta de tempo' : modo.dor]); await clicar('#ok', 'Continuar'); await espera(); await clicar('#ok', 'Continuar mesmo assim'); }
-    else if (n === 13) { await clicar('.opcao', 'WhatsApp (WhatsApp Business)'); await clicar('#ok', 'Continuar'); }
-    else if (n === 14 || n === 22) { await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); await clicar('#ok', 'Continuar'); }
-    else if (n === 20) { await digitar('40', 0); await digitar('60', 1); await clicar('#ok', 'Continuar'); await espera(); await clicar('#ok', 'Seguir'); }
-    else if (n === 21) { await digitar('Entrega no mesmo dia pelo WhatsApp'); await clicar('#ok', 'Continuar'); }
-    else if (n === 6) { await digitar(`Resposta da pergunta ${n} com detalhe`); await clicar('#ok', 'Continuar'); await espera(); await clicar('#ok', 'Seguir'); }
-    else { await digitar(`Resposta da pergunta ${n} com detalhe`); await clicar('#ok', 'Continuar'); }
-    await espera();
-    return n;
+  /* ============ 15. escolha única, Voltar no topo, versões "o que você imagina", exemplos por tipo ============ */
+  await abrir(2);
+  check(await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'radiogroup'), 'Sim/Não: escolha única');
+  for (const o of ['Sim', 'Não', 'Sim']) await page.locator(`#ent .opcao[data-op="${o}"]`).click();
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op))) === '["Sim"]', 'Sim/Não: só a última fica marcada');
+  check(await page.evaluate(() => getComputedStyle(document.querySelector('#ent .opcao')).webkitTapHighlightColor === 'rgba(0, 0, 0, 0)'), 'Sim/Não: sem realce azul do toque');
+  for (const n of [2, 10, 15, 19]) {
+    await abrir(n);
+    const v = await page.evaluate(() => { const b = document.querySelector('#v'), q = document.querySelector('.cartao-q h2.q'); return { n: document.querySelectorAll('#v').length, acima: b.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1, txt: b.textContent.trim() }; });
+    check(v.n === 1 && v.acima && v.txt === 'Voltar', `Voltar no topo do cartão (tela ${n})`);
   }
-  async function caminho(modo) {
-    await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload();
-    await clicar('button', 'Começar'); await espera();
-    const vistos = [];
-    for (let i = 0; i < 30; i++) {
-      if (await page.evaluate(() => !!document.querySelector('.res-bloco'))) break;
-      vistos.push(await responderAtual(modo));
-      if (i === 3 && modo.recarregar) {
-        const antes = norm(await titulo());
-        await page.reload(); await espera();
-        check(await clicar('button', 'Continuar de onde parei'), 'persistência: capa oferece continuar');
-        await espera();
-        check(norm(await titulo()) === antes, 'persistência: volta na mesma pergunta após recarregar');
-        const R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-        check(Object.keys(R).length === 4, 'persistência: 4 respostas guardadas');
-      }
-    }
-    return vistos;
-  }
-
-  /* telas: antes 22; agora 15+16 e 17+18 dividem a tela e a 11 é pulada quando a dor já foi escrita no perfil */
-  const vSim0 = await caminho({ p02: 'Sim', dor: '' });
-  check(JSON.stringify(vSim0) === JSON.stringify([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19, 20, 21, 22]), `P02 Sim sem dor no perfil: 20 telas (${vSim0.join(',')})`);
-  const vSim = await caminho({ p02: 'Sim', ns: [3, 12, 13, 17], recarregar: true });
-  check(JSON.stringify(vSim) === JSON.stringify([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 17, 19, 20, 21, 22]), `P02 Sim com a dor no perfil: 19 telas na ordem (${vSim.join(',')})`);
-  check(await page.evaluate(() => !!document.querySelector('.res-bloco')), 'P02 Sim: chega ao resumo');
-  await semCodigos('resumo');
-  await fonte16('resumo');
-  const res = await page.evaluate(() => ({
-    blocos: [...document.querySelectorAll('.bloco-titulo')].map((x) => x.textContent),
-    pend: [...document.querySelectorAll('.pend p')].map((x) => x.textContent),
-    hip: [...document.querySelectorAll('.etapa')].filter((e) => e.querySelector('.hip')).map((e) => e.querySelector('.etapa-q').textContent),
-    hipTxt: [...new Set([...document.querySelectorAll('.hip')].map((x) => x.textContent))],
-    texto: document.body.innerText,
-    respostas: document.querySelector('#respostas').textContent,
-    fechado: !document.querySelector('#respostas').open,
-    entendemos: [...document.querySelectorAll('#entendemos p')].map((x) => x.textContent),
-    titEnt: (document.querySelector('#entendemos h2') || {}).textContent,
-    ordem: [...document.querySelectorAll('main > *')].map((x) => x.id || x.className),
-    logos: [...document.querySelectorAll('.rodape img')].map((i) => i.alt),
-    titPend: [...document.querySelectorAll('.pendentes .secao-titulo')].map((x) => x.textContent),
-  }));
-  check(JSON.stringify(res.blocos) === JSON.stringify([...new Set(PERGUNTAS.map((p) => p.bloco))]), 'resumo: 4 blocos');
-  check(JSON.stringify(res.pend) === JSON.stringify([3, 12, 13, 17].map((n) => P(n).pergunta)), 'resumo: pendentes = perguntas com Não sei');
-  check(res.titPend[0] === 'Perguntas que você marcou como Não sei', 'resumo: título dos pendentes');
-  check(JSON.stringify(res.hip) === JSON.stringify([4, 8, 11, 19].map((n) => P(n).pergunta)) && res.hipTxt.join() === 'hipótese a investigar', 'resumo: hipótese a investigar em 4, 8, 11, 19');
-  check(res.respostas.includes('Os outros costumam cobrar em torno de R$ 50,00. Compare com o seu preço.'), 'resumo: mensagem da média');
-  /* item 3: a contagem do resultado usa as mesmas telas do topo ("Pergunta N de M") */
-  const cont = await page.evaluate(() => document.querySelector('.res-num .val').textContent.trim());
-  check(cont === `${vSim.length} de ${vSim.length}`, `resumo: contagem igual à do topo (${cont}; telas vistas ${vSim.length})`);
-  check(await page.evaluate(() => document.querySelector('.res-num .sub').textContent.trim()) === '4 com “Não sei”', 'resumo: telas com Não sei contadas do mesmo jeito');
-  check(res.titEnt === 'O que entendemos até aqui' && res.entendemos.length >= 1 && res.entendemos.length <= 3, `resumo: caixa "O que entendemos até aqui" em 1 a 3 parágrafos (${res.entendemos.length})`);
-  check(await page.evaluate(() => { const e = document.querySelector('#entendemos'); return !e.querySelector('ul, ol, li') && e.querySelectorAll('p').length >= 1; }), 'resumo: "O que entendemos" em texto corrido (sem <li>, com <p>)');
-  check(res.ordem.indexOf('entendemos') >= 0 && res.ordem.indexOf('entendemos') < res.ordem.indexOf('respostas'), 'resumo: caixa no topo, respostas depois');
-  check(res.fechado && /Ver suas respostas/.test(res.texto), 'resumo: respostas recolhidas em "Ver suas respostas"');
-  check(res.entendemos.some((t) => t.includes('R$ 50,00')) && res.entendemos.some((t) => /falta de tempo/.test(t)) && res.entendemos.some((t) => /3 perguntas|4 perguntas/.test(t)), 'resumo: caixa junta preço, dor e pendências');
-  const D3 = await page.evaluate(() => window.MODULO3.mapa);
-  for (const k of ['entrega', 'mensagem_limite']) check(norm(res.texto).includes(norm(D3[k])), `resumo: texto do Mapa (${k})`);
-  /* lote 3: nenhuma regra deste módulo encaminha a um profissional, então o quadro não aparece */
-  check(!/Quando procurar um profissional/.test(res.texto) && !norm(res.texto).includes(norm(D3.encaminhamentos)) && await page.evaluate(() => !document.querySelector('.encaminha')), 'resumo: sem o quadro "Quando procurar um profissional"');
-  check(res.logos.join() === 'FACC,UFJF,Governo de Minas Gerais', 'rodapé com FACC/UFJF/MG');
-  await shot('06-resultado');
-  /* voltar e preencher um pendente */
-  await clicar('.pend[data-cod="M3.P12"] .preencher', 'Preencher agora'); await espera();
-  check(norm(await titulo()) === norm(P(12).pergunta), 'pendente: abre a pergunta');
-  await digitar('Precisa de licença e máquina cara'); await clicar('#ok', 'Continuar'); await espera();
-  const pend2 = await page.evaluate(() => [...document.querySelectorAll('.pend p')].map((x) => x.textContent));
-  check(JSON.stringify(pend2) === JSON.stringify([3, 13, 17].map((n) => P(n).pergunta)), 'pendente preenchido sai da lista e volta ao resumo');
-
-  const vNao = await caminho({ p02: 'Não', ns: [1] });
-  check(JSON.stringify(vNao) === JSON.stringify([1, 2, 9, 10, 12, 13, 14, 15, 17, 19, 20, 21, 22]), `P02 Não: pula 3 a 8 (${vNao.join(',')})`);
-  const resNao = await page.evaluate(() => [...document.querySelectorAll('.etapa')].length);
-  check(resNao === 16, 'P02 Não: resumo com 16 perguntas');
-  const contNao = await page.evaluate(() => document.querySelector('.res-num .val').textContent.trim());
-  check(contNao === `${vNao.length} de ${vNao.length}` && vNao.length === 13, `P02 Não: "13 de 13", igual ao topo (antes: "16 de 16") (${contNao})`);
-  /* trocar Sim por Não descarta as respostas puladas */
-  await abrir(2, { 'M3.P03': { estado: 'valor', valor: 'Padaria do bairro' } });
-  await clicar('.opcao', 'Não'); await clicar('#ok', 'Continuar'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(!R['M3.P03'], 'P02 Não: respostas de 3 a 8 descartadas');
-
-  /* ============ 6b. herança do Módulo 1 e versão "o que você imagina" ============ */
-  const DADOS = await page.evaluate(() => window.MODULO3.perguntas);
-  const VAR = (n, est = 'ideia') => DADOS[n - 1].variantes[est];
-  /* o Módulo 1 de teste é de serviço: os exemplos de produto físico trocam (item 7) */
-  const SERVX = (x) => x.split('quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote').join('quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha').split('Quero vender marmitas para trabalhadores do bairro').join('Quero fazer unhas em domicílio para mulheres do bairro').split('preço dos insumos subindo').join('preço do material de trabalho subindo');
-  const SO_CABECA = { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' };
-  const M1 = (p01, extra = {}) => ({ v: 3, R: Object.assign({ 'M1.P01': p01, 'M1.P03': { estado: 'valor', valor: 'lavagem de carro em casa' },
-    'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } }, extra) });
-  /* começa pela pergunta 2: a 1 (ramo e o que vende) veio do Módulo 1 */
-  await page.goto(URL);
-  await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA)));
-  await page.reload(); await clicar('button', 'Começar'); await espera();
-  check(norm(await titulo()) === norm(VAR(2).pergunta), 'herança: com o Módulo 1, começa pela pergunta 2 (versão de quem ainda não começou)');
-  const kick = await page.evaluate(() => document.querySelector('.passo').textContent);
-  check(kick === 'Pergunta 1 de 19', `herança: contagem sem a pergunta herdada (${kick})`);
-  await semCodigos('herança pergunta 2');
-  /* versão "pretende vender" no alcance; a de quem testa e a de quem já vende */
-  await abrir(9, {}, M1(SO_CABECA), VAR(9).pergunta);
-  check(/^Até onde você pretende vender\?/.test(norm(await titulo())), 'alcance: "Até onde você pretende vender?" para quem ainda não começou');
-  await shot('07-alcance-ideia');
-  await abrir(9, {}, M1({ estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' }), VAR(9, 'comecando').pergunta);
-  check(/^Até onde você vende ou pretende vender\?/.test(norm(await titulo())), 'alcance: versão de quem está testando');
-  await abrir(9, {}, M1({ estado: 'opcao', opcao: 'Já vendo sempre' }));
-  check(norm(await titulo()) === norm(P(9).pergunta), 'alcance: quem já vende vê o texto original');
-  /* image7: "o que o seu negócio faz de melhor hoje" vira "o que você imagina" */
-  await abrir(14, {}, M1(SO_CABECA), VAR(14).pergunta);
-  const rot14 = await page.evaluate(() => [...document.querySelectorAll('#ent .item span')].map((s) => s.textContent));
-  check(JSON.stringify(rot14) === JSON.stringify(Object.values(VAR(14).campos)), 'P14: campos na versão "o que você imagina"');
-  check(!/faz de melhor hoje/.test(await tela()), 'P14: nada de "hoje" para quem ainda não começou');
-  await clicar('#ns', 'Não sei'); await espera();
-  check((await caixas()).some((c) => c.txt === VAR(14).caminhos['Não sei']), 'P14 Não sei: dica na versão de quem ainda não começou');
-  await shot('08-p14-ideia');
-  await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); await clicar('#ok', 'Continuar'); await espera();
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(JSON.stringify(Object.keys(R['M3.P14'].campos)) === JSON.stringify(DADOS[13].campos), 'P14: resposta guardada com os mesmos campos de sempre');
-  /* prompts: "Eu quero vender" + o que vende */
-  await abrir(13, {}, M1(SO_CABECA), VAR(13).pergunta);
-  await clicar('.opcao', 'Não sei'); await espera();
-  const p13 = (await caixas()).find((c) => c.op === 'Não sei');
-  check(p13 && p13.txt.includes('Eu quero vender lavagem de carro em casa.'), 'prompt: "Eu quero vender" + o que vende do Módulo 1');
-  await clicar('.opcao', 'Não sei'); await clicar('.opcao', 'Outro'); await espera();
-  check((await caixas()).some((c) => c.txt === VAR(13).caminhos.Outro), 'P13 Outro: dica na versão de quem ainda não começou');
-  /* todas as perguntas com versão: o enunciado muda e nada fica no presente de quem já vende */
-  for (const q of DADOS.filter((q) => q.variantes && q.variantes.ideia && q.codigo !== 'M3.P01')) {
-    const n = +q.codigo.slice(4);
-    await abrir(n, {}, M1(SO_CABECA), SERVX(q.variantes.ideia.pergunta));
-  }
-  check(!DADOS.some((q) => q.variantes && q.variantes.ideia && /\b(vende hoje|faz de melhor hoje|compra de você hoje)\b/.test(q.variantes.ideia.pergunta)), 'versões "o que você imagina" sem "hoje"');
-  /* "Não sei" no Módulo 1 não conta como herança */
-  await page.goto(URL);
-  await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA, { 'M1.P03': { estado: 'naosei' } })));
-  await page.reload(); await clicar('button', 'Começar'); await espera();
-  check(norm(await titulo()) === norm(SERVX(VAR(1).pergunta)) && (await page.inputValue('#ent textarea')) === '', 'herança: "Não sei" no Módulo 1 não pula a pergunta 1');
-  /* resumo: a resposta herdada aparece com o selo e pode ser ajustada */
-  const RESP = { 'M3.P02': { estado: 'opcao', opcao: 'Não' }, 'M3.P09': { estado: 'opcao', opcao: 'No meu bairro e na minha cidade' },
-    'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', campos: { Idade: '30 a 44 anos', Renda: 'De 1 a 3 salários mínimos', 'Ocupação': 'Trabalhadores com carteira assinada', 'Onde mora': 'Bairro São Pedro', [DOR]: 'Não tem tempo de levar o carro ao lava-jato' } },
-    'M3.P11': { estado: 'valor', valor: 'Não tem tempo de levar o carro ao lava-jato', doPerfil: true },
-    'M3.P13': { estado: 'opcoes', opcoes: ['Redes sociais (Instagram, Facebook, WhatsApp)'] },
-    'M3.P15': { estado: 'valor', valor: 'Lava-jato do Zé e o posto da avenida' }, 'M3.P20': { estado: 'valor', valor: 'de R$ 40 a R$ 60' },
-    'M3.P21': { estado: 'valor', valor: 'Lavo na porta de casa, sem a pessoa sair' } };
-  await page.goto(URL);
-  await page.evaluate(([k, s, m1]) => { localStorage.clear(); localStorage.setItem(k, s); localStorage.setItem('lg2-turma-a-m01', m1); },
-    [CHAVE, JSON.stringify({ v: 4, R: RESP, hist: ['RESULTADO'] }), JSON.stringify(M1(SO_CABECA))]);
-  await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
-  const resH = await page.evaluate(() => ({
-    p01: (() => { const e = document.querySelector('.etapa[data-cod="M3.P01"]'); return e && { r: e.querySelector('.etapa-r').textContent, selo: (e.querySelector('.selo-m') || {}).textContent }; })(),
-    p11: (() => { const e = document.querySelector('.etapa[data-cod="M3.P11"]'); return e && (e.querySelector('.selo-m') || {}).textContent; })(),
-    semResp: [...document.querySelectorAll('.pend')].map((x) => x.dataset.cod),
-    ent: [...document.querySelectorAll('#entendemos p')].map((x) => x.textContent),
-    li: document.querySelectorAll('#entendemos li').length,
-  }));
-  const entP = resH.ent, entT = entP.join(' ');   // parágrafos (texto corrido) e o texto inteiro
-  check(resH.p01 && resH.p01.r === 'lavagem de carro em casa (serviço)' && resH.p01.selo === 'Veio do Módulo 1', 'resumo: o que vende veio do Módulo 1, com o selo');
-  check(resH.p11 === 'Veio do perfil do cliente', 'resumo: a dor veio do perfil do cliente, com o selo');
-  check(!resH.semResp.includes('M3.P01'), 'resumo: a pergunta herdada não aparece como "sem resposta"');
-  check(resH.ent[0].startsWith('Você quer vender “lavagem de carro em casa” — é um serviço. A ideia ainda está no começo: você ainda não começou a vender. Você pretende vender'), `entendemos: ideia + tipo + estágio abrem o 1º parágrafo, com o cliente na sequência (${resH.ent[0]})`);
-  check(entT.includes('Você pretende vender no seu bairro e na sua cidade, e os clientes que você imagina são pessoas comuns (idade: 30 a 44 anos; renda: de 1 a 3 salários mínimos; ocupação: trabalhadores com carteira assinada; onde moram: Bairro São Pedro).'), 'entendemos: alcance + cliente (plural concordando)');
-  check(entT.includes('O que o cliente quer resolver com você: “Não tem tempo de levar o carro ao lava-jato”.') && entT.includes('Por onde o cliente vai encontrar e comprar de você: WhatsApp e redes sociais como o Instagram.'), `entendemos: dor + canais (${entP.join(' / ')})`);
-  check(entT.includes('Quem vende algo parecido: “Lava-jato do Zé e o posto da avenida”; eles cobram em torno de R$ 50,00.'), 'entendemos: concorrentes + preço médio');
-  check(entP.length >= 1 && entP.length <= 3 && resH.li === 0, `entendemos: 1 a 3 parágrafos, sem <li> (${entP.length})`);
-  check(entP[1] && entP[1].startsWith('Por onde o cliente') && entP[1].includes('Quem vende algo parecido'), `entendemos: 2º parágrafo junta canais e concorrentes (${entP[1]})`);
-  await semCodigos('resumo com herança');
-  /* item 4: roteiro de pesquisa e tabela de concorrentes no resultado */
-  const ent4 = await page.evaluate(() => ({
-    rot: [...document.querySelectorAll('#roteiro li')].map((x) => x.textContent),
-    conc: [...document.querySelectorAll('#tabela-conc .conc')].map((c) => ({ nome: c.dataset.nome, dd: [...c.querySelectorAll('dd')].map((x) => x.textContent) })),
-  }));
-  check(ent4.rot.length >= 3 && ent4.rot.length <= 6, `roteiro: 3 a 6 passos (${ent4.rot.length})`);
-  check(ent4.rot.some((x) => /Lava-jato do Zé e O posto da avenida/.test(x)) && ent4.rot.some((x) => /preço de um serviço parecido/.test(x)) && ent4.rot.some((x) => /entre R\$ 40,00 e R\$ 60,00/.test(x)),
-    `roteiro: usa os concorrentes citados, o tipo (serviço) e a faixa de preço (${ent4.rot.join(' / ')})`);
-  check(ent4.rot.some((x) => /pessoas que comprariam de você/.test(x)), 'roteiro: quem ainda não começou pergunta a quem compraria');
-  check(JSON.stringify(ent4.conc.map((c) => c.nome)) === '["Lava-jato do Zé","O posto da avenida"]', `tabela: um cartão por concorrente citado (${ent4.conc.map((c) => c.nome)})`);
-  check(ent4.conc[0] && ent4.conc[0].dd[0] === 'Vende o mesmo que você (concorrente direto)' && ent4.conc[0].dd[1] === 'de R$ 40 a R$ 60' && ent4.conc[0].dd[5] === 'a anotar', `tabela: tipo, preço informado e "a anotar" (${ent4.conc[0] && ent4.conc[0].dd.join(' | ')})`);
-  await page.evaluate(() => document.querySelector('#roteiro').scrollIntoView({ block: 'start' }));
-  await shot('09b-roteiro-tabela');
-  await page.evaluate(() => document.querySelector('#entendemos').scrollIntoView({ block: 'start' }));
-  await shot('09-entendemos');
-  await page.evaluate(() => { document.querySelector('#respostas').open = true; });
-  check(await clicar('.etapa[data-cod="M3.P01"] .ajustar', 'Ajustar'), 'resumo: botão Ajustar na resposta herdada');
-  await espera();
-  check(norm(await titulo()) === norm(SERVX(VAR(1).pergunta)) && (await page.inputValue('#ent textarea')) === 'lavagem de carro em casa (serviço)', 'Ajustar: pergunta 1 preenchida com o que veio do Módulo 1');
-  check(norm(await page.evaluate(() => document.querySelector('.selo-m').textContent)) === 'Veio do Módulo 1. Confira e ajuste se quiser.', 'Ajustar: selo "Veio do Módulo 1"');
-  await shot('10-p01-herdada');
-  await digitar('Lava-jato que vai até a casa do cliente'); await clicar('#ok', 'Continuar'); await espera();
-  check(await page.evaluate(() => !!document.querySelector('#entendemos')), 'Ajustar: volta ao resumo');
-  R = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-  check(R['M3.P01'].valor === 'Lava-jato que vai até a casa do cliente', 'Ajustar: o ajuste fica guardado neste módulo');
-  check(await page.evaluate(() => document.querySelector('#entendemos p').textContent.includes('“Lava-jato que vai até a casa do cliente”')), 'entendemos: usa o ajuste');
-  const m1depois = await page.evaluate(() => localStorage.getItem('lg2-turma-a-m01'));
-  check(m1depois === JSON.stringify(M1(SO_CABECA)), 'Módulo 1 nunca é alterado');
-  /* item 5: frase dos clientes empresa com a ideia escrita no campo "Local" (relato do testador) */
-  const BOLO = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Bolos caseiros de pote' }, 'M1.P03A': { estado: 'opcao', opcao: 'Produto: eu mesmo faço o que vendo' } } };
-  await page.goto(URL);
-  await page.evaluate(([k, s, m1]) => { localStorage.clear(); localStorage.setItem(k, s); localStorage.setItem('lg2-turma-a-m01', m1); }, [CHAVE, JSON.stringify({ v: 5, R: {
-    'M3.P02': { estado: 'opcao', opcao: 'Não' }, 'M3.P09': { estado: 'opcao', opcao: 'No meu bairro e na minha cidade' },
-    'M3.P10': { estado: 'opcao', opcao: 'Empresas', campos: { Ramo: 'Restaurantes e alimentação', Tamanho: 'Não sei', Equipe: 'Não sei', Local: 'Bolos caseiros de pote' } },
-    'M3.P15': { estado: 'valor', valor: 'Doces da Ana' }, 'M3.P20': { estado: 'valor', valor: 'R$ 1.500,00', min: 1500, max: 1500 },
-    'M3.P22': { estado: 'valor', campos: { 'O que os outros fazem bem': 'Entregam rápido', 'Onde os outros deixam a desejar': 'Demoram para responder' } } }, hist: ['RESULTADO'] }), JSON.stringify(BOLO)]);
-  await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
-  const ent5 = await page.evaluate(() => [...document.querySelectorAll('#entendemos p')].map((x) => x.textContent));
-  check(ent5.join(' ').includes('Você vende no seu bairro e na sua cidade, e os clientes que você mais atende são empresas (ramo: restaurantes e alimentação).'), `entendemos: "os clientes… são empresas", sem a ideia entre parênteses (${ent5.join(' / ')})`);
-  check(!ent5.some((x) => /\(em |Bolos caseiros de pote\)/.test(x)), 'entendemos: nada de "(em Bolos caseiros de pote)"');
-  const c5 = await page.evaluate(() => [...document.querySelectorAll('#tabela-conc .conc')].map((c) => [c.dataset.nome, ...[...c.querySelectorAll('dd')].map((x) => x.textContent)]));
-  check(JSON.stringify(c5[0]) === JSON.stringify(['Doces da Ana', 'Vende o mesmo que você (concorrente direto)', 'R$ 1.500,00', 'Entregam rápido', 'Demoram para responder', 'a anotar', 'a anotar']), `tabela: nome, preço, ponto forte e fraco informados (${c5[0]})`);
-  const rot5 = await page.evaluate(() => [...document.querySelectorAll('#roteiro li')].map((x) => x.textContent));
-  check(rot5.some((x) => /Anote o preço de algo parecido/.test(x)) && rot5.some((x) => /“Bolos caseiros de pote perto de mim”/.test(x)) && rot5.some((x) => /confira se o que você respondeu/.test(x)), `roteiro de produto (${rot5.join(' / ')})`);
-  await page.evaluate(() => document.querySelector('#entendemos').scrollIntoView({ block: 'start' }));
-  await shot('09c-entendemos-empresas');
-  /* sem concorrentes citados: modelo com 3 linhas para preencher */
-  await page.evaluate((k) => { const s = JSON.parse(localStorage.getItem(k)); delete s.R['M3.P15']; localStorage.setItem(k, JSON.stringify(s)); }, CHAVE);
-  await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
-  const c6 = await page.evaluate(() => [...document.querySelectorAll('#tabela-conc .conc')].map((c) => c.dataset.nome));
-  check(JSON.stringify(c6) === '["Concorrente 1","Concorrente 2","Concorrente 3"]', 'tabela: sem concorrentes citados vira modelo com 3 linhas');
-  /* capa: a promessa bate com o que o resultado entrega (e sem "Grupo N") */
-  const capaT = await page.evaluate(() => window.MODULO3.mapa.entrega);
-  check(/^Roteiro de pesquisa/.test(capaT) && /Tabela de concorrentes/.test(capaT) && /Módulo 4/.test(capaT) && !/Grupo/.test(capaT), 'capa: entrega promete roteiro, tabela e Módulo 4');
-  /* item 7: exemplos por tipo do Módulo 1 */
-  const TIPO = (op) => ({ v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'naosei' }, 'M1.P03A': { estado: 'opcao', opcao: op } } });
-  const SERV = TIPO('Serviço: meu cliente paga pelo trabalho que realizo'), MERC = TIPO('Mercadoria: compro pronto e revendo'), PROD = TIPO('Produto: eu mesmo faço o que vendo');
-  await abrir(1, {}, SERV, P(1).pergunta.replace('Vendo marmitas para trabalhadores do bairro', 'Faço unhas em domicílio para mulheres do bairro'));
-  await abrir(1, {}, MERC, P(1).pergunta.replace('Vendo marmitas para trabalhadores do bairro', 'Revendo cosméticos para vizinhas e colegas de trabalho'));
-  await abrir(1, {}, PROD);
-  await abrir(3, {}, SERV, P(3).pergunta.replace('quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote', 'quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha'));
-  await shot('11-exemplo-servico');
-  await abrir(18, {}, SERV, P(18).pergunta.replace('(Horário, entrega, forma de atender)', '(Horário, se atendem em casa, forma de atender)'));
-  check(/se atendem em casa/.test(await tela()), 'serviço: "onde ficam e como trabalham" fala de atender em casa');
-  await abrir(21, {}, SERV);
-  await digitar('qualidade'); await clicar('#ok', 'Continuar'); await espera();
-  check((await caixas()).some((c) => /atendimento em casa, horário à noite/.test(c.txt)), 'serviço: exemplo de diferencial de serviço');
-  await abrir(19, {}, SERV);
-  await clicar('#ns', 'Não sei'); await espera();
-  check(/Prazo \(tempo para atender\)/.test(await tela()) && await page.evaluate(() => !!document.querySelector('.t-linha[data-crit="Prazo (tempo para entregar)"]')), 'serviço: critério de prazo com texto de serviço, mesma chave salva');
-  /* dor do perfil pré-preenche a pergunta 11 quando aberta */
-  await abrir(11, { 'M3.P10': RESP['M3.P10'], 'M3.P11': RESP['M3.P11'] });
-  check((await page.inputValue('#ent textarea')) === RESP['M3.P11'].valor && /Veio do perfil do cliente/.test(await tela()), 'pergunta 11 aberta: vem preenchida com a dor do perfil');
-  /* estado da versão 3 (mesmas perguntas) é mantido */
-  await page.goto(URL);
-  await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 3, R: { 'M3.P01': { estado: 'valor', valor: 'Vendo bolos no bairro' } }, hist: ['M3.P01', 'M3.P02'] })); }, CHAVE);
-  await page.reload(); await espera();
-  check(await clicar('button', 'Continuar de onde parei'), 'estado da versão 3: mantido');
-
-  /* ============ 7. estado antigo (15 perguntas) descartado ============ */
-  const antigo = JSON.stringify({ v: 2, R: { 'M3.P01': { estado: 'valor', valor: 'bolo' }, 'M3.P15': { estado: 'opcoes', opcoes: ['Outra dúvida'] }, 'M3.P04': { estado: 'valor', valor: '3' } }, hist: ['M3.P01', 'M3.P04', 'M3.P15'] });
-  for (const [nome, chave] of [['mesma chave', CHAVE], ['chave antiga da turma B', 'lg2-turma-b-m03']]) {
-    const n0 = erros.length;
-    await page.goto(URL);
-    await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, s); }, [chave, antigo]);
-    await page.reload(); await espera();
-    check(await page.evaluate(() => [...document.querySelectorAll('button')].some((b) => b.textContent === 'Começar')), `estado antigo (${nome}): começa do zero`);
-    await clicar('button', 'Começar'); await espera();
-    check(norm(await titulo()) === norm(P(1).pergunta) && (await page.inputValue('#ent textarea')) === '', `estado antigo (${nome}): pergunta 1 vazia`);
-    check(erros.length === n0, `estado antigo (${nome}): sem erro de JavaScript`);
-  }
-  await page.goto(URL);
-  await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, '{"v":3,"R":{"M3.P99":{}},"hist":["M3.P99"]}'); }, CHAVE);
-  await page.reload(); await espera();
-  check(await clicar('button', 'Começar'), 'estado com código desconhecido é descartado');
-
-  /* ============ escolha única (relatório do Bento): tocar Sim e depois Não deixa só uma marcada ============ */
-  {
-    const marcadas = () => page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].filter((x) => x.classList.contains('sel') || x.getAttribute('aria-checked') === 'true').map((x) => x.dataset.op));
-    /* sem o Módulo 1: a 2ª tela é a pergunta Sim/Não */
-    await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
-    await clicar('button', 'Começar'); await espera();
-    await digitar('Vendo bolos de pote no bairro'); await clicar('#ok', 'Continuar'); await espera();
-    const ok2 = await page.evaluate(() => [...document.querySelectorAll('#ok')].map((b) => b.textContent));
-    if (ok2.length && /Seguir|mesmo/.test(ok2[0])) { await page.click('#ok'); await espera(); }
-    check((await page.locator('.passo').textContent()).startsWith('Pergunta 2 de') && norm(await titulo()) === norm(P(2).pergunta), 'Sim/Não: é a 2ª tela quando o Módulo 1 não foi feito');
-    check(await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'radiogroup' && [...document.querySelectorAll('#ent .opcao')].every((b) => b.getAttribute('role') === 'radio')), 'Sim/Não: grupo de escolha única (radiogroup)');
-    for (const seq of [['Sim', 'Não'], ['Não', 'Sim'], ['Sim', 'Não', 'Sim', 'Não']]) {
-      for (const o of seq) await page.locator(`#ent .opcao[data-op="${o}"]`).click();
-      const m = await marcadas();
-      check(JSON.stringify(m) === JSON.stringify([seq[seq.length - 1]]), `Sim/Não: tocar ${seq.join(' → ')} deixa só "${seq[seq.length - 1]}" marcada (${m.join(', ')})`);
-    }
-    check(await page.evaluate(() => getComputedStyle(document.querySelector('#ent .opcao')).webkitTapHighlightColor === 'rgba(0, 0, 0, 0)'), 'Sim/Não: sem o realce azul do toque (parecia uma 2ª opção marcada)');
-    await shot('m03_p02_escolha_unica');
-    await clicar('#ok', 'Continuar'); await espera();
-    let R2 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M3.P02'], CHAVE);
-    check(JSON.stringify(R2) === JSON.stringify({ estado: 'opcao', opcao: 'Não' }), 'Sim/Não: grava uma resposta só (' + JSON.stringify(R2) + ')');
-    await page.locator('#v').click(); await espera();
-    check(norm(await titulo()) === norm(P(2).pergunta) && JSON.stringify(await marcadas()) === '["Não"]', 'Sim/Não: ao voltar, só a resposta gravada aparece marcada');
-    await page.locator('#ent .opcao[data-op="Sim"]').click();
-    check(JSON.stringify(await marcadas()) === '["Sim"]', 'Sim/Não: trocar a resposta ao voltar desmarca a outra');
-    /* com o Módulo 1 feito, a 1ª pergunta é pulada e a Sim/Não vira a 1ª tela: mesma regra */
-    await page.goto(URL);
-    await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA)));
-    await page.reload(); await clicar('button', 'Começar'); await espera();
-    check((await page.locator('.passo').textContent()).startsWith('Pergunta 1 de') && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.dataset.op))) === '["Sim","Não"]', 'Sim/Não: com o Módulo 1 feito, é a 1ª tela');
-    await page.locator('#ent .opcao[data-op="Sim"]').click(); await page.locator('#ent .opcao[data-op="Não"]').click();
-    check(JSON.stringify(await marcadas()) === '["Não"]', 'Sim/Não (Módulo 1 feito): só uma marcada');
-    /* a outra escolha única do módulo: alcance (o perfil do cliente virou de marcar mais de uma no lote 3) */
-    for (const n of [9, 10].filter((n) => n !== 10)) {
-      await abrir(n, {});
-      const ops = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.dataset.op));
-      let tudoUm = true;
-      for (const o of ops.concat(ops.slice(0, 1))) { await page.locator(`#ent .opcao[data-op="${o}"]`).click(); if (JSON.stringify(await marcadas()) !== JSON.stringify([o])) tudoUm = false; }
-      check(tudoUm, `escolha única na pergunta ${n}: cada toque deixa só uma opção marcada`);
-      if (await page.locator('#ns').count()) {
-        await page.locator('#ns').click(); await espera();
-        check((await marcadas()).length === 0, `pergunta ${n}: "Não sei" desmarca a opção escolhida`);
-        await page.locator(`#ent .opcao[data-op="${ops[0]}"]`).click();
-        check(JSON.stringify(await marcadas()) === JSON.stringify([ops[0]]), `pergunta ${n}: escolher depois do "Não sei" deixa só a opção`);
-      }
-    }
-  }
-
-  /* ============ lote 3 (nov/2026) ============ */
-  const selOps = () => page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op));
-  /* P10 com as duas marcadas: "Não sei" desmarca as duas */
-  await abrir(10, {});
-  await clicar('.opcao', 'Pessoas comuns (consumidor final)'); await clicar('.opcao', 'Empresas'); await espera();
-  check(JSON.stringify(await selOps()) === '["Pessoas comuns (consumidor final)","Empresas"]', 'P10: tocar nas duas deixa as duas marcadas');
-  await page.locator('#ns').click(); await espera();
-  check((await selOps()).length === 0 && await page.evaluate(() => !document.querySelector('.campos .item')), 'P10: "Não sei" desmarca as duas e fecha os campos');
-  await clicar('.opcao', 'Empresas'); await espera();
-  check(JSON.stringify(await selOps()) === '["Empresas"]', 'P10: escolher depois do "Não sei" deixa só a opção');
-  /* alcance continua escolha única (as opções vão do mais perto ao mais longe), com uma ajuda curta */
-  await abrir(9, {});
-  check(/escolha o mais distante/.test(await tela()) && await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'radiogroup'), 'P09: escolha única com a ajuda "escolha o mais distante"');
-
-  /* Receita C: "Voltar" no topo do cartão, à esquerda, acima da pergunta; nenhum Voltar embaixo */
-  for (const n of [2, 10, 15]) {
-    await abrir(n, {});
-    const v = await page.evaluate(() => {
-      const b = document.querySelector('#v'), q = document.querySelector('.cartao-q h2.q'), ok = document.querySelector('#ok');
-      const rb = b.getBoundingClientRect(), rq = q.getBoundingClientRect(), rc = document.querySelector('.cartao-q').getBoundingClientRect();
-      return { n: document.querySelectorAll('#v, .acoes-voltar').length, txt: b.textContent.trim(), dentro: !!b.closest('.cartao-q'), acima: rb.bottom <= rq.top + 1, esq: rb.left - rc.left < 40,
-        okDepois: !!ok && rb.top < ok.getBoundingClientRect().top };
-    });
-    check(v.n === 1 && v.txt === 'Voltar' && v.dentro && v.acima && v.esq && v.okDepois, `Voltar no topo do cartão, acima da pergunta (tela ${n}: ${JSON.stringify(v)})`);
-  }
-  await shot('l3-voltar-topo');
-  /* na 1ª pergunta, o Voltar volta para a capa */
   await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
-  await clicar('button', 'Começar'); await espera();
-  await clicar('#v', 'Voltar'); await espera();
-  check(await page.evaluate(() => !!document.querySelector('#ir') && !document.querySelector('h2.q')), 'Voltar na 1ª pergunta abre a capa');
-  /* tela de limites: Voltar no topo e sem o quadro de profissional */
+  await clicar('button', 'Começar'); await espera(); await clicar('#v', 'Voltar'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#ir')), 'Voltar na 1ª pergunta abre a capa');
   await clicar('#limites', 'O que este módulo não faz'); await espera();
-  const lim = await page.evaluate(() => ({ topo: document.querySelector('main.corpo').firstElementChild.contains(document.querySelector('#v')), prof: /Quando procurar um profissional/.test(document.body.innerText) }));
-  check(lim.topo && !lim.prof, `limites: Voltar no topo e sem o quadro de profissional (${JSON.stringify(lim)})`);
-  await clicar('#v', 'Voltar'); await espera();
-  check(await page.evaluate(() => !!document.querySelector('#ir')), 'limites: Voltar abre a capa');
-
-  /* Receita D: ajuda longa mostra a 1ª parte; o resto fica em "Ver mais" (fechado), sem esconder campo nem Continuar */
-  await abrir(17, {});
-  await page.locator('.pergunta-par .ns').first().click(); await espera();
-  const vm = await page.evaluate(() => { const b = document.querySelector('.b-passos'); const d = b && b.querySelector('details.ver-mais');
-    return b && { vis: [...b.querySelectorAll(':scope > ol li')].length, det: !!d && !d.open, sum: d && d.querySelector('summary').textContent, esc: d ? d.querySelectorAll('li').length : 0, ok: !!document.querySelector('#ok') && document.querySelector('#ok').offsetParent !== null }; });
-  check(vm && vm.vis === 2 && vm.det && vm.sum === 'Ver mais' && vm.esc === 3 && vm.ok, `passo a passo longo: 2 passos à vista e o resto em "Ver mais" (${JSON.stringify(vm)})`);
-  await page.locator('.b-passos details.ver-mais summary').click(); await espera();
-  check(await page.evaluate(() => [...document.querySelectorAll('.b-passos li')].every((l) => l.offsetParent !== null)), '"Ver mais" abre os outros passos');
-  await page.evaluate(() => document.querySelector('.b-passos').scrollIntoView({ block: 'center' }));
-  await shot('l3-ver-mais-passos');
-  /* capa: textos longos recolhidos */
-  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
-  const capa = await page.evaluate(() => [...document.querySelectorAll('.cartao')].map((c) => ({ h: c.querySelector('h3').textContent, det: !!c.querySelector('details.ver-mais:not([open])'), vis: c.querySelector(':scope > p').textContent.length })));
-  check(capa.filter((c) => c.det).map((c) => c.h).join('|') === 'O que ter em mãos|O que você recebe no final' && capa.every((c) => c.vis <= 220), `capa: textos longos com "Ver mais" (${JSON.stringify(capa)})`);
-  check(await page.evaluate(() => document.querySelector('#ir').offsetParent !== null), 'capa: Começar visível');
-  await shot('l3-capa-ver-mais');
-
-  /* Nayara: quem "já fez um pouco para testar" também ainda não vende: vê a versão "o que você imagina" */
+  check(!/Quando procurar um profissional/.test(await tela()), 'limites: sem o quadro de profissional');
+  const SERV = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'naosei' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
+  await abrir(1, {}, { 'lg2-turma-a-m01': SERV }, P(1).pergunta.replace('Vendo marmitas para trabalhadores do bairro', 'Faço unhas em domicílio para mulheres do bairro'));
+  await abrir(3, {}, { 'lg2-turma-a-m01': SERV }, P(3).pergunta.replace('quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote', 'quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha'));
+  await abrir(19, {}, { 'lg2-turma-a-m01': SERV });
+  check(/Prazo \(tempo para atender\)/.test(await tela()), 'serviço: critério de prazo com texto de serviço');
   const TESTANDO = { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' };
-  for (const q of DADOS.filter((q) => q.variantes && q.variantes.ideia && !q.variantes.comecando && q.codigo !== 'M3.P01')) {
+  for (const q of D.perguntas.filter((q) => !q.oculta && q.variantes && q.variantes.ideia && q.codigo !== 'M3.P01')) {
     const n = +q.codigo.slice(4);
-    await abrir(n, {}, M1(TESTANDO), SERVX(q.variantes.ideia.pergunta));
+    const txt = Motor.variante(q, 'comecando').pergunta.split('quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote').join('quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha');
+    await abrir(n, {}, { 'lg2-turma-a-m01': M1(TESTANDO) }, txt);
   }
-  check(['M3.P03', 'M3.P10', 'M3.P16'].every((c) => DADOS.find((q) => q.codigo === c).variantes.ideia.pergunta), 'ainda não vende: versões novas nas perguntas 3, 10 e 16');
-  await abrir(10, {}, M1(TESTANDO), VAR(10).pergunta);
-  check(norm(await titulo()) === 'Quem você imagina que compraria de você? Pessoas comuns, empresas ou os dois?', 'P10 de quem ainda não vende: "quem você imagina que compraria"');
-  await shot('l3-p10-ainda-nao-vende');
-  await abrir(12, {}, M1(TESTANDO), VAR(12).pergunta);
-  await digitar('pouco'); await clicar('#ok', 'Continuar'); await espera();
-  const d12n = (await caixas())[0];
-  check(d12n && /começando do zero/.test(d12n.txt) && !/clientes que voltam/.test(d12n.txt), `P12 de quem ainda não vende: dica sem "clientes que voltam" (${d12n && d12n.txt})`);
-  await abrir(17, {}, M1(TESTANDO), SERVX(VAR(17).pergunta));
-  check(/perguntando a conhecidos/.test(await titulo()), 'P17 de quem ainda não vende: sem "perguntando aos clientes"');
-  /* resumo de quem está testando: "quer vender" e "os clientes que você imagina" */
-  await page.goto(URL);
-  await page.evaluate(([k, s, m1]) => { localStorage.clear(); localStorage.setItem(k, s); localStorage.setItem('lg2-turma-a-m01', m1); },
-    [CHAVE, JSON.stringify({ v: 6, R: { 'M3.P02': { estado: 'opcao', opcao: 'Não' }, 'M3.P10': { estado: 'opcao', opcao: 'Pessoas comuns (consumidor final)', opcoes: ['Pessoas comuns (consumidor final)', 'Empresas'], campos: { Idade: '30 a 44 anos', Ramo: 'Construção' } } }, hist: ['RESULTADO'] }), JSON.stringify(M1(TESTANDO))]);
-  await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
-  const entN = (await page.evaluate(() => [...document.querySelectorAll('#entendemos p')].map((x) => x.textContent))).join(' ');
-  check(/Você quer vender “lavagem de carro em casa”/.test(entN) && /os clientes que você imagina são pessoas comuns \(idade: 30 a 44 anos\) e empresas \(ramo: construção\)/i.test(entN), `resumo de quem testa: "quer vender" e pessoas + empresas (${entN})`);
-  check(await page.evaluate(() => { const v = document.querySelector('#v'); return document.querySelector('main.corpo').firstElementChild.contains(v) && document.querySelectorAll('#v').length === 1; }), 'resultado: Voltar no topo');
-
-  /* capa */
-  await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
-  await semCodigos('capa'); await fonte16('capa');
-  await shot('01-inicio');
+  await abrir(13, {}, { 'lg2-turma-a-m01': M1(SO_CABECA) }, P(13).variantes.ideia.pergunta);
+  await clicar('.opcao', 'Ainda não defini o canal de vendas'); await espera();
+  check((await caixas('#msg .caminho'))[0].prompt.startsWith('Eu quero vender lavagem de carro em casa em [cidade ou bairro]'), 'prompt: "Eu quero vender" + o que vende do Módulo 1');
 
   check(erros.length === 0, 'sem erros de JavaScript: ' + erros.join(' | '));
   await browser.close(); servidor.close();
-  console.log(`\n${ok} verificações OK, ${falhas.length} falhas (${LINHAS.length} linhas da aba "Caminhos por resposta")`);
+  console.log(`\n${ok} verificações OK, ${falhas.length} falhas`);
   if (falhas.length) { console.log('FALHOU'); process.exit(1); }
   console.log('PASS');
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -32,7 +32,8 @@
         <div id="resumo-texto"></div>
         <p class="resumo-nota">Montado com o que você respondeu nos módulos. Se algo não estiver certo, abra o módulo e corrija.</p>
       </div>
-      <a class="btn" href="/protected/modulos/laboratorio-de-gestao?aba=jornada">Voltar ao Laboratório de Gestão</a>
+      <p class="acoes-fim"><button type="button" class="btn btn-diag" id="ver-diag-fim">Ver o diagnóstico final</button></p>
+      <a class="btn btn-sec" href="/protected/modulos/laboratorio-de-gestao?aba=jornada">Voltar ao Laboratório de Gestão</a>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">
@@ -49,13 +50,39 @@
       <div class="painel-corpo">
         <div class="painel-resumo" id="painel-resumo"></div>
         <p class="painel-nota" id="painel-nota">Montado com o que você respondeu. Se algo não estiver certo, abra o módulo e corrija.</p>
+        <p class="painel-diag"><button type="button" class="btn-diag-painel" id="ver-diag-painel">Ver o diagnóstico final</button>
+          <span>Todas as suas respostas, módulo por módulo, para ler ou salvar em PDF.</span></p>
         <h3 class="painel-sub">Seus módulos</h3>
         <ul class="painel-lista" id="painel-lista"></ul>
       </div>
     </section>
   </div>
+  <div class="diag-fundo" id="diagnostico" hidden>
+    <article class="diag" role="dialog" aria-modal="true" aria-labelledby="diag-titulo">
+      <div class="diag-barra">
+        <button type="button" class="fechar" id="fecha-diag">Fechar</button>
+        <button type="button" class="imprimir" id="imprime-diag">Imprimir ou salvar em PDF</button>
+      </div>
+      <header class="diag-cabeca">
+        <img class="diag-logo" src="assets/minds.svg" alt="Minds of the Future">
+        <div>
+          <p class="kicker">Laboratório de Gestão · Apoio a pequenos negócios</p>
+          <h2 id="diag-titulo">Diagnóstico final do seu negócio</h2>
+          <p class="diag-data" id="diag-data"></p>
+        </div>
+      </header>
+      <div class="diag-corpo" id="diag-corpo"></div>
+      <p class="diag-rodape-nota">Montado com o que você respondeu neste aparelho. Se algo não estiver certo, abra o módulo e corrija.</p>
+      <div class="logos diag-logos">
+        <img src="assets/logo_facc.png" alt="FACC">
+        <img src="assets/logo_ufjf.svg" alt="UFJF">
+        <img src="assets/logo_mg.svg" alt="Governo de Minas Gerais">
+      </div>
+    </article>
+  </div>
   <script src="js/motor7.js"></script>
   <script src="js/resumo-negocio.js"></script>
+  <script src="js/diagnostico.js"></script>
   <script src="js/jornada.js"></script>
   <script src="js/metricas.js" defer></script>
 </body>
