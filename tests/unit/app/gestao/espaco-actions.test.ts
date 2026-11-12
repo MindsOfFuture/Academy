@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-/** Tipo e espaço de um encontro já lançado, e o aviso de espaço ocupado ao lançar. */
+/** Editar um encontro já lançado, e o aviso de espaço ocupado ao lançar. */
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/api/gestao/auth", () => ({ ensureGestaoMember: async () => "coordenacao" }));
 
-const { definirTipoEspaco, conflitosDeEspaco, conflitosDeHorario } = vi.hoisted(() => ({
-  definirTipoEspaco: vi.fn(async () => undefined),
+const { editarEncontro, obterEncontro, conflitosDeEspaco, conflitosDeHorario } = vi.hoisted(() => ({
+  editarEncontro: vi.fn(async () => undefined),
+  obterEncontro: vi.fn(async () => null),
   conflitosDeEspaco: vi.fn(async (data: string) => [
     { bolsistaId: "s1", bolsistaNome: "Sala 1", encontroId: `outro-${data}`, data, horario: "8h", modalidade: "Lego", turmaNome: null },
   ]),
@@ -15,12 +16,13 @@ const { definirTipoEspaco, conflitosDeEspaco, conflitosDeHorario } = vi.hoisted(
 }));
 vi.mock("@/lib/api/gestao/alocacao", async (original) => ({
   ...(await original<typeof import("@/lib/api/gestao/alocacao")>()),
-  definirTipoEspaco,
+  editarEncontro,
+  obterEncontro,
   conflitosDeEspaco,
   conflitosDeHorario,
 }));
 
-import { conflitosEncontroAction, tipoEspacoEncontroAction } from "@/app/gestao/alocacao/actions";
+import { conflitosEncontroAction, editarEncontroAction } from "@/app/gestao/alocacao/actions";
 
 const ESPACO = "11111111-1111-4111-8111-111111111111";
 
@@ -31,30 +33,34 @@ function form(campos: Record<string, string>): FormData {
 }
 
 beforeEach(() => {
-  definirTipoEspaco.mockClear();
+  editarEncontro.mockClear();
   conflitosDeEspaco.mockClear();
 });
 
-describe("tipoEspacoEncontroAction", () => {
-  it("grava tipo e espaço; espaço vazio tira o espaço", async () => {
-    expect(await tipoEspacoEncontroAction(null, form({ encontroId: "e1", tipo: "gravacao", espacoId: ESPACO }))).toEqual({
+describe("editarEncontroAction", () => {
+  const encontro = { encontroId: "e1", data: "2099-01-10", inicio: "08:00", fim: "10:00", modalidade: "Lego", numeroAula: "3" };
+
+  it("grava o encontro validado; espaço vazio tira o espaço", async () => {
+    expect(await editarEncontroAction(null, form({ ...encontro, tipo: "gravacao", espacoId: ESPACO }))).toEqual({
       ok: true,
       mensagem: "Encontro atualizado.",
     });
-    expect(definirTipoEspaco).toHaveBeenLastCalledWith("e1", "gravacao", ESPACO);
-    await tipoEspacoEncontroAction(null, form({ encontroId: "e1", tipo: "aula", espacoId: "" }));
-    expect(definirTipoEspaco).toHaveBeenLastCalledWith("e1", "aula", null);
+    expect(editarEncontro).toHaveBeenLastCalledWith("e1", expect.objectContaining({ data: "2099-01-10", numeroAula: 3, tipo: "gravacao", espacoId: ESPACO }));
+    await editarEncontroAction(null, form({ ...encontro, tipo: "aula", espacoId: "" }));
+    expect(editarEncontro).toHaveBeenLastCalledWith("e1", expect.objectContaining({ tipo: "aula", espacoId: null }));
   });
 
-  it("recusa tipo fora da lista, espaço que não é UUID e encontro ausente, sem ir ao banco", async () => {
+  it("recusa tipo fora da lista, espaço que não é UUID, fim antes do início e encontro ausente, sem ir ao banco", async () => {
+    const { encontroId: _, ...semId } = encontro;
     for (const campos of [
-      { encontroId: "e1", tipo: "festa", espacoId: "" },
-      { encontroId: "e1", tipo: "aula", espacoId: "sala" },
-      { tipo: "aula", espacoId: "" },
+      { ...encontro, tipo: "festa" },
+      { ...encontro, tipo: "aula", espacoId: "sala" },
+      { ...encontro, fim: "07:00" },
+      semId,
     ]) {
-      expect((await tipoEspacoEncontroAction(null, form(campos))).ok).toBe(false);
+      expect((await editarEncontroAction(null, form(campos))).ok).toBe(false);
     }
-    expect(definirTipoEspaco).not.toHaveBeenCalled();
+    expect(editarEncontro).not.toHaveBeenCalled();
   });
 });
 

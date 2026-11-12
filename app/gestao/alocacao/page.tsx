@@ -49,6 +49,7 @@ function CartaoEncontro({ e }: { e: Encontro }) {
           {e.horario}
         </span>{" "}
         · {e.modalidade}
+        {e.numeroAula !== null && ` · Aula ${e.numeroAula}`}
         {e.tipo !== "aula" && <span className="block text-gray-600">{TIPO_ENCONTRO[e.tipo]}</span>}
         {e.turmaNome && <span className="block text-gray-600">{e.turmaNome}</span>}
         {e.escolaNome && <span className="block text-gray-600">{e.escolaNome}</span>}

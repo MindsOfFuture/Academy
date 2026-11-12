@@ -550,7 +550,7 @@ export interface NovoEncontro {
     descricao: string;
     escolaId: string | null;
     turmaId: string | null;
-    /** Na repetição semanal, cada semana soma 1. */
+    /** Na repetição, cada data seguinte soma 1. */
     numeroAula: number | null;
     tipo: TipoEncontro;
     espacoId: string | null;
@@ -558,6 +558,16 @@ export interface NovoEncontro {
     /** Subconjunto de `equipe`; o resto entra como apoio. */
     responsaveis: string[];
 }
+
+/** Uma data de um lançamento repetido, com a equipe daquele dia. */
+export interface Ocorrencia {
+    data: string;
+    equipe: string[];
+    responsaveis: string[];
+}
+
+/** O que muda ao editar um encontro já lançado; turma, escola e equipe têm telas próprias. */
+export type EdicaoEncontro = Pick<NovoEncontro, "data" | "inicio" | "fim" | "modalidade" | "descricao" | "numeroAula" | "tipo" | "espacoId">;
 
 export interface NovaTurma {
     escolaId: string;

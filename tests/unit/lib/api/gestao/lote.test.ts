@@ -74,14 +74,52 @@ describe("repetir toda semana", () => {
     expect(datasSemanais("2026-12-28", "2027-01-11")).toEqual(["2026-12-28", "2027-01-04", "2027-01-11"]);
   });
 
+  // 06/10/2026 é uma terça.
+  const encontro = {
+    data: "2026-10-06", inicio: "08:00", fim: "10:00", modalidade: "Lego", descricao: "", escolaId: null, turmaId: null,
+    numeroAula: 1, tipo: "aula" as const, espacoId: null, equipe: [BIA], responsaveis: [BIA],
+  };
+  const datas = (r: ReturnType<typeof validarRepeticao>) => (r.ok ? r.valor.map((o) => o.data) : r.mensagem);
+
   it("sem data final é só o encontro; fim antes do início e mais de 30 semanas são recusados", () => {
-    expect(validarRepeticao(form({}), "2026-10-06")).toEqual({ ok: true, valor: ["2026-10-06"] });
-    expect(validarRepeticao(form({ repetirAte: "2026-10-01" }), "2026-10-06").ok).toBe(false);
-    expect(validarRepeticao(form({ repetirAte: "2027-04-27" }), "2026-10-06")).toMatchObject({ ok: true });
-    expect(validarRepeticao(form({ repetirAte: "2027-05-04" }), "2026-10-06")).toEqual({
+    expect(validarRepeticao(form({}), encontro)).toEqual({
+      ok: true,
+      valor: [{ data: "2026-10-06", equipe: [BIA], responsaveis: [BIA] }],
+    });
+    expect(validarRepeticao(form({ repetirAte: "2026-10-01" }), encontro).ok).toBe(false);
+    expect(validarRepeticao(form({ repetirAte: "2027-04-27" }), encontro)).toMatchObject({ ok: true });
+    expect(validarRepeticao(form({ repetirAte: "2027-05-04" }), encontro)).toEqual({
       ok: false,
       mensagem: "A repetição vai até 30 semanas. Escolha uma data mais próxima.",
     });
+  });
+
+  it("outros dias da semana: em ordem de data, cada um com a mesma equipe ou a sua", () => {
+    const r = validarRepeticao(
+      form({ dias: ["4", "3"], "equipePropria-4": "1", "equipe-4": [CAIO], "responsaveis-4": [CAIO, BIA] }),
+      encontro,
+    );
+    expect(r).toEqual({
+      ok: true,
+      valor: [
+        { data: "2026-10-06", equipe: [BIA], responsaveis: [BIA] },
+        { data: "2026-10-07", equipe: [BIA], responsaveis: [BIA] },
+        // Responsável fora da equipe do dia não conta.
+        { data: "2026-10-08", equipe: [CAIO], responsaveis: [CAIO] },
+      ],
+    });
+  });
+
+  it("outros dias combinam com toda semana", () => {
+    expect(datas(validarRepeticao(form({ dias: "3", repetirAte: "2026-10-13" }), encontro))).toEqual([
+      "2026-10-06", "2026-10-07", "2026-10-13", "2026-10-14",
+    ]);
+  });
+
+  it("recusa dia antes ou no dia do encontro, domingo e lixo", () => {
+    for (const dia of ["2", "1", "0", "7", "x"]) {
+      expect(validarRepeticao(form({ dias: dia }), encontro).ok).toBe(false);
+    }
   });
 });
 
