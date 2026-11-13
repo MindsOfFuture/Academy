@@ -200,22 +200,25 @@
       [NS, NS],
     ],
     "M10-05": [
-      ["Indicação e boca a boca de quem já comprou", "Indicação de quem já comprou"],
-      ["WhatsApp Business (status e lista de contatos)", "Grupos de mensagem"],
-      ["Catálogo no Instagram ou outra rede social", "Redes sociais próprias"],
-      ["Grupos de mensagem do bairro ou da comunidade", "Grupos de mensagem"],
-      ["Atendimento direto (conversa, amostra ou degustação)", "Indicação de quem já comprou"],
-      ["Atendimento em domicílio (oferecer na casa do cliente)", "Indicação de quem já comprou"],
-      ["Aplicativo de entrega (iFood e outros)", "Parceria com outro negócio"],
-      ["Cartaz ou panfleto no bairro", "Cartaz ou panfleto no bairro"],
-      ["Parceria com outro negócio", "Parceria com outro negócio"],
-      ["Site próprio", "Redes sociais próprias"],
-      ["Marketplace (Mercado Livre, Shopee e outros)", "Parceria com outro negócio"],
+      ["Indicação", "Indicação de quem já comprou", "Indicação e boca a boca de quem já comprou"],
+      ["WhatsApp", "Grupos de mensagem", "WhatsApp Business (status e lista de contatos)"],
+      ["Redes sociais", "Redes sociais próprias", "Catálogo no Instagram ou outra rede social"],
+      ["Grupos do bairro", "Grupos de mensagem", "Grupos de mensagem do bairro ou da comunidade"],
+      ["Atendimento direto", "Indicação de quem já comprou", "Atendimento direto (conversa, amostra ou degustação)"],
+      ["Atendimento em domicílio", "Indicação de quem já comprou", "Atendimento em domicílio (oferecer na casa do cliente)"],
+      ["Aplicativo de entrega", "Parceria com outro negócio", "Aplicativo de entrega (iFood e outros)"],
+      ["Cartaz ou panfleto", "Cartaz ou panfleto no bairro", "Cartaz ou panfleto no bairro"],
+      ["Parceria", "Parceria com outro negócio", "Parceria com outro negócio"],
+      ["Site próprio", "Redes sociais próprias", "Site próprio"],
+      ["Marketplace", "Parceria com outro negócio", "Marketplace (Mercado Livre, Shopee e outros)"],
       ["Anúncio pago", "Anúncio pago"],
       ["Ainda não sei", "Ainda não sei"],
     ],
   };
-  const LINHA_APP = Object.fromEntries(Object.entries(OPS_APP).map(([c, l]) => [c, Object.fromEntries(l)]));
+  const LINHA_APP = Object.fromEntries(Object.entries(OPS_APP).map(([c, l]) => [c, Object.fromEntries(l.map(([rotulo, original]) => [rotulo, original]))]));
+  const OPS_ANTIGAS_UI = Object.fromEntries((OPS_APP["M10-05"] || []).map(([rotulo, , salvo]) => [salvo || rotulo, rotulo]));
+  const rotuloAtual = (cod, valor) => cod === "M10-05" ? (OPS_ANTIGAS_UI[valor] || valor) : valor;
+  const valorSalvo = (cod, rotulo) => cod === "M10-05" ? ((OPS_APP[cod].find(([r]) => r === rotulo) || [rotulo, rotulo, rotulo])[2]) : rotulo;
   const opcoesDe = (cod) => OPS_APP[cod] ? OPS_APP[cod].map((x) => x[0]) : Q[cod].caminhos.filter((c) => !META.has(c.opcao) && !c.opcao.startsWith("'")).flatMap((c) => partes(c.opcao));
   const caminho = (cod, op) => { const o = (LINHA_APP[cod] && LINHA_APP[cod][op]) || op; return Q[cod].caminhos.find((c) => c.opcao === o || partes(c.opcao).includes(o)); };
 
@@ -300,7 +303,7 @@
   }
   const FASE = (cod) => (cod === SOCIO ? "Pessoas" : Q[cod].fase);
   /* M10-01 sem canais de venda conhecidos: a pergunta não fala em "Além de …" */
-  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : cod === "M10-01" && !canaisVenda() ? "Por onde os clientes falam com você?" : preencher(Q[cod].pergunta));
+  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : cod === "M10-01" && !canaisVenda() ? "Por onde falam os clientes?" : preencher(Q[cod].pergunta));
 
   /* ---------- M10-01: as opções não repetem os canais de venda que já aparecem na pergunta ---------- */
   const canaisVenda = () => String(I().canais || "").trim();
@@ -370,9 +373,10 @@
   }
 
   /* ---------- peças do layout (modelo dos Módulos 6 e 7) ---------- */
-  function rodape() {
+  /* versão leve: o crédito em texto só na capa e no resultado; nas perguntas, só as marcas */
+  function rodape(credito) {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do ${esc(D.origem)}</p>
+      ${credito ? `<p class="credito">Laboratório de Gestão II · FACC/UFJF</p>` : ""}
       <div class="logos"><img src="assets/logo_facc.png" alt="FACC"><img src="assets/logo_ufjf.svg" alt="UFJF"><img src="assets/logo_mg.svg" alt="Governo de Minas Gerais"></div>
     </footer>`;
   }
@@ -383,6 +387,11 @@
     </div>`;
   }
   function heroi(o) {
+    /* versão leve: nas perguntas, faixa compacta (só o passo e a barra de progresso, sem título repetido nem ilustração) */
+    if (o.compacta) return `<section class="heroi heroi-compacta">
+      <div class="heroi-txt">${o.kicker ? `<div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker)}</div>` : ""}${o.titulo ? `<h2 class="heroi-tit">${esc(o.titulo)}</h2>` : ""}</div>
+      ${o.pct != null ? `<div class="heroi-prog"><div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.pct}"><div class="barra-fill" style="width:${o.pct}%"></div></div></div>` : ""}
+    </section>`;
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
@@ -410,7 +419,46 @@
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
     const a = p.querySelector("#alterar"); if (a) a.onclick = () => ir(telaPartida, { volta: true });
     const z = p.querySelector("#zerar"); if (z) z.onclick = reiniciar;
-    p.querySelectorAll(".btn-copiar").forEach((b) => (b.onclick = () => { try { navigator.clipboard.writeText(b.dataset.t); } catch (e) {} b.textContent = "Copiado"; }));
+    p.querySelectorAll("[data-copiar]").forEach((b) => {
+      const alvo = b.parentNode.querySelector("[data-prompt]");
+      b.onclick = () => copiar(alvo.textContent, b, alvo);
+    });
+  }
+  /* copiar com reserva: área de transferência → execCommand → deixa o texto selecionado (como no Módulo 1) */
+  function copiar(t, b, alvo) {
+    const rotulo = b.dataset.rotulo || "Copiar";
+    const pronto = () => { b.textContent = "Copiado!"; setTimeout(() => { if (document.contains(b)) b.textContent = rotulo; }, 2000); };
+    const reserva = () => {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let foi = false;
+      try { foi = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      if (foi) return pronto();
+      try { const r = document.createRange(); r.selectNodeContents(alvo); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+      b.textContent = "Toque e segure o texto para copiar";
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(pronto, reserva);
+    else reserva();
+  }
+  /* ---------- "Não sei": caixa "Como descobrir" (passos + pedido pronto para a IA, com Copiar) ----------
+     Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA); a resposta salva não muda. */
+  const ehNSop = (o) => typeof o === "string" && /(?:ainda\s+)?não\s+sei/i.test(o);
+  const ajudaQ = (cod) => (cod === SOCIO ? D.socio : Q[cod]) || {};
+  function caixaComo(cod) {
+    const q = ajudaQ(cod);
+    if (!q.comoDescobrir || !q.comoDescobrir.length) return "";
+    return `<section class="como-descobrir" role="status">
+      <b class="como-tit">Como descobrir</b>
+      <ol>${q.comoDescobrir.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${q.promptIA ? `<div class="pedir-ia">
+        <b>Peça ajuda à IA</b>
+        <p class="como-nota">Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
+        <p class="prompt" data-prompt>${esc(q.promptIA)}</p>
+        <button class="btn-alt copiar" type="button" data-copiar>Copiar</button>
+      </div>` : ""}
+    </section>`;
   }
   function reiniciar() {
     if (!confirm("Apagar todas as respostas deste módulo e recomeçar? Se quiser guardar, imprima o resultado antes.")) return;
@@ -437,10 +485,15 @@
   }
   /* conceitos da Base técnica (documento v2) ligados a cada pergunta: escolha do app */
   const CONCEITO = { "M10-01": ["M10-C02"], "M10-02": ["M10-C03"], "M10-03": ["M10-C04"], "M10-04": ["M10-C05"], "M10-05": ["M10-C01"], [SOCIO]: ["M10-C07"], "M10-06": ["M10-C07"], "M10-07": ["M10-C08"], "M10-08": ["M10-C09"], "M10-08a": ["M10-C06"], "M10-09": ["M10-C10"] };
-  function termos(cods) {
-    const ts = D.base.filter((b) => cods.includes(b.codigo));
-    if (!ts.length) return "";
-    return `<details class="saiba"><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.conceito)}</b><p>${esc(t.definicao)}</p><p class="ex">${esc(t.porque)}</p></div>`).join("")}</details>`;
+  /* "Ver dica" fechada entre a pergunta e as respostas: o texto de apoio (com os dados do percurso) + os termos */
+  function dicaHtml(t, cods) {
+    t = String(t || "").trim();
+    const ts = D.base.filter((b) => (cods || []).includes(b.codigo));
+    if (!t && !ts.length) return "";
+    return `<details class="dica-toggle"><summary>Ver dica</summary>
+      ${t ? `<p class="ajuda">${esc(t)}</p>` : ""}
+      ${ts.map((x) => `<div class="conceito"><b>${esc(x.conceito)}</b><p>${esc(x.definicao)}</p><p class="ex">${esc(x.porque)}</p></div>`).join("")}
+    </details>`;
   }
 
   /* ================= capa ================= */
@@ -449,17 +502,20 @@
     const comecou = !!S.ini;
     const p = el(`<div class="pag">
       ${topo("")}
-      ${heroi({ grande: true, h1: true, kicker: "Módulo 10", titulo: D.modulo.nome, texto: K.objetivo })}
+      ${heroi({ grande: true, h1: true, kicker: "Módulo 10", titulo: D.modulo.nome, texto: K.frase })}
       <main class="corpo">
-        <div class="cartao"><h3>Para quem é</h3><p>${esc(K.para_quem)}</p></div>
-        <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(K.ter_em_maos)}</p></div>
-        <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(K.entrega)}</p></div>
-        <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas.</p>
+        <details class="como-funciona cartao"><summary>Como funciona</summary>
+          <h3>Para quem é</h3><p>${esc(K.para_quem)}</p>
+          <h3>O que ter em mãos</h3><p>${esc(K.ter_em_maos)}</p>
+          <h3>O que você recebe no final</h3><p>${esc(K.entrega)}</p>
+          <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas.</p>
+        </details>
+        <p class="tempo">Este módulo leva uns ${esc(K.minutos)} minutos</p>
         <div class="acoes">
           <button class="btn btn-primario seta" id="ir">${comecou ? "Continuar de onde parei" : "Começar"}</button>
           ${comecou ? `<button class="btn btn-linha" id="zerar">Recomeçar do zero</button>` : ""}
         </div>
-        ${rodape()}
+        ${rodape(true)}
       </main>
     </div>`);
     p.querySelector("#ir").onclick = () => {
@@ -543,25 +599,26 @@
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const resp = S.R[cod];
     const p = el(`<div class="pag">
-      ${topo(FASE(cod))}
-      ${heroi({ titulo: FASE(cod), reinicio: true, kicker: `Pergunta ${n} de ${seq.length}`, kickerClasse: "passo", extra: chipOferta() })}
+      ${heroi({ pct: Math.round(n / seq.length * 100), compacta: true })}
       <main class="corpo">
-        ${barraFases(FASE(cod))}
         <div class="cartao-q pergunta">
           ${botaoVoltar()}
           <h2 class="q" id="pergunta">${esc(TXT(cod))}</h2>
-          ${q.apoio ? ajudaHtml(apoioDe(cod)) : ""}
+          ${dicaHtml(q.apoio ? apoioDe(cod) : "", CONCEITO[cod] || [])}
           <div class="entrada" id="ent"></div>
           <div class="erro" id="erro" hidden></div>
           <div id="retorno" aria-live="polite"></div>
           <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
-          ${termos(CONCEITO[cod] || [])}
         </div>
         ${rodape()}
       </main>
     </div>`);
     const ent = p.querySelector("#ent"), box = p.querySelector("#retorno"), err = p.querySelector("#erro");
-    const mostrar = (html) => { box.innerHTML = html || ""; err.hidden = true; };
+    const mostrar = (html) => {
+      box.innerHTML = html || ""; err.hidden = true;
+      box.querySelectorAll("[data-copiar]").forEach((b) => { const alvo = b.parentNode.querySelector("[data-prompt]"); b.onclick = () => copiar(alvo.textContent, b, alvo); });
+    };
+    const comAjudaNS = (op, html) => ehNSop(op) ? caixaComo(cod) + (html || "") : (html || "");
     const erro = (t) => { err.textContent = t; err.hidden = false; };
     /* o erro some assim que a pessoa corrige (antes ficava na tela com os campos já preenchidos) */
     let aindaErrado = null;
@@ -634,10 +691,10 @@
 
     if (cod === "M10-01") {
       const ops = ops01();
-      if (canaisVenda() && I().de && I().de.canais) ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${I().de.canais}</span> Onde você vende já está na pergunta e não se repete nas opções. Confira e ajuste se quiser.</p>`));
+      if (canaisVenda() && I().de && I().de.canais) ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${I().de.canais}</span></p>`));
       const EXC = ["Ainda não falo com clientes", NS];
       const marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.estado === "naosei" ? [NS] : resp && resp.opcao ? [resp.opcao] : [];
-      const ret = () => mostrar(!marcadas.length ? "" : EXC.includes(marcadas[0]) ? caixa(caminho(cod, marcadas[0])) : caixa(Q[cod].caminhos[0]));
+      const ret = () => mostrar(marcadas.length && ehNSop(marcadas[0]) ? caixaComo(cod) + caixa(caminho(cod, marcadas[0])) : !marcadas.length ? "" : EXC.includes(marcadas[0]) ? caixa(caminho(cod, marcadas[0])) : caixa(Q[cod].caminhos[0]));
       ent.appendChild(multipla(ops, marcadas, EXC, ret));
       ret();
       coletar = () => {
@@ -669,15 +726,16 @@
         add.onclick = () => { lista.push(""); desenhar(); const ins = wrap.querySelectorAll("input"); ins[ins.length - 1].focus(); };
         wrap.appendChild(add);
       };
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(caixa(caminho(cod, o))); }));
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; wrap.hidden = ehNSop(o); mostrar(comAjudaNS(o, caixa(caminho(cod, o)))); }));
+      wrap.hidden = !op || ehNSop(op);
       desenhar();
       ent.appendChild(wrap);
-      if (op) mostrar(caixa(caminho(cod, op)));
+      if (op) mostrar(comAjudaNS(op, caixa(caminho(cod, op))));
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
         const limpa = lista.map((x) => x.trim()).filter(Boolean);
         S.roteiro = limpa.length ? limpa : null;
-        return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
+        return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: valorSalvo(cod, op) };
       };
     } else if (cod === "M10-07") {
       const ops = opcoesDe(cod);
@@ -723,7 +781,7 @@
       const ops = lista.map((x) => x.tema);
       const marcadas = resp ? (resp.opcoes || []).filter((x) => ops.includes(x)) : [];
       let naosei = !!(resp && resp.naosei);
-      const outro = el(`<div><label class="rot-campo" for="outro">Outro (escreva)</label><input class="campo" id="outro" data-falar value="${esc((resp && resp.outro) || "")}"></div>`);
+      const outro = el(`<div><label class="rot-campo" for="outro">Outro</label><input class="campo" id="outro" data-falar placeholder="Escreva outro ponto" value="${esc((resp && resp.outro) || "")}"></div>`);
       const total = () => marcadas.length + (outro.querySelector("input").value.trim() ? 1 : 0);
       if (!ops.length) ent.appendChild(el(`<p class="diag-r">Nenhum ponto em aberto apareceu nos módulos deste aparelho. Escreva o que é mais urgente para você.</p>`));
       const m = multipla(ops, marcadas, [], (op) => {
@@ -742,7 +800,7 @@
         naosei = true;
         marcadas.splice(0, marcadas.length, ...Mo.tresPrimeiras(lista));
         m.pintar();
-        mostrar(caixa(caminho(cod, NS)));
+        mostrar(caixaComo(cod) + caixa(caminho(cod, NS)));
       }));
       if (marcadas.length) mostrar(naosei ? caixa(caminho(cod, NS)) : caixa(caminho(cod, "Até 3 itens da lista")));
       let mostrouOutro = false;
@@ -778,14 +836,14 @@
       const uni = (u) => `<option value="${esc(u)}" ${v.unidade === u ? "selected" : ""}>${esc(u)}</option>`;
       ent.appendChild(el(`<div>
         ${prin ? `<div class="bloco b-ok"><b>Prioridade mais urgente</b><p>${esc(prin)}</p></div>` : ""}
-        <label class="rot-campo" for="acao">O que você vai fazer</label><input class="campo" id="acao" data-falar autocomplete="off" value="${esc(v.acao || "")}">
+        <label class="rot-campo" for="acao">O que vai fazer</label><input class="campo" id="acao" data-falar autocomplete="off" value="${esc(v.acao || "")}">
         <label class="rot-campo" for="data">Até quando</label><input class="campo" id="data" type="date" min="${hoje}" value="${esc(v.data || "")}">
-        <label class="rot-campo" for="sinal">Que sinal vai mostrar que funcionou</label><input class="campo" id="sinal" data-falar autocomplete="off" placeholder="Ex.: pedidos pelo WhatsApp" value="${esc(v.sinal || "")}">
-        <label class="rot-campo" for="numero">Quanto basta (número)</label><input class="campo" id="numero" inputmode="decimal" autocomplete="off" placeholder="Ex.: 5" value="${esc(v.numero || "")}">
-        <label class="rot-campo" for="unidade">O que você vai contar</label><select class="campo" id="unidade"><option value="">Escolha</option>${Mo.UNIDADES_PLANO.map(uni).join("")}</select>
+        <label class="rot-campo" for="sinal">Como saber se funcionou</label><input class="campo" id="sinal" data-falar autocomplete="off" placeholder="Ex.: pedidos pelo WhatsApp" value="${esc(v.sinal || "")}">
+        <label class="rot-campo" for="numero">Meta em número</label><input class="campo" id="numero" inputmode="decimal" autocomplete="off" placeholder="Ex.: 5" value="${esc(v.numero || "")}">
+        <label class="rot-campo" for="unidade">O que vai contar</label><select class="campo" id="unidade"><option value="">Escolha</option>${Mo.UNIDADES_PLANO.map(uni).join("")}</select>
       </div>`));
       ent.appendChild(btnNaoSei(() => {
-        mostrar(caixa(caminho(cod, NS)) + (prin ? `<p class="diag-r">${esc(exemploPara(prin))}</p>` : ""));
+        mostrar(caixaComo(cod) + caixa(caminho(cod, NS)) + (prin ? `<p class="diag-r">${esc(exemploPara(prin))}</p>` : ""));
         trocarParaSeguir({ estado: "naosei" });
       }));
       let avisouNum = false, avisouLonge = false, avisouAlto = null;
@@ -826,26 +884,27 @@
       };
     } else if (cod === SOCIO) {
       let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
-      ent.appendChild(unica(D.socio.opcoes, op, (o) => { op = o; }));
+      ent.appendChild(unica(D.socio.opcoes, op, (o) => { op = o; mostrar(ehNSop(o) ? caixaComo(cod) : ""); }));
+      if (ehNSop(op)) mostrar(caixaComo(cod));
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
-        return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
+        return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: valorSalvo(cod, op) };
       };
     } else {
       /* escolha única com retorno ao tocar: M10-02, 04, 05, 06, 08 */
-      let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
+      let op = resp ? (resp.estado === "naosei" ? NS : rotuloAtual(cod, resp.opcao)) : null;
       const C = ctx();
       /* M10-05 sem resposta: parte do que já foi dito (anúncio nos gastos do Módulo 5; redes sociais no Módulo 3) */
       if (cod === "M10-05" && !resp) {
         const sug = C.divulgacaoM5 ? ["Anúncio pago", 5] : canaisM3().some((x) => /redes sociais|instagram|facebook/i.test(x)) ? ["Catálogo no Instagram ou outra rede social", 3] : null;
-        if (sug) { op = sug[0]; ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${sug[1]}</span> Marcamos pelo que você já respondeu. Confira e ajuste se quiser.</p>`)); }
+        if (sug) { op = rotuloAtual(cod, sug[0]); ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${sug[1]}</span> Confira ou ajuste.</p>`)); }
       }
       const cruz = (o) => (cod === "M10-08" && o && o.startsWith("Sim") && C.cap7.cmp && C.cap7.cmp.tipo === "folga" ? cruzamento("Contratar e capacidade com folga (M7)", { "[folga]": Mo.fmt(C.cap7.cmp.n) }) : "");
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(caixa(caminho(cod, o)) + cruz(o)); }));
-      if (op) mostrar(caixa(caminho(cod, op)) + cruz(op));
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(comAjudaNS(o, caixa(caminho(cod, o)) + cruz(o))); }));
+      if (op && !(cod === "M10-05" && !resp)) mostrar(comAjudaNS(op, caixa(caminho(cod, op)) + cruz(op)));
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
-        return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
+        return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: valorSalvo(cod, op) };
       };
     }
     p.querySelector("#ok").onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };
@@ -1110,6 +1169,8 @@
           ${plano ? `<p class="diag-q">Para a prioridade mais urgente</p><p class="plano-frase">${esc(plano.frase)}</p>` : r11 ? `<p class="diag-r">Plano da prioridade principal: ainda não definido.</p>` : ""}
           ${avisoInst("Plano de ação")}
         </section>
+        <details class="resultado-mais">
+          <summary>Ver suas respostas e detalhes</summary>
         <section class="cartao bloco-res"><h3>Como você vende</h3>
           ${linha("Onde o cliente encontra você e compra", canaisVenda())}
           ${linha(canaisVenda() ? "Por onde mais os clientes falam com você" : "Por onde os clientes falam com você", canaisTxt01)}
@@ -1146,6 +1207,7 @@
         ${enc ? `<section class="cartao"><h3>Encaminhamento</h3><div class="bloco b-enc"><p>${esc(enc)}</p></div></section>` : ""}
         ${lac.length ? `<section class="cartao"><h3>O que ainda falta definir</h3><ul class="lista-capa">${lac.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>` : ""}
         ${passos.length ? `<section class="cartao"><h3>Próximo passo</h3><ol class="lista-capa">${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></section>` : ""}
+        </details>
         <section class="cartao-q pergunta" id="q12">
           <h2 class="q">${esc(preencher(q12.pergunta))}</h2>
           <div class="opcoes" id="op12">${opcoesDe("M10-12").map((o) => `<button class="opcao ${r12 && r12.opcao === o ? "sel" : ""}" data-o="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`).join("")}</div>

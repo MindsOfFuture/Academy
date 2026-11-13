@@ -268,7 +268,29 @@ textarea.msg-auto{resize:none;overflow:hidden;min-height:96px}
 .ver-mais p{margin-top:4px}
 .cartao-q .saiba{border-width:1px;padding:8px 12px}
 .cartao-q .saiba summary{font-size:14px}
-/* "Por onde começar": 3 ações numeradas logo depois de "O que entendemos até aqui" */
+/* Versão leve: detalhes recolhidos e ajuda acionável para "Não sei". */
+.dica-toggle,.como-funciona{border:1px solid var(--m-lavender);border-radius:12px;padding:10px 14px;margin:10px 0;background:#fff}
+.dica-toggle summary,.como-funciona summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;min-height:24px}
+.dica-toggle[open] summary,.como-funciona[open] summary{margin-bottom:8px}
+.heroi-compacta{min-height:auto;padding-top:10px;padding-bottom:10px}
+.heroi-compacta .heroi-txt{padding:0}
+.heroi-compacta .heroi-prog{margin-top:5px}
+.tempo{color:var(--m-gray);font-size:15px;margin:8px 0}
+.como-descobrir{border-left:4px solid var(--m-purple);background:var(--m-lavender);border-radius:10px;padding:12px 14px;margin:12px 0;line-height:1.5}
+.como-descobrir .como-tit{display:block;color:var(--m-purple);font-size:17px}
+.como-descobrir ol{padding-left:22px;margin:8px 0}
+.como-descobrir li{margin:5px 0}
+.pedir-ia{border-top:1px solid var(--m-purple);padding-top:10px;margin-top:10px}
+.como-nota{font-size:14px;margin:4px 0 8px}
+.prompt{background:#fff;border-radius:8px;padding:10px;font-size:15px;line-height:1.45;overflow-wrap:anywhere}
+.copiar{min-height:44px}
+@media print{.dica-toggle,.como-descobrir{break-inside:avoid}}
+
+/* versão leve: pergunta sem faixa ilustrada e textos explicativos sob demanda */
+
+ .resultado-mais{margin:12px 0}
+.resultado-mais>summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;padding:12px 14px;border:1px solid var(--m-lavender);border-radius:12px;background:#fff;min-height:24px}
+.resultado-mais[open]>summary{margin-bottom:10px}
 .comecar{border-color:var(--m-purple)}
 .comecar-intro{margin-bottom:8px}
 .lista-comecar{list-style:none;padding:0;margin:0;display:grid;gap:10px}

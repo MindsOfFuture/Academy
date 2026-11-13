@@ -1,4 +1,8 @@
-/* Gerado por extrair_m10.py a partir da planilha do Grupo 10. Não edite à mão. */
+/* Gerado por extrair_m10.py a partir da planilha do Grupo 10 e depois ajustado à mão na versão leve
+   (nov/2026, pedido da coordenação): enunciados mais curtos (M10-06, M10-09, M10-11), "instrucao" (linha curta
+   à vista), capa.frase/minutos e, por pergunta, a ajuda do "Não sei" (comoDescobrir = passos; promptIA = pedido
+   pronto para copiar). Os textos das opções e dos caminhos não mudam: outros módulos e o diagnóstico leem os
+   valores salvos. Ao regenerar pelo extrator, reaplique esses campos. */
 window.MODULO10 = {
  "origem": "Grupo 10 · Laboratório de Gestão II · FACC/UFJF",
  "fonte": {
@@ -13,7 +17,9 @@ window.MODULO10 = {
   "objetivo": "Ao final do módulo, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
   "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam ao módulo com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. O módulo busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
   "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
-  "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado."
+  "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado.",
+  "frase": "Organize como você vende e saia com um plano dos 3 passos mais urgentes.",
+  "minutos": 15
  },
  "base": [
   {
@@ -88,13 +94,18 @@ window.MODULO10 = {
    "Sim",
    "Não",
    "Não sei"
-  ]
+  ],
+  "comoDescobrir": [
+   "Liste as tarefas do negócio que você não consegue ou não gosta de fazer. Se forem uma ou duas, uma parceria ou ajuda avulsa pode resolver sem sócio.",
+   "Se pensa em alguém, converse: essa pessoa entraria com dinheiro, com trabalho ou com os dois? Como vocês dividiriam o resultado?"
+  ],
+  "promptIA": "Tenho um pequeno negócio de [o que você vende] e penso em ter um sócio que entraria com [dinheiro, trabalho ou os dois]. Me explique em linguagem simples as vantagens e os riscos de ter sócio e me dê 5 perguntas para conversar com essa pessoa antes de decidir."
  },
  "perguntas": [
   {
    "codigo": "M10-01",
    "fase": "Como você vende",
-   "pergunta": "Além de [canais de venda], por onde os clientes falam com você?",
+   "pergunta": "Além de [canais de venda], por onde falam os clientes?",
    "descobre": "Canais de conversa",
    "aparece": "Sempre",
    "guarda": "Canais de conversa",
@@ -117,7 +128,13 @@ window.MODULO10 = {
    ],
    "pergunta_caminhos": "Além de [canais de venda do Módulo 3], por onde os clientes falam com você?",
    "apoio": "Marque todos. Não informe números nem perfis.",
-   "tipo": "Seleção múltipla"
+   "tipo": "Seleção múltipla",
+   "instrucao": "Pode marcar mais de um.",
+   "comoDescobrir": [
+    "Abra o celular e veja por onde chegaram as últimas 5 conversas com clientes: mensagem, rede social, ligação ou alguém que veio falar com você.",
+    "Pergunte a 3 clientes ou conhecidos: “Se quisesse me pedir algo, por onde você me chamaria?”"
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende] para [quem compra], em [seu bairro e cidade]. Quais são os 2 ou 3 jeitos mais comuns de esse tipo de cliente falar com um pequeno negócio como o meu? Para cada um, diga o que preciso para começar e quanto tempo por dia ele toma."
   },
   {
    "codigo": "M10-02",
@@ -149,7 +166,12 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Pense na última semana. Se ainda não vende, pense no que consegue fazer.",
-   "tipo": "Seleção única"
+   "tipo": "Seleção única",
+   "comoDescobrir": [
+    "Nos próximos 3 dias, quando chegar uma mensagem de cliente, anote a hora em que ela chegou e a hora em que você respondeu.",
+    "Olhe as últimas conversas no celular: o horário aparece ao lado de cada mensagem. Compare o da pergunta com o da sua resposta."
+   ],
+   "promptIA": "Recebo mensagens de clientes pelo [por onde os clientes falam com você] e nem sempre respondo rápido porque [como é a sua rotina]. Me ajude a montar um jeito simples de responder clientes no mesmo dia, com 2 horários fixos para olhar as mensagens e uma mensagem automática curta avisando quando vou responder."
   },
   {
    "codigo": "M10-03",
@@ -181,7 +203,12 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Você já ouviu [pessoas ouvidas] pessoas no Módulo 2. Montamos um roteiro com o que você respondeu: [etapas]. Confira.",
-   "tipo": "Seleção única + roteiro editável"
+   "tipo": "Seleção única + roteiro editável",
+   "comoDescobrir": [
+    "Lembre a última venda do começo ao fim: como a pessoa chegou, o que perguntou, como você disse o preço e como ela pagou.",
+    "Escreva esses passos numa folha, na ordem. Compare com o roteiro abaixo e ajuste o que for diferente."
+   ],
+   "promptIA": "Vendo [o que você vende] para [quem compra] por [preço]. Me ajude a montar um roteiro simples de venda pelo [WhatsApp ou pessoalmente], com 5 a 7 passos: do primeiro contato até receber o pagamento e falar com o cliente depois. Para cada passo, sugira uma frase curta que eu possa usar."
   },
   {
    "codigo": "M10-04",
@@ -208,7 +235,12 @@ window.MODULO10 = {
     }
    ],
    "apoio": "[Se compra recorrente no Módulo 2]: Você disse que o cliente compra [frequência]. Voltar a falar pode trazer a próxima venda.",
-   "tipo": "Seleção única"
+   "tipo": "Seleção única",
+   "comoDescobrir": [
+    "Veja as conversas com quem já comprou: depois da entrega, você mandou alguma mensagem? Conte quantas vezes isso aconteceu.",
+    "Na próxima venda, mande uma mensagem 2 ou 3 dias depois (“Deu tudo certo? O que achou?”) e anote a resposta."
+   ],
+   "promptIA": "Vendo [o que você vende]. Escreva 3 mensagens curtas e simpáticas para mandar ao cliente alguns dias depois da entrega: uma para perguntar se deu tudo certo, uma para pedir a opinião e uma para oferecer de novo. Sem exagero e sem promessas."
   },
   {
    "codigo": "M10-05",
@@ -235,12 +267,18 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3].",
-   "tipo": "Seleção única"
+   "tipo": "Seleção única",
+   "instrucao": "Escolha a principal.",
+   "comoDescobrir": [
+    "Pergunte a 3 clientes ou conhecidos como eles descobrem pequenos negócios no bairro: indicação, grupo de mensagem, rede social ou cartaz?",
+    "Observe onde negócios parecidos com o seu aparecem (grupos do bairro, redes sociais, murais de padaria ou igreja) e anote 2 lugares."
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende] para [quem compra] em [seu bairro e cidade]. Tenho [quanto tempo por semana] e [quanto dinheiro] para divulgar. Me sugira 3 jeitos de divulgar nas próximas 4 semanas, começando pelos que não custam nada, e diga como saber se cada um funcionou."
   },
   {
    "codigo": "M10-06",
    "fase": "Pessoas",
-   "pergunta": "Vocês já combinaram por escrito quem faz o quê, quanto cada um coloca e como dividem o resultado?",
+   "pergunta": "Vocês já combinaram por escrito como dividem o trabalho, o dinheiro e o resultado?",
    "descobre": "Acordo entre sócios",
    "aparece": "Se M8-03 = sim",
    "guarda": "Acordo entre sócios",
@@ -262,7 +300,12 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Você disse no Módulo 8 que terá sócio. Combinar antes evita desentendimentos depois.",
-   "tipo": "Seleção única"
+   "tipo": "Seleção única",
+   "comoDescobrir": [
+    "Pergunte ao seu sócio se vocês já anotaram em algum lugar (papel, mensagem ou contrato) quem faz o quê e como dividem o dinheiro.",
+    "Procure nas conversas de vocês: um combinado escrito em mensagem já é um começo. Use os 5 itens do checklist no resultado para conferir o que falta."
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende] com um sócio. Me ajude a fazer uma lista simples do que precisamos combinar por escrito: quem faz o quê, quanto cada um coloca, como dividimos o resultado, como decidimos e o que acontece se um sair. Lembre que a forma do documento deve ser vista com um contador ou advogado."
   },
   {
    "codigo": "M10-07",
@@ -284,7 +327,8 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Etapas do seu mapa (Módulo 7) que ainda estão sem responsável: [etapas].",
-   "tipo": "Seleção por etapa"
+   "tipo": "Seleção por etapa",
+   "instrucao": "Escolha uma pessoa para cada etapa."
   },
   {
    "codigo": "M10-08",
@@ -311,7 +355,12 @@ window.MODULO10 = {
     }
    ],
    "apoio": "[Se capacidade curta no Módulo 7]: Com o tempo informado, cabem cerca de [N] por mês, e você pretende [volume].",
-   "tipo": "Seleção única"
+   "tipo": "Seleção única",
+   "comoDescobrir": [
+    "Durante uma semana, anote os pedidos que você recusou ou atrasou por falta de tempo e as tarefas que ficaram para depois.",
+    "Veja no Módulo 5 quanto sobra por mês. Contratar só cabe se essa sobra pagar a pessoa todo mês, até nos meses fracos."
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende]. Trabalho [quantas horas por semana] e vendo cerca de [quantas unidades por mês]. Sobram uns R$ [quanto sobra por mês]. Me ajude a pensar se já vale contratar alguém ou se é melhor começar com ajuda avulsa ou parceria, com os prós e os contras de cada caminho."
   },
   {
    "codigo": "M10-08a",
@@ -328,12 +377,13 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Marque as que você já pensou. Contratar tem custo fixo e regras próprias.",
-   "tipo": "Seleção múltipla"
+   "tipo": "Seleção múltipla",
+   "instrucao": "Pode marcar mais de uma."
   },
   {
    "codigo": "M10-09",
    "fase": "Seu plano",
-   "pergunta": "Estes são os pontos que apareceram no seu percurso. Quais são os 3 mais urgentes para você?",
+   "pergunta": "Quais 3 pontos são mais urgentes agora?",
    "descobre": "Prioridades",
    "aparece": "Sempre (lista pré-preenchida)",
    "guarda": "Prioridades (até 3)",
@@ -360,12 +410,18 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Juntamos o que ficou em aberto nos módulos anteriores. Escolha até 3 ou escreva outro.",
-   "tipo": "Seleção múltipla (até 3) + 'Outro'"
+   "tipo": "Seleção múltipla (até 3) + 'Outro'",
+   "instrucao": "Escolha até 3 ou escreva outro.",
+   "comoDescobrir": [
+    "Para cada ponto, pergunte: “Se eu não fizer nada, posso perder dinheiro ou clientes logo?” Os que forem “sim” vêm primeiro.",
+    "Depois, veja o que destrava o resto. Por exemplo: divulgar só faz sentido depois de ter o preço. Comece pelo que destrava."
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende]. Estes são os pontos em aberto: [cole aqui os pontos da lista]. Me ajude a escolher os 3 mais urgentes, pensando no que pode me fazer perder dinheiro ou clientes primeiro e no que destrava os outros. Explique em linguagem simples."
   },
   {
    "codigo": "M10-10",
    "fase": "Seu plano",
-   "pergunta": "Se você esperar 3 meses sem agir, o que tende a acontecer com cada uma?",
+   "pergunta": "O que pode acontecer após 3 meses sem agir?",
    "descobre": "Urgência",
    "aparece": "Sempre",
    "guarda": "Urgência por prioridade",
@@ -377,12 +433,18 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Responda para cada prioridade. Isso ajuda a decidir por onde começar.",
-   "tipo": "Escala por prioridade"
+   "tipo": "Escala por prioridade",
+   "instrucao": "Responda para cada uma.",
+   "comoDescobrir": [
+    "Pense no que já aconteceu nas últimas semanas por causa desse ponto: perdeu venda, gastou mais ou teve problema?",
+    "Pergunte a alguém que tem um negócio parecido o que acontece quando isso fica meses sem resolver."
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende]. Um ponto em aberto é: [o ponto]. Se eu esperar 3 meses sem resolver, o que costuma acontecer com um pequeno negócio como o meu? Responda em linguagem simples, sem exagerar."
   },
   {
    "codigo": "M10-11",
    "fase": "Seu plano",
-   "pergunta": "Para a prioridade mais urgente: o que você vai fazer, até quando, e que sinal vai mostrar que funcionou?",
+   "pergunta": "Para sua prioridade mais urgente: o que fazer, até quando e como saber se deu certo?",
    "descobre": "Plano da prioridade principal",
    "aparece": "Sempre",
    "guarda": "Plano de ação",
@@ -414,7 +476,12 @@ window.MODULO10 = {
     }
    ],
    "apoio": "Ex.: 'Fazer a consulta de viabilidade até sexta; sinal: resposta da prefeitura'. Ou: 'Divulgar no grupo do bairro por 2 semanas; sinal: 5 pedidos'.",
-   "tipo": "Ação (texto) + data + sinal + número"
+   "tipo": "Ação (texto) + data + sinal + número",
+   "comoDescobrir": [
+    "Escolha a menor ação que você consegue fazer nesta semana sobre essa prioridade: ligar, perguntar, anotar ou testar algo.",
+    "Marque uma data daqui a no máximo 14 dias e decida o que vai contar para saber se deu certo: pedidos, respostas ou vendas."
+   ],
+   "promptIA": "Minha prioridade no negócio de [o que você vende] é: [sua prioridade]. Me ajude a escrever um plano curto: uma ação que eu consiga fazer nas próximas 2 semanas, a data e um número simples que mostre se funcionou."
   },
   {
    "codigo": "M10-12",
