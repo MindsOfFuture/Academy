@@ -145,7 +145,7 @@ export async function editarEspacoAction(_anterior: EstadoAcao | null, form: For
   return executar(() => editarEspaco(id, espaco.valor), "Espaço atualizado.");
 }
 
-/** Data, horário, atividade, aula, tipo e espaço de um encontro já lançado. */
+/** Tudo de um encontro já lançado, menos a equipe. */
 export async function editarEncontroAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   const negado = await exigirCoordenacao();
   if (negado) return negado;
@@ -164,10 +164,16 @@ export async function editarEncontroAction(_anterior: EstadoAcao | null, form: F
         antes.inicio !== novo.inicio ||
         antes.fim !== novo.fim ||
         antes.modalidade !== novo.modalidade ||
-        antes.espacoId !== novo.espacoId);
+        antes.espacoId !== novo.espacoId ||
+        antes.turmaId !== novo.turmaId ||
+        // Sem turma, a escola é a escolhida; com turma, vem dela.
+        (!novo.turmaId && antes.escolaId !== novo.escolaId));
     if (mudou) {
       const [, mes, dia] = antes.data.split("-");
-      const onde = antes.espacoNome ? ` · ${antes.espacoNome}` : "";
+      const onde = [antes.turmaNome, antes.escolaNome ?? "fora de escola", antes.espacoNome]
+        .filter(Boolean)
+        .map((x) => ` · ${x}`)
+        .join("");
       await avisar("alterado", id, "equipe", `Antes: ${dia}/${mes} · ${antes.horario} · ${antes.modalidade}${onde}`);
     }
   }, "Encontro atualizado.");

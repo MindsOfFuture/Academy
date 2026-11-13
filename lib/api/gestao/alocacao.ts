@@ -529,7 +529,7 @@ export async function alocar(encontroId: string, bolsistas: string[], responsave
   throwOnError(error);
 }
 
-/** Data, horário, atividade, aula, tipo e espaço de um encontro já lançado. */
+/** Tudo de um encontro já lançado, menos a equipe. Com turma, o banco põe a escola dela. */
 export async function editarEncontro(encontroId: string, e: EdicaoEncontro): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
@@ -541,6 +541,8 @@ export async function editarEncontro(encontroId: string, e: EdicaoEncontro): Pro
       fim: e.fim,
       modalidade: e.modalidade,
       aulas: e.descricao || e.modalidade,
+      escola_id: e.escolaId,
+      turma_id: e.turmaId,
       numero_aula: e.numeroAula,
       tipo: e.tipo,
       espaco_id: e.espacoId,

@@ -859,10 +859,25 @@ export function FormAlocacao({
   );
 }
 
-/** Data, horário, atividade, aula, tipo e espaço de um encontro já lançado. */
-export function FormEditarEncontro({ encontro, espacos }: { encontro: Encontro; espacos: Opcao[] }) {
+/** Tudo de um encontro já lançado, menos a equipe (que tem a sua seção). */
+export function FormEditarEncontro({
+  encontro,
+  turmas,
+  escolas,
+  espacos,
+}: {
+  encontro: Encontro;
+  turmas: Turma[];
+  escolas: Opcao[];
+  espacos: Opcao[];
+}) {
   const [estado, acao, enviando] = useAcao(editarEncontroAction);
   const [aberto, setAberto] = useState(false);
+  const [turmaId, setTurmaId] = useState(encontro.turmaId ?? "");
+  // A turma atual continua na lista mesmo se já fechou.
+  const opcoesTurma = turmas.filter(
+    (t) => t.status === "prevista" || t.status === "em_andamento" || t.id === encontro.turmaId,
+  );
   useEffect(() => {
     if (estado?.ok) setAberto(false);
   }, [estado]);
@@ -891,6 +906,23 @@ export function FormEditarEncontro({ encontro, espacos }: { encontro: Encontro; 
         <span className={rotuloCampo}>Fim</span>
         <Input name="fim" type="time" required defaultValue={encontro.fim ?? ""} />
       </label>
+      <label className="space-y-1 sm:col-span-2">
+        <span className={rotuloCampo}>Turma</span>
+        <select name="turmaId" value={turmaId} onChange={(e) => setTurmaId(e.target.value)} className={campoSelect}>
+          <option value="">Sem turma (tarefa, evento, apresentação)</option>
+          {opcoesTurma.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.nome} · {t.escolaNome}
+            </option>
+          ))}
+        </select>
+      </label>
+      {!turmaId && (
+        <label className="space-y-1">
+          <span className={rotuloCampo}>Escola (opcional)</span>
+          <Escolha name="escolaId" opcoes={escolas} vazio="Fora de escola" defaultValue={encontro.escolaId ?? ""} />
+        </label>
+      )}
       <label className="space-y-1">
         <span className={rotuloCampo}>Atividade</span>
         <Input name="modalidade" required defaultValue={encontro.modalidade} />
@@ -919,7 +951,15 @@ export function FormEditarEncontro({ encontro, espacos }: { encontro: Encontro; 
         <Button type="submit" size="sm" disabled={enviando}>
           {enviando ? "Salvando…" : "Salvar"}
         </Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => setAberto(false)}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setAberto(false);
+            setTurmaId(encontro.turmaId ?? "");
+          }}
+        >
           Fechar
         </Button>
       </div>

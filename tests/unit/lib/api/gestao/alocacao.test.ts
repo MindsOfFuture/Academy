@@ -347,11 +347,17 @@ describe("gravação de tipo, espaço e função", () => {
     ]);
   });
 
-  it("editarEncontro grava data, horário, atividade, aula, tipo e espaço; sem observação, vale a atividade", async () => {
-    const edicao = { data: "2026-10-06", inicio: "09:00", fim: "11:00", modalidade: "Lego", numeroAula: 2, tipo: "gravacao" as const };
+  it("editarEncontro grava tudo menos a equipe; sem observação, vale a atividade", async () => {
+    const edicao = {
+      data: "2026-10-06", inicio: "09:00", fim: "11:00", modalidade: "Lego", numeroAula: 2, tipo: "gravacao" as const,
+      turmaId: "t1", escolaId: null,
+    };
     await editarEncontro("e1", { ...edicao, descricao: "Final", espacoId: "s2" });
     await editarEncontro("e1", { ...edicao, descricao: "", espacoId: null });
-    const linha = { data: "2026-10-06", inicio: "09:00", fim: "11:00", modalidade: "Lego", numero_aula: 2, tipo: "gravacao" };
+    const linha = {
+      data: "2026-10-06", inicio: "09:00", fim: "11:00", modalidade: "Lego", numero_aula: 2, tipo: "gravacao",
+      turma_id: "t1", escola_id: null,
+    };
     expect(chamadas).toEqual([
       { tabela: "agenda", op: "update", id: "e1", valor: { ...linha, aulas: "Final", espaco_id: "s2" } },
       { tabela: "agenda", op: "update", id: "e1", valor: { ...linha, aulas: "Lego", espaco_id: null } },
