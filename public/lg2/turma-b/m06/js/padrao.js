@@ -238,7 +238,14 @@
   function integrarTela() {
     var pagina = document.querySelector('#tela .pag, .pag');
     if (!pagina) return;
-    if (!pagina.querySelector('.p-linha')) {
+    var legado = pagina.querySelector('.barra-topo');
+    if (legado && !legado.querySelector('[data-p-salvar]')) {
+      // a tela já tem logo + trilha próprios: só acrescenta o Salvar, sem segundo cabeçalho
+      var wrap = document.createElement('span');
+      wrap.className = 'p-linha-integrada p-salvar-legado';
+      wrap.innerHTML = '<button type="button" class="p-salvar" data-p-salvar>Salvar e sair</button>';
+      legado.appendChild(wrap);
+    } else if (!legado && !pagina.querySelector('.p-linha')) {
       var barra = document.createElement('div');
       barra.className = 'p-linha p-linha-integrada';
       barra.innerHTML = '<img class="p-logo" src="assets/minds.svg" alt="Minds of the Future">' +

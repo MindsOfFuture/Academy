@@ -16,6 +16,8 @@ body{font-family:var(--p-fonte)}
   padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
 .p-salvar:hover{background:var(--p-lavanda)}
 html.p-na-jornada .p-linha{display:none}
+.p-salvar-legado{margin-left:auto;display:inline-flex}
+html.p-na-jornada .p-salvar-legado{display:none}
 
 /* faixa roxa: Voltar + Ouvir, "Etapa N de 10 · nome", título (opcional), passo e barra */
 .p-faixa{background:var(--p-roxo);color:#fff;border-radius:22px;margin:0 14px 14px;padding:12px 18px 16px;position:relative;overflow:hidden}
