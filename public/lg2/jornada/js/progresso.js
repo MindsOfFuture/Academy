@@ -3,9 +3,13 @@
    delas na conta da pessoa, para ela parar quando quiser e continuar em outro aparelho.
    - Ao abrir a jornada, ANTES do primeiro módulo, busca a cópia da conta (espera no máximo 4 s;
      sem resposta, segue só com o que está no aparelho).
-   - Depois, sempre que algo muda, manda a cópia nova (confere a cada 5 s e ao sair da página).
+   - Depois de uma combinação segura, envia mudanças automaticamente (a cada 5 s e ao sair da página).
+   - Se o mesmo módulo diverge entre aparelho e conta, mantém as duas cópias e pede escolha em "Salvar e sair".
+   - O mesmo arquivo vai em cada módulo. Dentro da jornada (módulo no iframe) o módulo usa a cópia
+     da jornada, sem abrir outra conexão. Fora da jornada, se a conta restaurar respostas, a página recarrega uma vez.
+   - salvar() aguarda confirmação da conta; nunca confirma envio de respostas locais sem vínculo sem escolha explícita.
    Fora do site (arquivo local, localhost) não envia nada, como o js/metricas.js.
-   A regra de quem ganha (aparelho ou conta) está em mesclar(), função pura testada à parte. */
+   A regra de conflito está em mesclar(), função pura testada à parte. */
 (function () {
   'use strict';
   var ENDERECO = '/api/lg2/progresso';
@@ -22,35 +26,49 @@
     } catch (e) { return false; }
   }
 
-  function tempo(t) { var n = Date.parse(t || ''); return isNaN(n) ? -Infinity : n; }
   function temChaves(o) { return !!o && typeof o === 'object' && Object.keys(o).length > 0; }
 
   /* Decide o que fazer ao abrir a jornada.
-     local: { 'lg2-…': texto } do aparelho (sem a marca); servidor: { dados, atualizado_em } ou null;
-     marcador: { u, em } guardado na última sincronização ou null; usuario: id devolvido pela conta.
-     Devolve { limpar, gravar, enviar, marcador }:
-       limpar  = apagar as chaves lg2-* do aparelho antes (outra pessoa usou este navegador);
-       gravar  = objeto a escrever no aparelho (vem da conta) ou null;
-       enviar  = mandar já o que está no aparelho para a conta (primeiro acesso com progresso antigo);
-       marcador = novo valor da marca. */
+     Quando há progresso nos dois lados e os dados divergem, não há timestamp local confiável
+     para escolher vencedor: preserve ambos e aguarde uma escolha explícita.
+     Devolve { limpar, gravar, enviar, confirmar, marcador }:
+       limpar    = apagar LG2 local de outra conta;
+       gravar    = copiar da conta para o aparelho;
+       enviar    = sincronização inicial segura;
+       confirmar = há progresso local sem vínculo ou conflito com a conta;
+       marcador  = conta associada ao aparelho. */
   function mesclar(local, servidor, marcador, usuario) {
     var dadosServ = servidor && servidor.dados && typeof servidor.dados === 'object' && !Array.isArray(servidor.dados) ? servidor.dados : null;
     var marca = marcador && typeof marcador === 'object' && marcador.u ? marcador : null;
     var outraPessoa = !!marca && marca.u !== usuario;
-    if (temChaves(dadosServ)) {
-      var maisNovo = !marca || outraPessoa || tempo(servidor.atualizado_em) > tempo(marca.em);
-      if (maisNovo) {
-        return { limpar: outraPessoa, gravar: dadosServ, enviar: false, marcador: { u: usuario, em: servidor.atualizado_em || null } };
+    var localTem = temChaves(local);
+    var servidorTem = temChaves(dadosServ);
+    var novoMarcador = { u: usuario, em: servidor && servidor.atualizado_em || (marca && marca.u === usuario ? marca.em : null) };
+
+    if (outraPessoa) {
+      return { limpar: true, gravar: servidorTem ? dadosServ : null, enviar: false, confirmar: false,
+        marcador: { u: usuario, em: servidor && servidor.atualizado_em || null } };
+    }
+    if (localTem && servidorTem) {
+      var colisao = Object.keys(local).some(function (k) {
+        return Object.prototype.hasOwnProperty.call(dadosServ, k) && local[k] !== dadosServ[k];
+      });
+      if (colisao) {
+        return { limpar: false, gravar: null, enviar: false, confirmar: true, marcador: novoMarcador };
       }
-      return { limpar: false, gravar: null, enviar: false, marcador: { u: usuario, em: marca.em } };
+      var combinado = {};
+      Object.keys(dadosServ).forEach(function (k) { combinado[k] = dadosServ[k]; });
+      Object.keys(local).forEach(function (k) { combinado[k] = local[k]; });
+      return { limpar: false, gravar: serializar(combinado) === serializar(local) ? null : combinado,
+        enviar: false, confirmar: false, marcador: novoMarcador };
     }
-    if (temChaves(local)) {
-      // Conta vazia e aparelho com respostas: se são da mesma pessoa (ou de antes do login), sobem;
-      // se são de outra pessoa, saem do aparelho.
-      if (outraPessoa) return { limpar: true, gravar: null, enviar: false, marcador: { u: usuario, em: null } };
-      return { limpar: false, gravar: null, enviar: true, marcador: { u: usuario, em: marca ? marca.em : null } };
+    if (localTem) {
+      return { limpar: false, gravar: null, enviar: false, confirmar: true, marcador: novoMarcador };
     }
-    return { limpar: false, gravar: null, enviar: false, marcador: { u: usuario, em: marca ? marca.em : null } };
+    if (servidorTem) {
+      return { limpar: false, gravar: dadosServ, enviar: false, confirmar: false, marcador: novoMarcador };
+    }
+    return { limpar: false, gravar: null, enviar: false, confirmar: false, marcador: novoMarcador };
   }
 
   // Texto estável (chaves em ordem) para comparar se algo mudou.
@@ -97,45 +115,109 @@
     });
   }
 
-  function iniciar(win) {
+  // Módulo dentro da jornada: usa a cópia da jornada (mesmo site, mesmo aparelho).
+  function daJornada(win) {
+    try {
+      if (win.parent && win.parent !== win && win.parent.LG2Progresso && win.parent.location.origin === win.location.origin) return win.parent.LG2Progresso;
+    } catch (e) {}
+    return null;
+  }
+
+  function iniciar(win, recarregar) {
+    var pai = daJornada(win);
+    if (pai) return pai;
     var ls;
     try { ls = win.localStorage; } catch (e) { ls = null; }
-    var api = { mesclar: mesclar, ativo: false, pronto: Promise.resolve(false), enviarAgora: function () { return false; } };
+    var api = {
+      mesclar: mesclar, ativo: false, pronto: Promise.resolve(false),
+      needsConfirmation: false, contaTemDados: false,
+      enviarAgora: function () { return false; },
+      salvar: function () { return Promise.resolve(false); },
+      usarConta: function () { return Promise.resolve(false); }
+    };
     if (!ls || !noSite(win.location) || typeof win.fetch !== 'function') return api;
 
     var usuario = null;
     var ultimo = null; // texto do último estado que a conta tem
+    var dadosConta = {};
+    var dataConta = null;
     var enviando = false;
+    var emCurso = null; // promessa do envio em andamento
 
-    function enviar(aoSair) {
-      if (!usuario) return false;
+    // Manda a cópia para a conta. Devolve uma promessa: true = a conta tem o estado atual.
+    function enviar(aoSair, forcar) {
+      if (!usuario || (api.needsConfirmation && !forcar)) return Promise.resolve(false);
+      if (enviando) {
+        if (!forcar) return emCurso || Promise.resolve(false);
+        return (emCurso || Promise.resolve(false)).then(function () { return enviar(aoSair, true); });
+      }
       var dados = coletar(ls);
       var txt = serializar(dados);
-      if (txt === ultimo || (enviando && !aoSair)) return false;
+      if (txt === ultimo && !forcar) return Promise.resolve(true);
       var corpo = JSON.stringify({ dados: dados });
-      if (corpo.length > LIMITE_BYTES) return false;
+      if (corpo.length > LIMITE_BYTES) return Promise.resolve(false);
       var opcoes = { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: corpo };
       if (aoSair && corpo.length < LIMITE_KEEPALIVE) opcoes.keepalive = true;
       enviando = true;
       var anterior = ultimo;
       ultimo = txt; // evita mandar o mesmo de novo enquanto a resposta não chega
+      function confirmar(j) {
+        api.needsConfirmation = false;
+        api.contaTemDados = temChaves(dados);
+        if (j && j.atualizado_em) dataConta = j.atualizado_em;
+        gravarMarca(ls, { u: usuario, em: dataConta });
+        return true;
+      }
       try {
-        win.fetch(ENDERECO, opcoes).then(function (r) {
-          enviando = false;
-          if (!r || !r.ok) { if (ultimo === txt) ultimo = anterior; return null; }
-          return r.json().then(function (j) {
-            if (j && j.atualizado_em) gravarMarca(ls, { u: usuario, em: j.atualizado_em });
-          });
-        }).catch(function () { enviando = false; if (ultimo === txt) ultimo = anterior; });
-      } catch (e) { enviando = false; ultimo = anterior; return false; }
-      return true;
+        emCurso = win.fetch(ENDERECO, opcoes).then(function (r) {
+          if (!r || !r.ok) { enviando = false; emCurso = null; if (ultimo === txt) ultimo = anterior; return false; }
+          return Promise.resolve().then(function () { return r.json ? r.json() : null; }).then(confirmar, function () { return confirmar(null); });
+        }).catch(function () { if (ultimo === txt) ultimo = anterior; return false; }).then(function (ok) {
+          enviando = false; emCurso = null; return ok;
+        });
+      } catch (e) { enviando = false; emCurso = null; ultimo = anterior; return Promise.resolve(false); }
+      return emCurso;
     }
 
     api.ativo = true;
-    api.enviarAgora = function () { return enviar(false); };
+    api.enviarAgora = function () { if (api.needsConfirmation) return false; enviar(false); return !!usuario; };
+    // O conflito só é resolvido após confirmação explícita. Conta-only modules are preserved on merge.
+    api.salvar = function (confirmar) {
+      return api.pronto.then(function (ok) {
+        if (!ok || (api.needsConfirmation && !confirmar)) return false;
+        if (api.needsConfirmation) {
+          Object.keys(dadosConta).forEach(function (k) {
+            if (k.indexOf('lg2-') === 0 && k !== MARCA && typeof dadosConta[k] === 'string' && ls.getItem(k) === null) {
+              try { ls.setItem(k, dadosConta[k]); } catch (e) {}
+            }
+          });
+        }
+        return enviar(false, true);
+      });
+    };
+    api.usarConta = function () {
+      return api.pronto.then(function (ok) {
+        if (!ok || !api.needsConfirmation || !api.contaTemDados) return false;
+        limparLocal(ls);
+        Object.keys(dadosConta).forEach(function (k) {
+          if (k.indexOf('lg2-') === 0 && k !== MARCA && typeof dadosConta[k] === 'string') {
+            try { ls.setItem(k, dadosConta[k]); } catch (e) {}
+          }
+        });
+        gravarMarca(ls, { u: usuario, em: dataConta });
+        ultimo = serializar(dadosConta);
+        api.needsConfirmation = false;
+        return true;
+      });
+    };
     api.pronto = buscar(win.fetch.bind(win)).then(function (serv) {
       usuario = serv.u;
+      dadosConta = serv && serv.dados && typeof serv.dados === 'object' && !Array.isArray(serv.dados) ? serv.dados : {};
+      dataConta = serv && serv.atualizado_em || null;
       var d = mesclar(coletar(ls), serv, lerMarca(ls), usuario);
+      api.needsConfirmation = d.confirmar;
+      api.contaTemDados = temChaves(dadosConta);
+      var antes = recarregar ? serializar(coletar(ls)) : null;
       if (d.limpar) limparLocal(ls);
       if (d.gravar) {
         Object.keys(d.gravar).forEach(function (k) {
@@ -145,8 +227,19 @@
         });
       }
       gravarMarca(ls, d.marcador);
-      ultimo = serializar(serv && serv.dados && typeof serv.dados === 'object' ? serv.dados : {});
+      ultimo = serializar(dadosConta);
       if (d.enviar) enviar(false);
+      // Módulo aberto sozinho: a tela já foi montada com o que havia no aparelho. Se a conta trouxe
+      // outra coisa, recarrega uma vez (no máximo a cada 30 s) para a pessoa ver as respostas da conta.
+      if (recarregar && serializar(coletar(ls)) !== antes) {
+        var agora = Date.now(), ultima = 0;
+        try { ultima = Number(win.sessionStorage.getItem('lg2-recarregou')) || 0; } catch (e) {}
+        if (agora - ultima > 30000) {
+          try { win.sessionStorage.setItem('lg2-recarregou', String(agora)); } catch (e) {}
+          win.location.reload();
+          return true;
+        }
+      }
       win.setInterval(function () { enviar(false); }, INTERVALO_MS);
       win.document.addEventListener('visibilitychange', function () { if (win.document.visibilityState === 'hidden') enviar(true); });
       win.addEventListener('pagehide', function () { enviar(true); });
@@ -155,6 +248,9 @@
     return api;
   }
 
-  if (typeof window !== 'undefined') window.LG2Progresso = iniciar(window);
+  if (typeof window !== 'undefined') {
+    var eu = typeof document !== 'undefined' ? document.currentScript : null;
+    window.LG2Progresso = iniciar(window, !!(eu && eu.hasAttribute('data-recarregar')));
+  }
   if (typeof module !== 'undefined' && module.exports) module.exports = { mesclar: mesclar, serializar: serializar };
 })();

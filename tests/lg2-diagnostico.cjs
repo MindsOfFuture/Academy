@@ -115,8 +115,10 @@ const ESTADO = {
       titulo: document.getElementById('diag-titulo').textContent,
       data: document.getElementById('diag-data').textContent,
       secoes: [...document.querySelectorAll('#diag-corpo .diag-secao > h2')].map((h) => h.textContent),
+      proximo: document.querySelector('.diag-proximo')?.innerText || '',
+      continuar: document.querySelector('.diag-proximo button')?.textContent || '',
       cenario: [...document.querySelectorAll('.diag-cenario p:not(.diag-vazio)')].map((p) => p.textContent),
-      abertos: [...document.querySelectorAll('.diag-lista-abertos li')].map((li) => ({ q: li.querySelector('.diag-q').textContent, m: li.querySelector('.diag-mod').textContent })),
+      abertos: [...document.querySelectorAll('.diag-lista-abertos li')].map((li) => ({ q: li.querySelector('.diag-q').textContent, m: li.querySelector('.diag-mod').textContent, revisar: li.querySelector('.diag-rever')?.textContent })),
       blocos: [...document.querySelectorAll('.diag-modulo')].map((a) => ({
         n: Number(a.dataset.modulo), titulo: a.querySelector('h3').textContent, estado: a.querySelector('.diag-estado').textContent,
         itens: [...a.querySelectorAll('.diag-item')].map((d) => ({ q: d.querySelector('dt').textContent, r: d.querySelector('dd').textContent })),
@@ -134,9 +136,11 @@ const ESTADO = {
 
     assert.equal(d.titulo, 'Diagnóstico final do seu negócio');
     assert.match(d.data, new RegExp(`Situação em \\d{1,2} de [a-zç]+ de ${new Date().getFullYear()}`));
-    assert.deepEqual(d.secoes, ['Como está o seu negócio hoje', 'Pontos em aberto', 'Suas respostas, módulo por módulo']);
+    assert.deepEqual(d.secoes, ['Como está o seu negócio hoje', 'Pontos em aberto', 'Seu próximo passo', 'Suas respostas, módulo por módulo']);
+    assert.ok(d.proximo.includes('Comece por um ponto em aberto acima') && d.proximo.includes('salve seu progresso'), 'próximo passo usa as lacunas reais e orienta a salvar');
     assert.ok(d.cenario.length >= 1 && d.cenario.length <= 3, 'cenário = 1 a 3 parágrafos do resumo');
     assert.ok(d.cenario.join(' ').includes(OFERTA), 'o cenário fala do negócio da pessoa');
+    assert.match(d.texto, /não verifica os dados nem garante resultados/, 'limites do resumo ficam explícitos');
 
     // Um bloco por módulo, na ordem, com a situação.
     assert.deepEqual(d.blocos.map((b) => b.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
@@ -184,8 +188,8 @@ const ESTADO = {
 
     // Pontos em aberto = respostas "Não sei", com o módulo.
     assert.deepEqual(d.abertos, [
-      { q: semExemplo(pergunta(3, 'M3.P04').pergunta), m: 'Módulo 3' },
-      { q: semExemplo(pergunta(5, 'M5.P27').pergunta), m: 'Módulo 5' },
+      { q: semExemplo(pergunta(3, 'M3.P04').pergunta), m: 'Módulo 3', revisar: 'Rever Módulo 3' },
+      { q: semExemplo(pergunta(5, 'M5.P27').pergunta), m: 'Módulo 5', revisar: 'Rever Módulo 5' },
     ]);
 
     // Nada técnico na tela.
@@ -237,6 +241,14 @@ const ESTADO = {
     if (shots) { await p2.waitForTimeout(400); await p2.screenshot({ path: path.join(shots, 'l4_jornada_diagnostico_1200.png') }); }
     await p2.click('#fecha-diag');
     assert.ok(await p2.isVisible('#fim'), 'Fechar volta ao fim da jornada');
+    await p2.click('#ver-diag-fim');
+    await esperarDiag(p2);
+    await p2.click('.diag-lista-abertos .diag-rever');
+    await p2.waitForFunction(() => {
+      const iframe = document.getElementById('modulo');
+      return document.getElementById('diagnostico').hidden && !iframe.hidden && (iframe.getAttribute('src') || '').endsWith('/m03/index.html');
+    });
+    await p2.waitForFunction(() => document.getElementById('modulo').contentDocument?.readyState === 'complete');
     assert.deepEqual(p2.errors, []);
     await fim.ctx.close();
 
@@ -250,6 +262,9 @@ const ESTADO = {
     assert.ok(d3.blocos.slice(1).every((x) => x.estado === 'não começou' && !x.itens.length), 'sem respostas: módulos não começaram');
     assert.deepEqual(d3.abertos, []);
     assert.match(d3.texto, /Nenhuma pergunta ficou com “Não sei”/);
+    assert.ok(d3.proximo.includes('Continue pelo primeiro módulo') && d3.continuar === 'Continuar Módulo 1', 'sem lacunas, oferece o primeiro módulo pendente');
+    await vazio.page.click('.diag-proximo button');
+    await vazio.page.waitForFunction(() => document.getElementById('diagnostico').hidden && !document.getElementById('modulo').hidden && (document.getElementById('modulo').getAttribute('src') || '').endsWith('/m01/index.html'));
     assert.deepEqual(vazio.page.errors, []);
     await vazio.ctx.close();
 

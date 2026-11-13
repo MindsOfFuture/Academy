@@ -19,7 +19,9 @@ a ordem nem impede de pular etapas.
   aparece na jornada na hora, sem cópia para manter.
 - O progresso fica no aparelho, como as respostas dos módulos.
 
-**Fora de escopo:** guardar o progresso na conta da pessoa; mudar o conteúdo dos módulos.
+- O progresso local continua sendo recuperável, mas a sincronização entre dispositivos e a gravação na conta foram adicionadas pela spec `026-lg2-continuity.md`.
+
+**Fora de escopo original (alterado pela spec 026):** guardar o progresso na conta da pessoa; mudar o conteúdo dos módulos.
 
 ## Critérios de aceite
 

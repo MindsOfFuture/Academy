@@ -281,7 +281,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   /* ===== Lote 3 (nov/2026) ===== */
   /* Receita C: Voltar no topo do cartão; na 1ª pergunta volta à capa */
   await semear({}); await page.reload(); await btn('Começar').click();
-  check(await btn('Voltar').count() === 1 && await btn('Início').count() === 0, '1ª pergunta: só o botão Voltar (faixa compacta, sem trilha)');
+  check(await btn('Voltar').count() === 1 && await btn('Início').count() === 1 && await btn('Salvar e sair').count() === 1, '1ª pergunta: controles comuns + um Voltar no cabeçalho do módulo');
   check(await page.evaluate(() => document.querySelector('.cartao-q').firstElementChild.id === 'v'), 'Voltar é o 1º item do cartão da pergunta');
   await btn('Voltar').click();
   check(await page.locator('.heroi-grande').count() === 1, 'Voltar na 1ª pergunta volta à capa');
@@ -322,9 +322,10 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   check(await atual() === 'RESULTADO', 'resultado');
   /* item 2 no resultado: cartão aberto com os 4 critérios e a fonte */
   const qmr = nrm(await page.textContent('section#quem-mei'));
-  for (const t of ['Quem pode ser MEI', 'R$ 81.000 por ano em 2026', 'R$ 110.000', 'lista de ocupações permitidas ao MEI', 'Não ser sócio nem titular de outra empresa', 'no máximo 1 empregado', 'Confira na Sala do Empreendedor ou no Portal do Empreendedor (gov.br)']) check(qmr.includes(t), `quem pode ser MEI: "${t}"`);
+  for (const t of ['Quem pode ser MEI', 'R$ 81.000 por ano em 2026', 'R$ 110.000', 'lista de ocupações permitidas ao MEI', 'Não ser sócio nem titular de outra empresa', 'Em 2026, ter no máximo 1 empregado', 'A partir de 1º de janeiro de 2027, até 2', 'Confira na Sala do Empreendedor ou no Portal do Empreendedor (gov.br)']) check(qmr.includes(t), `quem pode ser MEI: "${t}"`);
   check(await page.locator('section#quem-mei li').count() === 4, 'quem pode ser MEI: 4 critérios');
-  check((await page.$$eval('section#quem-mei a', (as) => as.map((a) => a.href))).includes('https://www.gov.br/pt-br/servicos/realizar-registro-como-microempreendedor-individual-mei'), 'quem pode ser MEI: fonte gov.br');
+  const qmrHrefs = await page.$$eval('section#quem-mei a', (as) => as.map((a) => a.href));
+  check(qmrHrefs.includes('https://www.gov.br/pt-br/servicos/realizar-registro-como-microempreendedor-individual-mei') && qmrHrefs.includes('https://www2.camara.leg.br/legin/fed/leicom/2026/leicomplementar-238-21-outubro-2026-800071-publicacaooriginal-181678-pl.html') && qmrHrefs.includes('https://www.gov.br/memp/pt-br/prospera-mei/teto-do-mei'), 'quem pode ser MEI: fontes gov.br + Câmara + MEMP');
   check(await page.locator('#tela #fontes-duvida').count() === 1, 'fontes da dúvida também no resultado');
   check(nrm(await page.textContent('#entendemos')).includes('Você atende na casa do cliente'), 'entendemos: atendimento em domicílio');
   /* item 3: Copiar e Escolher este em cada CNAE compatível */

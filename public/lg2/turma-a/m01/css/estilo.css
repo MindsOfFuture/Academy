@@ -211,3 +211,7 @@ body.com-video{overflow:hidden}
 .mais-detalhes>.cartao{background:#fff;margin-top:10px}
 .mais-detalhes .para-onde{background:#fff;margin:10px 0}
 .como-funciona{margin-top:0}
+
+/* Continuar logo abaixo da pergunta (padrão único) */
+.acoes-q{padding:16px 0 4px}
+.acoes-q .btn{width:100%}

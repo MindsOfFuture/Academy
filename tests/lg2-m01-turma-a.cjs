@@ -374,11 +374,11 @@ async function servidor() {
     const apoio = await page.evaluate(() => { const a = document.querySelector('.pergunta .apoio'); return a ? a.textContent : null; });
     ok(apoio === e.apoio, `${c}: apoio "${apoio}" != "${e.apoio}"`);
     if (R.__novo) { const np = await palavrasCorpo(); ok(np <= LIMITE_PALAVRAS, `${c}: ${np} palavras no corpo (máx. ${LIMITE_PALAVRAS})`); }
-    ok(await page.evaluate(() => [...document.querySelectorAll('.topo button')].some((b) => b.textContent.trim() === '< Voltar')), `${c}: "< Voltar" no topo`);
+    ok(await page.evaluate(() => [...document.querySelectorAll('.p-faixa button')].some((b) => b.textContent.trim() === '‹ Voltar')), `${c}: "‹ Voltar" no topo`);
     /* Receita C (lote 3): o Voltar fica no topo, à esquerda, acima do texto da pergunta, e só há um */
     ok(await page.evaluate(() => { const v = [...document.querySelectorAll('button')].filter((b) => /Voltar/.test(b.textContent)); const q = document.querySelector('.q').getBoundingClientRect(), r = v[0] && v[0].getBoundingClientRect();
       return v.length === 1 && r.bottom <= q.top && r.left < innerWidth / 2; }), `${c}: um só Voltar, à esquerda e acima da pergunta`);
-    ok(await page.evaluate(() => !!document.querySelector('.barra')), `${c}: barra de progresso`);
+    ok(await page.evaluate(() => !!document.querySelector('.p-barra')), `${c}: barra de progresso`);
     const d = await page.evaluate(() => [...document.querySelectorAll('details')].map((x) => [x.open, x.querySelector('summary').textContent]));
     ok(e.ajuda ? d.length === 1 && d[0][0] === false && d[0][1] === 'Ver dica' : d.length === 0, `${c}: dica "Ver dica" (fechada)`);
     if (e.ajuda) ok(t.includes('Ver dica') && !/Fonte/i.test(t) && !t.includes(e.ajuda_texto), `${c}: dica fechada esconde o texto, sem fonte`);
@@ -505,20 +505,20 @@ async function servidor() {
   await inicio();
   let t = await texto();
   /* versão leve: capa = título, 1 frase, tempo, Começar; o resto fica em "Como funciona" (fechado) */
-  for (const s of ['PARTE 1', 'Você e a sua ideia', 'Responda perguntas rápidas e receba um resumo da sua ideia com uma tarefa para começar.',
-    'Como funciona', 'Este módulo leva uns 10 minutos', 'O que esta parte não faz'])
+  for (const s of ['Etapa 1 de 10', 'Você e a sua ideia', 'Responda perguntas rápidas e receba um resumo da sua ideia com uma tarefa para começar.',
+    'Como funciona', 'Esta etapa leva uns 10 minutos', 'O que esta etapa não faz', 'Salvar e sair'])
     ok(t.includes(s), `início: falta "${s}"`);
   ok(!t.includes('confirmar o tempo'), 'início: nota "(confirmar o tempo real)" não pode aparecer');
   ok(!t.includes('No final, você vai ter:') && !t.includes('A jornada completa'), 'início: "Como funciona" começa fechado');
   {
-    const n = await page.evaluate(() => document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
+    const n = await page.evaluate(() => document.querySelector('#tela main.corpo').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
     ok(n <= LIMITE_PALAVRAS, `início: ${n} palavras visíveis (máx. ${LIMITE_PALAVRAS})`);
   }
   ok(!/(^|\n)Leva uns 10 minutos/.test(t), 'início: "Leva uns 10 minutos" sozinho parece o tempo da jornada inteira');
   await page.evaluate(() => { document.querySelector('details.como-funciona').open = true; });
   t = await texto();
   // item da Júlia: os ~10 min são deste módulo; a jornada inteira leva horas e fica salva no aparelho
-  ok(t.includes('Este é o Módulo 1 de 10. A jornada completa leva de 3 a 5 horas, e dá para fazer em vários dias: suas respostas ficam salvas neste aparelho.'), 'início: falta o tempo da jornada completa (em "Como funciona")');
+  ok(t.includes('Esta é a Etapa 1 de 10. A jornada completa leva de 3 a 5 horas e dá para fazer em vários dias: suas respostas ficam salvas na sua conta.'), 'início: falta o tempo da jornada completa (em "Como funciona")');
   for (const s of ['No final, você vai ter:', 'Um resumo sobre você e a sua ideia', 'O que ainda falta descobrir', 'Uma tarefa fácil para fazer já']) ok(t.includes(s), `início/Como funciona: falta "${s}"`);
   ok(await page.evaluate(() => document.querySelectorAll('.bloco-lista li').length === 3 && [...document.querySelectorAll('.bloco-lista li')].every((l) => l.querySelector('svg'))), 'início: 3 linhas em "Como funciona", cada uma com ícone');
   await page.evaluate(() => { document.querySelector('details.como-funciona').open = false; });
@@ -529,7 +529,7 @@ async function servidor() {
   ok(/Você e a sua ideia/.test(falou) && /\|pt-BR$/.test(falou), `Ouvir lê a tela em pt-BR (${falou.slice(0, 60)})`);
   await shot('01-inicio');
 
-  await clicarTexto('button', 'O que esta parte não faz');
+  await clicarTexto('button', 'O que esta etapa não faz');
   t = await texto();
   for (const s of ['O que você pode esperar', 'O app não faz:', 'Não promete lucro nem vendas', 'O app te ajuda a:', 'Escolher um próximo passo fácil',
     'Quando pedir ajuda a um profissional', 'O app ajuda você a pensar e se organizar. Os resultados dependem das suas respostas e não são garantidos. Regras de impostos, registro e licenças devem ser confirmadas em sites do governo e com profissionais.',
@@ -539,7 +539,7 @@ async function servidor() {
   ok(await page.evaluate(() => getComputedStyle(document.querySelector('.aviso-roxo')).backgroundColor === 'rgb(104, 74, 151)'), 'limites: caixa roxa');
   await regrasGerais('limites');
   await shot('02-o-que-esta-parte-nao-faz');
-  await clicarTexto('button', '< Voltar');
+  await clicarTexto('button', '‹ Voltar');
   ok(await page.evaluate(() => !!document.querySelector('#ir')), 'limites: Voltar leva ao início');
 
   /* ---------- caminhos ---------- */
@@ -684,11 +684,11 @@ async function servidor() {
   await clicarTexto('button', 'Começar');
   await opcao('Já vendo sempre'); await continuar();
   ok(await cod() === 'M1.P02', 'Voltar: estar na P2');
-  await clicarTexto('button', '< Voltar');
+  await clicarTexto('button', '‹ Voltar');
   ok(await cod() === 'M1.P01', 'Voltar: P2 -> P1');
   ok((await estadoOpcoes()).find((o) => o.t === 'Já vendo sempre').check, 'Voltar: P1 mantém a escolha com ✓');
   ok(await continuarDesligado() === false, 'Voltar: Continuar aceso com resposta salva');
-  await clicarTexto('button', '< Voltar');
+  await clicarTexto('button', '‹ Voltar');
   ok(await page.evaluate(() => !!document.querySelector('#ir')), 'Voltar: P1 -> tela inicial');
 
   /* ---------- persistência ---------- */
@@ -705,9 +705,9 @@ async function servidor() {
   ok((await texto()).includes('Apagar respostas e recomeçar'), 'persistência: início reconhece respostas salvas');
   await clicarTexto('button', 'Começar');
   ok(await cod() === 'M1.P05A', 'persistência: volta para a 5A depois de recarregar');
-  await clicarTexto('button', '< Voltar');
+  await clicarTexto('button', '‹ Voltar');
   ok((await estadoOpcoes()).find((o) => o.t === 'Só nos fins de semana').check, 'persistência: P5 mantém a escolha');
-  await clicarTexto('button', '< Voltar');
+  await clicarTexto('button', '‹ Voltar');
   ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já sabe fazer conserto de celular?', 'persistência: P4 repete a resposta da P3');
   // trocar a P5 para uma opção sem 5A remove a resposta extra do caminho
   await continuar();
@@ -823,7 +823,7 @@ async function servidor() {
     await opcao('Produto: eu compro materiais e faço o que vendo'); await continuar();
     ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já sabe fazer roupas?', 'troca de tipo: P4 de produto');
     await opcao('Sim, já faço bem');
-    await clicarTexto('button', '< Voltar');
+    await clicarTexto('button', '‹ Voltar');
     await opcao('Mercadoria: compro pronto para revender');
     ok(JSON.stringify((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))).R['M1.P03A']) === JSON.stringify({ estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }), 'troca de tipo: 3A no mesmo formato');
     await continuar();
@@ -833,7 +833,7 @@ async function servidor() {
     ok(!(await texto()).includes('ainda estou aprendendo'), 'troca de tipo: sem opção de "aprender a fazer" na revenda');
     await page.evaluate(() => { document.querySelector('details').open = true; });
     await shot('m01-p4-mercadoria');
-    await clicarTexto('button', '< Voltar');
+    await clicarTexto('button', '‹ Voltar');
     await opcao('Serviço: meu cliente paga pelo trabalho que realizo'); await continuar();
     ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Sim, já faço bem"]', 'troca de tipo: voltar para serviço restaura a opção de saber fazer');
   }

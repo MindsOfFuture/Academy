@@ -147,12 +147,12 @@ window.MODULO1 = {
   }
  ],
  "inicio": {
-  "rotulo": "PARTE 1",
+  "rotulo": "ETAPA 1",
   "titulo": "Você e a sua ideia",
   "descricao": "Responda perguntas rápidas e receba um resumo da sua ideia com uma tarefa para começar.",
-  "tempo": "Este módulo leva uns 10 minutos",
+  "tempo": "Esta etapa leva uns 10 minutos",
   "botao": "Começar",
-  "link": "O que esta parte não faz",
+  "link": "O que esta etapa não faz",
   "mais": {
    "titulo": "Como funciona",
    "blocos": [
@@ -165,7 +165,7 @@ window.MODULO1 = {
      ]
     }
    ],
-   "jornada": "Este é o Módulo 1 de 10. A jornada completa leva de 3 a 5 horas, e dá para fazer em vários dias: suas respostas ficam salvas neste aparelho."
+   "jornada": "Esta é a Etapa 1 de 10. A jornada completa leva de 3 a 5 horas e dá para fazer em vários dias: suas respostas ficam salvas na sua conta."
   }
  },
  "limites": {

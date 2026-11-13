@@ -386,25 +386,48 @@
       pars = pars.filter(Boolean);
       if (pars.length) pars.forEach(function (t) { s1.appendChild(el('p', '', t)); });
       else s1.appendChild(el('p', 'diag-vazio', 'Ainda não dá para montar o resumo. Continue respondendo os módulos e ele vai aparecer aqui.'));
+      s1.appendChild(el('div', 'diag-rodape-nota', 'Este retrato organiza o que você informou; não verifica os dados nem garante resultados. Confirme informações fiscais, jurídicas e de licenças com fontes oficiais ou profissionais da área.'));
       corpo.appendChild(s1);
       // Pontos em aberto
       var s2 = el('section', 'diag-secao diag-abertos');
       s2.appendChild(el('h2', '', 'Pontos em aberto'));
+      s2.appendChild(el('p', 'diag-nota', 'Aqui aparecem as perguntas que você marcou “Não sei”. Volte ao módulo para usar a ajuda “Como descobrir” e atualizar a resposta.'));
       if (r.abertos.length) {
-        s2.appendChild(el('p', 'diag-nota', 'Perguntas em que você respondeu \u201cNão sei\u201d. Vale buscar essas respostas.'));
         var ul = el('ul', 'diag-lista-abertos');
         r.abertos.forEach(function (a) {
           var li = el('li');
           li.appendChild(el('span', 'diag-q', a.pergunta));
           li.appendChild(el('span', 'diag-mod', 'Módulo ' + a.modulo));
+          var rever = el('button', 'diag-rever', 'Rever Módulo ' + a.modulo);
+          rever.type = 'button';
+          rever.addEventListener('click', function () { fecharDiagnostico(); abrir(a.modulo); });
+          li.appendChild(rever);
           ul.appendChild(li);
         });
         s2.appendChild(ul);
-      } else s2.appendChild(el('p', 'diag-vazio', 'Nenhuma pergunta ficou com \u201cNão sei\u201d.'));
+      } else s2.appendChild(el('p', 'diag-vazio', 'Nenhuma pergunta ficou com “Não sei”.'));
       corpo.appendChild(s2);
+      // Orientação final baseada no progresso e nas respostas disponíveis.
+      var s3 = el('section', 'diag-secao diag-proximo');
+      s3.appendChild(el('h2', '', 'Seu próximo passo'));
+      if (r.abertos.length) {
+        s3.appendChild(el('p', '', 'Comece por um ponto em aberto acima. Toque em “Rever Módulo”, use a ajuda “Como descobrir” e atualize a resposta quando confirmar. Depois, salve seu progresso.'));
+      } else {
+        var pendente = mods.find(function (m) { return m.situacao === 'andamento'; }) || mods.find(function (m) { return m.situacao === 'nada'; });
+        if (pendente) {
+          s3.appendChild(el('p', '', 'Continue pelo primeiro módulo que está em andamento ou ainda não começou. Ao concluir, volte ao retrato para revisar as respostas.'));
+          var continuar = el('button', 'diag-rever', 'Continuar Módulo ' + pendente.n);
+          continuar.type = 'button';
+          continuar.addEventListener('click', function () { fecharDiagnostico(); abrir(pendente.n); });
+          s3.appendChild(continuar);
+        } else {
+          s3.appendChild(el('p', '', 'Seu retrato está completo. Antes de tomar decisões legais, fiscais ou sobre licenças, confira as fontes oficiais. Depois, teste uma mudança pequena e atualize as respostas com o que observar.'));
+        }
+      }
+      corpo.appendChild(s3);
       // Um bloco por módulo
-      var s3 = el('section', 'diag-secao diag-respostas');
-      s3.appendChild(el('h2', '', 'Suas respostas, módulo por módulo'));
+      var s4 = el('section', 'diag-secao diag-respostas');
+      s4.appendChild(el('h2', '', 'Suas respostas, módulo por módulo'));
       r.blocos.forEach(function (b) {
         var art = el('article', 'diag-modulo');
         art.setAttribute('data-modulo', b.n);
@@ -425,9 +448,9 @@
           });
           art.appendChild(dl);
         } else art.appendChild(el('p', 'diag-vazio', 'Nenhuma resposta ainda.'));
-        s3.appendChild(art);
+        s4.appendChild(art);
       });
-      corpo.appendChild(s3);
+      corpo.appendChild(s4);
       corpo.removeAttribute('aria-busy');
     });
   }

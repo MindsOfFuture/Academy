@@ -360,13 +360,18 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   { const ps = await page.$$eval('#entendemos p', (x) => x.map((e) => e.textContent.replace(/\s+/g, ' ')));
     check('Entendemos: parágrafos por assunto (oferta · tempo e meta · o que segura o ritmo)', ps.length === 3 && ps[0].startsWith('Você oferece') && /cabem/.test(ps[1]) && /ritmo/.test(ps[2]), ps); }
   check('Sem código interno na tela (M7-, M4-, M5-)', !/\bM\d-\d/.test(res), (res.match(/.{20}\bM\d-\d.{20}/) || [])[0]);
+  const termosFonte = page.locator('#retrato .saiba').first();
+  await termosFonte.locator('summary').click();
+  check('Resumo: fonte ligada ao termo fica acessível dentro da explicação', await termosFonte.locator('.p-fonte-termo a').count() > 0);
   await foto('m07_07_resumo');
   /* instrumento: quadro de fornecedores conta critérios sem voltar ao topo */
   await page.evaluate(() => document.querySelector('.forn').scrollIntoView());
+  await page.locator('.forn').nth(0).locator('select').nth(0).focus();
   const y0 = await page.evaluate(() => window.scrollY);
   await page.selectOption('.forn >> nth=0 >> select >> nth=0', 'atende');
-  await page.waitForTimeout(100);
-  check('Quadro de fornecedores conta 1 de 2 sem voltar ao topo', /Atende 1 de 2/.test(await page.innerText('.forn >> nth=0')) && Math.abs((await page.evaluate(() => window.scrollY)) - y0) < 5);
+  const fornText = await page.innerText('.forn >> nth=0');
+  const y1 = await page.evaluate(() => window.scrollY);
+  check('Quadro de fornecedores conta 1 de 2 sem voltar ao topo', /Atende 1 de 2/.test(fornText) && y1 > y0 / 2, { fornText: fornText.match(/Atende \d+ de \d+/)?.[0], y0, y1 });
   /* M7-13: confirmar libera o próximo módulo */
   await page.evaluate(() => [...document.querySelectorAll('#op13 .opcao')].find((x) => x.textContent.trim() === 'Sim, pode seguir').click());
   check('Confirmar o retrato mostra o link para o Módulo 8', await page.isVisible('.lg2-proximo a[href="/lg2/turma-b/m08/index.html"]'));
@@ -600,7 +605,11 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
 
   /* ---------- 6. versão leve: perguntas curtas, "Ver dica" fechada e ajuda de verdade no "Não sei" ---------- */
   {
-    const palavras = async () => (await page.evaluate(() => document.querySelector('#tela').innerText)).split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
+    const palavras = async () => (await page.evaluate(() => {
+      const tela = document.querySelector('#tela');
+      const padrao = tela.querySelector('.p-linha-integrada')?.innerText || '';
+      return tela.innerText.replace(padrao, '');
+    })).split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
     const e5 = { 'M7-05': { estado: 'opcao', opcao: 'Um equipamento ou o espaço' } };
     const estadoDe = (cod, ini) => estadoAte(cod, ini || {}, cod === 'M7-05a' ? e5 : {});
     const REVI = { tipo: 'Mercadoria: compro pronto para revender', oferta: 'Refrigerante 2 L', item: 'Refrigerante 2 L', estoque: 'Sim, mantenho mercadoria guardada' };

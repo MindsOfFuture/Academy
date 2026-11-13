@@ -539,7 +539,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   await page.goto(URL);
 
   const contagensVisiveis = [];
-  const palavrasVisiveis = () => page.evaluate(() => document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
+  const palavrasVisiveis = () => page.evaluate(() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + n(e.innerText), 0); });
   const semear = async (estado, heranca) => {
     await page.evaluate(([e, h, k]) => {
       localStorage.clear();

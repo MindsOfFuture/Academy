@@ -1,5 +1,6 @@
-/* Telas do Módulo 1. Todo texto de conteúdo vem de window.MODULO1, sem edição.
-   As respostas ficam só neste aparelho. */
+/* Telas do Módulo 1 (Etapa 1). Todo texto de conteúdo vem de window.MODULO1.
+   As respostas ficam no aparelho e uma cópia vai para a conta da pessoa (js/progresso.js).
+   Cabeçalho, rodapé, Ouvir e "Salvar e sair" vêm do padrão único (js/padrao.js). */
 (function () {
   "use strict";
   const D = window.MODULO1, M = Motor.montar(D);
@@ -99,69 +100,11 @@
   /* ---------- Ouvir: lê a tela em voz alta ---------- */
   const fala = "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function" ? window.speechSynthesis : null;
   function parar() { if (fala) try { fala.cancel(); } catch {} }
-  function botaoOuvir() { return fala ? `<button class="ouvir" type="button" data-ouvir>${SVG('<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/>')}<span>Ouvir</span></button>` : ""; }
-  function textoDaTela(p) {
-    const partes = [];
-    p.querySelectorAll("[data-ler]").forEach((e) => {
-      if (e.closest("[hidden]") || e.closest("details:not([open]) > :not(summary)")) return;
-      const t = e.innerText.replace(/\s+/g, " ").trim();
-      if (t) partes.push(t);
-    });
-    return partes.join(". ").replace(/\.\s*\./g, ".");
-  }
-  function ligarOuvir(p) {
-    const b = p.querySelector("[data-ouvir]");
-    if (!b) return;
-    b.onclick = () => {
-      if (fala.speaking) { parar(); return; }
-      const u = new SpeechSynthesisUtterance(textoDaTela(p));
-      u.lang = "pt-BR";
-      const voz = fala.getVoices().find((v) => /^pt(-|_)BR/i.test(v.lang));
-      if (voz) u.voice = voz;
-      fala.speak(u);
-    };
-  }
-
-  /* ---------- peças do layout (as mesmas do Módulo 5) ---------- */
-  const PARTE = "Parte " + D.modulo.numero;        // o documento do grupo chama o módulo de "Parte 1"
-  function topo(trilha) {
-    return `<div class="barra-topo">
-      <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
-      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" type="button" data-inicio>Início</button><span>/</span><span>${esc(PARTE)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
-    </div>`;
-  }
-  /* faixa roxa pequena: "< Voltar" e Ouvir no topo (regra do Módulo 1), título e, se houver, barra de progresso */
-  function faixa(o) {
-    /* pergunta: faixa curta (Voltar, Ouvir, nome da parte e barra), sem título repetido nem ilustração */
-    if (o.compacta) return `<header class="heroi topo compacta">
-      <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
-      <div class="kicker kicker-curto">${esc(o.kicker)}</div>
-      ${o.barra || ""}
-    </header>`;
-    return `<header class="heroi topo">
-      <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
-      <div class="heroi-topo">
-        <div class="heroi-txt">
-          ${o.kicker ? `<div class="kicker ${o.kickerClasse || ""}"${o.ler ? " data-ler" : ""}>${esc(o.kicker)}</div>` : ""}
-          <h2 class="heroi-tit"${o.ler ? " data-ler" : ""}>${esc(o.titulo)}</h2>
-        </div>
-        <img class="heroi-img" src="assets/hero-tela.webp" alt="">
-      </div>
-      ${o.barra || ""}
-    </header>`;
-  }
-  function ligarInicio(p) { p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaInicio); }); }
-
-  function rodape() {
-    return `<footer class="rodape">
-      <p class="credito">${esc(D.limites.rodape)}</p>
-      <div class="logos">
-        <img src="assets/logo_facc.png" alt="FACC">
-        <img src="assets/logo_ufjf.svg" alt="UFJF">
-        <img src="assets/logo_mg.svg" alt="Governo de Minas Gerais">
-      </div>
-    </footer>`;
-  }
+  /* ---------- peças do layout: cabeçalho e rodapé do padrão único (js/padrao.js) ---------- */
+  const PARTE = "Etapa " + D.modulo.numero;
+  const P = window.LG2Padrao;
+  const inicio = () => ir(telaInicio);
+  function rodape() { return P.rodape(); }
 
   /* ================= tela inicial ================= */
   function telaInicio() {
@@ -169,17 +112,7 @@
     const iniciado = Object.keys(S.R).length > 0 || !!S.atual;
     const p = el(`
       <div class="pag">
-        ${topo("")}
-        <header class="heroi heroi-grande capa">
-          <div class="heroi-topo">
-            <div class="heroi-txt">
-              <div class="heroi-linha"><div class="kicker sobre" data-ler>${esc(I.rotulo)}</div>${botaoOuvir()}</div>
-              <h1 class="heroi-tit" data-ler>${esc(I.titulo)}</h1>
-              <p data-ler>${esc(I.descricao)}</p>
-            </div>
-            <img class="heroi-img" src="assets/hero-inicio.webp" alt="">
-          </div>
-        </header>
+        ${P.topo({ capa: true, titulo: I.titulo, extra: `<p class="p-frase" data-ler>${esc(I.descricao)}</p><img class="p-heroi" src="assets/hero-inicio.webp" alt="">` })}
         <main class="corpo">
           ${I.mais ? `<details class="ajuda-box como-funciona"><summary data-ler>${esc(I.mais.titulo)}</summary>
             <div data-ler>${blocos(I.mais.blocos, ["certo"])}</div>
@@ -194,7 +127,7 @@
         </div>
         <div class="corpo">${rodape()}</div>
       </div>`);
-    ligarInicio(p);
+    P.definir({ inicio });
     p.querySelector("#ir").onclick = () => {
       if (S.atual === "RESULTADO") return ir(telaResultado);
       ir(telaPergunta, S.atual && M.porCodigo[S.atual] ? S.atual : Motor.proxima(M, S.R, null));
@@ -202,7 +135,6 @@
     const z = p.querySelector("#zerar");
     if (z) z.onclick = () => { if (confirm("Apagar suas respostas e recomeçar?")) { S = novo(); salvar(); ir(telaInicio); } };
     p.querySelector("#limites").onclick = () => ir(telaLimites);
-    ligarOuvir(p);
     return p;
   }
 
@@ -211,21 +143,23 @@
     const L = D.limites;
     const p = el(`
       <div class="pag">
-        ${topo(L.titulo)}
-        ${faixa({ titulo: L.titulo, ler: true })}
+        ${P.topo({ trilha: L.titulo, titulo: L.titulo })}
         <main class="corpo">
           <div data-ler>${blocos(L.blocos, ["nao", "certo", "info"], ["b-nao", "", ""])}</div>
           <div class="aviso-roxo" data-ler>${esc(L.aviso)}</div>
           ${rodape()}
         </main>
       </div>`);
-    p.querySelector("#v").onclick = () => ir(telaInicio);
-    ligarInicio(p);
-    ligarOuvir(p);
+    P.definir({ voltar: inicio, inicio });
     return p;
   }
 
   /* ================= pergunta ================= */
+  function passoTexto(cod) {
+    const cam = Motor.caminho(M, S.R);
+    const i = cam.indexOf(cod);
+    return "Pergunta " + (i < 0 ? 1 : i + 1) + " de " + cam.length;
+  }
   function progresso(cod) {
     const cam = Motor.caminho(M, S.R);
     const i = cam.indexOf(cod);
@@ -334,8 +268,7 @@
     S.atual = cod; salvar();
     const p = el(`
       <div class="pag">
-        ${topo("")}
-        ${faixa({ compacta: true, kicker: PARTE + " · " + D.inicio.titulo, barra: `<div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progresso(cod)}"><div class="barra-fill" style="width:${progresso(cod)}%"></div></div>` })}
+        ${P.topo({ contador: passoTexto(cod), progresso: progresso(cod) })}
         <main class="corpo">
           <div class="cartao-q">
             <div class="pergunta" data-cod="${esc(cod)}">
@@ -348,10 +281,9 @@
             </div>
             <div id="msg"></div>
           </div>
+          <div class="acoes-q"><button class="btn btn-primario seta" id="ok" disabled>Continuar</button></div>
         </main>
-        <div class="fixo"><button class="btn btn-primario seta" id="ok" disabled>Continuar</button></div>
       </div>`);
-    ligarInicio(p);
     const ent = p.querySelector("#ent"), msg = p.querySelector("#msg"), ok = p.querySelector("#ok");
 
     function atualizar() {
@@ -487,11 +419,11 @@
     }
     atualizar();
 
-    p.querySelector("#v").onclick = () => {
+    P.definir({ inicio, voltar: () => {
       const cam = Motor.caminho(M, S.R);
       const i = cam.indexOf(cod);
       if (i > 0) ir(telaPergunta, cam[i - 1]); else { S.atual = null; salvar(); ir(telaInicio); }
-    };
+    } });
     const cv = p.querySelector("[data-video]");
     if (cv) cv.onclick = () => abrirVideo(q.video, cv);
     ok.onclick = () => {
@@ -501,7 +433,6 @@
       if (prox === "RESULTADO") { S.atual = "RESULTADO"; salvar(); ir(telaResultado); }
       else ir(telaPergunta, prox);
     };
-    ligarOuvir(p);
     return p;
   }
 
@@ -516,8 +447,7 @@
     const entendemos = Motor.entendimento(M, S.R);
     const p = el(`
       <div class="pag">
-        ${topo("Retrato inicial")}
-        ${faixa({ kicker: "Resultado", kickerClasse: "passo", titulo: "Retrato inicial", ler: true })}
+        ${P.topo({ trilha: "Resultado", passo: "Resultado", titulo: "Retrato inicial" })}
         <main class="corpo">
           <section class="concluido">
             <div class="conc-topo"><span class="conc-check" aria-hidden="true"></span><div><h2 data-ler>Você concluiu a ${esc(PARTE)}</h2></div></div>
@@ -564,13 +494,11 @@
           ${rodape()}
         </main>
       </div>`);
-    p.querySelector("#v").onclick = () => { const cam = Motor.caminho(M, S.R); ir(telaPergunta, cam[cam.length - 1]); };
+    P.definir({ inicio, voltar: () => { const cam = Motor.caminho(M, S.R); ir(telaPergunta, cam[cam.length - 1]); } });
     p.querySelector("#imp").onclick = () => { p.querySelectorAll("details").forEach((d) => { d.open = true; }); window.print(); };
     p.querySelector("#rev").onclick = () => ir(telaPergunta, Motor.proxima(M, {}, null));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaInicio); } };
     ligarCopiar(p);
-    ligarInicio(p);
-    ligarOuvir(p);
     return p;
   }
 

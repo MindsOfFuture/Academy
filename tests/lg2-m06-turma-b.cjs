@@ -533,7 +533,7 @@ const NA_PAGINA = {
     check('M5 nunca é escrito pelo M6', !(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m05'))).includes('M6.')); }
 
   /* ---------- versão leve (nov/2026): capa curta, ≤ 60 palavras por pergunta, "Ver dica" fechada, ajuda no "Não sei" ---------- */
-  const palavras = () => page.evaluate(() => document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
+  const palavras = () => page.evaluate(() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + n(e.innerText), 0); });
   { await page.evaluate(() => localStorage.clear()); await page.reload();
     const capa = await page.evaluate(() => ({ tempo: (document.querySelector('.tempo') || {}).textContent || '', cf: document.querySelector('details.como-funciona'),
       fechado: !!document.querySelector('details.como-funciona:not([open])'), tit: document.querySelector('h1').textContent }));

@@ -24,6 +24,8 @@
     portal: "https://www.gov.br/empresas-e-negocios/pt-br/empreendedor",
     salaJF: "https://desenvolvejf.pjf.mg.gov.br/sme.html",                                                  // Sala Mineira do Empreendedor, Prefeitura de Juiz de Fora
     sebrae: "https://sebrae.com.br/sites/PortalSebrae/estamosai",
+    lei238: "https://www2.camara.leg.br/legin/fed/leicom/2026/leicomplementar-238-21-outubro-2026-800071-publicacaooriginal-181678-pl.html",
+    tetoMei: "https://www.gov.br/memp/pt-br/prospera-mei/teto-do-mei",
   };
   const SEBRAE_TEL = "0800 570 0800";
   /* "Não sei" que não grava nem avança (nov/2026): estas respostas decidem o resto do módulo.
@@ -429,10 +431,10 @@
         <li>Faturar até ${reais(LIMITE_MEI_ANO)} por ano em 2026 (cerca de ${reais(LIMITE_MEI_ANO / 12)} por mês). Em 2027 o limite sobe para ${reais(LIMITE_MEI_2027)} por ano.</li>
         <li>Ter uma atividade que esteja na lista de ocupações permitidas ao MEI.</li>
         <li>Não ser sócio nem titular de outra empresa.</li>
-        <li>Ter no máximo 1 empregado.</li>
+        <li>Em 2026, ter no máximo 1 empregado. A partir de 1º de janeiro de 2027, até 2, cada um recebendo 1 salário mínimo ou o piso da categoria.</li>
       </ul>
       <p>Confira na Sala do Empreendedor ou no ${link(FONTE.portal, "Portal do Empreendedor (gov.br)")}.</p>
-      <span class="fonte">Fonte: ${link(FONTE.criterios, "gov.br, “Cadastrar/formalizar Microempreendedor Individual”")} e Lei Complementar 238/2026 (limite de 2027).</span>`;
+      <span class="fonte">Fonte: ${link(FONTE.criterios, "gov.br, “Cadastrar/formalizar Microempreendedor Individual”")}, ${link(FONTE.lei238, "Lei Complementar 238/2026")} e ${link(FONTE.tetoMei, "MEMP: Teto do MEI")}.</span>`;
     return aberto
       ? `<section class="cartao quem-mei" id="quem-mei"><h3>Quem pode ser MEI</h3>${corpo}</section>`
       : `<details class="saiba quem-mei" id="quem-mei"><summary>Quem pode ser MEI</summary>${corpo}</details>`;

@@ -175,7 +175,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
     dentro: [...document.querySelectorAll('.cartao')].every((c) => c.closest('.como-funciona')), sum: document.querySelector('.como-funciona summary').textContent }));
   check(capaLeve.tempo === 'Este módulo leva uns 15 minutos.' && capaLeve.sum === 'Como funciona' && !capaLeve.aberto && capaLeve.dentro, `capa leve: tempo + "Como funciona" fechado com os cartões (${JSON.stringify(capaLeve)})`);
   check(!/Para quem já tem uma ideia/.test(await tela()), 'capa leve: explicações só ao abrir "Como funciona"');
-  const palavrasTela = () => page.evaluate(() => document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
+  const palavrasTela = () => page.evaluate(() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + n(e.innerText), 0); });
   check(capa.cart[0].p === 'Para quem já tem uma ideia de negócio, mas quer pesquisar melhor o mercado, descobrir quem faz a mesma coisa e saber como se destacar na sua região.', 'capa: "Para quem é" simples');
   check(capa.cart[1].li.length === 3 && capa.cart[1].li[0] === 'A descrição simples da sua ideia de negócio.', 'capa: "O que ter em mãos" em 3 itens curtos');
   check(capa.cart[2].li.length === 3 && capa.cart[2].li.some((x) => /Módulo 4: Produto, proposta de valor e teste da ideia/.test(x)) && !/Oferta e experimentação|Oferta e Testes/.test(capa.cart[2].li.join(' ')), 'capa: entrega com o nome certo do Módulo 4');

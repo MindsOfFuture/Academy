@@ -675,7 +675,7 @@ const server = http.createServer(async (req, res) => {
   const palavrasTela = () => page.evaluate(() => {
     const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
     /* a resposta já marcada (herdada de outro módulo) mostra o retorno dela: é resposta, não texto da pergunta */
-    return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('#tela select, #retorno')].reduce((a, s) => a + n(s.innerText), 0);
+    return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('#tela select, #retorno, .p-linha-integrada, .p-fontes summary')].reduce((a, s) => a + n(s.innerText), 0);
   });
   const tocar = (t) => page.evaluate((t) => { const b = [...document.querySelectorAll('.opcao')].find((x) => x.textContent.replace(/\s+/g, ' ').trim() === t); if (!b) throw new Error('opção ausente: ' + t); b.click(); }, t);
   /* textContent: o resto do texto longo fica em "Ver mais" fechado (lote 3), mas continua sendo o texto literal */

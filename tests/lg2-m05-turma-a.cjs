@@ -170,7 +170,8 @@ const server = http.createServer(async (req, res) => {
         const painel = document.getElementById('painel'), dica = document.getElementById('dica');
         if (!document.getElementById('ok') || document.querySelector('#retorno .retorno') || (painel && !painel.hidden) || !document.getElementById('erro').hidden) return null;
         if (dica && dica.open) return null;
-        return { n: document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length, dica: !!dica };
+        const palavras = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
+        return { n: palavras(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + palavras(e.innerText), 0), dica: !!dica };
       });
       if (!m) return;
       const c = await atual();
@@ -320,7 +321,7 @@ const server = http.createServer(async (req, res) => {
     ok(await page.locator('#ir').textContent() === 'Começar', 'estado da versão 2 descartado (formato da taxa mudou)');
     /* versão leve: capa com título, uma frase, tempo e Começar; o resto em "Como funciona" (fechado) */
     {
-      const capa = await page.evaluate(() => ({ n: document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length, aberto: document.getElementById('como-funciona').open, frase: document.querySelector('.heroi-txt p').textContent, tempo: document.querySelector('.tempo').textContent }));
+      const capa = await page.evaluate(() => ({ n: (() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + n(e.innerText), 0); })(), aberto: document.getElementById('como-funciona').open, frase: document.querySelector('.heroi-txt p').textContent, tempo: document.querySelector('.tempo').textContent }));
       ok(capa.n <= 60 && !capa.aberto && capa.frase === D.leve.capa.frase && capa.tempo === 'Este módulo leva uns 20 minutos', 'capa leve: frase, tempo e "Como funciona" fechado ' + JSON.stringify(capa));
       ok((await texto('#como-funciona')).includes(norm(D.mapa.ter_em_maos)) && await page.locator('#como-funciona #limites').count() === 1, 'capa: o que ter em mãos e limites dentro de "Como funciona"');
     }
