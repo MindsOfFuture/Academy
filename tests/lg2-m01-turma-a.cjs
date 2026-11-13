@@ -14,6 +14,9 @@
    resultado, P4/P8 adaptadas para Mercadoria, exemplos por tipo, aviso de combinação, sem texto aos grupos.
    Lote 3: um só Voltar, no topo à esquerda acima da pergunta; textos longos do resultado com "Ver mais";
    "Para onde seguem estas informações" recolhido; nenhuma menção a "Grupo N"/outros grupos.
+   Versão leve (nov/2026): os textos novos do app são a referência (EXP abaixo); capa curta, "Ver dica" fechada,
+   exemplos dentro do campo, limite de palavras por tela e caixa "Como descobrir" (passos + pedido para a IA com
+   Copiar) no "Não sei", sem mudar o que é salvo.
    Inclui teste de sabotagem dos próprios conferidores. Sai com código != 0 se falhar. */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -28,269 +31,165 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 let playwright;
 try { playwright = require('playwright'); } catch { playwright = require(process.env.PW); }
 
-/* textos esperados, copiados do documento (Texto no app / Mensagem ao escolher) */
+/* textos esperados. Versão leve (nov/2026): estes textos passaram a ser a referência (antes vinham do
+   documento do grupo). Os textos das OPÇÕES não mudaram, porque outros módulos comparam esses valores.
+   apoio null = sem linha de apoio; ajuda = "Ver dica" fechada; naosei = passos de "Como descobrir". */
 const EXP = {
  "M1.P01": {
-  "pergunta": "Como está a sua ideia hoje?",
-  "apoio": "Escolha a frase que mais parece com você. Não tem resposta errada.",
+  "pergunta": "Como está a sua ideia hoje?", "apoio": null,
   "opcoes": [
-   [
-    "Ainda está só na minha cabeça",
-    "Dica: Antes de gastar dinheiro, teste sua ideia com pouca coisa. A gente te ajuda nas próximas perguntas."
-   ],
-   [
-    "Já fiz um pouco para testar ou dar de amostra",
-    "Dica: Ótimo começo! Pergunte a quem provou se compraria e por quanto."
-   ],
-   [
-    "Já vendi algumas vezes",
-    null
-   ],
-   [
-    "Já vendo sempre",
-    null
-   ]
+   ["Ainda está só na minha cabeça", "Dica: Antes de gastar dinheiro, teste sua ideia com pouca coisa. A gente te ajuda nas próximas perguntas."],
+   ["Já fiz um pouco para testar ou dar de amostra", "Dica: Ótimo começo! Pergunte a quem provou se compraria e por quanto."],
+   ["Já vendi algumas vezes", null],
+   ["Já vendo sempre", null]
   ],
   "ajuda": false
  },
  "M1.P02": {
-  "pergunta": "O que fez você querer ter um negócio?",
-  "apoio": "Escolha o motivo mais importante para você.",
+  "pergunta": "O que fez você querer ter um negócio?", "apoio": "Escolha o motivo principal.",
   "opcoes": [
-   [
-    "Preciso de dinheiro logo para pagar as contas",
-    "Dica: Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco."
-   ],
-   [
-    "Vi que as pessoas precisam de algo que eu posso vender",
-    "Dica: Antes de gastar, pergunte a algumas pessoas se elas comprariam."
-   ],
-   [
-    "Quero ganhar um dinheiro a mais",
-    null
-   ],
-   [
-    "Quero trabalhar por conta própria",
-    null
-   ]
+   ["Preciso de dinheiro logo para pagar as contas", "Dica: Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco."],
+   ["Vi que as pessoas precisam de algo que eu posso vender", "Dica: Antes de gastar, pergunte a algumas pessoas se elas comprariam."],
+   ["Quero ganhar um dinheiro a mais", null],
+   ["Quero trabalhar por conta própria", null]
   ],
   "ajuda": false
  },
  "M1.P03": {
-  "pergunta": "O que você vende ou quer vender?",
-  "apoio": "Pode ser uma coisa que você faz ou um trabalho que você oferece.",
+  "pergunta": "O que você vende ou quer vender?", "apoio": null,
   "placeholder": "Ex.: bolo de pote, conserto de celular, unha de gel",
   "video": true,
-  "ajuda": false
+  "ajuda": true,
+  "ajuda_texto": "Pode ser algo que você faz, algo que você revende ou um trabalho que você oferece.",
+  "botao_ajuda": "Ainda não sei o que vender",
+  "naosei": ["Pense no que as pessoas já pedem ou elogiam em você: uma comida, um conserto, um cuidado.",
+   "Observe seu bairro por alguns dias: o que as pessoas procuram e não acham perto? Onde tem fila ou falta? Isso é uma oportunidade."]
  },
  "M1.P03A": {
-  "pergunta": "O que você oferece aos seus clientes?",
-  "apoio": "Escolha a opção que mais combina com o que você vende.",
+  "pergunta": "O que você oferece?", "apoio": null,
   "opcoes": [
    ["Produto: eu compro materiais e faço o que vendo", null],
    ["Mercadoria: compro pronto para revender", null],
    ["Serviço: meu cliente paga pelo trabalho que realizo", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Produto é algo que você mesmo faz com materiais que compra. Mercadoria é algo que você compra pronto e vende sem mudar. Serviço é quando o cliente paga pelo seu trabalho, e não por uma coisa."
+  "ajuda_texto": "Produto: você faz com materiais que compra. Mercadoria: você compra pronto e revende. Serviço: o cliente paga pelo seu trabalho.",
+  "exemplo": "Ex.: bolo de pote é produto; roupa da fábrica para revender é mercadoria; lavar carro é serviço."
  },
  "M1.P04": {
-  "pergunta": "Você já sabe fazer isso?",
-  "apoio": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho.",
+  "pergunta": "Você já sabe fazer isso?", "apoio": null,
   "opcoes": [
-   [
-    "Sim, já faço bem",
-    null
-   ],
-   [
-    "Sei um pouco, ainda estou aprendendo",
-    "Dica: Pratique com amigos e família antes de vender. Assim você ganha confiança."
-   ],
-   [
-    "Ainda não sei fazer",
-    "Dica: Tudo bem começar do zero. Procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."
-   ]
+   ["Sim, já faço bem", null],
+   ["Sei um pouco, ainda estou aprendendo", "Dica: Pratique com amigos e família antes de vender. Assim você ganha confiança."],
+   ["Ainda não sei fazer", "Dica: Tudo bem começar do zero. Procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."]
   ],
   "ajuda": true,
-  "ajuda_texto": "Queremos saber se você já fez esse tipo de trabalho antes. Quem já sabe fazer começa com mais facilidade."
+  "ajuda_texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho."
  },
  "M1.P05": {
-  "pergunta": "Quanto tempo por dia você tem para o seu negócio?",
-  "apoio": "Pense no tempo que sobra depois do trabalho, da casa e da família.",
+  "pergunta": "Quanto tempo por dia você tem para o negócio?", "apoio": null,
   "opcoes": [
-   [
-    "Até 1 hora por dia",
-    "Dica: Pouco tempo também dá certo. Comece com poucos clientes e faça sob encomenda."
-   ],
-   [
-    "De 1 a 3 horas por dia",
-    null
-   ],
-   [
-    "Mais de 3 horas por dia",
-    null
-   ],
-   [
-    "Só nos fins de semana",
-    "Dica: Venda em feiras, eventos ou por encomenda para entregar no fim de semana."
-   ]
+   ["Até 1 hora por dia", "Dica: Pouco tempo também dá certo. Comece com poucos clientes e faça sob encomenda."],
+   ["De 1 a 3 horas por dia", null],
+   ["Mais de 3 horas por dia", null],
+   ["Só nos fins de semana", "Dica: Venda em feiras, eventos ou por encomenda para entregar no fim de semana."]
   ],
   "ajuda": true,
-  "ajuda_texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar."
+  "ajuda_texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar."
  },
  "M1.P05A": {
-  "pergunta": "Se o negócio crescer, você consegue arrumar mais tempo para ele?",
-  "apoio": "Pense na sua rotina de hoje.",
+  "pergunta": "Se o negócio crescer, você consegue mais tempo para ele?", "apoio": null,
   "opcoes": [
-   [
-    "Sim, consigo arrumar mais tempo",
-    null
-   ],
-   [
-    "Não, meus horários não podem mudar",
-    "Dica: Tudo bem. Seu negócio pode crescer devagar, no seu ritmo."
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Você pode pensar nisso mais para frente."
-   ]
+   ["Sim, consigo arrumar mais tempo", null],
+   ["Não, meus horários não podem mudar", "Dica: Tudo bem. Seu negócio pode crescer devagar, no seu ritmo."],
+   ["Não sei dizer", null]
   ],
-  "ajuda": false
+  "ajuda": false,
+  "naosei": ["Anote por uma semana o que você faz em cada parte do dia e marque onde sobra um tempinho.",
+   "Converse com quem mora com você: alguém pode ajudar com a casa ou com os filhos em alguns horários?"]
  },
  "M1.P06": {
-  "pergunta": "Você já tem o que precisa para trabalhar?",
-  "apoio": "Por exemplo: ferramentas, máquinas, panelas, forno ou um espaço em casa.",
+  "pergunta": "Você já tem o que precisa para trabalhar?", "apoio": null,
   "opcoes": [
-   [
-    "Sim, tenho tudo",
-    null
-   ],
-   [
-    "Tenho só uma parte",
-    "Dica: Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar."
-   ],
-   [
-    "Não tenho nada ainda",
-    "Dica: Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."
-   ]
+   ["Sim, tenho tudo", null],
+   ["Tenho só uma parte", "Dica: Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar."],
+   ["Não tenho nada ainda", "Dica: Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."]
   ],
-  "ajuda": false
+  "ajuda": true,
+  "ajuda_texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa."
  },
  "M1.P07": {
-  "pergunta": "Quanto dinheiro você pode usar no negócio sem faltar para as contas da casa?",
-  "apoio": "Pense num dinheiro que, se for perdido, não vai fazer falta para comida, aluguel e contas.",
+  "pergunta": "Quanto dinheiro você pode usar sem faltar para as contas da casa?", "apoio": null,
   "opcoes": [
-   [
-    "Nada por enquanto",
-    "Tudo bem: Dá para começar sem dinheiro. Na próxima pergunta vamos ver como."
-   ],
-   [
-    "Até R$ 100",
-    "Dica: Comece pequeno e use esse dinheiro aos poucos."
-   ],
-   [
-    "Entre R$ 100 e R$ 500",
-    null
-   ],
-   [
-    "Entre R$ 500 e R$ 1.000",
-    null
-   ],
-   [
-    "Mais de R$ 1.000",
-    "Dica: Mesmo podendo usar mais, teste antes com pouco. Não pegue empréstimo no banco para começar."
-   ]
+   ["Nada por enquanto", "Tudo bem: Dá para começar sem dinheiro. Na próxima pergunta vamos ver como."],
+   ["Até R$ 100", "Dica: Comece pequeno e use esse dinheiro aos poucos."],
+   ["Entre R$ 100 e R$ 500", null],
+   ["Entre R$ 500 e R$ 1.000", null],
+   ["Mais de R$ 1.000", "Dica: Mesmo podendo usar mais, teste antes com pouco. Não pegue empréstimo no banco para começar."]
   ],
   "video": true,
   "ajuda": true,
-  "ajuda_texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa."
+  "ajuda_texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas."
  },
  "M1.P07A": {
-  "pergunta": "Como você pensa em começar sem dinheiro ou sem material?",
-  "apoio": "Pense em jeitos de começar gastando pouco ou nada.",
+  "pergunta": "Como você pensa em começar sem dinheiro ou material?", "apoio": null,
   "opcoes": [
-   [
-    "Pegando emprestado com amigos ou família",
-    "Dica: Combine por escrito quanto e quando você vai devolver."
-   ],
-   [
-    "Pagando alguém para fazer uma parte do trabalho",
-    null
-   ],
-   [
-    "Vendendo por encomenda, com o cliente pagando uma parte antes",
-    null
-   ],
-   [
-    "Juntando dinheiro primeiro",
-    null
-   ],
-   [
-    "Não sei dizer",
-    "Tudo bem: Um jeito comum é vender por encomenda e pedir parte do pagamento antes."
-   ]
+   ["Pegando emprestado com amigos ou família", "Dica: Combine por escrito quanto e quando você vai devolver."],
+   ["Pagando alguém para fazer uma parte do trabalho", null],
+   ["Vendendo por encomenda, com o cliente pagando uma parte antes", null],
+   ["Juntando dinheiro primeiro", null],
+   ["Não sei dizer", null]
   ],
-  "ajuda": false
+  "ajuda": false,
+  "naosei": ["Pergunte a 3 pessoas se comprariam por encomenda e se pagariam metade adiantado. Esse dinheiro compra o material.",
+   "Liste o que dá para pegar emprestado com família, vizinhos ou amigos: forno, ferramenta, espaço."]
  },
  "M1.P08": {
-  "pergunta": "O que mais te preocupa agora?",
-  "apoio": "Pode marcar mais de uma opção.",
+  "pergunta": "O que mais te preocupa agora?", "apoio": "Pode marcar mais de uma.",
   "multi": true,
   "opcoes": [
-   [
-    "Ainda não sei fazer direito",
-    null
-   ],
-   [
-    "Me falta lugar ou equipamento",
-    null
-   ],
-   [
-    "Conheço poucas pessoas para vender ou me ajudar",
-    null
-   ],
-   [
-    "Tenho dificuldade com celular, internet ou redes sociais",
-    null
-   ],
-   [
-    "Outra coisa",
-    null
-   ]
+   ["Ainda não sei fazer direito", null],
+   ["Me falta lugar ou equipamento", null],
+   ["Conheço poucas pessoas para vender ou me ajudar", null],
+   ["Tenho dificuldade com celular, internet ou redes sociais", null],
+   ["Outra coisa", null]
   ],
+  "outra_placeholder": "Ex.: medo de não vender",
   "ajuda": false
  }
 };
-/* lote 05/11 (b): o que muda conforme o tipo da 3A (Mercadoria não pergunta se sabe FAZER; exemplos de
-   serviço e de revenda). Só os campos listados trocam; o resto vem de EXP. */
-const EX_P05 = 'Exemplo: "Trabalho de segunda a sexta. Só posso fazer meus doces no sábado."';
-const EX_P07 = 'Exemplo: "Tenho R$ 500 guardados para comprar ingredientes. Se eu não vender nada, não vai faltar comida em casa."';
+/* o que muda conforme o tipo da 3A (Mercadoria não pergunta se sabe FAZER; exemplos de serviço e de
+   revenda). Só os campos listados trocam; o resto vem de EXP. */
+const EX_P05 = 'Ex.: “Trabalho de segunda a sexta. Só posso fazer meus doces no sábado.”';
+const EX_P07 = 'Ex.: “Tenho R$ 500 guardados para ingredientes. Se eu não vender nada, não falta comida em casa.”';
 const OPS_P08_MERC = ['Ainda não conheço bem o produto ou os fornecedores', 'Me falta lugar ou equipamento', 'Conheço poucas pessoas para vender ou me ajudar',
   'Tenho dificuldade com celular, internet ou redes sociais', 'Outra coisa'].map((t) => [t, null]);
 const EXP_TIPO = {
   Produto: {
-    'M1.P04': { exemplo: 'Exemplo: Joana faz bolo para a família há anos. Agora ela vende bolo de pote para os vizinhos.' },
+    'M1.P04': { exemplo: 'Ex.: Joana faz bolo para a família há anos e hoje vende bolo de pote para os vizinhos.' },
     'M1.P05': { exemplo: EX_P05 }, 'M1.P07': { exemplo: EX_P07 },
   },
   Mercadoria: {
-    'M1.P04': { pergunta: 'Você já conhece bem o que vai revender?', apoio: 'Pense na qualidade, no preço e em onde comprar.',
+    'M1.P04': { pergunta: 'Você já conhece bem o que vai revender?',
       opcoes: [['Sim, conheço bem o produto e onde comprar', null],
         ['Conheço um pouco, ainda estou pesquisando', 'Dica: Compare preço e qualidade em mais de um fornecedor antes de comprar muito.'],
         ['Ainda não conheço', 'Dica: Tudo bem começar do zero. Compre pouco no começo e pesquise pelo menos 2 fornecedores.']],
-      ajuda_texto: 'Queremos saber se você conhece o que vai revender: a qualidade, o preço e onde comprar. Quem conhece o produto e os fornecedores começa com mais segurança.',
-      exemplo: 'Exemplo: Ana sempre comprou roupas numa fábrica para ela mesma. Agora ela compra lá e revende para as vizinhas.' },
-    'M1.P05': { exemplo: 'Exemplo: "Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado."' },
-    'M1.P06': { apoio: 'Por exemplo: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar.' },
-    'M1.P07': { exemplo: 'Exemplo: "Tenho R$ 500 guardados para comprar as primeiras peças para revender. Se eu não vender nada, não vai faltar comida em casa."' },
+      ajuda_texto: 'Pense na qualidade, no preço e em onde comprar.',
+      exemplo: 'Ex.: Ana comprava roupas numa fábrica para ela e hoje revende para as vizinhas.' },
+    'M1.P05': { exemplo: 'Ex.: “Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.”' },
+    'M1.P06': { ajuda_texto: 'Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar.' },
+    'M1.P07': { exemplo: 'Ex.: “Tenho R$ 500 guardados para as primeiras peças. Se eu não vender nada, não falta comida em casa.”' },
     'M1.P08': { opcoes: OPS_P08_MERC },
   },
   'Serviço': {
-    'M1.P04': { exemplo: 'Exemplo: Maria trabalhou 5 anos como costureira numa fábrica. Agora ela faz consertos de roupa em casa.' },
-    'M1.P05': { exemplo: 'Exemplo: "Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado."' },
-    'M1.P06': { apoio: 'Por exemplo: ferramentas, materiais de trabalho ou um espaço para atender.' },
-    'M1.P07': { exemplo: 'Exemplo: "Tenho R$ 300 guardados para comprar esmaltes e alicates. Se eu não tiver clientes, não vai faltar comida em casa."' },
+    'M1.P04': { exemplo: 'Ex.: Maria foi costureira por 5 anos e hoje faz consertos de roupa em casa.' },
+    'M1.P05': { exemplo: 'Ex.: “Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.”' },
+    'M1.P06': { ajuda_texto: 'Ex.: ferramentas, materiais de trabalho ou um espaço para atender.' },
+    'M1.P07': { exemplo: 'Ex.: “Tenho R$ 300 guardados para esmaltes e alicates. Se eu não tiver clientes, não falta comida em casa.”' },
   },
 };
+/* limite de palavras do corpo de uma tela de pergunta (sem opções e sem dicas fechadas) */
+const LIMITE_PALAVRAS = 60;
 const tipoDe = (R) => (String(R['M1.P03A'] || '').match(/^(Produto|Mercadoria|Serviço)/) || [])[1] || null;
 const expDe = (c, R) => Object.assign({}, EXP[c], (EXP_TIPO[tipoDe(R)] || {})[c] || {});
 const ORDEM = ['M1.P01', 'M1.P02', 'M1.P03', 'M1.P03A', 'M1.P04', 'M1.P05', 'M1.P05A', 'M1.P06', 'M1.P07', 'M1.P07A', 'M1.P08'];
@@ -336,6 +235,11 @@ function conferirAjuste(D) {
       else if (q.video.url !== null) p.push(`${q.codigo}: vídeo ainda não chegou, url deve ser null`);
     } else if (q.video) p.push(`${q.codigo}: não deveria ter card de vídeo`);
     if (/Tudo bem/.test(JSON.stringify(q.botao_naosei || '')) ) p.push(`${q.codigo}: mensagem "Tudo bem" do Não sei`);
+    /* versão leve: toda pergunta com "Não sei" (e a P3, com "Ainda não sei o que vender") traz passos e pedido para a IA */
+    if (COM_NAOSEI.includes(q.codigo) || q.codigo === 'M1.P03') {
+      if (!Array.isArray(q.comoDescobrir) || !q.comoDescobrir.length || q.comoDescobrir.some((x) => !String(x || '').trim())) p.push(`${q.codigo}: falta "comoDescobrir"`);
+      if (!String(q.promptIA || '').trim()) p.push(`${q.codigo}: falta "promptIA"`);
+    }
   }
   return p;
 }
@@ -350,6 +254,9 @@ const sabot = [
   ['"Ainda não sei" volta na P3', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P03').botao_naosei = { texto: 'Ainda não sei', mensagem: null }; }],
   ['card sem vídeo na P7', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P07').video; }],
   ['card na P1', (D) => { D.perguntas[0].video = { texto: CARD, url: null }; }],
+  ['5A sem "Como descobrir"', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P05A').comoDescobrir; }],
+  ['7A com passo vazio', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P07A').comoDescobrir.push(' '); }],
+  ['P3 sem pedido para a IA', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P03').promptIA; }],
 ];
 for (const [nome, estraga] of sabot) {
   const D = JSON.parse(JSON.stringify(DADOS)); estraga(D);
@@ -402,6 +309,35 @@ async function servidor() {
     t: b.querySelector('b').textContent, sel: b.classList.contains('sel'),
     check: getComputedStyle(b.querySelector('.check')).display !== 'none' && b.querySelector('.check').textContent === '✓' })));
 
+  /* palavras visíveis do corpo da pergunta (innerText: dicas fechadas ficam de fora), sem opções e botões */
+  const palavrasCorpo = () => page.evaluate(() => {
+    const n = (s) => String(s || '').split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
+    const m = document.querySelector('main.corpo');
+    let total = n(m.innerText);
+    m.querySelectorAll('.opcao, button').forEach((b) => { total -= n(b.innerText); });
+    return total;
+  });
+  /* caixa "Como descobrir" visível: passos, pedido para a IA e botão Copiar */
+  const caixaComo = (raiz) => page.evaluate((raiz) => {
+    const c = document.querySelector((raiz || '') + ' .como-descobrir');
+    if (!c || !c.getClientRects().length) return null;
+    const b = c.querySelector('[data-copiar]');
+    return { titulo: c.querySelector('.como-tit').textContent, passos: [...c.querySelectorAll('ol li')].map((l) => l.textContent.trim()),
+      prompt: (c.querySelector('[data-prompt]') || {}).textContent || '', copiar: b ? b.textContent.trim() : null };
+  }, raiz);
+  async function conferirComo(c, raiz) {
+    const cx = await caixaComo(raiz);
+    ok(!!cx, `${c}: "Não sei" abre a caixa "Como descobrir"`);
+    if (!cx) return;
+    ok(cx.titulo === 'Como descobrir', `${c}: título "Como descobrir"`);
+    ok(JSON.stringify(cx.passos) === JSON.stringify(EXP[c].naosei) && cx.passos.every((p) => p.length > 10), `${c}: passos ${JSON.stringify(cx.passos)}`);
+    ok(cx.prompt.length > 40 && cx.copiar === 'Copiar', `${c}: pedido para a IA com botão Copiar`);
+    await page.evaluate((raiz) => document.querySelector((raiz || '') + ' .como-descobrir [data-copiar]').click(), raiz);
+    await page.waitForTimeout(150);
+    const depois = await page.evaluate((raiz) => document.querySelector((raiz || '') + ' .como-descobrir [data-copiar]').textContent.trim(), raiz);
+    ok(['Copiado!', 'Toque e segure o texto para copiar'].includes(depois), `${c}: Copiar responde ao toque ("${depois}")`);
+  }
+
   async function regrasGerais(onde) {
     const t = await texto();
     ok(!/Pergunta\s+\d+[A-Z]?\s+de/i.test(t), `${onde}: contador "Pergunta X de"`);
@@ -433,23 +369,29 @@ async function servidor() {
     let qEsp = e.pergunta;
     if (c === 'M1.P04' && R['M1.P03'] && !R.__vaga) qEsp = tipoDe(R) === 'Mercadoria' ? `Você já conhece bem ${R.__p4} e sabe onde comprar?` : `Você já sabe fazer ${R.__p4}?`;
     if (e.exemplo) ok(await page.evaluate(() => (document.querySelector('.ajuda-box .ex') || {}).textContent) === e.exemplo, `${c} (${tipoDe(R)}): exemplo da ajuda conforme o tipo`);
+    else ok(await page.evaluate(() => !document.querySelector('.ajuda-box .ex')), `${c}: sem exemplo na dica`);
     ok(q === qEsp, `${c}: pergunta "${q}" != "${qEsp}"`);
-    ok(t.includes(e.apoio), `${c}: apoio`);
+    const apoio = await page.evaluate(() => { const a = document.querySelector('.pergunta .apoio'); return a ? a.textContent : null; });
+    ok(apoio === e.apoio, `${c}: apoio "${apoio}" != "${e.apoio}"`);
+    if (R.__novo) { const np = await palavrasCorpo(); ok(np <= LIMITE_PALAVRAS, `${c}: ${np} palavras no corpo (máx. ${LIMITE_PALAVRAS})`); }
     ok(await page.evaluate(() => [...document.querySelectorAll('.topo button')].some((b) => b.textContent.trim() === '< Voltar')), `${c}: "< Voltar" no topo`);
     /* Receita C (lote 3): o Voltar fica no topo, à esquerda, acima do texto da pergunta, e só há um */
     ok(await page.evaluate(() => { const v = [...document.querySelectorAll('button')].filter((b) => /Voltar/.test(b.textContent)); const q = document.querySelector('.q').getBoundingClientRect(), r = v[0] && v[0].getBoundingClientRect();
       return v.length === 1 && r.bottom <= q.top && r.left < innerWidth / 2; }), `${c}: um só Voltar, à esquerda e acima da pergunta`);
     ok(await page.evaluate(() => !!document.querySelector('.barra')), `${c}: barra de progresso`);
     const d = await page.evaluate(() => [...document.querySelectorAll('details')].map((x) => [x.open, x.querySelector('summary').textContent]));
-    ok(e.ajuda ? d.length === 1 && d[0][0] === false && d[0][1] === 'O que quer dizer isso?' : d.length === 0, `${c}: caixa de ajuda (fechada, título)`);
-    if (e.ajuda) ok(t.includes('O que quer dizer isso?') && !/Fonte/i.test(t), `${c}: ajuda sem fonte`);
+    ok(e.ajuda ? d.length === 1 && d[0][0] === false && d[0][1] === 'Ver dica' : d.length === 0, `${c}: dica "Ver dica" (fechada)`);
+    if (e.ajuda) ok(t.includes('Ver dica') && !/Fonte/i.test(t) && !t.includes(e.ajuda_texto), `${c}: dica fechada esconde o texto, sem fonte`);
+    if (e.ajuda) ok(await page.evaluate(() => { const d = document.querySelector('.ajuda-box'), q = document.querySelector('.q'), en = document.querySelector('#ent');
+      return !!(q.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(d.compareDocumentPosition(en) & Node.DOCUMENT_POSITION_FOLLOWING); }), `${c}: "Ver dica" entre a pergunta e as opções`);
     if (e.ajuda) ok(await page.evaluate(() => document.querySelector('.ajuda-box p').textContent) === e.ajuda_texto, `${c}: texto da ajuda`);
     if (e.multi) {
       ok(!t.includes('Escolha só uma opção'), `${c}: não pode dizer "Escolha só uma opção"`);
       ok(await page.evaluate(() => getComputedStyle(document.querySelector('.opcao .radio')).borderRadius === '6px'), `${c}: quadradinho (várias respostas), não bolinha`);
     }
     await regrasGerais(c);
-    ok(!/Não sei dizer|Ainda não sei\b(?! fazer)/.test(t.replace(/Não sei dizer/g, COM_NAOSEI.includes(c) ? '' : 'Não sei dizer')), `${c}: "Não sei" fora da 5A/7A`);
+    ok(!/Não sei dizer|Ainda não sei\b(?! fazer)/.test(t.replace(/Não sei dizer/g, COM_NAOSEI.includes(c) ? '' : 'Não sei dizer').replace(c === 'M1.P03' ? 'Ainda não sei o que vender' : '@@', '')), `${c}: "Não sei" fora da 5A/7A`);
+    ok(await page.evaluate(() => !document.querySelector('.como-descobrir')), `${c}: "Como descobrir" começa fechado`);
     ok(await page.evaluate(() => !document.querySelector('#ns, .video-card, .video-fundo')), `${c}: sem botão Não sei e sem card de vídeo (vídeo ainda não chegou)`);
     if (R.__novo) ok(await continuarDesligado() === true, `${c}: Continuar deve começar apagado`);
     if (e.opcoes) {
@@ -478,6 +420,11 @@ async function servidor() {
         const st = await estadoOpcoes();
         ok(st.every((x) => (x.t === op) === x.sel && x.sel === x.check), `${c} / ${op}: ✓ só na escolhida`);
         if (c !== 'M1.P08' || op !== 'Outra coisa') ok(await continuarDesligado() === false, `${c} / ${op}: Continuar aceso`);
+        if (op === 'Não sei dizer') {
+          await conferirComo(c, '#msg');
+          const salvo = await page.evaluate((c) => JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R[c], c);
+          ok(JSON.stringify(salvo) === JSON.stringify({ estado: 'opcao', opcao: 'Não sei dizer' }), `${c}: "Não sei dizer" continua salvo igual (${JSON.stringify(salvo)})`);
+        } else ok(await page.evaluate(() => !document.querySelector('.como-descobrir')), `${c} / ${op}: sem "Como descobrir" fora do "Não sei"`);
       }
     }
   }
@@ -491,6 +438,13 @@ async function servidor() {
       const falar = await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /Falar/.test(b.getAttribute('aria-label') || b.textContent)).map((b) => b.getAttribute('aria-label')));
       ok(falar.length === 1 && falar[0] === 'Falar a resposta', 'P3: um botão "Falar a resposta" ao lado do campo');
       ok(await continuarDesligado() === true, 'P3: Continuar apagado sem texto');
+      if (R.__semideia) {
+        ok(await clicarTexto('button', EXP[c].botao_ajuda), 'P3: botão "Ainda não sei o que vender"');
+        await conferirComo(c, '#comoideia');
+        ok(await page.evaluate(() => !(JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R || {})['M1.P03']) && (await continuarDesligado()) === true, 'P3: a ajuda não grava resposta e o Continuar segue apagado');
+        await clicarTexto('button', EXP[c].botao_ajuda);
+        ok(await page.evaluate(() => document.querySelector('#comoideia').hidden), 'P3: tocar de novo fecha a ajuda');
+      }
       await page.fill('#txt', v);
       ok((await msgAgora()) === null, 'P3: sem mensagem ao escrever');
     } else if (Array.isArray(v)) {
@@ -499,6 +453,7 @@ async function servidor() {
       if (v.includes('Outra coisa')) {
         ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return o && !o.hidden && !!o.querySelector('textarea'); }), 'P8: "Outra coisa" abre campo de texto');
         ok(await continuarDesligado() === true, 'P8: Continuar apagado com "Outra coisa" sem texto');
+        ok(await page.evaluate(() => document.querySelector('.outra textarea').placeholder) === EXP['M1.P08'].outra_placeholder, 'P8: exemplo dentro do campo de "Outra coisa"');
         await page.fill('.outra textarea', R.__outra);
       } else ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return !o || o.hidden; }), 'P8: campo de "Outra coisa" fechado sem essa opção');
     } else {
@@ -549,16 +504,24 @@ async function servidor() {
   /* ---------- tela inicial e "O que esta parte não faz" ---------- */
   await inicio();
   let t = await texto();
-  for (const s of ['PARTE 1', 'Você e a sua ideia', 'Vamos conversar sobre você e sobre o que você quer vender. Não existe resposta certa ou errada.',
-    'Isso é para você se:', 'Antes de começar, pense nisto:', 'No final, você vai ter:', 'Este módulo leva uns 10 minutos', 'O que esta parte não faz',
-    'Quanto dinheiro você pode usar sem faltar para as contas da casa', 'Uma tarefa fácil para fazer já'])
+  /* versão leve: capa = título, 1 frase, tempo, Começar; o resto fica em "Como funciona" (fechado) */
+  for (const s of ['PARTE 1', 'Você e a sua ideia', 'Responda perguntas rápidas e receba um resumo da sua ideia com uma tarefa para começar.',
+    'Como funciona', 'Este módulo leva uns 10 minutos', 'O que esta parte não faz'])
     ok(t.includes(s), `início: falta "${s}"`);
   ok(!t.includes('confirmar o tempo'), 'início: nota "(confirmar o tempo real)" não pode aparecer');
-  // item novo (Júlia): os ~10 min são deste módulo; a jornada inteira leva horas e fica salva no aparelho
-  ok(t.includes('Este é o Módulo 1 de 10. A jornada completa, com os 10 módulos, leva de 3 a 5 horas no total.'), 'início: falta o tempo da jornada completa');
-  ok(t.includes('dá para fazer em vários dias, e suas respostas ficam salvas neste aparelho'), 'início: falta o aviso de que as respostas ficam salvas');
+  ok(!t.includes('No final, você vai ter:') && !t.includes('A jornada completa'), 'início: "Como funciona" começa fechado');
+  {
+    const n = await page.evaluate(() => document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
+    ok(n <= LIMITE_PALAVRAS, `início: ${n} palavras visíveis (máx. ${LIMITE_PALAVRAS})`);
+  }
   ok(!/(^|\n)Leva uns 10 minutos/.test(t), 'início: "Leva uns 10 minutos" sozinho parece o tempo da jornada inteira');
-  ok(await page.evaluate(() => document.querySelectorAll('.bloco-lista li').length === 11 && [...document.querySelectorAll('.bloco-lista li')].every((l) => l.querySelector('svg'))), 'início: 11 linhas, cada uma com ícone');
+  await page.evaluate(() => { document.querySelector('details.como-funciona').open = true; });
+  t = await texto();
+  // item da Júlia: os ~10 min são deste módulo; a jornada inteira leva horas e fica salva no aparelho
+  ok(t.includes('Este é o Módulo 1 de 10. A jornada completa leva de 3 a 5 horas, e dá para fazer em vários dias: suas respostas ficam salvas neste aparelho.'), 'início: falta o tempo da jornada completa (em "Como funciona")');
+  for (const s of ['No final, você vai ter:', 'Um resumo sobre você e a sua ideia', 'O que ainda falta descobrir', 'Uma tarefa fácil para fazer já']) ok(t.includes(s), `início/Como funciona: falta "${s}"`);
+  ok(await page.evaluate(() => document.querySelectorAll('.bloco-lista li').length === 3 && [...document.querySelectorAll('.bloco-lista li')].every((l) => l.querySelector('svg'))), 'início: 3 linhas em "Como funciona", cada uma com ícone');
+  await page.evaluate(() => { document.querySelector('details.como-funciona').open = false; });
   ok(await page.evaluate(() => { const b = document.querySelector('#ir'); const r = b.getBoundingClientRect(); return b.textContent === 'Começar' && r.bottom <= innerHeight && getComputedStyle(b.parentElement).position === 'sticky'; }), 'início: Começar fixo no rodapé e visível');
   await regrasGerais('início');
   await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Ouvir').click());
@@ -592,7 +555,7 @@ async function servidor() {
   /* caixa "O que entendemos até aqui" em cima; respostas recolhidas em "Ver suas respostas" */
   const entendemos = () => page.evaluate(() => { const e = document.querySelector('.entendemos'); return e ? [...e.querySelectorAll('p')].map((x) => x.textContent) : null; });
   const tarefaAgora = () => page.evaluate(() => { const e = document.querySelectorAll('.tarefa'); return e.length === 1 && e[0].querySelector('b').textContent === 'Sua tarefa para fazer já' ? e[0].querySelector('p').textContent : null; });
-  const faltaAgora = () => page.evaluate(() => [...document.querySelectorAll('.b-lacuna li')].map((l) => l.textContent));
+  const faltaAgora = () => page.evaluate(() => [...document.querySelectorAll('.b-lacuna li .falta-txt')].map((l) => l.textContent));
   const avisosAgora = () => page.evaluate(() => [...document.querySelectorAll('.b-aviso p')].map((l) => l.textContent));
   /* texto corrido (relatório do Bento): frases agrupadas por assunto em 1 a 3 parágrafos, sem lista */
   ok(JSON.stringify(await entendemos()) === JSON.stringify([
@@ -612,9 +575,18 @@ async function servidor() {
   ok(t.includes('Outra coisa: Medo de não vender'), 'resultado: mostra o texto de "Outra coisa"');
   ok(await page.evaluate(() => { const c = [...document.querySelectorAll('.resp')].find((x) => x.textContent.includes('O que mais te preocupa agora?')); return c ? [...c.querySelectorAll('li')].map((l) => l.textContent).join('|') : ''; }) ===
     'Conheço poucas pessoas para vender ou me ajudar|Outra coisa: Medo de não vender', 'resultado: Pergunta 8 lista as duas preocupações');
-  ok(t.includes('O que você oferece aos seus clientes?') && t.includes('Produto: eu compro materiais e faço o que vendo'), 'resultado: resposta da 3A');
+  ok(t.includes('O que você oferece?') && t.includes('Produto: eu compro materiais e faço o que vendo'), 'resultado: resposta da 3A');
   ok(t.includes('Você já sabe fazer bolo de pote?') && t.includes('Bolo de pote'), 'resultado: resumo com P3/P4');
-  ok(/Ver suas respostas/i.test(t) && /Para onde seguem estas informações/i.test(t), 'resultado: resumo + textos do Mapa');
+  ok(/Ver suas respostas/i.test(t) && /Mais detalhes/.test(t) && !/Para onde seguem estas informações/i.test(t), 'resultado: resumo + "Mais detalhes" recolhido');
+  {
+    /* versão leve: o resultado começa pelo que importa (entendemos, tarefa, falta descobrir); o resto fica recolhido */
+    const ordem = await page.evaluate(() => ['.entendemos', '.tarefa', '.b-lacuna', 'details.respostas', 'details.mais-detalhes', '.lg2-proximo'].map((s) => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().top + scrollY : -1; }));
+    ok(ordem.every((y, i) => y >= 0 && (i === 0 || y > ordem[i - 1])), 'resultado: entendemos > tarefa > falta descobrir > respostas > mais detalhes > próximo módulo ' + JSON.stringify(ordem));
+    ok(await page.evaluate(() => { const d = document.querySelector('details.mais-detalhes'); return !d.open && !!d.querySelector('.aviso-roxo') && !!d.querySelector('details.para-onde'); }), 'resultado: profissional, "Para onde seguem" e aviso dentro de "Mais detalhes" (fechado)');
+  }
+  await page.evaluate(() => { document.querySelector('details.mais-detalhes').open = true; });
+  t = await texto();
+  ok(/Para onde seguem estas informações/i.test(t) && t.includes('Quando procurar um profissional'), 'resultado: "Mais detalhes" aberto mostra os textos do Mapa');
   await regrasGerais('resultado');
   /* lote 3 (Receita D): texto longo do resultado com a 1ª frase à vista e o resto em "Ver mais"; "Para onde seguem" recolhido */
   ok(await page.evaluate(() => {
@@ -639,9 +611,11 @@ async function servidor() {
   // "Não sei dizer" na 5A e na 7A (as únicas que ainda têm a opção) vira lacuna no resultado
   await caminho('Não sei na 5A e na 7A', com({ 'M1.P05': 'Só nos fins de semana', 'M1.P05A': 'Não sei dizer', 'M1.P06': 'Não tenho nada ainda', 'M1.P07A': 'Não sei dizer' }));
   t = await texto();
-  ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna li')].map((l) => l.textContent).join('|')) ===
+  ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna li .falta-txt')].map((l) => l.textContent).join('|')) ===
     'Ainda falta saber: se você consegue arrumar mais tempo quando o negócio crescer.|Ainda falta saber: como você vai começar sem dinheiro ou sem material.', 'resultado: o que falta descobrir = 5A e 7A, em linguagem simples');
   ok(await page.evaluate(() => document.querySelector('.b-lacuna b').textContent) === 'O que ainda falta descobrir', 'resultado: título "O que ainda falta descobrir"');
+  ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna > ul > li')].every((l) => { const d = l.querySelector('details.como-mini'); return d && !d.open && d.querySelector('summary').textContent === 'Como descobrir' && d.querySelectorAll('.como-descobrir ol li').length >= 1 && !!d.querySelector('[data-copiar]'); })),
+    'resultado: cada lacuna tem "Como descobrir" (fechado) com passos e Copiar');
   {
     const f = [((await entendemos()) || []).join(' ')];
     ok(f[0].includes('Você já sabe fazer isso bem e só tem os fins de semana para o negócio, e ainda não sabe se consegue arrumar mais tempo.') &&
@@ -681,20 +655,20 @@ async function servidor() {
     'aviso: já vende + ainda não sabe fazer ' + JSON.stringify(await avisosAgora()));
   ok(await page.evaluate(() => !!document.querySelector('.lg2-proximo')), 'aviso não trava: o resultado chega ao botão do próximo módulo');
   // ideia vaga na Pergunta 3: entra no que falta descobrir e a tarefa pede para definir a ideia
-  await caminho('ideia vaga', com({ 'M1.P03': 'não sei', __vaga: true, 'M1.P05': 'Até 1 hora por dia', 'M1.P05A': 'Não sei dizer' }));
+  await caminho('ideia vaga', com({ 'M1.P03': 'não sei', __vaga: true, __semideia: true, 'M1.P05': 'Até 1 hora por dia', 'M1.P05A': 'Não sei dizer' }));
   ok(JSON.stringify(await faltaAgora()) === JSON.stringify(['Ainda falta saber: o que exatamente você vai vender.', 'Ainda falta saber: se você consegue arrumar mais tempo quando o negócio crescer.']), 'falta descobrir (ideia vaga + 5A): ' + JSON.stringify(await faltaAgora()));
   ok(await tarefaAgora() === 'Escreva em uma frase o que você quer vender e para quem.', 'tarefa (ideia vaga): ' + await tarefaAgora());
   ok(!((await entendemos()) || []).join(' ').includes('não sei'), 'entendemos: não repete a ideia vaga');
   await shot('m01-resultado-falta-e-tarefa');
   // sem nenhum "Não sei", não há bloco de lacunas
   await caminho('sem Não sei', com({}));
-  ok(await page.evaluate(() => !document.querySelector('.b-lacuna li') && (document.querySelector('.b-lacuna .nada-falta') || {}).textContent ===
+  ok(await page.evaluate(() => !document.querySelector('.b-lacuna > ul > li') && (document.querySelector('.b-lacuna .nada-falta') || {}).textContent ===
     'Você respondeu tudo com clareza. Por enquanto, não falta descobrir nada nesta parte.'), 'resultado: sem nada para descobrir, diz isso');
   ok(await tarefaAgora() === 'Anote quanto você gasta de material para fazer uma unidade de bolo de pote.', 'tarefa (produto, já vende): ' + await tarefaAgora());
   ok(await page.evaluate(() => !document.querySelector('.b-aviso')), 'resultado: sem aviso quando não há combinação estranha');
   {
     /* lote 3: "Para onde seguem estas informações" fica recolhido; abre para conferir o texto */
-    await page.evaluate(() => { document.querySelector('details.para-onde').open = true; });
+    await page.evaluate(() => { document.querySelector('details.mais-detalhes').open = true; document.querySelector('details.para-onde').open = true; });
     const t2 = await texto();
     ok(!/O que você recebe no final/.test(t2), 'resultado: sai o cartão que só descrevia a entrega');
     for (const s of ['No Módulo 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes.',
@@ -903,5 +877,5 @@ async function servidor() {
   ok(erros.length === 0, 'erros na página: ' + erros.join(' | '));
   await browser.close(); srv.close();
   if (falhas.length) { console.log(`FAIL ${falhas.length} de ${checks} checagens`); falhas.forEach((f) => console.log(' - ' + f)); process.exit(1); }
-  console.log(`PASS ${checks} checagens · lote 3: Voltar só no topo acima da pergunta, textos longos com "Ver mais", "Para onde seguem" recolhido, sem "Grupo N" · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
+  console.log(`PASS ${checks} checagens · versão leve: capa curta, "Ver dica" fechada, exemplos no campo, até ${LIMITE_PALAVRAS} palavras por pergunta, "Como descobrir" + Copiar no "Não sei" (5A, 7A, P3) e no resultado · lote 3: Voltar só no topo acima da pergunta, textos longos com "Ver mais", "Para onde seguem" recolhido, sem "Grupo N" · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

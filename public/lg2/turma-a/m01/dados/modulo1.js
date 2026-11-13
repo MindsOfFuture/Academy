@@ -1,12 +1,9 @@
 /* Dados do Módulo 1. Mapa, Base técnica e conexões vêm da planilha do grupo.
-   Tela inicial, tela "O que esta parte não faz" e perguntas vêm do documento
-   "Módulo 1 – Textos do app em linguagem simples" (08/10/2026), que substitui a aba
-   "3 Fluxo de perguntas". Ajuste "Módulo 1 – Ajuste do “Não sei” e vídeos": o "Não sei dizer"
-   fica só nas Perguntas 5A e 7A; as Perguntas 3 e 7 têm o card de vídeo, que só aparece quando
-   "video.url" for preenchido (o "assunto" é o pedido do grupo, não vai para a tela). Textos literais. Lote de correções do teste do app (05/11/2026): nova Pergunta 3A (tipo do que
-   vende) e Pergunta 8 com várias respostas. Lote 05/11 (b): textos dirigidos aos grupos reescritos para quem usa o app,
-   sem citar renda (não é perguntada) e "por_tipo": enunciado, opções ou exemplo trocados conforme a
-   resposta da Pergunta 3A (Mercadoria não pergunta se sabe FAZER; exemplos de serviço e de revenda). */
+   Versão leve (proposta, nov/2026): enunciados curtos, exemplos dentro do campo ("Ex.: ..."),
+   explicações em "Ver dica" (fechada) e, em cada "Não sei", a caixa "Como descobrir"
+   (comoDescobrir = passos; promptIA = pedido pronto para copiar). Os textos das opções não mudam:
+   outros módulos comparam esses valores salvos. "por_tipo" troca enunciado, opções ou dica
+   conforme a resposta da Pergunta 3A. */
 window.MODULO1 = {
  "origem": "LG2_M01_planilha_do_grupo.xlsx",
  "modulo": {
@@ -152,39 +149,24 @@ window.MODULO1 = {
  "inicio": {
   "rotulo": "PARTE 1",
   "titulo": "Você e a sua ideia",
-  "descricao": "Vamos conversar sobre você e sobre o que você quer vender. Não existe resposta certa ou errada.",
-  "blocos": [
-   {
-    "titulo": "Isso é para você se:",
-    "lista": [
-     "Você quer começar um pequeno negócio",
-     "Ou você já tem um e quer fazer ele crescer"
-    ]
-   },
-   {
-    "titulo": "Antes de começar, pense nisto:",
-    "lista": [
-     "O que você quer vender",
-     "Quanto tempo você tem para isso",
-     "O que você já tem para trabalhar",
-     "Quanto dinheiro você pode usar sem faltar para as contas da casa",
-     "Não sabe tudo isso? Tudo bem, a gente te ajuda."
-    ]
-   },
-   {
-    "titulo": "No final, você vai ter:",
-    "lista": [
-     "Um resumo sobre você e o seu momento",
-     "Sua ideia explicada de um jeito simples: o que você já sabe e o que ainda precisa testar",
-     "Uma lista do que ainda falta descobrir",
-     "Uma tarefa fácil para fazer já"
-    ]
-   }
-  ],
+  "descricao": "Responda perguntas rápidas e receba um resumo da sua ideia com uma tarefa para começar.",
   "tempo": "Este módulo leva uns 10 minutos",
-  "jornada": "Este é o Módulo 1 de 10. A jornada completa, com os 10 módulos, leva de 3 a 5 horas no total. Você não precisa fazer tudo de uma vez: dá para fazer em vários dias, e suas respostas ficam salvas neste aparelho.",
   "botao": "Começar",
-  "link": "O que esta parte não faz"
+  "link": "O que esta parte não faz",
+  "mais": {
+   "titulo": "Como funciona",
+   "blocos": [
+    {
+     "titulo": "No final, você vai ter:",
+     "lista": [
+      "Um resumo sobre você e a sua ideia",
+      "O que ainda falta descobrir",
+      "Uma tarefa fácil para fazer já"
+     ]
+    }
+   ],
+   "jornada": "Este é o Módulo 1 de 10. A jornada completa leva de 3 a 5 horas, e dá para fazer em vários dias: suas respostas ficam salvas neste aparelho."
+  }
  },
  "limites": {
   "titulo": "O que você pode esperar",
@@ -224,7 +206,6 @@ window.MODULO1 = {
    "numero": "1",
    "condicao": "sempre",
    "pergunta": "Como está a sua ideia hoje?",
-   "apoio": "Escolha a frase que mais parece com você. Não tem resposta errada.",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -256,7 +237,7 @@ window.MODULO1 = {
    "numero": "2",
    "condicao": "sempre",
    "pergunta": "O que fez você querer ter um negócio?",
-   "apoio": "Escolha o motivo mais importante para você.",
+   "apoio": "Escolha o motivo principal.",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -288,7 +269,6 @@ window.MODULO1 = {
    "numero": "3",
    "condicao": "sempre",
    "pergunta": "O que você vende ou quer vender?",
-   "apoio": "Pode ser uma coisa que você faz ou um trabalho que você oferece.",
    "placeholder": "Ex.: bolo de pote, conserto de celular, unha de gel",
    "botao_falar": "Falar em vez de escrever",
    "tipo": "texto",
@@ -296,14 +276,23 @@ window.MODULO1 = {
     "texto": "Não sabe ou não entendeu? Assista ao vídeo",
     "assunto": "Ter uma boa ideia é diferente de ter uma oportunidade de negócio: como escolher o que vender a partir do que você sabe fazer e do que as pessoas pedem.",
     "url": null
-   }
+   },
+   "ajuda": {
+    "texto": "Pode ser algo que você faz, algo que você revende ou um trabalho que você oferece."
+   },
+   "botao_ajuda": "Ainda não sei o que vender",
+   "comoDescobrir": [
+    "Pense no que as pessoas já pedem ou elogiam em você: uma comida, um conserto, um cuidado.",
+    "Observe seu bairro por alguns dias: o que as pessoas procuram e não acham perto? Onde tem fila ou falta? Isso é uma oportunidade."
+   ],
+   "promptIA": "Moro em [seu bairro e cidade]. Sei fazer [o que você sabe fazer] e tenho [quanto tempo por dia] e cerca de [quanto dinheiro] para começar. Me sugira 5 ideias de pequenos negócios que resolvam uma necessidade real das pessoas daqui e que eu possa começar gastando pouco. Para cada ideia, diga para quem vender e como testar em uma semana.",
+   "aviso_ajuda": "Quando escolher uma ideia, escreva no campo acima para continuar."
   },
   {
    "codigo": "M1.P03A",
    "numero": "3A",
    "condicao": "sempre",
-   "pergunta": "O que você oferece aos seus clientes?",
-   "apoio": "Escolha a opção que mais combina com o que você vende.",
+   "pergunta": "O que você oferece?",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -320,8 +309,8 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Produto é algo que você mesmo faz com materiais que compra. Mercadoria é algo que você compra pronto e vende sem mudar. Serviço é quando o cliente paga pelo seu trabalho, e não por uma coisa.",
-    "exemplo": "Exemplo: bolo de pote é produto; roupa comprada na fábrica para revender é mercadoria; lavar carro na casa do cliente é serviço."
+    "texto": "Produto: você faz com materiais que compra. Mercadoria: você compra pronto e revende. Serviço: o cliente paga pelo seu trabalho.",
+    "exemplo": "Ex.: bolo de pote é produto; roupa da fábrica para revender é mercadoria; lavar carro é serviço."
    }
   },
   {
@@ -329,7 +318,6 @@ window.MODULO1 = {
    "numero": "4",
    "condicao": "sempre",
    "pergunta": "Você já sabe fazer isso?",
-   "apoio": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho.",
    "pergunta_com_resposta": {
     "de": "M1.P03",
     "modelo": "Você já sabe fazer {resposta}?"
@@ -356,19 +344,19 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Queremos saber se você já fez esse tipo de trabalho antes. Quem já sabe fazer começa com mais facilidade.",
-    "exemplo": "Exemplo: Maria trabalhou 5 anos como costureira numa fábrica. Agora ela faz consertos de roupa em casa."
+    "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho.",
+    "exemplo": "Ex.: Maria foi costureira por 5 anos e hoje faz consertos de roupa em casa."
    },
    "por_tipo": {
     "Produto": {
      "ajuda": {
-      "texto": "Queremos saber se você já fez esse tipo de trabalho antes. Quem já sabe fazer começa com mais facilidade.",
-      "exemplo": "Exemplo: Joana faz bolo para a família há anos. Agora ela vende bolo de pote para os vizinhos."
+      "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho.",
+      "exemplo": "Ex.: Joana faz bolo para a família há anos e hoje vende bolo de pote para os vizinhos."
      }
     },
     "Mercadoria": {
      "pergunta": "Você já conhece bem o que vai revender?",
-     "apoio": "Pense na qualidade, no preço e em onde comprar.",
+     "apoio": null,
      "pergunta_com_resposta": {
       "de": "M1.P03",
       "modelo": "Você já conhece bem {resposta} e sabe onde comprar?"
@@ -394,8 +382,8 @@ window.MODULO1 = {
       }
      ],
      "ajuda": {
-      "texto": "Queremos saber se você conhece o que vai revender: a qualidade, o preço e onde comprar. Quem conhece o produto e os fornecedores começa com mais segurança.",
-      "exemplo": "Exemplo: Ana sempre comprou roupas numa fábrica para ela mesma. Agora ela compra lá e revende para as vizinhas."
+      "texto": "Pense na qualidade, no preço e em onde comprar.",
+      "exemplo": "Ex.: Ana comprava roupas numa fábrica para ela e hoje revende para as vizinhas."
      }
     }
    }
@@ -404,8 +392,7 @@ window.MODULO1 = {
    "codigo": "M1.P05",
    "numero": "5",
    "condicao": "sempre",
-   "pergunta": "Quanto tempo por dia você tem para o seu negócio?",
-   "apoio": "Pense no tempo que sobra depois do trabalho, da casa e da família.",
+   "pergunta": "Quanto tempo por dia você tem para o negócio?",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -432,20 +419,20 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar.",
-    "exemplo": "Exemplo: \"Trabalho de segunda a sexta. Só posso fazer meus doces no sábado.\""
+    "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar.",
+    "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso fazer meus doces no sábado.”"
    },
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar.",
-      "exemplo": "Exemplo: \"Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.\""
+      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar.",
+      "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.”"
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "Queremos saber quanto tempo você tem de verdade. Com pouco tempo também dá para começar, mas o negócio cresce mais devagar.",
-      "exemplo": "Exemplo: \"Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.\""
+      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar.",
+      "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.”"
      }
     }
    }
@@ -454,8 +441,7 @@ window.MODULO1 = {
    "codigo": "M1.P05A",
    "numero": "5A",
    "condicao": "M1.P05 = \"Até 1 hora por dia\" ou M1.P05 = \"Só nos fins de semana\"",
-   "pergunta": "Se o negócio crescer, você consegue arrumar mais tempo para ele?",
-   "apoio": "Pense na sua rotina de hoje.",
+   "pergunta": "Se o negócio crescer, você consegue mais tempo para ele?",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -471,19 +457,20 @@ window.MODULO1 = {
     },
     {
      "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Você pode pensar nisso mais para frente."
-     }
+     "mensagem": null
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Anote por uma semana o que você faz em cada parte do dia e marque onde sobra um tempinho.",
+    "Converse com quem mora com você: alguém pode ajudar com a casa ou com os filhos em alguns horários?"
+   ],
+   "promptIA": "Eu trabalho [seus dias e horários] e cuido de [casa, filhos ou outra tarefa]. Quero começar a vender [o que você vende]. Me ajude a montar uma rotina simples da semana mostrando onde eu poderia achar de 2 a 5 horas a mais para o negócio, sem prejudicar minha família."
   },
   {
    "codigo": "M1.P06",
    "numero": "6",
    "condicao": "sempre",
    "pergunta": "Você já tem o que precisa para trabalhar?",
-   "apoio": "Por exemplo: ferramentas, máquinas, panelas, forno ou um espaço em casa.",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -507,19 +494,25 @@ window.MODULO1 = {
    ],
    "por_tipo": {
     "Serviço": {
-     "apoio": "Por exemplo: ferramentas, materiais de trabalho ou um espaço para atender."
+     "ajuda": {
+      "texto": "Ex.: ferramentas, materiais de trabalho ou um espaço para atender."
+     }
     },
     "Mercadoria": {
-     "apoio": "Por exemplo: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar."
+     "ajuda": {
+      "texto": "Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar."
+     }
     }
+   },
+   "ajuda": {
+    "texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa."
    }
   },
   {
    "codigo": "M1.P07",
    "numero": "7",
    "condicao": "sempre",
-   "pergunta": "Quanto dinheiro você pode usar no negócio sem faltar para as contas da casa?",
-   "apoio": "Pense num dinheiro que, se for perdido, não vai fazer falta para comida, aluguel e contas.",
+   "pergunta": "Quanto dinheiro você pode usar sem faltar para as contas da casa?",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -553,8 +546,8 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa.",
-    "exemplo": "Exemplo: \"Tenho R$ 500 guardados para comprar ingredientes. Se eu não vender nada, não vai faltar comida em casa.\""
+    "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas.",
+    "exemplo": "Ex.: “Tenho R$ 500 guardados para ingredientes. Se eu não vender nada, não falta comida em casa.”"
    },
    "video": {
     "texto": "Não sabe ou não entendeu? Assista ao vídeo",
@@ -564,14 +557,14 @@ window.MODULO1 = {
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa.",
-      "exemplo": "Exemplo: \"Tenho R$ 300 guardados para comprar esmaltes e alicates. Se eu não tiver clientes, não vai faltar comida em casa.\""
+      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas.",
+      "exemplo": "Ex.: “Tenho R$ 300 guardados para esmaltes e alicates. Se eu não tiver clientes, não falta comida em casa.”"
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "É o dinheiro que você pode colocar no negócio e, se der errado, não vai faltar nada em casa.",
-      "exemplo": "Exemplo: \"Tenho R$ 500 guardados para comprar as primeiras peças para revender. Se eu não vender nada, não vai faltar comida em casa.\""
+      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas.",
+      "exemplo": "Ex.: “Tenho R$ 500 guardados para as primeiras peças. Se eu não vender nada, não falta comida em casa.”"
      }
     }
    }
@@ -580,8 +573,7 @@ window.MODULO1 = {
    "codigo": "M1.P07A",
    "numero": "7A",
    "condicao": "M1.P07 = \"Nada por enquanto\" ou M1.P06 = \"Não tenho nada ainda\"",
-   "pergunta": "Como você pensa em começar sem dinheiro ou sem material?",
-   "apoio": "Pense em jeitos de começar gastando pouco ou nada.",
+   "pergunta": "Como você pensa em começar sem dinheiro ou material?",
    "tipo": "escolha",
    "opcoes": [
     {
@@ -605,19 +597,21 @@ window.MODULO1 = {
     },
     {
      "texto": "Não sei dizer",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Um jeito comum é vender por encomenda e pedir parte do pagamento antes."
-     }
+     "mensagem": null
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Pergunte a 3 pessoas se comprariam por encomenda e se pagariam metade adiantado. Esse dinheiro compra o material.",
+    "Liste o que dá para pegar emprestado com família, vizinhos ou amigos: forno, ferramenta, espaço."
+   ],
+   "promptIA": "Quero começar a vender [o que você vende], mas tenho pouco ou nenhum dinheiro e pouco material. Me dê 5 jeitos simples de começar gastando pouco ou nada, como vender por encomenda com pagamento adiantado ou pegar material emprestado. Explique cada um em linguagem simples."
   },
   {
    "codigo": "M1.P08",
    "numero": "8",
    "condicao": "sempre",
    "pergunta": "O que mais te preocupa agora?",
-   "apoio": "Pode marcar mais de uma opção.",
+   "apoio": "Pode marcar mais de uma.",
    "tipo": "multipla",
    "opcoes": [
     {
@@ -639,7 +633,8 @@ window.MODULO1 = {
     {
      "texto": "Outra coisa",
      "mensagem": null,
-     "campo": true
+     "campo": true,
+     "placeholder": "Ex.: medo de não vender"
     }
    ],
    "por_tipo": {
@@ -664,7 +659,8 @@ window.MODULO1 = {
       {
        "texto": "Outra coisa",
        "mensagem": null,
-       "campo": true
+       "campo": true,
+       "placeholder": "Ex.: medo de não vender"
       }
      ]
     }

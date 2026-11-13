@@ -132,6 +132,12 @@
   }
   /* faixa roxa pequena: "< Voltar" e Ouvir no topo (regra do Módulo 1), título e, se houver, barra de progresso */
   function faixa(o) {
+    /* pergunta: faixa curta (Voltar, Ouvir, nome da parte e barra), sem título repetido nem ilustração */
+    if (o.compacta) return `<header class="heroi topo compacta">
+      <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
+      <div class="kicker kicker-curto">${esc(o.kicker)}</div>
+      ${o.barra || ""}
+    </header>`;
     return `<header class="heroi topo">
       <div class="topo-linha"><button class="voltar" id="v">&lt; Voltar</button>${botaoOuvir()}</div>
       <div class="heroi-topo">
@@ -174,9 +180,11 @@
             <img class="heroi-img" src="assets/hero-inicio.webp" alt="">
           </div>
         </header>
-        <main class="corpo" data-ler>
-          ${blocos(I.blocos, ["pessoa", "ideia", "certo"])}
-          ${I.jornada ? `<p class="jornada-tempo">${esc(I.jornada)}</p>` : ""}
+        <main class="corpo">
+          ${I.mais ? `<details class="ajuda-box como-funciona"><summary data-ler>${esc(I.mais.titulo)}</summary>
+            <div data-ler>${blocos(I.mais.blocos, ["certo"])}</div>
+            ${I.mais.jornada ? `<p class="jornada-tempo" data-ler>${esc(I.mais.jornada)}</p>` : ""}
+          </details>` : ""}
         </main>
         <div class="fixo">
           <p class="tempo" data-ler>${esc(I.tempo)}</p>
@@ -238,6 +246,47 @@
     return `<div class="msg ${cls}" role="status" data-ler><b>${esc(m.titulo)}</b><p>${esc(m.texto)}</p></div>`;
   }
 
+  /* ---------- "Não sei": caixa "Como descobrir" (passos + pedido pronto para a IA, com Copiar) ----------
+     Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA). */
+  const NAO_SEI = /^n[ãa]o sei\b/i;
+  function caixaComo(q) {
+    if (!q.comoDescobrir || !q.comoDescobrir.length) return "";
+    return `<section class="como-descobrir" role="status">
+      <b class="como-tit" data-ler>Como descobrir</b>
+      <ol>${q.comoDescobrir.map((p) => `<li data-ler>${esc(p)}</li>`).join("")}</ol>
+      ${q.promptIA ? `<div class="pedir-ia">
+        <b data-ler>Peça ajuda à IA</b>
+        <p class="como-nota" data-ler>Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
+        <p class="prompt" data-prompt>${esc(q.promptIA)}</p>
+        <button class="btn-alt copiar" type="button" data-copiar>Copiar</button>
+      </div>` : ""}
+      ${q.aviso_ajuda ? `<p class="como-nota" data-ler>${esc(q.aviso_ajuda)}</p>` : ""}
+    </section>`;
+  }
+  function copiar(t, b, alvo) {
+    const pronto = () => { b.textContent = "Copiado!"; setTimeout(() => { if (document.contains(b)) b.textContent = "Copiar"; }, 2000); };
+    const reserva = () => {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let foi = false;
+      try { foi = document.execCommand("copy"); } catch {}
+      ta.remove();
+      if (foi) return pronto();
+      /* sem cópia automática: deixa o texto selecionado para a pessoa copiar */
+      try { const r = document.createRange(); r.selectNodeContents(alvo); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch {}
+      b.textContent = "Toque e segure o texto para copiar";
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(pronto, reserva);
+    else reserva();
+  }
+  function ligarCopiar(raiz) {
+    raiz.querySelectorAll("[data-copiar]").forEach((b) => {
+      const alvo = b.parentNode.querySelector("[data-prompt]");
+      b.onclick = () => copiar(alvo.textContent, b, alvo);
+    });
+  }
+
   /* ---------- card de vídeo (Perguntas 3 e 7) ----------
      Só aparece quando o vídeo do grupo chegar: basta preencher "video.url" nos dados.
      O vídeo abre por cima da pergunta; ao terminar ou fechar, a pessoa volta para a mesma
@@ -286,18 +335,18 @@
     const p = el(`
       <div class="pag">
         ${topo("")}
-        ${faixa({ kicker: PARTE, titulo: D.inicio.titulo, barra: `<div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progresso(cod)}"><div class="barra-fill" style="width:${progresso(cod)}%"></div></div>` })}
+        ${faixa({ compacta: true, kicker: PARTE + " · " + D.inicio.titulo, barra: `<div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progresso(cod)}"><div class="barra-fill" style="width:${progresso(cod)}%"></div></div>` })}
         <main class="corpo">
           <div class="cartao-q">
             <div class="pergunta" data-cod="${esc(cod)}">
               <h2 class="q" data-ler>${esc(Motor.textoPergunta(M, S.R, q))}</h2>
-              <p class="apoio" data-ler>${esc(q.apoio)}</p>
+              ${q.apoio ? `<p class="apoio" data-ler>${esc(q.apoio)}</p>` : ""}
+              ${q.ajuda ? `<details class="ajuda-box dica-toggle"><summary data-ler>Ver dica</summary>
+                <p data-ler>${esc(q.ajuda.texto)}</p>${vazio(q.ajuda.exemplo) ? "" : `<p class="ex" data-ler>${esc(q.ajuda.exemplo)}</p>`}</details>` : ""}
               <div class="entrada" id="ent"></div>
               ${cartaoVideo(q)}
             </div>
             <div id="msg"></div>
-            ${q.ajuda ? `<details class="ajuda-box"><summary data-ler>O que quer dizer isso?</summary>
-              <p data-ler>${esc(q.ajuda.texto)}</p>${vazio(q.ajuda.exemplo) ? "" : `<p class="ex" data-ler>${esc(q.ajuda.exemplo)}</p>`}</details>` : ""}
           </div>
         </main>
         <div class="fixo"><button class="btn btn-primario seta" id="ok" disabled>Continuar</button></div>
@@ -334,6 +383,12 @@
         m = op ? op.mensagem : null;
         const extra = ent.querySelector(".outra");
         if (extra) extra.hidden = !(op && op.campo);
+        /* "Não sei": em vez de só seguir, mostra como descobrir (a resposta continua salva como "Não sei dizer") */
+        if (op && NAO_SEI.test(op.texto) && q.comoDescobrir) {
+          msg.innerHTML = caixaMensagem(m) + caixaComo(q);
+          ligarCopiar(msg);
+          return;
+        }
       } else {
         const ns = ent.querySelector("#ns");
         const sel = !!r && r.estado === "naosei";
@@ -373,7 +428,7 @@
         ent.appendChild(b);
         if (op.campo) {
           const r0 = S.R[cod];
-          const box = el(`<div class="outra" hidden><textarea class="campo" rows="2" aria-label="${esc(op.texto)}">${esc(r0 && r0.detalhe ? r0.detalhe : "")}</textarea></div>`);
+          const box = el(`<div class="outra" hidden><textarea class="campo" rows="2" aria-label="${esc(op.texto)}" placeholder="${esc(op.placeholder || "")}">${esc(r0 && r0.detalhe ? r0.detalhe : "")}</textarea></div>`);
           box.querySelector("textarea").oninput = (e) => {
             const r = S.R[cod];
             if (!r) return;
@@ -397,7 +452,7 @@
         ent.appendChild(b);
         if (op.campo) {
           const r0 = S.R[cod];
-          const box = el(`<div class="outra" hidden><textarea class="campo" rows="2" aria-label="${esc(op.texto)}">${esc(r0 && r0.opcao === op.texto ? r0.detalhe || "" : "")}</textarea></div>`);
+          const box = el(`<div class="outra" hidden><textarea class="campo" rows="2" aria-label="${esc(op.texto)}" placeholder="${esc(op.placeholder || "")}">${esc(r0 && r0.opcao === op.texto ? r0.detalhe || "" : "")}</textarea></div>`);
           box.querySelector("textarea").oninput = (e) => {
             S.R[cod] = { estado: "opcao", opcao: op.texto, detalhe: e.target.value };
             salvar(); atualizar();
@@ -411,10 +466,21 @@
         <textarea class="campo" id="txt" rows="3" placeholder="${esc(q.placeholder || "")}" aria-label="${esc(q.pergunta)}">${esc(r0 && r0.estado === "valor" ? r0.valor : "")}</textarea>
         <div class="alt">
           ${q.botao_naosei ? `<button class="btn-alt btn-ns" type="button" id="ns" aria-pressed="false"><span data-ler>${esc(q.botao_naosei.texto)}</span><span class="check" aria-hidden="true">✓</span></button>` : ""}
+          ${q.botao_ajuda && q.comoDescobrir ? `<button class="btn-alt" type="button" id="semideia" aria-expanded="false" aria-controls="comoideia">${SVG('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17v.5"/>')}<span>${esc(q.botao_ajuda)}</span></button>` : ""}
         </div>
+        <div id="comoideia" hidden></div>
       </div>`));
       const txt = ent.querySelector("#txt");
       txt.oninput = () => gravar(txt.value.trim() ? { estado: "valor", valor: txt.value } : null);
+      /* sem ideia ainda: abre "Como descobrir" sem gravar nada; o Continuar só acende com o texto escrito */
+      const si = ent.querySelector("#semideia"), ci = ent.querySelector("#comoideia");
+      if (si) si.onclick = () => {
+        const abrir = ci.hidden;
+        ci.innerHTML = abrir ? caixaComo(q) : "";
+        ci.hidden = !abrir;
+        si.setAttribute("aria-expanded", String(abrir));
+        if (abrir) { ligarCopiar(ci); ci.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+      };
       const ns = ent.querySelector("#ns");
       if (ns) ns.onclick = () => { txt.value = ""; gravar({ estado: "naosei", texto: q.botao_naosei.texto }); };
       // O botão "Falar" de cada campo vem de js/falar.js (igual em todos os módulos).
@@ -445,7 +511,7 @@
   function telaResultado() {
     const lista = Motor.retrato(M, S.R);
     const regras = Motor.regrasTodas(M, S.R);
-    const falta = Motor.faltaDescobrir(M, S.R), tarefa = Motor.tarefa(M, S.R), avisos = Motor.avisos(M, S.R);
+    const falta = Motor.faltaItens(M, S.R), tarefa = Motor.tarefa(M, S.R), avisos = Motor.avisos(M, S.R);
     const mostra = (x) => x.detalhe ? `${x.valor}: ${x.detalhe}` : x.valor;
     const entendemos = Motor.entendimento(M, S.R);
     const p = el(`
@@ -454,17 +520,17 @@
         ${faixa({ kicker: "Resultado", kickerClasse: "passo", titulo: "Retrato inicial", ler: true })}
         <main class="corpo">
           <section class="concluido">
-            <div class="conc-topo"><span class="conc-check" aria-hidden="true"></span><div><h2 data-ler>Você concluiu a ${esc(PARTE)}</h2><p data-ler>Veja abaixo o seu retrato inicial.</p></div></div>
+            <div class="conc-topo"><span class="conc-check" aria-hidden="true"></span><div><h2 data-ler>Você concluiu a ${esc(PARTE)}</h2></div></div>
           </section>
           ${entendemos.length ? `<section class="entendemos" data-ler>
             <h3>O que entendemos até aqui</h3>
             ${entendemos.map((f) => `<p>${esc(f)}</p>`).join("")}
           </section>` : ""}
+          <div class="tarefa" data-ler><b>Sua tarefa para fazer já</b><p>${esc(tarefa)}</p></div>
           ${avisos.map((a) => `<div class="bloco b-aviso" role="status" data-ler><b>Confira esta combinação</b><p>${esc(a)}</p></div>`).join("")}
           <div class="bloco b-lacuna" data-ler><b>O que ainda falta descobrir</b>${falta.length
-            ? `<ul>${falta.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>`
+            ? `<ul>${falta.map((f) => { const q = Q(f.codigo); return `<li><span class="falta-txt">${esc(f.texto)}</span>${q && q.comoDescobrir ? `<details class="ver-mais como-mini"><summary>Como descobrir</summary>${caixaComo(q)}</details>` : ""}</li>`; }).join("")}</ul>`
             : `<p class="nada-falta">${esc(Motor.NADA_FALTA)}</p>`}</div>
-          <div class="tarefa" data-ler><b>Sua tarefa para fazer já</b><p>${esc(tarefa)}</p></div>
 
           <details class="ajuda-box respostas">
             <summary data-ler>Ver suas respostas</summary>
@@ -479,15 +545,15 @@
 
           ${regras.map((r) => `<div class="regra"><p class="r-texto">${esc(r.texto)}</p></div>`).join("")}
 
-
-          <div class="cartao" data-ler><h3>Quando procurar um profissional</h3>${resumo(D.mapa.encaminhamentos)}</div>
-
-          <details class="ajuda-box para-onde">
-            <summary data-ler>Para onde seguem estas informações</summary>
-            ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao" data-ler><h3>Módulo ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
+          <details class="ajuda-box mais-detalhes">
+            <summary data-ler>Mais detalhes</summary>
+            <div class="cartao" data-ler><h3>Quando procurar um profissional</h3>${resumo(D.mapa.encaminhamentos)}</div>
+            <details class="ajuda-box para-onde">
+              <summary data-ler>Para onde seguem estas informações</summary>
+              ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao" data-ler><h3>Módulo ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
+            </details>
+            <div class="aviso-roxo" data-ler>${resumo(D.mapa.mensagem_limite)}</div>
           </details>
-
-          <div class="aviso-roxo" data-ler>${resumo(D.mapa.mensagem_limite)}</div>
 
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
@@ -502,6 +568,7 @@
     p.querySelector("#imp").onclick = () => { p.querySelectorAll("details").forEach((d) => { d.open = true; }); window.print(); };
     p.querySelector("#rev").onclick = () => ir(telaPergunta, Motor.proxima(M, {}, null));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaInicio); } };
+    ligarCopiar(p);
     ligarInicio(p);
     ligarOuvir(p);
     return p;

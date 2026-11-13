@@ -250,17 +250,19 @@
     "M1.P05A": "se você consegue arrumar mais tempo quando o negócio crescer",
     "M1.P07A": "como você vai começar sem dinheiro ou sem material",
   };
-  function faltaDescobrir(M, R) {
+  /* { codigo, texto }: o código deixa o resultado mostrar o "Como descobrir" daquela pergunta */
+  function faltaItens(M, R) {
     const l = [];
     caminho(M, R).forEach((c) => {
       const r = R[c];
       if (!r) return;
       const ns = r.estado === "naosei" || (r.estado === "opcao" && r.opcao === "Não sei dizer");
       if ((c === "M1.P03" && ideiaVaga(R)) || ns)
-        l.push("Ainda falta saber: " + (FALTA[c] || minuscula(limpa(textoPergunta(M, R, efetiva(M, R, M.porCodigo[c]))))) + ".");
+        l.push({ codigo: c, texto: "Ainda falta saber: " + (FALTA[c] || minuscula(limpa(textoPergunta(M, R, efetiva(M, R, M.porCodigo[c]))))) + "." });
     });
     return l;
   }
+  const faltaDescobrir = (M, R) => faltaItens(M, R).map((x) => x.texto);
   const NADA_FALTA = "Você respondeu tudo com clareza. Por enquanto, não falta descobrir nada nesta parte.";
 
   /* ---------- "Sua tarefa para fazer já": UMA tarefa, escolhida por regra (a primeira que vale) ---------- */
@@ -288,6 +290,6 @@
   }
 
   const API = { montar, valor, completa, avaliar, proxima, caminho, textoPergunta, regrasTodas, retrato, refs, itens, tipoOferta, entendimento,
-    efetiva, remapear, ideiaVaga, faltaDescobrir, NADA_FALTA, tarefa, avisos };
+    efetiva, remapear, ideiaVaga, faltaDescobrir, faltaItens, NADA_FALTA, tarefa, avisos };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);
