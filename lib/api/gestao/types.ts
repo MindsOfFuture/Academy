@@ -566,8 +566,8 @@ export interface Ocorrencia {
     responsaveis: string[];
 }
 
-/** O que muda ao editar um encontro já lançado; turma, escola e equipe têm telas próprias. */
-export type EdicaoEncontro = Pick<NovoEncontro, "data" | "inicio" | "fim" | "modalidade" | "descricao" | "numeroAula" | "tipo" | "espacoId">;
+/** O que muda ao editar um encontro já lançado; a equipe tem tela própria. */
+export type EdicaoEncontro = Omit<NovoEncontro, "equipe" | "responsaveis">;
 
 export interface NovaTurma {
     escolaId: string;

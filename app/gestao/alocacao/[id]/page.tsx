@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { historicoDoEncontro, listarEspacos, obterEncontro } from "@/lib/api/gestao/alocacao";
+import { historicoDoEncontro, listarEspacos, listarTurmas, obterEncontro } from "@/lib/api/gestao/alocacao";
+import { listEscolas } from "@/lib/api/gestao/entities";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import { exigirMembro } from "../../guard";
 import {
@@ -63,7 +64,13 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
   await exigirMembro(`/gestao/alocacao/${id}`, "coordenacao");
   if (!UUID.test(id)) notFound();
 
-  const [encontro, equipe, espacos] = await Promise.all([obterEncontro(id), listarEquipe(), listarEspacos()]);
+  const [encontro, equipe, espacos, turmas, escolas] = await Promise.all([
+    obterEncontro(id),
+    listarEquipe(),
+    listarEspacos(),
+    listarTurmas(),
+    listEscolas(),
+  ]);
   if (!encontro) notFound();
   const historico = await historicoDoEncontro(encontro);
 
@@ -73,7 +80,8 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
   const foraDoEncontro = ativos.filter((p) => !jaAlocados.has(p.id));
   const cancelado = Boolean(encontro.canceladoEm);
   const comecou = jaComecou(encontro);
-  const nomeDoEspaco = new Map(espacos.map((s) => [s.id, s.nome]));
+  // Espaço, turma e escola gravados como id aparecem pelo nome no histórico.
+  const nomePorId = new Map([...espacos, ...turmas, ...escolas].map((s) => [s.id, s.nome]));
   // O espaço atual continua na lista mesmo se ficou inativo.
   const opcoesEspaco = espacos.filter((s) => s.ativo || s.id === encontro.espacoId).map((s) => ({ id: s.id, nome: s.nome }));
 
@@ -108,6 +116,8 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
         {!cancelado && (
           <FormEditarEncontro
             encontro={encontro}
+            turmas={turmas}
+            escolas={escolas.map((e) => ({ id: e.id, nome: e.nome }))}
             espacos={opcoesEspaco}
           />
         )}
@@ -182,7 +192,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
                 <ul className="mt-1">
                   {h.mudancas.map((m) => (
                     <li key={m.campo}>
-                      {CAMPO[m.campo] ?? m.campo}: {valorLegivel(m.antes, nomeDoEspaco)} → {valorLegivel(m.depois, nomeDoEspaco)}
+                      {CAMPO[m.campo] ?? m.campo}: {valorLegivel(m.antes, nomePorId)} → {valorLegivel(m.depois, nomePorId)}
                     </li>
                   ))}
                 </ul>
