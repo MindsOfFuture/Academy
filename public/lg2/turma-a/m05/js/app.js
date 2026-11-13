@@ -6,6 +6,7 @@
 (function () {
   "use strict";
   const D = window.MODULO5, M = Motor.montar(D);
+  const CAPA = (D.leve && D.leve.capa) || { frase: D.mapa.objetivo, minutos: 20, como_funciona: "" };
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-a-m05";
   const CHAVE_HIST = CHAVE + "-historico";          // análises concluídas
@@ -119,6 +120,8 @@
     Mercadoria: { nome: "M5.P10", seu: "sua mercadoria", etapa: "Sua mercadoria", card: "card-mercadoria.webp", dica: "card-mercadoria.webp", gastos: "card-mercadoria.webp", heroi: "hero-preco.webp", heroiGastos: "hero-preco.webp", ex: "Ex.: roupas, bebidas e acessórios." },
     "Serviço": { nome: "M5.P17", seu: "seu serviço", etapa: "Seu serviço", card: "card-servico.webp", dica: "card-servico.webp", gastos: "card-servico.webp", heroi: "hero-preco.webp", heroiGastos: "hero-preco.webp", ex: "Ex.: manicure, aulas e consertos." },
   };
+  /* versão leve: descrição curta dos 3 tipos na P01 (o valor salvo continua "Produto: eu compro materiais…") */
+  const DESC_TIPO = { Produto: "faço o que vendo", Mercadoria: "compro pronto e revendo", "Serviço": "cobro pelo meu trabalho" };
   function tipoAtual() {
     const r = S.R["M5.P01"];
     return r && r.estado === "opcao" ? r.opcao.split(":")[0].trim() : null;
@@ -150,11 +153,14 @@
       ${o.reinicio ? `<button class="reinicio" id="novo">${ROTULO_REINICIO}</button>` : ""}
     </section>`;
   }
-  function heroiEtapa(n) {
-    const t = infoTipo();
-    if (n === 1) return heroi({ titulo: `Vamos conhecer ${t ? t.seu : "seu negócio"}.`, texto: "Responda uma pergunta por vez. Nós te ajudamos no caminho.", img: t ? t.heroi : "hero-preco.webp", reinicio: true });
-    if (n === 2) return heroi({ titulo: "Vamos organizar seus gastos.", texto: "Agora, os gastos que você tem todo mês para manter o negócio.", img: t ? t.heroiGastos : "hero-preco.webp", reinicio: true });
-    return heroi({ titulo: "Vamos chegar ao seu preço.", texto: "Quanto você vende, quanto cobra e quanto sobra em cada venda.", img: "hero-preco.webp", reinicio: true });
+  /* versão leve: perguntas, preço e resultado com faixa roxa curta (sem título repetido nem ilustração);
+     fica só o botão de analisar outro item e, no resultado, a palavra "Resultado" */
+  function faixaCurta(o) {
+    o = o || {};
+    return `<section class="heroi heroi-compacta">
+      ${o.kicker ? `<div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker)}</div>` : ""}
+      <button class="reinicio" id="novo">${ROTULO_REINICIO}</button>
+    </section>`;
   }
   function etapas(n, tudo) {
     const t = infoTipo();
@@ -190,11 +196,11 @@
   const seloMini = () => `<span class="selo-mini">Veio do Módulo 1</span>`;
   /* cartão "Seu negócio: <ideia> · <tipo>" no topo das primeiras perguntas (substitui a antiga tela
      que só repetia a resposta do Módulo 1). Só aparece quando há algo vindo do Módulo 1. */
-  function cartaoNegocio(cod) {
+  function cartaoNegocio(cod, comSelo) {
     const r3 = doM1("M1.P03");
     const ideia = r3 && r3.estado === "valor" && !vazio(r3.valor) ? String(r3.valor).trim() : null;
     const tipo = tipoAtual();
-    const mostraTipo = tipo && cod !== "M5.P01";
+    const mostraTipo = tipo && cod !== "M5.P01" && cod !== PRIMEIRA;   // na P00 o tipo já aparece no cabeçalho do cartão
     const mostraEst = S.R[PRIMEIRA] && S.R[PRIMEIRA].estado === "opcao" && cod !== PRIMEIRA;
     if (!ideia && !herdado(PRIMEIRA) && !herdado("M5.P01")) return "";
     if (!ideia && !mostraTipo && !mostraEst) return "";
@@ -203,26 +209,19 @@
       <div class="neg-cab"><span class="neg-rot">Seu negócio:</span> <b>${esc(cab || "—")}</b></div>
       ${mostraTipo ? `<div class="neg-linha" id="neg-tipo"><span>Tipo: <b>${esc(tipo)}</b></span>${herdado("M5.P01") ? seloMini() : ""}<button class="alterar" data-trocar="M5.P01">Trocar</button></div>` : ""}
       ${mostraEst ? `<div class="neg-linha" id="neg-estagio"><span>Hoje: <b>${esc(S.R[PRIMEIRA].opcao)}</b></span>${herdado(PRIMEIRA) ? seloMini() : ""}<button class="alterar" data-trocar="${PRIMEIRA}">Trocar</button></div>` : ""}
-      ${herdado(PRIMEIRA) || herdado("M5.P01") ? `<p class="neg-nota">Confira e ajuste se quiser.</p>` : ""}
+      ${comSelo ? `<p class="neg-nota selo-m">Veio do Módulo 1. Confira e ajuste se quiser.</p>` : herdado(PRIMEIRA) || herdado("M5.P01") ? `<p class="neg-nota">Confira e ajuste se quiser.</p>` : ""}
     </div>`;
   }
-  /* menos texto na tela: ajuda com mais de ~220 caracteres mostra a 1ª frase e guarda o resto em "Ver mais" */
-  const LIMITE_TEXTO = 220;
-  function curto(texto) {
-    const t = String(texto || "").trim();
-    const m = /^(.+?[.!?:])\s+(.+)$/s.exec(t);
-    if (t.length <= LIMITE_TEXTO || !m) return esc(t);
-    return `${esc(m[1])}<details class="ver-mais"><summary>Ver mais</summary>${esc(m[2])}</details>`;
+  /* "Ver dica" (fechada): a ajuda da pergunta, a observação e as orientações de preenchimento */
+  function verDica(q, extra) {
+    const partes = [vazio(q.ajuda) ? "" : `<p class="ajuda">${esc(q.ajuda)}</p>`, obs(q.observacao), notas(q), extra || ""].join("");
+    if (!partes.trim()) return "";
+    return `<details class="dica-toggle" id="dica"><summary>Ver dica</summary><div class="dica-corpo">${partes}</div></details>`;
   }
-  function dica(texto, img) {
-    if (vazio(texto)) return "";
-    return `<aside class="dica">${img ? `<img src="assets/${img}" alt="">` : ""}<div><b>Dica</b><div class="ajuda">${curto(texto)}</div></div></aside>`;
-  }
-  function imgDica(n) {
-    const t = infoTipo();
-    if (n === 3) return "hero-preco.webp";
-    if (!t) return "dica-produto.webp";
-    return n === 2 ? t.gastos : t.dica;
+  /* enunciado curto da versão leve (por tipo de negócio quando houver) */
+  function textoQ(q) {
+    const t = tipoAtual();
+    return (q.curtaPorTipo && t && q.curtaPorTipo[t]) || q.curta || q.pergunta;
   }
   /* "‹ Voltar" no topo do cartão, à esquerda, no mesmo lugar em todos os módulos (como no Módulo 1) */
   const botaoVoltar = () => `<button class="voltar-topo" id="v" aria-label="Voltar"><span aria-hidden="true">‹</span> Voltar</button>`;
@@ -235,7 +234,7 @@
     if (n) n.onclick = reiniciar;
   }
 
-  const obs = (t) => vazio(t) ? "" : `<div class="obs"><b>Observação</b>${curto(t)}</div>`;
+  const obs = (t) => vazio(t) ? "" : `<div class="obs"><b>Observação</b><p>${esc(t)}</p></div>`;
   /* orientação de preenchimento (diferente de aviso): consumo x equipamento e conta de luz/água */
   function notas(q) {
     if (!q.notaConsumo) return "";
@@ -255,32 +254,62 @@
     return `<div class="video"><iframe src="${esc(url)}" title="Vídeo explicativo" allowfullscreen loading="lazy"></iframe></div>`;
   }
 
-  /* painel aberto pelo botão "Não sei" dos gastos fixos */
-  function painelNaoSei(a) {
+  /* ---------- "Não sei": caixa "Como descobrir" (2 passos + pedido pronto para a IA, com Copiar) ----------
+     Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA). "Não sei" aqui é só ajuda:
+     não grava resposta. Os termos da Base técnica ficam recolhidos em "O que quer dizer". */
+  function caixaComo(q, reserva) {
+    const passos = q.comoDescobrir && q.comoDescobrir.length ? q.comoDescobrir : reserva || [];
+    if (!passos.length) return "";
+    return `<section class="como-descobrir" role="status">
+      <b class="como-tit">Como descobrir</b>
+      <ol>${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${q.promptIA ? `<div class="pedir-ia">
+        <b>Peça ajuda à IA</b>
+        <p class="como-nota">Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
+        <p class="prompt" data-prompt>${esc(q.promptIA)}</p>
+        <button class="btn btn-claro copiar" type="button" data-copiar>Copiar</button>
+      </div>` : ""}
+    </section>`;
+  }
+  function copiar(t, b, alvo) {
+    const pronto = () => { b.textContent = "Copiado!"; setTimeout(() => { if (document.contains(b)) b.textContent = "Copiar"; }, 2000); };
+    const reserva = () => {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let foi = false;
+      try { foi = document.execCommand("copy"); } catch {}
+      ta.remove();
+      if (foi) return pronto();
+      /* sem cópia automática: deixa o texto selecionado para a pessoa copiar */
+      try { const r = document.createRange(); r.selectNodeContents(alvo); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch {}
+      b.textContent = "Toque e segure o texto para copiar";
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(pronto, reserva);
+    else reserva();
+  }
+  function ligarCopiar(raiz) {
+    raiz.querySelectorAll("[data-copiar]").forEach((b) => {
+      const alvo = b.parentNode.querySelector("[data-prompt]");
+      b.onclick = () => copiar(alvo.textContent, b, alvo);
+    });
+  }
+  function painelNaoSei(q, a) {
+    const extras = a.extra.filter((x) => x !== q.ajuda);
     return `<div class="painel-ajuda" id="painel" hidden>
       ${blocoVideo(a.video)}
-      ${a.conceitos.map((b) => `
-        <h3>${esc(b.conceito)}</h3>
-        <p><b>O que é:</b> ${esc(b.definicao)}</p>
-        ${vazio(b.porque) ? "" : `<p><b>Por que é importante para dividir o custo:</b> ${esc(b.porque)}</p>`}
-        ${vazio(exConceito(b)) ? "" : `<p class="ex"><b>Exemplo:</b> ${esc(exConceito(b))}</p>`}`).join("")}
-      ${a.comoAchar.length ? `<p><b>Como descobrir:</b> ${a.comoAchar.map(esc).join(" ")}</p>` : ""}
-      ${a.extra.map((x) => `<p>${esc(x)}</p>`).join("")}
-      <p class="depois">Depois de ler, responda acima para continuar.</p>
+      ${caixaComo(q, a.comoAchar)}
+      ${extras.map((x) => `<p class="como-nota">${esc(x)}</p>`).join("")}
+      ${a.conceitos.length ? `<details class="ver-mais termos"><summary>O que quer dizer ${a.conceitos.map((b) => `“${esc(b.conceito)}”`).join(" e ")}</summary>${a.conceitos.map((b) => `
+        <div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(b.definicao)}</p>
+        ${vazio(b.porque) ? "" : `<p>${esc(b.porque)}</p>`}
+        ${vazio(exConceito(b)) ? "" : `<p class="ex">Exemplo: ${esc(exConceito(b))}</p>`}
+        <span class="fonte">Fonte: ${vazio(b.link) ? esc(b.fonte) : `<a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.fonte)}</a>`}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`).join("")}</details>` : ""}
+      <p class="depois">Depois, responda acima para continuar.</p>
     </div>`;
   }
 
   const exConceito = (b) => Motor.exemploConceito(b, tipoAtual());   // exemplo do conceito pelo tipo de negócio
-  const conceitos = (txt) => (String(txt || "").match(/M5\.BT\d{2}/g) || []).map((c) => M.conceito[c]).filter(Boolean);
-
-  function blocoConceitos(lista) {
-    if (!lista.length) return "";
-    return `<details class="saiba"><summary>Entenda os termos</summary>${lista.map((b) => `
-      <div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(b.definicao)}</p>
-      ${vazio(exConceito(b)) ? "" : `<p class="ex">${esc(exConceito(b))}</p>`}
-      <span class="fonte">Fonte: ${vazio(b.link) ? esc(b.fonte) : `<a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.fonte)}</a>`}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`).join("")}
-    </details>`;
-  }
 
   /* ================= capa ================= */
   function telaCapa() {
@@ -288,24 +317,22 @@
     const p = el(`
       <div class="pag">
         ${topo("")}
-        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.mapa.objetivo, img: "hero-inicio.webp" })}
+        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: CAPA.frase, img: "hero-inicio.webp" })}
         <main class="corpo">
-          <div class="cartao">
-            <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
-          </div>
-          <div class="cartao">
-            <h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p>
-          </div>
-          <div class="cartao">
-            <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
-          </div>
+          <details class="como-funciona" id="como-funciona"><summary>Como funciona</summary>
+            <p>${esc(CAPA.como_funciona)}</p>
+            <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p></div>
+            <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
+            <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
+            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
+          </details>
+          <p class="tempo">Este módulo leva uns ${esc(CAPA.minutos)} minutos</p>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
             <button class="btn btn-linha lista-ico" id="minhas">Ver minhas análises</button>
-            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
           </div>
-          ${rodape()}
+          ${rodape(true)}
         </main>
       </div>`);
     ligar(p);
@@ -331,7 +358,7 @@
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-          ${rodape()}
+          ${rodape(true)}
         </main>
       </div>`);
     ligar(p);
@@ -363,38 +390,36 @@
     }
     const n = etapa(cod);
     const t = infoTipo();
-    const neg = (inicial || (t && cod === t.nome)) ? cartaoNegocio(cod) : "";
     const seloHerdado = inicial && resp && resp.herdado;
+    const comSelo = !!(veioM1 || nomeM1 || seloHerdado);
+    /* versão leve: o aviso "Veio do Módulo 1" entra no cartão "Seu negócio" quando ele aparece (um aviso só) */
+    const neg = (inicial || (t && cod === t.nome)) ? cartaoNegocio(cod, comSelo) : "";
 
     const p = el(`
       <div class="pag">
         ${topo(inicial ? "" : t ? tipoAtual() : "")}
-        ${inicial ? heroi({ titulo: "Entenda seus gastos. Defina melhor seu preço.", texto: "Organize os gastos do seu negócio e descubra quanto sobra em cada venda, um passo de cada vez.", img: "hero-inicio.webp", foco: "22% 30%", reinicio: true }) : heroiEtapa(n)}
+        ${faixaCurta()}
         ${inicial ? "" : etapas(n)}
         <main class="corpo">
           <div class="cartao-q pergunta">
             ${botaoVoltar()}
-            ${inicial ? `<div class="kicker-q">Vamos conhecer seu negócio</div>${neg}` : neg || contexto(cod)}
-            <h2 class="q">${esc(q.pergunta)}</h2>
-            ${inicial ? `<div class="sub-q">${curto(q.ajuda)}</div>` : ""}
-            ${obs(q.observacao)}
-            ${notas(q)}
+            ${inicial ? neg : neg || contexto(cod)}
+            <h2 class="q">${esc(textoQ(q))}</h2>
+            ${verDica(q, cartoesTipo ? `<p class="nota-info">Trabalha com mais de um tipo? Comece por um deles.</p>` : tipo === "taxas-formas" ? `<p class="nota-info">Prazo: em quantos dias o dinheiro cai na conta (deixe vazio se cai na hora). Com mais de uma forma, as partes das vendas precisam somar 100%.</p>` : "")}
             ${ajudaNS ? "" : blocoVideo(q.video)}
-            ${inicial ? "" : dica(q.ajuda, imgDica(n))}
-            ${veioM1 || nomeM1 || seloHerdado ? selo(1) : ""}
+            ${comSelo && !neg ? selo(1) : ""}
             <div class="entrada" id="ent"></div>
-            ${cartoesTipo ? `<p class="nota-info">Trabalha com mais de um tipo? Comece por um deles.</p>` : ""}
             ${alt.length ? `<div class="alt" id="alt"></div>` : ""}
-            ${ajudaNS ? `<div class="alt"><button class="btn-ajuda" id="naosei" aria-expanded="false"><span aria-hidden="true">?</span> Não sei</button></div>${painelNaoSei(ajudaNS)}` : ""}
+            ${ajudaNS ? `<div class="alt"><button class="btn-ajuda" id="naosei" aria-expanded="false" aria-controls="painel"><span aria-hidden="true">?</span> Não sei</button></div>${painelNaoSei(q, ajudaNS)}` : ""}
             <div class="erro" id="erro" hidden></div>
             <div id="retorno"></div>
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
-            ${blocoConceitos(conceitos(q.fonte))}
           </div>
           ${rodape()}
         </main>
       </div>`);
     ligar(p);
+    ligarCopiar(p);
 
     p.querySelector("#v").onclick = () => {
       S.hist.pop();
@@ -418,9 +443,9 @@
       ent.classList.add("opcoes");
       if (cartoesTipo) ent.classList.add("opcoes-tipo");
       q.opcoesLista.forEach((op) => {
-        const [tit, desc] = op.includes(":") ? [op.split(":")[0], op.slice(op.indexOf(":") + 1)] : [op, ""];
-        const info = cartoesTipo ? TIPOS[tit.trim()] : null;
-        const b = el(`<button class="opcao ${info ? "opcao-tipo" : ""} ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(tit.trim())}</b>${desc ? `<span class="op-desc">${esc(desc.trim())}</span>` : ""}${info ? `<small>${esc(info.ex)}</small>` : ""}</span>${info ? `<img src="assets/${info.card}" alt="">` : ""}</button>`);
+        const [tit, desc0] = op.includes(":") ? [op.split(":")[0], op.slice(op.indexOf(":") + 1)] : [op, ""];
+        const desc = cartoesTipo && DESC_TIPO[tit.trim()] || desc0;   // texto curto na tela; o valor salvo continua o da planilha
+        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(tit.trim())}</b>${desc ? `<span class="op-desc">${esc(desc.trim())}</span>` : ""}</span></button>`);
         b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
         ent.appendChild(b);
       });
@@ -514,6 +539,12 @@
 
   function montarEntrada(ent, q, tipo, val) {
     const itens = Motor.itensDe(M, q, S.R);
+    /* exemplo dentro do campo ("Ex.: …", vem dos dados); com vários campos, um exemplo por posição */
+    const ph = (i) => {
+      const x = q.placeholder;
+      const v = Array.isArray(x) ? x[Math.min(i || 0, x.length - 1)] : x;
+      return v ? ` placeholder="${esc(v)}"` : "";
+    };
     if (tipo === "multipla") {
       ent.classList.add("opcoes");
       const marcadas = new Set(Array.isArray(val) ? val : []);
@@ -536,13 +567,12 @@
       formas.forEach((f, i) => {
         const x = v.find((y) => y.forma === f) || {};
         ent.appendChild(el(`<fieldset class="forma" data-forma="${esc(f)}"><legend>${esc(f)}</legend>
-          <label class="item"><span>Taxa</span><div class="linha"><input class="campo taxa" inputmode="decimal" value="${esc(x.taxa ?? "")}"><span class="pre">%</span></div></label>
-          <label class="item"><span>Prazo para receber (dias, se houver)</span><div class="linha"><input class="campo prazo" inputmode="numeric" value="${esc(x.prazo ?? "")}"><span class="pre">dias</span></div></label>
-          ${varias ? `<label class="item"><span>Parte das suas vendas feita assim</span><div class="linha"><input class="campo parte" inputmode="decimal" value="${esc(x.parte ?? "")}"><span class="pre">%</span></div></label>` : ""}
+          <label class="item"><span>Taxa</span><div class="linha"><input class="campo taxa" inputmode="decimal"${ph(0)} value="${esc(x.taxa ?? "")}"><span class="pre">%</span></div></label>
+          <label class="item"><span>Prazo</span><div class="linha"><input class="campo prazo" inputmode="numeric"${ph(1)} value="${esc(x.prazo ?? "")}"><span class="pre">dias</span></div></label>
+          ${varias ? `<label class="item"><span>Parte das vendas</span><div class="linha"><input class="campo parte" inputmode="decimal"${ph(2)} value="${esc(x.parte ?? "")}"><span class="pre">%</span></div></label>` : ""}
         </fieldset>`));
       });
-      if (varias) ent.appendChild(el(`<p class="nota">A soma das partes das vendas precisa dar 100%. Se não houver taxa numa forma (ex.: dinheiro), coloque 0.</p>`));
-      else ent.appendChild(el(`<p class="nota">Se não houver taxa, coloque 0.</p>`));
+      ent.appendChild(el(`<p class="nota">Sem taxa? Coloque 0.</p>`));
       return () => [...ent.querySelectorAll(".forma")].map((fs) => {
         const o = { forma: fs.dataset.forma, taxa: fs.querySelector(".taxa").value, prazo: fs.querySelector(".prazo").value };
         if (varias) o.parte = fs.querySelector(".parte").value;
@@ -550,19 +580,19 @@
       });
     }
     if (tipo === "texto") {
-      ent.appendChild(el(`<input class="campo" type="text" data-falar value="${esc(val || "")}">`));
+      ent.appendChild(el(`<input class="campo" type="text" data-falar aria-label="${esc(textoQ(q))}"${ph(0)} value="${esc(val || "")}">`));
       return () => ent.querySelector("input").value;
     }
     if (tipo === "numero" || tipo === "percentual") {
       const suf = tipo === "percentual" ? "%" : "";
       const pre = /r\$/i.test(q.tipo) ? "R$" : "";
-      ent.appendChild(el(`<div class="linha">${pre ? `<span class="pre">${pre}</span>` : ""}<input class="campo" inputmode="decimal" value="${esc(val ?? "")}">${suf ? `<span class="pre">${suf}</span>` : ""}</div>`));
+      ent.appendChild(el(`<div class="linha">${pre ? `<span class="pre">${pre}</span>` : ""}<input class="campo" inputmode="decimal" aria-label="${esc(textoQ(q))}"${ph(0)} value="${esc(val ?? "")}">${suf ? `<span class="pre">${suf}</span>` : ""}</div>`));
       return () => ent.querySelector("input").value;
     }
     if (tipo === "lista") {
       const lista = el(`<div class="lista"></div>`);
       const add = (v) => {
-        const l = el(`<div class="linha"><input class="campo" value="${esc(v || "")}"><button class="x" aria-label="remover">×</button></div>`);
+        const l = el(`<div class="linha"><input class="campo" aria-label="Item"${ph(0)} value="${esc(v || "")}"><button class="x" aria-label="remover">×</button></div>`);
         l.querySelector(".x").onclick = () => l.remove();
         lista.appendChild(l);
       };
@@ -574,27 +604,27 @@
       return () => [...lista.querySelectorAll("input")].map((i) => i.value).filter((s) => s.trim());
     }
     if (tipo === "por-item-valor") {
-      itens.forEach((nome, i) => ent.appendChild(el(`<label class="item"><span>${esc(nome)}</span><div class="linha"><span class="pre">R$</span><input class="campo" inputmode="decimal" value="${esc(val ? val[i] ?? "" : "")}"></div></label>`)));
+      itens.forEach((nome, i) => ent.appendChild(el(`<label class="item"><span>${esc(nome)}</span><div class="linha"><span class="pre">R$</span><input class="campo" inputmode="decimal"${ph(0)} value="${esc(val ? val[i] ?? "" : "")}"></div></label>`)));
       return () => [...ent.querySelectorAll("input")].map((i) => i.value);
     }
     if (tipo === "por-item-unidade") {
       itens.forEach((nome, i) => {
         const v = val && val[i] || {};
-        ent.appendChild(el(`<label class="item"><span>${esc(nome)}</span><div class="linha"><input class="campo" inputmode="decimal" value="${esc(v.q ?? "")}">${selUnid(v.u || "unidade")}</div></label>`));
+        ent.appendChild(el(`<label class="item"><span>${esc(nome)}</span><div class="linha"><input class="campo" inputmode="decimal"${ph(0)} value="${esc(v.q ?? "")}">${selUnid(v.u || "unidade")}</div></label>`));
       });
       return () => [...ent.querySelectorAll(".item")].map((it) => ({ q: it.querySelector("input").value, u: it.querySelector("select").value }));
     }
     if (tipo === "pacote") {
       const v = val || {};
-      ent.appendChild(el(`<div><label class="item"><span>Preço do pacote</span><div class="linha"><span class="pre">R$</span><input class="campo" id="pp" inputmode="decimal" value="${esc(v.preco ?? "")}"></div></label>
-        <label class="item"><span>Quantas vêm no pacote</span><div class="linha"><input class="campo" id="pq" inputmode="numeric" value="${esc(v.qtd ?? "")}"></div></label></div>`));
+      ent.appendChild(el(`<div><label class="item"><span>Preço do pacote</span><div class="linha"><span class="pre">R$</span><input class="campo" id="pp" inputmode="decimal"${ph(0)} value="${esc(v.preco ?? "")}"></div></label>
+        <label class="item"><span>Quantas vêm no pacote</span><div class="linha"><input class="campo" id="pq" inputmode="numeric"${ph(1)} value="${esc(v.qtd ?? "")}"></div></label></div>`));
       return () => ({ preco: ent.querySelector("#pp").value, qtd: ent.querySelector("#pq").value });
     }
     if (tipo === "lista-valor") {
       const lista = el(`<div class="lista"></div>`);
       const add = (x) => {
         x = x || {};
-        const l = el(`<div class="linha"><input class="campo nome" placeholder="conta" value="${esc(x.nome || "")}"><span class="pre">R$</span><input class="campo valor" inputmode="decimal" value="${esc(x.v || "")}"><button class="x" aria-label="remover">×</button></div>`);
+        const l = el(`<div class="linha"><input class="campo nome" aria-label="Conta"${ph(0) || ' placeholder="conta"'} value="${esc(x.nome || "")}"><span class="pre">R$</span><input class="campo valor" inputmode="decimal" aria-label="Valor por mês"${ph(1)} value="${esc(x.v || "")}"><button class="x" aria-label="remover">×</button></div>`);
         l.querySelector(".x").onclick = () => l.remove();
         lista.appendChild(l);
       };
@@ -608,44 +638,56 @@
     }
     if (tipo === "tempo") {
       const v = val || {};
-      ent.appendChild(el(`<div class="linha"><input class="campo" id="th" inputmode="numeric" value="${esc(v.h ?? "")}"><span class="pre">h</span><input class="campo" id="tm" inputmode="numeric" value="${esc(v.m ?? "")}"><span class="pre">min</span></div>`));
+      ent.appendChild(el(`<div class="linha"><input class="campo" id="th" inputmode="numeric" aria-label="Horas"${ph(0)} value="${esc(v.h ?? "")}"><span class="pre">h</span><input class="campo" id="tm" inputmode="numeric" aria-label="Minutos"${ph(1)} value="${esc(v.m ?? "")}"><span class="pre">min</span></div>`));
       return () => ({ h: ent.querySelector("#th").value, m: ent.querySelector("#tm").value });
     }
     return () => null;
   }
 
   /* ================= análise do preço (depois da P36) ================= */
-  function blocoAnalise(a, comTitulo) {
+  function blocoAnalise(a, comTitulo, semAvisos) {
     if (!a || a.pendente) return "";
-    const avisos = a.mensagens.length ? `<div class="bloco b-alerta"><b>Atenção</b>${a.mensagens.map((m) => `<p>${esc(m)}</p>`).join("")}</div>` : "";
+    const avisos = a.mensagens.length && !semAvisos ? `<div class="bloco b-alerta"><b>Atenção</b>${a.mensagens.map((m) => `<p>${esc(m)}</p>`).join("")}</div>` : "";
     if (a.semCusto) return `<div class="analise">${avisos}</div>`;
     const bt = (n) => M.conceito["M5.BT" + n] || {};
     const mini = (t, v) => `<div class="mini"><span>${v}</span><small>${esc(t)}</small></div>`;
-    return `<div class="analise">
+    /* versão leve: no passo do preço as contas ("Como calculamos") ficam recolhidas; no resultado já estão em "Ver as contas" */
+    const contas = [];
+    const conta = (html) => { if (comTitulo) return html; contas.push(html); return ""; };
+    const corpo = `
       ${comTitulo && a.modo === "sugerido" ? `<div class="secao-titulo">Preço de venda (demonstração)</div>` : ""}
       ${a.abaixo && !comTitulo ? blocoAbaixo(a.abaixo) : ""}
-      ${a.muitoAcima ? `<div class="bloco b-alerta aviso-forte" id="aviso-acrescimo"><b>Confira os valores</b><p>${esc(a.muitoAcima)}</p></div>` : ""}
+      ${a.muitoAcima && !semAvisos ? avisoAcrescimo(a) : ""}
       ${a.modo === "sugerido" ? `
         <div class="res-num"><div class="lbl">Preço possível</div><div class="val" id="preco-possivel">${brl(a.preco)}</div>
           <div class="sub">${esc(bt("03").conceito || "Custo por unidade")} ${brl(a.custo)} + ${pct(a.pct)} sobre o custo</div></div>
-        ${comoCalc(`${brl(a.custo)} de custo + ${pct(a.pct)} de ${brl(a.custo)} (${brl(a.preco - a.custo)}) = ${brl(a.preco)}.`, "como-preco")}
+        ${conta(comoCalc(`${brl(a.custo)} de custo + ${pct(a.pct)} de ${brl(a.custo)} (${brl(a.preco - a.custo)}) = ${brl(a.preco)}.`, "como-preco"))}
         <p class="nota">Este preço é só uma demonstração para ajudar você a pensar. A decisão do preço é sua.</p>` : `
         <div class="res-num"><div class="lbl">Acréscimo sobre o custo</div><div class="val" id="lucro-pct">${pct(a.pct)}</div>
           <div class="sub">Preço ${brl(a.preco)} · ${esc(bt("03").conceito || "Custo por unidade")} ${brl(a.custo)}</div></div>
-        ${comoCalc(`(${brl(a.preco)} de preço − ${brl(a.custo)} de custo) ÷ ${brl(a.custo)} de custo = ${pct(a.pct)}.`, "como-acrescimo")}
-        <p class="nota">Acréscimo sobre o custo = (preço − custo de uma unidade) ÷ custo de uma unidade.</p>`}
+        ${conta(comoCalc(`(${brl(a.preco)} de preço − ${brl(a.custo)} de custo) ÷ ${brl(a.custo)} de custo = ${pct(a.pct)}.`, "como-acrescimo"))}
+        ${conta(`<p class="nota">Acréscimo sobre o custo = (preço − custo de uma unidade) ÷ custo de uma unidade.</p>`)}`}
       ${comTitulo ? "" : `<div class="mini-cards" id="sobra-margem">
         ${mini("Sobra em cada venda" + (a.taxa ? " (depois das taxas)" : ""), brl(a.sobra))}
         ${a.margem !== null ? mini("Margem sobre o preço", pct(a.margem)) : ""}
       </div>
-      ${comoSobra(a.preco, a.custo, a.taxa, a.sobra, a.margem, "como-sobra")}`}
+      ${conta(comoSobra(a.preco, a.custo, a.taxa, a.sobra, a.margem, "como-sobra"))}`}
       ${a.precoMinimo !== null ? `<p class="nota" id="preco-minimo">Para cobrir o custo, as taxas e a parte dos gastos do mês em cada venda, o preço precisa ser de pelo menos <b>${brl(a.precoMinimo)}</b>.</p>
-        ${comoCalc(`${brl(a.custo)} de custo + ${brl(a.precoMinimo * (1 - a.taxaPct / 100) - a.custo)} dos gastos do mês em cada venda${a.taxaPct ? `, divididos por ${pct(100 - a.taxaPct)} (o que fica depois da taxa de ${pct(a.taxaPct)})` : ""} = ${brl(a.precoMinimo)}.`, "como-minimo")}` : ""}
+        ${conta(comoCalc(`${brl(a.custo)} de custo + ${brl(a.precoMinimo * (1 - a.taxaPct / 100) - a.custo)} dos gastos do mês em cada venda${a.taxaPct ? `, divididos por ${pct(100 - a.taxaPct)} (o que fica depois da taxa de ${pct(a.taxaPct)})` : ""} = ${brl(a.precoMinimo)}.`, "como-minimo"))}` : ""}
       ${a.faixa ? `<p class="nota" id="faixa-m3">Faixa de preço que você informou no Módulo 3: ${brl(a.faixa.min)}${a.faixa.max !== a.faixa.min ? ` a ${brl(a.faixa.max)}` : ""}.</p>` : ""}
-      ${avisos}
+      ${avisos}`;
+    return `<div class="analise">${corpo}
+      ${contas.length ? `<details class="saiba como-calculamos" id="como-calculamos"><summary>Ver como calculamos</summary>${contas.join("")}</details>` : ""}
     </div>`;
   }
 
+
+  const avisoAcrescimo = (a) => `<div class="bloco b-alerta aviso-forte" id="aviso-acrescimo"><b>Confira os valores</b><p>${esc(a.muitoAcima)}</p></div>`;
+  /* avisos da análise do preço, para o topo do resultado */
+  function avisosAnalise(a) {
+    if (!a || a.pendente) return "";
+    return (a.muitoAcima ? avisoAcrescimo(a) : "") + (a.mensagens.length ? `<div class="bloco b-alerta"><b>Atenção</b>${a.mensagens.map((m) => `<p>${esc(m)}</p>`).join("")}</div>` : "");
+  }
   /* preço informado abaixo do custo de uma unidade: aviso que não trava, com atalho para revisar o preço */
   const blocoAbaixo = (msg) => `<div class="bloco b-alerta aviso-forte" id="aviso-abaixo-custo"><b>Atenção</b><p>${esc(msg)}</p>
     <button class="btn btn-claro btn-peq revisar" data-alterar="M5.P36">Revisar o preço</button></div>`;
@@ -658,8 +700,9 @@
   /* poucas vendas: explicação única (só no passo do preço), com a parcela dos gastos do mês em cada venda */
   function blocoPoucasVendas(c) {
     if (!(c.mensal > 0)) return "";
-    return `<div class="nota-orienta" id="poucas-vendas"><b>Gastos do mês em cada venda</b><p>${esc(Motor.POUCAS_VENDAS)}</p>
-      ${c.parcelaMensal !== null && c.mensal > 0 ? `<p>Pelo que você informou: ${brl(c.mensal)} de gastos do mês ÷ ${String(c.qtd).replace(".", ",")} vendas = <b>${brl(c.parcelaMensal)}</b> por venda.</p>` : ""}</div>`;
+    const parcela = c.parcelaMensal !== null && c.mensal > 0;
+    return `<details class="dica-toggle" id="poucas-vendas"><summary>Gastos do mês em cada venda${parcela ? `: ${brl(c.parcelaMensal)}` : ""}</summary><div class="dica-corpo"><p>${esc(Motor.POUCAS_VENDAS)}</p>
+      ${parcela ? `<p>Pelo que você informou: ${brl(c.mensal)} de gastos do mês ÷ ${String(c.qtd).replace(".", ",")} vendas = <b>${brl(c.parcelaMensal)}</b> por venda.</p>` : ""}</div></details>`;
   }
 
   function telaPreco() {
@@ -669,7 +712,7 @@
     const p = el(`
       <div class="pag">
         ${topo(tipoAtual() || "")}
-        ${heroiEtapa(3)}
+        ${faixaCurta()}
         ${etapas(3)}
         <main class="corpo">
           <div class="cartao-q pergunta">
@@ -677,8 +720,8 @@
             ${contexto(Motor.PRECO)}
             <h2 class="q">${sugerido ? "Quanto você quer acrescentar sobre o custo? (%)" : "Quanto você ganha em cada venda"}</h2>
             ${blocoPoucasVendas(cBase)}
-            ${sugerido && a && !a.semCusto ? `<p class="ajuda">Vamos somar essa porcentagem ao que você gasta ${tipoAtual() === "Serviço" ? "em cada atendimento" : tipoAtual() === "Mercadoria" ? "para comprar cada unidade" : "para fazer cada unidade"} e mostrar um preço possível.</p>
-              <div class="entrada" id="ent"><div class="linha"><input class="campo" id="lucro" inputmode="decimal" value="${esc(S.lucro ?? "")}"><span class="pre">%</span></div></div>` : ""}
+            ${sugerido && a && !a.semCusto ? `<details class="dica-toggle" id="dica"><summary>Ver dica</summary><div class="dica-corpo"><p>Vamos somar essa porcentagem ao que você gasta ${tipoAtual() === "Serviço" ? "em cada atendimento" : tipoAtual() === "Mercadoria" ? "para comprar cada unidade" : "para fazer cada unidade"} e mostrar um preço possível. Ex.: 50% sobre um custo de R$ 10 dá R$ 15.</p></div></details>
+              <div class="entrada" id="ent"><div class="linha"><input class="campo" id="lucro" inputmode="decimal" aria-label="Porcentagem sobre o custo" placeholder="Ex.: 50" value="${esc(S.lucro ?? "")}"><span class="pre">%</span></div></div>` : ""}
             <div class="erro" id="erro" hidden></div>
             <div id="analise">${blocoAnalise(a, false)}</div>
             ${blocoMargem()}
@@ -761,7 +804,7 @@
               <div class="ai-acoes"><button class="btn btn-primario btn-peq" data-abrir="${esc(x.id)}">Abrir</button><button class="btn btn-linha btn-peq" data-apagar="${esc(x.id)}">Apagar</button></div>
             </li>`).join("")}</ul>`
           : `<div class="cartao vazio-lista"><h3>Nenhuma análise ainda</h3><p>Quando você chegar ao resultado de um produto, serviço ou mercadoria, a análise aparece aqui.</p></div>`}
-          ${rodape()}
+          ${rodape(true)}
         </main>
       </div>`);
     ligar(p);
@@ -931,6 +974,16 @@
   }
 
   /* ================= resultado ================= */
+  /* "Sua tarefa para fazer já": um passo concreto, escolhido pelo que o resultado mostrou */
+  function tarefaResultado(c, a, abaixo, lacunas) {
+    const cada = c.tipo === "Serviço" ? "cada atendimento" : "cada venda";
+    if (a && a.semCusto) return "Volte às perguntas dos materiais e confira os preços e as quantidades: sem eles não dá para saber quanto custa " + cada + ".";
+    if (abaixo || c.semSobra) return `Revise o preço: hoje ${cada} não cobre o custo${c.custoUnidade > 0 ? ` de ${brl(c.custoUnidade)}` : ""}. Pesquise o preço de 3 concorrentes e teste um valor novo em “Simular outro preço”.`;
+    if (lacunas.length) return `Descubra primeiro: ${lacunas[0].texto.charAt(0).toLowerCase() + lacunas[0].texto.slice(1)}. Veja “Como descobrir” abaixo e depois atualize em “Ajustar valores e recalcular”.`;
+    if (c.simulacao) return "Mostre o que você vende e o preço para 3 pessoas que comprariam e anote quanto elas pagariam. Depois, ajuste os valores aqui.";
+    if (c.pe !== null && c.mensal > 0) return `Anote num papel: você precisa de ${c.pe} ${c.tipo === "Serviço" ? "atendimentos" : "vendas"} por mês para cobrir os gastos. No fim do mês, compare com o que vendeu de verdade.`;
+    return `Anote o custo de ${cada} (${brl(c.custoUnidade)}) e confira, na próxima compra, se os preços dos materiais mudaram.`;
+  }
   function telaResultado() {
     const aPreco = Motor.analisarPreco(M, S.R, S.lucro, faixaM3());
     const okSug = aPreco && aPreco.modo === "sugerido" && !aPreco.semCusto && !aPreco.pendente;
@@ -943,7 +996,7 @@
     Object.keys(S.R).forEach((cod) => {
       if (!S.hist.includes(cod) || !M.porCodigo[cod]) return;
       const r = Motor.regra(M, M.porCodigo[cod], S.R[cod]);
-      if (r && !vazio(r.lacuna) && !lacunas.includes(r.lacuna)) lacunas.push(r.lacuna);
+      if (r && !vazio(r.lacuna) && !lacunas.some((l) => l.texto === r.lacuna)) lacunas.push({ texto: r.lacuna, cod });
     });
     const tempoAlto = Motor.tempoExcede(c, (doM1("M1.P05") || {}).opcao);   // horas por dia do Módulo 1
     const investe = Motor.avisoInvestimento(M, S.R, doM1("M1.P07"));        // compra x quanto pode usar (Módulo 1)
@@ -953,34 +1006,39 @@
     const abaixo = c.precoInformado !== null ? Motor.abaixoCusto(c.precoInformado, c.custoUnidade) : null;
     const aj = blocoAjuste();
 
+    const tarefa = tarefaResultado(c, aPreco, abaixo, lacunas);
     const p = el(`
       <div class="pag">
         ${topo(c.tipo || "")}
-        ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Uma análise concluída.", texto: "Você organizou os gastos e entendeu o preço deste item.", img: "hero-inicio.webp", foco: "22% 30%" })}
+        ${faixaCurta({ kicker: "Resultado", kickerClasse: "passo" })}
         ${etapas(3, true)}
         <main class="corpo">
           ${botaoVoltar()}
           <section class="concluido">
-            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a análise deste item!</h2><p>Agora você pode analisar outro produto, serviço ou mercadoria.</p></div></div>
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a análise deste item!</h2></div></div>
             <div class="item-salvo">
-              ${t ? `<img src="assets/${t.card}" alt="">` : ""}
               <div class="is-txt"><b>${esc(c.nome || "Seu negócio")}</b>${c.tipo ? `<span class="chip">${esc(c.tipo)}</span>` : ""}${c.tipo && herdado("M5.P01") ? ` ${seloMini()} <button class="alterar" data-trocar="M5.P01">Trocar</button>` : ""}</div>
-              <div class="is-rodape"><span class="salvo">Análise salva</span><a href="#numeros" class="ver" id="ver">Ver análise ↓</a></div>
+              <div class="is-rodape"><span class="salvo">Análise salva</span><a href="#contas" class="ver" id="ver">Ver as contas ↓</a></div>
             </div>
-            <div class="outra">
-              <h3>Seu negócio tem mais de uma oferta?</h3>
-              <p>Recomece as perguntas para outro item. Suas análises anteriores ficam salvas.</p>
-              <button class="btn btn-primario seta" id="novo">${ROTULO_REINICIO}</button>
-              <small>Você poderá escolher Produto, Serviço ou Mercadoria novamente.</small>
-            </div>
-            <button class="btn btn-linha lista-ico" id="minhas">Ver minhas análises</button>
           </section>
 
           <div id="numeros" class="numeros">
           <section class="entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>
             ${Motor.entendemos(S.R, c, ideiaM1()).map((f) => `<p>${esc(f)}</p>`).join("")}
           </section>
+          <div class="tarefa" id="tarefa"><b>Sua tarefa para fazer já</b><p>${esc(tarefa)}</p></div>
           ${c.simulacao ? `<div class="bloco b-simulacao" id="simulacao"><b>Simulação</b>${esc(Motor.MSG_SIMULACAO)}</div>` : ""}
+          ${abaixo ? blocoAbaixo(abaixo) : ""}
+          ${avisosAnalise(aPreco)}
+          ${c.semSobra ? `<div class="bloco b-alerta" id="sem-sobra"><b>Atenção</b>${esc(Motor.MSG_SEM_SOBRA)}</div>` : ""}
+          ${c.fatAlto ? `<div class="bloco b-alerta aviso-forte" id="fat-alto"><b>Confira os valores</b><p>${esc(Motor.MSG_FAT_ALTO)}</p></div>` : ""}
+          ${investe ? `<div class="bloco b-alerta" id="aviso-investimento"><b>Atenção</b><p>${esc(investe.texto)}</p>${seloMini()}</div>` : ""}
+          ${tempoAlto ? `<div class="bloco b-alerta" id="tempo-alto"><b>Atenção</b>${esc(Motor.MSG_TEMPO)}
+            <p>${String(Math.round(tempoAlto.horas * 10) / 10).replace(".", ",")} horas por mês para ${esc(String(c.qtd))} atendimentos; no Módulo 1 você disse ter até ${tempoAlto.limite} horas por mês.</p>
+            <button class="btn btn-claro btn-peq" data-alterar="M5.P37">Conferir a quantidade</button></div>` : ""}
+          ${lacunas.length ? `<div class="bloco b-lacuna" id="lacunas"><b>O que ainda falta saber</b><ul>${lacunas.map((l) => { const q = M.porCodigo[l.cod]; return `<li><span class="falta-txt">${esc(l.texto)}</span>${q && q.comoDescobrir ? `<details class="ver-mais como-mini"><summary>Como descobrir</summary>${caixaComo(q)}</details>` : ""}</li>`; }).join("")}</ul></div>` : ""}
+
+          <details class="resultado-mais" id="contas"><summary>Ver as contas</summary>
           ${temCusto && regraFinal ? `
             <div class="res-num">
               <div class="lbl">${esc(bt("03").conceito || "")}</div>
@@ -997,7 +1055,6 @@
 
           ${c.mc !== null ? `
             <div class="secao-titulo">Preço e margem</div>
-            ${abaixo ? blocoAbaixo(abaixo) : ""}
             <div class="mini-cards">
               ${card(c.precoInformado !== null ? bt("08").conceito : "Preço possível (simulação)", brl(c.preco))}
               ${card(bt("09").conceito, brl(c.mc))}
@@ -1006,7 +1063,7 @@
             ${comoSobra(c.preco, c.custoUnidade, c.taxa, c.mc, c.mcPct, "como-margem")}
             ${c.mc <= 0 ? `<div class="bloco b-alerta"><b>Atenção</b>${esc(bt("09").definicao)}</div>` : ""}
           ` : ""}
-          ${blocoAnalise(aPreco, true)}
+          ${blocoAnalise(aPreco, true, true)}
           ${blocoMargem()}
           ${c.taxasFormas.length ? `
             <div class="secao-titulo">Formas de pagamento e taxas</div>
@@ -1020,7 +1077,6 @@
             ${c.trabalho ? `<tr><td>${esc(bt("07").conceito)}</td><td>${brl(c.trabalho)}</td></tr>` : ""}
             <tr class="total"><td>Total</td><td>${brl(c.mensal)}</td></tr>
           </table>
-          ${aj.html}
 
           ${c.pe !== null && c.mensal > 0 ? `
             <div class="res-num coral">
@@ -1031,7 +1087,6 @@
             <p class="r-texto">${esc(bt("13").definicao)}</p>
             ${comoCalc(`${brl(c.mensal)} de gastos do mês ÷ ${brl(c.mc)} que sobram em cada venda = ${num2(c.mensal / c.mc)}. Arredondamos para cima, porque não dá para vender só uma parte: <b>${c.pe}</b> ${c.tipo === "Serviço" ? "atendimentos" : "vendas"}.`, "pe-conta")}` : ""}
           ${c.peFalta ? `<div class="secao-titulo">${esc(bt("13").conceito || "Ponto de equilíbrio")}</div><p class="nota" id="pe-falta">${esc(c.peFalta)}</p>` : ""}
-          ${c.semSobra ? `<div class="bloco b-alerta" id="sem-sobra"><b>Atenção</b>${esc(Motor.MSG_SEM_SOBRA)}</div>` : ""}
 
           ${c.fat !== null ? `
             <div class="secao-titulo">Um mês normal, pelo que você informou</div>
@@ -1041,41 +1096,42 @@
             </div>
             ${comoCalc(`${brl(c.preco)} × ${qtdTxt(c.qtd)} vendas = ${brl(c.fat)}; ${brl(c.fat)} − ${brl((c.custoUnidade + c.taxa) * c.qtd)} de custo${c.taxa ? " e taxas" : ""} dessas vendas − ${brl(c.mensal)} de gastos do mês = ${brl(c.resultado)}.`, "como-resultado")}
             <p class="r-texto">${esc(bt("12").definicao)}</p>
-            <p class="nota" id="descontados">${esc(Motor.MSG_DESCONTADOS)}</p>
-            ${c.fatAlto ? `<div class="bloco b-alerta aviso-forte" id="fat-alto"><b>Confira os valores</b><p>${esc(Motor.MSG_FAT_ALTO)}</p></div>` : ""}` : ""}
-          ${investe ? `<div class="bloco b-alerta" id="aviso-investimento"><b>Atenção</b><p>${esc(investe.texto)}</p>${seloMini()}</div>` : ""}
-          ${tempoAlto ? `<div class="bloco b-alerta" id="tempo-alto"><b>Atenção</b>${esc(Motor.MSG_TEMPO)}
-            <p>${String(Math.round(tempoAlto.horas * 10) / 10).replace(".", ",")} horas por mês para ${esc(String(c.qtd))} atendimentos; no Módulo 1 você disse ter até ${tempoAlto.limite} horas por mês.</p>
-            <button class="btn btn-claro btn-peq" data-alterar="M5.P37">Conferir a quantidade</button></div>` : ""}
+            <p class="nota" id="descontados">${esc(Motor.MSG_DESCONTADOS)}</p>` : ""}
+          ${c.tempo ? `<div class="mini-cards">${card(M.porCodigo["M5.P23"].resposta, c.tempo >= 60 ? `${Math.floor(c.tempo / 60)}h${String(c.tempo % 60).padStart(2, "0")}` : `${c.tempo} min`)}</div>` : ""}
+          </details>
+
+          ${aj.html}
           ${c.custoUnidade > 0 || c.linhas.length ? `
-            <div class="secao-titulo">Simular outro preço e outra quantidade</div>
+            <details class="resultado-mais" id="simula-det"><summary>Simular outro preço e outra quantidade</summary>
             <div class="simula" id="simula">
               <label class="item"><span>Preço</span><div class="linha"><span class="pre">R$</span><input class="campo" id="sim-preco" inputmode="decimal" value="${c.preco !== null ? esc(String(Math.round(c.preco * 100) / 100).replace(".", ",")) : ""}"></div></label>
               <label class="item"><span>Vendas no mês</span><div class="linha"><input class="campo" id="sim-qtd" inputmode="decimal" value="${c.qtd !== null ? esc(String(c.qtd)) : ""}"></div></label>
               <button class="btn btn-claro" id="sim-ok">Simular</button>
               <div id="sim-res" aria-live="polite"></div>
               <p class="nota">Os números da simulação são estimativas. A decisão final é sua.</p>
-            </div>` : ""}
+            </div></details>` : ""}
 
-          ${c.tempo ? `<div class="mini-cards">${card(M.porCodigo["M5.P23"].resposta, c.tempo >= 60 ? `${Math.floor(c.tempo / 60)}h${String(c.tempo % 60).padStart(2, "0")}` : `${c.tempo} min`)}</div>` : ""}
-
-          ${lacunas.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lacunas.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
-
-          <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-          <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
+          <details class="resultado-mais" id="mais-detalhes"><summary>Mais detalhes</summary>
+            <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+            <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
+          </details>
           </div>
 
+          <button class="btn btn-linha lista-ico" id="minhas">Ver minhas análises</button>
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
           </div>
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m06/index.html">Ir para o Módulo 6</a></div>
-          ${rodape()}
+          ${rodape(true)}
         </main>
       </div>`);
+
     ligar(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); abrir(a); };
-    p.querySelector("#imp").onclick = () => window.print();
+    /* imprimir: abre os detalhes recolhidos (o ajuste continua fora da impressão) */
+    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details").forEach((d) => { d.open = true; }); window.print(); };
+    ligarCopiar(p);
     const sim = p.querySelector("#sim-ok");
     if (sim) sim.onclick = () => {
       const r = Motor.simular(M, S.R, p.querySelector("#sim-preco").value, p.querySelector("#sim-qtd").value);
@@ -1088,14 +1144,14 @@
     };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, pularHerdadas(PRIMEIRA)); };
     p.querySelector("#minhas").onclick = () => ir(telaAnalises, telaResultado);
-    p.querySelector("#ver").onclick = (e) => { e.preventDefault(); p.querySelector("#numeros").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    p.querySelector("#ver").onclick = (e) => { e.preventDefault(); const d = p.querySelector("#contas"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); };
     if (aj.specs.length) ligarAjuste(p, aj.specs);
     return p;
   }
 
-  function rodape() {
+  function rodape(credito) {
     return `<footer class="rodape">
-      <p class="credito">Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)}</p>
+      ${credito ? `<p class="credito">Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)}</p>` : ""}
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

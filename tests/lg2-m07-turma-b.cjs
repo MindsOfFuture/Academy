@@ -3,7 +3,8 @@
    Opcional: SHOTS=<pasta> grava prints de celular (390x844).
    1) confere as contas com os casos da aba "Cálculos a conferir" do grupo;
    2) alcança cada linha da aba "Caminhos por resposta" e confere o texto exibido;
-   3) percorre o módulo do começo ao resumo, com dados herdados dos Módulos 1, 4 e 5, recarrega e retoma.
+   3) percorre o módulo do começo ao resumo, com dados herdados dos Módulos 1, 4 e 5, recarrega e retoma;
+   6) versão leve: capa curta, "Ver dica" fechada, até 60 palavras por pergunta e ajuda de verdade no "Não sei".
    Sai com código 1 se algo falhar. */
 const http = require('node:http');
 const fs = require('node:fs');
@@ -119,8 +120,10 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   /* ---------- capa = PDF de abertura ---------- */
   const capa = nrm(await page.innerText('body'));
   const A = D.abertura;
-  const faltaCapa = [A.titulo, A.objetivo, ...A.para_voce, ...A.no_final, ...A.nao_faz].filter((t) => !capa.includes(nrm(t)));
-  check('Capa mostra todo o texto do PDF de abertura', !faltaCapa.length, faltaCapa);
+  check('Capa leve: título, uma frase, tempo estimado e Começar', capa.includes(nrm(A.titulo)) && capa.includes(nrm(A.frase)) && capa.includes(`Este módulo leva uns ${A.minutos} minutos`) && (await page.innerText('#ir')).trim() === 'Começar', capa);
+  const comoF = await page.evaluate(() => { const d = document.querySelector('details.como-funciona'); return d ? { aberto: d.open, resumo: d.querySelector('summary').textContent.trim(), txt: d.textContent.replace(/\s+/g, ' ') } : null; });
+  const faltaCapa = [A.objetivo, ...A.para_voce, ...A.no_final, ...A.nao_faz].filter((t) => !comoF || !comoF.txt.includes(nrm(t)));
+  check('Capa: o texto do PDF de abertura fica em "Como funciona", fechado', comoF && !comoF.aberto && comoF.resumo === 'Como funciona' && !faltaCapa.length && !capa.includes(nrm(A.para_voce[0])), [comoF && comoF.aberto, faltaCapa]);
   check('Nenhum "rafael" nos dados públicos', !/rafael/i.test(fs.readFileSync(path.join(DIR, 'dados/modulo7.js'), 'utf8')));
   await foto('m07_01_capa');
 
@@ -130,6 +133,8 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     await page.goto(URL);
     await page.click('#ir');
   };
+  /* resultado: o retrato completo fica num painel fechado; abre como a pessoa faria (toque no resumo) */
+  const abrirRetrato = async () => { if (!(await page.evaluate(() => document.querySelector('#retrato').open))) await page.click('#retrato > summary'); };
   const tocar = (txt) => page.evaluate((t) => {
     const b = [...document.querySelectorAll('.opcao')].find((x) => x.textContent.trim() === t);
     if (!b) throw new Error('opção inexistente: ' + t + ' :: ' + [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()).join('|'));
@@ -300,7 +305,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Primeira pergunta = mapa do processo com o modelo de fabricação', /Este é o caminho de Pão de fermentação natural/.test(nrm(await page.innerText('#pergunta'))) && (await page.locator('.etapa-ed').count()) === 8);
   await foto('m07_03_mapa');
   await ok(); await ok();
-  check('M7-02: unidades por vez vêm do rendimento da receita (Módulo 5), com selo', (await page.inputValue('#un')) === '10' && /Veio do Módulo 5/.test(await page.innerText('#ent')) && /Confira e ajuste se quiser/.test(await page.innerText('#ent')));
+  check('M7-02: unidades por vez vêm do rendimento da receita (Módulo 5), com selo', (await page.inputValue('#un')) === '10' && /Veio do Módulo 5/.test(await page.innerText('#ent')) && /Confira ou ajuste/.test(await page.innerText('#ent')));
   await foto('m07_04_tempo');
   await preenche('#un', '1');
   await preenche('#th', '0'); await preenche('#tm', '10'); await ok();
@@ -313,7 +318,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('M7-05a mostra a conta do forno: 36 por semana', /cabem cerca de 36 por semana/.test(await caixa()), await caixa());
   await foto('m07_05_equipamento');
   await ok();
-  check('Fase "Fornecedores e estoque" aparece para fabricação', /Fornecedores e estoque/.test(nrm(await page.innerText('.etapas'))));
+  check('Fase "Fornecedores e estoque" aparece para fabricação (pergunta dos fornecedores)', /quantos fornecedores você tem/.test(nrm(await page.innerText('#pergunta'))), await page.innerText('#pergunta'));
   await tocar('Só um'); await tocar('Mais de 7 dias'); await preenche('#dias', '10');
   await foto('m07_06_fornecedor');
   await ok();
@@ -325,6 +330,9 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('M7-11 vem com sugestões ligadas ao gargalo e aos riscos', sug.includes('Quantidade feita ou atendida na semana') && sug.includes('Reclamações ou refações') && sug.length <= 3, sug);
   await ok();
   await preenche('#txt', 'Ver a licença da vigilância.'); await ok(); await ok();
+  check('Resultado leve: o retrato completo começa fechado, com o essencial à vista', await page.evaluate(() => { const d = document.querySelector('#retrato'); return !!d && !d.open && !!document.querySelector('#entendemos') && !!document.querySelector('#proximos') && !d.contains(document.querySelector('#entendemos')); }));
+  check('Resultado: Fornecedores e estoque na barra de fases (fabricação)', /Fornecedores e estoque/.test(nrm(await page.innerText('.etapas'))));
+  await abrirRetrato();
   const res = nrm(await page.innerText('body'));
   if (process.env.DUMP) fs.writeFileSync(process.env.DUMP, res);
   check('Resumo: capacidade do forno no máximo 36 por semana e 164 por mês', /no máximo 36/.test(res) && /no máximo 164/.test(res), res.slice(0, 600));
@@ -373,9 +381,10 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await page.click('#ir');
   check('Recarregar: retoma no resumo', /Você chegou ao retrato da sua operação/.test(await page.innerText('body')));
   /* serviço sem material: 3 fases, sem fornecedores */
-  await abrir(estadoAte('M7-01', { tipo: 'Serviço: atendo o cliente', material: 'Não', oferta: 'Manicure' }));
+  await abrir(estadoAte('ZZ', { tipo: 'Serviço: atendo o cliente', material: 'Não', oferta: 'Manicure' }));
   const fs3 = await page.evaluate(() => [...document.querySelectorAll('.etapas li')].map((x) => x.textContent.trim()));
   check('Serviço sem material: barra com 3 fases', fs3.length === 3 && !fs3.includes('Fornecedores e estoque'), fs3);
+  await abrir(estadoAte('M7-01', { tipo: 'Serviço: atendo o cliente', material: 'Não', oferta: 'Manicure' }));
   await ok(); await ok();
   check('Serviço: a pergunta de tempo usa "atender"', /Quanto tempo você leva para atender Manicure\?/.test(await page.innerText('#pergunta')), await page.innerText('#pergunta'));
   /* serviço (lava-jato do testador): tipo do Módulo 1, volume, material e tempo do Módulo 5 */
@@ -431,7 +440,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Ajuda de 50 h: o segundo Continuar grava e segue', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M7-04'], CHAVE) || {}).horas === 50);
   /* 4c. resultado do testador (estado antigo com 1500 h de ajuda): cabe 0, sem "cerca de 4" */
   const iniTestador = { tipo: 'Mercadoria: compro pronto para revender', oferta: 'Bolo de pote', horas: 'De 11 a 20 h', volume: '1500', minUn: 90012, item: 'Bolo de pote', uso: '1', usoUn: '' };
-  await abrir(E('ZZ', iniTestador, { 'M7-04': { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 1500 }, 'M7-06': { estado: 'partes', p1: 'Dois ou mais', p2: 'De 1 a 3 dias', dias: '' } }));
+  await abrir(E('ZZ', iniTestador, { 'M7-04': { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 1500 }, 'M7-06': { estado: 'partes', p1: 'Dois ou mais', p2: 'De 1 a 3 dias', dias: '' } })); await abrirRetrato();
   const resT = nrm(await page.innerText('body')), entT = nrm(await page.innerText('#entendemos'));
   check('Resultado do testador: cabem cerca de 0 por mês, nunca "cerca de 4"', entT.includes('cerca de 1500 h 12 min para separar e entregar cada um, cabem cerca de 0 por mês') && !/cerca de 4\b/.test(resT), entT);
   check('Resultado do testador: aviso de tempo por unidade muito alto', /Você informou 1500 h 12 min para separar e entregar cada unidade/.test(await page.innerText('#aviso-tempo')));
@@ -443,7 +452,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   /* 4d. sem ajuda x com ajuda: tabela e resumo dizem as duas coisas.
      Até 10 h, apoio 2 h, 60 min por unidade. Sem ajuda: 8 h = 480 min → 480 × 4,33 ÷ 60 = 34,6 → 34.
      Com 4 h de ajuda: 12 h = 720 min → 720 × 4,33 ÷ 60 = 51,96 → 51. */
-  await abrir(E('ZZ', { minUn: 60 }, { 'M7-04': { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 4 } }));
+  await abrir(E('ZZ', { minUn: 60 }, { 'M7-04': { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 4 } })); await abrirRetrato();
   const entA = nrm(await page.innerText('#entendemos')), tabA = nrm(await page.innerText('#sem-com'));
   check('Sem/com ajuda: tabela = sem ajuda no máximo 34; com ajuda no máximo 51', tabA === 'Por mês, sem ajuda: no máximo 34; com ajuda: no máximo 51.', tabA);
   check('Sem/com ajuda: o resumo diz as duas coisas, igual à tabela', entA.includes('cabem no máximo 34 por mês sem ajuda e no máximo 51 por mês com a ajuda que você contou'), entA);
@@ -456,20 +465,21 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await page.waitForTimeout(400);
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm07_sem_com_ajuda.png') });
   /* 4e. quadro de fornecedores sem critério */
-  await abrir(E('ZZ', {}, { 'M7-07': { estado: 'multi', opcoes: ['Só o preço'] } }));
+  await abrir(E('ZZ', {}, { 'M7-07': { estado: 'multi', opcoes: ['Só o preço'] } })); await abrirRetrato();
   const fz = nrm(await page.innerText('.forn >> nth=0'));
   check('Fornecedores sem critério: "Nenhum critério escolhido", sem "Atende 0 de"', fz.includes('Nenhum critério escolhido.') && !/Atende \d+ de/.test(await page.innerText('body')), fz);
-  await abrir(E('ZZ', {}, { 'M7-07': { estado: 'multi', opcoes: ['Prazo de entrega'] } }));
+  await abrir(E('ZZ', {}, { 'M7-07': { estado: 'multi', opcoes: ['Prazo de entrega'] } })); await abrirRetrato();
   const f1 = nrm(await page.innerText('.forn >> nth=0'));
   check('Fornecedores com 1 critério ainda não marcado: pede para marcar, sem "Atende 0 de 1"', f1.includes('Marque se este fornecedor atende o critério.') && !/Atende 0 de 1/.test(await page.innerText('body')), f1);
   await page.selectOption('.forn >> nth=0 >> select >> nth=0', 'não atende');
+  check('Resultado: o retrato completo continua aberto depois de marcar no quadro (a tela se redesenha)', await page.evaluate(() => document.querySelector('#retrato').open));
   check('Fornecedores: depois de marcar, "Atende 0 de 1 critério" (singular)', /Atende 0 de 1 critério\b/.test(await page.innerText('.forn >> nth=0')));
   /* 4f. pedidos para IA: visíveis e preenchidos */
   check('Pedidos para IA: seção aberta com os textos preenchidos (oferta no lugar do colchete)', await page.isVisible('#pedidos-ia') && /Quero organizar as etapas de Bolo de pote/.test(await page.innerText('#pedidos-ia')) && (await page.locator('#pedidos-ia .caixa-ia').count()) === 3 && !/\[/.test(await page.innerText('#pedidos-ia')));
   await page.evaluate(() => document.querySelector('#pedidos-ia').scrollIntoView({ block: 'start' }));
   await page.waitForTimeout(400);
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm07_pedidos_ia.png') });
-  await abrir(E('ZZ', { tipo: 'Serviço: atendo o cliente', material: 'Não', oferta: 'Manicure' }));
+  await abrir(E('ZZ', { tipo: 'Serviço: atendo o cliente', material: 'Não', oferta: 'Manicure' })); await abrirRetrato();
   check('Pedidos para IA (serviço sem material): sem o item de fornecedores', (await page.locator('#pedidos-ia .caixa-ia').count()) === 2 && !/Fornecedores/.test(await page.innerText('#pedidos-ia')));
   /* 4g. receita A: teclado do celular (viewport 390x844 → 390x450 com o campo em foco) */
   check('Receita A: viewport com interactive-widget=resizes-content', /interactive-widget=resizes-content/.test(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8')));
@@ -507,17 +517,17 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     await abrir(E('ZZ'));
     check('Receita C (resultado): Voltar no topo, antes da caixa "O que entendemos"', await page.evaluate(() => { const b = document.querySelector('#v'), e = document.querySelector('#entendemos'); return [...document.querySelectorAll('button')].filter((x) => /Voltar/.test(x.textContent)).length === 1 && !!(b.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING); }));
   }
-  /* 5b. receita D: ajuda longa → 1ª frase + "Ver mais" fechado; "Entenda os termos" fechado e embaixo do Continuar */
+  /* 5b. versão leve: a ajuda (apoio) e os termos ficam inteiros em "Ver dica", fechada, entre a pergunta e as respostas */
   {
     const longo = 'Receber o pedido pelo WhatsApp, separar os ingredientes, bater a massa, assar, montar os potes com recheio, decorar, colocar a tampa e a etiqueta, embalar em caixa térmica e entregar de moto';
     await abrir(E('M7-01', { etapas4: longo }));
-    const d = await page.evaluate(() => { const vm = document.querySelector('.pergunta .ver-mais'); const aj = document.querySelector('.pergunta > .ajuda'); return { tem: !!vm, aberto: vm && vm.open, resumo: vm && vm.querySelector('summary').textContent.trim(), primeira: aj && aj.textContent.trim() }; });
-    check('Receita D: ajuda com mais de 220 caracteres mostra a 1ª frase e o resto em "Ver mais" fechado', d.tem && !d.aberto && d.resumo === 'Ver mais' && d.primeira.startsWith('Montamos com o que você já contou:') && d.primeira.endsWith('.') && !/Mude a ordem/.test(d.primeira), d);
-    check('Receita D: campos e Continuar continuam visíveis', await page.isVisible('.etapa-ed input >> nth=0') && await page.isVisible('#ok'));
-    await abrir(E('M7-03'));
-    check('Receita D: ajuda curta fica inteira, sem "Ver mais"', !(await page.$('.pergunta .ver-mais')));
+    const d = await page.evaluate(() => { const v = document.querySelector('.pergunta .dica-toggle'); return { tem: !!v, aberto: v && v.open, resumo: v && v.querySelector('summary').textContent.trim(), txt: v && v.textContent.replace(/\s+/g, ' '), verMais: !!document.querySelector('.ver-mais') }; });
+    check('Ver dica: ajuda longa inteira dentro de "Ver dica" fechada, sem "Ver mais"', d.tem && !d.aberto && d.resumo === 'Ver dica' && d.txt.includes('Montamos com o que você já contou:') && d.txt.includes('Mude a ordem') && !d.verMais, d);
+    check('Ver dica: ajuda escondida até tocar; campos e Continuar visíveis', !(await page.isVisible('.dica-toggle .ajuda')) && await page.isVisible('.etapa-ed input >> nth=0') && await page.isVisible('#ok'));
+    await page.click('.dica-toggle summary');
+    check('Ver dica: um toque abre a ajuda', await page.isVisible('.dica-toggle .ajuda'));
     await abrir(E('M7-05'));
-    check('Receita D: "Entenda os termos" fechado e embaixo do Continuar', await page.evaluate(() => { const s = document.querySelector('.pergunta .saiba'), ok = document.querySelector('#ok'); return !!s && !s.open && !!(ok.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING); }));
+    check('Ver dica: termos (Gargalo) dentro da dica, sem "Entenda os termos" solto', await page.evaluate(() => { const v = document.querySelector('.dica-toggle'); return !!v && /Gargalo/.test(v.textContent) && !document.querySelector('.pergunta .saiba'); }));
   }
   /* 5c. disponibilidade: Módulo 1 pergunta por dia; aqui é por semana. Faixa mais próxima, com selo e "Confira e ajuste" */
   const semear = (mods) => page.evaluate((m) => { localStorage.clear(); for (const [k, v] of Object.entries(m)) localStorage.setItem(k, JSON.stringify(v)); }, mods);
@@ -562,23 +572,24 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_tempo_nao_se_aplica.png') }); }
   await ok();
   const t3 = nrm(await page.innerText('#pergunta'));
-  check('Revenda (apoio): sem "entregar" repetido', t3 === 'Além de separar e entregar os pedidos, quanto do seu tempo por semana vai para responder clientes, comprar mercadoria e divulgar?', t3);
+  check('Revenda (apoio): pergunta curta, com mercadoria e sem "entregar" repetido', t3 === 'Por semana, quantas horas vão para clientes, compras de mercadoria e divulgação?', t3);
   await tocar('Até 2 h'); await ok();
   check('Revenda (ajuda): sem "preparo e produção"', !/produção|preparo/i.test(await page.innerText('.cartao-q')));
   await tocar('Não, faço sozinho(a)'); await ok();
   check('Revenda (gargalo): espaço/veículo e mercadoria no lugar de equipamento e material', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()); return t.includes('O espaço para guardar ou o veículo de entrega') && t.includes('Falta ou atraso de mercadoria') && !t.includes('Um equipamento ou o espaço'); }));
   await tocar('O espaço para guardar ou o veículo de entrega'); await ok();
-  check('Revenda (espaço): exemplo com carro, sem forno', /carro leva 20 caixas/.test(await page.innerText('.cartao-q')) && !/forno/.test(await page.innerText('.cartao-q')));
+  check('Revenda (espaço): exemplo com carro, sem forno (na dica)', /carro leva 20 caixas/.test(await page.textContent('.cartao-q')) && !/forno/.test(await page.textContent('.cartao-q')));
   await preenche('#uv', '20'); await preenche('#tvh', '1'); await ok(); await ok();
   await tocar('Dois ou mais'); await tocar('De 1 a 3 dias'); await ok();
   await tocar('Prazo de entrega'); await ok();
-  check('Revenda (validade): pergunta sobre as mercadorias e dica de armazenamento', /As mercadorias que você vende estragam, vencem/.test(await page.innerText('#pergunta')) && /lugar limpo, seco e arejado/.test(await page.innerText('#dica-estoque')));
+  check('Revenda (validade): pergunta sobre as mercadorias e dica de armazenamento em "Ver dica"', /Suas mercadorias estragam, vencem/.test(await page.innerText('#pergunta')) && /lugar limpo, seco e arejado/.test(await page.textContent('.dica-toggle #dica-estoque')));
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_validade.png') }); }
   await tocar('Sim, em semanas ou meses'); await ok();
   check('Revenda (qualidade): conferência sem "receita" nem "provando"', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()); return t.includes('Sigo uma lista de conferência anotada') && !t.some((x) => /receita|provando/.test(x)); }));
   await tocar('Sigo uma lista de conferência anotada'); await ok();
   await tocar('Faltar mercadoria'); await ok();
   await ok(); await ok(); await ok();
+  await abrirRetrato();
   const rRev = nrm(await page.innerText('body'));
   const cuid = nrm(await page.innerText('#cuidados-revenda'));
   check('Revenda (resultado): cuidados com estoque, armazenamento, validade e entrega (forma de entrega do Módulo 4)', ['Estoque', 'Armazenamento', 'Validade', 'Entrega'].every((x) => cuid.includes(x)) && cuid.includes('Você vai manter mercadoria guardada') && cuid.includes('entregador parceiro, retirada presencial pelo cliente'), cuid);
@@ -586,6 +597,87 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Revenda (resultado): riscos e gargalo com palavras de revenda', rRev.includes('Faltar mercadoria') && rRev.includes('Sigo uma lista de conferência anotada'));
   if (SHOTS) { await page.evaluate(() => document.querySelector('#cuidados-revenda').scrollIntoView({ block: 'center' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_cuidados.png') }); }
   check('Revenda: o valor gravado continua o da planilha (só o texto muda)', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE))['M7-05'].opcao === 'Um equipamento ou o espaço');
+
+  /* ---------- 6. versão leve: perguntas curtas, "Ver dica" fechada e ajuda de verdade no "Não sei" ---------- */
+  {
+    const palavras = async () => (await page.evaluate(() => document.querySelector('#tela').innerText)).split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
+    const e5 = { 'M7-05': { estado: 'opcao', opcao: 'Um equipamento ou o espaço' } };
+    const estadoDe = (cod, ini) => estadoAte(cod, ini || {}, cod === 'M7-05a' ? e5 : {});
+    const REVI = { tipo: 'Mercadoria: compro pronto para revender', oferta: 'Refrigerante 2 L', item: 'Refrigerante 2 L', estoque: 'Sim, mantenho mercadoria guardada' };
+    const SERV = { tipo: 'Serviço: atendo o cliente', material: 'Sim', oferta: 'Lavagem de carro em casa', item: 'Shampoo automotivo' };
+    const longas = [];
+    for (const [nome, ini] of [['fabricação', {}], ['revenda', REVI], ['serviço', SERV]]) {
+      for (const cod of ORDEM) {
+        if (nome !== 'fabricação' && cod === 'M7-02') continue;
+        await abrir(estadoDe(cod, ini));
+        if (!(await page.$('#pergunta'))) { longas.push([nome, cod, 'sem pergunta']); continue; }
+        const n = await palavras();
+        const dica = await page.evaluate(() => { const d = document.querySelector('.pergunta .dica-toggle'), q = document.querySelector('#pergunta'), ent = document.querySelector('#ent'); return !d || (!d.open && !!(q.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(d.compareDocumentPosition(ent) & Node.DOCUMENT_POSITION_FOLLOWING)); });
+        const q = nrm(await page.innerText('#pergunta')).split(' ').length;
+        if (n > 60 || !dica || q > 16) longas.push([nome, cod, n, q, dica]);
+      }
+    }
+    check('Leve: toda pergunta (fabricação, revenda, serviço) com até 60 palavras na tela, enunciado de até 16 palavras e "Ver dica" fechada entre a pergunta e as respostas', !longas.length, longas);
+
+    /* "Não sei" em cada pergunta: caixa "Como descobrir" com 2 passos, Copiar quando há pedido para a IA, e a resposta gravada continua "Não sei" */
+    const comoBox = (sel) => page.evaluate((s) => { const b = document.querySelector(s); if (!b) return null; const p = b.querySelector('[data-prompt]'); return { passos: [...b.querySelectorAll('li')].map((x) => x.textContent.trim()).filter(Boolean), tit: (b.querySelector('.como-tit') || {}).textContent, prompt: p ? p.textContent.trim() : '', copiar: !!b.querySelector('button[data-copiar]'), nota: (b.querySelector('.como-nota') || {}).textContent || '' }; }, sel);
+    const marcas = /chatgpt|gemini|copilot|claude|openai|bard/i;
+    const NSQ = ['M7-01', 'M7-02', 'M7-03', 'M7-04', 'M7-05', 'M7-05a', 'M7-06', 'M7-07', 'M7-08', 'M7-09', 'M7-10', 'M7-11'];
+    const ruins = [];
+    for (const cod of NSQ) {
+      const q = D.perguntas.find((x) => x.codigo === cod);
+      await abrir(estadoDe(cod));
+      check(`Não sei (${cod}): nada de "Como descobrir" antes de tocar`, !(await page.$('.como-descobrir')));
+      if (await page.$('#ns')) await page.click('#ns'); else await tocar('Não sei');
+      const b = await comoBox(cod === 'M7-06' ? '#b1 .como-descobrir' : '#retorno .como-descobrir');
+      const okBox = b && b.tit === 'Como descobrir' && b.passos.length >= 2 && b.passos.every((x) => x.length > 20) && b.passos.join(' ') === q.comoDescobrir.join(' ')
+        && (q.promptIA ? b.copiar && b.prompt.length > 40 && b.nota === 'Copie, cole numa IA de sua preferência e troque o que está entre colchetes.' : !b.copiar)
+        && !marcas.test(b.passos.join(' ') + b.prompt + b.nota);
+      if (!okBox) ruins.push([cod, b]);
+      if (q.promptIA && b && b.copiar) {
+        await page.click('#tela [data-copiar]');
+        await page.waitForTimeout(150);
+        const t = (await page.textContent('#tela [data-copiar]')).trim();
+        if (!/^(Copiado!|Toque e segure o texto para copiar)$/.test(t)) ruins.push([cod, 'copiar', t]);
+      }
+      if (cod === 'M7-06') {
+        const bs = await page.$$('.opcao');
+        await page.evaluate(() => { const bs = [...document.querySelectorAll('.opcao')].filter((x) => x.textContent.trim() === 'Não sei'); bs[1].click(); });
+        const b2 = await comoBox('#b2 .como-descobrir');
+        if (!(b2 && b2.passos.join(' ') === q.comoDescobrir2.join(' ') && !b2.copiar)) ruins.push([cod, 'parte 2', b2, bs.length]);
+      }
+      await ok();
+      const st = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
+      const r = st[cod] || {};
+      const gravou = cod === 'M7-06' ? r.estado === 'partes' && r.p1 === 'Não sei' && r.p2 === 'Não sei' : r.estado === 'naosei';
+      if (!gravou) ruins.push([cod, 'gravado', r]);
+      if (!(await page.$('#pergunta')) && !(await page.$('#entendemos'))) ruins.push([cod, 'não seguiu']);
+    }
+    check(`Não sei: ${NSQ.length} perguntas mostram "Como descobrir" com 2 passos dos dados (+ Copiar onde há pedido para a IA), sem nome de IA, gravam "Não sei" igual a antes e deixam seguir`, !ruins.length, ruins);
+    check('Não sei: os pedidos para a IA e os passos ficam nos dados (comoDescobrir/promptIA), sem marca de IA', NSQ.every((c) => (D.perguntas.find((x) => x.codigo === c).comoDescobrir || []).length >= 2) && !marcas.test(fs.readFileSync(path.join(DIR, 'dados/modulo7.js'), 'utf8')) && !marcas.test(fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8')));
+    /* o que já sabemos (oferta) entra no pedido; o resto fica entre colchetes para a pessoa trocar */
+    await abrir(estadoDe('M7-03')); await tocar('Não sei');
+    const pr3 = ((await comoBox('#retorno .como-descobrir')) || {}).prompt || '';
+    check('Não sei: o pedido para a IA já traz a oferta e deixa colchetes para a pessoa trocar', pr3.includes('Bolo de pote') && /\[[^\]]+\]/.test(pr3) && !pr3.includes('[o que você vende]'), pr3);
+    /* reabrir uma pergunta respondida com "Não sei" mostra a ajuda de novo */
+    await abrir(Object.assign(estadoDe('M7-09'), { hist: ['M7-09'], R: Object.assign(estadoDe('M7-09').R, { 'M7-09': { estado: 'naosei' } }) }));
+    await page.click('#v');
+    check('Não sei: Voltar leva à pergunta já respondida com "Não sei"', /confere se/.test(await page.innerText('#pergunta')));
+    check('Não sei: reabrir a pergunta já respondida com "Não sei" mostra a ajuda', !!(await page.$('#retorno .como-descobrir')));
+    if (SHOTS) await foto('m07_naosei_ajuda');
+    /* ponto de partida: "Não sei" nas escolhas também ajuda, e grava "Não sei" */
+    await semear({ 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' } } } });
+    await page.goto(URL); await page.click('#ir');
+    await page.click('[data-campo="tipo"] .opcao >> nth=0');
+    await page.click('[data-campo="horas"] .opcao[data-v="Não sei"]');
+    const bp = await comoBox('[data-campo="horas"] .como-descobrir');
+    check('Ponto de partida: "Não sei" nas horas mostra 2 passos para descobrir', bp && bp.passos.length === 2 && bp.passos.join(' ') === D.partida_ajuda.horas.comoDescobrir.join(' '), bp);
+    await page.click('[data-campo="horas"] .opcao[data-v="Até 10 h"]');
+    check('Ponto de partida: trocar a resposta tira a ajuda', !(await page.$('[data-campo="horas"] .como-descobrir')));
+    await page.click('[data-campo="horas"] .opcao[data-v="Não sei"]');
+    await ok();
+    check('Ponto de partida: "Não sei" continua gravado como antes', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE)).horas === 'Não sei');
+  }
 
   check('Sem erros de página', !erros.length, erros);
   await browser.close();

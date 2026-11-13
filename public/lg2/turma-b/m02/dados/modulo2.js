@@ -1,4 +1,6 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao. */
+/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao.
+   (nov/2026: editado a mao na versao leve — enunciados curtos, placeholder "Ex.:", inicio e, em cada
+   pergunta, comoDescobrir/promptIA do "Nao sei". Se regenerar pela ferramenta, refaca estes campos.) */
 window.MODULO2 = {
  "origem": "LG2_M02_planilha_do_grupo.xlsx",
  "modulo": {
@@ -149,7 +151,7 @@ window.MODULO2 = {
   {
    "codigo": "M2.P01",
    "modulo": "M2",
-   "pergunta": "Você já tem uma ideia de quem seria o principal comprador do seu produto ou serviço?",
+   "pergunta": "Você já sabe quem mais compraria o seu produto ou serviço?",
    "ajuda": "Pense na pessoa que mais compraria de você. Não precisa ter certeza: uma ideia inicial já vale.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -158,12 +160,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Pense em quem já pediu, perguntou ou comprou algo parecido com o que você oferece: essa pessoa é um bom ponto de partida.",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Lembre das últimas 3 pessoas que pediram, perguntaram ou compraram algo parecido com o que você vende. Anote quem eram e por que queriam.",
+    "Pergunte a 2 ou 3 conhecidos: “Quem você acha que compraria isto de mim?” e veja o que se repete."
+   ],
+   "promptIA": "Eu vendo [o que você vende] em [seu bairro e cidade]. Me ajude a descobrir quem seria o meu principal comprador. Me faça 5 perguntas simples, uma de cada vez, sobre as pessoas que já pediram ou compraram algo parecido. Não escolha por mim."
   },
   {
    "codigo": "M2.P02",
    "modulo": "M2",
-   "pergunta": "Descreva, em poucas palavras, quem você imagina que teria mais interesse em comprar (situação, momento, necessidade).",
+   "pergunta": "Quem mais compraria de você? Descreva em poucas palavras.",
    "ajuda": "Pense em uma pessoa real que você conhece ou já atendeu, sem usar o nome dela.",
    "tipo": "Texto",
    "condicao": "M2.P01 = Sim ou M2.P01 = Em parte",
@@ -172,7 +179,13 @@ window.MODULO2 = {
    "alerta": "Descrever um público muito amplo (\"todo mundo\") dificulta a pesquisa.",
    "proximo": "Use essa descrição como ponto de partida do roteiro de entrevista (M2.I01).",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "placeholder": "Ex.: mães que trabalham fora e não têm tempo de cozinhar",
+   "comoDescobrir": [
+    "Pense numa pessoa real que já comprou ou pediu algo parecido (sem o nome): quem é, em que momento compra e do que precisa.",
+    "Complete a frase: “Quem mais compraria é ___, quando ___, porque precisa de ___”."
+   ],
+   "promptIA": "Eu vendo [o que você vende] em [seu bairro e cidade]. Me ajude a descrever, numa frase curta, quem mais compraria de mim: a situação, o momento e a necessidade dessa pessoa. Me faça perguntas antes de sugerir."
   },
   {
    "codigo": "M2.P03",
@@ -186,7 +199,12 @@ window.MODULO2 = {
    "alerta": "Decidir com base em suposição não conferida aumenta o risco.",
    "proximo": "Separe o que você já confirmou do que ainda é suposição; as conversas (M2.I01) servem para conferir.",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pense de onde veio a sua ideia sobre esse público: algo que você viveu, leu, ouviu de alguém ou só imaginou?",
+    "Se só imaginou, tudo bem: marque “Suposição, ainda sem conferir” e confira depois conversando com 3 pessoas desse público."
+   ],
+   "promptIA": "Eu acho que os meus clientes seriam [quem você imagina]. Me ajude a separar o que eu já sei de verdade do que ainda é palpite. Me faça 5 perguntas simples sobre de onde veio essa ideia."
   },
   {
    "codigo": "M2.P04",
@@ -200,12 +218,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "O roteiro de entrevista (M2.I01) ajuda a conversar com possíveis clientes, mesmo que você já tenha conversado com alguém antes.",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Lembre das últimas semanas: alguém que não é da família perguntou sobre o que você vende, pessoalmente ou por mensagem? Isso conta.",
+    "Olhe as conversas no seu celular procurando quem pediu preço, encomenda ou informação."
+   ],
+   "promptIA": "Quero conversar com possíveis clientes sobre [o que você vende]. Me dê um roteiro curto, com 5 perguntas simples, para eu puxar essa conversa sem tentar vender."
   },
   {
    "codigo": "M2.P05",
    "modulo": "M2",
-   "pergunta": "Você imagina que seu produto serve a um único grupo de clientes ou a mais de um?",
+   "pergunta": "Seu produto serve a um só grupo de clientes ou a mais de um?",
    "ajuda": "Grupo = pessoas com necessidades ou hábitos parecidos. Exemplo: quem compra bolo para festa infantil e quem compra para o dia a dia.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -214,12 +237,17 @@ window.MODULO2 = {
    "alerta": "Dizer que serve a \"quase qualquer pessoa\" costuma indicar que o público ainda não foi bem definido.",
    "proximo": "Pense: as pessoas que comprariam de você procuram a mesma coisa, ou há grupos com motivos diferentes para comprar?",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pense nas pessoas que comprariam: elas compram pelo mesmo motivo? (ex.: festa ou dia a dia; presente ou uso próprio)",
+    "Se aparecerem motivos bem diferentes, provavelmente são grupos diferentes."
+   ],
+   "promptIA": "Eu vendo [o que você vende] em [seu bairro e cidade]. Me ajude a ver se os meus clientes formam um grupo só ou mais de um. Me faça perguntas simples sobre os motivos e os momentos em que as pessoas comprariam."
   },
   {
    "codigo": "M2.P06",
    "modulo": "M2",
-   "pergunta": "Cite os grupos que você imagina, em poucas palavras para cada um.",
+   "pergunta": "Quais são esses grupos? Poucas palavras para cada um.",
    "ajuda": "Exemplo: \"mães que compram para festa infantil\"; \"trabalhadores que compram para o café da tarde\". Não use nomes de pessoas.",
    "tipo": "Texto",
    "condicao": "M2.P05 = De dois a três grupos",
@@ -228,7 +256,13 @@ window.MODULO2 = {
    "alerta": "Grupos muito parecidos entre si talvez sejam, na prática, um só.",
    "proximo": "Leve esses grupos para o quadro para comparar os grupos de clientes (M2.I05).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "placeholder": "Ex.: quem compra para festa; quem compra para o dia a dia",
+   "comoDescobrir": [
+    "Para cada grupo, escreva quem é e quando compra (ex.: “mães que compram para festa infantil”).",
+    "Lembre de quem já pediu algo e junte as pessoas parecidas: cada monte é um grupo."
+   ],
+   "promptIA": "Eu vendo [o que você vende]. Acho que tenho de 2 a 3 tipos de cliente. Me ajude a dar um nome curto a cada grupo, dizendo quem é e quando compra. Me faça perguntas antes de sugerir."
   },
   {
    "codigo": "M2.P07",
@@ -242,12 +276,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Pense em quem decide a compra: a própria pessoa, para si ou para a família, ou alguém comprando para um negócio?",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pense em quem paga: a própria pessoa, para si ou para a família, ou um negócio, para usar no trabalho?",
+    "Se as duas coisas acontecem, marque “Os dois”."
+   ],
+   "promptIA": "Eu vendo [o que você vende]. Me ajude a entender se os meus clientes seriam pessoas (para uso próprio) ou empresas (para usar no negócio delas). Me faça 3 perguntas simples."
   },
   {
    "codigo": "M2.P08",
    "modulo": "M2",
-   "pergunta": "Quais características mais mudam o que as pessoas procuram no seu produto ou serviço?",
+   "pergunta": "O que mais muda de um cliente para outro no que eles procuram?",
    "ajuda": "Pode marcar mais de uma: marque as que mais fazem diferença entre um cliente e outro. Se tiver dúvida, marque as que mais apareceram nas conversas.",
    "tipo": "Múltipla escolha",
    "condicao": "sempre",
@@ -256,12 +295,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Pense nos clientes que você imagina: o que faz um escolher diferente do outro?",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pense em 2 clientes diferentes. O que faz um escolher diferente do outro: idade, dinheiro, onde mora, o motivo ou o costume?",
+    "Marque o que apareceu. Se nada muda, marque “Nenhuma muda muito”."
+   ],
+   "promptIA": "Eu vendo [o que você vende]. Me ajude a descobrir o que mais muda entre um cliente e outro: idade, quanto podem pagar, onde moram, o motivo da compra ou o costume. Me faça perguntas simples."
   },
   {
    "codigo": "M2.P09",
    "modulo": "M2",
-   "pergunta": "Qual fase da vida descreve melhor o grupo que você imagina?",
+   "pergunta": "Qual fase da vida descreve melhor esse grupo?",
    "ajuda": "Escolha a que mais se repete entre as pessoas que comprariam de você.",
    "tipo": "Escolha",
    "condicao": "M2.P08 = Idade/fase da vida",
@@ -270,12 +314,16 @@ window.MODULO2 = {
    "alerta": "Idade sozinha raramente explica por que alguém compra.",
    "proximo": "Registre a fase da vida de cada pessoa ouvida na ficha de perfil (M2.I02).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Lembre de quem já pediu ou comprou algo parecido: eram jovens, adultos que trabalham, famílias com filhos ou idosos?",
+    "Se cada um era de um jeito, marque “Vários perfis”."
+   ]
   },
   {
    "codigo": "M2.P10",
    "modulo": "M2",
-   "pergunta": "Como você imagina que esse grupo reage ao preço?",
+   "pergunta": "Como esse grupo reage ao preço?",
    "ajuda": "Pense no que costuma acontecer quando o preço sobe um pouco.",
    "tipo": "Escolha",
    "condicao": "M2.P08 = Quanto podem pagar",
@@ -284,7 +332,12 @@ window.MODULO2 = {
    "alerta": "Presumir quanto o público paga, sem conferir, pode levar a um preço fora da realidade.",
    "proximo": "Pergunte, nas entrevistas, quanto a pessoa pagou na última compra parecida (M2.I01).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Veja quanto cobram por algo parecido perto de você e pergunte a 2 clientes se achariam caro.",
+    "Repare: quando o preço sobe um pouco, eles trocam de lugar ou continuam comprando?"
+   ],
+   "promptIA": "Eu vendo [o que você vende] para [quem compra]. Me dê 3 perguntas simples para eu fazer aos clientes e descobrir se eles buscam o menor preço ou pagam mais por algo melhor."
   },
   {
    "codigo": "M2.P11",
@@ -298,7 +351,11 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Use o local para escolher onde conversar com as pessoas (M2.I03).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Anote o bairro ou a cidade de quem já pediu ou perguntou sobre o que você vende.",
+    "Veja onde está a maioria: perto de você, na sua cidade ou longe (pela internet)."
+   ]
   },
   {
    "codigo": "M2.P12",
@@ -312,12 +369,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Pergunte, nas entrevistas, quando foi a última compra e com quanta antecedência ela foi feita (M2.I01).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pergunte a 2 ou 3 clientes: “Quando foi a última vez que você comprou algo assim? Para quê?”",
+    "Veja se é mais para datas especiais, para o dia a dia ou por uma necessidade urgente."
+   ],
+   "promptIA": "Eu vendo [o que você vende]. Me dê 3 perguntas simples para descobrir em que ocasião as pessoas mais comprariam isso: datas especiais, dia a dia ou urgência."
   },
   {
    "codigo": "M2.P13",
    "modulo": "M2",
-   "pergunta": "O que mais pesa na escolha desses clientes entre uma opção e outra?",
+   "pergunta": "O que mais pesa quando esses clientes escolhem onde comprar?",
    "ajuda": "Pense no que a pessoa compara antes de decidir.",
    "tipo": "Escolha",
    "condicao": "M2.P08 = Hábitos de compra",
@@ -326,7 +388,12 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Confirme isso nas entrevistas (M2.I01) e registre na ficha de perfil (M2.I02).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pergunte a 2 clientes: “Por que você comprou onde comprou da última vez?”",
+    "Veja se a resposta fala mais de preço, rapidez, qualidade ou confiança."
+   ],
+   "promptIA": "Eu vendo [o que você vende]. Me dê 3 perguntas simples para descobrir o que mais pesa na escolha dos clientes: preço, rapidez, qualidade ou confiança."
   },
   {
    "codigo": "M2.P14",
@@ -340,12 +407,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Converse com quem decide as compras nesse tipo de empresa (M2.I01).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pense em quais negócios usariam o que você vende no dia a dia deles (ex.: restaurante, salão, escritório).",
+    "Veja se são pequenos negócios do bairro, empresas maiores ou órgãos públicos."
+   ],
+   "promptIA": "Eu vendo [o que você vende] em [sua cidade]. Que tipos de empresa poderiam comprar isso para usar no próprio negócio? Me faça perguntas antes de listar."
   },
   {
    "codigo": "M2.P15",
    "modulo": "M2",
-   "pergunta": "Se tivesse que escolher um desses grupos para começar, qual critério usaria?",
+   "pergunta": "Para escolher por qual grupo começar, o que pesaria mais?",
    "ajuda": "Escolha o que mais pesaria na sua decisão de por onde começar.",
    "tipo": "Escolha",
    "condicao": "M2.P05 = De dois a três grupos",
@@ -354,12 +426,17 @@ window.MODULO2 = {
    "alerta": "Tentar atender todos os grupos de uma vez no início pode dispersar tempo e dinheiro.",
    "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Para cada grupo, pense: é fácil chegar até eles? Eles precisam muito? Podem pagar?",
+    "Escolha o que mais pesa para você agora. O quadro para comparar os grupos, nos instrumentos, ajuda nisso."
+   ],
+   "promptIA": "Tenho estes grupos de clientes: [seus grupos]. Me ajude a decidir por qual começar, comparando facilidade de alcançar, necessidade e capacidade de pagar. Me faça perguntas antes de decidir."
   },
   {
    "codigo": "M2.P16",
    "modulo": "M2",
-   "pergunta": "Você já sabe como chegaria até essas pessoas (onde encontrá-las, por qual canal)?",
+   "pergunta": "Você já sabe onde encontrar essas pessoas (lugar ou canal)?",
    "ajuda": "Pense em lugares, redes sociais, grupos ou eventos onde elas costumam estar.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -368,12 +445,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Use o canal que você conhece para chamar as pessoas para as conversas (M2.I03).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pense onde essas pessoas passam o tempo: grupos de WhatsApp do bairro, igreja, escola, academia, Instagram, feira.",
+    "Pergunte a 2 clientes: “Onde você costuma ver ofertas disso?”"
+   ],
+   "promptIA": "Eu vendo [o que você vende] para [quem compra] em [seu bairro e cidade]. Me ajude a pensar onde encontrar essas pessoas, perto de casa e na internet. Me faça perguntas antes de sugerir."
   },
   {
    "codigo": "M2.P17",
    "modulo": "M2",
-   "pergunta": "Com que frequência você imagina que essa pessoa compraria algo assim?",
+   "pergunta": "De quanto em quanto tempo essa pessoa compraria algo assim?",
    "ajuda": "Pense no que é mais comum para esse tipo de produto ou serviço.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -382,12 +464,17 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Guarde essa estimativa para comparar com o que aparecer nas entrevistas.",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pense em você ou em alguém da família: de quanto em quanto tempo compra algo assim?",
+    "Pergunte a 2 clientes quando foi a última compra e a anterior."
+   ],
+   "promptIA": "Eu vendo [o que você vende]. Me dê 3 perguntas simples para descobrir de quanto em quanto tempo uma pessoa compra isso."
   },
   {
    "codigo": "M2.P18",
    "modulo": "M2",
-   "pergunta": "Quantas pessoas desse público você já ouviu diretamente (entrevista ou conversa) sobre esse problema?",
+   "pergunta": "Com quantas pessoas desse público você já conversou sobre isso?",
    "ajuda": "Conte apenas conversas em que você realmente ouviu a pessoa falar sobre a própria experiência, não apenas elogios rápidos.",
    "tipo": "Número",
    "condicao": "M2.P04 = Sim",
@@ -396,12 +483,17 @@ window.MODULO2 = {
    "alerta": "Poucas pessoas ouvidas não permitem tirar conclusões definitivas.",
    "proximo": "O plano de coleta de evidências (M2.I03) ajuda a organizar as próximas conversas.",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "placeholder": "Ex.: 5",
+   "comoDescobrir": [
+    "Conte só as conversas em que a pessoa falou da própria experiência, não elogios rápidos.",
+    "Olhe as conversas no celular e anote os nomes. Se não lembrar de todas, coloque o número que você tem certeza."
+   ]
   },
   {
    "codigo": "M2.P19",
    "modulo": "M2",
-   "pergunta": "Alguma dessas pessoas já tomou uma ação concreta (pediu orçamento, reservou, pagou um sinal ou indicou você para alguém)?",
+   "pergunta": "Alguma delas já pediu orçamento, reservou, pagou sinal ou indicou você?",
    "ajuda": "Ações contam mais do que elogios: procure algo que a pessoa realmente fez, não apenas disse.",
    "tipo": "Escolha",
    "condicao": "M2.P18 > 0",
@@ -410,12 +502,16 @@ window.MODULO2 = {
    "alerta": "Elogio sozinho não é evidência suficiente de que existe gente realmente interessada em comprar.",
    "proximo": "Registre esse resultado no quadro de evidências (M2.I04).",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Lembre se alguém pediu orçamento, reservou, pagou um sinal ou indicou você para outra pessoa.",
+    "Procure nas suas mensagens pedidos de preço ou de encomenda."
+   ]
   },
   {
    "codigo": "M2.P20",
    "modulo": "M2",
-   "pergunta": "O que essas pessoas disseram ser o principal motivo para escolher você em vez de outra opção?",
+   "pergunta": "Por que essas pessoas escolheriam você e não outra opção?",
    "ajuda": "Pode ser preço, prazo, qualidade, confiança, localização ou outro motivo citado por elas.",
    "tipo": "Texto",
    "condicao": "M2.P18 > 0",
@@ -424,12 +520,18 @@ window.MODULO2 = {
    "alerta": "Nenhum",
    "proximo": "Compare esse motivo com o que o Módulo 3 encontrar sobre os concorrentes.",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "placeholder": "Ex.: entrego no mesmo dia; atendo perto de casa",
+   "comoDescobrir": [
+    "Pergunte a quem conversou com você: “O que faria você comprar de mim e não de outro lugar?”",
+    "Anote as palavras da pessoa: preço, prazo, qualidade, confiança ou lugar."
+   ],
+   "promptIA": "Eu vendo [o que você vende]. Me dê 3 perguntas simples para descobrir, conversando, por que um cliente escolheria comprar de mim em vez de outra opção."
   },
   {
    "codigo": "M2.P21",
    "modulo": "M2",
-   "pergunta": "Pelo que você ouviu das pessoas com quem conversou, elas contaram um problema que têm de verdade, ou só elogiaram a sua ideia?",
+   "pergunta": "As pessoas com quem conversou contaram um problema de verdade ou só elogiaram?",
    "ajuda": "Elogio é quando a pessoa só diz “que legal!”, “adorei a ideia!” ou “eu compraria”, mas não faz nada depois. Problema de verdade é quando a pessoa conta a dificuldade que tem no dia a dia (por exemplo: “não tenho tempo de levar o carro para lavar”), pergunta o preço, pede para reservar ou já paga um sinal.",
    "tipo": "Escolha",
    "condicao": "M2.P04 = Sim",
@@ -438,7 +540,12 @@ window.MODULO2 = {
    "alerta": "Seguir só com elogios pode levar a testar a ideia sem saber se alguém compraria de verdade.",
    "proximo": "Se ainda for só elogio, volte a conversar e peça um passo concreto: perguntar o preço, reservar ou pagar um sinal.",
    "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Releia o que as pessoas disseram: alguém contou uma dificuldade do dia a dia? Isso é problema de verdade.",
+    "Se só disseram “que legal” e nada mais, foi elogio. Na próxima conversa, peça um passo: perguntar o preço ou reservar."
+   ],
+   "promptIA": "Conversei com [número] pessoas sobre [o que você vende]. Elas disseram: [o que você ouviu]. Me ajude a separar o que foi elogio do que foi um problema de verdade. Não decida por mim."
   }
  ],
  "regras": [
@@ -1746,5 +1853,9 @@ window.MODULO2 = {
    "link": "(link do vídeo, a preencher após a gravação)",
    "status": "Rascunho"
   }
- ]
+ ],
+ "inicio": {
+  "frase": "Descubra quem compraria de você e como encontrar essas pessoas.",
+  "tempo": "Este módulo leva uns 10 minutos."
+ }
 };

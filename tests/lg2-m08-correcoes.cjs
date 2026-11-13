@@ -36,7 +36,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   });
   const semear = (dados) => page.evaluate((d) => { localStorage.clear(); for (const [k, v] of Object.entries(d)) localStorage.setItem(k, JSON.stringify(v)); }, dados);
   const SHOTS = process.env.SHOTS;
-  const shotNs = async (cod) => { if (!SHOTS) return; await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, `m08b_naosei_${cod.slice(-3).toLowerCase()}.png`) }); };
+  const shotNs = async (cod) => { if (!SHOTS) return; await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, `l_m08_depois_${cod.slice(-3).toLowerCase()}_naosei.png`) }); };
   const seguir = () => page.locator('#acoes .btn-primario').first().click();
   const escolher = (op) => page.getByRole('button', { name: op, exact: true }).click();
   /* responde até o resultado: opção pedida, senão "Não" ou a 1ª; texto neutro quando o campo está vazio */
@@ -174,6 +174,28 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await escolher('MEI (Microempreendedor Individual)'); await btn('Continuar').click();
   check(nrm(await page.textContent('#retorno')).includes('sai do MEI'), 'P05 = MEI acima do limite: alerta logo na resposta');
 
+  /* versão leve (nov/2026): todo "Não sei" mostra "Como descobrir" com 2 passos escritos para a pergunta e,
+     quando a pergunta tem pedido para a IA, o texto pronto e o botão "Copiar" */
+  const DADOS = await page.evaluate(() => Object.fromEntries(window.MODULO8.perguntas.map((q) => [q.codigo, { passos: q.comoDescobrir, prompt: q.promptIA }])));
+  const comoDescobrir = async (cod) => {
+    const box = page.locator('#ns-ajuda');
+    check(await box.isVisible() && nrm(await box.locator('.como-tit').textContent()) === 'Como descobrir', `${cod}: caixa "Como descobrir" à vista`);
+    const passos = await box.locator('ol > li').allTextContents();
+    check(passos.length === 2 && passos.every((x) => nrm(x).length > 20) && JSON.stringify(passos.map(nrm)) === JSON.stringify(DADOS[cod].passos.map(nrm)), `${cod}: 2 passos concretos dos dados (${passos.length})`);
+    check(passos.every((x) => !/ChatGPT|Gemini|Copilot/i.test(x)), `${cod}: sem marca de IA`);
+    if (DADOS[cod].prompt) {
+      check(nrm(await box.locator('[data-prompt]').textContent()) === nrm(DADOS[cod].prompt) && /\[.+\]/.test(DADOS[cod].prompt), `${cod}: pedido para a IA com colchetes`);
+      check(/Copie, cole numa IA de sua preferência e troque o que está entre colchetes\./.test(await box.textContent()) && !/ChatGPT|Gemini/i.test(await box.textContent()), `${cod}: nota sem marca de IA`);
+      const cp = box.getByRole('button', { name: 'Copiar', exact: true });
+      check(await cp.count() === 1, `${cod}: botão Copiar`);
+      await cp.click();
+      let respCp = '';
+      for (let i = 0; i < 20; i++) { respCp = nrm(await box.locator('[data-copiar]').textContent()); if (respCp !== 'Copiar') break; await page.waitForTimeout(100); }
+      check(['Copiado!', 'Toque e segure o texto para copiar'].includes(respCp), `${cod}: Copiar responde`);
+    } else check(await box.locator('[data-copiar]').count() === 0, `${cod}: sem pedido para a IA, sem Copiar`);
+    if (cod === 'M8.P05' || cod === 'M8.P07' || cod === 'M8.P04') await shotNs(cod);
+  };
+
   /* ===== Item 5 (Júlia, nov/2026): "Não sei" que não grava nem avança nas perguntas que o módulo usa ===== */
   const PRECISA = ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05'];
   await semear({});
@@ -184,7 +206,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     if (PRECISA.includes(cod)) {
       if (ops.length) await escolher('Não sei'); else await btn('Não sei').click();
       const aj = nrm(await page.textContent('#ns-ajuda'));
-      check(await page.locator('#ns-ajuda').isVisible() && aj.startsWith('Precisamos desta resposta para seguir'), `${cod}: "Não sei" mostra como descobrir (${aj.slice(0, 60)})`);
+      check(await page.locator('#ns-ajuda').isVisible() && aj.startsWith('Como descobrir') && aj.includes('Precisamos desta resposta para seguir'), `${cod}: "Não sei" mostra como descobrir e pede a resposta (${aj.slice(0, 60)})`);
+      await comoDescobrir(cod);
       check(await page.locator('#ent .opcao.sel').count() === 0, `${cod}: "Não sei" não fica marcado`);
       check(!(await st()).R[cod], `${cod}: "Não sei" não grava`);
       await btn('Continuar').click();
@@ -200,13 +223,20 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
       if (ops.length) await escolher('Não sei'); else await btn('Não sei').click();
       if (ops.length) await btn('Continuar').click();
       const r = (await st()).R[cod];
-      check(r && (r.estado === 'naosei' || r.opcao === 'Não sei'), `${cod}: "Não sei" continua aceito`);
-      check(await page.locator('#ns-ajuda').isHidden(), `${cod}: sem explicação de "Não sei" obrigatória`);
+      check(r && (ops.length ? JSON.stringify(r) === JSON.stringify({ estado: 'opcao', opcao: 'Não sei' }) : JSON.stringify(r) === JSON.stringify({ estado: 'naosei' })), `${cod}: "Não sei" continua aceito e gravado como antes (${JSON.stringify(r)})`);
+      check(!/Precisamos desta resposta/.test(await page.textContent('#ns-ajuda')), `${cod}: sem pedido de resposta obrigatória`);
+      await comoDescobrir(cod);
+      check(JSON.stringify((await st()).R[cod]) === JSON.stringify(r), `${cod}: tocar em Copiar não muda a resposta salva`);
     }
     await seguir();
   }
   check(await atual() === 'RESULTADO', '"Não sei" nas opcionais chega ao resultado');
   check(nrm(await page.textContent('.res-num .sub')).startsWith('4 com'), `resultado: 4 "Não sei" (P06, P07, P09, P10): ${nrm(await page.textContent('.res-num .sub'))}`);
+  /* resultado: "O que falta descobrir" com um "Como descobrir" fechado para cada "Não sei" */
+  check(await page.locator('#falta > ul > li').count() === 4 && await page.locator('#falta details.como-mini').count() === 4, 'resultado: 4 lacunas, cada uma com "Como descobrir"');
+  check(await page.$$eval('#falta details.como-mini', (ds) => ds.every((d) => !d.open && d.querySelectorAll('ol > li').length === 2)), 'resultado: "Como descobrir" fechado, com 2 passos');
+  check(nrm(await page.textContent('#tarefa')).startsWith('Seu próximo passo'), 'resultado: próximo passo');
+  check(await page.evaluate(() => document.querySelector('#entendemos').compareDocumentPosition(document.querySelector('#tarefa')) & 4 && document.querySelector('#tarefa').compareDocumentPosition(document.querySelector('#falta')) & 4), 'resultado: entendemos → próximo passo → falta descobrir');
   /* "Não sei" antigo em P02 (outra pergunta obrigatória): apaga só ela e volta a perguntar */
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P02'] = { estado: 'opcao', opcao: 'Não sei' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
@@ -251,15 +281,16 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   /* ===== Lote 3 (nov/2026) ===== */
   /* Receita C: Voltar no topo do cartão; na 1ª pergunta volta à capa */
   await semear({}); await page.reload(); await btn('Começar').click();
-  check(await btn('Voltar').count() === 1 && await btn('Início').count() === 1, '1ª pergunta: botão Voltar (e Início só na trilha)');
+  check(await btn('Voltar').count() === 1 && await btn('Início').count() === 0, '1ª pergunta: só o botão Voltar (faixa compacta, sem trilha)');
   check(await page.evaluate(() => document.querySelector('.cartao-q').firstElementChild.id === 'v'), 'Voltar é o 1º item do cartão da pergunta');
   await btn('Voltar').click();
   check(await page.locator('.heroi-grande').count() === 1, 'Voltar na 1ª pergunta volta à capa');
   /* Receita D: ajuda longa da P02 com "Ver mais" fechado; opções e Continuar à vista */
   await btn('Começar').click();
   await page.fill('#ent textarea', 'Faço tranças'); await btn('Continuar').click(); await seguir();
-  check(await atual() === 'M8.P02' && await page.locator('.dica details.mais').count() === 1 && !(await page.$eval('.dica details.mais', (d) => d.open)), 'P02: ajuda longa com "Ver mais" fechado');
-  check(nrm(await page.innerText('.dica .ajuda')).length < 150, 'P02: só a 1ª frase da ajuda à vista');
+  check(await atual() === 'M8.P02' && await page.locator('details.dica-toggle').count() === 1 && !(await page.$eval('details.dica-toggle', (d) => d.open)), 'P02: ajuda longa dentro de "Ver dica" fechado');
+  check(!(await page.innerText('#tela')).includes('Mercadoria: você compra pronto'), 'P02: ajuda longa fora da vista até tocar em "Ver dica"');
+  check(await page.evaluate(() => { const q = document.querySelector('.cartao-q .q'), d = document.querySelector('details.dica-toggle'), e = document.querySelector('#ent'); return (q.compareDocumentPosition(d) & 4) && (d.compareDocumentPosition(e) & 4); }), 'P02: "Ver dica" entre a pergunta e as respostas');
   await escolher('Serviço'); await btn('Continuar').click(); await seguir();
   /* item 5: opção "Na casa do cliente (atendimento em domicílio)" */
   const ops3 = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
@@ -299,6 +330,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   /* item 3: Copiar e Escolher este em cada CNAE compatível */
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P01'] = { estado: 'valor', valor: 'Manicure e pedicure em domicílio' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
+  check(await page.$eval('details#ocupacoes', (d) => !d.open), 'ocupações do MEI recolhidas no resultado');
+  await page.click('details#ocupacoes > summary');
   const nSug = await page.locator('#sugestoes .cnae').count();
   check(nSug >= 1 && await page.locator('#sugestoes .btn-copiar-cnae').count() === nSug && await page.locator('#sugestoes .btn-escolher').count() === nSug, `cada CNAE sugerido tem Copiar e Escolher este (${nSug})`);
   check(await page.locator('#cnae-escolhido h3').count() === 0, 'sem escolha, sem CNAE escolhido');
@@ -316,8 +349,9 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   check(Math.abs((await page.evaluate(() => window.scrollY)) - y0) < 5, 'escolher não pula para o topo');
   if (SHOTS) { await page.waitForTimeout(400); await page.locator('#sugestoes').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_cnae_escolher.png') }); }
   await page.reload(); await btn('Continuar de onde parei').click();
+  await page.click('details#ocupacoes > summary');
   check(nrm(await page.textContent('#cnae-escolhido')).includes('9602-5/01') && nrm(await page.textContent('#entendemos')).includes('Você escolheu o CNAE 9602-5/01'), 'escolha guardada após recarregar e citada em "O que entendemos"');
-  if (SHOTS) { await page.waitForTimeout(400); await page.locator('#quem-mei').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_quem_pode_ser_mei.png') }); }
+  if (SHOTS) { await page.click('details#mais-detalhes > summary'); await page.waitForTimeout(400); await page.locator('#quem-mei').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_quem_pode_ser_mei.png') }); }
   /* a consulta da lista também deixa copiar e escolher */
   await btn('Consultar as ocupações permitidas ao MEI').click();
   await page.fill('#busca', 'cabeleireiro');

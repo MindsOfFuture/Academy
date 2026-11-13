@@ -31,13 +31,10 @@
      P03 → mostra ou não a pergunta das licenças · P04 → conta do limite do MEI e pergunta da lista do MEI
      P05 → perguntas do CNAE e da lista do MEI e o alerta do limite. Nas outras perguntas o "Não sei" continua valendo.
      Tocar em "Não sei" aqui mostra como descobrir a resposta e pede uma resposta. */
-  const NS_PRECISA = {
-    "M8.P01": "Escreva com as suas palavras o que você faz ou vende e para quem, como contaria a um amigo. Ex.: “Faço bolos de pote e vendo para os vizinhos”. Não precisa ser bonito: é com essa descrição que procuramos as ocupações do MEI que combinam com você.",
-    "M8.P02": "Pense no que o cliente paga. Se ele leva algo que você fez, é Produto. Se leva algo que você comprou pronto, é Mercadoria. Se paga pelo seu trabalho, é Serviço. Se faz as duas coisas, escolha “Produto e serviço”. Na dúvida, escolha o que mais acontece no seu dia a dia.",
-    "M8.P03": "Escolha o lugar onde você trabalha a maior parte do tempo. Se ainda não começou, escolha onde pretende trabalhar. Dá para mudar depois.",
-    "M8.P04": "Pode ser um valor aproximado. Faça a conta: preço de uma venda × quantas vendas por mês. Ex.: R$ 10 por bolo × 100 bolos = R$ 1.000. Se ainda não vende, use quanto espera vender por mês.",
-    "M8.P05": "Se você nunca abriu uma empresa, a resposta é “Não”. Se abriu, o tipo aparece no Cartão CNPJ, que você consulta de graça no gov.br com o número do CNPJ. Quem é MEI também tem o Certificado do MEI.",
-  };
+  const NS_PRECISA = new Set(["M8.P01", "M8.P02", "M8.P03", "M8.P04", "M8.P05"]);
+  /* versão leve (nov/2026): todo "Não sei" abre a caixa "Como descobrir" com os passos e o pedido para a IA
+     de cada pergunta (dados/modulo8.js: comoDescobrir, promptIA). Nas perguntas acima a resposta continua obrigatória;
+     nas outras o "Não sei" é gravado como antes. */
 
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
@@ -48,7 +45,7 @@
     if (!s.R) s.R = {};
     if (!Array.isArray(s.hist)) s.hist = [];
     let corte = -1, mudou = false;
-    for (const cod of Object.keys(NS_PRECISA)) {
+    for (const cod of NS_PRECISA) {
       if (!s.R[cod] || Motor.valor(s.R, cod) !== Motor.NS) continue;   // "Não sei" em botão de opção ou no botão à parte
       delete s.R[cod]; mudou = true;
       const i = s.hist.indexOf(cod);
@@ -208,6 +205,38 @@
       <span class="fonte">Fonte: ${link(b.link, b.fonte)}${vazio(b.data) ? "" : ` · consultado em ${esc(b.data)}`}</span></div>`).join("")}
     </details>`;
   }
+  /* "Não sei": caixa "Como descobrir" (2 passos + pedido pronto para a IA com Copiar) */
+  function caixaComo(q, cls) {
+    if (!q || !q.comoDescobrir || !q.comoDescobrir.length) return "";
+    return `<b class="como-tit">Como descobrir</b>
+      <ol>${q.comoDescobrir.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${q.promptIA ? `<div class="pedir-ia">
+        <b>Peça ajuda à IA</b>
+        <p class="como-nota">Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
+        <p class="prompt" data-prompt>${esc(q.promptIA)}</p>
+        <button class="btn-alt copiar" type="button" data-copiar>Copiar</button>
+      </div>` : ""}`;
+  }
+  /* copiar com reserva: área de transferência → execCommand → deixa o texto selecionado (como nos Módulos 1 e 10) */
+  function copiarPrompt(b) {
+    const alvo = b.parentNode.querySelector("[data-prompt]"), t = alvo.textContent;
+    const pronto = () => { b.textContent = "Copiado!"; setTimeout(() => { if (document.contains(b)) b.textContent = "Copiar"; }, 2000); };
+    const reserva = () => {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let foi = false;
+      try { foi = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      if (foi) return pronto();
+      try { const r = document.createRange(); r.selectNodeContents(alvo); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } catch (e) {}
+      b.textContent = "Toque e segure o texto para copiar";
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(pronto, reserva);
+    else reserva();
+  }
+  document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-copiar]"); if (b) copiarPrompt(b); });
+
   function ligarCopiar(p) {
     p.querySelectorAll(".btn-copiar").forEach((b) => (b.onclick = () => {
       navigator.clipboard && navigator.clipboard.writeText(b.dataset.t);
@@ -224,6 +253,11 @@
     </div>`;
   }
   function heroi(o) {
+    /* versão leve: nas perguntas, faixa compacta (só o passo e a barra, sem ilustração) */
+    if (o.compacta) return `<section class="heroi heroi-compacta">
+      <div class="heroi-txt"><div class="kicker passo">${esc(o.titulo)}</div></div>
+      <div class="heroi-prog"><div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.progresso}"><div class="barra-fill" style="width:${o.progresso}%"></div></div></div>
+    </section>`;
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
@@ -244,9 +278,14 @@
     if (!m || m[1].length >= t.length - 20) return esc(t);
     return `${esc(m[1])} <details class="mais"><summary>Ver mais</summary>${esc(t.slice(m[0].length))}</details>`;
   }
-  function dica(texto) {
-    if (vazio(texto)) return "";
-    return `<aside class="dica"><img src="assets/hero-tela.webp" alt=""><div><b>Dica</b><div class="ajuda">${curto(texto)}</div></div></aside>`;
+  /* "Ver dica" fechada entre a pergunta e as respostas: o texto de apoio + os termos da Base técnica */
+  function dica(texto, termos) {
+    termos = termos || [];
+    if (vazio(texto) && !termos.length) return "";
+    return `<details class="dica-toggle"><summary>Ver dica</summary>
+      ${vazio(texto) ? "" : `<p class="ajuda">${esc(texto)}</p>`}
+      ${termos.map((b) => `<div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(b.definicao)}</p></div>`).join("")}
+    </details>`;
   }
   /* "Voltar" no topo, à esquerda, no mesmo lugar em todas as telas (padrão do Módulo 1) */
   const botaoVoltar = () => `<button class="voltar voltar-topo" id="v">Voltar</button>`;
@@ -260,18 +299,23 @@
     const p = el(`
       <div class="pag">
         ${topo("")}
-        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.mapa.objetivo, img: "hero-inicio.webp" })}
+        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.capa.frase, img: "hero-inicio.webp" })}
         <main class="corpo">
-          <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
-          <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p></div>
-          <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
+          <p class="tempo">Este módulo leva uns ${esc(D.capa.minutos)} minutos</p>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
-            <button class="btn btn-linha" id="base">Consultar as ocupações permitidas ao MEI</button>
-            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
           </div>
-          ${rodape()}
+          <details class="como-funciona cartao"><summary>Como funciona</summary>
+            <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
+            <h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p>
+            <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
+            <div class="acoes">
+              <button class="btn btn-linha" id="base">Consultar as ocupações permitidas ao MEI</button>
+              <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
+            </div>
+          </details>
+          ${rodape(true)}
         </main>
       </div>`);
     ligar(p);
@@ -424,26 +468,24 @@
 
     const p = el(`
       <div class="pag">
-        ${topo(`Pergunta ${M.perguntas.indexOf(q) + 1}`)}
-        ${heroi({ titulo: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, tituloClasse: "passo", progresso: progresso() })}
+        ${heroi({ compacta: true, titulo: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, progresso: progresso() })}
         <main class="corpo">
           <div class="cartao-q pergunta">
             ${botaoVoltar()}
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${deOnde ? `<div class="herdou" id="herdou">${selo(deOnde)}<span>${H ? "Confira e ajuste se quiser." : "Você já conferiu esta resposta."}</span>${nota ? `<p class="conta">${esc(nota)}</p>` : ""}</div>` : ""}
-            ${dica(q.ajuda)}
+            ${dica(q.ajuda, conceitosDe(q))}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div class="erro" id="erro" hidden></div>
-            <div class="bloco b-alerta" id="ns-ajuda" hidden></div>
+            <section class="como-descobrir" id="ns-ajuda" role="status" hidden></section>
             <div id="retorno"></div>
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             ${LIGA_ANEXO.includes(cod) ? `<div class="alt"><button class="btn-alt" id="anexo">Consultar as ocupações permitidas ao MEI</button></div>` : ""}
             ${cod === "M8.P07" ? blocoQuemMei(false) : ""}
             ${blocoEducativo(educativoDe(cod))}
-            ${blocoConceitos(conceitosDe(q))}
           </div>
-          ${rodape()}
+          ${rodape(false)}
         </main>
       </div>`);
     ligarCopiar(p);
@@ -463,8 +505,8 @@
         const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
         b.onclick = () => {
           ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel"));
-          if (op === NS && NS_PRECISA[cod]) { escolhida = null; return pedirResposta(); }   // não marca, não grava
-          escondeNs();
+          if (op === NS && NS_PRECISA.has(cod)) { escolhida = null; return pedirResposta(); }   // não marca, não grava
+          if (op === NS) mostrarComo(); else escondeNs();   // nas outras, "Não sei" vale e já mostra como descobrir
           escolhida = op; b.classList.add("sel");
         };
         ent.appendChild(b);
@@ -472,8 +514,8 @@
     } else {
       const v = resp && resp.estado === "valor" ? resp.valor : "";
       ent.appendChild(el(tipo === "numero"
-        ? `<div class="linha"><input class="campo" inputmode="decimal" placeholder="Ex.: 2.500,00" value="${esc(v)}"><span class="pre">R$</span></div>`
-        : `<textarea class="campo" rows="3">${esc(v)}</textarea>`));
+        ? `<div class="linha"><input class="campo" inputmode="decimal" placeholder="${esc(q.exemplo || "Ex.: 2.500,00")}" value="${esc(v)}"><span class="pre">R$</span></div>`
+        : `<textarea class="campo" rows="3" placeholder="${esc(q.exemplo || "")}">${esc(v)}</textarea>`));
     }
     const ax = p.querySelector("#anexo");
     if (ax) ax.onclick = () => {
@@ -481,16 +523,21 @@
       ir(telaBase, () => ir(telaPergunta, cod), t && cod === "M8.P06" ? t.value : "");
     };
     const ns = p.querySelector("#ns");
-    if (ns) ns.onclick = () => NS_PRECISA[cod] ? pedirResposta() : responder({ estado: "naosei" });
+    if (ns) ns.onclick = () => NS_PRECISA.has(cod) ? pedirResposta() : responder({ estado: "naosei" });
     /* "Não sei" numa pergunta necessária: explica como descobrir e pede a resposta (nada é gravado) */
     function pedirResposta() {
       p.querySelector("#erro").hidden = true;
-      const box = p.querySelector("#ns-ajuda");
-      box.innerHTML = `<b>Precisamos desta resposta para seguir</b>${curto(NS_PRECISA[cod])}<p class="ns-pede">${tipo === "escolha" ? "Escolha a opção que mais se aproxima e toque em Continuar." : "Escreva a sua resposta no campo e toque em Continuar."}</p>`;
-      box.hidden = false;
+      const box = mostrarComo(`<p class="ns-pede"><b>Precisamos desta resposta para seguir.</b> ${tipo === "escolha" ? "Escolha a opção que mais se aproxima e toque em Continuar." : "Escreva a sua resposta no campo e toque em Continuar."}</p>`);
       const f = ent.querySelector("input,textarea");
-      if (f) f.focus();
+      if (f) f.focus({ preventScroll: true });
       box.scrollIntoView({ block: "nearest" });
+    }
+    /* caixa "Como descobrir" desta pergunta (passos + pedido para a IA); extra = aviso de que a resposta é obrigatória */
+    function mostrarComo(extra) {
+      const box = p.querySelector("#ns-ajuda");
+      box.innerHTML = caixaComo(q) + (extra || "");
+      box.hidden = !box.innerHTML.trim();
+      return box;
     }
     function escondeNs() { const box = p.querySelector("#ns-ajuda"); if (box) box.hidden = true; }
 
@@ -500,7 +547,7 @@
         return responder({ estado: "opcao", opcao: escolhida });
       }
       const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(Motor.temNaoSei(q) && !NS_PRECISA[cod] ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
+      if (!v) return erro(Motor.temNaoSei(q) && !NS_PRECISA.has(cod) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
       if (tipo === "numero") {
         if (/^-/.test(v.replace(/^R\$\s*/i, ""))) return erro("O valor não pode ser negativo. Digite quanto espera faturar por mês.");
         if (!/^(R\$\s*)?\d[\d.\s]*(,\d+)?$|^(R\$\s*)?\d+(\.\d+)?$/i.test(v) || numero(v) == null) return erro("Digite só números. Ex.: 2500 ou 2.500,00");
@@ -521,7 +568,7 @@
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
-      escondeNs();
+      if (r0.estado === "naosei" || r0.opcao === NS) mostrarComo(); else escondeNs();   // "Não sei" gravado: a caixa fica à vista
       /* guarda de onde veio quando a pessoa manteve o valor herdado (aparece com o selo no resumo) */
       const h = H || (S.R[cod] && S.R[cod].de ? S.R[cod] : null);
       if (h && mesmo(r0, h.r || h)) { r0.de = h.de; if (h.nota) r0.nota = h.nota; }
@@ -614,7 +661,7 @@
         <main class="corpo">
           ${botaoVoltar()}
           <section class="concluido">
-            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2></div></div>
           </section>
           <section class="entendemos" id="entendemos">
             <h3>O que entendemos até aqui</h3>
@@ -622,14 +669,16 @@
           </section>
           ${alertaMei()}
           ${avisoTipo(Motor.valor(S.R, "M8.P02"))}
+          <section class="bloco b-proximo" id="tarefa"><b>Seu próximo passo</b><p>${esc(tarefa())}</p></section>
+          ${ns.length ? `<section class="bloco b-lacuna" id="falta"><b>O que falta descobrir</b><ul>${ns.map((q) => `<li>${esc(q.pergunta)}
+            ${q.comoDescobrir && q.comoDescobrir.length ? `<details class="como-mini"><summary>Como descobrir</summary><section class="como-descobrir">${caixaComo(q)}</section></details>` : ""}</li>`).join("")}</ul></section>` : ""}
+
+          <details class="saiba respostas"><summary>Ver suas respostas</summary>
           <div class="res-num">
             <div class="lbl">Perguntas respondidas</div>
             <div class="val">${resp.length}</div>
             <div class="sub">${ns.length ? `${ns.length} com “Não sei”` : "nenhuma com “Não sei”"}</div>
           </div>
-          <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-
-          <details class="saiba respostas"><summary>Ver suas respostas</summary>
           ${resp.map((q, i) => `
             <div class="etapa ${Motor.valor(S.R, q.codigo) === Motor.NS ? "e-conf" : "e-sim"}">
               <div class="etapa-topo"><span class="etq">${i + 1}</span><b>${esc(q.pergunta)}</b></div>
@@ -638,22 +687,24 @@
               ${vazio(q.alerta) ? "" : `<p class="mini-info"><b>Atenção:</b> ${esc(q.alerta)}</p>`}
             </div>`).join("")}
           </details>
-          ${blocoQuemMei(true)}
-          ${blocoSugestoes()}
-          ${blocoEscolhido()}
-          ${cnaes.map(blocoCnae).join("")}
-
-          ${regras.length ? `<div class="secao-titulo">Orientações</div>${regras.map((r) => `<div class="cartao"><p>${esc(r.texto)}</p>
-            ${vazio(r.proximo) ? "" : `<p class="mini-info"><b>Próximo passo:</b> ${esc(r.proximo)}</p>`}</div>`).join("")}` : ""}
-          ${ale.length ? `<div class="secao-titulo">Alertas</div>${ale.map((a) => `<div class="bloco b-alerta">${esc(a)}</div>`).join("")}` : ""}
-          ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
-          ${enc.length ? `<div class="bloco b-enc"><b>Quem procurar, pelas suas respostas</b>${enc.map(esc).join(" · ")}</div>` : ""}
-          ${S.R["M8.P10"] ? blocoFontes() : ""}
-
-          <div class="secao-titulo">O que este módulo entrega</div>
-          <div class="cartao"><p>${esc(D.mapa.entrega)}</p></div>
-          <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
-          ${blocoConceitos(D.base)}
+          <details class="saiba ocupacoes" id="ocupacoes"><summary>Ocupações do MEI para a sua atividade</summary>
+            ${blocoSugestoes()}
+            ${blocoEscolhido()}
+            ${cnaes.map(blocoCnae).join("")}
+          </details>
+          <details class="saiba detalhes" id="mais-detalhes"><summary>Mais detalhes</summary>
+            ${blocoQuemMei(true)}
+            ${regras.length ? `<div class="secao-titulo">Orientações</div>${regras.map((r) => `<div class="cartao"><p>${esc(r.texto)}</p>
+              ${vazio(r.proximo) ? "" : `<p class="mini-info"><b>Próximo passo:</b> ${esc(r.proximo)}</p>`}</div>`).join("")}` : ""}
+            ${ale.length ? `<div class="secao-titulo">Alertas</div>${ale.map((a) => `<div class="bloco b-alerta">${esc(a)}</div>`).join("")}` : ""}
+            ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
+            ${enc.length ? `<div class="bloco b-enc"><b>Quem procurar, pelas suas respostas</b>${enc.map(esc).join(" · ")}</div>` : ""}
+            ${S.R["M8.P10"] ? blocoFontes() : ""}
+            <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+            <div class="cartao"><h3>O que este módulo entrega</h3><p>${esc(D.mapa.entrega)}</p></div>
+            <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
+            ${blocoConceitos(D.base)}
+          </details>
 
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
@@ -668,11 +719,25 @@
     ligar(p);
     ligarCnae(p);
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
-    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details.respostas").forEach((d) => (d.open = true)); window.print(); };
+    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details.respostas, details.ocupacoes, details.detalhes").forEach((d) => (d.open = true)); window.print(); };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); };
     p.querySelector("#base").onclick = () => ir(telaBase, () => ir(telaResultado));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar uma nova análise? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); } };
     return p;
+  }
+
+  /* "Seu próximo passo": uma tarefa só, pela dúvida principal (P10) e pelo que ficou em aberto */
+  function tarefa() {
+    const f = faturamentoAno(), cnpj = sigla(Motor.valor(S.R, "M8.P05"));
+    if (f && f.ano > LIMITE_MEI_ANO && (!cnpj || ["MEI", "Não", NS].includes(cnpj)))
+      return "Leve este resumo a um contador ou à Sala do Empreendedor de Juiz de Fora: o seu faturamento passa do limite do MEI.";
+    const porDuvida = {
+      "Como escolher o CNAE": "Abra “Ocupações do MEI para a sua atividade”, logo abaixo, escolha a que mais descreve o que você faz e confirme o código na Sala do Empreendedor.",
+      "Se posso ser MEI": "Confira os 4 pontos de “Quem pode ser MEI”, em “Mais detalhes”, e leve este resumo à Sala do Empreendedor de Juiz de Fora.",
+      "Quais licenças preciso": "Faça o Módulo 9: ele mostra as licenças mais comuns para a sua atividade e o seu local.",
+      "Obrigações do CNPJ": "Converse com um contador ou ligue de graça para o Sebrae (" + SEBRAE_TEL + ") sobre os impostos e as obrigações de cada mês.",
+    };
+    return porDuvida[Motor.valor(S.R, "M8.P10")] || "Leve este resumo à Sala do Empreendedor de Juiz de Fora (ou da sua cidade) para tirar as dúvidas e ver o primeiro passo.";
   }
 
   /* valor mostrado no resumo (faturamento em reais) */
@@ -730,9 +795,9 @@
     return emParagrafos(f.slice(0, 6), c1, c2);
   }
 
-  function rodape() {
+  function rodape(credito) {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
+      ${credito === false ? "" : `<p class="credito">Conteúdo do Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>`}
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

@@ -102,7 +102,7 @@ textarea.campo{resize:vertical;font-family:inherit}
 .r-texto{font-size:15px;color:#3d3650;margin:10px 0 12px}
 .bloco{border-radius:12px;padding:12px 15px;font-size:14.5px;margin-bottom:10px}
 .bloco b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
-.b-alerta{background:#fff7e0;border-left:4px solid var(--m-yellow-soft);color:#6b5200}
+.b-alerta{background:#F3EFF8;border-left:4px solid var(--m-coral);color:#3d2a5c}
 .b-proximo{background:var(--m-lavender);border-left:4px solid var(--m-purple);color:#3d2f5c}
 .b-lacuna{background:#fff;border:2px solid var(--m-lavender);color:#3d3650}
 .b-lacuna ul{padding-left:18px}
@@ -279,3 +279,30 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 details.mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:14px;margin-top:4px}
 details.mais[open] summary{display:none}
 .outra-box{margin-top:10px}
+
+/* ===== versão leve (nov/2026): capa enxuta, pergunta com faixa compacta, "Ver dica" fechada, ajuda do "Não sei" ===== */
+.dica-toggle,.como-funciona{border:1px solid var(--m-lavender);border-radius:12px;padding:10px 14px;margin:10px 0;background:#fff}
+.dica-toggle summary,.como-funciona summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;min-height:24px}
+.dica-toggle[open] summary,.como-funciona[open] summary{margin-bottom:8px}
+.dica-toggle .ajuda{margin:0 0 8px}
+.como-funciona h3{margin-top:10px}
+.heroi-compacta{min-height:auto;padding-top:14px;padding-bottom:4px}
+.heroi-compacta .heroi-prog{padding-top:0}
+.tempo{color:var(--m-gray);font-size:15px;margin:8px 0}
+.como-descobrir{border-left:4px solid var(--m-purple);background:var(--m-lavender);border-radius:10px;padding:12px 14px;margin:12px 0;line-height:1.5}
+.como-descobrir .como-tit{display:block;color:var(--m-purple);font-size:17px}
+.como-descobrir ol{padding-left:22px;margin:8px 0}
+.como-descobrir li{margin:5px 0}
+.pedir-ia{border-top:1px solid var(--m-purple);padding-top:10px;margin-top:10px}
+.como-nota{font-size:14px;margin:4px 0 8px}
+.como-descobrir .prompt,.caixa-ia .prompt{background:#fff;border-radius:8px;padding:10px;font-size:15px;line-height:1.45;overflow-wrap:anywhere}
+.copiar{min-height:44px;margin-top:8px}
+.resultado-mais{margin:12px 0}
+.resultado-mais>summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;padding:12px 14px;border:1px solid var(--m-lavender);border-radius:12px;background:#fff;min-height:24px}
+.resultado-mais[open]>summary{margin-bottom:10px}
+.tarefa{border-color:var(--m-purple)}
+.b-lacuna>ul{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:10px}
+.b-lacuna>ul>li>span{display:block;font-weight:700}
+.como-mini summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:15px;margin-top:4px}
+.como-mini .como-descobrir{margin:8px 0 0}
+@media print{.dica-toggle,.como-descobrir{break-inside:avoid}.copiar{display:none!important}}

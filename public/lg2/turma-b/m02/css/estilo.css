@@ -231,3 +231,39 @@ label.mini-info .escala{font-weight:400;color:var(--m-gray)}
 #grupos .falta-nota{font-size:13.5px;color:var(--m-coral);margin-top:6px}
 #frase-grupos{margin:6px 0 10px}
 .aviso-ficha{margin:12px 0 0}
+
+/* Versão leve (nov/2026): faixa compacta nas perguntas, dica fechada, "Como funciona" na capa,
+   "Como descobrir" no "Não sei" e detalhes do resultado recolhidos. */
+.heroi-compacta .heroi-txt{width:auto;padding:12px 18px 8px}
+.heroi-compacta .heroi-tit{font-size:19px;margin:0}
+.heroi-compacta .heroi-prog{padding-bottom:12px}
+.dica.dica-toggle{display:block;background:#fff;border:1px solid var(--m-lavender-mid);border-radius:12px;padding:10px 14px;margin:10px 0 4px}
+.dica-toggle summary,.como-funciona summary,.resultado-mais>summary,.como-mini summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;min-height:24px}
+.dica-toggle[open] summary{margin-bottom:6px}
+.dica.dica-toggle .ajuda{font-size:16px}
+.tempo{color:var(--m-gray);font-size:16px;margin:4px 0 8px}
+.como-funciona{border:1px solid var(--m-lavender-mid);border-radius:12px;padding:12px 14px;margin:14px 0 4px;background:#fff}
+.como-funciona h3{font-size:16px;color:var(--m-purple);margin:10px 0 2px}
+.como-funciona p{font-size:16px}
+.como-descobrir{border-left:4px solid var(--m-purple);background:var(--m-lavender);border-radius:10px;padding:12px 14px;margin:12px 0;line-height:1.5;font-size:16px;color:#2b2340}
+.como-descobrir.bloco{border-top:none;border-right:none;border-bottom:none}
+.como-descobrir .como-tit{display:block;color:var(--m-purple);font-size:17px}
+.como-descobrir ol{padding-left:22px;margin:8px 0}
+.como-descobrir li{margin:5px 0}
+.pedir-ia{border-top:1px solid var(--m-purple);padding-top:10px;margin-top:10px}
+.pedir-ia>b{color:var(--m-purple)}
+.como-nota{font-size:15px;margin:4px 0 8px}
+.como-descobrir .prompt{background:#fff;border-radius:8px;padding:10px;font-size:16px;line-height:1.45;overflow-wrap:anywhere}
+.como-descobrir .copiar{min-height:44px;font-size:16px;margin-top:8px}
+.b-tarefa{margin-top:14px}
+.b-tarefa p{margin-top:4px}
+.como-mini{margin-top:6px}
+.como-mini summary{font-size:15px}
+.ns-item{margin-top:6px}
+.resultado-mais{margin:14px 0}
+.resultado-mais>summary{padding:12px 14px;border:1px solid var(--m-lavender-mid);border-radius:12px;background:#fff}
+.resultado-mais[open]>summary{margin-bottom:10px}
+@media print{.como-descobrir,.dica-toggle{break-inside:avoid}.copiar{display:none!important}}
+.bloco.como-descobrir b{text-transform:none;letter-spacing:normal;margin-bottom:0}
+.bloco.como-descobrir .como-tit{font-size:17px}
+.bloco.como-descobrir .pedir-ia>b{font-size:16px}

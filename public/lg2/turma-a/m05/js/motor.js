@@ -87,18 +87,14 @@
   const HORAS_MES_M1 = { "Até 1 hora por dia": 30, "De 1 a 3 horas por dia": 90 };
   const MSG_DESCONTADOS = "Neste resultado já foram descontados: o custo de cada venda, as taxas, os gastos fixos do mês, as perdas e o valor que você separa pelo seu trabalho (quando informado). Por isso, esse valor não deve ser somado de novo à sua remuneração.";
   /* Ajuda extra (botão "Não sei") das perguntas que não têm conceito nem texto de "como descobrir". */
+  /* Versão leve: P00, P01 e PG saíram daqui (os passos de "Como descobrir" dos dados já dizem isso). */
   const AJUDA_EXTRA = {
-    "M5.P00": ["Se você ainda não começou a vender, pode responder com estimativas. O resultado será uma simulação."],
-    "M5.P01": ["Produto: eu compro materiais e faço o que vendo. Ex.: bolos, marmitas e artesanato.",
-      "Mercadoria: compro pronto para revender. Ex.: roupas, bebidas e acessórios.",
-      "Serviço: meu cliente paga pelo trabalho que realizo. Ex.: manicure, aulas e consertos."],
     "M5.P05": ["Quilos e gramas, litros e mililitros podem ser misturados: o aplicativo converte (1 kg = 1.000 g; 1 L = 1.000 ml)."],
     "M5.P06": ["Quilos e gramas, litros e mililitros podem ser misturados: o aplicativo converte (1 kg = 1.000 g; 1 L = 1.000 ml)."],
     "M5.P21": ["Quilos e gramas, litros e mililitros podem ser misturados: o aplicativo converte (1 kg = 1.000 g; 1 L = 1.000 ml)."],
     "M5.P22": ["Quilos e gramas, litros e mililitros podem ser misturados: o aplicativo converte (1 kg = 1.000 g; 1 L = 1.000 ml)."],
     "M5.P32": ["Também entram aqui gastos do mês com impostos, transporte, entrega, divulgação e manutenção. Nas dúvidas sobre impostos, consulte um contador."],
     "M5.P33": ["Também entram aqui gastos do mês com impostos, transporte, entrega, divulgação e manutenção. Nas dúvidas sobre impostos, consulte um contador."],
-    "M5.PG": ["Cada forma de pagamento pode ter uma taxa e um prazo diferentes. Por isso, primeiro marque as formas que você aceita."],
   };
 
   const MSG_RESPONDA = "Responda para continuar. Se não souber, toque em “Não sei” para ver uma explicação.";
@@ -123,6 +119,9 @@
     const incluir = (q) => {
       q.fixo = AJUDA_NAO_SEI.includes(q.codigo);   // gastos fixos (correção de 15/10)
       q.ajudaNaoSei = true;                         // "Não sei" = ajuda em todas as perguntas (22/10)
+      /* versão leve: enunciado curto, exemplo no campo e "Como descobrir" (passos + pedido para a IA) vêm dos dados */
+      const leve = D.leve && D.leve.perguntas && D.leve.perguntas[q.codigo];
+      if (leve) ["curta", "curtaPorTipo", "placeholder", "comoDescobrir", "promptIA"].forEach((k) => { if (leve[k] !== undefined) q[k] = leve[k]; });
       q.opcoesLista = opcoes(q).filter((o) => !NAO_SEI.test(o));
       if (q.codigo === "M5.P03" || q.codigo === "M5.P19") {
         q.notaConsumo = q.codigo === "M5.P03" ? Object.assign({}, NOTA_CONSUMO, { exemplo: NOTA_CONSUMO.exemploProduto }) : NOTA_CONSUMO;

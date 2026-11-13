@@ -5,7 +5,9 @@
    não deixa avançar sem resposta, preço (P36) depois da quantidade (P37), passo de análise do preço
    (preço possível pelo % de lucro e % de lucro reverso, faixas baixa/alta/negativa), observações,
    resultado sem NaN nos três tipos de negócio, largura do campo de nome na P33, versão do estado salvo
-   e persistência após recarregar. Imprime PASS/FAIL e sai com código != 0 se falhar. */
+   e persistência após recarregar. Versão leve (nov/2026): toda tela de pergunta com até 60 palavras visíveis,
+   "Ver dica" fechada, e cada "Não sei" mostra "Como descobrir" (2 passos + pedido para a IA com Copiar) sem gravar
+   resposta. Imprime PASS/FAIL e sai com código != 0 se falhar. */
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
@@ -52,6 +54,13 @@ for (const q of M.ordem) {
   ok(Motor.botoesAlternativos(M, q).every((o) => /^Ainda não/.test(o)), `${q.codigo}: só "Ainda não…" como botão alternativo`);
   ok(Motor.ajudaNaoSei(M, q) !== null, `${q.codigo}: tem ajuda "Não sei"`);
 }
+/* versão leve: ajuda do "Não sei" escrita para cada pergunta, nos dados (não no código das telas) */
+for (const q of M.ordem) {
+  ok(Array.isArray(q.comoDescobrir) && q.comoDescobrir.length === 2 && q.comoDescobrir.every((x) => typeof x === 'string' && x.trim().length > 20), `${q.codigo}: "Como descobrir" com 2 passos nos dados`);
+  ok(!q.promptIA || (/\[[^\]]+\]/.test(q.promptIA) && !/chatgpt|gemini|copilot|claude|openai|google/i.test(q.promptIA)), `${q.codigo}: pedido para a IA com colchetes e sem marca`);
+}
+ok(M.ordem.filter((q) => q.promptIA).length >= 35, 'pedido para a IA na maior parte das perguntas');
+ok(M.ordem.every((q) => q.comoDescobrir.every((x) => !app.includes(x)) && (!q.promptIA || !app.includes(q.promptIA))), 'textos do "Não sei" ficam nos dados, não no código das telas');
 ok(M.ordem[0].codigo === 'M5.P00' && M.ordem[0].pergunta === 'Como está a sua ideia hoje?', 'primeira pergunta = pergunta 1 do Módulo 1');
 ok(M.ordem[M.ordem.findIndex((q) => q.codigo === 'M5.P24') - 1].codigo === 'M5.PG', 'formas de pagamento logo antes das taxas');
 for (const c of ['M5.P08', 'M5.P15', 'M5.P23', 'M5.P35']) ok(Motor.proxima(M, M.porCodigo[c], { estado: 'opcao', opcao: 'Não' }, null) !== 'M5.P24', `${c}: não pula as formas de pagamento`);
@@ -154,7 +163,37 @@ const server = http.createServer(async (req, res) => {
     const seguir = async () => {
       ok(await clicar('#acoes button', 'Seguir') || await clicar('#acoes button', 'Ver o resultado'), `botão Seguir após ${await atual()}`);
     };
-    const continuar = async () => { ok(await clicar('#ok', 'Continuar'), `Continuar em ${await atual()}`); };
+    /* versão leve: palavras visíveis da tela da pergunta (antes de tocar em algo) e "Ver dica" fechada */
+    const medidas = {};
+    const medir = async () => {
+      const m = await page.evaluate(() => {
+        const painel = document.getElementById('painel'), dica = document.getElementById('dica');
+        if (!document.getElementById('ok') || document.querySelector('#retorno .retorno') || (painel && !painel.hidden) || !document.getElementById('erro').hidden) return null;
+        if (dica && dica.open) return null;
+        return { n: document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length, dica: !!dica };
+      });
+      if (!m) return;
+      const c = await atual();
+      medidas[c] = Math.max(medidas[c] || 0, m.n);
+    };
+    const continuar = async () => { await medir(); ok(await clicar('#ok', 'Continuar'), `Continuar em ${await atual()}`); };
+    /* "Não sei": abre "Como descobrir" com os 2 passos da pergunta e o pedido pronto (Copiar); não grava nada */
+    const naoSeiAjuda = async (onde) => {
+      const c = await atual();
+      const q = M.porCodigo[c];
+      const antes = JSON.stringify(await state());
+      ok(await page.locator('#painel').isHidden(), `${onde}: ajuda fechada no início`);
+      await page.click('#naosei');
+      ok(await page.locator('#painel .como-descobrir').isVisible(), `${onde}: "Como descobrir" aparece`);
+      const passos = await page.$$eval('#painel .como-descobrir li', (xs) => xs.map((x) => x.textContent.trim()));
+      ok(passos.length === 2 && passos.every((x) => x.length > 20) && norm(passos.join(' ')) === norm(q.comoDescobrir.join(' ')), `${onde}: 2 passos não vazios (${passos.length})`);
+      if (q.promptIA) {
+        ok(norm(await page.textContent('#painel .prompt')) === norm(q.promptIA), `${onde}: pedido para a IA`);
+        ok(await page.locator('#painel [data-copiar]').isVisible() && norm(await page.textContent('#painel .pedir-ia')).includes('Copie, cole numa IA de sua preferência e troque o que está entre colchetes.'), `${onde}: botão Copiar e nota sem marca de IA`);
+      } else ok(await page.locator('#painel [data-copiar]').count() === 0, `${onde}: sem pedido, sem Copiar`);
+      ok(JSON.stringify(await state()) === antes, `${onde}: tocar em "Não sei" não grava resposta`);
+      return passos;
+    };
     const escolher = async (rot) => {
       const c = await atual();
       ok(await clicar('#ent .opcao', rot) || await clicar('#ent .opcao b', rot), `${c}: opção ${rot}`);
@@ -201,16 +240,14 @@ const server = http.createServer(async (req, res) => {
       const opNaoSei = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao, .btn-alt')].filter((b) => /n[ãa]o sei/i.test(b.textContent)).length);
       ok(opNaoSei === 0, `${c}: "Não sei" não aparece como opção de resposta`);
       ok(await page.locator('#naosei').count() === 1, `${c}: botão de ajuda "Não sei"`);
-      ok(await page.locator('#painel').isHidden(), `${c}: painel fechado no início`);
-      await page.click('#naosei');
+      await naoSeiAjuda(c);
       ok(await page.locator('#painel').isVisible(), `${c}: painel abre`);
       const painel = await texto('#painel');
       const bts = (q.fonte.match(/M5\.BT\d{2}/g) || []).map((b) => M.conceito[b]);
       for (const b of bts) {
         ok(painel.includes(norm(b.definicao)) && painel.includes(norm(b.porque)), `${c}: painel traz definição e porquê de ${b.codigo}`);
       }
-      const rNS = (M.regrasDe[c] || []).filter((r) => /n[ãa]o sab|n[ãa]o sei/i.test(Motor.valorCond(r)));
-      for (const r of rNS) ok(painel.includes(norm(r.texto)), `${c}: painel traz "como descobrir" (${r.codigo})`);
+      ok(await page.locator('#painel details.termos').count() === (bts.length ? 1 : 0) && !(await page.evaluate(() => { const d = document.querySelector('#painel details.termos'); return !!d && d.open; })), `${c}: termos recolhidos em "O que quer dizer"`);
       ok(!/em breve/i.test(painel) && await page.locator('#painel iframe, #painel video').count() === 0, `${c}: sem vídeo/placeholder quando video vazio`);
       if (testarBloqueio) {
         await continuar();
@@ -263,8 +300,13 @@ const server = http.createServer(async (req, res) => {
     /* ajuda "Não sei" de uma pergunta qualquer: abre e traz o texto esperado */
     const ajudaTraz = async (trecho, onde) => {
       ok(await page.locator('#naosei').count() === 1, `${onde}: botão de ajuda`);
-      await page.click('#naosei');
+      await naoSeiAjuda(onde);
       ok((await texto('#painel')).includes(norm(trecho)), `${onde}: ajuda traz "${trecho.slice(0, 40)}…"`);
+      if (await page.locator('#painel [data-copiar]').count()) {
+        await page.click('#painel [data-copiar]');
+        await page.waitForTimeout(100);
+        ok(/^(Copiado!|Toque e segure o texto para copiar)$/.test(norm(await page.textContent('#painel [data-copiar]'))), `${onde}: Copiar responde (${norm(await page.textContent('#painel [data-copiar]'))})`);
+      }
       await page.click('#naosei');
     };
 
@@ -276,6 +318,12 @@ const server = http.createServer(async (req, res) => {
     await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ versao: 2, R: { 'M5.P01': { estado: 'opcao', opcao: 'Produto' } }, hist: ['M5.P01', 'M5.P02'] })), KEY);
     await page.reload();
     ok(await page.locator('#ir').textContent() === 'Começar', 'estado da versão 2 descartado (formato da taxa mudou)');
+    /* versão leve: capa com título, uma frase, tempo e Começar; o resto em "Como funciona" (fechado) */
+    {
+      const capa = await page.evaluate(() => ({ n: document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length, aberto: document.getElementById('como-funciona').open, frase: document.querySelector('.heroi-txt p').textContent, tempo: document.querySelector('.tempo').textContent }));
+      ok(capa.n <= 60 && !capa.aberto && capa.frase === D.leve.capa.frase && capa.tempo === 'Este módulo leva uns 20 minutos', 'capa leve: frase, tempo e "Como funciona" fechado ' + JSON.stringify(capa));
+      ok((await texto('#como-funciona')).includes(norm(D.mapa.ter_em_maos)) && await page.locator('#como-funciona #limites').count() === 1, 'capa: o que ter em mãos e limites dentro de "Como funciona"');
+    }
     console.log('PASS-stage: versão do estado');
 
     /* ===== 1. Produto: todos os gastos fixos "Sim", preço ainda não definido (a) ===== */
@@ -285,9 +333,12 @@ const server = http.createServer(async (req, res) => {
     await preencher(['Bolo de pote']);                               // P02
     ok((await texto('#nota-consumo')).includes(norm(Motor.NOTA_CONSUMO.exemploProduto)) && !(await texto('#nota-consumo')).includes('cabeleireiro') && (await texto('#nota-consumo')).includes('formas, panelas, máquinas e tesouras'), 'P03: explica consumo x equipamento com exemplo de produto (bolo), não de cabeleireiro');
     ok((await texto('#nota-luz')).includes(Motor.NOTA_LUZ_AGUA), 'P03: aviso para não colocar conta de luz nem de água');
+    ok(!(await page.evaluate(() => document.getElementById('dica').open)), 'P03: "Ver dica" fechada por padrão (orientações dentro dela)');
+    await page.click('#dica summary');
     await fonte16('.nota-orienta p');
     await shot('m05_materiais_P03.png');
-    await ajudaTraz(M.regrasDe['M5.P03'].find((r) => /n[ãa]o sab/i.test(r.condicao)).texto, 'P03');
+    await page.click('#dica summary');
+    await ajudaTraz(M.porCodigo['M5.P03'].comoDescobrir[0], 'P03');
     await preencher(['Farinha', 'Ovo']);                            // P03
     {
       await teclado('P04');
@@ -313,7 +364,7 @@ const server = http.createServer(async (req, res) => {
     await preencher(['500', '6'], ['g', 'unidade']);                // P06 quanto usa (corrigido: sem aviso)
     await preencher(['10']);                                        // P07 quantas unidades
     ok(await page.locator('#ent .opcao').count() === 2, 'P08: só Sim/Não ("Não sei" virou ajuda)');
-    await ajudaTraz(M.regrasDe['M5.P08'].find((r) => /n[ãa]o sei/i.test(r.condicao)).texto, 'P08');
+    await ajudaTraz(M.porCodigo['M5.P08'].comoDescobrir[1], 'P08');
     await escolher('Sim');                                          // P08 embalagem
     await preencher(['20', '10']);                                  // P09 pacote
     await formas(['Pix', 'Cartão de crédito']);
@@ -338,7 +389,10 @@ const server = http.createServer(async (req, res) => {
     await checarFixo(false); await escolher('Sim');                 // P28
     await checarFixo(false);                                        // P29 aluguel
     ok((await texto('.obs')).includes('Se o seu negócio funciona dentro da sua casa, não coloque o valor total do aluguel. Coloque só a parte que o negócio usa.'), 'P29: observação do aluguel');
+    ok(!(await page.evaluate(() => document.getElementById('dica').open)), 'P29: "Ver dica" fechada por padrão');
+    await page.click('#dica summary');
     await fonte16('.obs'); await fonte16('.btn-ajuda'); await fonte16('#painel p');
+    await page.click('#dica summary');
     await page.click('#naosei');                                    // fecha o painel para o print
     await teclado('P29');
     await shot('03-aluguel-observacao-P29.png');
@@ -388,6 +442,7 @@ const server = http.createServer(async (req, res) => {
     ok((await texto('#como-sobra')) === 'Como calculamos: R$ 4,65 de preço − R$ 3,10 de custo − R$ 0,09 de taxas = R$ 1,46 que sobram em cada venda; R$ 1,46 ÷ R$ 4,65 = 31,3% do preço.', 'como calculamos a sobra e a margem: ' + await texto('#como-sobra'));
     ok((await texto('#como-minimo')).startsWith('Como calculamos: R$ 3,10 de custo + R$ 20,50 dos gastos do mês em cada venda, divididos por 98,0%') && (await texto('#como-minimo')).endsWith('= R$ 24,08.'), 'como calculamos o preço mínimo: ' + await texto('#como-minimo'));
     ok(await page.evaluate(() => { const c = document.querySelector('#como-preco'), n = document.querySelector('#analise .nota'); return parseFloat(getComputedStyle(c).fontSize) < parseFloat(getComputedStyle(n).fontSize); }), 'como calculamos: fonte menor que a nota (discreta)');
+    ok(!(await page.evaluate(() => document.getElementById('como-calculamos').open)) && !(await page.evaluate(() => document.getElementById('poucas-vendas').open)) && (await texto('#poucas-vendas summary')) === 'Gastos do mês em cada venda: R$ 20,50', 'passo do preço leve: contas e explicação das poucas vendas recolhidas (valor no título)');
     await shot('m05b_como_calculamos_preco.png');
     ok(!t.includes(MSG.sugerido.baixo) && !t.includes(MSG.sugerido.alto), '50%: sem aviso');
     t = await lucro(10);
@@ -432,6 +487,9 @@ const server = http.createServer(async (req, res) => {
       ok(!/M5\.|M1\.|Módulo \d, pergunta/.test(ent), 'entendemos sem códigos de pergunta');
     }
     ok((await texto('#descontados')).includes('o valor que você separa pelo seu trabalho'), 'resultado: explica o que já foi descontado (inclui a remuneração)');
+    /* versão leve: o resultado começa pelo que entendemos e pela tarefa; contas, simulação e detalhes recolhidos */
+    ok(await page.evaluate(() => { const e = document.getElementById('entendemos'), t = document.getElementById('tarefa'), c = document.getElementById('contas'); return !!t && t.textContent.trim().length > 40 && (e.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 && (t.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 && !c.open && !document.getElementById('mais-detalhes').open; }), 'resultado: entendemos, depois a tarefa, depois "Ver as contas" (fechado)');
+    ok((await texto('#tarefa')).includes('Descubra primeiro: preço atual.') && (await texto('#lacunas')).includes('Como descobrir') && (await texto('#lacunas')).includes(norm(M.porCodigo['M5.P36'].comoDescobrir[0])), 'tarefa: preço ainda não definido vira a 1ª coisa a descobrir, com "Como descobrir" da pergunta: ' + await texto('#tarefa'));
     await semNaN('resultado Produto');
     await shot('06-resultado-produto.png');
     const salvo = await state();
@@ -506,6 +564,8 @@ const server = http.createServer(async (req, res) => {
     await voltarNoTopo('resultado');
     tr = await texto('#tela');
     ok(tr.includes('50,0%') && tr.includes('R$ 20,00') && tr.includes('R$ 30,00'), 'resultado Mercadoria: lucro 50,0%, custo 20, preço 30');
+    ok(!(await page.evaluate(() => document.getElementById('simula-det').open)) && !(await page.evaluate(() => document.getElementById('contas').open)), 'resultado: "Ver as contas" e "Simular" fechados por padrão');
+    await page.click('#simula-det summary');
     ok(await page.inputValue('#sim-preco') === '30' && await page.inputValue('#sim-qtd') === '50', 'simulação começa com o preço e a quantidade informados');
     await page.fill('#sim-preco', '25'); await page.fill('#sim-qtd', '10'); await page.click('#sim-ok');
     ok((await texto('#sim-res')).includes('R$ 5,00') && (await texto('#sim-res')).includes('R$ 50,00'), 'simular R$ 25 x 10 vendas: sobra R$ 5,00, resultado R$ 50,00');
@@ -612,6 +672,7 @@ const server = http.createServer(async (req, res) => {
     ok(await page.locator('.lg2-proximo').count() === 1, 'aviso abaixo do custo não trava o resultado');
     await page.locator('#aviso-abaixo-custo').scrollIntoViewIfNeeded();
     await shot('l3_m05_resultado_abaixo_custo.png');
+    await page.click('#simula-det summary');
     await page.fill('#sim-preco', '12'); await page.click('#sim-ok');
     ok((await texto('#sim-abaixo')).includes('abaixo do custo (R$ 20,00)'), 'simulação com preço abaixo do custo: mesmo aviso');
     ok(await clicar('#aviso-abaixo-custo button', 'Revisar o preço') && await atual() === 'M5.P36', '"Revisar o preço" volta para a pergunta do preço');
@@ -733,6 +794,7 @@ const server = http.createServer(async (req, res) => {
       await page.reload(); await page.click('#ir');
       ok(await atual() === 'RESULTADO' && (await texto('#tela')).includes('R$ 3,10'), 'ajuste: resultado aberto com custo de uma unidade R$ 3,10');
       ok(await page.locator('details#ajuste').count() === 1 && !(await page.evaluate(() => document.getElementById('ajuste').open)) && norm(await page.textContent('#ajuste summary')) === 'Ajustar valores e recalcular', 'ajuste: caixa "Ajustar valores e recalcular" no resultado, recolhida');
+      await page.click('#contas summary');
       ok(await clicar('[data-ir-ajuste]', 'Mudou algum valor? Ajuste aqui e recalcule ↓') && await page.evaluate(() => document.getElementById('ajuste').open), 'ajuste: atalho embaixo da composição do custo abre a caixa');
       const campos = () => page.evaluate(() => [...document.querySelectorAll('#ajuste tr')].map((tr) => ({ rot: tr.cells[0].textContent.trim().replace(/\s*\([^)]*\)$/, ''), un: tr.cells[0].textContent.trim(), v: (tr.querySelector('input') || {}).value })));
       const cs = await campos();
@@ -794,6 +856,14 @@ const server = http.createServer(async (req, res) => {
       console.log('PASS-stage: ajustar valores no resultado (Recalcular/Limpar)');
     }
 
+    /* versão leve: cada tela de pergunta visitada com até 60 palavras visíveis antes de tocar em algo */
+    {
+      const lista = Object.entries(medidas);
+      const faltam = M.ordem.map((q) => q.codigo).filter((c) => !(c in medidas));
+      ok(lista.length >= 34, `telas de pergunta medidas: ${lista.length} (sem medida: ${faltam.join(', ')})`);
+      console.log(`palavras por tela (máx.): ${JSON.stringify(medidas)} · sem medida: ${faltam.join(', ')}`);
+      for (const [c, n] of lista) ok(n <= 60, `${c}: ${n} palavras visíveis (máximo 60)`);
+    }
     ok(errors.length === 0, 'sem erros de JavaScript: ' + errors.join(' | '));
   } catch (e) {
     falhas.push('exceção: ' + (e && e.stack || e));

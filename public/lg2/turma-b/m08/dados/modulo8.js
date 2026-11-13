@@ -164,112 +164,164 @@ window.MODULO8 = {
   {
    "codigo": "M8.P01",
    "modulo": "M8",
-   "pergunta": "Qual é a sua atividade real? O que você faz no dia a dia para gerar renda?",
-   "ajuda": "Descreva o que faz, como faz, para quem e onde. Se não souber como explicar, escolha “Não sei”.",
+   "pergunta": "O que você faz ou vende no dia a dia?",
+   "ajuda": "Conte o que faz, como faz, para quem e onde. É com essa descrição que procuramos as ocupações do MEI que combinam com você.",
    "tipo": "Texto",
    "condicao": "Sempre",
    "opcoes": "Não sei",
    "resposta": "-",
-   "alerta": "Uma descrição clara evita erros de CNAE e enquadramento."
+   "alerta": "Uma descrição clara evita erros de CNAE e enquadramento.",
+   "exemplo": "Ex.: Faço bolos de pote e vendo para os vizinhos",
+   "comoDescobrir": [
+    "Pense no que o cliente leva ou recebe quando paga você: um bolo, um corte de cabelo, uma peça consertada.",
+    "Escreva numa frase, como contaria a um amigo: o que você faz e para quem. Ex.: “Faço bolos de pote e vendo para os vizinhos”."
+   ],
+   "promptIA": "Eu trabalho com [o que você faz no dia a dia] e vendo para [quem são seus clientes]. Me ajude a descrever a minha atividade em uma frase simples: o que eu faço, como faço e para quem."
   },
   {
    "codigo": "M8.P02",
    "modulo": "M8",
-   "pergunta": "Sua atividade envolve principalmente produto, mercadoria, serviço ou mais de um?",
+   "pergunta": "O que você vende: produto, mercadoria, serviço ou mais de um?",
    "ajuda": "Produto: você faz o que vende (bolo, doce, roupa). Mercadoria: você compra pronto e revende. Serviço: o cliente paga pelo seu trabalho (manicure, conserto, aula). Se fizer produto e também prestar serviço, escolha “Produto e serviço”.",
    "tipo": "Escolha",
    "condicao": "Sempre",
    "opcoes": "Produto; Mercadoria; Serviço; Produto e serviço; Não sei",
    "resposta": "-",
-   "alerta": "A classificação influencia CNAE, MEI e licenças."
+   "alerta": "A classificação influencia CNAE, MEI e licenças.",
+   "comoDescobrir": [
+    "Lembre a sua última venda: o cliente levou algo que você fez (Produto), algo que você comprou pronto (Mercadoria) ou pagou pelo seu trabalho (Serviço)?",
+    "Se faz as duas coisas, escolha “Produto e serviço”. Na dúvida, escolha o que mais acontece no seu dia a dia."
+   ],
+   "promptIA": "Eu [descreva o que você faz e vende]. Isso é produto (eu faço o que vendo), mercadoria (compro pronto e revendo), serviço (o cliente paga pelo meu trabalho) ou produto e serviço? Explique de forma simples."
   },
   {
    "codigo": "M8.P03",
    "modulo": "M8",
-   "pergunta": "Onde você realiza sua atividade?",
-   "ajuda": "Escolha o local principal.",
+   "pergunta": "Onde você trabalha a maior parte do tempo?",
+   "ajuda": "Escolha o local principal. O local pode pedir licenças da prefeitura ou da vigilância sanitária.",
    "tipo": "Escolha",
    "condicao": "Sempre",
    "opcoes": "Minha casa; Ponto comercial; Na casa do cliente (atendimento em domicílio); Atendimento externo; Online; Não sei",
    "resposta": "-",
-   "alerta": "O local pode exigir licenças municipais ou sanitárias."
+   "alerta": "O local pode exigir licenças municipais ou sanitárias.",
+   "comoDescobrir": [
+    "Pense numa semana comum: onde você passa mais horas trabalhando ou atendendo clientes?",
+    "Se ainda não começou, escolha onde pretende trabalhar. Dá para mudar a resposta depois."
+   ]
   },
   {
    "codigo": "M8.P04",
    "modulo": "M8",
-   "pergunta": "Quanto você estima faturar por mês, em média?",
-   "ajuda": "Pode ser aproximado. Se não souber, escolha “Não sei”.",
+   "pergunta": "Quanto você costuma faturar por mês, em média?",
+   "ajuda": "Faturamento é tudo o que entra das vendas, antes de pagar as despesas. Pode ser aproximado: é com ele que vemos se o MEI cabe no seu negócio.",
    "tipo": "Número",
    "condicao": "Sempre",
    "opcoes": "Não sei",
    "resposta": "-",
-   "alerta": "O faturamento ajuda a verificar se o MEI é uma hipótese."
+   "alerta": "O faturamento ajuda a verificar se o MEI é uma hipótese.",
+   "exemplo": "Ex.: 2.500,00",
+   "comoDescobrir": [
+    "Some o que entrou das vendas no último mês: caderno de anotações, extrato do banco ou do Pix e as conversas com clientes.",
+    "Se ainda não vende, faça a conta: preço de uma venda × quantas vendas espera por mês. Ex.: R$ 10 × 100 bolos = R$ 1.000."
+   ],
+   "promptIA": "Eu vendo [o que você vende] por cerca de [preço de uma venda] e faço umas [quantas vendas] por semana. Me ajude a calcular quanto eu faturo por mês, em média, mostrando a conta passo a passo."
   },
   {
    "codigo": "M8.P05",
    "modulo": "M8",
-   "pergunta": "Você já possui CNPJ?",
-   "ajuda": "Se tiver, informe o tipo. Se não souber, escolha “Não sei”.",
+   "pergunta": "Você já tem CNPJ? Se tem, de que tipo?",
+   "ajuda": "Se você nunca abriu uma empresa, a resposta é “Não”. O tipo de CNPJ define limites e obrigações.",
    "tipo": "Escolha",
    "condicao": "Sempre",
    "opcoes": "Não; MEI (Microempreendedor Individual); ME (Microempresa); EI (Empresário Individual); SLU (Sociedade Limitada Unipessoal); LTDA (Sociedade Limitada); Não sei",
    "resposta": "-",
-   "alerta": "O tipo de CNPJ define obrigações e limites."
+   "alerta": "O tipo de CNPJ define obrigações e limites.",
+   "comoDescobrir": [
+    "Abra o Cartão CNPJ (Comprovante de Inscrição) no site da Receita Federal, de graça, com o número do CNPJ. O tipo aparece nos campos “Natureza jurídica” e “Porte”; quem é MEI também tem o Certificado do MEI.",
+    "Se você tem contador, pergunte a ele. Se nunca abriu uma empresa, a resposta é “Não”."
+   ],
+   "promptIA": "No meu Cartão CNPJ aparece natureza jurídica [copie o que está escrito] e porte [copie o que está escrito]. Isso quer dizer que a minha empresa é MEI, ME, EI, SLU ou LTDA? Explique de forma simples."
   },
   {
    "codigo": "M8.P06",
    "modulo": "M8",
-   "pergunta": "Você sabe qual é o CNAE da sua atividade?",
-   "ajuda": "Pode informar o código ou a descrição. Se não souber, escolha “Não sei”.",
+   "pergunta": "Você sabe o CNAE da sua atividade?",
+   "ajuda": "CNAE é o código que diz ao governo o que a sua empresa faz. Pode escrever o código ou a descrição.",
    "tipo": "Texto",
    "condicao": "M8.P05=Não",
    "opcoes": "Não sei",
    "resposta": "-",
-   "alerta": "CNAE incorreto pode gerar obrigações indevidas"
+   "alerta": "CNAE incorreto pode gerar obrigações indevidas",
+   "exemplo": "Ex.: 1091-1/02 ou fabricação de bolos",
+   "comoDescobrir": [
+    "Toque em “Consultar as ocupações permitidas ao MEI” e procure por uma palavra do que você faz (ex.: bolo, manicure). O código aparece em cada ocupação.",
+    "Leve o código que achou à Sala do Empreendedor de Juiz de Fora ou a um contador para confirmar."
+   ],
+   "promptIA": "Eu trabalho com [descreva o que faz, como faz e para quem]. Quais códigos CNAE podem descrever essa atividade? Diga quais aparecem na lista de ocupações permitidas ao MEI. Vou confirmar com um contador."
   },
   {
    "codigo": "M8.P07",
    "modulo": "M8",
-   "pergunta": "Sua atividade aparece na lista de ocupações permitidas para MEI?",
-   "ajuda": "Consulte a lista oficial do gov.br. Se não souber, escolha “Não sei”.",
+   "pergunta": "Sua atividade está na lista de ocupações permitidas ao MEI?",
+   "ajuda": "Só pode ser MEI quem faz uma atividade dessa lista oficial do gov.br.",
    "tipo": "Escolha",
    "condicao": "M8.P04 ≤ 6750 ou M8.P05 = Não",
    "opcoes": "Sim; Não; Não sei",
    "resposta": "-",
-   "alerta": "Nem todas as atividades podem ser MEI."
+   "alerta": "Nem todas as atividades podem ser MEI.",
+   "comoDescobrir": [
+    "Toque em “Consultar as ocupações permitidas ao MEI”, logo abaixo, e procure por uma palavra do que você faz. É a lista oficial do gov.br.",
+    "Se não achar, pergunte na Sala do Empreendedor de Juiz de Fora, da prefeitura, ou ligue de graça para o Sebrae: 0800 570 0800."
+   ],
+   "promptIA": "Eu trabalho com [descreva o que faz]. Essa atividade está na lista de ocupações permitidas ao MEI do gov.br? Diga o nome da ocupação e o CNAE. Vou conferir na lista oficial."
   },
   {
    "codigo": "M8.P08",
    "modulo": "M8",
-   "pergunta": "Sua atividade exige responsável técnico ou formação específica?",
-   "ajuda": "Exemplos: estética avançada, saúde, engenharia, alimentos.",
+   "pergunta": "Sua atividade exige formação ou responsável técnico?",
+   "ajuda": "Exemplos: estética avançada, saúde, engenharia, alimentos. Atividades assim não podem ser feitas sem habilitação.",
    "tipo": "Escolha",
    "condicao": "M8.P02 = Serviço ou M8.P02 = Produto e serviço",
    "opcoes": "Sim; Não; Não sei",
    "resposta": "-",
-   "alerta": "Atividades regulamentadas não podem ser exercidas sem habilitação."
+   "alerta": "Atividades regulamentadas não podem ser exercidas sem habilitação.",
+   "comoDescobrir": [
+    "Procure o conselho da sua profissão (de estética, saúde ou engenharia, por exemplo) e veja se ele exige registro ou curso para trabalhar.",
+    "Pergunte na Sala do Empreendedor de Juiz de Fora ou no Sebrae (0800 570 0800) se a sua atividade precisa de responsável técnico."
+   ],
+   "promptIA": "Eu trabalho com [descreva o que faz]. Essa atividade exige formação, registro em conselho profissional ou responsável técnico no Brasil? Diga qual conselho procurar. Vou confirmar no órgão oficial."
   },
   {
    "codigo": "M8.P09",
    "modulo": "M8",
-   "pergunta": "Você sabe se sua atividade exige alvará, licença sanitária ou autorização municipal?",
+   "pergunta": "Sua atividade precisa de alvará, licença sanitária ou autorização da prefeitura?",
    "ajuda": "Atividades com alimentos, atendimento ao público ou ponto comercial podem exigir licenças.",
    "tipo": "Escolha",
    "condicao": "M8.P03 ≠ Online",
    "opcoes": "Sim; Não; Não sei",
    "resposta": "-",
-   "alerta": "Licenças variam por município e devem ser confirmadas em fonte oficial."
+   "alerta": "Licenças variam por município e devem ser confirmadas em fonte oficial.",
+   "comoDescobrir": [
+    "Faça o Módulo 9 deste app: ele mostra as licenças mais comuns para a sua atividade e o seu local.",
+    "Confirme na Sala do Empreendedor de Juiz de Fora ou, se você mexe com alimentos ou atende o público, na Vigilância Sanitária da prefeitura."
+   ],
+   "promptIA": "Eu trabalho com [descreva o que faz] em [sua casa, ponto comercial ou casa do cliente], na cidade de [sua cidade]. Que alvarás e licenças costumam ser exigidos para isso? Diga em qual órgão eu confirmo."
   },
   {
    "codigo": "M8.P10",
    "modulo": "M8",
-   "pergunta": "Qual é sua principal dúvida sobre formalização?",
+   "pergunta": "Qual é a sua principal dúvida sobre formalização?",
    "ajuda": "Escolha a opção que mais se aproxima da sua situação.",
    "tipo": "Escolha",
    "condicao": "Sempre",
    "opcoes": "Como escolher o CNAE; Se posso ser MEI; Quais licenças preciso; Obrigações do CNPJ; Não sei",
    "resposta": "-",
-   "alerta": "A dúvida ajuda a organizar o próximo passo."
+   "alerta": "A dúvida ajuda a organizar o próximo passo.",
+   "comoDescobrir": [
+    "Pense no que mais trava você hoje para abrir ou ajustar o CNPJ: a atividade, o MEI, as licenças ou os impostos.",
+    "Leve este resumo à Sala do Empreendedor de Juiz de Fora ou ligue de graça para o Sebrae (0800 570 0800): lá ajudam a achar o primeiro passo."
+   ],
+   "promptIA": "Quero formalizar o meu negócio de [descreva o que faz] e ainda não sei por onde começar. Faça 5 perguntas simples para descobrir a minha principal dúvida e depois me diga o primeiro passo."
   }
  ],
  "regras": [],
@@ -4250,5 +4302,9 @@ window.MODULO8 = {
     "tabela": "Tabela B"
    }
   ]
+ },
+ "capa": {
+  "frase": "Descubra se o seu negócio pode ser MEI e o que falta para abrir o CNPJ.",
+  "minutos": "5"
  }
 };

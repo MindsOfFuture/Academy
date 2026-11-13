@@ -30,6 +30,15 @@ const K = 'lg2-turma-b-m08';
     const m = t.match(/Pergunta (\d+)/);
     return m ? Motor.montar(window.MODULO8).perguntas[+m[1] - 1].codigo : null;
   });
+  /* versão leve (nov/2026): nas perguntas, faixa compacta (passo + barra), sem barra do topo nem ilustração */
+  const palavras = async () => (await page.evaluate(() => document.querySelector('#tela').innerText)).split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
+  const layoutPergunta = async (onde) => {
+    assert.equal(await page.locator('.heroi-compacta').count(), 1, `${onde}: faixa compacta`);
+    assert.equal(await page.locator('.heroi-img').count() + await page.locator('.barra-topo').count(), 0, `${onde}: sem ilustração nem trilha`);
+    assert.match(nrm(await page.textContent('.heroi-compacta .passo')), /^Pergunta \d+ de \d+$/, `${onde}: passo na faixa`);
+    assert.equal(await page.locator('.rodape .logos img').count(), 3, `${onde}: rodapé institucional`);
+    assert.equal(await page.locator('#v.voltar').count(), 1, `${onde}: Voltar de contorno`);
+  };
   const layout = async (onde) => {
     assert.equal(await page.locator('.barra-topo .logo-mini').count(), 1, `${onde}: logo na barra do topo`);
     assert.match(nrm(await page.innerText('.trilha')), /^Início \/ Módulo 8/, `${onde}: trilha`);
@@ -48,25 +57,38 @@ const K = 'lg2-turma-b-m08';
   await layout('capa');
   assert.equal(await page.locator('.heroi-grande').count(), 1);
   assert.equal(nrm(await page.textContent('.heroi h1')), nrm(D.modulo.nome));
-  assert.equal(nrm(await page.textContent('.heroi-txt p')), nrm(D.mapa.objetivo));
+  assert.equal(nrm(await page.textContent('.heroi-txt p')), nrm(D.capa.frase), 'capa: uma frase só');
+  assert.equal(nrm(await page.textContent('.tempo')), `Este módulo leva uns ${D.capa.minutos} minutos`, 'capa: tempo');
+  assert.equal(await page.$eval('details.como-funciona', (d) => !d.open), true, 'capa: "Como funciona" fechado');
+  assert.ok(nrm(await page.textContent('details.como-funciona')).includes(nrm(D.mapa.ter_em_maos)), 'capa: "O que ter em mãos" dentro de "Como funciona"');
+  assert.ok(await palavras() <= 60, `capa: até 60 palavras (${await palavras()})`);
   await btn('Começar').click();
 
   /* perguntas até o resultado */
   const resp = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Não sei', 'M8.P10': null };
-  const vistas = [];
+  const vistas = [], contagem = {};
   for (let i = 0; i < 20; i++) {
     const cod = await atual();
     if (cod === 'RESULTADO') break;
     assert.ok(cod && P[cod], 'pergunta desconhecida');
     vistas.push(cod);
     const q = P[cod];
-    await layout(cod);
+    await layoutPergunta(cod);
+    const np = await palavras();
+    assert.ok(np <= 60, `${cod}: até 60 palavras visíveis (${np})`);
+    contagem[cod] = np;
     assert.equal(await page.locator('.herdou').count(), 0, `${cod}: sem dados de outros módulos, nada pré-preenchido`);
     assert.equal(await page.locator('.cartao-q .q').count(), 1, `${cod}: cartão da pergunta`);
     assert.equal(nrm(await page.textContent('.cartao-q .q')), nrm(q.pergunta), `${cod}: pergunta literal`);
-    /* ajuda literal; acima de 220 caracteres, o resto fica em "Ver mais" (lote 3) */
-    assert.equal(nrm(await page.$eval('.dica .ajuda', (e) => { const c = e.cloneNode(true); c.querySelectorAll('summary').forEach((x) => x.remove()); return c.textContent; })), nrm(q.ajuda), `${cod}: ajuda literal`);
-    assert.equal(await page.locator('.dica details.mais').count(), q.ajuda.length > 220 ? 1 : 0, `${cod}: "Ver mais" só na ajuda longa`);
+    /* ajuda dos dados dentro de "Ver dica", fechada, entre a pergunta e as respostas (versão leve) */
+    assert.equal(await page.locator('details.dica-toggle').count(), 1, `${cod}: um "Ver dica"`);
+    assert.equal(await page.$eval('details.dica-toggle', (d) => d.open), false, `${cod}: "Ver dica" fechado`);
+    assert.equal(nrm(await page.textContent('details.dica-toggle summary')), 'Ver dica');
+    assert.equal(nrm(await page.textContent('details.dica-toggle .ajuda')), nrm(q.ajuda), `${cod}: ajuda dos dados`);
+    assert.ok(await page.evaluate(() => (document.querySelector('.cartao-q .q').compareDocumentPosition(document.querySelector('details.dica-toggle')) & 4) && (document.querySelector('details.dica-toggle').compareDocumentPosition(document.querySelector('#ent')) & 4)), `${cod}: "Ver dica" entre a pergunta e as respostas`);
+    assert.ok(Array.isArray(q.comoDescobrir) && q.comoDescobrir.length === 2, `${cod}: "Como descobrir" com 2 passos nos dados`);
+    const campo = page.locator('#ent input, #ent textarea');
+    if (await campo.count()) assert.match(await campo.getAttribute('placeholder'), /^Ex\.: .+/, `${cod}: exemplo dentro do campo`);
     /* Voltar no topo do cartão, à esquerda, acima da pergunta (lote 3) */
     assert.ok(await page.evaluate(() => { const v = document.querySelector('.cartao-q #v'), q = document.querySelector('.cartao-q .q'); return !!v && v.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1 && v.getBoundingClientRect().left < 80; }), `${cod}: Voltar no topo do cartão`);
     assert.equal(nrm(await page.textContent('#v')), 'Voltar', `${cod}: nome Voltar`);
@@ -92,6 +114,7 @@ const K = 'lg2-turma-b-m08';
     if (cod === 'M8.P06') {   // Anexo XI: ida e volta para a mesma pergunta
       await btn('Consultar as ocupações permitidas ao MEI').click();
       await layout('anexo');
+      await page.waitForTimeout(50);
       assert.match(nrm(await page.textContent('#conta')), /\d+ de \d+ ocupações/);
       await btn('Voltar').click();
       assert.equal(await atual(), 'M8.P06', 'Voltar do Anexo volta à pergunta');
@@ -106,6 +129,10 @@ const K = 'lg2-turma-b-m08';
 
   /* resultado */
   await layout('resultado');
+  /* resultado leve: entendemos, próximo passo e o resto recolhido */
+  assert.ok(nrm(await page.textContent('#tarefa')).startsWith('Seu próximo passo'), 'resultado: próximo passo');
+  for (const d of ['details.respostas', 'details#ocupacoes', 'details#mais-detalhes']) assert.equal(await page.$eval(d, (x) => x.open), false, `${d} fechado`);
+  console.log('palavras por pergunta: ' + JSON.stringify(contagem) + ' · resultado: ' + await palavras());
   assert.equal(nrm(await page.textContent('.heroi-tit')), 'Resumo da sua formalização');
   assert.equal(nrm(await page.textContent('.concluido h2')), 'Você concluiu o Módulo 8');
   assert.equal(await page.locator('.concluido .check').count(), 1);

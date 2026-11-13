@@ -230,3 +230,31 @@ details.mais[open] summary{display:none}
 .fontes{margin-top:12px}
 .fontes .criterios a{word-break:break-word}
 @media print{.cnae-acoes{display:none!important}}
+
+/* Versão leve (nov/2026, modelo dos Módulos 1 e 10): pergunta com faixa compacta, "Ver dica" fechada,
+   "Como descobrir" no "Não sei" e detalhes do resultado recolhidos. */
+.heroi-compacta{min-height:auto;padding:10px 18px 12px}
+.heroi-compacta .heroi-txt{padding:0;width:auto}
+.heroi-compacta .kicker{margin:0}
+.heroi-compacta .heroi-prog{margin:6px 0 0;padding:0}
+.dica-toggle,.como-funciona{border:1px solid var(--m-lavender);border-radius:12px;padding:10px 14px;margin:10px 0;background:#fff}
+.dica-toggle summary,.como-funciona summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;min-height:24px}
+.dica-toggle[open] summary,.como-funciona[open] summary{margin-bottom:8px}
+.dica-toggle .ajuda{font-size:16px;color:#3d3650;line-height:1.45;margin:0 0 8px}
+.dica-toggle .conceito{margin-top:8px}
+.como-funciona h3{margin:10px 0 2px}
+.tempo{color:var(--m-gray);font-size:16px;margin:4px 0 8px}
+.como-descobrir{border-left:4px solid var(--m-purple);background:var(--m-lavender);border-radius:10px;padding:12px 14px;margin:12px 0;line-height:1.5;color:#2b2340}
+.como-descobrir .como-tit{display:block;color:var(--m-purple);font-size:17px}
+.como-descobrir ol{padding-left:22px;margin:8px 0}
+.como-descobrir li{margin:5px 0}
+.pedir-ia{border-top:1px solid var(--m-purple);padding-top:10px;margin-top:10px}
+.como-nota{font-size:16px;margin:4px 0 8px}
+.prompt{background:#fff;border-radius:8px;padding:10px;font-size:16px;line-height:1.45;overflow-wrap:anywhere}
+.copiar{min-height:44px}
+#ns-ajuda .ns-pede{margin:10px 0 0;font-weight:400}
+.como-mini summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;margin:4px 0}
+.como-mini .como-descobrir{margin:6px 0 10px}
+#falta > ul > li{margin:8px 0}
+#tarefa p{margin:4px 0 0}
+@media print{.dica-toggle,.como-descobrir{break-inside:avoid}}

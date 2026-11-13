@@ -272,3 +272,28 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 .conta-forn.vazia{font-weight:400;color:var(--m-gray);font-style:italic}
 .reposicao-conta{list-style:none;padding:0;margin:8px 0 4px;font-size:14.5px}
 .reposicao-conta li{padding:4px 0;border-bottom:1px solid var(--m-lavender)}
+/* Versão leve (modelo dos Módulos 1 e 10): detalhes recolhidos e ajuda acionável para "Não sei" */
+.dica-toggle,.como-funciona{border:1px solid var(--m-lavender-mid);border-radius:12px;padding:10px 14px;margin:10px 0;background:#fff}
+.dica-toggle summary,.como-funciona summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;min-height:24px}
+.dica-toggle[open] summary,.como-funciona[open] summary{margin-bottom:8px}
+.dica-toggle .ajuda{font-size:16px;color:#3d3650;line-height:1.45;margin:4px 0 8px}
+.como-funciona h3{margin-top:12px}
+.instrucao{font-size:16px;color:var(--m-gray);margin:-2px 0 6px}
+.heroi-compacta{padding-top:12px}
+.heroi-compacta .heroi-prog{padding:0 18px 12px}
+.tempo{color:var(--m-gray);font-size:16px;margin:10px 0}
+.como-descobrir{border-left:4px solid var(--m-purple);background:var(--m-lavender);border-radius:10px;padding:12px 14px;margin:12px 0;line-height:1.5;font-size:16px;color:#2b2340}
+.como-descobrir .como-tit{display:block;color:var(--m-purple);font-size:17px}
+.como-descobrir ol{padding-left:22px;margin:8px 0}
+.como-descobrir li{margin:5px 0}
+.pedir-ia{border-top:1px solid var(--m-purple);padding-top:10px;margin-top:10px}
+.pedir-ia>b{color:var(--m-purple)}
+.como-nota{font-size:14.5px;margin:4px 0 8px}
+.como-descobrir .prompt{background:#fff;border-radius:8px;padding:10px;font-size:16px;line-height:1.45;overflow-wrap:anywhere;margin:0}
+.como-descobrir .copiar{min-height:44px;margin-top:8px;font-size:16px}
+.ns-ajuda .como-descobrir{margin-top:10px}
+.resultado-mais{margin:12px 0}
+.resultado-mais>summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;padding:12px 14px;border:1px solid var(--m-lavender-mid);border-radius:12px;background:#fff;min-height:24px}
+.resultado-mais[open]>summary{margin-bottom:10px}
+.proximos{border-left:5px solid var(--m-purple)}
+@media print{.dica-toggle,.como-descobrir{break-inside:avoid}.copiar,.btn-copiar{display:none}}

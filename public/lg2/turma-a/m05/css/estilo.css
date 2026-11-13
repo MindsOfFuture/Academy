@@ -292,3 +292,46 @@ a{color:var(--m-purple)}
 .aj-botoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .aj-botoes .btn{flex:1 1 140px}
 @media print{.ajuste,[data-ir-ajuste]{display:none!important}}
+
+/* ---------- versão leve (nov/2026): faixa curta, dica e detalhes sob demanda, "Como descobrir" no "Não sei" ---------- */
+.heroi-compacta{padding:10px 0 0}
+.heroi-compacta .kicker{padding:0 18px 6px}
+.heroi-compacta .reinicio{margin-bottom:10px}
+.tempo{color:var(--m-gray);font-size:16px;margin:4px 2px 0}
+.como-funciona{border:2px solid var(--m-lavender);border-radius:var(--m-radius);padding:12px 14px;margin:0 0 12px}
+.como-funciona summary,.dica-toggle summary,.resultado-mais>summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px;min-height:24px}
+.como-funciona[open] summary{margin-bottom:10px}
+.como-funciona>p{font-size:16px;color:#3d3650;margin-bottom:12px}
+.como-funciona .cartao p{font-size:15px}
+.dica-toggle{display:block;margin:4px 0 12px;padding:8px 12px;border:1.5px solid var(--m-lavender);border-radius:12px}
+.dica-toggle summary{list-style:none;display:inline-flex;align-items:center;gap:6px}
+.dica-toggle summary::-webkit-details-marker{display:none}
+.dica-toggle summary::before{content:"+";display:inline-block;width:22px;height:22px;line-height:19px;text-align:center;border-radius:50%;border:2px solid var(--m-purple);font-weight:700}
+.dica-toggle[open] summary::before{content:"−"}
+.dica-corpo{margin-top:8px;font-size:16px;color:#3d3650}
+.dica-corpo .ajuda{font-size:16px;margin-bottom:6px}
+.campo::placeholder{color:#77708a;opacity:1}
+.como-descobrir{background:var(--m-lavender);border-left:5px solid var(--m-purple);border-radius:12px;padding:12px 15px;color:#2b2340;margin-bottom:10px}
+.como-descobrir .como-tit{display:block;color:var(--m-purple);font-size:18px;margin-bottom:4px}
+.como-descobrir ol{padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:16px}
+.pedir-ia{margin-top:12px;background:#fff;border-radius:12px;padding:12px 13px}
+.pedir-ia b{display:block;color:var(--m-purple);font-size:16px}
+.painel-ajuda .como-nota,.como-nota{font-size:16px;color:var(--m-gray);margin:4px 0 8px}
+.prompt{font-size:16px;line-height:1.45;margin:8px 0 10px;padding:10px 12px;border:2px dashed var(--m-lavender-mid);border-radius:10px;background:var(--m-paper);user-select:text;-webkit-user-select:text;overflow-wrap:anywhere}
+.painel-ajuda .prompt{margin:8px 0 10px}
+.copiar{min-height:44px}
+.termos{margin:6px 0 4px}
+.termos summary{font-size:16px}
+.termos .conceito{font-size:16px}
+.resultado-mais{border:2px solid var(--m-lavender);border-radius:var(--m-radius);padding:12px 14px;margin:12px 0}
+.resultado-mais[open]>summary{margin-bottom:10px}
+.tarefa{background:var(--m-purple);color:#fff;border-radius:var(--m-radius);padding:14px 16px;margin:0 0 14px}
+.tarefa b{display:block;color:var(--m-yellow);font-size:16px;margin-bottom:4px}
+.tarefa p{font-size:16px;line-height:1.45}
+.b-lacuna .como-mini{margin:4px 0 8px}
+.b-lacuna .como-mini .como-descobrir{margin-top:8px}
+#minhas{margin-top:14px}
+@media print{.dica-toggle,.como-descobrir{break-inside:avoid}.copiar,.reinicio{display:none!important}.tarefa{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.painel-ajuda{border:none;padding:0}
+.item-salvo{grid-template-columns:1fr}
+.negocio .selo-m{display:block;border-radius:10px;margin:8px 0 0}

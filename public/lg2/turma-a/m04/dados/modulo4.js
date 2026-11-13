@@ -10,7 +10,10 @@
    usada quando o produto é comida ou bebida.
    Ajuste de 05/11/2026 (5º lote, Nayara e Arthur): dicas longas divididas (ajuda + ajuda_mais em "Ver mais"),
    protótipo e oferta mínima junto da pré-venda na M4.P14 (conceitos_destaque), "Outro" da M4.P11 com campo,
-   M4.P16 sem o texto sobre o app e correções de escrita. */
+   M4.P16 sem o texto sobre o app e correções de escrita.
+   Versão leve (13/11/2026, pedido da coordenação): enunciados curtos, exemplo dentro do campo (placeholder),
+   legenda curta da M4.P02 (destaque_visivel), texto da capa (leve) e ajuda do "Não sei" em todas as perguntas
+   que têm "Não sei" (comoDescobrir: 2 passos; promptIA: pedido pronto para a IA; por tipo em por_tipo). */
 window.MODULO4 = {
  "origem": "M04.xlsx",
  "modulo": {
@@ -305,7 +308,7 @@ window.MODULO4 = {
   {
    "codigo": "M4.P01",
    "modulo": "M4",
-   "pergunta": "Em uma frase, o que você pretende oferecer aos seus primeiros clientes? Vamos usar esta frase como ponto de partida.",
+   "pergunta": "Em uma frase, o que você vai oferecer aos primeiros clientes?",
    "ajuda": "Descreva como explicaria a um conhecido. Ex.: \"Eu pretendo oferecer aos meus clientes um bolo de pote para lanche escolar\".",
    "tipo": "Texto",
    "condicao": "sempre",
@@ -319,19 +322,27 @@ window.MODULO4 = {
    "por_tipo": {
     "Serviço": {
      "ajuda": "Descreva como explicaria a um conhecido. Ex.: \"Eu pretendo oferecer às minhas clientes manicure em domicílio no fim do dia\".",
-     "ajuda_mais": "Descrições muito amplas (ex.: \"beleza\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente."
+     "ajuda_mais": "Descrições muito amplas (ex.: \"beleza\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente.",
+     "placeholder": "Ex.: manicure em domicílio no fim do dia"
     },
     "Mercadoria": {
      "ajuda": "Descreva como explicaria a um conhecido. Ex.: \"Eu pretendo revender roupas infantis para as mães do meu bairro\".",
-     "ajuda_mais": "Descrições muito amplas (ex.: \"roupas\", \"cosméticos\") dificultam o teste, porque cada pessoa entende uma coisa diferente."
+     "ajuda_mais": "Descrições muito amplas (ex.: \"roupas\", \"cosméticos\") dificultam o teste, porque cada pessoa entende uma coisa diferente.",
+     "placeholder": "Ex.: roupas infantis para as mães do meu bairro"
     }
    },
-   "ajuda_mais": "Descrições muito amplas (ex.: \"doces\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente."
+   "ajuda_mais": "Descrições muito amplas (ex.: \"doces\", \"consultoria\") dificultam o teste, porque cada pessoa entende uma coisa diferente.",
+   "placeholder": "Ex.: bolo de pote para lanche escolar",
+   "comoDescobrir": [
+    "Pense no que você já faz bem e que alguém já pediu ou elogiou: comida, conserto, cuidado, costura, revenda.",
+    "Complete em voz alta: “Eu vou oferecer ___ para ___”. Escreva do jeito que sair; dá para mudar depois."
+   ],
+   "promptIA": "Quero começar um pequeno negócio. Sei fazer [o que você sabe fazer] e tenho [quanto tempo e dinheiro você tem]. Me ajude a escrever, em uma frase simples, o que eu poderia oferecer e para quem. Me dê 3 opções curtas."
   },
   {
    "codigo": "M4.P02",
    "modulo": "M4",
-   "pergunta": "O que você quer desenvolver: mercadoria, produto ou serviço?",
+   "pergunta": "Isso é produto, serviço ou mercadoria?",
    "ajuda": "Escolha a opção que mais se aproxima. Ela define quais perguntas você verá a seguir.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -339,12 +350,13 @@ window.MODULO4 = {
    "proximo": "",
    "fonte": "Estrutura do fluxo (sem regra externa)",
    "status": "Rascunho",
-   "destaque": "Produto: o que você mesmo faz, com materiais e o seu tempo (ex.: artesanato, comida caseira).\nServiço: o trabalho que você faz para alguém (ex.: cabeleireiro, manicure, psicólogo).\nMercadoria: o que você compra pronto e revende (ex.: roupas, bebidas, cosméticos)."
+   "destaque": "Produto: você mesmo faz (ex.: comida caseira).\nServiço: seu trabalho para alguém (ex.: manicure).\nMercadoria: você compra pronto e revende (ex.: roupas).",
+   "destaque_visivel": true
   },
   {
    "codigo": "M4.P03",
    "modulo": "M4",
-   "pergunta": "Quais materiais, ingredientes ou componentes principais o produto precisa ter para ser feito?",
+   "pergunta": "Quais materiais ou ingredientes principais você precisa para fazer o produto?",
    "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: farinha, ovos, açúcar, embalagem.",
    "tipo": "Texto",
    "condicao": "M4.P02 = Produto físico ou M4.P02 = Ambos",
@@ -359,12 +371,17 @@ window.MODULO4 = {
    "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto ou M4.P02 = Mercadoria ou M4.P02 = Mercadoria+ Serviço",
    "por_tipo": {
     "Mercadoria": {
-     "pergunta": "Quais mercadorias você vai comprar prontas para revender e o que mais precisa para vender cada uma?",
+     "pergunta": "Quais mercadorias você vai comprar prontas para revender e o que mais precisa?",
      "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: conjuntos de roupa infantil do 2 ao 8, sacolas, etiquetas de preço.",
      "proximo": "Se ainda não tem os preços de compra, anote o que já sabe; depois o módulo de custos ajuda a estimar o custo por unidade.",
      "resposta_naosei": "Em caso de dificuldade para preencher essa lista, indicamos que você use o seguinte texto na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
      "prompt_ia": "Você vai me ajudar a montar a FICHA de uma mercadoria que eu quero comprar pronta para revender. Quero apenas o que é necessário para comprar, guardar e vender, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu da mercadoria.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar à minha mercadoria)\n- Descrição da mercadoria: o que é, modelos, tamanhos e cores.\n- De quem vou comprar e quanto pago por unidade.\n- Quantidade mínima de compra e prazo de entrega do fornecedor.\n- Frete ou deslocamento para buscar.\n- Embalagem, etiqueta e outros itens para vender cada unidade.\n- Como guardar e cuidados para não estragar ou perder.\n- Regras de troca e garantia.\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha organizada em seções, usando apenas o que eu informei. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nA MERCADORIA QUE QUERO DETALHAR É:\n[escreva aqui a sua mercadoria]",
-     "ajuda_mais": "Essa lista é a base da ficha de cada mercadoria (o que você compra, de quem e por quanto). Sem uma lista clara, fica difícil repetir o teste ou calcular o custo."
+     "ajuda_mais": "Essa lista é a base da ficha de cada mercadoria (o que você compra, de quem e por quanto). Sem uma lista clara, fica difícil repetir o teste ou calcular o custo.",
+     "placeholder": "Ex.: conjuntos de roupa infantil, sacolas, etiquetas",
+     "comoDescobrir": [
+      "Chame 2 fornecedores e pergunte o preço por unidade, a quantidade mínima e o prazo de entrega.",
+      "Anote também o que mais precisa para vender cada peça: sacola, etiqueta, frete."
+     ]
     },
     "Alimento": {
      "pergunta": "Quais ingredientes vão na sua receita, em que quantidade, e quantas unidades ela rende?",
@@ -376,26 +393,41 @@ window.MODULO4 = {
      "proximo": "Se ainda não pesou os ingredientes, faça uma fornada anotando tudo; depois o módulo de custos ajuda a calcular o custo por unidade.",
      "resposta_naosei": "Em caso de dificuldade para preencher essa ficha técnica, indicamos que você use o seguinte texto na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
      "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um alimento que eu quero fazer para vender. Quero apenas o que é necessário para produzi-lo, sem análise de mercado, preço de venda ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do alimento.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir (por exemplo, pesar tudo na próxima fornada).\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR\n- Receita: cada ingrediente, a quantidade usada (em gramas ou ml) e quanto paguei por ele.\n- Rendimento: quantas unidades saem de uma receita (por fornada, assadeira ou panela).\n- Perda no preparo: aparas, quebra, o que queima ou estraga e não dá para vender.\n- Embalagem de cada unidade (pote, saquinho, caixa, etiqueta) e quanto ela custa.\n- Validade e como guardar (fora da geladeira, na geladeira ou no congelador).\n- Tempo de preparo de cada fornada ou pedido, contando assar e esfriar.\n- Utensílios e equipamentos que eu uso.\n- Cuidados de higiene no preparo.\n\nCONTA DO CUSTO POR UNIDADE\nCusto por unidade = custo da receita ÷ unidades boas para vender (o rendimento menos a perda) + custo da embalagem de uma unidade.\nExemplo (brownie): os ingredientes da receita custam R$ 30; a assadeira rende 12 pedaços, 2 quebram e sobram 10; R$ 30 ÷ 10 = R$ 3,00; mais R$ 0,50 do saquinho = R$ 3,50 por pedaço.\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica organizada em seções, usando apenas o que eu informei, com a conta do custo por unidade. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO ALIMENTO QUE QUERO DETALHAR É:\n[escreva aqui o seu alimento]",
-     "ajuda_mais": "Anote também quanto se perde no preparo (aparas, quebra, o que estraga), a validade e como guardar, e o tempo de preparo de cada fornada ou pedido.\n\nCusto por unidade = custo da receita ÷ rendimento, mais a embalagem."
+     "ajuda_mais": "Anote também quanto se perde no preparo (aparas, quebra, o que estraga), a validade e como guardar, e o tempo de preparo de cada fornada ou pedido.\n\nCusto por unidade = custo da receita ÷ rendimento, mais a embalagem.",
+     "placeholder": "Ex.: 200 g de chocolate, 3 ovos, 100 g de farinha; rende 12",
+     "comoDescobrir": [
+      "Faça a receita uma vez e anote a quantidade de cada ingrediente e quantas unidades rendeu.",
+      "Anote também a embalagem de cada unidade, a validade e quanto tempo levou para fazer."
+     ]
     }
    },
-   "ajuda_mais": "Essa lista é a base da ficha técnica do produto. Sem uma lista clara, cada lote pode sair diferente, e fica difícil repetir o teste ou calcular o custo."
+   "ajuda_mais": "Essa lista é a base da ficha técnica do produto. Sem uma lista clara, cada lote pode sair diferente, e fica difícil repetir o teste ou calcular o custo.",
+   "placeholder": "Ex.: farinha, ovos, açúcar, embalagem",
+   "comoDescobrir": [
+    "Faça (ou imagine fazer) uma unidade e anote tudo o que usou, do material principal até a embalagem.",
+    "Olhe a etiqueta de um produto parecido ou pergunte numa loja de materiais o que costuma ir nele."
+   ]
   },
   {
    "codigo": "M4.P04",
-   "pergunta": "Como seu produto vai chegar até o cliente?",
+   "pergunta": "Como o produto vai chegar até o cliente?",
    "ajuda": "Pense nas formas viáveis de levar o produto até o seu cliente. Marque todas as que você pretende usar.",
    "tipo": "Múltipla escolha",
    "condicao": "M4.P02 = Produto físico ou M4.P03 = Produto + Serviço ",
    "opcoes": "De porta a porta pessoalmente; Plataformas (iFood); Entregador parceiro; Loja própria ou parceira; Retirada presencial pelo cliente; Não sei",
    "resposta": "",
    "resposta_naosei": "Reflita melhor sobre as opções. Cada opção tem um custo específico, que é importante definir para saber a viabilidade do seu negócio. Sem sabermos isso, poderemos encontrar problemas em outros módulos.",
-   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto"
+   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto",
+   "comoDescobrir": [
+    "Pergunte a 3 possíveis clientes como preferem receber: buscar, receber em casa ou pedir por aplicativo.",
+    "Veja como vendedores parecidos do seu bairro entregam e quanto cobram pela entrega."
+   ],
+   "promptIA": "Vou vender [seu produto] em [seu bairro ou cidade], para [seu cliente]. Compare para mim, em linguagem simples, estas formas de entrega: eu mesmo levo, aplicativo de entrega, entregador parceiro, loja parceira e o cliente buscar. Para cada uma, diga o custo aproximado, o trabalho e quando vale a pena."
   },
   {
    "codigo": "M4.P05",
    "modulo": "M4",
-   "pergunta": "Quantas versões, opções ou sabores diferentes você pretende oferecer no primeiro teste?",
+   "pergunta": "Quantas versões ou sabores você vai oferecer no primeiro teste?",
    "ajuda": "Conte só o que entra no primeiro teste, não o cardápio ou pacote completo do futuro. Ex.: 3 sabores.\n\nVamos considerar este número como a variedade mínima do seu primeiro teste.",
    "tipo": "Texto",
    "condicao": "M4.P02 = Produto ou M4.P02 = Produto + Serviço",
@@ -406,12 +438,18 @@ window.MODULO4 = {
    "status": "Rascunho",
    "destaque_alerta": "Muitas opções aumentam custo, tempo e sobras, e dificultam saber o que o cliente realmente preferiu.",
    "resposta_naosei": "Pense melhor: quantas opções ou variações você estaria disposto(a) a oferecer ao seu cliente? Ex.: quero oferecer picolé gourmet de ninho trufado, brigadeiro e sensação, todos do mesmo tamanho.",
-   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto"
+   "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto",
+   "placeholder": "Ex.: 3 sabores",
+   "comoDescobrir": [
+    "Liste tudo o que você gostaria de oferecer e marque as 2 ou 3 opções que mais pedem ou que você faz melhor.",
+    "Comece com poucas: gasta menos, sobra menos e você descobre mais rápido qual o cliente prefere."
+   ],
+   "promptIA": "Quero testar [seu produto] com os primeiros clientes. Minhas ideias de versões são: [liste sabores, tamanhos ou modelos]. Me ajude a escolher 2 ou 3 para começar, pensando em custo baixo, pouca sobra e no que o cliente mais procura."
   },
   {
    "codigo": "M4.P06",
    "modulo": "M4",
-   "pergunta": "O que você precisa ter e fazer para realizar o serviço uma vez, do pedido do cliente até a entrega?",
+   "pergunta": "O que você precisa ter e fazer para realizar o serviço uma vez?",
    "ajuda": "Monte a ficha técnica do seu atendimento: as etapas, do pedido do cliente até o fim; quanto tempo leva um atendimento completo; os materiais que você usa em cada atendimento; e quanto esses materiais custam por atendimento.",
    "tipo": "Texto",
    "condicao": "M4.P02 = Serviço ou M4.P02 = Produto+Serviço ou M4.P02 = Mercadoria + Serviço ",
@@ -423,13 +461,18 @@ window.MODULO4 = {
    "condicao_app": "M4.P02 = Serviço ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+ Serviço",
    "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um serviço que eu quero oferecer. Quero apenas o que é necessário para realizar um atendimento, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do serviço.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar ao meu serviço)\n- Descrição do serviço: o que é, para quem e como o cliente recebe o resultado.\n- Etapas do atendimento, do pedido do cliente até o fim (agendar, deslocar, preparar, executar, conferir com o cliente, limpar).\n- Tempo de cada etapa e tempo total de um atendimento.\n- Materiais usados em cada atendimento e a quantidade gasta por atendimento.\n- Custo desses materiais por atendimento.\n- Equipamentos e ferramentas que uso em todos os atendimentos.\n- Deslocamento: distância e gasto, se eu for até o cliente.\n- Cuidados de higiene, qualidade e segurança (normas ou exigências legais, se houver).\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica do atendimento organizada em seções, usando apenas o que eu informei, com o tempo total e o custo de material por atendimento. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO SERVIÇO QUE QUERO DETALHAR É:\n[escreva aqui o seu serviço]",
    "conceito_naosei": "M4.BT09S",
-   "ajuda_mais": "Ex. (manicure em domicílio): combinar horário, ir até a cliente, tirar o esmalte, cutilar, esmaltar e secar; cerca de 1 hora; algodão, acetona, lixa, palito e esmalte; uns R$ 6 de material por atendimento.\n\nO tempo e o custo por atendimento ajudam nas próximas perguntas e nos módulos de custos e de operação."
+   "ajuda_mais": "Ex. (manicure em domicílio): combinar horário, ir até a cliente, tirar o esmalte, cutilar, esmaltar e secar; cerca de 1 hora; algodão, acetona, lixa, palito e esmalte; uns R$ 6 de material por atendimento.\n\nO tempo e o custo por atendimento ajudam nas próximas perguntas e nos módulos de custos e de operação.",
+   "placeholder": "Ex.: combinar horário, ir até a cliente, fazer as unhas; 1 hora; R$ 6 de material",
+   "comoDescobrir": [
+    "Faça o serviço uma vez (pode ser num conhecido) e anote cada etapa, quanto tempo levou e o que usou.",
+    "Some quanto custou o material gasto nesse atendimento, incluindo o transporte, se houver."
+   ]
   },
   {
    "codigo": "M4.P07",
    "modulo": "M4",
-   "pergunta": "Entre as opções que você pensou, quais são essenciais para resolver o problema do cliente e quais podem esperar? Vamos considerar só as opções essenciais na sua oferta mínima.",
-   "ajuda": "Essencial é o que o cliente precisa receber para sentir que o problema foi resolvido. O restante é secundário. Ex.: essencial: bolo comestível e no prazo combinado; secundário: papel personalizado, cartão, fita.",
+   "pergunta": "Do que você pensou, o que é essencial e o que pode esperar?",
+   "ajuda": "Vamos considerar só o essencial na sua oferta mínima. Essencial é o que o cliente precisa receber para sentir que o problema foi resolvido. O restante é secundário. Ex.: essencial: bolo comestível e no prazo combinado; secundário: papel personalizado, cartão, fita.",
    "tipo": "Texto",
    "condicao": "M4.P05 > 3 ou M4.P05 = Não sei",
    "opcoes": "Não sei",
@@ -438,12 +481,18 @@ window.MODULO4 = {
    "fonte": "M4.BT10 (fonte a substituir; ver aba Revisão e sugestões, item 12)",
    "status": "Rascunho",
    "destaque_alerta": "Incluir tudo de uma vez tende a aumentar o custo e a confundir o resultado do teste.",
-   "resposta_naosei": "Pense no mínimo que você precisa fazer para começar, como no exemplo. Depois, separe o que é essencial do que pode esperar, ou seja, do que não faz diferença no início do negócio."
+   "resposta_naosei": "Pense no mínimo que você precisa fazer para começar, como no exemplo. Depois, separe o que é essencial do que pode esperar, ou seja, do que não faz diferença no início do negócio.",
+   "placeholder": "Ex.: essencial: bolo gostoso e no prazo; pode esperar: fita e cartão",
+   "comoDescobrir": [
+    "Para cada item, pergunte: sem isso, o cliente ainda ficaria satisfeito? Se sim, ele pode esperar.",
+    "Pergunte a 2 ou 3 possíveis clientes o que não pode faltar de jeito nenhum."
+   ],
+   "promptIA": "Vou oferecer [seu produto ou serviço] para [seu cliente]. As opções e detalhes que pensei são: [liste tudo]. Separe para mim o que é essencial para o cliente ficar satisfeito no primeiro teste e o que pode esperar. Explique em linguagem simples."
   },
   {
    "codigo": "M4.P08",
    "modulo": "M4",
-   "pergunta": "Quem você imagina como seu primeiro cliente? Descreva um grupo específico de pessoas.",
+   "pergunta": "Quem é o seu primeiro cliente? Descreva um grupo bem específico.",
    "ajuda": "Quanto mais específico, mais fácil de testar. Ex.: \"pais de alunos da escola perto de casa\", em vez de \"todo mundo\".",
    "tipo": "Texto",
    "condicao": "sempre",
@@ -452,7 +501,13 @@ window.MODULO4 = {
    "alerta": "\"Todo mundo\" dificulta o teste: cada grupo compra por motivos diferentes, e fica difícil saber quem realmente faz parte do seu público.",
    "proximo": "Se você já pesquisou clientes no módulo de clientes e necessidades, compare com o que escreveu aqui.",
    "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "placeholder": "Ex.: pais de alunos da escola perto de casa",
+   "comoDescobrir": [
+    "Lembre de quem já comprou, pediu ou elogiou o que você faz: idade, onde mora, o que essas pessoas têm em comum.",
+    "Escolha um grupo que você consegue encontrar esta semana, como vizinhos, colegas de trabalho ou pais da escola."
+   ],
+   "promptIA": "Vou oferecer [seu produto ou serviço] em [seu bairro ou cidade]. Me ajude a escolher um primeiro grupo de clientes bem específico, fácil de encontrar e com mais chance de comprar. Me dê 3 opções, com o motivo de cada uma."
   },
   {
    "codigo": "M4.P09",
@@ -469,12 +524,20 @@ window.MODULO4 = {
    "status": "Rascunho",
    "por_tipo": {
     "Serviço": {
-     "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"não consegue ir ao salão durante a semana porque trabalha até tarde\"."
+     "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"não consegue ir ao salão durante a semana porque trabalha até tarde\".",
+     "placeholder": "Ex.: não consegue ir ao salão porque trabalha até tarde"
     },
     "Mercadoria": {
-     "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"não acha roupa infantil com preço bom perto de casa\"."
+     "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"não acha roupa infantil com preço bom perto de casa\".",
+     "placeholder": "Ex.: não acha roupa infantil com preço bom perto de casa"
     }
-   }
+   },
+   "placeholder": "Ex.: esqueceu de encomendar o bolo de aniversário",
+   "comoDescobrir": [
+    "Converse com 3 pessoas do seu público e pergunte o que mais incomoda quando precisam do que você oferece.",
+    "Anote as frases que se repetem: o problema que mais aparece é o que vale testar."
+   ],
+   "promptIA": "Vou oferecer [seu produto ou serviço] para [seu cliente]. Liste 5 problemas ou incômodos do dia a dia que esse cliente pode ter e que o que eu ofereço ajudaria a resolver. Depois, me sugira 3 perguntas simples para eu confirmar isso conversando com ele."
   },
   {
    "codigo": "M4.P10",
@@ -491,17 +554,25 @@ window.MODULO4 = {
    "status": "Rascunho",
    "por_tipo": {
     "Serviço": {
-     "ajuda": "Descreva o resultado para o cliente, não a característica do serviço. Ex.: em vez de \"manicure com esmaltes importados\" (característica), \"sair com as unhas prontas sem sair de casa\" (benefício)."
+     "ajuda": "Descreva o resultado para o cliente, não a característica do serviço. Ex.: em vez de \"manicure com esmaltes importados\" (característica), \"sair com as unhas prontas sem sair de casa\" (benefício).",
+     "placeholder": "Ex.: sair com as unhas prontas sem sair de casa"
     },
     "Mercadoria": {
-     "ajuda": "Descreva o resultado para o cliente, não a característica da mercadoria. Ex.: em vez de \"roupa 100% algodão\" (característica), \"a criança fica confortável o dia todo\" (benefício)."
+     "ajuda": "Descreva o resultado para o cliente, não a característica da mercadoria. Ex.: em vez de \"roupa 100% algodão\" (característica), \"a criança fica confortável o dia todo\" (benefício).",
+     "placeholder": "Ex.: a criança fica confortável o dia todo"
     }
-   }
+   },
+   "placeholder": "Ex.: poder comer doce sem passar mal",
+   "comoDescobrir": [
+    "Complete a frase: “Com o que eu ofereço, o cliente consegue ___”. Fale do resultado, não do produto.",
+    "Pergunte a quem já usou ou provou o que mudou para a pessoa e use as palavras dela."
+   ],
+   "promptIA": "Eu ofereço [seu produto ou serviço] para [seu cliente]. Transforme as características em benefícios: o que o cliente ganha na prática (tempo, economia, saúde, conforto, praticidade). Me dê 5 exemplos curtos, em linguagem simples."
   },
   {
    "codigo": "M4.P11",
    "modulo": "M4",
-   "pergunta": "Qual destes é o principal motivo que faria o cliente escolher você, e não outra opção que ele já tem hoje?",
+   "pergunta": "Por que o cliente escolheria você, e não outra opção que já tem?",
    "ajuda": "Pense no que o cliente faz hoje para resolver o problema: comprar em outro lugar, fazer em casa, deixar como está. Escolha o motivo que você consegue sustentar na prática.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -515,7 +586,12 @@ window.MODULO4 = {
     "opcao": "Outro",
     "rotulo": "Qual é esse outro motivo?",
     "erro": "Escreva qual é o outro motivo para continuar."
-   }
+   },
+   "comoDescobrir": [
+    "Veja o que o cliente faz hoje: compra de quem, por quanto, e do que reclama.",
+    "Escolha o motivo que você consegue cumprir sempre: se não dá para ser o mais barato, talvez seja o mais perto ou o mais rápido."
+   ],
+   "promptIA": "Vou oferecer [seu produto ou serviço] para [seu cliente] em [seu bairro ou cidade]. Hoje esse cliente resolve isso com [o que ele usa hoje]. Me ajude a descobrir que motivo faria ele me escolher: preço, rapidez, atendimento, qualidade ou conveniência. Explique os prós e contras de cada um para um negócio pequeno."
   },
   {
    "codigo": "M4.PV1",
@@ -530,12 +606,15 @@ window.MODULO4 = {
    "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"os pais não têm tempo de preparar um lanche gostoso para a escola\".",
    "por_tipo": {
     "Serviço": {
-     "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"não consegue ir ao salão durante a semana porque trabalha até tarde\"."
+     "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"não consegue ir ao salão durante a semana porque trabalha até tarde\".",
+     "placeholder": "Ex.: não consegue ir ao salão durante a semana"
     },
     "Mercadoria": {
-     "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"não acha roupa infantil com preço bom perto de casa\"."
+     "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"não acha roupa infantil com preço bom perto de casa\".",
+     "placeholder": "Ex.: não acha roupa infantil com preço bom perto de casa"
     }
-   }
+   },
+   "placeholder": "Ex.: os pais não têm tempo de preparar um lanche gostoso"
   },
   {
    "codigo": "M4.PV2",
@@ -549,12 +628,15 @@ window.MODULO4 = {
    "ajuda": "Pense no que o cliente usa hoje (outra loja, fazer em casa, deixar para lá) e no que você faz melhor. Ex.: \"entrego o bolo de pote na porta da escola, na hora do lanche\".",
    "por_tipo": {
     "Serviço": {
-     "ajuda": "Pense no que o cliente usa hoje (outro salão, fazer em casa, deixar para lá) e no que você faz melhor. Ex.: \"atendo em casa depois das 18h, quando os salões já fecharam\"."
+     "ajuda": "Pense no que o cliente usa hoje (outro salão, fazer em casa, deixar para lá) e no que você faz melhor. Ex.: \"atendo em casa depois das 18h, quando os salões já fecharam\".",
+     "placeholder": "Ex.: atendo em casa depois das 18h"
     },
     "Mercadoria": {
-     "ajuda": "Pense no que o cliente usa hoje (outra loja, comprar pela internet, deixar para lá) e no que você faz melhor. Ex.: \"levo as peças até a casa da cliente para ela provar, sem precisar ir ao centro\"."
+     "ajuda": "Pense no que o cliente usa hoje (outra loja, comprar pela internet, deixar para lá) e no que você faz melhor. Ex.: \"levo as peças até a casa da cliente para ela provar, sem precisar ir ao centro\".",
+     "placeholder": "Ex.: levo as peças até a casa da cliente para provar"
     }
-   }
+   },
+   "placeholder": "Ex.: entrego o bolo de pote na porta da escola"
   },
   {
    "codigo": "M4.PV3",
@@ -568,17 +650,20 @@ window.MODULO4 = {
    "ajuda": "Escreva o resultado que o cliente sente, não a característica do produto. Ex.: \"ter um lanche pronto e gostoso sem perder tempo de manhã\".",
    "por_tipo": {
     "Serviço": {
-     "ajuda": "Escreva o resultado que o cliente sente, não a característica do serviço. Ex.: \"sair com as unhas prontas sem sair de casa\"."
+     "ajuda": "Escreva o resultado que o cliente sente, não a característica do serviço. Ex.: \"sair com as unhas prontas sem sair de casa\".",
+     "placeholder": "Ex.: sair com as unhas prontas sem sair de casa"
     },
     "Mercadoria": {
-     "ajuda": "Escreva o resultado que o cliente sente, não a característica da mercadoria. Ex.: \"vestir bem a criança gastando pouco e sem sair do bairro\"."
+     "ajuda": "Escreva o resultado que o cliente sente, não a característica da mercadoria. Ex.: \"vestir bem a criança gastando pouco e sem sair do bairro\".",
+     "placeholder": "Ex.: vestir bem a criança gastando pouco"
     }
-   }
+   },
+   "placeholder": "Ex.: ter um lanche pronto sem perder tempo de manhã"
   },
   {
    "codigo": "M4.P12",
    "modulo": "M4",
-   "pergunta": "Com as suas respostas anteriores, escreva a sua proposta de valor em uma ou duas frases.",
+   "pergunta": "Escreva a sua proposta de valor em uma ou duas frases.",
    "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [produto ou serviço], que [benefício], proporcionando [meu diferencial].\" Escreva com as suas palavras.",
    "tipo": "Texto",
    "condicao": "sempre",
@@ -591,20 +676,23 @@ window.MODULO4 = {
    "por_tipo": {
     "Serviço": {
      "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [serviço], que [benefício], proporcionando [meu diferencial].\" Escreva com as suas palavras.",
-     "ajuda_mais": "Ex.: \"Para mulheres que trabalham fora e não conseguem ir ao salão, ofereço manicure em domicílio no fim do dia, que deixa as unhas prontas sem sair de casa, proporcionando horário flexível.\""
+     "ajuda_mais": "Ex.: \"Para mulheres que trabalham fora e não conseguem ir ao salão, ofereço manicure em domicílio no fim do dia, que deixa as unhas prontas sem sair de casa, proporcionando horário flexível.\"",
+     "placeholder": "Ex.: Para mulheres que trabalham fora, ofereço manicure em casa à noite, sem sair de casa"
     },
     "Mercadoria": {
      "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [mercadoria], que [benefício], proporcionando [meu diferencial].\" Escreva com as suas palavras.",
-     "ajuda_mais": "Ex.: \"Para mães do bairro que não têm tempo de ir ao centro, ofereço roupas infantis entregues em casa, que poupam a viagem, proporcionando preço de bairro e troca fácil.\""
+     "ajuda_mais": "Ex.: \"Para mães do bairro que não têm tempo de ir ao centro, ofereço roupas infantis entregues em casa, que poupam a viagem, proporcionando preço de bairro e troca fácil.\"",
+     "placeholder": "Ex.: Para mães do bairro, ofereço roupas infantis entregues em casa, com troca fácil"
     }
    },
-   "ajuda_mais": "Ex.: \"Para pessoas com intolerância a glúten ou lactose que evitam comer bolo de pote para não passar mal, ofereço um bolo de pote sem glúten e sem lactose, que não causa desconforto, proporcionando um doce que elas podem comer sem medo.\""
+   "ajuda_mais": "Ex.: \"Para pessoas com intolerância a glúten ou lactose que evitam comer bolo de pote para não passar mal, ofereço um bolo de pote sem glúten e sem lactose, que não causa desconforto, proporcionando um doce que elas podem comer sem medo.\"",
+   "placeholder": "Ex.: Para pais sem tempo, ofereço bolo de pote na porta da escola, que vira um lanche pronto"
   },
   {
    "codigo": "M4.P13",
    "modulo": "M4",
-   "pergunta": "O que você acredita que vai acontecer quando o seu primeiro cliente receber a sua oferta? Escreva como uma suposição que pode ser confirmada ou não.",
-   "ajuda": "Modelo: \"[cliente] compraria [produto] por [preço]\". Ex.: \"Alunos e pais voltando da escola pagariam R$ 10 por um bolo de pote.\" A suposição precisa poder ser desmentida.",
+   "pergunta": "O que você acha que vai acontecer quando oferecer ao primeiro cliente?",
+   "ajuda": "Escreva como uma suposição, que pode ser confirmada ou não. Modelo: \"[cliente] compraria [produto] por [preço]\". Ex.: \"Alunos e pais voltando da escola pagariam R$ 10 por um bolo de pote.\" A suposição precisa poder ser desmentida.",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "",
@@ -614,12 +702,15 @@ window.MODULO4 = {
    "status": "Rascunho",
    "por_tipo": {
     "Serviço": {
-     "ajuda": "Modelo: \"[cliente] marcaria um horário de [serviço] por [preço]\". Ex.: \"Mulheres do meu bairro que trabalham fora marcariam uma manicure em casa por R$ 35.\" A suposição precisa poder ser desmentida."
+     "ajuda": "Modelo: \"[cliente] marcaria um horário de [serviço] por [preço]\". Ex.: \"Mulheres do meu bairro que trabalham fora marcariam uma manicure em casa por R$ 35.\" A suposição precisa poder ser desmentida.",
+     "placeholder": "Ex.: Mulheres do bairro marcariam manicure em casa por R$ 35"
     },
     "Mercadoria": {
-     "ajuda": "Modelo: \"[cliente] compraria [mercadoria] por [preço]\". Ex.: \"Mães do bairro comprariam um conjunto de roupa infantil por R$ 40.\" A suposição precisa poder ser desmentida."
+     "ajuda": "Modelo: \"[cliente] compraria [mercadoria] por [preço]\". Ex.: \"Mães do bairro comprariam um conjunto de roupa infantil por R$ 40.\" A suposição precisa poder ser desmentida.",
+     "placeholder": "Ex.: Mães do bairro comprariam um conjunto infantil por R$ 40"
     }
-   }
+   },
+   "placeholder": "Ex.: Pais da escola pagariam R$ 10 por um bolo de pote"
   },
   {
    "codigo": "M4.P14",
@@ -656,12 +747,17 @@ window.MODULO4 = {
     "M4.BT05",
     "M4.BT04",
     "M4.BT07"
-   ]
+   ],
+   "comoDescobrir": [
+    "Veja quanto dinheiro e tempo você tem agora: com pouco dinheiro, aceitar encomenda antes de fazer é o mais seguro.",
+    "Se ainda não sabe se as pessoas gostam, mostre uma amostra a 5 pessoas; se já sabe, venda pouca quantidade."
+   ],
+   "promptIA": "Quero testar [seu produto] com os primeiros clientes. Tenho [quanto de dinheiro] e [quanto tempo por semana]. Compare para mim estas 3 formas: mostrar uma amostra sem cobrar, vender pouca quantidade já com preço, ou aceitar encomenda antes de fazer. Qual combina mais comigo e por quê?"
   },
   {
    "codigo": "M4.P15",
    "modulo": "M4",
-   "pergunta": "Sua oferta envolve alimentos, saúde, produtos para crianças ou outra atividade que costuma ter regras específicas para vender?",
+   "pergunta": "Sua oferta envolve alimento, saúde, criança ou outra atividade com regras próprias?",
    "ajuda": "Mesmo num teste pequeno, vender a clientes reais pode exigir cuidados legais e sanitários, conforme a atividade e o local. Na dúvida, consulte a prefeitura, a Vigilância Sanitária ou o Sebrae antes de vender.",
    "tipo": "Sim/Não",
    "condicao": "M4.P13 = Oferta mínima com preço ou M4.P13 = Pré-venda/reserva",
@@ -677,12 +773,17 @@ window.MODULO4 = {
     ],
     "texto": "Se a sua oferta envolve alimentos ou saúde, consulte a Anvisa (gov.br/anvisa). Se envolve produtos para crianças, consulte o Inmetro (gov.br/inmetro). Para tirar dúvidas, acesse sebrae.com.br. Para a regra da sua cidade, busque “[sua cidade] + Vigilância Sanitária”."
    },
-   "condicao_app": "M4.P14 = Vender pouca quantidade, já com preço ou M4.P14 = Aceitar encomenda ou reserva antes de fazer ou M4.P14 = Atender poucos clientes, já cobrando ou M4.P14 = Aceitar agendamento ou reserva antes de atender"
+   "condicao_app": "M4.P14 = Vender pouca quantidade, já com preço ou M4.P14 = Aceitar encomenda ou reserva antes de fazer ou M4.P14 = Atender poucos clientes, já cobrando ou M4.P14 = Aceitar agendamento ou reserva antes de atender",
+   "comoDescobrir": [
+    "Ligue ou vá à Vigilância Sanitária ou à prefeitura da sua cidade e pergunte se o que você vai vender precisa de licença.",
+    "Procure o Sebrae da sua região: o atendimento é gratuito e eles explicam as regras da sua atividade."
+   ],
+   "promptIA": "Quero vender [seu produto ou serviço] em [sua cidade e estado], em pequena quantidade, para testar. Que regras de vigilância sanitária, licença ou segurança costumam valer para isso? Diga em quais órgãos eu devo confirmar e que perguntas fazer. Se não tiver certeza de alguma regra, diga."
   },
   {
    "codigo": "M4.P16",
    "modulo": "M4",
-   "pergunta": "No teste, você pretende anotar nome, telefone ou outro dado pessoal dos clientes?",
+   "pergunta": "No teste, você vai anotar nome, telefone ou outro dado dos clientes?",
    "ajuda": "Nome, telefone e e-mail já são dados pessoais protegidos por lei. Se sim, anote só o que for necessário e explique ao cliente para que vai usar.",
    "tipo": "Sim/Não",
    "condicao": "sempre",
@@ -692,12 +793,17 @@ window.MODULO4 = {
    "fonte": "M4.BT12 (sem fonte ainda; ver aba Revisão e sugestões, item 11)",
    "status": "Rascunho",
    "destaque_alerta": "Coletar mais dados do que o necessário, ou sem dizer para que serão usados, cria risco para você e para o cliente.",
-   "resposta_naosei": "Pense se vale a pena guardar o contato dos clientes do teste: por exemplo, o telefone para confirmar o pedido ou para avisar quando tiver novidades (só se a pessoa aceitar). Se for guardar, marque “Sim”; se não precisar, marque “Não”. Dá para mudar a resposta em “Corrigir minha resposta”."
+   "resposta_naosei": "Pense se vale a pena guardar o contato dos clientes do teste: por exemplo, o telefone para confirmar o pedido ou para avisar quando tiver novidades (só se a pessoa aceitar). Se for guardar, marque “Sim”; se não precisar, marque “Não”. Dá para mudar a resposta em “Corrigir minha resposta”.",
+   "comoDescobrir": [
+    "Pense se você vai precisar falar de novo com o cliente: confirmar o pedido, avisar a entrega ou mandar novidade.",
+    "Se precisar, anote só o necessário (nome e telefone) e conte ao cliente para que vai usar."
+   ],
+   "promptIA": "Vou fazer um pequeno teste de vendas de [seu produto ou serviço]. Quero anotar [quais dados: nome, telefone…] dos clientes. Me explique em linguagem simples os cuidados básicos para guardar esses dados e me sugira uma frase curta para pedir a autorização do cliente."
   },
   {
    "codigo": "M4.P17",
    "modulo": "M4",
-   "pergunta": "Que comportamento do cliente vai indicar que a sua hipótese foi confirmada?",
+   "pergunta": "Que atitude do cliente vai mostrar que a sua ideia deu certo?",
    "ajuda": "Prefira algo que você consiga contar e que mostre uma atitude do cliente, não só uma opinião. Ex.: quantas pessoas pediram, reservaram ou pagaram.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -705,21 +811,27 @@ window.MODULO4 = {
    "proximo": "Defina como e onde vai registrar essa contagem (ex.: uma lista simples com data).",
    "fonte": "M4.BT06; M4.BT07 (NaPrática; Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
    "status": "Rascunho",
-   "destaque_alerta": "Curtidas, elogios e \"eu compraria\" são sinais fracos. Comportamentos como pedir, reservar ou pagar mostram mais."
+   "destaque_alerta": "Curtidas, elogios e \"eu compraria\" são sinais fracos. Comportamentos como pedir, reservar ou pagar mostram mais.",
+   "comoDescobrir": [
+    "Pense numa atitude que você consegue contar: pedido, reserva ou pagamento valem mais que elogio ou curtida.",
+    "Escolha uma só e prepare uma folha para anotar cada uma, com a data."
+   ],
+   "promptIA": "Vou testar [seu produto ou serviço] com [seu cliente] por [quantos] dias. Me ajude a escolher uma atitude do cliente que eu possa contar para saber se a ideia funciona (por exemplo, pedidos, reservas ou pagamentos) e explique por que elogios não bastam."
   },
   {
    "codigo": "M4.P18",
    "modulo": "M4",
-   "pergunta": "Você marcou a opção “Outra”. Qual será esse comportamento?",
+   "pergunta": "Qual é essa outra atitude do cliente que você vai contar?",
    "ajuda": "É importante que o comportamento possa ser medido, como o número de pedidos ou a quantidade de pessoas que aceitaram experimentar.",
    "tipo": "Texto",
    "condicao": "M4.P17= Outra",
-   "destaque_alerta": "Verifique se esse outro comportamento realmente indica que a hipótese foi confirmada. Talvez valha a pena usar um dos comportamentos listados antes."
+   "destaque_alerta": "Verifique se esse outro comportamento realmente indica que a hipótese foi confirmada. Talvez valha a pena usar um dos comportamentos listados antes.",
+   "placeholder": "Ex.: pessoas que pediram para avisar quando tiver de novo"
   },
   {
    "codigo": "M4.P19",
    "modulo": "M4",
-   "pergunta": "Antes de testar: qual é o número mínimo em que você poderá considerar a hipótese confirmada?",
+   "pergunta": "Qual é o número mínimo para considerar que o teste deu certo?",
    "ajuda": "Defina o número ANTES de ver o resultado. Ex.: 5 (cinco reservas nos 7 dias do teste). Escolha um número que faça sentido para o tamanho do seu teste.",
    "tipo": "Número",
    "condicao": "sempre",
@@ -736,12 +848,18 @@ window.MODULO4 = {
     "Mercadoria": {
      "ajuda": "Defina o número ANTES de ver o resultado. Ex.: 5 (cinco peças vendidas nos 7 dias do teste). Escolha um número que faça sentido para o tamanho do seu teste."
     }
-   }
+   },
+   "placeholder": "Ex.: 5",
+   "comoDescobrir": [
+    "Pense em quantas pessoas o teste vai alcançar: se você falar com 30 pessoas, 5 pedidos já é um bom sinal.",
+    "Escolha o número agora, antes de começar, e anote. Não mude depois de ver o resultado."
+   ],
+   "promptIA": "Vou testar [seu produto ou serviço] por [quantos] dias e devo falar com umas [quantas] pessoas. Vou contar [pedidos, reservas ou pagamentos]. Me ajude a definir um número mínimo realista para dizer que o teste deu certo, explicando a conta de forma simples."
   },
   {
    "codigo": "M4.P20",
    "modulo": "M4",
-   "pergunta": "Por quantos dias o teste ficará aberto?",
+   "pergunta": "Por quantos dias o teste vai ficar aberto?",
    "ajuda": "Um prazo curto e definido evita que o teste se arraste sem decisão. Ex.: 7 dias.",
    "tipo": "Número",
    "condicao": "sempre",
@@ -749,12 +867,18 @@ window.MODULO4 = {
    "alerta": "Sem prazo, é difícil saber quando avaliar o resultado, e o critério perde o sentido.",
    "proximo": "Marque no calendário a data em que você vai comparar o resultado com o critério.",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "placeholder": "Ex.: 7",
+   "comoDescobrir": [
+    "Pense em quanto tempo leva para avisar as pessoas e receber os pedidos; para começar, de 7 a 15 dias costuma bastar.",
+    "Marque no calendário o dia de começar e o dia de parar para olhar o resultado."
+   ],
+   "promptIA": "Vou testar [seu produto ou serviço] com [seu cliente]. Consigo produzir ou atender [quanto por semana]. Me ajude a decidir por quantos dias deixar o teste aberto, entre 7 e 30 dias, e o que fazer em cada semana."
   },
   {
    "codigo": "M4.P21",
    "modulo": "M4",
-   "pergunta": "Qual é o valor máximo, em reais, que você poderia gastar neste primeiro teste?",
+   "pergunta": "Qual o valor máximo, em reais, que você pode gastar no teste?",
    "ajuda": "Defina antes do teste. Pense em um valor que você possa investir sem comprometer despesas essenciais (moradia, alimentação, contas, reserva de emergência). Se puder testar sem gastar, responda 0.",
    "tipo": "Número",
    "condicao": "sempre",
@@ -763,7 +887,13 @@ window.MODULO4 = {
    "alerta": "Usar dinheiro de despesas essenciais ou recorrer a dívidas aumenta o risco do teste. Compras difíceis de desfazer também aumentam o risco. É preciso ter cautela e um bom planejamento financeiro para não criar problemas.",
    "proximo": "Compare este limite com o custo estimado no módulo de custos e prefira formas de teste que possam ser interrompidas sem perda grande.",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "placeholder": "Ex.: 50 (ou 0, se der para testar sem gastar)",
+   "comoDescobrir": [
+    "Veja quanto sobra no mês depois das contas da casa e use só uma parte dessa sobra, sem mexer na reserva.",
+    "Liste o que o teste precisa (material, embalagem, transporte) e some os preços. Se der para testar sem gastar, responda 0."
+   ],
+   "promptIA": "Quero fazer um primeiro teste de [seu produto ou serviço]. Vou precisar de [liste materiais, embalagens, transporte]. Me ajude a estimar quanto vou gastar no mínimo, em reais, e a montar um teste mais barato, sem usar o dinheiro das contas da casa."
   }
  ],
  "regras": [
@@ -862,5 +992,9 @@ window.MODULO4 = {
   "lista": []
  },
  "educativo": [],
- "casos": []
+ "casos": [],
+ "leve": {
+  "frase": "Você vai detalhar o que oferece, dizer por que o cliente compraria e planejar um teste pequeno da ideia.",
+  "minutos": 20
+ }
 };

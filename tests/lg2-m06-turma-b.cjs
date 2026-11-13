@@ -1,6 +1,7 @@
 /* Teste de navegação do LG2 M06 (Turma B) no navegador headless.
    Execute: PW=<caminho do pacote playwright> node tests/lg2-m06-turma-b.cjs
-   Opcional: SHOTS=<pasta> grava os prints de celular (390x844); M06_DIR=<pasta> testa outra cópia.
+   Opcional: SHOTS=<pasta> grava os prints de celular (390x844); M06_DIR=<pasta> testa outra cópia;
+   M06_SABOTAGEM=1 serve o app sem a caixa "Como descobrir" (o teste da versão leve tem de falhar).
    Alcança todas as regras da aba 4, roda os casos da aba 8 (divergências são relatadas, não falham),
    confere os instrumentos contra a "saída esperada" da aba 5. Sai com código 1 se algo falhar. */
 const http = require('node:http');
@@ -14,6 +15,8 @@ const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
+  if (process.env.M06_SABOTAGEM && f.endsWith(path.join('js', 'app.js')))
+    return res.end(fs.readFileSync(f, 'utf8').replace('function caixaComo(q) {', 'function caixaComo(q) { return "";'));
   fs.createReadStream(f).pipe(res);
 });
 
@@ -63,10 +66,13 @@ const NA_PAGINA = {
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
   const URL = `http://127.0.0.1:${servidor.address().port}/index.html`;
   const browser = await chromium.launch();
-  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  const contexto = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await contexto.newPage();
   const errosJS = [];
   page.on('pageerror', (e) => errosJS.push(e.message));
   page.on('dialog', (d) => d.accept());
+  /* resultado leve: caixa, lista de compras e detalhes ficam em <details> fechados; abre para editar */
+  const abrirResultado = () => page.evaluate(() => document.querySelectorAll('details.resultado-mais').forEach((d) => { d.open = true; }));
   await page.goto(URL);
   const D = await page.evaluate(() => window.MODULO6);
   const ordem = await page.evaluate(() => Motor.montar(window.MODULO6).perguntas.map((p) => ({ codigo: p.codigo, campo: Motor.campo(p), opcoes: p.opcoesLista, condicao: p.condicao })));
@@ -245,7 +251,8 @@ const NA_PAGINA = {
       como.includes('R$ 1.000,00 por mês = R$ 230,77 por semana (mês × 12 ÷ 52), a partir da semana 2') && como.includes('R$ 390,00 = R$ 90,00 por semana') && como.includes('(R$ 1.500,00) sai na semana 1'), como);
     const t = nrm(await page.textContent('#i03'));
     check('I03 na tela (13 semanas): entradas R$ 2.769,24, saídas R$ 2.670,00, saldo R$ 2.099,24', ['Entradas' + brl(2769.24), 'Saídas' + brl(2670), 'Saldo' + brl(2099.24)].every((x) => t.replace(/\s/g, '').includes(x.replace(/\s/g, ''))), t);
-    /* editar uma semana recalcula e passa o saldo adiante */
+    /* editar uma semana recalcula e passa o saldo adiante (a tabela fica em "Ver o caixa das 13 semanas", fechado) */
+    await abrirResultado();
     await page.fill('.fluxo input[data-i="1"][data-k="saidas"]', '2000'); await page.dispatchEvent('.fluxo input[data-i="1"][data-k="saidas"]', 'change');
     const sf2 = nrm(await page.textContent('.fluxo tbody tr:nth-child(2) .sf'));
     check('I04: semana 2 com saída de R$ 2.000 = 410 + 230,77 − 2.000 = −R$ 1.359,23 e aviso da semana 2 no bloco Atenção', sf2 === nrm('−' + brl(1359.23)) && /Vai sair mais dinheiro do que você terá em caixa na semana 2\b/.test(nrm(await page.textContent('#atencao'))), sf2);
@@ -453,6 +460,7 @@ const NA_PAGINA = {
   { // (c) "Como calculamos" embaixo de cada número
     await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel 300, luz 90' },
       'M6.P07': { tipo: 'texto', v: '2000' }, 'M6.P08': { tipo: 'opcao', v: 'Até 7 dias' } }, null);
+    await abrirResultado();
     const cm = await page.evaluate(() => Object.fromEntries(['i01', 'i03', 'i04', 'i05'].map((k) => [k, (document.querySelector('#como-' + k) || {}).innerText || ''])));
     check('"Como calculamos:" no investimento, no saldo, no fluxo e no cenário',
       Object.values(cm).every((x) => nrm(x).startsWith('Como calculamos:')) && nrm(cm.i01).includes('R$ 1.500,00')
@@ -524,6 +532,93 @@ const NA_PAGINA = {
     check('lista de partida confirmada: grava os itens e segue para o valor das compras', r1.estado === 'valor' && !r1.aindaNaoSei && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P02', r1);
     check('M5 nunca é escrito pelo M6', !(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m05'))).includes('M6.')); }
 
+  /* ---------- versão leve (nov/2026): capa curta, ≤ 60 palavras por pergunta, "Ver dica" fechada, ajuda no "Não sei" ---------- */
+  const palavras = () => page.evaluate(() => document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
+  { await page.evaluate(() => localStorage.clear()); await page.reload();
+    const capa = await page.evaluate(() => ({ tempo: (document.querySelector('.tempo') || {}).textContent || '', cf: document.querySelector('details.como-funciona'),
+      fechado: !!document.querySelector('details.como-funciona:not([open])'), tit: document.querySelector('h1').textContent }));
+    const n = await palavras();
+    check(`capa: título + 1 frase + tempo + Começar; "Como funciona" fechado (${n} palavras ≤ 60)`, n <= 60 && /Este módulo leva uns \d+ minutos/.test(capa.tempo) && capa.fechado
+      && (await page.getByRole('button', { name: 'Começar', exact: true }).count()) === 1, { n, capa }); }
+  const NEG_DE = { 'M6.P10': 'Serviço', 'M6.P11': 'Serviço', 'M6.P12': 'Serviço', 'M6.P13': 'Produto', 'M6.P14': 'Produto', 'M6.P15': 'Produto', 'M6.P16': 'Mercadoria', 'M6.P17': 'Mercadoria', 'M6.P18': 'Mercadoria' };
+  async function abrirDireto(cod) {   // a pergunta como a pessoa a vê ao chegar, sem nada tocado
+    await page.evaluate(([c, neg]) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m06', JSON.stringify({ dados: '2026-10-15',
+      R: neg ? { 'Negócio': { estado: 'opcao', opcao: neg }, 'M6.P01': { estado: 'naosei' } } : {}, hist: [c], prio: {}, fora: [], fluxo: null, cen: null })); }, [cod, NEG_DE[cod]]);
+    await page.reload(); await page.click('#ir');
+  }
+  { const muitas = [], dicas = [], exemplos = [];
+    for (const q of ordem) {
+      await abrirDireto(q.codigo);
+      if ((await page.evaluate(NA_PAGINA.atual)) !== q.codigo) { muitas.push(`${q.codigo}: não abriu`); continue; }
+      const n = await palavras();
+      if (n > 60) muitas.push(`${q.codigo}: ${n}`);
+      const d = await page.evaluate(() => { const v = document.querySelector('details#ver-dica'), h = document.querySelector('h2.q'), e = document.querySelector('#ent');
+        return v && { aberta: v.open, txt: v.querySelector('summary').textContent.trim(), depoisQ: !!(h.compareDocumentPosition(v) & Node.DOCUMENT_POSITION_FOLLOWING), antesEnt: !!(v.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING),
+          conteudo: v.querySelector('.ajuda, .conceito') ? v.querySelector('.ajuda, .conceito').textContent.trim().length : 0 }; });
+      if (!d || d.aberta || d.txt !== 'Ver dica' || !d.depoisQ || !d.antesEnt || !d.conteudo) dicas.push(`${q.codigo}: ${JSON.stringify(d)}`);
+      if (q.campo === 'texto' || q.campo === 'numero') {
+        const ph = await page.getAttribute('#ent input, #ent textarea', 'placeholder');
+        if (!/^Ex\.: \S/.test(ph || '')) exemplos.push(`${q.codigo}: ${ph}`);
+      }
+    }
+    check('toda tela de pergunta tem ≤ 60 palavras visíveis antes de tocar em algo', muitas.length === 0, muitas);
+    check('"Ver dica" fechada por padrão, entre a pergunta e as respostas, com a ajuda dentro', dicas.length === 0, dicas);
+    check('campos de escrever e de valor trazem o exemplo dentro ("Ex.: …")', exemplos.length === 0, exemplos); }
+  { await contexto.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
+    const sem = [], salvos = [], marca = [];
+    const comNS = ordem.filter((q) => q.codigo !== 'Negócio' && (q.opcoes || []).includes('Não sei'));
+    check('todas as 18 perguntas têm "Não sei" e texto de ajuda nos dados (comoDescobrir com 2 passos)', comNS.length === 18
+      && comNS.every((q) => { const x = D.perguntas.find((p) => p.codigo === q.codigo); return Array.isArray(x.comoDescobrir) && x.comoDescobrir.length >= 2 && x.comoDescobrir.every((s) => s.trim().length > 20); }), comNS.length);
+    const ESPERADO_NS = { multi: { estado: 'multi', opcoes: ['Não sei'] } };
+    for (const q of comNS) {
+      const dq = D.perguntas.find((p) => p.codigo === q.codigo);
+      if (/chatgpt|gemini|copilot|claude/i.test(JSON.stringify(dq))) marca.push(q.codigo);
+      await caminho(REPETE_P01.includes(q.codigo) ? { 'M6.P01': { tipo: 'NS' } } : {}, q.codigo);   // caminho real: respostas anteriores gravadas
+      let ao = null;
+      if (!(await page.$('#ns'))) {   // "Não sei" é opção: a caixa aparece no toque, antes do Continuar
+        await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].find((x) => x.querySelector('.op-txt b').textContent.trim() === 'Não sei').click());
+        ao = await page.evaluate(() => { const c = document.querySelector('#ajudans .como-ns'); return c && { n: [...c.querySelectorAll('ol > li')].filter((l) => l.textContent.trim()).length, vis: c.getBoundingClientRect().height > 0 }; });
+        if (!ao || ao.n < 2 || !ao.vis) sem.push(`${q.codigo}: sem caixa ao tocar a opção ${JSON.stringify(ao)}`);
+        await page.click('#ok');
+      } else await page.click('#ns');
+      const cx = await page.evaluate(() => { const c = document.querySelector('#retorno .como-ns');
+        return c && { tit: c.querySelector('.como-tit').textContent.trim(), passos: [...c.querySelectorAll('ol > li')].map((l) => l.textContent.trim()), prompt: (c.querySelector('[data-prompt]') || {}).textContent || '',
+          copiar: [...c.querySelectorAll('button')].filter((b) => b.textContent.trim() === 'Copiar').length, nota: c.innerText, vis: c.getBoundingClientRect().height > 0, dup: document.querySelectorAll('.como-ns').length }; });
+      const okCx = cx && cx.vis && cx.dup === 1 && cx.tit === 'Como descobrir' && cx.passos.length === dq.comoDescobrir.length && cx.passos.every((x) => x.length > 0)
+        && (dq.promptIA ? cx.prompt === dq.promptIA && cx.copiar === 1 && cx.nota.includes('Copie, cole numa IA de sua preferência e troque o que está entre colchetes.') : cx.copiar === 0);
+      if (!okCx) sem.push(`${q.codigo}: ${JSON.stringify(cx)}`);
+      const r = await page.evaluate((c) => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R[c], q.codigo);
+      const esp = ESPERADO_NS[q.campo] || { estado: 'naosei' };
+      if (JSON.stringify(r) !== JSON.stringify(esp) || !(await page.evaluate(() => [...document.querySelectorAll('#acoes .btn-primario')].some((x) => /Seguir|Ver meu resumo/.test(x.textContent)))))
+        salvos.push(`${q.codigo}: ${JSON.stringify(r)}`);
+      if (q.codigo === 'M6.P05' && !(await page.$('#retorno .como-ns [data-copiar]'))) check('P05 "Não sei": botão Copiar presente', false);
+      else if (q.codigo === 'M6.P05') {   // Copiar: área de transferência (ou reserva) e aviso no botão
+        await page.click('#retorno .como-ns [data-copiar]');
+        await page.waitForTimeout(200);
+        const bt = (await page.textContent('#retorno .como-ns [data-copiar]')).trim();
+        const clip = await page.evaluate(() => navigator.clipboard.readText().catch(() => null));
+        check('Copiar põe o pedido na área de transferência e avisa "Copiado!"', bt === 'Copiado!' && (clip === null || clip === dq.promptIA), { bt, clip });
+        if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#retorno').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l_m06_p05_naosei.png') }); }
+      }
+    }
+    check('"Não sei" mostra "Como descobrir" com os passos (+ pedido para a IA com Copiar, quando há) em todas as perguntas', sem.length === 0, sem);
+    check('"Não sei" grava o mesmo valor de antes ({estado:"naosei"}; marcar só "Não sei" = multi ["Não sei"]) e deixa seguir', salvos.length === 0, salvos);
+    check('nenhum pedido para IA cita marca de ferramenta', marca.length === 0, marca); }
+  { // resultado: o que entendemos + próxima tarefa no alto; caixa e detalhes recolhidos; cada "Não sei" com o seu "Como descobrir"
+    await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'NS' }, 'M6.P07': { tipo: 'NS' } }, null);
+    const rs = await page.evaluate(() => {
+      const ord = (a, b) => !!(document.querySelector(a).compareDocumentPosition(document.querySelector(b)) & Node.DOCUMENT_POSITION_FOLLOWING);
+      const cf = document.querySelector('details#como-falta');
+      return { topo: ord('#entendemos', '#proximos') && ord('#proximos', '#i01') && ord('#proximos', '#atencao'),
+        fechados: [...document.querySelectorAll('details.resultado-mais')].map((d) => [d.id, d.open]),
+        como: cf && [...cf.querySelectorAll('details.como-mini')].map((d) => [d.querySelector('summary').textContent.trim(), d.querySelectorAll('.como-ns ol > li').length, d.open]),
+        prox: getComputedStyle(document.querySelector('.lg2-proximo')).display !== 'none' && document.querySelector('.lg2-proximo').getBoundingClientRect().height > 0 };
+    });
+    check('resultado: "O que entendemos" e a próxima tarefa vêm antes dos números; caixa, compras e detalhes fechados',
+      rs.topo && rs.fechados.length >= 4 && rs.fechados.every(([, o]) => !o) && ['mais-caixa', 'mais-detalhes', 'como-falta'].every((id) => rs.fechados.some(([i]) => i === id)) && rs.prox, rs);
+    check('resultado: "Como descobrir o que falta" traz um item fechado por "Não sei" (vendas e dinheiro em caixa), cada um com os passos',
+      rs.como && rs.como.length === 2 && /vender em um mês/.test(rs.como[0][0]) && /dinheiro/.test(rs.como[1][0]) && rs.como.every(([, n, o]) => n >= 2 && !o), rs.como); }
+
   /* ---------- 4. persistência ---------- */
   await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno e balcão' } }, 'M6.P04');
   await page.evaluate(NA_PAGINA.agir, { tipo: 'multi', vs: ['Pix', 'Boleto'] });
@@ -538,6 +633,7 @@ const NA_PAGINA = {
 
   /* ---------- 5. P09 Sim com detalhes aparece no fluxo; texto ao implementador ausente ---------- */
   await caminho({ 'M6.P09': { tipo: 'opcao', v: 'Sim', detalhe: 'Aluguel pago a cada 60 dias' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel e energia' } }, null);
+  await abrirResultado();   // o detalhe fica em "Ver o caixa das 13 semanas"
   const fim = nrm(await page.evaluate(() => document.body.innerText));
   check('resultado mostra o detalhe da P09 e as despesas da P06', fim.includes('Aluguel pago a cada 60 dias') && fim.includes('Aluguel e energia'));
   check('resultado não mostra "Retornar à Pxx"', !/Retornar à P\d/.test(fim));
@@ -560,7 +656,7 @@ const NA_PAGINA = {
     await caminho({}, 'Negócio'); await foto('04_negocio');
     await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P07': { tipo: 'texto', v: '2000' }, 'M6.P08': { tipo: 'opcao', v: 'Mais de 30 dias' }, 'Negócio': { tipo: 'opcao', v: 'Serviço' }, 'M6.P11': { tipo: 'texto', v: '2000' } }, null);
     await page.evaluate(() => window.scrollTo(0, 0)); await foto('05_resultado');
-    await page.evaluate(() => document.querySelector('#i04').scrollIntoView()); await foto('06_fluxo_13_semanas');
+    await abrirResultado(); await page.evaluate(() => document.querySelector('#i04').scrollIntoView()); await foto('06_fluxo_13_semanas');
   }
 
   console.log('\nDIVERGÊNCIAS DA PLANILHA (relatadas, não falham):');

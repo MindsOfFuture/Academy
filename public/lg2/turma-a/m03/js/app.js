@@ -221,13 +221,36 @@
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
   function ir(f, a, b) { H = heranca(); tela.innerHTML = ""; tela.appendChild(f(a, b)); window.scrollTo(0, 0); }
 
-  function copiar(t, b) {
+  /* copiar com reserva: área de transferência → execCommand → deixa o texto selecionado para a pessoa copiar (como no Módulo 1) */
+  function copiar(t, b, alvo) {
     const ok = () => (b.textContent = "Copiado");
     const reserva = () => {
-      const a = document.createElement("textarea"); a.value = t; document.body.appendChild(a); a.select();
-      try { document.execCommand("copy"); } catch (e) {} a.remove(); ok();
+      const a = document.createElement("textarea");
+      a.value = t; a.setAttribute("readonly", ""); a.style.position = "fixed"; a.style.top = "0"; a.style.opacity = "0";
+      document.body.appendChild(a); a.select();
+      let foi = false;
+      try { foi = document.execCommand("copy"); } catch (e) {}
+      a.remove();
+      if (foi) return ok();
+      try { const r = document.createRange(); r.selectNodeContents(alvo); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+      b.textContent = "Toque e segure o texto para copiar";
     };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, reserva); else reserva();
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(ok, reserva); else reserva();
+  }
+  /* ---------- "Não sei": caixa "Como descobrir" (2 passos concretos) ----------
+     Os textos ficam nos dados de cada pergunta (comoDescobrir). O pedido para a IA vem logo abaixo,
+     na caixa com o aviso de cuidado (promptIA nos dados ou o prompt do "Não sei" nos caminhos). */
+  function caixaComo(q) {
+    if (!q.comoDescobrir || !q.comoDescobrir.length) return null;
+    return el(`<section class="como-descobrir" role="note"><b class="como-tit">Como descobrir</b>
+      <ol>${q.comoDescobrir.map((x) => `<li>${esc(adaptar(x))}</li>`).join("")}</ol></section>`);
+  }
+  /* o que aparece no "Não sei": os passos e um pedido pronto para a IA (sem repetir o passo a passo antigo) */
+  function ajudaNaoSei(q, lista) {
+    const ia = lista.filter((c) => c.tipo === "Prompt de IA");
+    if (!q.comoDescobrir) return lista;
+    if (!ia.length && q.promptIA) ia.push({ opcao: Motor.NS, tipo: "Prompt de IA", texto: `Prompt: "${q.promptIA}"` });
+    return ia;
   }
 
   /* caixa de retorno: Dica / Resposta / Alerta / Prompt de IA / Passo a passo (tipo "Nenhum" não aparece) */
@@ -240,7 +263,9 @@
       const p = Motor.partesPrompt(c.texto);
       tit = AVISO_IA_TIT;
       corpo = `<p class="ia-aviso">${esc(AVISO_IA)}</p>${p.antes ? `<p class="antes">${esc(p.antes)}</p>` : ""}
-        <div class="prompt"><p class="prompt-txt">${esc(p.prompt)}</p><button class="btn-copiar" type="button">Copiar texto</button></div>
+        <p class="pedir-tit">Peça ajuda à IA</p>
+        <p class="como-nota">Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
+        <div class="prompt"><p class="prompt-txt">${esc(p.prompt)}</p><button class="btn-copiar" type="button">Copiar</button></div>
         <p class="conferir">${esc(CONFERIR_IA)}</p>`;
     } else if (c.tipo === "Passo a passo") {
       /* texto antes do "1." (ex.: "Tudo bem, …") fica como frase de abertura, fora da lista */
@@ -252,11 +277,12 @@
     }
     const b = el(`<div class="bloco caminho ${cls}" data-op="${esc(c.opcao)}" data-tipo="${esc(c.tipo)}" role="${c.tipo === "Alerta" ? "alert" : "note"}"><b>${esc(tit)}</b>${corpo}</div>`);
     const bc = b.querySelector(".btn-copiar");
-    if (bc) bc.onclick = () => copiar(b.querySelector(".prompt-txt").textContent, bc);
+    if (bc) bc.onclick = () => copiar(b.querySelector(".prompt-txt").textContent, bc, b.querySelector(".prompt-txt"));
     return b;
   }
-  function mostrar(box, lista) {
+  function mostrar(box, lista, como) {
     box.innerHTML = "";
+    if (como) box.appendChild(como);
     lista.filter((c) => c.tipo !== "Nenhum").forEach((c) => box.appendChild(caixa(c)));
   }
 
@@ -268,6 +294,10 @@
     </div>`;
   }
   function heroi(o) {
+    /* versão leve: nas perguntas, faixa compacta (o passo e o nome do bloco, sem ilustração) */
+    if (o.compacta) return `<section class="heroi heroi-compacta">
+      <div class="heroi-txt"><div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker)}</div><p class="heroi-tit ${o.titClasse || ""}">${esc(o.titulo)}</p></div>
+    </section>`;
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
@@ -284,7 +314,8 @@
   function etapas(n, tudo) {
     return `<ol class="etapas" aria-label="Blocos do módulo">${D.blocos.map((nome, i) => {
       const k = i + 1, st = tudo || k < n ? "feita" : k === n ? "atual" : "";
-      return `<li class="${st}"${k === n && !tudo ? ' aria-current="step"' : ""}><span class="bola" aria-hidden="true"></span><span class="rot">${esc(curto(nome))}</span></li>`;
+      /* versão leve: só as bolinhas; o nome do bloco já aparece na faixa roxa */
+      return `<li class="${st}" aria-label="${esc(nome)}"${k === n && !tudo ? ' aria-current="step"' : ""}><span class="bola" aria-hidden="true"></span></li>`;
     }).join("")}</ol>`;
   }
   /* "Voltar" no topo do cartão, à esquerda, acima da pergunta (mesmo lugar em todos os módulos); a seta é desenhada */
@@ -299,17 +330,21 @@
     const p = el(`
       <div class="pag">
         ${topo("")}
-        ${heroi({ grande: true, h1: true, titulo: D.modulo.titulo_capa || D.modulo.nome, texto: D.mapa.objetivo, img: "hero-inicio.webp" })}
+        ${heroi({ grande: true, h1: true, titulo: D.modulo.titulo_capa || D.modulo.nome, texto: D.inicio.frase, img: "hero-inicio.webp" })}
         <main class="corpo">
-          <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
-          <div class="cartao"><h3>O que ter em mãos</h3>${listaOuTexto(D.mapa.ter_em_maos)}</div>
-          <div class="cartao"><h3>O que você recebe no final</h3>${listaOuTexto(D.mapa.entrega)}</div>
+          <p class="tempo">Este módulo leva uns ${esc(D.inicio.minutos)} minutos.</p>
+          <details class="como-funciona"><summary>Como funciona</summary>
+            <p class="como-intro">${esc(D.mapa.objetivo)}</p>
+            <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
+            <div class="cartao"><h3>O que ter em mãos</h3>${listaOuTexto(D.mapa.ter_em_maos)}</div>
+            <div class="cartao"><h3>O que você recebe no final</h3>${listaOuTexto(D.mapa.entrega)}</div>
+          </details>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
             <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
           </div>
-          ${rodape()}
+          ${rodape(true)}
         </main>
       </div>`);
     p.querySelector("#ir").onclick = () => {
@@ -335,7 +370,7 @@
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           ${ENCAMINHA ? `<div class="cartao encaminha"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>` : ""}
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-          ${rodape()}
+          ${rodape(true)}
         </main>
       </div>`);
     ligar(p);
@@ -375,12 +410,12 @@
     /* pedido da equipe (12/11): em pergunta de escrever, a dica fica dentro do campo (some quando a pessoa digita) */
     const dicaNoCampo = tipo === "texto" && !vazio(q.dica);
     const rotNS = q.rotulo_naosei || Motor.NS;
-    const rotOp = (op) => (op === Motor.NS ? rotNS : op);
+    const rotOp = (op) => (op === Motor.NS ? rotNS : (q.rotulos_opcoes || {})[op] || op);
 
     const p = el(`
       <div class="pag">
-        ${topo(curto(q.bloco))}
-        ${heroi({ kicker: posicao(cod), kickerClasse: "passo", titulo: q.bloco, titClasse: "bloco-nome" })}
+        ${topo("")}
+        ${heroi({ compacta: true, kicker: posicao(cod), kickerClasse: "passo", titulo: q.bloco.replace(/^Bloco \d+:\s*/, ""), titClasse: "bloco-nome" })}
         ${etapas(D.blocos.indexOf(q.bloco) + 1)}
         <main class="corpo">
           <div class="cartao-q">
@@ -388,8 +423,8 @@
           <div class="pergunta">
             <h2 class="q">${esc(enunciado(q))}</h2>
             ${seloTxt ? selo(seloTxt) : ""}
-            ${q.dica && !dicaNoCampo ? `<div class="bloco dica-q" role="note"><b>Dica</b>${textoCurto(q.dica)}</div>` : ""}
-            ${tipo === "multipla" || varias ? `<p class="mini-info">Você pode marcar mais de uma opção.</p>` : ""}
+            ${q.dica && !dicaNoCampo ? `<details class="dica-toggle dica-q"><summary>Ver dica</summary><p>${esc(porTipo(q.dica))}</p></details>` : ""}
+            ${tipo === "multipla" || varias ? `<p class="mini-info">Marque quantas quiser.</p>` : ""}
             ${AJUDA_UNICA[cod] ? `<p class="mini-info">${esc(AJUDA_UNICA[cod])}</p>` : ""}
             ${confirmar ? `<div class="herdado" id="herdado"><p class="herdado-txt">${esc(H.p01)}</p><button class="btn-alt" id="trocar" type="button">Trocar</button></div>` : ""}
             <div class="entrada" id="ent"></div>
@@ -463,13 +498,13 @@
         ent.appendChild(b);
       });
       if (q.opcoes.includes("Outro")) {
-        outro = el(`<label class="item extra"><span>Outro</span><textarea class="campo" rows="2">${esc(resp && resp.detalhe)}</textarea></label>`);
+        outro = el(`<label class="item extra"><span>Outro</span><textarea class="campo" rows="2" placeholder="${esc(q.placeholder_outro || "")}">${esc(resp && resp.detalhe)}</textarea></label>`);
         ent.after(outro);
       }
       if (tipo === "escolhacampos") { camposBox = el(`<div class="campos"></div>`); ent.after(camposBox); }
     } else if (tipo === "doiscampos") {
       q.campos.forEach((c) => ent.appendChild(el(`<label class="item"><span>${esc(rotulo(q, c))}</span>
-        <textarea class="campo" rows="3" data-c="${esc(c)}">${esc(resp && resp.campos && resp.campos[c])}</textarea></label>`)));
+        <textarea class="campo" rows="3" data-c="${esc(c)}" placeholder="${esc((q.placeholders || {})[c] || "")}">${esc(resp && resp.campos && resp.campos[c])}</textarea></label>`)));
     } else if (tipo === "preco") {
       /* dois campos de número; só o primeiro é obrigatório */
       const ns = resp && resp.estado === "valor" ? (resp.min != null ? [resp.min, resp.max] : Motor.numeros(resp.valor)) : [];
@@ -485,7 +520,7 @@
       const mais = el(`<button type="button" class="btn-alt mais-nome" id="mais-nome">+ Adicionar outro nome</button>`);
       const novoCampo = (v) => {
         const k = ent.querySelectorAll("input[data-nome]").length + 1;
-        ent.insertBefore(el(`<label class="item item-nome"><span>Nome ${k}</span><input class="campo" data-nome="${k}" autocomplete="off" value="${esc(v || "")}"></label>`), mais);
+        ent.insertBefore(el(`<label class="item item-nome"><span>Nome ${k}</span><input class="campo" data-nome="${k}" autocomplete="off"${k === 1 && q.placeholder ? ` placeholder="${esc(q.placeholder)}"` : ""} value="${esc(v || "")}"></label>`), mais);
         mais.hidden = k >= MAX;
       };
       ent.appendChild(mais);
@@ -510,7 +545,7 @@
       ent.appendChild(box);
       const temOutro = !!(resp && resp.outro);
       const bo = el(`<button type="button" class="btn-alt" id="outro-t" aria-pressed="${temOutro}">${esc(q.outro || "Outro")}</button>`);
-      outroT = el(`<label class="item extra"><span>Qual outro ponto? Como você se sai nele?</span><textarea class="campo" rows="2">${esc(resp && resp.outro)}</textarea></label>`);
+      outroT = el(`<label class="item extra"><span>Qual outro ponto? Como você se sai nele?</span><textarea class="campo" rows="2" placeholder="${esc(q.placeholder_outro || "")}">${esc(resp && resp.outro)}</textarea></label>`);
       outroT.hidden = !temOutro;
       bo.classList.toggle("sel", temOutro);
       bo.onclick = () => { const on = outroT.hidden; outroT.hidden = !on; bo.classList.toggle("sel", on); bo.setAttribute("aria-pressed", on); reabrir(); if (on) outroT.querySelector("textarea").focus(); };
@@ -594,7 +629,7 @@
       const chave = varias ? marcadas.join("|") : escolhida || "";
       if (tipo === "escolhacampos" && camposBox.dataset.op !== chave) { camposBox.dataset.op = chave; desenharCampos(); }
       /* retorno ao vivo das opções (Dica de cada alcance/canal; sugestão do "Não sei" das perguntas de marcar) */
-      if (tipo === "multipla") mostrar(msg, marcadas.length ? Motor.retornos(q, { estado: "opcoes", opcoes: marcadas }, est()) : []);
+      if (tipo === "multipla") mostrar(msg, marcadas.length ? Motor.retornos(q, { estado: "opcoes", opcoes: marcadas }, est()) : [], marcadas.includes(Motor.NS) ? caixaComo(q) : null);
       else if (tipo === "escolha" && escolhida) mostrar(msg, Motor.retornos(q, { estado: "opcao", opcao: escolhida }, est()));
       else if (tipo === "escolhacampos") msg.innerHTML = "";
     }
@@ -665,7 +700,7 @@
       const falta = faltando(r);
       if (falta) return erro(falta);
       const lista = Motor.retornos(q, r, est());
-      if (Motor.bloqueia(lista)) return mostrar(msg, lista);        // Alerta: não grava, não avança
+      if (Motor.bloqueia(lista)) return mostrar(msg, lista, tipo === "multipla" && marcadas.includes(Motor.NS) ? caixaComo(q) : null);        // Alerta: não grava, não avança
       gravar(r);
       if (r.doM1) return avancar();                                   // confirmou o que veio do Módulo 1
       if (Motor.corrigir(lista)) { mostrar(msg, lista); return botoes("mesmo"); }
@@ -679,7 +714,7 @@
     const ns = p.querySelector("#ns"), nao = p.querySelector("#nao");
     function naoSei() {
       erroBox.hidden = true;
-      mostrar(ajudans, Motor.retornos(q, { estado: "naosei" }, est()));
+      mostrar(ajudans, ajudaNaoSei(q, Motor.retornos(q, { estado: "naosei" }, est())), caixaComo(q));
       ajudans.appendChild(el(`<p class="mini-info nota-ns" id="nota-ns">${esc(cod === "M3.P10" ? NOTA_NS_PERFIL : NOTA_NS)}</p>`));
       if (ns) { ns.classList.add("sel"); ns.setAttribute("aria-pressed", "true"); }
     }
@@ -852,12 +887,11 @@
     const t = tabelaConc(RR), anotar = `<span class="anotar">a anotar</span>`;
     const cel = (v) => (v ? esc(v) : anotar);
     const rot = (k) => porTipo(k);
-    return `<section class="entrega-m" id="roteiro">
-        <h2>Seu roteiro de pesquisa</h2>
+    /* versão leve: cada entrega fica recolhida; o primeiro passo do roteiro aparece como tarefa no alto */
+    return `<details class="resultado-mais"><summary>Seu roteiro de pesquisa</summary><section class="entrega-m" id="roteiro">
         <ol class="roteiro">${roteiro(RR).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
-      </section>
-      <section class="entrega-m" id="tabela-conc">
-        <h2>Sua tabela de concorrentes</h2>
+      </section></details>
+      <details class="resultado-mais"><summary>Sua tabela de concorrentes</summary><section class="entrega-m" id="tabela-conc">
         <p class="mini-info">${t.modelo ? "Você ainda não citou concorrentes. Use este modelo ao pesquisar." : "Montada com o que você respondeu. O que estiver “a anotar”, complete ao pesquisar."}</p>
         ${t.linhas.map((l) => `<div class="conc" data-nome="${esc(l.nome)}">
           <h3>${esc(l.nome)}</h3>
@@ -871,12 +905,11 @@
           </dl>
         </div>`).join("")}
         ${t.geral ? `<p class="mini-info">Preço, pontos fortes e fracos foram respondidos para os concorrentes em geral. Ao pesquisar, anote os de cada um.</p>` : ""}
-      </section>
-      <section class="entrega-m" id="quadro-conc">
-        <h2>Quadro dos concorrentes</h2>
+      </section></details>
+      <details class="resultado-mais"><summary>Quadro dos concorrentes</summary><section class="entrega-m" id="quadro-conc">
         <p class="mini-info">Montado só com as suas respostas. O que estiver “a anotar”, complete ao pesquisar.</p>
         <div class="quadro">${quadro(RR).map((c) => `<div class="q-cel q-${c.id}" data-q="${c.id}"><h3>${esc(c.tit)}</h3>${c.xs.length ? `<ul>${c.xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p>${anotar}</p>`}</div>`).join("")}</div>
-      </section>`;
+      </section></details>`;
   }
 
   function telaResultado() {
@@ -899,19 +932,18 @@
         <main class="corpo">
           ${botaoVoltar()}
           <section class="concluido">
-            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Veja abaixo o que entendemos do seu negócio.</p></div></div>
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2></div></div>
           </section>
           <section class="entendemos" id="entendemos">
             <h2>O que entendemos até aqui</h2>
             ${entendemos(RR, telasPend.length).map((t) => `<p>${esc(t)}</p>`).join("")}
           </section>
+          <div class="tarefa" id="tarefa"><b>Sua tarefa para fazer já</b><p>${esc(roteiro(RR)[0])}</p></div>
           <div class="res-num">
             <div class="lbl">Perguntas respondidas</div>
             <div class="val">${telasResp.length} de ${telas.length}</div>
             <div class="sub">${telasPend.length ? `${telasPend.length} com “Não sei”` : "nenhuma com “Não sei”"}</div>
           </div>
-          <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-
           ${pend.length || semResp.length ? `<section class="pendentes" id="pendentes">
             ${pend.length ? `<div class="secao-titulo">Perguntas que você marcou como Não sei</div>
             ${pend.map((q) => `<div class="pend" data-cod="${q.codigo}"><p>${esc(enunciado(q))}</p><button class="btn btn-claro preencher" data-cod="${q.codigo}">Preencher agora</button></div>`).join("")}` : ""}
@@ -939,9 +971,11 @@
             }).join("")}</section>`).join("")}
           </details>
 
-          <div class="secao-titulo">O que este módulo entrega</div>
-          <div class="cartao">${listaOuTexto(D.mapa.entrega)}</div>
-          ${ENCAMINHA ? `<div class="cartao encaminha"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>` : ""}
+          <details class="resultado-mais"><summary>Mais detalhes</summary>
+            <div class="cartao"><h3>O que este módulo entrega</h3>${listaOuTexto(D.mapa.entrega)}</div>
+            ${ENCAMINHA ? `<div class="cartao encaminha"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>` : ""}
+            <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
+          </details>
 
           <div class="acoes">
             <button class="btn btn-primario" id="imp">Salvar ou imprimir</button>
@@ -949,7 +983,7 @@
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
           <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-a/m04/index.html">Ir para o Módulo 4</a></div>
-          ${rodape()}
+          ${rodape(true)}
         </main>
       </div>`);
     p.querySelector("#v").onclick = () => {
@@ -958,15 +992,16 @@
     };
     ligar(p);
     p.querySelectorAll(".preencher, .ajustar").forEach((b) => (b.onclick = () => ir(telaPergunta, b.dataset.cod, true)));
-    p.querySelector("#imp").onclick = () => { p.querySelector("#respostas").open = true; window.print(); };
+    p.querySelector("#imp").onclick = () => { p.querySelectorAll("details").forEach((d) => { d.open = true; }); window.print(); };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, S.R, null, H)); };
     p.querySelector("#novo").onclick = () => { if (confirm("Começar uma nova análise? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaPergunta, Motor.proxima(M, {}, null, H)); } };
     return p;
   }
 
-  function rodape() {
+  /* versão leve: o crédito em texto só na capa, nos limites e no resultado; nas perguntas, só as marcas */
+  function rodape(credito) {
     return `<footer class="rodape">
-      <p class="credito">Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>
+      ${credito ? `<p class="credito">Laboratório de Gestão II · FACC/UFJF · versão ${esc(D.modulo.versao)} · fontes consultadas em ${esc(D.modulo.data)}</p>` : ""}
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

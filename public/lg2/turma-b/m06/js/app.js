@@ -209,6 +209,52 @@
       navigator.clipboard && navigator.clipboard.writeText(b.dataset.t);
       b.textContent = "Copiado";
     }));
+    p.querySelectorAll("[data-copiar]").forEach((b) => {
+      const alvo = b.parentNode.querySelector("[data-prompt]");
+      b.onclick = () => copiar(alvo.textContent, b, alvo);
+    });
+  }
+  /* copiar com reserva: área de transferência → execCommand → deixa o texto selecionado (como no Módulo 1) */
+  function copiar(t, b, alvo) {
+    const pronto = () => { b.textContent = "Copiado!"; setTimeout(() => { if (document.contains(b)) b.textContent = "Copiar"; }, 2000); };
+    const reserva = () => {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let foi = false;
+      try { foi = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      if (foi) return pronto();
+      try { const r = document.createRange(); r.selectNodeContents(alvo); const sl = getSelection(); sl.removeAllRanges(); sl.addRange(r); } catch (e) {}
+      b.textContent = "Toque e segure o texto para copiar";
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(pronto, reserva);
+    else reserva();
+  }
+  /* ---------- "Não sei": caixa "Como descobrir" (passos + pedido pronto para a IA, com Copiar) ----------
+     Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA); a resposta salva não muda. */
+  function caixaComo(q) {
+    if (!q || !q.comoDescobrir || !q.comoDescobrir.length) return "";
+    return `<section class="como-descobrir como-ns" role="status">
+      <b class="como-tit">Como descobrir</b>
+      <ol>${q.comoDescobrir.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${q.promptIA ? `<div class="pedir-ia">
+        <b>Peça ajuda à IA</b>
+        <p class="como-nota">Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
+        <p class="prompt" data-prompt>${esc(q.promptIA)}</p>
+        <button class="btn-alt copiar" type="button" data-copiar>Copiar</button>
+      </div>` : ""}
+    </section>`;
+  }
+  /* "Ver dica" fechada, entre a pergunta e as respostas: a ajuda da pergunta + os termos */
+  function verDica(q) {
+    const cs = conceitosDe(q);
+    if (vazio(q.ajuda) && !cs.length) return "";
+    return `<details class="dica-toggle" id="ver-dica"><summary>Ver dica</summary>
+      ${vazio(q.ajuda) ? "" : `<p class="ajuda">${esc(q.ajuda)}</p>`}
+      ${cs.map((b) => `<div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(vazio(b.definicao) ? b.porque : b.definicao)}</p>
+        ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(b.exemplo)}</p>`}</div>`).join("")}
+    </details>`;
   }
 
 
@@ -238,6 +284,11 @@
     </div>`;
   }
   function heroi(o) {
+    /* versão leve: nas perguntas, faixa compacta (só o passo e a barra de progresso, sem título repetido nem ilustração) */
+    if (o.compacta) return `<section class="heroi heroi-compacta">
+      <div class="heroi-txt"><div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker)}</div></div>
+      <div class="heroi-prog"><div class="barra" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.pct}"><div class="barra-fill" style="width:${o.pct}%"></div></div></div>
+    </section>`;
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
@@ -274,16 +325,19 @@
     const p = el(`
       <div class="pag">
         ${topo("")}
-        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.mapa.objetivo, img: "hero-inicio.webp" })}
+        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.capa.frase, img: "hero-inicio.webp" })}
         <main class="corpo">
-          <div class="cartao"><h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p></div>
-          <div class="cartao"><h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p></div>
-          <div class="cartao"><h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p></div>
+          <p class="tempo">Este módulo leva uns ${esc(D.capa.minutos)} minutos</p>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
-            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
           </div>
+          <details class="como-funciona"><summary>Como funciona</summary>
+            <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
+            <h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p>
+            <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
+            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
+          </details>
           ${rodape()}
         </main>
       </div>`);
@@ -337,25 +391,22 @@
 
     const p = el(`
       <div class="pag">
-        ${topo(nomeSecao(cod))}
-        ${heroi({ kicker: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, kickerClasse: "passo", titulo: nomeSecao(cod) })}
-        ${etapas(etapaDe(cod))}
+        ${heroi({ compacta: true, kicker: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, kickerClasse: "passo", pct: Math.round(M.perguntas.indexOf(q) / M.perguntas.length * 100) })}
         <main class="corpo">
           <div class="cartao-q pergunta" data-cod="${esc(cod)}">
             ${botaoVoltar()}
             ${faixaNeg}
             <h2 class="q">${esc(q.pergunta)}</h2>
+            ${verDica(q)}
             ${her ? `<div class="herdado"><span class="selo">Veio do Módulo ${her.modulo}</span><span>Confira e ajuste se quiser.</span>${her.nota ? `<p class="mini-info">${esc(her.nota)}</p>` : ""}</div>` : ""}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" id="sem-compras-btn">${SEM_COMPRAS}</button><button class="btn-alt" id="ainda-nao-sei">${AINDA_NAO_SEI}</button>` : ""}</div>` : ""}
+            <div id="ajudans"></div>
             <div class="erro" id="erro" hidden></div>
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             <div id="retorno"></div>
-            ${dica(q.ajuda)}
             ${blocoEducativo(educativoDe(cod))}
-            ${blocoConceitos(conceitosDe(q))}
           </div>
-          ${rodape()}
         </main>
       </div>`);
     ligarCopiar(p);
@@ -376,10 +427,10 @@
       q.opcoesLista.forEach((op) => {
         const desc = q.descricoes && q.descricoes[op];
         const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b>${desc ? `<small class="op-desc">${esc(desc)}</small>` : ""}</span></button>`);
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); };
+        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); ajudaNS(op === Motor.NS); };
         ent.appendChild(b);
       });
-      if (tipo === "simnao_texto") ent.appendChild(el(`<textarea class="campo" id="detalhe" rows="3">${esc(resp && resp.detalhe || "")}</textarea>`));
+      if (tipo === "simnao_texto") ent.appendChild(el(`<textarea class="campo" id="detalhe" rows="3"${q.exemplo ? ` placeholder="${esc(q.exemplo)}"` : ""}>${esc(resp && resp.detalhe || "")}</textarea>`));
     } else if (tipo === "multi") {
       ent.classList.add("opcoes", "multi");
       q.opcoesLista.forEach((op) => {
@@ -387,15 +438,23 @@
         b.onclick = () => {
           marcadas = marcadas.includes(op) ? marcadas.filter((x) => x !== op) : q.opcoesLista.filter((x) => x === op || marcadas.includes(x));
           b.classList.toggle("sel", marcadas.includes(op));
+          ajudaNS(marcadas.includes(Motor.NS));
         };
         ent.appendChild(b);
       });
     } else {
       const v = resp && resp.estado === "valor" ? resp.valor : her ? her.valor : "";
       ent.appendChild(el(tipo === "numero"
-        ? `<div class="linha"><span class="unid">R$</span><input class="campo" inputmode="decimal" placeholder="0,00" value="${esc(v)}"></div>`
-        : `<textarea class="campo" rows="3">${esc(v)}</textarea>`));
+        ? `<div class="linha"><span class="unid">R$</span><input class="campo" inputmode="decimal" placeholder="${esc(q.exemplo || "0,00")}" value="${esc(v)}"></div>`
+        : `<textarea class="campo" rows="3"${q.exemplo ? ` placeholder="${esc(q.exemplo)}"` : ""}>${esc(v)}</textarea>`));
     }
+    /* tocar "Não sei" (opção) já mostra como descobrir; nada muda na resposta salva */
+    function ajudaNS(mostrar) {
+      const a = p.querySelector("#ajudans");
+      a.innerHTML = mostrar ? caixaComo(q) : "";
+      if (mostrar) { ligarCopiar(a); a.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+    }
+    if (escolhida === Motor.NS || marcadas.includes(Motor.NS)) ajudaNS(true);
     const ns = p.querySelector("#ns");
     if (ns) ns.onclick = () => responder({ estado: "naosei" });
     const sc = p.querySelector("#sem-compras-btn");
@@ -453,7 +512,12 @@
       /* um só bloco de atenção na tela: alertas das regras + alerta da pergunta, sem repetição */
       const atencao = descobrir ? [] : [...new Set([...regras.map((r) => r.alerta), ...(parado ? [] : [q.alerta])].filter((a) => !vazio(a)).map((a) => String(a).trim()))];
       const extra = !parado && S.R[cod] && S.R[cod].semCompras ? SEM_COMPRAS_RET : "";
+      /* "Não sei": a caixa "Como descobrir" vem primeiro no retorno (uma só na tela) */
+      const ns = !parado && !descobrir && S.R[cod] && S.R[cod].estado === "naosei"
+        || !parado && S.R[cod] && S.R[cod].estado === "multi" && S.R[cod].opcoes.includes(Motor.NS);
+      p.querySelector("#ajudans").innerHTML = "";
       box.innerHTML = `<div class="retorno${parado ? " parado" : ""}">
+        ${ns ? caixaComo(q) : ""}
         ${parado || descobrir || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
         ${descobrir ? `<p class="r-texto r-descobrir">Tudo bem. Por enquanto, pulamos o valor das compras. No seu resumo, isso fica como algo que falta descobrir.</p>${blocoComoDescobrir(true)}` : ""}
         ${extra ? `<p class="r-texto r-sem-compras">${esc(extra)}</p>` : ""}
@@ -466,6 +530,7 @@
           </div>`).join("")}
         ${atencao.length ? `<div class="bloco b-alerta"><b>Atenção</b>${atencao.length === 1 ? esc(atencao[0]) : `<ul>${atencao.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`}</div>` : ""}
       </div>`;
+      ligarCopiar(box);
       if (parado) { box.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
       const usar = box.querySelector("#usar-m5");
       if (usar) usar.onclick = () => {
@@ -692,6 +757,15 @@
     return (r && r.herdado ? `<span class="selo">Veio do Módulo ${esc(r.herdado)}</span> ` : "") + esc(v) + (det ? ` · ${esc(det)}` : "");
   }
 
+  /* resultado: cada "Não sei" leva o seu "Como descobrir" (fechado), com o pedido pronto para a IA */
+  function blocoComoFalta() {
+    const qs = M.perguntas.filter((q) => { const r = S.R[q.codigo]; return r && q.comoDescobrir
+      && (r.estado === "naosei" || (r.estado === "multi" && r.opcoes.includes(Motor.NS))); });
+    if (!qs.length) return "";
+    return `<details class="resultado-mais" id="como-falta"><summary>Como descobrir o que falta</summary>
+      ${qs.map((q) => `<details class="como-mini"><summary>${esc(q.pergunta)}</summary>${caixaComo(q)}</details>`).join("")}
+    </details>`;
+  }
   function telaResultado() {
     const regras = Motor.regrasTodas(M, S.R);
     const lac = Motor.lacunas(regras), enc = Motor.encaminhamentos(regras), ale = Motor.alertas(regras);
@@ -707,20 +781,26 @@
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
           </section>
           <section class="entendemos" id="entendemos">${blocoEntendemos()}</section>
-          <div id="atencao">${blocoAtencao()}</div>
-          <p class="ajuda">${esc(D.mapa.entrega)}</p>
-          <div id="i01">${blocoI01()}</div>
-          <div id="i02">${blocoI02()}</div>
-          <div id="i04">${blocoI04()}</div>
-          <div id="i03">${blocoI03()}</div>
-          <div id="i05">${blocoI05()}</div>
-
-          ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
-          <div class="secao-titulo">Próximos passos</div>
+          <div class="secao-titulo">Sua próxima tarefa</div>
           ${falta.length ? `<ol class="roteiro" id="proximos">${falta.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`
             : `<p class="ajuda" id="proximos">Nada ficou em aberto nas suas respostas. Acompanhe a tabela das 13 semanas e atualize os valores quando souber os preços de verdade.</p>`}
-          ${dicas.length ? `<div class="secao-titulo">Dicas gerais</div><ul class="dicas-gerais" id="dicas">${dicas.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-          <div class="bloco b-enc"><b>Encaminhamentos, pelas suas respostas</b>${enc.length ? `<ul>${enc.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}<p>${esc(D.mapa.encaminhamentos)}</p></div>
+          ${blocoComoFalta()}
+          <div id="atencao">${blocoAtencao()}</div>
+          <div id="i01">${blocoI01()}</div>
+          <details class="resultado-mais" id="mais-compras"><summary>Sua lista de compras</summary>
+            <div id="i02">${blocoI02()}</div>
+          </details>
+          <details class="resultado-mais" id="mais-caixa"><summary>Ver o caixa das 13 semanas</summary>
+            <div id="i04">${blocoI04()}</div>
+            <div id="i03">${blocoI03()}</div>
+            <div id="i05">${blocoI05()}</div>
+          </details>
+          <details class="resultado-mais" id="mais-detalhes"><summary>Mais detalhes</summary>
+            <p class="ajuda">${esc(D.mapa.entrega)}</p>
+            ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
+            ${dicas.length ? `<div class="secao-titulo">Dicas gerais</div><ul class="dicas-gerais" id="dicas">${dicas.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+            <div class="bloco b-enc"><b>Encaminhamentos, pelas suas respostas</b>${enc.length ? `<ul>${enc.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}<p>${esc(D.mapa.encaminhamentos)}</p></div>
+          </details>
 
           <details class="saiba respostas"><summary>Ver suas respostas</summary>
           ${M.perguntas.map((q) => `<div class="cartao"><h3>${esc(q.pergunta)}</h3><p>${respostaResumo(q)}</p></div>`).join("")}
@@ -762,6 +842,7 @@
     }
     function atualizarCaixa() { p.querySelector("#entendemos").innerHTML = blocoEntendemos(); p.querySelector("#atencao").innerHTML = blocoAtencao(); p.querySelector("#i04").innerHTML = blocoI04(); p.querySelector("#i03").innerHTML = blocoI03(); p.querySelector("#i05").innerHTML = blocoI05(); ligar(); }
     ligar();
+    ligarCopiar(p);
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
 
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };

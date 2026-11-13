@@ -1,4 +1,4 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao. */
+/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao (exceto o bloco 'leve' no fim do arquivo). */
 window.MODULO5 = {
  "origem": "LG2_M05_planilha_do_grupo.xlsx",
  "modulo": {
@@ -1914,4 +1914,333 @@ window.MODULO5 = {
    "status": "Rascunho"
   }
  ]
+};
+
+/* Versão leve (nov/2026, pedido da coordenação; ajustado à mão, fora da planilha): capa curta,
+   enunciados curtos ("curta" / "curtaPorTipo"), exemplo dentro do campo ("placeholder") e, por pergunta,
+   a ajuda do "Não sei": comoDescobrir = 2 passos; promptIA = pedido pronto para copiar.
+   As opções e os valores salvos não mudam (outros módulos leem as respostas).
+   Ao regenerar este arquivo pela planilha, reaplique este bloco. */
+window.MODULO5.leve = {
+ "capa": {
+  "frase": "Descubra quanto custa cada venda, quanto sobra e qual preço cobre seus gastos.",
+  "minutos": 20,
+  "como_funciona": "Você responde uma pergunta por vez sobre um item que vende. Se não souber, toque em “Não sei”: mostramos como descobrir. No fim, você vê o custo de uma unidade, quanto sobra em cada venda e quantas vendas cobrem os gastos do mês."
+ },
+ "perguntas": {
+  "M5.P00": {
+   "comoDescobrir": [
+    "Pense nas últimas 4 semanas: alguém pagou por algo que você fez, revendeu ou atendeu?",
+    "Vendeu poucas vezes ou só para conhecidos? Escolha “Já vendi algumas vezes”. Ainda não vendeu? Responda com estimativas: o resultado vira uma simulação."
+   ],
+   "promptIA": "Quero analisar os custos de [o que você vende]. Até hoje eu [conte em uma frase o que já fez: só pensei, fiz amostras, vendi algumas vezes ou vendo sempre]. Em qual fase estou: ideia, teste, primeiras vendas ou vendas frequentes? Explique em linguagem simples."
+  },
+  "M5.P01": {
+   "comoDescobrir": [
+    "Você compra materiais e transforma em outra coisa (farinha vira bolo)? É Produto. Compra pronto e revende igual (camiseta)? É Mercadoria.",
+    "O cliente paga pelo seu trabalho (manicure, aula, conserto)? É Serviço. Faz mais de um? Comece pelo que mais vende."
+   ],
+   "promptIA": "Eu vendo [descreva o que você vende e como faz]. Isso é produto (eu faço), mercadoria (compro pronto e revendo) ou serviço (cobro pelo meu trabalho)? Responda em uma frase."
+  },
+  "M5.P02": {
+   "placeholder": "Ex.: bolo de pote de chocolate",
+   "comoDescobrir": [
+    "Escolha o produto que você mais vende ou o que mais quer vender. Um por vez.",
+    "Seja específico: “bolo de pote de chocolate” é melhor que “doces”. Depois você pode analisar outro."
+   ],
+   "promptIA": "Eu faço e vendo [liste o que você faz]. Qual desses vale analisar primeiro para descobrir o custo e o preço? Considere o que mais vende e o que dá mais trabalho."
+  },
+  "M5.P03": {
+   "placeholder": "Ex.: farinha",
+   "comoDescobrir": [
+    "Pegue a receita ou faça o produto uma vez e anote tudo o que usa, do começo ao fim.",
+    "Olhe a última nota ou lista de compras. Ferramentas que duram (forma, batedeira) não entram aqui."
+   ],
+   "promptIA": "Eu faço [seu produto]. Liste os ingredientes ou materiais que normalmente são comprados para fazer uma receita, sem contar ferramentas e equipamentos."
+  },
+  "M5.P04": {
+   "placeholder": "Ex.: 6,50",
+   "comoDescobrir": [
+    "Procure a última nota, cupom ou comprovante de compra de cada item.",
+    "Sem nota? Veja o preço no site ou aplicativo do mercado onde compra, ou pergunte ao fornecedor. Um valor aproximado serve."
+   ],
+   "promptIA": "Quanto custa, em média, em [sua cidade], [item e tamanho da embalagem, ex.: farinha de trigo 1 kg]? Me dê uma faixa de preço no mercado e no atacado."
+  },
+  "M5.P05": {
+   "placeholder": "Ex.: 1",
+   "comoDescobrir": [
+    "Leia o rótulo da embalagem: o peso ou o volume vem escrito (ex.: 1 kg, 395 g, 1 L, 12 unidades).",
+    "Sem a embalagem? Procure a foto do produto no site do mercado. Pode misturar kg e g, L e ml: o aplicativo converte."
+   ],
+   "promptIA": "Qual é o tamanho mais comum da embalagem de [item] vendida no mercado? Responda com o número e a unidade (kg, g, L, ml ou unidades)."
+  },
+  "M5.P06": {
+   "placeholder": "Ex.: 300",
+   "comoDescobrir": [
+    "Na próxima vez que fizer o produto, meça com xícara, colher ou balança e anote.",
+    "Ou conte quantas receitas faz com uma embalagem e divida. Ex.: 1 kg de farinha rende 3 receitas = uns 330 g por receita."
+   ],
+   "promptIA": "Na receita de [seu produto] que rende [quantas unidades], quanto se usa, em média, de [liste os itens]? Responda em gramas, ml ou unidades."
+  },
+  "M5.P07": {
+   "curta": "Com essas quantidades, quantas unidades você faz?",
+   "placeholder": "Ex.: 20",
+   "comoDescobrir": [
+    "Conte quantas unidades saíram da última vez que você fez essa receita.",
+    "Se varia, use o número mais comum. Ex.: rende entre 18 e 22 brigadeiros? Coloque 20."
+   ],
+   "promptIA": "Uma receita de [seu produto] com [quantidade de cada ingrediente] rende quantas unidades de [tamanho ou peso de cada unidade]?"
+  },
+  "M5.P08": {
+   "comoDescobrir": [
+    "Lembre como o produto sai da sua mão até o cliente: vai em pote, caixa, sacola ou guardanapo?",
+    "Se você compra isso para entregar, a resposta é Sim, mesmo que seja barato."
+   ],
+   "promptIA": "Eu vendo [seu produto] por [retirada, entrega em casa ou feira]. Que embalagens costumam ser usadas e quanto custam, em média, por unidade?"
+  },
+  "M5.P09": {
+   "placeholder": ["Ex.: 50", "Ex.: 100"],
+   "comoDescobrir": [
+    "Veja a nota ou o pedido do último pacote de embalagens: o preço total e quantas vieram.",
+    "Sem nota? Procure a mesma embalagem no site de uma loja de embalagens e anote o preço do pacote."
+   ],
+   "promptIA": "Quanto custa um pacote de [tipo de embalagem, ex.: pote de 250 ml com tampa] e quantas unidades vêm nele, em média? Diga também o preço de cada unidade."
+  },
+  "M5.P10": {
+   "placeholder": "Ex.: camiseta básica",
+   "comoDescobrir": [
+    "Escolha a mercadoria que você mais vende ou a que quer começar a vender. Uma por vez.",
+    "Seja específico: “camiseta básica” é melhor que “roupas”. Depois você pode analisar outra."
+   ],
+   "promptIA": "Eu revendo [liste as mercadorias]. Qual delas vale analisar primeiro para descobrir quanto sobra em cada venda? Considere a que mais vende."
+  },
+  "M5.P11": {
+   "placeholder": "Ex.: 300",
+   "comoDescobrir": [
+    "Veja a nota, o pedido ou a conversa com o fornecedor da última compra.",
+    "Ainda não comprou? Peça orçamento a 2 fornecedores ou veja o preço de atacado em sites de compra."
+   ],
+   "promptIA": "Quanto custa, no atacado, [mercadoria] para revender em [sua cidade]? Me dê uma faixa de preço por unidade e onde costumam comprar."
+  },
+  "M5.P12": {
+   "placeholder": "Ex.: 10",
+   "comoDescobrir": [
+    "Conte as unidades que vieram no pedido ou veja a quantidade escrita na nota.",
+    "Se o valor que você informou é de uma peça só, coloque 1."
+   ]
+  },
+  "M5.P13": {
+   "comoDescobrir": [
+    "Abra o pedido, a nota ou o comprovante e veja se há uma linha de frete ou entrega.",
+    "Se você mesmo vai buscar a mercadoria, a passagem ou o combustível contam como frete: responda Sim."
+   ],
+   "promptIA": "Eu compro [mercadoria] de [onde compra: cidade, site ou fornecedor]. Que custos de frete ou de busca costumam existir nesse tipo de compra?"
+  },
+  "M5.P14": {
+   "placeholder": "Ex.: 25",
+   "comoDescobrir": [
+    "Veja o valor do frete no pedido, na nota ou no comprovante dessa compra.",
+    "Se você vai buscar, some a passagem ou o combustível da ida e da volta."
+   ],
+   "promptIA": "Quanto custa, em média, enviar um pacote de [peso ou tamanho] de [cidade do fornecedor] para [sua cidade]?"
+  },
+  "M5.P15": {
+   "comoDescobrir": [
+    "Lembre como a mercadoria chega ao cliente: em sacola, caixa, envelope ou papel de presente?",
+    "Se você compra isso para entregar, a resposta é Sim, mesmo que seja barato."
+   ],
+   "promptIA": "Eu vendo [mercadoria] por [loja, entrega ou internet]. Que embalagens costumam ser usadas e quanto custam, em média, por unidade?"
+  },
+  "M5.P16": {
+   "placeholder": ["Ex.: 30", "Ex.: 50"],
+   "comoDescobrir": [
+    "Veja a nota ou o pedido do último pacote de sacolas ou caixas: o preço total e quantas vieram.",
+    "Sem nota? Procure a mesma embalagem no site de uma loja de embalagens e anote o preço do pacote."
+   ],
+   "promptIA": "Quanto custa um pacote de [tipo de embalagem, ex.: sacola de papel média] e quantas unidades vêm nele, em média? Diga também o preço de cada unidade."
+  },
+  "M5.P17": {
+   "placeholder": "Ex.: manicure pé e mão",
+   "comoDescobrir": [
+    "Escolha o serviço que você mais faz ou o que quer começar a oferecer. Um por vez.",
+    "Seja específico: “manicure pé e mão” é melhor que “beleza”. Depois você pode analisar outro."
+   ],
+   "promptIA": "Eu ofereço [liste seus serviços]. Qual deles vale analisar primeiro para descobrir quanto cobrar? Considere o que mais faço."
+  },
+  "M5.P18": {
+   "curta": "Você gasta algum produto, material ou peça nesse serviço?",
+   "comoDescobrir": [
+    "Pense no último atendimento: o que acabou ou diminuiu (esmalte, algodão, shampoo, peça)?",
+    "Se precisa comprar de novo quando acaba, responda Sim. Ferramentas que duram (tesoura, alicate) não contam."
+   ],
+   "promptIA": "Eu faço [seu serviço]. Que materiais costumam ser gastos em cada atendimento, sem contar ferramentas e equipamentos?"
+  },
+  "M5.P19": {
+   "placeholder": "Ex.: esmalte",
+   "comoDescobrir": [
+    "No próximo atendimento, deixe um papel ao lado e anote tudo o que usar e acabar.",
+    "Olhe a última compra de materiais para o trabalho. Ferramentas que duram não entram."
+   ],
+   "promptIA": "Liste os materiais que normalmente se gastam em um atendimento de [seu serviço], sem contar ferramentas e equipamentos."
+  },
+  "M5.P20": {
+   "placeholder": "Ex.: 8,90",
+   "comoDescobrir": [
+    "Procure a última nota, cupom ou comprovante de compra de cada material.",
+    "Sem nota? Veja o preço no site da loja ou distribuidora onde compra, ou pergunte ao vendedor. Um valor aproximado serve."
+   ],
+   "promptIA": "Quanto custa, em média, em [sua cidade], [material e tamanho, ex.: esmalte de 8 ml]? Me dê uma faixa de preço."
+  },
+  "M5.P21": {
+   "placeholder": "Ex.: 500",
+   "comoDescobrir": [
+    "Leia o rótulo: o volume ou o peso vem escrito (ex.: 8 ml, 500 ml, caixa com 100).",
+    "Sem a embalagem? Procure a foto do produto no site da loja. Pode misturar L e ml, kg e g: o aplicativo converte."
+   ],
+   "promptIA": "Qual é o tamanho mais comum da embalagem de [material] vendida para profissionais? Responda com o número e a unidade."
+  },
+  "M5.P22": {
+   "placeholder": "Ex.: 1",
+   "comoDescobrir": [
+    "Conte quantos clientes você atende até o material acabar e divida. Ex.: esmalte de 8 ml dá 10 clientes = 0,8 ml por cliente.",
+    "Ou marque o nível do frasco hoje e veja quanto baixou depois de 5 atendimentos."
+   ],
+   "promptIA": "Em um atendimento de [seu serviço], quanto se usa, em média, de [material]? Responda em ml, g ou unidades."
+  },
+  "M5.P23": {
+   "placeholder": ["Ex.: 1", "Ex.: 30"],
+   "comoDescobrir": [
+    "No próximo atendimento, veja a hora no celular quando começar e quando terminar.",
+    "Faça isso em 3 atendimentos e use a média. Conte também o tempo de preparar e arrumar."
+   ],
+   "promptIA": "Quanto tempo leva, em média, um atendimento de [seu serviço], contando preparar e arrumar? Me dê um tempo mínimo e um máximo."
+  },
+  "M5.PG": {
+   "comoDescobrir": [
+    "Lembre das últimas 10 vendas: como cada cliente pagou?",
+    "Tem maquininha ou aplicativo de vendas? Veja no extrato as formas de pagamento que aparecem."
+   ],
+   "promptIA": "Eu vendo [o que você vende] para [quem compra]. Quais formas de pagamento esses clientes mais usam e quais delas cobram taxa do vendedor?"
+  },
+  "M5.P24": {
+   "curta": "Quando vende no cartão, aplicativo ou site, paga alguma taxa?",
+   "comoDescobrir": [
+    "Abra o aplicativo da maquininha, do banco ou do delivery e veja uma venda: compare o valor vendido com o que caiu na conta.",
+    "Caiu menos que o valor da venda? A diferença é a taxa: responda Sim. Pix e dinheiro normalmente não têm taxa."
+   ],
+   "promptIA": "Eu recebo por [maquininha, aplicativo de delivery, site ou outra forma: diga qual]. Essa forma costuma cobrar taxa do vendedor? Onde vejo isso no aplicativo?"
+  },
+  "M5.P25": {
+   "placeholder": ["Ex.: 3", "Ex.: 30", "Ex.: 50"],
+   "comoDescobrir": [
+    "No aplicativo da maquininha ou do delivery, procure “taxas” ou “tarifas”. Ou veja o contrato.",
+    "Ou faça a conta numa venda: (valor vendido − valor recebido) ÷ valor vendido × 100. Ex.: vendeu 100, recebeu 97 = 3%."
+   ],
+   "promptIA": "Quais são as taxas mais comuns cobradas do vendedor para [forma de pagamento, ex.: cartão de crédito à vista] em [maquininha ou aplicativo que você usa]? Em quantos dias o dinheiro costuma cair?"
+  },
+  "M5.P26": {
+   "curta": "Você costuma perder o que comprou (estraga, quebra, vence)?",
+   "comoDescobrir": [
+    "Pense no último mês: algo estragou, venceu, quebrou ou foi jogado fora antes de vender?",
+    "Olhe a geladeira, o estoque ou as sobras do fim do dia. Se aconteceu, responda Sim."
+   ],
+   "promptIA": "Eu trabalho com [o que você vende]. Que perdas e desperdícios são comuns nesse negócio e como posso medir quanto perco por mês?"
+  },
+  "M5.P27": {
+   "placeholder": "Ex.: 30",
+   "comoDescobrir": [
+    "Durante 1 mês, anote num papel tudo o que for jogado fora e quanto você pagou por isso.",
+    "Para agora, estime: 3 bolos perdidos por mês × R$ 10 de custo = R$ 30."
+   ],
+   "promptIA": "No meu negócio de [o que você vende], costumo perder [o que perde e quantas vezes por mês]. Cada item me custa uns R$ [custo]. Me ajude a estimar quanto perco por mês."
+  },
+  "M5.P28": {
+   "comoDescobrir": [
+    "Você paga por algum espaço usado no trabalho: loja, sala, box, cozinha ou banca?",
+    "Trabalha em casa e não paga aluguel? Responda Não. Paga aluguel da casa e usa parte dela no negócio? Responda Sim."
+   ],
+   "promptIA": "Eu trabalho em [casa, loja, sala ou feira] e pago [quanto e pelo quê]. Isso conta como aluguel do negócio? Explique de forma simples."
+  },
+  "M5.P29": {
+   "placeholder": "Ex.: 300",
+   "comoDescobrir": [
+    "Veja o contrato, o boleto ou o comprovante do último pagamento.",
+    "Negócio dentro de casa? Coloque só a parte usada. Ex.: aluguel de R$ 1.000 e o negócio usa 1 de 5 cômodos = R$ 200."
+   ],
+   "promptIA": "Pago R$ [valor] de aluguel por um imóvel de [quantos cômodos]. Meu negócio usa [qual parte]. Quanto do aluguel faz sentido contar como gasto do negócio?"
+  },
+  "M5.P30": {
+   "comoDescobrir": [
+    "Pense: seu trabalho usa forno, máquina, secador, computador ou muita água?",
+    "Se usa e você paga essas contas, mesmo que sejam as contas da casa, responda Sim."
+   ],
+   "promptIA": "Eu trabalho com [o que você faz] e uso [aparelhos: forno, máquina, secador] cerca de [horas] por dia. Isso pesa na conta de luz e de água? Quanto, mais ou menos?"
+  },
+  "M5.P31": {
+   "placeholder": "Ex.: 80",
+   "comoDescobrir": [
+    "Pegue as 3 últimas contas de luz e de água e calcule a média.",
+    "Trabalha em casa? Estime a parte do negócio. Ex.: a conta subiu R$ 60 depois que você começou = coloque 60."
+   ],
+   "promptIA": "Uso [aparelho, ex.: forno elétrico] por [horas] por dia, [dias] dias por mês. Na minha conta, a energia custa uns R$ [valor] por kWh. Quanto isso dá por mês?"
+  },
+  "M5.P32": {
+   "curta": "Tem outros gastos todo mês para manter o negócio?",
+   "comoDescobrir": [
+    "Olhe o extrato do banco ou o caderno de contas do último mês e marque o que é do negócio.",
+    "Exemplos: internet, celular, contador, ajudante, transporte, divulgação, sistema, mensalidade do MEI."
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende]. Que gastos mensais costumam existir nesse tipo de negócio e que às vezes a gente esquece?"
+  },
+  "M5.P33": {
+   "placeholder": ["Ex.: internet", "Ex.: 100"],
+   "comoDescobrir": [
+    "Pegue boletos, faturas ou o extrato do último mês e copie cada valor.",
+    "Se o valor muda, use a média de 3 meses. Se a conta é da casa, coloque só a parte do negócio."
+   ],
+   "promptIA": "Tenho estes gastos mensais no negócio: [liste gastos e valores]. Faltou algum gasto comum para um negócio de [o que você vende]? Organize em lista com o total."
+  },
+  "M5.P34": {
+   "curta": "Você tira dinheiro do negócio para você, pelo seu trabalho?",
+   "comoDescobrir": [
+    "Olhe o último mês: você tirou dinheiro do negócio para pagar suas contas pessoais?",
+    "Tirou, mesmo sem valor fixo? Responda Sim. Todo o dinheiro ficou no negócio? Responda Não."
+   ],
+   "promptIA": "Tenho um negócio de [o que você vende] e trabalho [horas] por semana nele. Como defino um valor justo para me pagar por mês?"
+  },
+  "M5.P35": {
+   "placeholder": "Ex.: 1000",
+   "comoDescobrir": [
+    "Some quanto você tirou do negócio nos últimos 3 meses e divida por 3.",
+    "Ou pense: quanto precisaria ganhar por mês por essas horas de trabalho? Pode ajustar depois."
+   ],
+   "promptIA": "Trabalho [horas] por semana no meu negócio de [o que você vende], em [sua cidade]. Quanto ganha por mês quem faz um trabalho parecido? Me ajude a definir quanto me pagar."
+  },
+  "M5.P36": {
+   "curtaPorTipo": {
+    "Produto": "Por quanto você vende esse produto?",
+    "Mercadoria": "Por quanto você vende essa mercadoria?",
+    "Serviço": "Quanto você cobra por esse serviço?"
+   },
+   "placeholder": "Ex.: 15",
+   "comoDescobrir": [
+    "Veja quanto você cobrou nas últimas vendas: mensagens, caderno ou comprovantes.",
+    "Ainda não tem preço? Pesquise 3 concorrentes (loja, internet, vizinhança) ou toque em “Ainda não defini” para ver um preço possível."
+   ],
+   "promptIA": "Vendo [seu produto, mercadoria ou serviço] em [sua cidade e bairro]. Quanto cobram concorrentes parecidos? Me dê o menor, o mais comum e o maior preço."
+  },
+  "M5.P37": {
+   "curtaPorTipo": {
+    "Produto": "Em um mês normal, quantas unidades você vende?",
+    "Mercadoria": "Em um mês normal, quantas unidades você vende?",
+    "Serviço": "Em um mês normal, quantos atendimentos você faz?"
+   },
+   "placeholder": "Ex.: 40",
+   "comoDescobrir": [
+    "Conte as vendas do último mês no caderno, nas conversas do celular ou no extrato da maquininha.",
+    "Ainda não vende? Estime quantas consegue por semana e multiplique por 4. Ou toque em “Ainda não comecei a vender”."
+   ],
+   "promptIA": "Estou começando a vender [o que você vende] em [onde vende]. Tenho [horas] por semana para isso. Quantas vendas por mês é realista esperar no começo?"
+  }
+ }
 };

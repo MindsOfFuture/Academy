@@ -181,7 +181,7 @@ window.MODULO6 = {
   {
    "codigo": "M6.P01",
    "modulo": "M6",
-   "pergunta": "O que você precisa comprar ou pagar para começar seu negócio?",
+   "pergunta": "O que você precisa comprar ou pagar para começar?",
    "ajuda": "Pense em equipamentos, móveis, ferramentas, instalações, materiais, estoque e outros itens necessários para começar.",
    "tipo": "Texto",
    "condicao": "sempre",
@@ -190,7 +190,13 @@ window.MODULO6 = {
    "alerta": "Se incluir itens que não são essenciais no início, o valor necessário para começar pode ficar maior.",
    "proximo": "Liste os itens e, se puder, estime quanto custa cada um.",
    "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: forno, batedeira, formas, embalagens",
+   "comoDescobrir": [
+    "Imagine um dia de trabalho do começo ao fim e anote tudo o que você usa: equipamentos, materiais, embalagens.",
+    "Risque o que você já tem. Acrescente o que precisa pagar antes de vender, como taxa, reforma ou divulgação."
+   ],
+   "promptIA": "Vou começar a vender [o que você vende] em [sua cidade]. Faça uma lista simples do que preciso comprar ou pagar para começar, separando equipamentos, materiais e outros gastos. Já tenho: [o que você já tem]."
   },
   {
    "codigo": "M6.P02",
@@ -204,12 +210,18 @@ window.MODULO6 = {
    "alerta": "Os preços podem mudar, então o valor final pode ser diferente da estimativa.",
    "proximo": "Veja quais itens são essenciais para começar e quais podem ficar para depois.",
    "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: 1.500,00",
+   "comoDescobrir": [
+    "Pesquise o preço de cada item da sua lista em duas ou três lojas ou sites e anote o mais em conta.",
+    "Some os preços de todos os itens: esse é o valor aproximado. Pode ser um número redondo."
+   ],
+   "promptIA": "Preciso estimar quanto vou gastar para começar meu negócio de [o que você vende] em [sua cidade]. Os itens são: [lista de itens]. Dê uma faixa de preço para cada um e o total aproximado."
   },
   {
    "codigo": "M6.P03",
    "modulo": "M6",
-   "pergunta": "Como você pretende pagar por essas compras ou gastos?",
+   "pergunta": "Como você pretende pagar essas compras?",
    "ajuda": "Escolha a forma de pagamento que pretende usar.",
    "tipo": "Escolha",
    "condicao": "M6.P02 ≠ Não sei",
@@ -218,12 +230,17 @@ window.MODULO6 = {
    "alerta": "Se pagar parcelado, você terá pagamentos para fazer mais adiante.",
    "proximo": "Informe quando cada pagamento deverá ser feito.",
    "fonte": "CAIXA – Planeje as saídas. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Compare o dinheiro que você tem hoje com o valor das compras.",
+    "Pergunte nas lojas se dá para parcelar sem juros e de quanto fica cada parcela."
+   ],
+   "promptIA": "Vou gastar cerca de R$ [valor] para começar meu negócio e tenho R$ [quanto tem guardado]. Compare, em linguagem simples, pagar à vista, parcelado ou parte de cada jeito."
   },
   {
    "codigo": "M6.P04",
    "modulo": "M6",
-   "pergunta": "Quais formas de pagamento seus clientes poderão usar?",
+   "pergunta": "Como seus clientes vão pagar?",
    "ajuda": "Marque as formas de pagamento que você pretende aceitar dos clientes.",
    "tipo": "Escolha",
    "condicao": "sempre",
@@ -232,7 +249,12 @@ window.MODULO6 = {
    "alerta": "O dia da venda pode ser diferente do dia em que o dinheiro fica disponível, principalmente no cartão de crédito ou em pagamentos parcelados.",
    "proximo": "Se souber, informe quanto tempo cada forma de pagamento leva para liberar o dinheiro.",
    "fonte": "CAIXA – Organize as entradas. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Pergunte a cinco clientes ou conhecidos como eles preferem pagar.",
+    "Veja quais formas aceitam os negócios parecidos com o seu perto de você."
+   ],
+   "promptIA": "Vendo [o que você vende] para [quem são seus clientes] em [sua cidade]. Quais formas de pagamento são mais usadas nesse tipo de venda e qual o cuidado com cada uma (taxa e prazo para receber)?"
   },
   {
    "codigo": "M6.P05",
@@ -246,12 +268,18 @@ window.MODULO6 = {
    "alerta": "Esse valor é uma previsão, não uma garantia de venda ou de recebimento.",
    "proximo": "Informe quando espera receber o dinheiro dessas vendas.",
    "fonte": "Sebrae-SC – Como fazer o fluxo de caixa. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: 2.000,00",
+   "comoDescobrir": [
+    "Multiplique o preço de uma venda pelo número de vendas que você acha que faz no mês.",
+    "Se já vende, some o que entrou nas últimas quatro semanas. Se não, pergunte a quem vende algo parecido."
+   ],
+   "promptIA": "Vendo [o que você vende] por R$ [preço] cada e acho que vendo [quantidade] por semana. Calcule, de forma simples, quanto devo vender em um mês."
   },
   {
    "codigo": "M6.P06",
    "modulo": "M6",
-   "pergunta": "Quais gastos você espera ter para manter o negócio funcionando?",
+   "pergunta": "Quais gastos você terá todo mês para manter o negócio?",
    "ajuda": "Pense, por exemplo, em aluguel, energia, internet, telefone, transporte, divulgação, taxas e outros gastos.",
    "tipo": "Texto",
    "condicao": "sempre",
@@ -260,12 +288,18 @@ window.MODULO6 = {
    "alerta": "Alguns gastos continuam mesmo nos meses em que você vende menos.",
    "proximo": "Se puder, estime o valor de cada gasto e a frequência com que precisa pagá-lo.",
    "fonte": "Elaboração do grupo com base em M6.BT04 e M6.BT05. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: aluguel 300, luz 90, internet 100",
+   "comoDescobrir": [
+    "Liste o que se paga todo mês, mesmo sem vender: aluguel, luz, água, internet, transporte.",
+    "Olhe as contas e comprovantes dos últimos meses para saber o valor de cada um."
+   ],
+   "promptIA": "Tenho um negócio de [o que você vende] em [sua cidade]. Quais gastos de todo mês costumam existir nesse tipo de negócio? Faça uma lista com um valor aproximado para cada um."
   },
   {
    "codigo": "M6.P07",
    "modulo": "M6",
-   "pergunta": "Quanto dinheiro você já tem e pretende usar no negócio?",
+   "pergunta": "Quanto dinheiro você tem para usar no negócio?",
    "ajuda": "Informe apenas o valor que pretende usar para começar ou manter o negócio funcionando.",
    "tipo": "Número",
    "condicao": "sempre",
@@ -274,12 +308,17 @@ window.MODULO6 = {
    "alerta": "Não informe senhas, dados bancários ou outras informações pessoais.",
    "proximo": "Compare esse valor com os gastos e pagamentos que você espera ter.",
    "fonte": "CAIXA – Caixa futuro. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: 1.000,00",
+   "comoDescobrir": [
+    "Veja o saldo da sua conta e o dinheiro guardado em casa.",
+    "Tire o que é das contas da casa. O que sobra e pode ir para o negócio é a sua resposta."
+   ]
   },
   {
    "codigo": "M6.P08",
    "modulo": "M6",
-   "pergunta": "Depois de uma venda, quando você espera receber o dinheiro?",
+   "pergunta": "Depois de vender, quando o dinheiro chega até você?",
    "ajuda": "Pense no tempo entre a venda e o momento em que o dinheiro fica disponível para você.",
    "tipo": "Escolha",
    "condicao": "M6.P04 ≠ Não sei",
@@ -288,12 +327,17 @@ window.MODULO6 = {
    "alerta": "Vender não significa necessariamente receber na mesma hora.",
    "proximo": "Compare os prazos de recebimento com as datas em que você precisa pagar as contas.",
    "fonte": "CAIXA – Organize as entradas. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Dinheiro e Pix chegam na hora. Para cada outra forma que você vai aceitar, veja em quantos dias o dinheiro cai.",
+    "Pergunte ao banco ou à empresa da maquininha em quantos dias cai o dinheiro do cartão."
+   ],
+   "promptIA": "Vou aceitar [formas de pagamento] no meu negócio. Em quantos dias costumo receber o dinheiro de cada uma, e o que muda se eu pedir para receber antes?"
   },
   {
    "codigo": "M6.P09",
    "modulo": "M6",
-   "pergunta": "Há algum pagamento ou recebimento que acontecerá em um prazo diferente dos anteriores?",
+   "pergunta": "Algum pagamento ou recebimento tem prazo diferente dos outros?",
    "ajuda": "Conte se houver alguma conta, compra ou venda com um prazo diferente dos anteriores.",
    "tipo": "Texto",
    "condicao": "sempre",
@@ -302,7 +346,13 @@ window.MODULO6 = {
    "alerta": "Prazos diferentes podem fazer faltar dinheiro em um período, mesmo quando você espera receber depois.",
    "proximo": "Informe o valor e a data ou o prazo, se souber.",
    "fonte": "CAIXA – Planeje as saídas / Organize as entradas. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: aluguel pago a cada 3 meses",
+   "comoDescobrir": [
+    "Pense em contas que não vencem todo mês, como impostos do ano, aluguel por trimestre ou uma compra grande parcelada.",
+    "Veja se algum cliente paga só no fim do mês ou em datas diferentes das outras vendas."
+   ],
+   "promptIA": "Tenho um negócio de [o que você vende]. Que pagamentos ou recebimentos costumam ter prazo diferente do normal nesse tipo de negócio (por ano, por trimestre, por encomenda)?"
   },
   {
    "secao": "SERVIÇOS"
@@ -310,7 +360,7 @@ window.MODULO6 = {
   {
    "codigo": "M6.P10",
    "modulo": "M6",
-   "pergunta": "Quais equipamentos, ferramentas ou materiais você precisa para prestar o serviço?",
+   "pergunta": "O que você precisa para prestar o serviço?",
    "ajuda": "Pense em ferramentas, equipamentos e materiais necessários para atender seus clientes.",
    "tipo": "Texto",
    "condicao": "Negócio = Serviço",
@@ -319,12 +369,18 @@ window.MODULO6 = {
    "alerta": "Compras que podem esperar talvez não precisem ser feitas logo no início.",
    "proximo": "Se puder, estime o preço de cada item.",
    "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: aspirador, lavadora, panos, produtos de limpeza",
+   "comoDescobrir": [
+    "Imagine um atendimento do começo ao fim e anote cada ferramenta e material que você usa.",
+    "Pergunte a quem já presta esse serviço o que não pode faltar."
+   ],
+   "promptIA": "Vou prestar o serviço de [seu serviço] em [sua cidade]. Liste os equipamentos, ferramentas e materiais para começar, separando o essencial do que pode esperar."
   },
   {
    "codigo": "M6.P11",
    "modulo": "M6",
-   "pergunta": "Quanto você estima gastar com esses equipamentos, ferramentas e materiais?",
+   "pergunta": "Quanto você estima gastar com isso?",
    "ajuda": "Informe o valor aproximado dos itens que listou. Se não souber, escolha “Não sei”.",
    "tipo": "Número",
    "condicao": "M6.P10 ≠ Não sei",
@@ -333,12 +389,18 @@ window.MODULO6 = {
    "alerta": "O preço pode variar conforme o fornecedor e a forma de pagamento.",
    "proximo": "Informe como e quando pretende pagar esses itens.",
    "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: 800,00",
+   "comoDescobrir": [
+    "Pesquise o preço de cada ferramenta ou material em duas ou três lojas ou sites e anote o mais em conta.",
+    "Some os preços de todos os itens: esse é o valor aproximado. Pode ser um número redondo."
+   ],
+   "promptIA": "Preciso comprar [lista de equipamentos e materiais] para o serviço de [seu serviço]. Dê uma faixa de preço para cada item e o total aproximado."
   },
   {
    "codigo": "M6.P12",
    "modulo": "M6",
-   "pergunta": "Você precisa ter materiais disponíveis para realizar seus serviços?",
+   "pergunta": "Você precisa ter materiais guardados para atender?",
    "ajuda": "Por exemplo, produtos de limpeza, ingredientes, peças, embalagens ou outros materiais usados no atendimento.",
    "tipo": "Sim/Não",
    "condicao": "Negócio = Serviço",
@@ -347,7 +409,12 @@ window.MODULO6 = {
    "alerta": "Comprar mais materiais do que precisa pode deixar dinheiro parado no estoque ou causar perdas.",
    "proximo": "Se sim, liste os materiais e estime quanto precisa comprar.",
    "fonte": "Sebrae – Planilha controle de estoque. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Veja se em cada atendimento você gasta algum material, como produto, peça ou embalagem.",
+    "Se gasta, conte quanto usa por semana para saber quanto precisa ter guardado."
+   ],
+   "promptIA": "Presto o serviço de [seu serviço]. Preciso ter materiais guardados? Quais e em que quantidade para uma semana de [número] atendimentos?"
   },
   {
    "secao": "PRODUTOS"
@@ -355,7 +422,7 @@ window.MODULO6 = {
   {
    "codigo": "M6.P13",
    "modulo": "M6",
-   "pergunta": "Quais equipamentos, máquinas ou instalações você precisa para produzir o produto?",
+   "pergunta": "Que equipamentos ou instalações você precisa para produzir?",
    "ajuda": "Pense em máquinas, equipamentos, ferramentas, móveis e instalações necessários para produzir.",
    "tipo": "Texto",
    "condicao": "Negócio = Produto",
@@ -364,12 +431,18 @@ window.MODULO6 = {
    "alerta": "Itens que não são necessários no início podem aumentar o valor que você precisa gastar.",
    "proximo": "Se puder, estime o preço de cada item.",
    "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: forno, batedeira, bancada",
+   "comoDescobrir": [
+    "Acompanhe a produção de uma unidade e anote cada máquina ou utensílio usado.",
+    "Pergunte a quem já produz algo parecido o que é indispensável."
+   ],
+   "promptIA": "Vou produzir [seu produto] em [onde vai produzir]. Liste os equipamentos e instalações para começar, separando o essencial do que pode esperar."
   },
   {
    "codigo": "M6.P14",
    "modulo": "M6",
-   "pergunta": "Qual é o valor estimado desses equipamentos, máquinas ou instalações?",
+   "pergunta": "Quanto custam esses equipamentos ou instalações?",
    "ajuda": "Informe o valor aproximado dos itens que listou. Se não souber, escolha “Não sei”.",
    "tipo": "Número",
    "condicao": "M6.P13 ≠ Não sei",
@@ -378,12 +451,18 @@ window.MODULO6 = {
    "alerta": "O preço pode variar conforme o fornecedor e a forma de pagamento.",
    "proximo": "Informe como e quando pretende pagar esses itens.",
    "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: 2.500,00",
+   "comoDescobrir": [
+    "Pesquise o preço de cada equipamento, novo e usado, em duas ou três lojas ou sites e anote o mais em conta.",
+    "Some os preços de todos os itens: esse é o valor aproximado. Pode ser um número redondo."
+   ],
+   "promptIA": "Preciso comprar [lista de equipamentos] para produzir [seu produto]. Dê uma faixa de preço para cada item, novo e usado, e o total aproximado."
   },
   {
    "codigo": "M6.P15",
    "modulo": "M6",
-   "pergunta": "Quais insumos e materiais você precisar comprar para produzir o produto?",
+   "pergunta": "Que insumos e materiais você precisa comprar para produzir?",
    "ajuda": "Liste matérias-primas, ingredientes, embalagens e outros materiais usados na produção.",
    "tipo": "Texto",
    "condicao": "Negócio = Produto",
@@ -392,7 +471,13 @@ window.MODULO6 = {
    "alerta": "Comprar materiais em excesso pode deixar dinheiro parado ou aumentar o risco de perdas.",
    "proximo": "Se puder, estime quanto precisará comprar e quanto isso vai custar.",
    "fonte": "Sebrae – Planilha controle de estoque. Consulta em 25/09/2026.",
-   "status": "Rascunho"
+   "status": "Rascunho",
+   "exemplo": "Ex.: farinha, ovos, embalagens, etiquetas",
+   "comoDescobrir": [
+    "Escreva a receita ou o passo a passo de uma unidade e marque cada ingrediente ou material. Se fez a ficha técnica no Módulo 4, use a lista de lá.",
+    "Inclua embalagem, etiqueta e o que se perde no preparo."
+   ],
+   "promptIA": "Produzo [seu produto]. Liste os insumos e materiais para fazer [quantidade] unidades, com a quantidade de cada um."
   },
   {
    "secao": "MERCADORIA"
@@ -400,7 +485,7 @@ window.MODULO6 = {
   {
    "codigo": "M6.P16",
    "modulo": "M6",
-   "pergunta": "Quais mercadorias você precisa comprar para revender?",
+   "pergunta": "Que mercadorias você precisa comprar para revender?",
    "ajuda": "Liste os produtos que pretende comprar de fornecedores para revender aos clientes.",
    "tipo": "Texto",
    "condicao": "Negócio = Mercadoria",
@@ -408,12 +493,18 @@ window.MODULO6 = {
    "resposta": "Identifica as mercadorias necessárias para iniciar as vendas.",
    "alerta": "Comprar mercadorias além da necessidade pode imobilizar recursos.",
    "proximo": "Informe o valor estimado da compra inicial.",
-   "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026."
+   "fonte": "CAIXA – Investimento inicial. Consulta em 25/09/2026.",
+   "exemplo": "Ex.: capinhas de celular, carregadores",
+   "comoDescobrir": [
+    "Pergunte a clientes o que eles mais procuram e não acham perto.",
+    "Visite fornecedores ou atacados e veja o que tem saída e deixa uma boa sobra na revenda."
+   ],
+   "promptIA": "Quero revender [tipo de mercadoria] para [quem são seus clientes] em [sua cidade]. Quais itens costumam vender mais para começar com pouco estoque?"
   },
   {
    "codigo": "M6.P17",
    "modulo": "M6",
-   "pergunta": "Quanto você estima gastar na primeira compra desses produtos?",
+   "pergunta": "Quanto você vai gastar na primeira compra?",
    "ajuda": "Informe uma estimativa do valor das mercadorias que pretende comprar inicialmente.",
    "tipo": "Número",
    "condicao": "M01 ≠ Não sei",
@@ -421,12 +512,18 @@ window.MODULO6 = {
    "resposta": "O valor será considerado na estimativa das necessidades financeiras iniciais.",
    "alerta": "O valor pode variar conforme preços, quantidades e fornecedores.",
    "proximo": "Informe como pretende pagar.",
-   "fonte": "Sebrae – Planilha controle de estoque. Consulta em 25/09/2026."
+   "fonte": "Sebrae – Planilha controle de estoque. Consulta em 25/09/2026.",
+   "exemplo": "Ex.: 1.000,00",
+   "comoDescobrir": [
+    "Peça o preço de atacado a dois ou três fornecedores.",
+    "Multiplique o preço de cada item pela quantidade que você quer ter no começo e some tudo."
+   ],
+   "promptIA": "Quero fazer a primeira compra de [mercadorias] para revender. Pretendo vender cerca de [quantidade] por mês. Quanto devo comprar no começo e quanto isso custaria, aproximadamente?"
   },
   {
    "codigo": "M6.P18",
    "modulo": "M6",
-   "pergunta": "Você pretende manter estoque de mercadorias para continuar realizando vendas?",
+   "pergunta": "Você pretende ter mercadoria guardada para continuar vendendo?",
    "ajuda": "Pense na quantidade de mercadorias que precisa manter disponível para atender aos clientes.",
    "tipo": "Sim/Não",
    "condicao": "Negócio = Mercadoria",
@@ -434,7 +531,12 @@ window.MODULO6 = {
    "resposta": "Identifica a necessidade de recursos destinados à manutenção do estoque.",
    "alerta": "Estoque em excesso pode imobilizar recursos e aumentar perdas.",
    "proximo": "Se sim, informe quais mercadorias serão mantidas em estoque.",
-   "fonte": "Sebrae – Planilha controle de estoque. Consulta em 25/09/2026."
+   "fonte": "Sebrae – Planilha controle de estoque. Consulta em 25/09/2026.",
+   "comoDescobrir": [
+    "Pergunte ao fornecedor quantos dias ele leva para entregar uma nova compra.",
+    "Se demora, você precisa de mercadoria guardada para não ficar sem vender nesses dias."
+   ],
+   "promptIA": "Revendo [mercadorias] e o fornecedor entrega em [dias]. Vendo cerca de [quantidade] por semana. Quanto estoque devo manter para não faltar?"
   }
  ],
  "regras": [
@@ -1398,5 +1500,9 @@ window.MODULO6 = {
    "proximo": "Revise os prazos de pagamento e recebimento e simule o fluxo das próximas semanas.",
    "encaminhamento": "Nenhum"
   }
- ]
+ ],
+ "capa": {
+  "frase": "Veja quanto você precisa para começar e se o dinheiro dá para as primeiras semanas.",
+  "minutos": "10"
+ }
 };

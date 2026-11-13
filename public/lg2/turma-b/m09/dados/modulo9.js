@@ -1,4 +1,6 @@
 /* Gerado a partir do documento final do Grupo 9 (30/10/2026). Textos literais. */
+/* Versão leve (nov/2026): capa.frase/minutos e, por pergunta, curta (enunciado curto na tela; "pergunta" segue literal),
+   dica ("Ver dica") e a ajuda do "Não sei" (comoDescobrir = passos; promptIA = pedido pronto para uma IA). */
 window.MODULO9 = {
  "origem": "Documento final do Grupo 9 (versão final de 30/10/2026)",
  "modulo": {
@@ -670,7 +672,12 @@ window.MODULO9 = {
      "texto": "Verifique se alguém come, bebe, passa no corpo, usa como remédio ou recebe um cuidado por causa do que você vende ou faz. ⚠ Atenção: se houver, a Vigilância Sanitária faz parte do caminho, mesmo para MEI, e funcionar sem a licença pode gerar multa ou interdição.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-03."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Pense no que o cliente faz com o que você vende: come, bebe, passa no corpo, usa como remédio ou recebe um cuidado (cabelo, unha, massagem, animal)?",
+    "Se for algum desses, pergunte à Vigilância Sanitária da prefeitura se a sua atividade precisa de licença sanitária. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
+   ],
+   "promptIA": "Vou abrir um pequeno negócio de [o que você vende ou faz] em [sua cidade e estado]. Essa atividade passa pela Vigilância Sanitária? Explique em linguagem simples por que sim ou por que não e me diga que perguntas levar à Vigilância Sanitária da minha cidade."
   },
   {
    "codigo": "M9-03",
@@ -720,7 +727,13 @@ window.MODULO9 = {
      "texto": "Pense onde você vai produzir, guardar ou atender.",
      "regra": "Seguir para M9-03b."
     }
-   ]
+   ],
+   "dica": "Escolha onde o trabalho acontece na maior parte do tempo.",
+   "comoDescobrir": [
+    "Pense onde você vai trabalhar na maior parte do tempo: em casa, num ponto alugado, na casa do cliente ou na rua.",
+    "Se ainda está decidindo, anote as opções e o custo de cada uma. Antes de alugar um ponto, faça a consulta de viabilidade na prefeitura."
+   ],
+   "promptIA": "Tenho um pequeno negócio de [o que você vende ou faz] em [sua cidade]. Estou em dúvida entre trabalhar [opção 1] e [opção 2]. Compare as duas opções em custo, licenças que costumam ser pedidas e cuidados, em linguagem simples."
   },
   {
    "codigo": "M9-03a",
@@ -754,7 +767,12 @@ window.MODULO9 = {
      "texto": "Pense em onde vai encontrar os clientes e entregar o produto ou o serviço. ⚠ Atenção: vender na rua, em feira ou em veículo pede licença da prefeitura e, com gás ou alimentos, vistoria dos Bombeiros e da Vigilância Sanitária.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei'. Se seguir sem responder, pular o bloco do local (itens 'a confirmar') e seguir para M9-04."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Pense em como você encontra os clientes e entrega o produto ou o serviço: pelo celular e pela internet, na casa ou na empresa deles, ou na rua, em feira ou evento.",
+    "Se for trabalhar na rua ou em feira, pergunte na prefeitura qual licença é pedida para quem vende sem ponto fixo. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
+   ],
+   "promptIA": "Vou vender [o que você vende ou faz] sem ponto fixo em [sua cidade]. Quais são as formas mais comuns de trabalhar assim (internet, casa do cliente, feira, carrinho) e o que cada uma costuma pedir de licença? Responda em linguagem simples."
   },
   {
    "codigo": "M9-03b",
@@ -789,7 +807,12 @@ window.MODULO9 = {
      "texto": "Sem saber o tipo de local, não dá para ver agora as regras do imóvel. Pulamos essas perguntas, e elas ficam como 'a confirmar' no checklist. Quando escolher o local, volte a esta etapa antes de alugar ou assinar contrato.",
      "regra": "O módulo não termina: pular M9-05 a M9-09 e M9-12 (itens 'a confirmar'), mostrar M9-04 como orientação e seguir para M9-10."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Liste o que o seu trabalho precisa de espaço: equipamentos, estoque e lugar para receber clientes.",
+    "Com essa lista, escolha o tipo de local mais provável e faça a consulta de viabilidade na prefeitura antes de alugar ou assinar contrato."
+   ],
+   "promptIA": "Vou abrir um negócio de [o que você vende ou faz]. Preciso de [equipamentos, estoque, espaço para clientes]. No começo, faz mais sentido trabalhar em casa, num apartamento, numa loja ou sem local fixo? Explique os prós e contras de cada um em linguagem simples."
   },
   {
    "codigo": "M9-04",
@@ -830,7 +853,13 @@ window.MODULO9 = {
      "texto": "Verifique se a consulta de viabilidade já foi feita: se a empresa já foi registrada, ela pode ter sido feita nessa etapa. Pergunte a quem fez o registro (por exemplo, o contador) ou procure o protocolo no portal do seu estado. ⚠ Atenção: não alugue, não reforme nem assine contrato antes de saber se a atividade pode funcionar no endereço.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-05 ou próxima etapa aplicável."
     }
-   ]
+   ],
+   "dica": "Essa verificação se chama consulta de viabilidade. Ela diz se a atividade pode funcionar no endereço.",
+   "comoDescobrir": [
+    "Pergunte a quem cuidou do registro do negócio (você, o contador ou a Sala do Empreendedor) se a consulta de viabilidade foi feita e peça o comprovante.",
+    "Se ninguém fez, faça no portal da Redesim ou da Junta Comercial do seu estado, ou peça ajuda na prefeitura. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
+   ],
+   "promptIA": "Explique em linguagem simples o que é a consulta prévia de viabilidade para abrir um negócio em [sua cidade e estado], como saber se ela já foi feita e qual é o passo a passo para fazer no portal do meu estado."
   },
   {
    "codigo": "M9-05",
@@ -859,7 +888,12 @@ window.MODULO9 = {
      "texto": "Consulte o carnê do IPTU ou a planta e volte a esta pergunta.",
      "regra": "Não bloquear; seguir."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Procure a área construída no carnê ou boleto do IPTU, na escritura ou no contrato de aluguel.",
+    "Se não achar, meça cada cômodo com uma trena (comprimento vezes largura) e some tudo. Um número aproximado já ajuda."
+   ],
+   "promptIA": "Meu imóvel tem estes cômodos e medidas: [cômodo 1: comprimento x largura], [cômodo 2: comprimento x largura]. Calcule a área total em metros quadrados e mostre a conta passo a passo."
   },
   {
    "codigo": "M9-06",
@@ -900,7 +934,12 @@ window.MODULO9 = {
      "texto": "Verifique se clientes, alunos, pacientes ou outras pessoas vão ao local e, no momento de maior movimento, quantas estariam lá ao mesmo tempo. ⚠ Atenção: público no local muda as condições para trabalhar em casa e as exigências dos Bombeiros.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-07."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Imagine a hora de maior movimento: quantas pessoas (clientes, alunos, acompanhantes) estariam no local ao mesmo tempo?",
+    "Se ainda não sabe, anote quantos clientes atende por dia e quanto tempo cada um fica. Isso mostra o pico."
+   ],
+   "promptIA": "Atendo cerca de [número] clientes por dia, cada um fica uns [minutos] no local, e trabalho das [hora] às [hora]. Estime quantas pessoas podem estar no local ao mesmo tempo na hora de mais movimento e explique a conta."
   },
   {
    "codigo": "M9-07",
@@ -949,7 +988,12 @@ window.MODULO9 = {
      "texto": "Verifique se algum equipamento vai usar gás: fogão, forno, chapa, fritadeira, churrasqueira, aquecedor de água ou caldeira. ⚠ Atenção: gás instalado ou guardado fora das regras pode causar vazamento, incêndio ou explosão, e é um dos itens que os Bombeiros conferem. Não instale nem guarde gás antes de confirmar.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-07c."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Liste os equipamentos que vai usar (fogão, forno, chapa, fritadeira, churrasqueira, aquecedor) e veja quais funcionam a gás.",
+    "Se houver gás, veja se é botijão ou gás encanado da rua (com medidor e conta da distribuidora). Antes de instalar, confira as regras do Corpo de Bombeiros do seu estado."
+   ],
+   "promptIA": "No meu negócio de [o que você faz] vou usar estes equipamentos: [lista]. Quais costumam funcionar a gás e que cuidados de segurança e regras dos Bombeiros devo conferir? Responda em linguagem simples."
   },
   {
    "codigo": "M9-07a",
@@ -999,7 +1043,14 @@ window.MODULO9 = {
      "texto": "Conte os botijões ou cilindros que vão ficar no local (cheios, em uso e de reserva) e veja o peso no rótulo: 13, 20 ou 45 kg. ⚠ Atenção: a quantidade de gás muda o que os Bombeiros exigem. Confirme antes de comprar ou instalar.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-07b."
     }
-   ]
+   ],
+   "curta": "Quantos botijões ou cilindros de gás vão ficar no local?",
+   "dica": "Conte todos: os cheios, os em uso e os de reserva.",
+   "comoDescobrir": [
+    "Conte os botijões ou cilindros que vão ficar no local: o que está em uso, os cheios e os de reserva.",
+    "Veja o peso no rótulo ou na nota de compra (13, 20 ou 45 kg). Se ainda vai comprar, pergunte ao revendedor quanto gás você gastaria por mês."
+   ],
+   "promptIA": "Vou usar gás de cozinha no meu negócio de [o que você faz], com [equipamentos] ligados cerca de [horas] por dia. Mais ou menos quantos botijões de 13 kg eu gastaria por mês? Explique a conta de forma simples."
   },
   {
    "codigo": "M9-07b",
@@ -1040,7 +1091,12 @@ window.MODULO9 = {
      "texto": "Verifique onde o gás vai ficar e se o lugar é aberto e ventilado. ⚠ Atenção: em local fechado, um vazamento acumula gás e pode causar explosão. Confirme com os Bombeiros.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-07c."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Veja o lugar onde o botijão vai ficar: é aberto, com ar circulando, longe de ralos, tomadas e de produtos que pegam fogo?",
+    "Se não tiver certeza, pergunte ao Corpo de Bombeiros do seu estado ou a um instalador de gás habilitado."
+   ],
+   "promptIA": "No meu negócio, o botijão de gás ficaria [descreva o lugar: dentro da cozinha, área externa, abrigo]. Que cuidados de segurança são recomendados para esse lugar? Explique em linguagem simples e diga o que devo confirmar com os Bombeiros."
   },
   {
    "codigo": "M9-07c",
@@ -1081,7 +1137,14 @@ window.MODULO9 = {
      "texto": "Verifique o que vai ficar guardado no local: álcool, tintas, vernizes, solventes, thinner, gasolina ou óleo diesel. ⚠ Atenção: produtos que pegam fogo guardados perto de calor ou do gás aumentam o risco de incêndio e entram na análise dos Bombeiros.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-08, M9-09 ou M9-10."
     }
-   ]
+   ],
+   "curta": "Vai guardar produtos que pegam fogo, como álcool, tintas ou combustíveis?",
+   "dica": "Também contam solventes, vernizes, thinner, gasolina e óleo diesel.",
+   "comoDescobrir": [
+    "Abra armários e depósito e anote o que vai ficar guardado: álcool, tintas, vernizes, solventes, thinner, gasolina ou óleo.",
+    "Calcule mais ou menos a quantidade de cada um. Se for muito ou para vender, confira as regras do Corpo de Bombeiros do seu estado."
+   ],
+   "promptIA": "No meu negócio de [o que você faz] vou guardar [produtos e quantidades]. Esses produtos pegam fogo? Como guardar com segurança? Responda em linguagem simples."
   },
   {
    "codigo": "M9-08",
@@ -1114,7 +1177,14 @@ window.MODULO9 = {
      "texto": "Verifique na convenção do condomínio (peça uma cópia ao síndico ou à administradora) se a atividade é permitida ou se já há autorização registrada em ata. ⚠ Atenção: sem essa permissão, o condomínio pode multar ou impedir a atividade, mesmo com o CNPJ aberto.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-09 ou M9-10."
     }
-   ]
+   ],
+   "curta": "O condomínio permite a sua atividade no apartamento?",
+   "dica": "Vale o que diz a convenção do condomínio ou uma autorização por escrito, por exemplo em ata.",
+   "comoDescobrir": [
+    "Peça ao síndico ou à administradora uma cópia da convenção do condomínio e procure a parte sobre o uso dos apartamentos.",
+    "Se não estiver claro, pergunte ao síndico se a sua atividade já foi aprovada em assembleia ou se pode entrar na pauta da próxima."
+   ],
+   "promptIA": "A convenção do meu condomínio diz isto sobre o uso dos apartamentos: [cole o trecho]. Quero trabalhar com [o que você faz] no apartamento, [com ou sem] clientes vindo aqui. Em linguagem simples, isso parece permitido? O que devo perguntar ao síndico?"
   },
   {
    "codigo": "M9-09",
@@ -1155,7 +1225,12 @@ window.MODULO9 = {
      "texto": "Pense em onde vai preparar, guardar e embalar. Para atividades ligadas à saúde, separar o espaço e os utensílios do uso da família pode ser exigido. Confirme com a Vigilância Sanitária.",
      "regra": "Não bloquear; seguir."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Veja onde vai preparar, guardar e embalar: esse espaço e os utensílios são só do negócio ou a família também usa?",
+    "Pergunte à Vigilância Sanitária da prefeitura o que ela pede para a sua atividade em casa. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
+   ],
+   "promptIA": "Vou trabalhar com [o que você faz] em casa. Hoje o espaço é [descreva: cozinha da família, cômodo separado]. Que cuidados de higiene e organização a Vigilância Sanitária costuma pedir para esse tipo de atividade em casa? Responda em linguagem simples, em lista."
   },
   {
    "codigo": "M9-10",
@@ -1188,7 +1263,14 @@ window.MODULO9 = {
      "texto": "Verifique se a sua profissão tem um conselho regional (por exemplo, de nutrição, farmácia, medicina veterinária, engenharia, contabilidade ou educação física) e se ele exige registro da empresa ou um responsável técnico. ⚠ Atenção: funcionar sem o registro exigido pode gerar multa do conselho e atrasar outras licenças.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-11."
     }
-   ]
+   ],
+   "curta": "Sua atividade só pode ser feita por profissional registrado em conselho?",
+   "dica": "Exemplos de conselho: nutrição, farmácia, veterinária, engenharia, contabilidade e educação física.",
+   "comoDescobrir": [
+    "Pesquise o nome da sua profissão junto com as palavras “conselho regional”, por exemplo “conselho regional de nutrição”.",
+    "Se existir um conselho, entre no site ou ligue e pergunte se a empresa precisa de registro ou de um responsável técnico."
+   ],
+   "promptIA": "Vou abrir um negócio de [o que você faz] em [seu estado]. Essa atividade precisa de profissional registrado em algum conselho ou de responsável técnico? Qual conselho? Explique em linguagem simples."
   },
   {
    "codigo": "M9-11",
@@ -1221,7 +1303,13 @@ window.MODULO9 = {
      "texto": "Verifique no seu mapa de processo se alguma etapa usa fogo ou química, gera água suja com produtos, solta pó ou faz barulho. ⚠ Atenção: atividades com fumaça, barulho ou resíduos podem precisar de licença ambiental, e descartar resíduos de forma errada pode gerar multa. Confirme na prefeitura ou no órgão ambiental do estado.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-12 ou M9-13."
     }
-   ]
+   ],
+   "curta": "Seu trabalho produz fumaça, barulho alto, água suja, pó ou restos químicos?",
+   "comoDescobrir": [
+    "Repasse cada etapa do seu trabalho e anote se alguma usa fogo ou produto químico, solta fumaça ou pó, faz barulho alto ou gera água suja ou restos para jogar fora.",
+    "Se houver algum desses, pergunte na prefeitura ou no órgão ambiental do estado se precisa de licença ambiental."
+   ],
+   "promptIA": "No meu negócio de [o que você faz], as etapas são: [liste as etapas]. Alguma delas costuma gerar fumaça, barulho, pó, água suja ou resíduos que pedem cuidado ou licença ambiental? Explique em linguagem simples."
   },
   {
    "codigo": "M9-12",
@@ -1255,7 +1343,12 @@ window.MODULO9 = {
      "texto": "Verifique se vai derrubar ou levantar paredes, aumentar a área ou mudar a fachada ou a parte elétrica ou hidráulica. ⚠ Atenção: obras que mudam a estrutura, a área ou o uso costumam precisar de projeto e autorização da prefeitura. Não comece a obra antes de confirmar.",
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-13."
     }
-   ]
+   ],
+   "comoDescobrir": [
+    "Liste o que precisa mudar no local: paredes, área, fachada, parte elétrica ou hidráulica, ou só pintura e pequenos reparos.",
+    "Peça a opinião de um profissional habilitado. Se mexer em estrutura, área ou uso, confirme na prefeitura antes de começar."
+   ],
+   "promptIA": "Para abrir meu negócio de [o que você faz] preciso fazer estas mudanças no local: [lista]. Isso é pequena reforma ou obra que precisa de projeto e autorização da prefeitura? Explique em linguagem simples."
   },
   {
    "codigo": "M9-13",
@@ -1310,5 +1403,9 @@ window.MODULO9 = {
    "passo_a_passo": "Qual é o tamanho total do imóvel, em m²?",
    "caminhos": "Qual é o tamanho total do imóvel, em metros quadrados?"
   }
- ]
+ ],
+ "capa": {
+  "frase": "Descubra quais licenças e cuidados com o endereço o seu negócio precisa, e onde confirmar cada um.",
+  "minutos": 10
+ }
 };

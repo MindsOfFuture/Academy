@@ -90,13 +90,25 @@ check(['M3.P01', 'M3.P04', 'M3.P08', 'M3.P12', 'M3.P13'].every((c) => promptsVis
 check(Q['M3.P03'].caminhos.find((c) => c.opcao === 'Não sei').texto === 'Tudo bem. Pense em onde o cliente compraria se você não existisse.', 'P03: dica do Não sei sem "você pode voltar e preencher depois"');
 check(P(7).pergunta === 'Existe alguma coisa que pode atrapalhar suas vendas?' && !/\(Ex\./.test(P(7).variantes.ideia.pergunta), 'P07: enunciado sem o "(Ex.: …)"');
 check(JSON.stringify(P(7).opcoes) === JSON.stringify(['Concorrente novo', 'Preço dos insumos subindo', 'Queda nas vendas em certa época', 'Mudança de regra', 'Outro', 'Não sei']), 'P07: opções das figuras + Outro + Não sei por último');
-check(P(10).rotulo_naosei === 'Ainda não tenho clientes' && P(13).rotulo_naosei === 'Ainda não defini o canal de vendas' && P(13).opcoes[P(13).opcoes.length - 1] === 'Não sei', 'P10/P13: "Não sei" com o texto novo e por último');
+check(P(10).rotulo_naosei === 'Ainda não tenho clientes' && P(13).rotulo_naosei === 'Ainda não defini' && P(13).opcoes[P(13).opcoes.length - 1] === 'Não sei', 'P10/P13: "Não sei" com o texto novo e por último');
 check(P(10).marcadores.Idade[0] === 'Até 10 anos (infantil)' && JSON.stringify(P(10).marcadores['Onde mora']) === JSON.stringify(LUGARES) && JSON.stringify(P(10).marcadores[DOR]) === JSON.stringify(DORES), 'P10: faixa infantil, onde vivem e problema com as opções do relatório');
 check(P(10).caminhos.find((c) => c.opcao === 'Campos complementares incompletos').texto === 'Preencha o que você já sabe.', 'P10: dica sem "o que ficar de fora dá para completar depois"');
 check(!P(12).exemplos && !P(7).exemplos, 'P12/P07: sem as opções que apareciam no Não sei');
-check(P(15).pergunta === 'Quem já vende o mesmo que você quer vender, ou algo muito parecido? Cite lojas, pessoas ou perfis que você conhece.' && P(15).campos_min === 3, 'P15: enunciado novo e pelo menos 3 campos');
+check(P(15).pergunta === 'Quem já vende o mesmo que você, ou algo bem parecido?' && P(15).campos_min === 3, 'P15: enunciado curto e pelo menos 3 campos');
 check(!/Perguntar a clientes onde mais já compraram/.test(JSON.stringify(P(17))) && !/Perguntar a clientes onde mais já compraram/.test(JSON.stringify(P(15))), 'passo a passo de como descobrir: sem a sugestão 4');
 check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, sem Não sei, com Outro ponto');
+/* versão leve: perguntas curtas e ajuda de verdade em todo "Não sei" (textos nos dados, não no código) */
+const VISIVEIS = D.perguntas.filter((q) => !q.oculta);
+const palavrasQ = (t) => String(t).split(/\s+/).filter(Boolean).length;
+check(VISIVEIS.every((q) => palavrasQ(q.pergunta) <= 15 && Object.values(q.variantes || {}).every((v) => !v.pergunta || palavrasQ(v.pergunta) <= 16)), `leve: perguntas à vista com até ~15 palavras (${VISIVEIS.filter((q) => palavrasQ(q.pergunta) > 15).map((q) => q.codigo)})`);
+const COM_NS = VISIVEIS.filter((q) => q.naosei);
+const iaTexto = (q) => q.promptIA ? `Prompt: "${q.promptIA}"` : (q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto || '';
+const adaptarSemM1 = (t) => t;   // sem o Módulo 1 no aparelho, o texto do pedido aparece como está nos dados
+const iaDe = (q) => q.promptIA || ((q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto ? Motor.partesPrompt(q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA').texto).prompt : '');
+check(COM_NS.length === 14 && COM_NS.every((q) => Array.isArray(q.comoDescobrir) && q.comoDescobrir.length === 2 && q.comoDescobrir.every((s) => s.trim().length > 20) && iaDe(q)), `leve: todo "Não sei" à vista tem 2 passos e um pedido para a IA (${COM_NS.filter((q) => !(q.comoDescobrir && iaDe(q))).map((q) => q.codigo)})`);
+check(COM_NS.filter((q) => q.promptIA).every((q) => /^Eu vendo \[produto ou serviço\]/.test(q.promptIA) && /Me faça 5 perguntas simples/.test(q.promptIA)), 'leve: pedidos novos no mesmo gabarito (Eu vendo [..], 5 perguntas)');
+check(!/chatgpt|gemini|copilot|claude/i.test(JSON.stringify(D)), 'leve: nenhuma marca de IA nos textos');
+check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 && D.inicio.minutos > 0, 'leve: capa com uma frase e o tempo');
 
 (async () => {
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
@@ -158,7 +170,12 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   const capa = await page.evaluate(() => ({ h1: document.querySelector('h1').textContent.trim(), txt: document.querySelector('.heroi-txt p').textContent.trim(),
     cart: [...document.querySelectorAll('.cartao')].map((c) => ({ h: c.querySelector('h3').textContent, li: [...c.querySelectorAll('li')].map((x) => x.textContent), p: (c.querySelector(':scope > p') || {}).textContent || '' })),
     ir: document.querySelector('#ir').offsetParent !== null }));
-  check(capa.h1 === 'Conhecendo o mercado e os concorrentes' && capa.txt === D.mapa.objetivo && /^Aqui você vai descobrir quem são seus concorrentes/.test(capa.txt), `capa: título e texto simples (${capa.h1})`);
+  check(capa.h1 === 'Conhecendo o mercado e os concorrentes' && capa.txt === D.inicio.frase, `capa: título e uma frase (${capa.h1})`);
+  const capaLeve = await page.evaluate(() => ({ tempo: (document.querySelector('.tempo') || {}).textContent, aberto: document.querySelector('.como-funciona').open,
+    dentro: [...document.querySelectorAll('.cartao')].every((c) => c.closest('.como-funciona')), sum: document.querySelector('.como-funciona summary').textContent }));
+  check(capaLeve.tempo === 'Este módulo leva uns 15 minutos.' && capaLeve.sum === 'Como funciona' && !capaLeve.aberto && capaLeve.dentro, `capa leve: tempo + "Como funciona" fechado com os cartões (${JSON.stringify(capaLeve)})`);
+  check(!/Para quem já tem uma ideia/.test(await tela()), 'capa leve: explicações só ao abrir "Como funciona"');
+  const palavrasTela = () => page.evaluate(() => document.querySelector('#tela').innerText.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length);
   check(capa.cart[0].p === 'Para quem já tem uma ideia de negócio, mas quer pesquisar melhor o mercado, descobrir quem faz a mesma coisa e saber como se destacar na sua região.', 'capa: "Para quem é" simples');
   check(capa.cart[1].li.length === 3 && capa.cart[1].li[0] === 'A descrição simples da sua ideia de negócio.', 'capa: "O que ter em mãos" em 3 itens curtos');
   check(capa.cart[2].li.length === 3 && capa.cart[2].li.some((x) => /Módulo 4: Produto, proposta de valor e teste da ideia/.test(x)) && !/Oferta e experimentação|Oferta e Testes/.test(capa.cart[2].li.join(' ')), 'capa: entrega com o nome certo do Módulo 4');
@@ -168,8 +185,11 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   await shot('l4_m03_capa');
 
   /* ============ 2. dica junto da pergunta (sem tocar em nada) ============ */
-  for (const n of TELAS_SIM.filter((n) => n !== 1)) {
+  for (const n of TELAS_SIM) {
     await abrir(n);
+    const pal = await palavrasTela();
+    check(pal <= 60, `pergunta ${n}: tela com até 60 palavras antes de tocar (${pal})`);
+    if (n === 1) continue;
     /* pergunta de escrever (um campo só): a dica fica dentro do campo, antes de digitar; nas outras, no cartão */
     if (Motor.campo(P(n)) === 'texto') {
       const c = await page.evaluate(() => { const t = document.querySelector('#ent textarea'); return { ph: t && t.placeholder, vazio: t && !t.value, cx: !!document.querySelector('.dica-q') }; });
@@ -177,8 +197,9 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
       await semCodigos(`pergunta ${n}`);
       continue;
     }
-    const d = await page.evaluate(() => { const b = document.querySelector('.dica-q'); return b && { t: b.querySelector('b').textContent, txt: [...b.querySelectorAll('p')].map((p) => p.textContent).join(' '), vis: b.offsetParent !== null }; });
-    check(d && d.vis && d.t === 'Dica' && norm(d.txt) === norm(DICAS[n]), `pergunta ${n}: dica aparece com a pergunta, texto literal`);
+    const d = await page.evaluate(() => { const b = document.querySelector('.dica-q'); return b && { tag: b.tagName, aberto: b.open, t: b.querySelector('summary').textContent, txt: [...b.querySelectorAll('p')].map((p) => p.textContent).join(' '),
+      antes: !!(b.compareDocumentPosition(document.querySelector('#ent')) & Node.DOCUMENT_POSITION_FOLLOWING), depois: !!(b.compareDocumentPosition(document.querySelector('h2.q')) & Node.DOCUMENT_POSITION_PRECEDING) }; });
+    check(d && d.tag === 'DETAILS' && !d.aberto && d.t === 'Ver dica' && norm(d.txt) === norm(DICAS[n]) && d.antes && d.depois, `pergunta ${n}: "Ver dica" fechada entre a pergunta e as respostas, texto literal`);
     await semCodigos(`pergunta ${n}`);
   }
 
@@ -190,8 +211,12 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
     check(nsBtn === 1, `pergunta ${n}: botão Não sei`);
     await clicar('#ns', 'Não sei'); await espera();
     const cx = await caixas('#ajudans .caminho');
-    const esperadas = P(n).caminhos.filter((c) => /^Não sei/.test(c.opcao)).map((c) => c.tipo);
-    check(JSON.stringify(cx.map((c) => c.tipo)) === JSON.stringify(esperadas), `pergunta ${n} Não sei: mostra a sugestão (${cx.map((c) => c.tipo)})`);
+    check(JSON.stringify(cx.map((c) => c.tipo)) === '["Prompt de IA"]', `pergunta ${n} Não sei: mostra um pedido pronto para a IA (${cx.map((c) => c.tipo)})`);
+    const como = await page.evaluate(() => { const s = document.querySelector('#ajudans .como-descobrir'); return s && { t: s.querySelector('.como-tit').textContent, li: [...s.querySelectorAll('li')].map((x) => x.textContent.trim()),
+      copiar: (document.querySelector('#ajudans .btn-copiar') || {}).textContent, nota: (document.querySelector('#ajudans .b-ia .como-nota') || {}).textContent, prim: document.querySelector('#ajudans').firstElementChild === s }; });
+    check(como && como.t === 'Como descobrir' && como.prim && como.li.length === 2 && como.li.every((x) => x.length > 20) && JSON.stringify(como.li) === JSON.stringify(P(n).comoDescobrir), `pergunta ${n} Não sei: "Como descobrir" com os 2 passos dos dados`);
+    check(como && como.copiar === 'Copiar' && como.nota === 'Copie, cole numa IA de sua preferência e troque o que está entre colchetes.' && cx[0].prompt === Motor.partesPrompt(adaptarSemM1(iaTexto(P(n)))).prompt, `pergunta ${n} Não sei: pedido para a IA com Copiar e a nota sem marca`);
+    check(!(await RR())[COD(n)], `pergunta ${n} Não sei: nada é gravado ao tocar`);
     const campos = await page.evaluate(() => ({ fora: document.querySelectorAll('#ajudans textarea, #ajudans input, #msg textarea, #msg input').length, frase: !!document.querySelector('.frase'), nota: (document.querySelector('#nota-ns') || {}).textContent || '' }));
     check(campos.fora === 0 && !campos.frase, `pergunta ${n} Não sei: nenhum segundo campo de resposta`);
     check(/escreva a sua resposta no campo da pergunta/i.test(campos.nota), `pergunta ${n} Não sei: diz para responder no campo da pergunta`);
@@ -222,7 +247,8 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   check(norm(await page.locator('.btn-copiar').first().textContent()) === 'Copiado', 'botão mostra Copiado');
   /* resposta antiga "Não sei" (antes deste lote): reabre com a sugestão e espera a resposta */
   await abrir(3, { 'M3.P03': { estado: 'naosei' } });
-  check((await caixas('#ajudans .caminho')).length === 1 && await page.inputValue('#ent textarea') === '', 'Não sei antigo: reabre com a sugestão e o campo vazio');
+  check((await caixas('#ajudans .caminho')).length === 1 && await page.locator('#ajudans .como-descobrir li').count() === 2 && await page.inputValue('#ent textarea') === '', 'Não sei antigo: reabre com os passos, a sugestão e o campo vazio');
+  check(JSON.stringify((await RR())['M3.P03']) === '{"estado":"naosei"}', 'Não sei antigo: o valor salvo não muda (o diagnóstico continua lendo)');
 
   /* ============ 4. botão "Não" ao lado do "Não sei" ============ */
   for (const n of [4, 12]) {
@@ -242,8 +268,11 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   await clicar('.opcao', 'Não sei'); await espera();
   const cx7 = await caixas('#msg .caminho');
   check(cx7.length === 1 && cx7[0].tit === 'USE A IA COM CUIDADO' && norm(cx7[0].conferir) === CONFERIR_IA, 'P07 Não sei: sugestão da IA com o aviso');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#msg .como-descobrir li')].map((x) => x.textContent))) === JSON.stringify(P(7).comoDescobrir), 'P07 Não sei: "Como descobrir" com os passos');
+  await shot('l_m03_p07_naosei');
   await clicar('#ok', 'Continuar'); await espera();
   check(await naTela(7) && (await caixas('#msg .caminho')).some((c) => c.tipo === 'Alerta' && c.txt === 'Marque pelo menos uma opção para continuar.') && !(await RR())['M3.P07'], 'P07: só "Não sei" não deixa seguir');
+  check(await page.locator('#msg .como-descobrir').count() === 1, 'P07: os passos continuam à vista depois do aviso');
   await clicar('.opcao', 'Preço dos insumos subindo'); await clicar('.opcao', 'Outro'); await espera();
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op))) === '["Preço dos insumos subindo","Outro"]', 'P07: marcar uma opção tira o "Não sei"');
   await clicar('#ok', 'Continuar'); await espera();
@@ -260,6 +289,7 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   await clicar('#ns', 'Ainda não tenho clientes'); await espera();
   const cx10 = await caixas('#ajudans .caminho');
   check(cx10.length === 1 && cx10[0].tit === 'USE A IA COM CUIDADO' && /ainda não tenho clientes/.test(cx10[0].prompt) && /cliente ideal/.test(cx10[0].prompt), 'P10: sugestão de cliente ideal com o aviso de IA');
+  check(await page.locator('#ajudans .como-descobrir li').count() === 2, 'P10: "Como descobrir" com 2 passos');
   check(/marque acima quem você imagina/.test(await page.evaluate(() => document.querySelector('#nota-ns').textContent)) && !/lista de “Não sei”/.test(await tela()), 'P10: pede para marcar quem compraria (sem seguir com "Não sei")');
   await clicar('#ok', 'Continuar'); await espera();
   check(await naTela(10) && /Escolha uma opção acima/.test(await erroTxt()) && !(await RR())['M3.P10'], 'P10: quem mais compra é obrigatório');
@@ -311,13 +341,15 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   /* ============ 7. canais (P13) ============ */
   await abrir(13);
   const ops13 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent.trim()));
-  check(ops13[ops13.length - 1] === 'Ainda não defini o canal de vendas' && ops13.length === 10, 'P13: "Ainda não defini o canal de vendas" por último');
-  await clicar('.opcao', 'Ainda não defini o canal de vendas'); await espera();
+  check(ops13[ops13.length - 1] === 'Ainda não defini' && ops13.length === 10, 'P13: "Ainda não defini" por último');
+  check(ops13[1] === 'WhatsApp' && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.dataset.op))) === JSON.stringify(P(13).opcoes), 'P13: rótulos curtos na tela, valores de sempre por trás');
+  await clicar('.opcao', 'Ainda não defini'); await espera();
   const cx13 = await caixas('#msg .caminho');
   check(cx13.length === 1 && /ainda não defini como vou vender/.test(cx13[0].prompt) && cx13[0].tit === 'USE A IA COM CUIDADO', 'P13: prompt para quem ainda não definiu, com o aviso');
+  check(await page.locator('#msg .como-descobrir li').count() === 2, 'P13: "Como descobrir" com 2 passos');
   await clicar('#ok', 'Continuar'); await espera();
   check(await naTela(13) && (await caixas('#msg .caminho')).some((c) => c.txt === 'Marque pelo menos um canal para continuar.'), 'P13: precisa marcar um canal');
-  await clicar('.opcao', 'WhatsApp (WhatsApp Business)'); await clicar('.opcao', 'Outro'); await page.locator('.extra textarea').fill('Feira de domingo');
+  await clicar('.opcao', 'WhatsApp'); await clicar('.opcao', 'Outro'); await page.locator('.extra textarea').fill('Feira de domingo');
   await clicar('#ok', 'Continuar'); await espera();
   check(JSON.stringify((await RR())['M3.P13']) === JSON.stringify({ estado: 'opcoes', opcoes: ['WhatsApp (WhatsApp Business)', 'Outro'], detalhe: 'Feira de domingo' }), 'P13: canais + Outro no formato que o Módulo 10 lê');
 
@@ -409,7 +441,7 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
     else if (num === 9) await clicar('.opcao', 'No meu bairro e na minha cidade');
     else if (num === 10) { await clicar('.opcao', PESSOAS); await espera(); await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]); }
     else if (num === 7) await clicar('.opcao', 'Concorrente novo');
-    else if (num === 13) await clicar('.opcao', 'WhatsApp (WhatsApp Business)');
+    else if (num === 13) await clicar('.opcao', 'WhatsApp');
     else if (num === 14) { await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); }
     else if (num === 22) { await digitar('Entregam rápido', 0); await digitar('Demoram para responder', 1); }
     else if (num === 15) { await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana'); await page.locator('#ent input[data-nome]').nth(1).fill('Padaria Central'); }
@@ -460,6 +492,11 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
   check(res.quadro.oportunidades && res.quadro.oportunidades.includes('Novidade que pode ajudar: “Mais gente pedindo pelo WhatsApp”') && res.quadro.oportunidades.includes('Você se sai melhor em preço'), `quadro: oportunidades montadas com as respostas (${res.quadro.oportunidades})`);
   check(res.quadro.ameacas && res.quadro.ameacas.includes('O que pode atrapalhar: concorrente novo') && res.quadro.ameacas.includes('O cliente pode comprar no lugar: “Padaria da esquina”') && res.quadro.ameacas.includes('Os outros se saem melhor em atendimento e prazo (tempo para entregar)'), `quadro: ameaças montadas com as respostas (${res.quadro.ameacas})`);
   check(res.prox, 'resultado: botão do próximo módulo');
+  const leve = await page.evaluate(() => { const t = document.querySelector('#tarefa'), e = document.querySelector('#entendemos');
+    return { tarefa: t && t.querySelector('b').textContent, txt: t && t.querySelector('p').textContent, ordem: !!(t && (e.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      fechados: [...document.querySelectorAll('.resultado-mais, #respostas')].every((d) => !d.open), n: document.querySelectorAll('.resultado-mais').length,
+      dentro: ['#roteiro', '#tabela-conc', '#quadro-conc'].every((s) => document.querySelector(s).closest('details.resultado-mais')) }; });
+  check(leve.tarefa === 'Sua tarefa para fazer já' && /^Procure pelo menos 3 concorrentes/.test(leve.txt) && leve.ordem && leve.fechados && leve.n === 4 && leve.dentro, `resultado leve: "O que entendemos" + tarefa no alto, detalhes recolhidos (${JSON.stringify(leve)})`);
   await page.evaluate(() => document.querySelector('#quadro-conc').scrollIntoView({ block: 'start' }));
   await shot('l4_m03_quadro');
   const vNao = await caminho('Não');
@@ -552,7 +589,7 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
     await abrir(n, {}, { 'lg2-turma-a-m01': M1(TESTANDO) }, txt);
   }
   await abrir(13, {}, { 'lg2-turma-a-m01': M1(SO_CABECA) }, P(13).variantes.ideia.pergunta);
-  await clicar('.opcao', 'Ainda não defini o canal de vendas'); await espera();
+  await clicar('.opcao', 'Ainda não defini'); await espera();
   check((await caixas('#msg .caminho'))[0].prompt.startsWith('Eu quero vender lavagem de carro em casa em [cidade ou bairro]'), 'prompt: "Eu quero vender" + o que vende do Módulo 1');
 
   check(erros.length === 0, 'sem erros de JavaScript: ' + erros.join(' | '));

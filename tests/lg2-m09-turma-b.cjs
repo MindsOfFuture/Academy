@@ -6,7 +6,12 @@
    "Aparece quando" respeitado (motor e percurso na tela); "Não sei" com "Já verifiquei"; checklist,
    alertas (≤3), próximos passos (≤3) e encaminhamento (1) do resumo; cruzamentos com os outros módulos;
    pré-preenchimento; estado antigo descartado; botão do próximo módulo; zero erro de página.
-   Sabotagem: SABOTAR=1 (M9-08 também em casa) e SABOTAR=2 (4 alertas) devem fazer o teste falhar. */
+   Versão leve (nov/2026): capa curta com "Como funciona" fechado; pergunta com faixa compacta, enunciado curto
+   (campo "curta" nos dados; "pergunta" segue literal), "Ver dica" fechada e no máximo 60 palavras antes de tocar;
+   "Não sei" mostra "Como descobrir" (passos + pedido para IA com Copiar) e grava o mesmo valor de antes;
+   resultado com o que entendemos, a próxima tarefa e o que falta descobrir à frente, o resto em painéis fechados.
+   Sabotagem: SABOTAR=1 (M9-08 também em casa), SABOTAR=2 (4 alertas) e SABOTAR=3 (sem a caixa "Como descobrir")
+   devem fazer o teste falhar. */
 const http = require('node:http'), fsp = require('node:fs/promises'), fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict'), vm = require('node:vm');
 const { chromium } = require(process.env.PW || 'playwright');
 const root = path.join(__dirname, '..', 'public');
@@ -498,6 +503,14 @@ const SAB = {
   1: ['if (L.tipo === "apto") s.push("M9-08");', 'if (L.casaOuApto) s.push("M9-08");'],
   2: ['const LIMITE = { alertas: 3,', 'const LIMITE = { alertas: 4,'],
 };
+/* sabotagem da tela: tira a caixa "Como descobrir" do "Não sei" */
+const SAB_APP = { 3: ['mostrar((ehNS(cod, op) ? caixaComo(cod) : "")', 'mostrar(("")'] };
+function appTexto() {
+  let t = fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8');
+  const s = SAB_APP[process.env.SABOTAR];
+  if (s) { assert.ok(t.includes(s[0]), 'trecho da sabotagem não encontrado'); t = t.replace(s[0], s[1]); }
+  return t;
+}
 function motorTexto() {
   let t = fs.readFileSync(path.join(DIR, 'js/motor.js'), 'utf8');
   const s = SAB[process.env.SABOTAR];
@@ -640,7 +653,7 @@ const TIPOS = { '.svg': 'image/svg+xml', '.js': 'text/javascript', '.css': 'text
 const server = http.createServer(async (req, res) => {
   const f = path.resolve(root, '.' + decodeURIComponent(new URL(req.url, 'http://x').pathname));
   try {
-    const b = f.endsWith(path.join('m09', 'js', 'motor.js')) ? motorTexto() : await fsp.readFile(f);
+    const b = f.endsWith(path.join('m09', 'js', 'motor.js')) ? motorTexto() : f.endsWith(path.join('m09', 'js', 'app.js')) ? appTexto() : await fsp.readFile(f);
     res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' }); res.end(b);
   } catch { res.writeHead(404).end(); }
 });
@@ -656,7 +669,14 @@ const server = http.createServer(async (req, res) => {
   const K = 'lg2-turma-b-m09';
   const st = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), K);
   const titulo = async () => norm(await page.textContent('#pergunta'));
-  const codAtual = async () => { const t = await titulo(); return ESPERADO.perguntas.find((q) => norm(q.pergunta) === t).codigo; };
+  /* na tela vai o enunciado curto ("curta") quando existe; o texto literal segue nos dados */
+  const codAtual = async () => { const t = await titulo(); return D.perguntas.find((q) => norm(q.curta || q.pergunta) === t).codigo; };
+  /* palavras visíveis antes de tocar (innerText, como no Módulo 1); a lista fechada de estados (select) não conta */
+  const palavrasTela = () => page.evaluate(() => {
+    const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
+    /* a resposta já marcada (herdada de outro módulo) mostra o retorno dela: é resposta, não texto da pergunta */
+    return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('#tela select, #retorno')].reduce((a, s) => a + n(s.innerText), 0);
+  });
   const tocar = (t) => page.evaluate((t) => { const b = [...document.querySelectorAll('.opcao')].find((x) => x.textContent.replace(/\s+/g, ' ').trim() === t); if (!b) throw new Error('opção ausente: ' + t); b.click(); }, t);
   /* textContent: o resto do texto longo fica em "Ver mais" fechado (lote 3), mas continua sendo o texto literal */
   const retorno = (sel) => page.evaluate((sel) => [...document.querySelectorAll(sel + ' .bloco:not(.cruz):not(.extra) p')].map((p) => p.textContent).join(' '), sel || '#retorno');
@@ -674,6 +694,13 @@ const server = http.createServer(async (req, res) => {
   assert.equal(norm(await page.textContent('.heroi h1')), norm(D.modulo.nome));
   assert.equal(await page.locator('.rodape .logos img').count(), 3);
   assert.ok(norm(await page.textContent('.corpo')).includes(norm(ESPERADO.mensagem_limite)), 'mensagem de limite na capa');
+  /* versão leve: título + uma frase + tempo + Começar; o resto em "Como funciona" fechado */
+  assert.equal(norm(await page.textContent('.heroi p')), norm(D.capa.frase));
+  assert.equal(norm(await page.textContent('.tempo')), `Este módulo leva uns ${D.capa.minutos} minutos`);
+  assert.equal(await page.$eval('details.como-funciona', (d) => d.open), false, '"Como funciona" fechado');
+  assert.ok(norm(await page.textContent('details.como-funciona')).includes(norm(D.mapa.nao_faz)), 'o que o módulo não faz dentro de "Como funciona"');
+  const pCapa = await palavrasTela();
+  assert.ok(pCapa <= 60, 'capa com ' + pCapa + ' palavras');
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'm09_inicio.png') });
 
   /* ---------- 4. cada linha de caminho alcançada na tela ---------- */
@@ -687,6 +714,23 @@ const server = http.createServer(async (req, res) => {
   const CENA = { 'M9-01': 'Minas Gerais', 'M9-02': 'Sim, alimentos ou bebidas', 'M9-03': O.apto, 'M9-04': 'Sim, foi aprovada', 'M9-05': '30', 'M9-06': 'Sim, menos de 100 pessoas ao mesmo tempo', 'M9-07': O.botijao, 'M9-07a': '1 botijão de 13 kg (P13)', 'M9-07b': 'Do lado de fora, em área aberta e ventilada ou em abrigo próprio', 'M9-07c': 'Não', 'M9-08': 'Sim', 'M9-09': 'Área separada, de uso exclusivo, com equipamentos exclusivos', 'M9-10': 'Não', 'M9-11': 'Não', 'M9-12': 'Não' };
   const cenaPara = (cod) => cod === 'M9-03a' ? Object.assign({}, CENA, { 'M9-03': O.sem }) : cod === 'M9-03b' ? Object.assign({}, CENA, { 'M9-03': O.naoEsc }) : CENA;
   const alcancadas = new Set();
+  const palavrasPorTela = {};
+  /* caixa "Como descobrir" na tela = passos e pedido dos dados */
+  const DQ = Object.fromEntries(D.perguntas.map((q) => [q.codigo, q]));
+  async function confereComo(cod, sel) {
+    const q = DQ[cod];
+    assert.ok(q.comoDescobrir && q.comoDescobrir.length === 2 && q.comoDescobrir.every((x) => x.trim().length > 20), cod + ': 2 passos nos dados');
+    const passos = await page.$$eval(sel + ' .como-descobrir li', (ls) => ls.map((l) => l.textContent.replace(/\s+/g, ' ').trim()));
+    assert.deepEqual(passos, q.comoDescobrir.map(norm), cod + ': passos do "Como descobrir"');
+    assert.ok(await page.locator(sel + ' .como-descobrir').first().isVisible(), cod + ': caixa visível');
+    assert.ok(q.promptIA && /\[[^\]]+\]/.test(q.promptIA) && !/chatgpt|gemini|copilot/i.test(q.promptIA), cod + ': pedido com colchetes e sem marca');
+    assert.equal(norm(await page.textContent(sel + ' .como-descobrir [data-prompt]')), norm(q.promptIA));
+    assert.equal(norm(await page.textContent(sel + ' .como-descobrir [data-copiar]')), 'Copiar');
+    assert.ok(norm(await page.textContent(sel + ' .como-descobrir')).includes('Copie, cole numa IA de sua preferência e troque o que está entre colchetes.'));
+  }
+  const COM_AJUDA = D.perguntas.filter((q) => q.comoDescobrir).map((q) => q.codigo);
+  assert.deepEqual(COM_AJUDA, ['M9-02', 'M9-03', 'M9-03a', 'M9-03b', 'M9-04', 'M9-05', 'M9-06', 'M9-07', 'M9-07a', 'M9-07b', 'M9-07c', 'M9-08', 'M9-09', 'M9-10', 'M9-11', 'M9-12'], 'toda pergunta com "Não sei" tem ajuda');
+  const comoVistos = new Set();
   const marca = (cod, i) => alcancadas.add(cod + '#' + i);
   const cruzVistos = new Set();
   for (const q of ESPERADO.perguntas) {
@@ -698,6 +742,13 @@ const server = http.createServer(async (req, res) => {
     await abrir({ v: 2, R: R_(Object.fromEntries(ate.map((c) => [c, A[c]]))), feitos: {} }, OUTROS);
     await page.click('#ir');
     assert.equal(await codAtual(), cod, 'abre a 1ª pergunta sem resposta');
+    const pal = await palavrasTela();
+    assert.ok(pal <= 60, `${cod}: ${pal} palavras antes de tocar`);
+    palavrasPorTela[cod] = pal;
+    if (await page.locator('.dica-toggle').count()) assert.equal(await page.$eval('.dica-toggle', (d) => d.open), false, cod + ': "Ver dica" fechada');
+    else assert.ok(['M9-13'].includes(cod), cod + ': sem "Ver dica"');
+    if (D.perguntas.find((x) => x.codigo === cod).dica) assert.ok(norm(await page.textContent('.dica-toggle')).includes(norm(D.perguntas.find((x) => x.codigo === cod).dica)));
+    assert.equal(await page.locator('.como-descobrir').count(), 0, cod + ': ajuda do "Não sei" só depois de tocar');
     const botoes = await page.$$eval('#ent .opcao', (bs) => bs.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
     /* M9-01: o estado não tem mais "Não sei" (relatório da Júlia, 05/11) */
     assert.deepEqual(botoes, cod === 'M9-01' ? [] : opcoesTela(cod), `opções de ${cod}`);
@@ -705,6 +756,7 @@ const server = http.createServer(async (req, res) => {
       const [linha, txt] = q.caminhos[i];
       if (cod === 'M9-01' && opcoesDaLinha(linha).includes(NS)) { assert.equal(await page.locator('#ent .opcao').count(), 0, 'M9-01 sem botão Não sei'); marca(cod, i); continue; }
       if (cod === 'M9-01' && i === 0) { await page.selectOption('#uf', 'Minas Gerais'); assert.equal(norm(await retorno()), norm(txt.replace('[estado]', 'Minas Gerais'))); marca(cod, i); continue; }
+      if (cod === 'M9-05' && opcoesDaLinha(linha).includes(NS)) { await page.click('#nsb'); assert.equal(norm(await retorno()), norm(txt)); await confereComo(cod, '#retorno'); comoVistos.add(cod); await page.fill('#area', '30'); assert.equal(await page.locator('#retorno .como-descobrir').count(), 0, 'M9-05: digitar a área tira a ajuda'); marca(cod, i); continue; }
       if (cod === 'M9-05' && linha.startsWith('Área informada')) { await page.fill('#area', '30'); assert.equal(norm(await retorno()), norm(txt)); marca(cod, i); continue; }
       if (cod === 'M9-05' && linha === 'Valor inválido') {
         for (const v of ['0', '-5', 'abc']) { await page.fill('#area', v); assert.equal(norm(await retorno()), norm(txt), v); }
@@ -714,6 +766,9 @@ const server = http.createServer(async (req, res) => {
       for (const o of opcoesDaLinha(linha)) {
         await tocar(o);
         assert.equal(norm(await retorno()), esperadoVisivel(txt), `${cod} · ${o}`);
+        const ehNS = o === NS || (cod === 'M9-03b' && o === O.pIdeia);
+        if (ehNS) { await confereComo(cod, '#retorno'); comoVistos.add(cod); }
+        else assert.equal(await page.locator('#retorno .como-descobrir').count(), 0, `${cod} · ${o}: sem "Como descobrir"`);
         const aviso = o === NS && txt.includes('⚠ Atenção:');
         assert.equal(await page.locator('#verifiquei').count(), aviso ? 1 : 0, `${cod} · ${o}: botão Já verifiquei`);
         assert.equal(norm(await page.textContent('#ok')), aviso ? 'Seguir sem responder' : cod === 'M9-13' ? 'Ver meu checklist' : 'Continuar');
@@ -737,6 +792,8 @@ const server = http.createServer(async (req, res) => {
     marca('M9-14', i);
   }
   assert.equal(alcancadas.size, TOTAL, `linhas alcançadas ${alcancadas.size} de ${TOTAL}`);
+  assert.deepEqual([...comoVistos].sort(), [...COM_AJUDA].sort(), '"Como descobrir" visto em toda pergunta com "Não sei"');
+  console.log('palavras por pergunta (antes de tocar): ' + JSON.stringify(palavrasPorTela));
   console.log(`caminhos: ${alcancadas.size} de ${TOTAL} linhas alcançadas na tela`);
 
   /* cruzamentos mostrados na pergunta (dados dos outros módulos semeados) */
@@ -823,6 +880,28 @@ const server = http.createServer(async (req, res) => {
   assert.equal(await codAtual(), 'M9-03', 'seguir sem responder avança');
   assert.deepEqual((await st()).R['M9-02'], { estado: 'naosei' });
 
+  /* ---------- 6b. versão leve: "Não sei" em cada pergunta grava o mesmo valor de antes e segue; Copiar funciona ---------- */
+  for (const cod of COM_AJUDA) {
+    const A = cenaPara(cod);
+    const ate = esperadoSeq(A).slice(0, esperadoSeq(A).indexOf(cod));
+    await abrir({ v: 2, R: R_(Object.fromEntries(ate.map((c) => [c, A[c]]))), feitos: {} });
+    await page.click('#ir'); assert.equal(await codAtual(), cod);
+    const opNS = cod === 'M9-03b' ? O.pIdeia : NS;
+    if (cod === 'M9-05') await page.click('#nsb'); else await tocar(opNS);
+    await confereComo(cod, '#retorno');
+    if (cod === 'M9-02') {
+      await page.click('#retorno [data-copiar]');
+      await page.waitForFunction(() => /Copiado!|Toque e segure/.test(document.querySelector('#retorno [data-copiar]').textContent));
+      if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm09_naosei_ajuda.png'), fullPage: true }); }
+    }
+    await page.click('#ok');
+    assert.notEqual(await page.locator('#pergunta').count() ? await titulo() : '', norm(DQ[cod].curta || DQ[cod].pergunta), cod + ': "Não sei" segue');
+    assert.deepEqual((await st()).R[cod], opNS === NS ? { estado: 'naosei' } : { estado: 'opcao', opcao: opNS }, cod + ': valor gravado igual ao de antes');
+  }
+  console.log(`não sei: ${COM_AJUDA.length} perguntas com "Como descobrir" (2 passos + pedido com Copiar), valor gravado igual`);
+  await abrir({ v: 2, R: R_({ 'M9-01': 'Acre', 'M9-02': NS }), feitos: {} });
+  await page.click('#ir');
+
   /* recarregar mantém e retoma */
   await page.reload();
   assert.equal(norm(await page.textContent('#ir')), 'Continuar de onde parei');
@@ -835,7 +914,8 @@ const server = http.createServer(async (req, res) => {
   await abrir({ v: 2, R: Object.assign(R_(TUDO_NS_TELA), { 'M9-13': { estado: 'valor', valor: '' } }), feitos: {} });
   await page.click('#ir');
   assert.equal(await page.locator('#alertas .bloco').count(), 3);
-  assert.deepEqual(await page.$$eval('#alertas .bloco p', (ps) => ps.map((p) => p.innerText.replace(/\s+/g, ' ').trim())), Mo.alertas(D, R_(TUDO_NS_TELA), {}).map(norm));
+  /* textContent: os alertas ficam no painel "Mais detalhes" (fechado) */
+  assert.deepEqual(await page.$$eval('#alertas .bloco p', (ps) => ps.map((p) => p.textContent.replace(/\s+/g, ' ').trim())), Mo.alertas(D, R_(TUDO_NS_TELA), {}).map(norm));
   assert.equal(await page.locator('#encaminhamento .bloco').count(), 1);
   assert.ok(norm(await page.textContent('#linha-resumo')).includes('(fato)') || norm(await page.textContent('#linha-resumo')).includes('(hipótese)'));
   await page.evaluate(() => [...document.querySelectorAll('#op14 .opcao')].find((x) => x.textContent.trim() === 'Quero corrigir algo').click());
@@ -844,7 +924,23 @@ const server = http.createServer(async (req, res) => {
   await tocar('Sim, foi aprovada'); await page.click('#ok');
   assert.equal(norm(await page.textContent('.passo')), 'Resultado', 'corrigir volta ao resumo');
   assert.equal(await page.$eval('[data-item="viabilidade"] .sit', (e) => e.textContent.trim()), 'feito');
+  /* versão leve: entendemos, próxima tarefa e o que falta descobrir à frente; checklist e detalhes fechados */
+  assert.equal(await page.$eval('#mais-checklist', (d) => d.open), false, 'checklist fechado');
+  assert.equal(await page.$eval('#mais-detalhes', (d) => d.open), false, 'detalhes fechados');
+  assert.equal(norm(await page.textContent('#encaminhamento h3')), 'Sua próxima tarefa');
+  assert.ok(await page.evaluate(() => { const e = document.querySelector('#entendemos'), t = document.querySelector('#encaminhamento'), f = document.querySelector('#falta'), m = document.querySelector('#mais-checklist'); return !!(e.compareDocumentPosition(t) & 4) && !!(t.compareDocumentPosition(f) & 4) && !!(f.compareDocumentPosition(m) & 4); }), 'ordem: entendemos, tarefa, falta descobrir, checklist');
+  const faltaCods = Object.keys(TUDO_NS_TELA).filter((c) => TUDO_NS_TELA[c] === NS && DQ[c].comoDescobrir && esperadoSeq(TUDO_NS_TELA).includes(c) && c !== 'M9-04');
+  assert.deepEqual(await page.$$eval('#falta > ul > li > span', (ss) => ss.map((x) => x.textContent.trim())), faltaCods.map((c) => DQ[c].curta || DQ[c].pergunta), 'o que falta descobrir = os "Não sei"');
+  assert.equal(await page.locator('#falta details.como-mini').count(), faltaCods.length);
+  assert.equal(await page.$eval('#falta details.como-mini', (d) => d.open), false);
+  const pRes = await palavrasTela();
+  console.log(`resultado: ${pRes} palavras na 1ª leitura (checklist e detalhes fechados)`);
+  await page.click('#falta details.como-mini summary');
+  assert.ok(await page.locator('#falta .como-descobrir li').first().isVisible(), 'passos ao abrir');
+  if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm09_resultado_leve.png') }); }
+  await page.click('#mais-checklist summary');
   await page.check('[data-feito="obra"]');
+  assert.equal(await page.$eval('#mais-checklist', (d) => d.open), true, 'checklist continua aberto ao marcar');
   assert.equal(await page.$eval('[data-item="obra"] .sit', (e) => e.textContent.trim()), 'feito');
   assert.deepEqual((await st()).feitos, { obra: true });
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm09_resultado.png'), fullPage: true }); }
@@ -1010,7 +1106,7 @@ const server = http.createServer(async (req, res) => {
   /* conceito do gás na pergunta: sem exemplo nem fonte do RJ para o Acre */
   await abrir({ v: 2, R: R_({ 'M9-01': 'Acre', 'M9-02': 'Não', 'M9-03': O.loja, 'M9-04': 'Ainda não fiz', 'M9-06': 'Não, só trabalho interno ou atendimento fora' }), feitos: {} });
   await page.click('#ir'); assert.equal(await codAtual(), 'M9-07');
-  const termosGas = await page.evaluate(() => document.querySelector('.saiba').textContent.replace(/\s+/g, ' '));
+  const termosGas = await page.evaluate(() => document.querySelector('.dica-toggle').textContent.replace(/\s+/g, ' '));
   assert.ok(!termosGas.includes('Rio de Janeiro') && !termosGas.includes('CBMERJ') && termosGas.includes('Corpo de Bombeiros do seu estado (Acre)'), termosGas);
   /* nota de casa na própria pergunta do local */
   await abrir({ v: 2, R: R_({ 'M9-01': 'Minas Gerais', 'M9-02': 'Não' }), feitos: {} });
@@ -1049,7 +1145,9 @@ const server = http.createServer(async (req, res) => {
   await page.click('#ir'); assert.equal(await codAtual(), 'M9-02');
   assert.ok(await page.evaluate(() => { const c = document.querySelector('.cartao-q'), v = c.querySelector('#v'), q = c.querySelector('#pergunta'); return c.firstElementChild === v && v.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1; }), 'Voltar no topo do cartão, acima da pergunta');
   assert.equal(await page.getByRole('button', { name: 'Voltar', exact: true }).count(), 1, 'um só Voltar');
-  assert.ok(await page.evaluate(() => { const a = document.querySelector('#acoes'), t = document.querySelector('.cartao-q .saiba'); return !t || !!(a.compareDocumentPosition(t) & 4); }), 'Entenda os termos embaixo do Continuar');
+  /* versão leve: os termos ficam na "Ver dica" fechada, entre a pergunta e as respostas */
+  assert.ok(await page.evaluate(() => { const q = document.querySelector('#pergunta'), d = document.querySelector('.cartao-q .dica-toggle'), e = document.querySelector('#ent'); return !!d && !d.open && !!(q.compareDocumentPosition(d) & 4) && !!(d.compareDocumentPosition(e) & 4); }), '"Ver dica" fechada entre a pergunta e as respostas');
+  assert.equal(await page.locator('.cartao-q .saiba').count(), 0, 'sem "Entenda os termos" solto na pergunta');
   assert.equal(await page.locator('#outra-box').isVisible(), false, 'campo da outra atividade escondido');
   await tocar(OUTRA);
   assert.ok(await page.locator('#outra').isVisible(), '"Outra atividade" abre o campo');
@@ -1093,7 +1191,7 @@ const server = http.createServer(async (req, res) => {
   await page.click('#ir'); assert.equal(await codAtual(), 'M9-03');
   assert.equal(await selAtual(), DOMIC, 'M9-03: domicílio herdado do Módulo 8');
   assert.equal(norm(await page.textContent('#ent .veio')), 'Veio do Módulo 8');
-  await page.click('[data-inicio]');
+  await page.reload();
   assert.ok(norm(await page.textContent('.corpo')).includes('9602-5/01 (CABELEIREIRO(A) INDEPENDENTE)'), 'CNAE escolhido no Módulo 8 na capa');
 
   /* ---------- 9. botão do próximo módulo: marcação exata ---------- */

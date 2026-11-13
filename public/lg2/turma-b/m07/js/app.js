@@ -1,6 +1,9 @@
 /* Telas do Módulo 7 (Turma B). Todo texto de conteúdo vem de window.MODULO7 (planilha
-   "Perguntas e Caminhos" e PDF de abertura do Grupo 7), sem edição. As contas ficam em motor.js.
-   As respostas ficam só neste aparelho. */
+   "Perguntas e Caminhos" e PDF de abertura do Grupo 7; na versão leve, com enunciados curtos e a ajuda
+   do "Não sei" nos dados). As contas ficam em motor.js. As respostas ficam só neste aparelho.
+   Versão leve (nov/2026): capa curta com "Como funciona" fechado; perguntas sem faixa ilustrada, com
+   "Ver dica" fechada; "Não sei" abre "Como descobrir" (passos + pedido pronto para a IA, com Copiar);
+   resultado com o essencial à vista e o retrato completo num painel fechado. */
 (function () {
   "use strict";
   const D = window.MODULO7;
@@ -24,7 +27,7 @@
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  function ir(f, a) { if (f === telaResultado) retratoAberto = false; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
   /* redesenha sem voltar ao topo (instrumentos que mudam a cada toque) */
   function redesenhar(f, a) { const y = window.scrollY; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, y); }
 
@@ -87,8 +90,6 @@
   /* revenda: estoque guardado ou compra sob encomenda (o Módulo 6 pergunta isso com Sim/Não) */
   const ESTOQUE = ["Sim, mantenho mercadoria guardada", "Não, compro quando o cliente pede", NS];
   const NAO_APLICA = "Não se aplica ao meu negócio";
-  /* ajuda com mais de 220 caracteres: 1ª frase à vista e o resto em "Ver mais" */
-  const AJUDA_CURTA = 220;
 
   /* tela de partida: o que dá para trazer dos módulos anteriores */
   function herdar() {
@@ -164,11 +165,11 @@
      muda só o texto mostrado. */
   const REV = {
     "M7-02": { apoio: "Conte o tempo de separar, conferir, embalar e entregar um pedido. Se você separa vários pedidos de uma vez, informe o tempo total e quantos pedidos saem." },
-    "M7-03": { pergunta: "Além de separar e entregar os pedidos, quanto do seu tempo por semana vai para responder clientes, comprar mercadoria e divulgar?" },
+    "M7-03": { pergunta: "Por semana, quantas horas vão para clientes, compras de mercadoria e divulgação?" },
     "M7-04": { apoio: "Família, parceiro, amigo ou alguém que você paga. Conte só a ajuda para separar, embalar e entregar os pedidos." },
-    "M7-05a": { pergunta: "Quantos pedidos ou caixas cabem de uma vez nesse espaço ou veículo, e quanto tempo leva cada vez?", apoio: "Ex.: o carro leva 20 caixas por viagem, e cada viagem de entrega leva 1 h." },
-    "M7-06": { pergunta: "Para a mercadoria principal: de quantos fornecedores você poderia comprar, e em quantos dias ela chega depois do pedido?", apoio: "Pense em [item principal do Módulo 4], a mercadoria que mais vende ou que, se faltar, para as vendas. Quando pagar já foi visto no Módulo 6; aqui é o tempo até a mercadoria chegar." },
-    "M7-08": { pergunta: "As mercadorias que você vende estragam, vencem ou perdem valor com o tempo?", apoio: "Pense na data de validade, em produtos que precisam de geladeira ou de lugar seco e em itens que saem de moda." },
+    "M7-05a": { pergunta: "Quantos pedidos ou caixas cabem de uma vez nesse espaço ou veículo, e em quanto tempo?", apoio: "Ex.: o carro leva 20 caixas por viagem, e cada viagem de entrega leva 1 h." },
+    "M7-06": { apoio: "Pense em [item principal do Módulo 4], a mercadoria que mais vende ou que, se faltar, para as vendas. Quando pagar já foi visto no Módulo 6; aqui é o tempo até a mercadoria chegar." },
+    "M7-08": { pergunta: "Suas mercadorias estragam, vencem ou perdem valor com o tempo?", apoio: "Pense na data de validade, em produtos que precisam de geladeira ou de lugar seco e em itens que saem de moda." },
     "M7-09": { apoio: "Pense no que faz o cliente voltar: pedido certo, validade em dia, embalagem inteira, prazo combinado." },
   };
   const ROT_REV = {
@@ -184,20 +185,60 @@
   const rot = (op) => (rev() && ROT_REV[op]) || op;
   const perg = (cod) => preencher((rev() && REV[cod] && REV[cod].pergunta) || Q[cod].pergunta);
   const apoioDe = (cod) => preencher((rev() && REV[cod] && REV[cod].apoio) || Q[cod].apoio);
-  /* 1ª frase à vista; o resto em "Ver mais" (não corta em "Ex.:") */
-  function ajudaHtml(t) {
+  /* "Ver dica" fechada entre a pergunta e as respostas: o texto de apoio + os termos da pergunta (+ extra) */
+  function dicaHtml(t, cod, extra) {
     t = String(t || "").trim();
-    if (!t) return "";
-    if (t.length > AJUDA_CURTA) {
-      const re = /[.!?](?=\s)/g; let m;
-      while ((m = re.exec(t))) {
-        if (/\bEx$/i.test(t.slice(0, m.index))) continue;
-        const a = t.slice(0, m.index + 1), b = t.slice(m.index + 1).trim();
-        if (b) return `<p class="ajuda">${esc(a)}</p><details class="ver-mais"><summary>Ver mais</summary><p class="ajuda">${esc(b)}</p></details>`;
-      }
-    }
-    return `<p class="ajuda">${esc(t)}</p>`;
+    const ts = TERMO.filter((x) => x.aparece === cod);
+    if (!t && !ts.length && !extra) return "";
+    return `<details class="dica-toggle"><summary>Ver dica</summary>
+      ${t ? `<p class="ajuda">${esc(t)}</p>` : ""}${extra || ""}
+      ${ts.map((x) => `<div class="conceito"><b>${esc(x.termo)}</b><p>${esc(x.explicacao)}</p><p class="ex">${esc(x.exemplo)}</p></div>`).join("")}
+    </details>`;
   }
+  /* ---------- "Não sei": caixa "Como descobrir" (passos + pedido pronto para a IA, com Copiar) ----------
+     Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA; 2ª parte do M7-06: comoDescobrir2)
+     e do ponto de partida (partida_ajuda). A resposta salva não muda. */
+  function caixaComo(passos, prompt) {
+    if (!passos || !passos.length) return "";
+    /* o que já sabemos entra no lugar do colchete; o resto a pessoa troca */
+    const pr = prompt ? String(prompt).split("[o que você vende]").join(oferta() || "[o que você vende]").split("[item principal]").join(I().item || "[item principal]") : "";
+    return `<section class="como-descobrir" role="status">
+      <b class="como-tit">Como descobrir</b>
+      <ol>${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${pr ? `<div class="pedir-ia">
+        <b>Peça ajuda à IA</b>
+        <p class="como-nota">Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
+        <p class="prompt" data-prompt>${esc(pr)}</p>
+        <button class="btn-alt copiar" type="button" data-copiar>Copiar</button>
+      </div>` : ""}
+    </section>`;
+  }
+  const comoDe = (cod, parte) => caixaComo(parte === 2 ? Q[cod].comoDescobrir2 : Q[cod].comoDescobrir, parte === 2 ? null : Q[cod].promptIA);
+  /* copiar com reserva: área de transferência → execCommand → deixa o texto selecionado (como no Módulo 1) */
+  function copiar(t, b, alvo) {
+    const rotulo = b.dataset.rotulo || "Copiar";
+    const pronto = () => { b.textContent = "Copiado!"; setTimeout(() => { if (document.contains(b)) b.textContent = rotulo; }, 2000); };
+    const reserva = () => {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let foi = false;
+      try { foi = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      if (foi) return pronto();
+      try { const r = document.createRange(); r.selectNodeContents(alvo); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+      b.textContent = "Toque e segure o texto para copiar";
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(pronto, reserva);
+    else reserva();
+  }
+  /* um só ouvinte para todos os botões Copiar (as caixas aparecem e somem a cada toque) */
+  tela.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-copiar]");
+    if (!b) return;
+    const alvo = b.parentNode.querySelector("[data-prompt]");
+    if (alvo) copiar(alvo.textContent, b, alvo);
+  });
 
   /* modelo do mapa por tipo (aba Instrumentos) */
   function modelo() {
@@ -241,7 +282,6 @@
     seq.push("M7-09", "M7-10", "M7-11", "M7-12");
     return seq;
   }
-  const FASE = (cod) => Q[cod].fase;
   const fases = () => D.fases.filter((f) => f !== "Fornecedores e estoque" || temFase3());
 
   /* caminho (linha da planilha) por texto da opção */
@@ -276,9 +316,10 @@
   }
 
   /* ---------- peças do layout (modelo do Módulo 6) ---------- */
-  function rodape() {
+  /* versão leve: o crédito em texto só na capa e no resultado; nas perguntas, só as marcas */
+  function rodape(credito) {
     return `<footer class="rodape">
-      <p class="credito">Conteúdo do ${esc(D.origem)}</p>
+      ${credito ? `<p class="credito">${esc(D.origem)}</p>` : ""}
       <div class="logos"><img src="assets/logo_facc.png" alt="FACC"><img src="assets/logo_ufjf.svg" alt="UFJF"><img src="assets/logo_mg.svg" alt="Governo de Minas Gerais"></div>
     </footer>`;
   }
@@ -289,6 +330,10 @@
     </div>`;
   }
   function heroi(o) {
+    /* versão leve: nas perguntas, faixa compacta (só a barra de progresso, sem título repetido nem ilustração) */
+    if (o.compacta) return `<section class="heroi heroi-compacta">
+      <div class="heroi-prog"><div class="barra" role="progressbar" aria-label="Progresso: pergunta ${o.n} de ${o.total}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.pct}"><div class="barra-fill" style="width:${o.pct}%"></div></div></div>
+    </section>`;
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
@@ -317,7 +362,6 @@
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
     const a = p.querySelector("#alterar"); if (a) a.onclick = () => ir(telaPartida, { volta: true });
     const z = p.querySelector("#zerar"); if (z) z.onclick = reiniciar;
-    p.querySelectorAll(".btn-copiar").forEach((b) => (b.onclick = () => { try { navigator.clipboard.writeText(b.dataset.t); } catch (e) {} b.textContent = "Copiado"; }));
   }
   function reiniciar() {
     if (!confirm("Apagar todas as respostas deste módulo e recomeçar? Se quiser guardar, imprima o resultado antes.")) return;
@@ -334,30 +378,29 @@
     const cls = c.retorno === "Atenção" ? "b-alerta" : c.retorno === "Dica" ? "b-proximo" : "b-ok";
     return `<div class="bloco ${cls}">${tit ? `<b>${tit}</b>` : ""}<p>${esc(t)}</p></div>`;
   }
-  function termosDe(cod) {
-    const ts = TERMO.filter((t) => t.aparece === cod);
-    if (!ts.length) return "";
-    return `<details class="saiba"><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.termo)}</b><p>${esc(t.explicacao)}</p><p class="ex">${esc(t.exemplo)}</p></div>`).join("")}</details>`;
-  }
 
-  /* ================= capa (texto do PDF de abertura) ================= */
+  /* ================= capa: título, uma frase e o tempo; o texto do PDF de abertura fica em "Como funciona" ================= */
   function telaCapa() {
     const A = D.abertura;
     const comecou = !!S.ini;
     const lista = (xs) => `<ul class="lista-capa">${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
     const p = el(`<div class="pag">
       ${topo("")}
-      ${heroi({ grande: true, h1: true, kicker: A.kicker, titulo: A.titulo, texto: A.objetivo })}
+      ${heroi({ grande: true, h1: true, kicker: A.kicker, titulo: A.titulo, texto: A.frase })}
       <main class="corpo">
-        <div class="cartao"><h3>${esc(A.para_voce_titulo)}</h3>${lista(A.para_voce)}</div>
-        <div class="cartao"><h3>${esc(A.no_final_titulo)}</h3>${lista(A.no_final)}</div>
-        <div class="cartao"><h3>${esc(A.nao_faz_titulo)}</h3>${lista(A.nao_faz)}</div>
-        <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas. Elas ficam salvas apenas neste navegador.</p>
+        <details class="como-funciona cartao"><summary>Como funciona</summary>
+          <p>${esc(A.objetivo)}</p>
+          <h3>${esc(A.para_voce_titulo)}</h3>${lista(A.para_voce)}
+          <h3>${esc(A.no_final_titulo)}</h3>${lista(A.no_final)}
+          <h3>${esc(A.nao_faz_titulo)}</h3>${lista(A.nao_faz)}
+          <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas. Elas ficam salvas apenas neste navegador.</p>
+        </details>
+        <p class="tempo">Este módulo leva uns ${esc(A.minutos)} minutos</p>
         <div class="acoes">
           <button class="btn btn-primario seta" id="ir">${comecou ? "Continuar de onde parei" : "Começar"}</button>
           ${comecou ? `<button class="btn btn-linha" id="zerar">Recomeçar do zero</button>` : ""}
         </div>
-        ${rodape()}
+        ${rodape(true)}
       </main>
     </div>`);
     p.querySelector("#ir").onclick = () => {
@@ -385,28 +428,30 @@
     }
     const f = Object.assign({}, base);
     const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio do Módulo ${base.de[campo]}</span>` : "";
+    /* "Não sei" no ponto de partida também ajuda: passos para descobrir (dados: partida_ajuda) */
+    const ajudaNS = (campo) => (f[campo] === NS && D.partida_ajuda && D.partida_ajuda[campo] ? caixaComo(D.partida_ajuda[campo].comoDescobrir, D.partida_ajuda[campo].promptIA) : "");
     const sel = (campo, ops, rot) => `<fieldset class="grupo" data-campo="${campo}"><legend>${esc(rot)} ${veio(campo)}</legend>
-      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div></fieldset>`;
+      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div><div class="ns-ajuda" aria-live="polite">${ajudaNS(campo)}</div></fieldset>`;
     const txt = (campo, rot, attrs) => `<label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${attrs || ""}><p class="erro-campo" id="e-${campo}" hidden></p>`;
     const rotUso = () => `Quanto desse item vai em cada unidade ou atendimento? (em ${f.usoUn || "unidades do item"})`;
     const p = el(`<div class="pag">
       ${topo("Antes de começar")}
-      ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nos módulos anteriores. Confira, corrija ou complete. Só o tipo é obrigatório." })}
+      ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu. Confira ou complete. Só o tipo é obrigatório." })}
       <main class="corpo">
         <div class="cartao-q partida">
           ${botaoVoltar()}
           <h3 class="secao-titulo">Sua oferta</h3>
-          ${txt("oferta", "O que você vende (a oferta em foco)")}
+          ${txt("oferta", "O que você vende (a oferta em foco)", 'placeholder="Ex.: bolo de pote"')}
           ${sel("tipo", TIPOS, "Tipo de oferta")}
           <div id="mat"></div>
           ${sel("estagio", ESTAGIOS, "Em que momento você está?")}
           <h3 class="secao-titulo">Seu tempo e suas vendas</h3>
           ${sel("horas", HORAS, "Quantas horas por semana você tem para o negócio?")}
           ${base.de && base.de.horas === 1 && base.horasM1 ? `<p class="nota-veio" id="nota-horas">No Módulo 1 você respondeu “${esc(base.horasM1)}” (${esc(base.horasConv)}). Marcamos a faixa mais próxima. Confira e ajuste.</p>` : ""}
-          ${txt("volume", "Quantas unidades ou atendimentos você pretende vender por mês?", 'inputmode="decimal"')}
-          ${base.minUn > 0 ? txt("minUn", "Tempo por unidade ou atendimento (minutos)", 'inputmode="decimal"') : ""}
-          ${txt("testeN", "No teste da ideia: qual número mínimo de pedidos você combinou?", 'inputmode="decimal"')}
-          ${txt("testeDias", "E em quantos dias?", 'inputmode="decimal"')}
+          ${txt("volume", "Quantas unidades ou atendimentos você pretende vender por mês?", 'inputmode="decimal" placeholder="Ex.: 40"')}
+          ${base.minUn > 0 ? txt("minUn", "Tempo por unidade ou atendimento (minutos)", 'inputmode="decimal" placeholder="Ex.: 30"') : ""}
+          ${txt("testeN", "No teste da ideia: qual número mínimo de pedidos você combinou?", 'inputmode="decimal" placeholder="Ex.: 10"')}
+          ${txt("testeDias", "E em quantos dias?", 'inputmode="decimal" placeholder="Ex.: 7"')}
           <div id="f3"></div>
           <h3 class="secao-titulo">Regras</h3>
           ${sel("regulada", SNN, "Sua oferta envolve alimentos, saúde, produtos para crianças ou outra atividade com regras próprias?")}
@@ -423,17 +468,17 @@
       const fase3 = (f.tipo || "").startsWith("Produto") || (f.tipo || "").startsWith("Mercadoria") || (serv && f.material === "Sim");
       const ehRev = (f.tipo || "").startsWith("Mercadoria");
       p.querySelector("#f3").innerHTML = !fase3 ? "" : ehRev ? `<h3 class="secao-titulo">Mercadoria principal e estoque</h3>
-        ${txt("item", "Qual mercadoria mais vende ou, se faltar, para as vendas?")}
-        ${txt("uso", "Quantas unidades dela saem em cada venda?", 'inputmode="decimal"')}
+        ${txt("item", "Qual mercadoria mais vende ou, se faltar, para as vendas?", 'placeholder="Ex.: refrigerante 2 L"')}
+        ${txt("uso", "Quantas unidades dela saem em cada venda?", 'inputmode="decimal" placeholder="Ex.: 1"')}
         <p class="ajuda nota-campo">Em geral é 1. Mude se você vende em caixa ou fardo.</p>
         ${sel("estoque", ESTOQUE, "Você vai manter mercadoria guardada para pronta entrega?")}
         ${sel("reposicao", REPOSICAO, "De quanto em quanto tempo você compra essa mercadoria?")}
-        ${txt("perda", "Quanto dela você costuma perder (vencida, quebrada ou amassada), em %? (deixe em branco se não sabe)", 'inputmode="decimal"')}`
+        ${txt("perda", "Quanto dela você costuma perder (vencida, quebrada ou amassada), em %? (deixe em branco se não sabe)", 'inputmode="decimal" placeholder="Ex.: 5"')}`
         : `<h3 class="secao-titulo">Material principal</h3>
-        ${txt("item", "Qual é o item que, se faltar, para tudo?")}
-        ${txt("uso", rotUso(), 'inputmode="decimal"')}
+        ${txt("item", "Qual é o item que, se faltar, para tudo?", 'placeholder="Ex.: farinha"')}
+        ${txt("uso", rotUso(), 'inputmode="decimal" placeholder="Ex.: 0,5"')}
         ${sel("reposicao", REPOSICAO, "De quanto em quanto tempo você compra esse item?")}
-        ${txt("perda", "Quanto você costuma perder dele, em %? (deixe em branco se não sabe)", 'inputmode="decimal"')}`;
+        ${txt("perda", "Quanto você costuma perder dele, em %? (deixe em branco se não sabe)", 'inputmode="decimal" placeholder="Ex.: 5"')}`;
       ligarCampos();
       /* trocou o item principal por outro material do Módulo 5: traz a quantidade dele */
       const it = p.querySelector("#f-item");
@@ -452,6 +497,7 @@
           b.onclick = () => {
             f[fs.dataset.campo] = b.dataset.v;
             fs.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", x === b));
+            fs.querySelector(".ns-ajuda").innerHTML = ajudaNS(fs.dataset.campo);
             if (fs.dataset.campo === "tipo" || fs.dataset.campo === "material") { lerTextos(); desenharCond(); }
           };
         });
@@ -526,27 +572,29 @@
     const n = Math.max(1, seq.indexOf(cod) + 1);
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const resp = S.R[cod];
+    /* revenda: a dica de armazenamento vai junto da dica da pergunta da validade */
+    const extraDica = cod === "M7-08" && rev() ? `<p class="ajuda" id="dica-estoque">Guarde as mercadorias em lugar limpo, seco e arejado, longe do chão e do sol, e siga o que a embalagem pede (por exemplo, geladeira). Venda primeiro o que vence primeiro.</p>` : "";
     const p = el(`<div class="pag">
-      ${topo(FASE(cod))}
-      ${heroi({ titulo: FASE(cod), reinicio: true, kicker: `Pergunta ${n} de ${seq.length}`, kickerClasse: "passo", extra: chipOferta() })}
+      ${heroi({ compacta: true, n, total: seq.length, pct: Math.round(n / seq.length * 100) })}
       <main class="corpo">
-        ${barraFases(FASE(cod))}
         <div class="cartao-q pergunta">
           ${botaoVoltar()}
           <h2 class="q" id="pergunta">${esc(perg(cod))}</h2>
-          ${ajudaHtml(apoioDe(cod))}
+          ${q.instrucao ? `<p class="instrucao">${esc(q.instrucao)}</p>` : ""}
+          ${dicaHtml(apoioDe(cod), cod, extraDica)}
           <div class="entrada" id="ent"></div>
           <div class="erro" id="erro" hidden></div>
           <div id="retorno" aria-live="polite"></div>
           <div id="junto"></div>
           <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
-          ${termosDe(cod)}
         </div>
         ${rodape()}
       </main>
     </div>`);
     const ent = p.querySelector("#ent"), box = p.querySelector("#retorno"), err = p.querySelector("#erro");
     const mostrar = (html) => { box.innerHTML = html || ""; err.hidden = true; };
+    /* "Não sei" marcado: a caixa "Como descobrir" vem antes do retorno da planilha */
+    const comAjudaNS = (op, html) => (op === NS ? comoDe(cod) : "") + (html || "");
     const erro = (t) => { err.classList.remove("aviso-valor"); err.textContent = t; err.hidden = false; };
     const junto = (html) => { p.querySelector("#junto").innerHTML = html || ""; };
     /* aviso que não trava: o próximo Continuar com o mesmo valor segue */
@@ -592,7 +640,7 @@
       pintar();
       return { wrap, aviso: avisoMais };
     }
-    const tempoCampos = (id, v) => `<div class="linha"><input class="campo" id="${id}h" inputmode="numeric" aria-label="horas" value="${esc(v && v.h != null ? v.h : "")}"><span class="pre">h</span><input class="campo" id="${id}m" inputmode="numeric" aria-label="minutos" value="${esc(v && v.m != null ? v.m : "")}"><span class="pre">min</span></div>`;
+    const tempoCampos = (id, v) => `<div class="linha"><input class="campo" id="${id}h" inputmode="numeric" aria-label="horas" placeholder="Ex.: 1" value="${esc(v && v.h != null ? v.h : "")}"><span class="pre">h</span><input class="campo" id="${id}m" inputmode="numeric" aria-label="minutos" placeholder="Ex.: 30" value="${esc(v && v.m != null ? v.m : "")}"><span class="pre">min</span></div>`;
     const lerTempo = (id) => { const h = p.querySelector(`#${id}h`).value.trim(), m = p.querySelector(`#${id}m`).value.trim(); return { h, m, vazio: !h && !m, min: (Mo.num(h || 0)) * 60 + Mo.num(m || 0) }; };
     const fmtTempo = (min) => { const h = Math.floor(min / 60), m = Math.round(min - h * 60); return h && m ? `${h} h ${m} min` : h ? `${h} h` : `${Mo.fmt(min, min % 1 ? 1 : 0)} min`; };
     const btnNaoSei = (fn) => { const b = el(`<div class="alt"><button class="btn-alt" id="ns">${NS}</button></div>`); b.querySelector("button").onclick = fn; return b; };
@@ -651,7 +699,7 @@
       ent.appendChild(wrap);
       ent.appendChild(btnNaoSei(() => {
         S.mapa = modelo(); S.tipoMapa = tipoChave();
-        mostrar(caixa(caminho(cod, NS)));
+        mostrar(comoDe(cod) + caixa(caminho(cod, NS)));
         p.querySelector("#acoes").innerHTML = "";
         const b = el(`<button class="btn btn-primario seta" id="ok">Continuar</button>`);
         b.onclick = () => avancar({ estado: "naosei" });
@@ -674,8 +722,8 @@
       const herdaUn = !v && I().unLote && tipoChave() === "fab";
       ent.appendChild(el(`<div><label class="rot-campo">Tempo</label>${tempoCampos("t", v)}
         <label class="rot-campo" for="un">${rev() ? "Pedidos separados de uma vez" : "Unidades que saem de uma vez"} ${herdaUn ? `<span class="veio">Veio do Módulo 5</span>` : ""}</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : herdaUn ? I().unLote : "1")}">
-        ${herdaUn ? `<p class="ajuda">É quanto rende a sua receita, como você contou no Módulo 5. Confira e ajuste se quiser.</p>` : ""}</div>`));
-      ent.appendChild(btnNaoSei(() => { mostrar(caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
+        ${herdaUn ? `<p class="ajuda">É o que rende a sua receita. Confira ou ajuste.</p>` : ""}</div>`));
+      ent.appendChild(btnNaoSei(() => { mostrar(comoDe(cod) + caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
       /* revenda em que o cliente retira e não há separação: a pergunta pode não servir */
       if (rev()) {
         const na = el(`<button class="btn-alt" id="na">${NAO_APLICA}</button>`);
@@ -693,10 +741,10 @@
     } else if (cod === "M7-04") {
       let avisouAjuda = null;
       let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
-      const horas = el(`<div id="hw" ${op && op.startsWith("Sim") ? "" : "hidden"}><label class="rot-campo" for="hajuda">Horas de ajuda por semana</label><input class="campo" id="hajuda" inputmode="decimal" value="${esc(resp && resp.horas != null ? resp.horas : "")}"></div>`);
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; horas.hidden = !o.startsWith("Sim"); mostrar(caixa(caminho(cod, o))); }));
+      const horas = el(`<div id="hw" ${op && op.startsWith("Sim") ? "" : "hidden"}><label class="rot-campo" for="hajuda">Horas de ajuda por semana</label><input class="campo" id="hajuda" inputmode="decimal" placeholder="Ex.: 4" value="${esc(resp && resp.horas != null ? resp.horas : "")}"></div>`);
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; horas.hidden = !o.startsWith("Sim"); mostrar(comAjudaNS(o, caixa(caminho(cod, o)))); }));
       ent.appendChild(horas);
-      if (op) mostrar(caixa(caminho(cod, op)));
+      if (op) mostrar(comAjudaNS(op, caixa(caminho(cod, op))));
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
         if (op === NS) return { estado: "naosei" };
@@ -712,9 +760,9 @@
       const et = el(`<div id="et" ${op === "Uma etapa que demora ou acumula" ? "" : "hidden"}><p class="rot-campo">Qual etapa?</p></div>`);
       let etapa = resp && resp.etapa;
       et.appendChild(unica(etapas(), etapa, (x) => { etapa = x; }));
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; et.hidden = o !== "Uma etapa que demora ou acumula"; mostrar(caixa(caminho(cod, o))); }));
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; et.hidden = o !== "Uma etapa que demora ou acumula"; mostrar(comAjudaNS(o, caixa(caminho(cod, o)))); }));
       ent.appendChild(et);
-      if (op) mostrar(caixa(caminho(cod, op)));
+      if (op) mostrar(comAjudaNS(op, caixa(caminho(cod, op))));
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
         if (op === NS) return { estado: "naosei" };
@@ -723,9 +771,9 @@
       };
     } else if (cod === "M7-05a") {
       const v = resp && resp.estado === "valor" ? resp : null;
-      ent.appendChild(el(`<div><label class="rot-campo" for="uv">Unidades por vez</label><input class="campo" id="uv" inputmode="numeric" value="${esc(v ? v.un : "")}">
+      ent.appendChild(el(`<div><label class="rot-campo" for="uv">Unidades por vez</label><input class="campo" id="uv" inputmode="numeric" placeholder="Ex.: 4" value="${esc(v ? v.un : "")}">
         <label class="rot-campo">Tempo de cada vez</label>${tempoCampos("tv", v)}</div>`));
-      ent.appendChild(btnNaoSei(() => { mostrar(caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
+      ent.appendChild(btnNaoSei(() => { mostrar(comoDe(cod) + caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
       if (v) mostrar(caixaEquip(v));
       coletar = () => {
         const un = Mo.num(p.querySelector("#uv").value), t = lerTempo("tv");
@@ -746,16 +794,16 @@
       let p1 = v.p1 || null, p2 = v.p2 || null;
       const parte = (pref) => Q[cod].caminhos.filter((c) => c.opcao.startsWith(pref)).flatMap((c) => c.opcao.slice(pref.length).split(" / ").map((o) => ({ o: o.trim(), c })));
       const P1 = parte("Parte 1: "), P2 = parte("Parte 2: ");
-      const dias = el(`<div id="dw" ${p2 === "Mais de 7 dias" ? "" : "hidden"}><label class="rot-campo" for="dias">Quantos dias? (opcional)</label><input class="campo" id="dias" inputmode="numeric" value="${esc(v.dias || "")}"></div>`);
+      const dias = el(`<div id="dw" ${p2 === "Mais de 7 dias" ? "" : "hidden"}><label class="rot-campo" for="dias">Quantos dias? (opcional)</label><input class="campo" id="dias" inputmode="numeric" placeholder="Ex.: 10" value="${esc(v.dias || "")}"></div>`);
       const b1 = el(`<div id="b1"></div>`), b2 = el(`<div id="b2"></div>`);
       const pinta = () => {
-        b1.innerHTML = p1 ? caixa(P1.find((x) => x.o === p1).c) : "";
-        b2.innerHTML = p2 ? caixa(P2.find((x) => x.o === p2).c) : "";
+        b1.innerHTML = p1 ? (p1 === NS ? comoDe(cod, 1) : "") + caixa(P1.find((x) => x.o === p1).c) : "";
+        b2.innerHTML = p2 ? (p2 === NS ? comoDe(cod, 2) : "") + caixa(P2.find((x) => x.o === p2).c) : "";
       };
-      ent.appendChild(el(`<p class="rot-campo">De quantos fornecedores você poderia comprar?</p>`));
+      ent.appendChild(el(`<p class="rot-campo">Quantos fornecedores?</p>`));
       ent.appendChild(unica(P1.map((x) => x.o), p1, (o) => { p1 = o; pinta(); }));
       ent.appendChild(b1);
-      ent.appendChild(el(`<p class="rot-campo">Em quantos dias ele chega depois do pedido?</p>`));
+      ent.appendChild(el(`<p class="rot-campo">Em quantos dias chega depois do pedido?</p>`));
       ent.appendChild(unica(P2.map((x) => x.o), p2, (o) => { p2 = o; dias.hidden = o !== "Mais de 7 dias"; pinta(); }));
       ent.appendChild(dias);
       ent.appendChild(b2);
@@ -771,10 +819,10 @@
       const exclusivas = cod === "M7-07" ? [NS, "Só o preço"] : [NS];
       const marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.estado === "naosei" ? [NS] : cod === "M7-11" ? sugestoes() : [];
       const mais = { "M7-07": "Mais de 3 critérios", "M7-10": "Mais de 3 opções", "M7-11": "Mais de 3 números" }[cod];
-      const outro = el(`<div id="ow" ${marcadas.includes("Outro") ? "" : "hidden"}><label class="rot-campo" for="outro">O que mais poderia atrapalhar?</label><input class="campo" id="outro" data-falar value="${esc(resp && resp.outro || "")}"></div>`);
+      const outro = el(`<div id="ow" ${marcadas.includes("Outro") ? "" : "hidden"}><label class="rot-campo" for="outro">O que mais poderia atrapalhar?</label><input class="campo" id="outro" data-falar placeholder="Ex.: chuva no dia da entrega" value="${esc(resp && resp.outro || "")}"></div>`);
       const retornoMulti = (ultimo, aviso3) => {
         if (aviso3) return mostrar(caixa(caminho(cod, mais)));
-        if (marcadas.includes(NS)) return mostrar(caixa(caminho(cod, NS)));
+        if (marcadas.includes(NS)) return mostrar(comoDe(cod) + caixa(caminho(cod, NS)));
         if (cod === "M7-11") return mostrar(marcadas.length ? caixa(caminho(cod, marcadas.length === 1 ? "1 número" : "2 ou 3 números")) : "");
         if (cod === "M7-07") {
           if (marcadas.includes("Só o preço")) return mostrar(caixa(caminho(cod, "Só o preço")));
@@ -795,7 +843,7 @@
         return Object.assign({ estado: "multi", opcoes: marcadas.slice() }, marcadas.includes("Outro") ? { outro: p.querySelector("#outro").value.trim() } : {});
       };
     } else if (cod === "M7-12") {
-      ent.appendChild(el(`<textarea class="campo" rows="3" id="txt" aria-labelledby="pergunta">${esc(resp && resp.texto || "")}</textarea>`));
+      ent.appendChild(el(`<textarea class="campo" rows="3" id="txt" aria-labelledby="pergunta" placeholder="Ex.: ver se preciso de licença da prefeitura">${esc(resp && resp.texto || "")}</textarea>`));
       let mostrou = false;
       coletar = () => {
         const t = p.querySelector("#txt").value.trim();
@@ -805,10 +853,9 @@
     } else {
       /* escolha única com retorno ao tocar: M7-03, M7-08, M7-09 */
       let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(caixa(caminho(cod, o))); }));
-      if (op) mostrar(caixa(caminho(cod, op)));
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(comAjudaNS(o, caixa(caminho(cod, o)))); }));
+      if (op) mostrar(comAjudaNS(op, caixa(caminho(cod, op))));
       if (cod === "M7-09" && I().regulada === "Sim") junto(caixa(caminho(cod, "Qualquer resposta, com atividade regulada em M4-11")));
-      if (cod === "M7-08" && rev()) junto(`<div class="bloco b-proximo" id="dica-estoque"><b>Dica</b><p>Guarde as mercadorias em lugar limpo, seco e arejado, longe do chão e do sol, e siga o que a embalagem pede (por exemplo, geladeira). Venda primeiro o que vence primeiro.</p></div>`);
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
         return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
@@ -1007,6 +1054,7 @@
     const b = c.modo === "min" ? c.lo : c.hi;
     return comoCalc(umaConta(c.modo === "min" ? f.lo : f.hi, b), "como-capacidade");
   }
+  let retratoAberto = false;
   function telaResultado() {
     if (S.hist[S.hist.length - 1] !== "RESULTADO") { S.hist.push("RESULTADO"); salvar(); }
     const c = calc();
@@ -1107,14 +1155,17 @@
     const respostas = [["Seu ponto de partida", null]].concat(sequencia().map((k) => [perg(k), k]));
     const p = el(`<div class="pag">
       ${topo("Resultado")}
-      ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: preencher(q13.pergunta), extra: chipOferta() })}
+      ${heroi({ kicker: "Resultado", kickerClasse: "passo", titulo: "Retrato da sua operação", extra: chipOferta() })}
       <main class="corpo">
         ${botaoVoltar()}
         ${barraFases(null, true)}
         <section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>${entendemos(c).map((x) => `<p>${esc(x)}</p>`).join("")}</section>
+        ${passos.length ? `<section class="cartao proximos" id="proximos"><h3>Próximos passos</h3><ol class="lista-capa">${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></section>` : ""}
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao retrato da sua operação</h2><p>${esc(preencher(q13.apoio))}</p></div></div>
         </section>
+        <details class="resultado-mais" id="retrato" ${retratoAberto ? "open" : ""}>
+          <summary>Ver o retrato completo e as ferramentas</summary>
         ${cz.alertas.length || cz.enc ? `<section class="cartao"><h3>Pontos para conferir</h3>${cz.alertas.map((a) => `<div class="bloco ${a.x.forma === "Pergunta gentil" ? "b-alerta" : "b-proximo"}"><b>${esc(a.x.forma)}</b><p>${esc(a.texto)}</p></div>`).join("")}
           ${cz.enc ? `<div class="bloco b-enc"><b>${esc(cz.enc.x.forma)}</b><p>${esc(cz.enc.texto)}</p></div>` : ""}</section>` : ""}
         <section class="cartao bloco-res"><h3>Seu processo</h3>${mapaHtml}${termoBox(["Processo", "Gargalo"])}</section>
@@ -1140,12 +1191,12 @@
           ${termoBox(["Indicador"])}
         </section>
         ${lac.length ? `<section class="cartao"><h3>O que ainda falta definir</h3><ul class="lista-capa">${lac.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>` : ""}
-        ${passos.length ? `<section class="cartao"><h3>Próximos passos</h3><ol class="lista-capa">${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></section>` : ""}
         ${S.R["M7-12"] && S.R["M7-12"].texto ? `<section class="cartao"><h3>Ideias para depois</h3><p>${esc(S.R["M7-12"].texto)}</p></section>` : ""}
         ${IA.length ? `<section class="cartao" id="pedidos-ia"><h3>Pedidos para ferramentas de IA (só para organizar)</h3>
           ${IA.map((x) => { const t = preencher(x.texto, { "[cole aqui as etapas]": etapas().join(", ") }); const copia = !/^Não há pedido/.test(x.texto);
-            return `<div class="caixa caixa-ia"><b>${esc(x.pedido)}</b>${copia ? `<div class="prompt"><p>${esc(t)}</p><button class="btn-copiar" data-t="${esc(t)}">Copiar texto</button></div>` : `<p>${esc(t)}</p>`}<p class="ex">${esc(x.conferir)}</p><p class="ex">${esc(x.obs)}</p></div>`; }).join("")}
+            return `<div class="caixa caixa-ia"><b>${esc(x.pedido)}</b>${copia ? `<div class="prompt"><p data-prompt>${esc(t)}</p><button class="btn-copiar" type="button" data-copiar data-rotulo="Copiar texto">Copiar texto</button></div>` : `<p>${esc(t)}</p>`}<p class="ex">${esc(x.conferir)}</p><p class="ex">${esc(x.obs)}</p></div>`; }).join("")}
         </section>` : ""}
+        </details>
         <section class="cartao-q pergunta" id="q13">
           <h2 class="q">${esc(preencher(q13.pergunta))}</h2>
           <div class="opcoes" id="op13">${opcoesDe("M7-13").map((o) => `<button class="opcao ${r13 && r13.opcao === o ? "sel" : ""}" data-o="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`).join("")}</div>
@@ -1154,10 +1205,12 @@
         </section>
         <div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resultado</button><button class="btn btn-linha" id="zerar2">Recomeçar do zero</button></div>
         <div id="seguir" ${r13 && r13.opcao === "Sim, pode seguir" ? "" : "hidden"}><div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m08/index.html">Ir para o Módulo 8</a></div></div>
-        ${rodape()}
+        ${rodape(true)}
       </main>
     </div>`);
     const re = () => { salvar(); redesenhar(telaResultado); };
+    /* o painel do retrato continua aberto quando a tela se redesenha (ferramentas mudam a cada toque) */
+    p.querySelector("#retrato").addEventListener("toggle", (e) => { retratoAberto = e.target.open; });
     p.querySelector("#v").onclick = () => { S.hist.pop(); const ant = S.hist.pop(); salvar(); ant && ant !== "RESULTADO" ? ir(telaPergunta, ant) : ir(telaCapa); };
     p.querySelector("#imprimir").onclick = () => window.print();
     p.querySelector("#zerar2").onclick = reiniciar;
