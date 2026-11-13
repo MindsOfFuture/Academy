@@ -212,7 +212,7 @@ window.MODULO8 = {
    "ajuda": "Se tiver, informe o tipo. Se não souber, escolha “Não sei”.",
    "tipo": "Escolha",
    "condicao": "Sempre",
-   "opcoes": "Não; MEI; EI; SLU; LTDA; Não sei",
+   "opcoes": "Não; MEI (Microempreendedor Individual); ME (Microempresa); EI (Empresário Individual); SLU (Sociedade Limitada Unipessoal); LTDA (Sociedade Limitada); Não sei",
    "resposta": "-",
    "alerta": "O tipo de CNPJ define obrigações e limites."
   },

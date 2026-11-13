@@ -3,36 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Jornada completa · Laboratório de Gestão</title>
+  <title>Sua trilha · Laboratório de Gestão</title>
   <link rel="stylesheet" href="css/jornada.css">
 </head>
 <body>
   <header class="topo">
     <div class="topo-linha">
-      <img class="logo" src="assets/minds.svg" alt="Minds of the Future">
+      <button type="button" class="volta-trilha" id="volta-trilha" hidden>Trilha</button>
+      <img class="logo" id="logo-topo" src="assets/minds.svg" alt="Minds of the Future">
       <div class="titulos">
-        <p class="kicker">Laboratório de Gestão</p>
-        <h1>Jornada completa</h1>
+        <p class="kicker" id="topo-kicker">Laboratório de Gestão</p>
+        <h1 id="topo-titulo">Sua trilha</h1>
       </div>
       <a class="sair" href="/protected/modulos/laboratorio-de-gestao?aba=jornada">Sair</a>
     </div>
-    <ol class="trilha" id="trilha" aria-label="Módulos da jornada"></ol>
     <div class="topo-rodape">
       <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
       <button type="button" class="abre-painel" id="abre-painel" aria-haspopup="dialog" aria-controls="painel">Seu negócio até aqui</button>
     </div>
   </header>
   <main class="palco">
-    <iframe id="modulo" title="Módulo da jornada" allow="microphone"></iframe>
+    <section class="trilha-tela" id="trilha-tela" aria-labelledby="topo-titulo" hidden>
+      <div class="trilha-cabeca">
+        <p class="prog-texto" id="trilha-prog-texto"></p>
+        <div class="prog" role="progressbar" aria-label="Etapas concluídas" aria-valuemin="0" aria-valuemax="10"><span id="trilha-prog-barra"></span></div>
+        <p class="calma">Faça no seu ritmo: pode parar quando quiser, seu progresso fica salvo.</p>
+      </div>
+      <ol class="caminho" id="trilha" aria-label="Etapas da jornada"></ol>
+      <div class="logos">
+        <img src="assets/logo_facc.png" alt="FACC">
+        <img src="assets/logo_ufjf.svg" alt="UFJF">
+        <img src="assets/logo_mg.svg" alt="Governo de Minas Gerais">
+      </div>
+    </section>
+    <iframe id="modulo" title="Módulo da jornada" allow="microphone" hidden></iframe>
+    <section class="concluida" id="concluida" aria-labelledby="conc-titulo" hidden>
+      <div class="festa">
+        <div class="confete" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <svg class="selo" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="36"/><path d="M24 41l11 11 21-23"/></svg>
+        <h2 id="conc-titulo" tabindex="-1">Etapa concluída!</h2>
+        <p>Muito bem! Mais um passo para o seu negócio.</p>
+      </div>
+      <div class="conc-corpo">
+        <p class="prog-texto" id="conc-prog-texto"></p>
+        <div class="prog" role="progressbar" aria-label="Etapas concluídas" aria-valuemin="0" aria-valuemax="10"><span id="conc-prog-barra"></span></div>
+        <ol class="mini" id="conc-mini" aria-hidden="true"></ol>
+        <button type="button" class="btn btn-grande" id="conc-proxima">Começar a próxima etapa</button>
+        <p class="conc-nome" id="conc-nome"></p>
+        <button type="button" class="btn btn-sec" id="conc-trilha">Voltar à trilha</button>
+      </div>
+    </section>
     <section class="fim" id="fim" hidden>
       <h2>Jornada concluída!</h2>
-      <p>Você passou por todos os módulos que já estão prontos. Pode voltar a qualquer um deles tocando no número lá em cima.</p>
+      <p>Você passou por todas as etapas. Pode rever qualquer uma delas na sua trilha.</p>
       <div class="resumo" id="resumo-negocio" hidden>
         <h3>Resumo do seu negócio</h3>
         <div id="resumo-texto"></div>
         <p class="resumo-nota">Montado com o que você respondeu nos módulos. Se algo não estiver certo, abra o módulo e corrija.</p>
       </div>
       <p class="acoes-fim"><button type="button" class="btn btn-diag" id="ver-diag-fim">Ver o diagnóstico final</button></p>
+      <p class="acoes-fim"><button type="button" class="btn btn-sec" id="fim-trilha">Ver a trilha</button></p>
       <a class="btn btn-sec" href="/protected/modulos/laboratorio-de-gestao?aba=jornada">Voltar ao Laboratório de Gestão</a>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
@@ -80,6 +110,7 @@
       </div>
     </article>
   </div>
+  <script src="js/progresso.js"></script>
   <script src="js/motor7.js"></script>
   <script src="js/resumo-negocio.js"></script>
   <script src="js/diagnostico.js"></script>

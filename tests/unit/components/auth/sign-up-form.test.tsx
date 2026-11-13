@@ -1,7 +1,7 @@
 // tests/unit/components/auth/sign-up-form.test.tsx
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { SignUpForm } from "@/components/auth/sign-up-form";
+import { SignUpForm, calcularIdade } from "@/components/auth/sign-up-form";
 import userEvent from "@testing-library/user-event";
 import toast from "react-hot-toast";
 
@@ -33,8 +33,15 @@ vi.mock("@/lib/supabase/client", () => ({
 
 const locationOriginal = window.location;
 
-// Fluxos de 4 passos digitam tecla a tecla (~3s sozinhos); com a suíte inteira em paralelo passavam dos 5s padrão.
-describe("SignUpForm Integration", { timeout: 15_000 }, () => {
+/** Data AAAA-MM-DD de quem faz `anos` hoje. */
+function nascidoHa(anos: number): string {
+  const hoje = new Date();
+  const d = new Date(hoje.getFullYear() - anos, hoje.getMonth(), hoje.getDate());
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Fluxos digitam tecla a tecla (~3s sozinhos); com a suíte inteira em paralelo passavam dos 5s padrão.
+describe("SignUpForm Integration", { timeout: 30_000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.defineProperty(window, "location", {
@@ -59,92 +66,72 @@ describe("SignUpForm Integration", { timeout: 15_000 }, () => {
     onToggleView: vi.fn(),
   };
 
-  const fillStep1 = async (overrides: any = {}) => {
-    const nameInput = await screen.findByPlaceholderText("Nome completo");
-    const docInput = screen.getByPlaceholderText("CPF ou RG");
-    const dateInput = screen.getByPlaceholderText("Data de nascimento");
-
-    expect(screen.getByLabelText("Data de nascimento")).toBe(dateInput);
-
-    await userEvent.type(nameInput, overrides.name || "João da Silva");
-    await userEvent.type(docInput, overrides.document || "12345678901"); // 11 chars
-    fireEvent.change(dateInput, { target: { value: overrides.birthDate || "2000-01-01" } }); // Adult
+  const fillStudent = async (overrides: { name?: string; birthDate?: string; password?: string; repeat?: string; terms?: boolean } = {}) => {
+    await userEvent.type(await screen.findByPlaceholderText("Nome completo"), overrides.name ?? "João da Silva");
+    fireEvent.change(screen.getByLabelText("Data de nascimento"), { target: { value: overrides.birthDate ?? "2000-01-01" } });
+    await userEvent.type(screen.getByPlaceholderText("Seu melhor E-mail"), "aluno@test.com");
+    await userEvent.type(screen.getByPlaceholderText("Senha segura"), overrides.password ?? "123456");
+    await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), overrides.repeat ?? overrides.password ?? "123456");
+    if (overrides.terms !== false) fireEvent.click(screen.getByRole("checkbox"));
   };
 
-  const fillStep2 = async (overrides: any = {}) => {
-    const addressInput = await screen.findByPlaceholderText("Endereço (Cidade/Estado)");
-    const phoneInput = screen.getByPlaceholderText("Telefone / Celular");
-
-    await userEvent.type(addressInput, overrides.address || "São Paulo, SP");
-    await userEvent.type(phoneInput, overrides.phone || "11999999999"); // 11 chars
+  const fillTeacherStep1 = async () => {
+    await userEvent.type(await screen.findByPlaceholderText("Nome completo"), "Prof. Alberto");
+    await userEvent.type(screen.getByPlaceholderText("CPF ou RG"), "12345678901");
+    fireEvent.change(screen.getByLabelText("Data de nascimento"), { target: { value: "1980-01-01" } });
   };
 
-  it("Step 1: Validates required fields and age", async () => {
+  const fillTeacherStep2 = async () => {
+    await userEvent.type(await screen.findByPlaceholderText("Endereço (Cidade/Estado)"), "São Paulo, SP");
+    await userEvent.type(screen.getByPlaceholderText("Telefone / Celular"), "11999999999");
+  };
+
+  it("aluno: um passo só, sem CPF, endereço, telefone ou escola", async () => {
     render(<SignUpForm {...defaultProps} />);
-    
-    // Try next without filling
-    const nextBtn = await screen.findByText("Próximo");
-    fireEvent.click(nextBtn);
-    expect(await screen.findByText("Por favor, preencha seu nome.")).toBeInTheDocument();
-
-    // Fill invalid name
-    const nameInput = await screen.findByPlaceholderText("Nome completo");
-    await userEvent.type(nameInput, "João");
-    fireEvent.click(nextBtn);
-    expect(await screen.findByText("Por favor, digite seu nome completo.")).toBeInTheDocument();
-    await userEvent.type(nameInput, " da Silva"); // Fix name
-
-    // Fill invalid document (too short)
-    const docInput = screen.getByPlaceholderText("CPF ou RG");
-    await userEvent.type(docInput, "123");
-    fireEvent.click(nextBtn);
-    expect(await screen.findByText("Documento inválido (mínimo 11 dígitos).")).toBeInTheDocument();
-    await userEvent.type(docInput, "45678901"); // Fix doc (total 11)
-
-    // Fill too young date
-    const dateInput = screen.getByPlaceholderText("Data de nascimento");
-    const today = new Date();
-    // 4 years old
-    const tooYoung = new Date(today.getFullYear() - 4, today.getMonth(), today.getDate()).toISOString().split('T')[0];
-    fireEvent.change(dateInput, { target: { value: tooYoung } });
-    fireEvent.click(nextBtn);
-    expect(await screen.findByText("Idade mínima de 5 anos.")).toBeInTheDocument();
+    await screen.findByPlaceholderText("Nome completo");
+    expect(screen.queryByPlaceholderText("CPF ou RG")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Telefone / Celular")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Escola atual")).not.toBeInTheDocument();
+    expect(screen.queryByText("Próximo")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Passo 1 de/)).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Seu melhor E-mail")).toBeInTheDocument();
+    expect(screen.getByText("O resto (telefone, endereço, escola) você completa depois no seu perfil, se quiser.")).toBeInTheDocument();
+    // Adulto: sem campo de responsável.
+    fireEvent.change(screen.getByLabelText("Data de nascimento"), { target: { value: nascidoHa(30) } });
+    expect(screen.queryByPlaceholderText("Nome do responsável")).not.toBeInTheDocument();
   });
 
-  it("Complete Flow: Student Registration", async () => {
-    signUpMock.mockResolvedValueOnce({ data: { user: { id: "123" } }, error: null });
+  it("aluno: valida nome, idade mínima e responsável do menor", async () => {
     render(<SignUpForm {...defaultProps} />);
+    fireEvent.click(await screen.findByText("Criar minha conta"));
+    expect(await screen.findByText("Por favor, preencha seu nome.")).toBeInTheDocument();
 
-    // STEP 1
-    await fillStep1();
-    fireEvent.click(screen.getByText("Próximo"));
+    const nameInput = screen.getByPlaceholderText("Nome completo");
+    await userEvent.type(nameInput, "João");
+    fireEvent.click(screen.getByText("Criar minha conta"));
+    expect(await screen.findByText("Por favor, digite seu nome completo.")).toBeInTheDocument();
+    await userEvent.type(nameInput, " da Silva");
 
-    // STEP 2
-    await fillStep2();
-    fireEvent.click(screen.getByText("Próximo"));
+    fireEvent.click(screen.getByText("Criar minha conta"));
+    expect(await screen.findByText("Data de nascimento é obrigatória.")).toBeInTheDocument();
 
-    // STEP 3 (Student Default)
-    // Wait for animation
-    const parentInput = await screen.findByPlaceholderText("Nome do responsável");
-    await userEvent.type(parentInput, "Maria da Silva");
-    await userEvent.type(screen.getByPlaceholderText("Escola atual"), "Escola X");
-    await userEvent.type(screen.getByPlaceholderText("Série / Ano"), "9º Ano");
-    fireEvent.click(screen.getByText("Próximo"));
+    const dateInput = screen.getByLabelText("Data de nascimento");
+    fireEvent.change(dateInput, { target: { value: nascidoHa(4) } });
+    fireEvent.click(screen.getByText("Criar minha conta"));
+    expect(await screen.findByText("Idade mínima de 5 anos.")).toBeInTheDocument();
 
-    // STEP 4
-    const emailInput = await screen.findByPlaceholderText("Seu melhor E-mail");
-    expect(emailInput).toHaveAttribute("autocomplete", "email");
-    await userEvent.type(emailInput, "aluno@test.com");
-    await userEvent.type(screen.getByPlaceholderText("Senha segura"), "123456");
-    await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "123456");
+    fireEvent.change(dateInput, { target: { value: nascidoHa(15) } });
+    expect(screen.getByPlaceholderText("Nome do responsável")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Criar minha conta"));
+    expect(await screen.findByText("Nome do responsável é obrigatório para menores de 18 anos.")).toBeInTheDocument();
+    expect(signUpMock).not.toHaveBeenCalled();
+  });
 
-    // Click terms
-    const termsCheckbox = screen.getByRole("checkbox");
-    fireEvent.click(termsCheckbox);
-
-    // Submit
-    const submitBtn = screen.getByText("Concluir Cadastro");
-    fireEvent.click(submitBtn);
+  it("aluno adulto: envia só o mínimo e volta para o next", async () => {
+    signUpMock.mockResolvedValueOnce({ data: { user: { id: "123" } }, error: null });
+    render(<SignUpForm {...defaultProps} nextPath="/lg2/jornada/index.html" />);
+    await fillStudent();
+    fireEvent.click(screen.getByText("Criar minha conta"));
 
     await waitFor(() => {
       expect(signUpMock).toHaveBeenCalledWith({
@@ -154,71 +141,86 @@ describe("SignUpForm Integration", { timeout: 15_000 }, () => {
           data: {
             full_name: "João da Silva",
             user_type: "student",
-            phone: "11999999999",
-            address: "São Paulo, SP",
-            document: "12345678901",
             birth_date: "2000-01-01",
-            parent_name: "Maria da Silva",
-            school: "Escola X",
-            grade: "9º Ano"
           },
-          emailRedirectTo: "http://localhost:3000/protected",
+          emailRedirectTo: "http://localhost:3000/lg2/jornada/index.html",
         },
       });
       expect(toast.success).toHaveBeenCalled();
     });
   });
 
-  it("Complete Flow: Teacher Registration", async () => {
+  it("aluno menor: grava o responsável em parent_name; sem next volta para /protected", async () => {
+    signUpMock.mockResolvedValueOnce({ data: { user: { id: "124" } }, error: null });
+    render(<SignUpForm {...defaultProps} />);
+    const nascimento = nascidoHa(14);
+    await fillStudent({ birthDate: nascimento });
+    await userEvent.type(screen.getByPlaceholderText("Nome do responsável"), "Maria da Silva");
+    fireEvent.click(screen.getByText("Criar minha conta"));
+
+    await waitFor(() => {
+      expect(signUpMock).toHaveBeenCalledWith({
+        email: "aluno@test.com",
+        password: "123456",
+        options: {
+          data: {
+            full_name: "João da Silva",
+            user_type: "student",
+            birth_date: nascimento,
+            parent_name: "Maria da Silva",
+          },
+          emailRedirectTo: "http://localhost:3000/protected",
+        },
+      });
+    });
+  });
+
+  it("aluno: senhas diferentes não enviam", async () => {
+    render(<SignUpForm {...defaultProps} />);
+    await fillStudent({ password: "123456", repeat: "654321" });
+    fireEvent.click(screen.getByText("Criar minha conta"));
+    expect(await screen.findByText("As senhas não conferem.")).toBeInTheDocument();
+    expect(signUpMock).not.toHaveBeenCalled();
+  });
+
+  it("Complete Flow: Teacher Registration (continua com 4 passos e anexo)", async () => {
     signUpMock.mockResolvedValueOnce({ data: { user: { id: "456" } }, error: null });
     render(<SignUpForm {...defaultProps} />);
 
     // STEP 1 (Select Teacher)
     fireEvent.click(screen.getByText("Professor"));
-    await fillStep1({ name: "Prof. Alberto" });
+    expect(screen.getByText("Passo 1 de 4")).toBeInTheDocument();
+    await fillTeacherStep1();
     fireEvent.click(screen.getByText("Próximo"));
 
     // STEP 2
-    await fillStep2();
+    await fillTeacherStep2();
     fireEvent.click(screen.getByText("Próximo"));
 
     // STEP 3 (Teacher Fields)
-    // Wait for step 3
     const schoolInput1 = await screen.findByPlaceholderText("Escola 1");
-    // Ensure we are on the teacher view
-    
     await userEvent.type(schoolInput1, "Escola A");
-    
-    const addSchoolBtn = screen.getByText("Adicionar outra escola");
-    fireEvent.click(addSchoolBtn);
-    
+    fireEvent.click(screen.getByText("Adicionar outra escola"));
     const schoolInput2 = await screen.findByPlaceholderText("Escola 2");
     await userEvent.type(schoolInput2, "Escola B");
-
-    // Select Education Level
-    const select = screen.getByRole("combobox"); 
-    fireEvent.change(select, { target: { value: "graduacao" } });
-
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "graduacao" } });
     await userEvent.type(screen.getByPlaceholderText("Formação (ex: Matemática)"), "Matemática");
 
-    // Attach qualification file (required to advance past step 3)
+    // Sem anexo não avança
+    fireEvent.click(screen.getByText("Próximo"));
+    expect(await screen.findByText(/Anexe um comprovante de qualificação/)).toBeInTheDocument();
     const qualificationFileInput = document.querySelector('input[type="file"][accept*="application/pdf"]') as HTMLInputElement;
     const mockFile = new File(["dummy"], "diploma.pdf", { type: "application/pdf" });
     fireEvent.change(qualificationFileInput, { target: { files: [mockFile] } });
-
     fireEvent.click(screen.getByText("Próximo"));
 
     // STEP 4
     const emailInput = await screen.findByPlaceholderText("Seu melhor E-mail");
+    expect(emailInput).toHaveAttribute("autocomplete", "email");
     await userEvent.type(emailInput, "prof@test.com");
     await userEvent.type(screen.getByPlaceholderText("Senha segura"), "password123");
     await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "password123");
-
-    // Click terms
-    const termsCheckbox = screen.getByRole("checkbox");
-    fireEvent.click(termsCheckbox);
-
-    // Submit
+    fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByText("Concluir Cadastro"));
 
     await waitFor(() => {
@@ -227,40 +229,25 @@ describe("SignUpForm Integration", { timeout: 15_000 }, () => {
         options: expect.objectContaining({
           data: expect.objectContaining({
             user_type: "teacher",
+            phone: "11999999999",
+            address: "São Paulo, SP",
+            document: "12345678901",
+            birth_date: "1980-01-01",
             education_level: "graduacao",
             degree: "Matemática",
             schools: ["Escola A", "Escola B"],
-          })
-        })
+            qualification_document_url: "https://example.com/qualification.pdf",
+          }),
+          emailRedirectTo: "http://localhost:3000/protected",
+        }),
       }));
     });
   });
 
-  it("Validates password mismatch in Step 4", async () => {
-    render(<SignUpForm {...defaultProps} />);
-    
-    // Fill to step 4...
-    await fillStep1();
-    fireEvent.click(screen.getByText("Próximo"));
-    await fillStep2();
-    fireEvent.click(screen.getByText("Próximo"));
-    
-    // Student step 3 fill
-    const parentInput = await screen.findByPlaceholderText("Nome do responsável");
-    await userEvent.type(parentInput, "Pai");
-    await userEvent.type(screen.getByPlaceholderText("Escola atual"), "E");
-    await userEvent.type(screen.getByPlaceholderText("Série / Ano"), "1");
-    fireEvent.click(screen.getByText("Próximo"));
-
-    // Step 4
-    const emailInput = await screen.findByPlaceholderText("Seu melhor E-mail");
-    await userEvent.type(emailInput, "a@a.com");
-    await userEvent.type(screen.getByPlaceholderText("Senha segura"), "123456");
-    await userEvent.type(screen.getByPlaceholderText("Confirme a senha"), "654321");
-
-    fireEvent.click(screen.getByText("Concluir Cadastro"));
-
-    expect(await screen.findByText("As senhas não conferem.")).toBeInTheDocument();
-    expect(signUpMock).not.toHaveBeenCalled();
+  it("calcularIdade lê a data como local e respeita o aniversário", () => {
+    const hoje = new Date(2026, 10, 12); // 12/11/2026
+    expect(calcularIdade("2008-11-12", hoje)).toBe(18);
+    expect(calcularIdade("2008-11-13", hoje)).toBe(17);
+    expect(calcularIdade("", hoje)).toBeNull();
   });
 });

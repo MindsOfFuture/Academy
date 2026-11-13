@@ -1,6 +1,7 @@
 /* Jornada completa do LG2 (public/lg2/jornada/); execute: node tests/lg2-jornada.cjs.
-   Percorre os módulos de verdade, dentro da jornada, respondendo cada tela com a primeira opção
-   ou um texto/número neutro, e confere que só o módulo seguinte libera.
+   A jornada abre na "Sua trilha" (caminho com as 10 etapas). Percorre os módulos de verdade, dentro da jornada,
+   respondendo cada tela com a primeira opção ou um texto/número neutro; ao tocar no botão do fim de cada módulo
+   aparece a tela "Etapa N concluída!", que leva à etapa seguinte ou de volta à trilha.
    A trava é a constante TRAVAR do jornada.js. O teste roda os DOIS modos, seja qual for o valor do arquivo:
    o servidor de teste troca a constante na hora de servir (com trava: percurso completo; sem trava: tudo aberto). */
 const assert = require('node:assert/strict');
@@ -38,7 +39,7 @@ let forcarTravar = null; // null = serve o arquivo como está
   try {
     browser = await playwright.chromium.launch({ headless: true });
 
-    // ---- Modo SEM trava (TRAVAR = false): todos os módulos prontos abrem, sem aviso de "Conclua" nem "Abre depois".
+    // ---- Modo SEM trava (TRAVAR = false): a trilha abre primeiro e todas as etapas prontas abrem, sem aviso de "Conclua".
     forcarTravar = false;
     {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -49,21 +50,31 @@ let forcarTravar = null; // null = serve o arquivo como está
       pg.on('dialog', (d) => d.accept());
       const noModulo = (n) => pg.waitForFunction((n) => {
         const f = document.getElementById('modulo');
-        try { return f.contentWindow.location.pathname.includes('/m' + String(n).padStart(2, '0') + '/') && f.contentDocument.readyState === 'complete'; } catch { return false; }
+        try { return !f.hidden && f.contentWindow.location.pathname.includes('/m' + String(n).padStart(2, '0') + '/') && f.contentDocument.readyState === 'complete'; } catch { return false; }
       }, n, { timeout: 10000 });
       await pg.goto(base + '/lg2/jornada/index.html');
-      await noModulo(1);
-      const sit = await pg.$$eval('#trilha li', (xs) => xs.map((x) => x.className.replace(' atual', '')));
-      assert.deepEqual(sit, Array(10).fill('liberado'), 'sem trava: os 10 módulos liberados na trilha');
-      // Tocar no Módulo 3 sem ter feito o 1 e o 2 abre o Módulo 3.
-      await pg.click('#trilha li:nth-child(3) button');
+      await pg.waitForSelector('#trilha-tela:not([hidden])');
+      // A trilha é a primeira tela: nenhum módulo carregado ainda.
+      assert.equal(await pg.$eval('#modulo', (f) => f.hidden && !/\/lg2\/turma/.test(f.getAttribute('src') || '')), true, 'a trilha abre antes de qualquer módulo');
+      assert.equal(await pg.textContent('#topo-titulo'), 'Sua trilha');
+      assert.equal(await pg.textContent('#trilha-prog-texto'), '0 de 10 etapas');
+      assert.match(await pg.textContent('.calma'), /Faça no seu ritmo: pode parar quando quiser, seu progresso fica salvo\./);
+      assert.equal(await pg.$$eval('.trilha-tela .logos img', (xs) => xs.map((i) => i.alt).join(',')), 'FACC,UFJF,Governo de Minas Gerais');
+      const sit = await pg.$$eval('#trilha li', (xs) => xs.map((x) => x.dataset.estado));
+      assert.deepEqual(sit, Array(10).fill('nada'), 'sem trava: as 10 etapas abertas e não começadas');
+      assert.deepEqual(await pg.$$eval('#trilha li.sugerida', (xs) => xs.map((x) => Number(x.dataset.n))), [1], 'a etapa sugerida é a 1');
+      assert.equal(await pg.textContent('#trilha li.sugerida .bolha'), 'Começar');
+      // Tocar na Etapa 3 sem ter feito a 1 e a 2 abre o Módulo 3, com o botão "Trilha" no topo.
+      await pg.click('#trilha li[data-n="3"] .no-btn');
       await noModulo(3);
       assert.doesNotMatch(await pg.textContent('#aviso'), /Conclua/);
+      assert.ok(await pg.isVisible('#volta-trilha'), 'botão "Trilha" no topo dentro do módulo');
+      assert.equal(await pg.textContent('#topo-kicker'), 'Etapa 3 de 10');
       // Ir direto a outro módulo pelo endereço dentro da moldura também vale.
       await pg.evaluate(() => { document.getElementById('modulo').contentWindow.location.href = '/lg2/turma-a/m05/index.html'; });
       await noModulo(5);
       await pg.waitForTimeout(400);
-      assert.equal(await pg.$eval('#trilha li.atual button', (b) => Number(b.textContent)), 5);
+      assert.equal(await pg.textContent('#topo-kicker'), 'Etapa 5 de 10');
       await pg.click('#abre-painel');
       const lista = await pg.$$eval('#painel-lista li', (xs) => xs.map((li) => ({ revisar: !!li.querySelector('.revisar'), trava: !!li.querySelector('.trava'), txt: li.textContent })));
       assert.deepEqual(lista.map((x) => x.revisar), Array(10).fill(true), 'sem trava: todos abrem pelo painel');
@@ -73,11 +84,15 @@ let forcarTravar = null; // null = serve o arquivo como está
         await pg.waitForTimeout(400);
         await pg.$eval('.painel-corpo', (c) => { c.scrollTop = c.scrollHeight; });
         await pg.waitForTimeout(300);
-        await pg.screenshot({ path: path.join(process.env.SHOTS, 'l4_jornada_sem_trava_painel.png') });
-        await pg.keyboard.press('Escape');
-        await pg.waitForTimeout(400);
-        await pg.screenshot({ path: path.join(process.env.SHOTS, 'l4_jornada_sem_trava_trilha.png') });
+        await pg.screenshot({ path: path.join(process.env.SHOTS, 'trilha_sem_trava_painel.png') });
       }
+      await pg.keyboard.press('Escape');
+      // "Trilha" volta ao caminho e esconde o módulo; a etapa que estava aberta vira a sugerida.
+      await pg.click('#volta-trilha');
+      await pg.waitForSelector('#trilha-tela:not([hidden])');
+      assert.equal(await pg.$eval('#modulo', (f) => f.hidden), true, '"Trilha" esconde o módulo');
+      assert.equal(await pg.isVisible('#volta-trilha'), false);
+      assert.deepEqual(await pg.$$eval('#trilha li.sugerida', (xs) => xs.map((x) => Number(x.dataset.n))), [5]);
       assert.deepEqual(errs, []);
       await ctx.close();
     }
@@ -90,20 +105,23 @@ let forcarTravar = null; // null = serve o arquivo como está
     page.on('response', (r) => { if (r.status() >= 400) errors.push(r.status() + ' ' + r.url()); });
     page.on('dialog', (d) => d.accept());
     page.on('popup', (p) => p.close());
-    const situacoes = () => page.$$eval('#trilha li', (xs) => xs.map((x) => x.className.replace(' atual', '')));
-    const atual = () => page.$eval('#trilha li.atual button', (b) => Number(b.textContent)).catch(() => null);
+    const situacoes = () => page.$$eval('#trilha li', (xs) => xs.map((x) => x.dataset.estado));
+    const sugeridas = () => page.$$eval('#trilha li.sugerida', (xs) => xs.map((x) => Number(x.dataset.n)));
+    const atual = () => page.$eval('#modulo', (f) => (f.hidden ? null : Number((/Etapa (\d+) de/.exec(document.getElementById('topo-kicker').textContent) || [])[1]) || null));
+    const visivel = (sel) => page.$eval(sel, (e) => !e.hidden);
     const caminhoIframe = () => page.evaluate(() => document.getElementById('modulo').contentWindow.location.pathname);
     const esperarModulo = async (n) => {
       await page.waitForFunction((n) => {
         const f = document.getElementById('modulo');
-        try { return f.contentWindow.location.pathname.includes('/m' + String(n).padStart(2, '0') + '/') && f.contentDocument.readyState === 'complete' && f.contentDocument.body.children.length > 0; } catch { return false; }
+        try { return !f.hidden && f.contentWindow.location.pathname.includes('/m' + String(n).padStart(2, '0') + '/') && f.contentDocument.readyState === 'complete' && f.contentDocument.body.children.length > 0; } catch { return false; }
       }, n, { timeout: 10000 });
     };
 
     await page.goto(base + '/lg2/jornada/index.html');
-    await esperarModulo(1);
-    assert.equal(await atual(), 1);
-    assert.deepEqual(await situacoes(), ['liberado', ...Array(9).fill('bloqueado')]);
+    await page.waitForSelector('#trilha-tela:not([hidden])');
+    assert.equal(await atual(), null, 'a trilha abre primeiro, sem módulo aberto');
+    assert.deepEqual(await situacoes(), ['nada', ...Array(9).fill('bloqueado')]);
+    assert.deepEqual(await sugeridas(), [1]);
 
     // Painel "Seu negócio até aqui": abre no topo, sem respostas diz isso de forma simples, fecha com Esc.
     const painelAberto = () => page.$eval('#painel', (e) => !e.hidden);
@@ -127,11 +145,16 @@ let forcarTravar = null; // null = serve o arquivo como está
     await page.keyboard.press('Escape');
     assert.equal(await painelAberto(), false, 'Esc fecha o painel');
 
-    // Tocar num módulo trancado não abre: avisa qual concluir.
-    await page.click('#trilha li:nth-child(3) button');
-    assert.match(await page.textContent('#aviso'), /Conclua o Módulo 2 para liberar o Módulo 3/);
+    // Tocar numa etapa trancada não abre: avisa qual concluir.
+    await page.click('#trilha li[data-n="3"] .no-btn');
+    assert.match(await page.textContent('#aviso'), /Conclua a Etapa 2 para liberar a Etapa 3/);
+    assert.equal(await atual(), null);
+    assert.ok(await visivel('#trilha-tela'));
+    if (process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, 'trilha_bloqueada.png') });
+    // O balão "Começar" abre a etapa sugerida.
+    await page.click('#trilha li.sugerida .bolha');
+    await esperarModulo(1);
     assert.equal(await atual(), 1);
-    if (process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada-bloqueado.png') });
     // Tentar pular pelo endereço dentro da moldura também não abre: volta ao módulo atual.
     await page.evaluate(() => { document.getElementById('modulo').contentWindow.location.href = '/lg2/turma-a/m05/index.html'; });
     await page.waitForTimeout(300);
@@ -214,22 +237,37 @@ let forcarTravar = null; // null = serve o arquivo como está
     for (let i = 0; i < PRONTOS.length; i++) {
       const n = PRONTOS[i];
       await esperarModulo(n);
-      assert.equal(await atual(), n, `jornada deveria estar no módulo ${n}`);
+      assert.equal(await atual(), n, `jornada deveria estar na etapa ${n}`);
       passos[n] = await responderAteOFim(n);
       await page.waitForFunction((n) => JSON.parse(localStorage.getItem('lg2-jornada')).feitos.includes(n), n, { timeout: 3000 });
-      const sit = await situacoes();
-      assert.equal(sit[n - 1], 'feito', `módulo ${n} concluído`);
+      // Chegar ao resultado conclui a etapa, mas a pessoa continua no módulo lendo o resultado.
+      assert.equal(await atual(), n, 'o resultado continua na tela depois de concluir');
+      assert.equal(await visivel('#concluida'), false);
       const prox = PRONTOS[i + 1];
-      if (prox) {
-        assert.equal(sit[prox - 1], 'liberado', `módulo ${prox} liberado após ${n}`);
-        PRONTOS.slice(i + 2).forEach((m) => assert.equal(sit[m - 1], 'bloqueado', `módulo ${m} segue bloqueado`));
-        if (n === 1 && process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada-m01-fim.png') });
-      }
-      // O botão do próprio módulo ("Ir para o Módulo N" / "Voltar aos módulos") segue a jornada.
+      // O botão do próprio módulo ("Ir para o Módulo N" / "Voltar aos módulos") mostra a tela de etapa concluída.
       await frame().evaluate(() => document.querySelector('.lg2-proximo a').click());
-      if (prox) await esperarModulo(prox);
+      if (!prox) break;
+      await page.waitForSelector('#concluida:not([hidden])');
+      assert.equal(await page.$eval('#modulo', (f) => f.hidden), true, 'não pula direto para o próximo módulo');
+      assert.equal(await page.textContent('#conc-titulo'), `Etapa ${n} concluída!`);
+      assert.equal(await page.textContent('#conc-prog-texto'), `${i + 1} de 10 etapas`);
+      assert.equal(await page.$$eval('#conc-mini li.feito', (xs) => xs.length), i + 1);
+      assert.equal((await page.textContent('#conc-proxima')).trim(), `Começar a etapa ${prox}`);
+      assert.ok(await page.getByRole('button', { name: `Começar a etapa ${prox}`, exact: true }).isVisible());
+      assert.ok(await page.getByRole('button', { name: 'Voltar à trilha', exact: true }).isVisible());
       if (n === 1) {
-        // No meio da jornada (Módulo 2 aberto), o painel mostra o resumo com o que foi respondido no Módulo 1.
+        if (process.env.SHOTS) { await page.waitForTimeout(1900); await page.screenshot({ path: path.join(process.env.SHOTS, 'trilha_etapa1_concluida_teste.png') }); }
+        // "Voltar à trilha": a Etapa 1 aparece concluída, a 2 liberada e sugerida, as outras fechadas.
+        await page.click('#conc-trilha');
+        await page.waitForSelector('#trilha-tela:not([hidden])');
+        assert.equal(await visivel('#concluida'), false);
+        const sit = await situacoes();
+        assert.equal(sit[0], 'feito');
+        assert.ok(['nada', 'andamento'].includes(sit[1]), 'Etapa 2 liberada: ' + sit[1]);
+        assert.deepEqual(sit.slice(2), Array(8).fill('bloqueado'));
+        assert.deepEqual(await sugeridas(), [2]);
+        assert.equal(await page.textContent('#trilha-prog-texto'), '1 de 10 etapas');
+        // Na trilha, o painel mostra o resumo com o que foi respondido no Módulo 1.
         await page.click('#abre-painel');
         assert.ok(await painelAberto(), 'painel abre no meio da jornada');
         info = await painelInfo();
@@ -245,14 +283,11 @@ let forcarTravar = null; // null = serve o arquivo como está
         });
         assert.ok(caixa.direita <= 390 && caixa.rolavel && caixa.overflow === 'auto' && caixa.base <= 844, 'painel cabe na tela do celular: ' + JSON.stringify(caixa));
         if (process.env.SHOTS) {
-          await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada_painel_m01.png') });
-          await page.$eval('.painel-corpo', (c) => { c.scrollTop = c.scrollHeight; });
-          await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada_painel_m01_lista.png') });
+          await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'trilha_painel_m01.png') });
         }
         await page.click('#fecha-painel');
         assert.equal(await painelAberto(), false, 'Fechar fecha o painel');
-        await esperarModulo(2);
-        // "Abrir para revisar" abre o módulo certo; depois volta ao Módulo 2 pelo mesmo painel.
+        // "Abrir para revisar" abre o módulo certo; depois a Etapa 2 abre pelo mesmo painel.
         await page.click('#abre-painel');
         await page.click('#painel-lista li[data-modulo="1"] .revisar');
         assert.equal(await painelAberto(), false);
@@ -262,19 +297,31 @@ let forcarTravar = null; // null = serve o arquivo como está
         await page.click('#painel-lista li[data-modulo="2"] .revisar');
         await esperarModulo(2);
         assert.equal(await atual(), 2);
+      } else {
+        // "Começar a etapa N+1" abre a etapa seguinte.
+        await page.click('#conc-proxima');
       }
     }
+    // Depois da última etapa: o fim da jornada, com o resumo e o diagnóstico.
     await page.waitForSelector('#fim:not([hidden])');
-    assert.deepEqual(await situacoes(), Array(10).fill('feito'));
+    assert.equal(await page.$eval('#modulo', (f) => f.hidden), true);
+    assert.equal(await visivel('#concluida'), false);
     assert.ok(await page.isVisible('#ver-diag-fim'), 'botão "Ver o diagnóstico final" no fim da jornada');
+    // "Ver a trilha": as 10 concluídas, sem etapa sugerida.
+    await page.click('#fim-trilha');
+    await page.waitForSelector('#trilha-tela:not([hidden])');
+    assert.deepEqual(await situacoes(), Array(10).fill('feito'));
+    assert.deepEqual(await sugeridas(), []);
+    assert.equal(await page.textContent('#trilha-prog-texto'), '10 de 10 etapas');
 
-    // Concluído, qualquer módulo volta a abrir; recarregar mantém o progresso.
-    await page.click('#trilha li:nth-child(5) button');
+    // Concluída, qualquer etapa volta a abrir; recarregar mantém o progresso.
+    await page.click('#trilha li[data-n="5"] .no-btn');
     await esperarModulo(5);
     await page.reload();
-    await esperarModulo(5);
+    await page.waitForSelector('#fim:not([hidden])');
+    await page.click('#fim-trilha');
     assert.equal((await situacoes()).filter((s) => s === 'feito').length, 10);
-    if (process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, 'jornada-concluida.png') });
+    if (process.env.SHOTS) await page.screenshot({ path: path.join(process.env.SHOTS, 'trilha_concluida.png') });
 
     assert.deepEqual(escondidos, [7], 'o Módulo 7 esconde o botão do próximo até "Sim, pode seguir"');
     assert.deepEqual(errors, []);

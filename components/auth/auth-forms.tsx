@@ -1,11 +1,18 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { normalizeNextPath } from "@/lib/utils";
 
 export function AuthForms() {
-    const [view, setView] = useState<'login' | 'signup'>('login');
+    const searchParams = useSearchParams();
+    // `?modo=cadastro` abre direto no cadastro (no celular só uma das telas aparece).
+    const [view, setView] = useState<'login' | 'signup'>(
+        searchParams.get("modo") === "cadastro" ? 'signup' : 'login',
+    );
+    const nextPath = normalizeNextPath(searchParams.get("next"));
 
     const toggleView = () => {
         setView(view === 'login' ? 'signup' : 'login');
@@ -17,7 +24,7 @@ export function AuthForms() {
                 <Suspense fallback={<div className="w-full bg-white p-8 md:w-1/2 lg:p-12" />}>
                     <LoginForm onToggleView={toggleView} />
                 </Suspense>
-                <SignUpForm onToggleView={toggleView} />
+                <SignUpForm onToggleView={toggleView} nextPath={nextPath} />
             </div>
 
             <div className="md:hidden">
@@ -26,7 +33,7 @@ export function AuthForms() {
                         <LoginForm onToggleView={toggleView} />
                     </Suspense>
                 ) : (
-                    <SignUpForm onToggleView={toggleView} />
+                    <SignUpForm onToggleView={toggleView} nextPath={nextPath} />
                 )}
             </div>
         </div>

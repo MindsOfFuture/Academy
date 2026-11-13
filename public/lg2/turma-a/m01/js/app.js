@@ -407,11 +407,9 @@
       });
     } else {
       const r0 = S.R[cod];
-      const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
       ent.appendChild(el(`<div>
         <textarea class="campo" id="txt" rows="3" placeholder="${esc(q.placeholder || "")}" aria-label="${esc(q.pergunta)}">${esc(r0 && r0.estado === "valor" ? r0.valor : "")}</textarea>
         <div class="alt">
-          ${Rec && q.botao_falar ? `<button class="btn-alt" type="button" id="falar">${SVG('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>')}<span>${esc(q.botao_falar)}</span></button>` : ""}
           ${q.botao_naosei ? `<button class="btn-alt btn-ns" type="button" id="ns" aria-pressed="false"><span data-ler>${esc(q.botao_naosei.texto)}</span><span class="check" aria-hidden="true">✓</span></button>` : ""}
         </div>
       </div>`));
@@ -419,35 +417,7 @@
       txt.oninput = () => gravar(txt.value.trim() ? { estado: "valor", valor: txt.value } : null);
       const ns = ent.querySelector("#ns");
       if (ns) ns.onclick = () => { txt.value = ""; gravar({ estado: "naosei", texto: q.botao_naosei.texto }); };
-      const fb = ent.querySelector("#falar");
-      if (fb) {
-        let rec = null;
-        const rotulo = fb.querySelector("span");
-        fb.onclick = () => {
-          if (rec) { rec.stop(); return; }
-          rec = new Rec();
-          rec.lang = "pt-BR"; rec.interimResults = false; rec.maxAlternatives = 1;
-          fb.classList.add("gravando"); rotulo.textContent = "Ouvindo… toque para parar";
-          rec.onresult = (e) => {
-            const t = Array.from(e.results).map((x) => x[0].transcript).join(" ").trim();
-            if (t) { txt.value = (txt.value.trim() ? txt.value.trim() + " " : "") + t; txt.dispatchEvent(new Event("input")); }
-          };
-          const parar = () => { rec = null; fb.classList.remove("gravando"); rotulo.textContent = q.botao_falar; };
-          rec.onend = parar;
-          rec.onerror = (e) => {
-            parar();
-            const motivo = e && e.error;
-            const msg = motivo === "not-allowed" || motivo === "service-not-allowed"
-              ? "O navegador não deixou usar o microfone. Toque no cadeado ao lado do endereço do site, permita o microfone e tente de novo, ou escreva a resposta."
-              : motivo === "no-speech" ? "Não ouvimos nada. Toque em falar e tente de novo, mais perto do microfone."
-              : "Não deu para ouvir agora. Você pode escrever a resposta.";
-            let av = ent.querySelector("#falar-aviso");
-            if (!av) { av = el('<p id="falar-aviso" class="falar-aviso" role="status"></p>'); fb.parentNode.after(av); }
-            av.textContent = msg;
-          };
-          try { rec.start(); } catch { parar(); }
-        };
-      }
+      // O botão "Falar" de cada campo vem de js/falar.js (igual em todos os módulos).
     }
     atualizar();
 

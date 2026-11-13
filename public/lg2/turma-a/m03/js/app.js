@@ -561,7 +561,7 @@
         let sel = MARC[c].filter((x) => partes.includes(x) || (x === "Outro" && outroTxt));
         const antigos = partes.filter((x) => !MARC[c].includes(x) && !/^Outro:/.test(x));
         const box = el(`<div class="item item-marcar" data-c="${esc(c)}" data-chips="1"><span>${esc(nome)}</span><div class="marcar" role="group" aria-label="${esc(nome)}"></div></div>`);
-        const campoOutro = MARC[c].includes("Outro") ? el(`<input class="campo campo-outro" aria-label="Outro: qual?" placeholder="Qual?" value="${esc(outroTxt)}">`) : null;
+        const campoOutro = MARC[c].includes("Outro") ? el(`<input class="campo campo-outro" data-falar aria-label="Outro: qual?" placeholder="Qual?" value="${esc(outroTxt)}">`) : null;
         const pinta = () => {
           const txtO = campoOutro ? campoOutro.value.trim() : "";
           box.dataset.val = MARC[c].filter((o) => sel.includes(o)).map((o) => (o === "Outro" && txtO ? `Outro: ${txtO}` : o)).concat(antigos).join("; ");

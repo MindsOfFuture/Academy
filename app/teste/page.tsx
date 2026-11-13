@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
-import Navbar from "@/components/navbar/navbar";
 import { usuarioDaRequisicao } from "@/lib/supabase/server";
-import { FormularioTeste } from "./formulario";
 
+const JORNADA = "/lg2/jornada/index.html";
+
+/**
+ * Entrada do teste do Laboratório de Gestão: usa a conta normal do site.
+ * Quem já entrou vai direto para a jornada; quem não entrou cria a conta
+ * (ou entra) e volta para a jornada.
+ */
 export default async function TestePage() {
   const usuario = await usuarioDaRequisicao();
-  if (usuario) redirect("/lg2/jornada/index.html");
-  return <div className="min-h-screen bg-purple-50"><Navbar showTextLogo />
-    <main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl items-center justify-center p-6">
-      <FormularioTeste />
-    </main>
-  </div>;
+  if (usuario) redirect(JORNADA);
+  redirect(`/auth?${new URLSearchParams({ next: JORNADA, modo: "cadastro" }).toString()}`);
 }

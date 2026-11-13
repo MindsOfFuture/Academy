@@ -486,9 +486,10 @@ async function servidor() {
     const v = R[c];
     if (c === 'M1.P03') {
       ok(await page.evaluate(() => document.querySelector('#txt').placeholder) === EXP[c].placeholder, 'P3: exemplo cinza');
-      const temRec = await page.evaluate(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition));
-      const temBotao = await page.evaluate(() => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Falar em vez de escrever'));
-      ok(temRec === temBotao, 'P3: botão "Falar em vez de escrever" só quando há reconhecimento de voz');
+      /* o microfone agora vem do falar.js (comum aos 10 módulos): um botão só, logo depois do campo */
+      await page.waitForSelector('#txt + button.lg2-falar');
+      const falar = await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /Falar/.test(b.getAttribute('aria-label') || b.textContent)).map((b) => b.getAttribute('aria-label')));
+      ok(falar.length === 1 && falar[0] === 'Falar a resposta', 'P3: um botão "Falar a resposta" ao lado do campo');
       ok(await continuarDesligado() === true, 'P3: Continuar apagado sem texto');
       await page.fill('#txt', v);
       ok((await msgAgora()) === null, 'P3: sem mensagem ao escrever');

@@ -413,7 +413,7 @@
       const wrap = el(`<div class="opcoes"></div>`);
       /* "Outra atividade" (M9-02): campo para escrever qual */
       const outraBox = cod === "M9-02" ? el(`<div class="outra-box" id="outra-box" hidden><label class="rot-campo" for="outra">Qual é a sua atividade?</label>
-        <input class="campo" id="outra" placeholder="Ex.: revenda de joias" value="${esc(resp && resp.detalhe ? resp.detalhe : "")}"></div>`) : null;
+        <input class="campo" id="outra" data-falar placeholder="Ex.: revenda de joias" value="${esc(resp && resp.detalhe ? resp.detalhe : "")}"></div>`) : null;
       const pintar = () => {
         wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", x.dataset.v === op));
         if (outraBox) outraBox.hidden = op !== Mo.O.outra;

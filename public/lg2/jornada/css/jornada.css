@@ -10,22 +10,10 @@ body{font-family:var(--m-font);background:var(--m-lavender);color:#2b2340;displa
 .logo{width:34px;height:34px}
 .titulos{flex:1;min-width:0}
 .kicker{font-size:12px;opacity:.85;letter-spacing:.02em}
-h1{font-size:19px;line-height:1.15;color:var(--m-yellow)}
+h1{font-size:19px;line-height:1.15;color:var(--m-yellow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sair{color:#fff;font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.55);border-radius:999px;padding:5px 14px;text-decoration:none}
-.trilha{list-style:none;display:grid;grid-template-columns:repeat(10,minmax(0,44px));justify-content:space-between;gap:4px;max-width:560px;margin:10px auto 0;padding:4px 4px 6px}
-.trilha button{font:inherit;font-weight:700;font-size:15px;width:100%;aspect-ratio:1;max-width:44px;border-radius:50%;border:2px solid transparent;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;position:relative;flex:0 0 auto}
-.trilha .liberado button{background:#fff;color:var(--m-purple)}
-.trilha .feito button{background:var(--m-yellow);color:var(--m-purple)}
-.trilha .feito button::after{content:"";position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;
-  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23684A97' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat}
-.trilha .bloqueado button{background:rgba(255,255,255,.14);color:rgba(255,255,255,.75)}
-.trilha .bloqueado button::after{content:"";position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;
-  background:var(--m-purple) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/11px no-repeat}
-.trilha .breve button{background:transparent;color:rgba(255,255,255,.5);border:2px dashed rgba(255,255,255,.4);cursor:default}
-.trilha .atual button{border-color:var(--m-yellow);box-shadow:0 0 0 2px var(--m-purple),0 0 0 4px var(--m-yellow)}
 .aviso{max-width:960px;margin:2px auto 0;font-size:14px;min-height:20px;color:var(--m-yellow-soft)}
-.palco{flex:1 1 auto;display:flex;min-height:0;overflow-y:auto}
+.palco{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow-y:auto;background:#fff}
 #modulo{flex:1;width:100%;border:0;background:#fff;min-height:0}
 .fim{margin:auto;width:calc(100% - 32px);max-width:460px;background:#fff;border-radius:14px;padding:28px 22px;text-align:center;box-shadow:0 6px 22px rgba(104,74,151,.10)}
 .fim h2{color:var(--m-purple);font-size:24px;margin-bottom:10px}
@@ -34,7 +22,7 @@ h1{font-size:19px;line-height:1.15;color:var(--m-yellow)}
 .logos{display:flex;justify-content:center;align-items:center;gap:18px;margin-top:24px;padding-top:16px;border-top:1px solid var(--m-lavender-mid)}
 .logos img{height:30px;width:auto}
 .palco>.fim{align-self:flex-start;margin:auto}
-.palco:has(>.fim:not([hidden])){padding:16px 0}
+.palco:has(>.fim:not([hidden])){padding:16px 0;background:var(--m-lavender)}
 .resumo{text-align:left;background:#fff;border:2px solid var(--m-lavender);border-left:6px solid var(--m-purple);border-radius:12px;padding:14px 16px;margin:0 0 20px}
 .resumo h3{color:var(--m-purple);font-size:18px;margin-bottom:6px}
 .fim .resumo p{margin-bottom:8px;line-height:1.55;font-size:16px}
@@ -75,6 +63,7 @@ h1{font-size:19px;line-height:1.15;color:var(--m-yellow)}
 .acoes-fim{margin:0 0 12px}
 .fim .acoes-fim{margin-bottom:12px}
 button.btn{font:inherit;font-weight:700;border:0;cursor:pointer}
+button.btn.btn-sec{border:2px solid var(--m-purple)}
 .btn-sec{background:#fff;color:var(--m-purple);border:2px solid var(--m-purple)}
 .painel-diag{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0 0 18px;padding:12px 14px;background:var(--m-lavender);border-radius:12px}
 .painel-diag span{font-size:14px;line-height:1.4;color:#2b2340}
@@ -134,4 +123,96 @@ button.btn{font:inherit;font-weight:700;border:0;cursor:pointer}
   .diag-mod-topo{break-after:avoid}
   .diag-item{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px}
   .diag-item dt{margin:0}
+}
+
+/* Botão "Trilha" no topo (dentro do módulo) */
+.volta-trilha{flex:0 0 auto;font:inherit;font-weight:700;font-size:15px;background:#fff;color:var(--m-purple);border:0;border-radius:999px;padding:7px 14px 7px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.volta-trilha::before{content:"";width:16px;height:16px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23684A97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5l-7 7 7 7'/%3E%3C/svg%3E") center/16px no-repeat}
+.volta-trilha:focus-visible,.sair:focus-visible,.no-btn:focus-visible,.bolha:focus-visible,.btn:focus-visible{outline:3px solid var(--m-yellow-soft);outline-offset:2px}
+.topo-rodape .aviso:empty{min-height:0}
+#modulo{flex:1 1 auto}
+
+/* Sua trilha: caminho em zigue-zague com as 10 etapas */
+.trilha-tela{width:100%;max-width:560px;margin:0 auto;padding:0 0 20px}
+.trilha-cabeca{background:var(--m-purple);color:#fff;border-radius:0 0 22px 22px;padding:6px 20px 18px;margin:0 0 6px}
+.prog-texto{font-size:16px;margin:0 0 8px}
+.prog-texto b{font-size:22px}
+.trilha-cabeca .prog-texto b{color:var(--m-yellow)}
+.prog{height:12px;border-radius:999px;background:rgba(255,255,255,.22);overflow:hidden}
+.prog span{display:block;height:100%;width:0;border-radius:999px;background:var(--m-yellow);transition:width .6s ease}
+.calma{font-size:14.5px;line-height:1.4;margin-top:10px;color:#fff;opacity:.95}
+.caminho{list-style:none;position:relative;padding:18px 12px 8px;--passo:min(78px,19vw)}
+.caminho svg.linha{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.caminho svg.linha path{fill:none;stroke-width:7;stroke-linecap:round}
+.caminho svg.linha .falta{stroke:var(--m-lavender-mid);stroke-dasharray:2 14}
+.caminho svg.linha .feita{stroke:var(--m-purple)}
+.etapa{position:relative;display:flex;flex-direction:column;align-items:center;margin:0 0 22px;transform:translateX(calc(var(--o) * var(--passo)))}
+.no-btn{font:inherit;background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:inherit;padding:4px;border-radius:16px;-webkit-tap-highlight-color:transparent}
+.no{position:relative;z-index:1;width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--m-purple);color:var(--m-purple);font-weight:700;font-size:24px;box-shadow:0 4px 0 var(--m-lavender-mid);transition:transform .15s ease}
+.no-btn:active .no{transform:translateY(3px);box-shadow:0 1px 0 var(--m-lavender-mid)}
+.rotulo{display:flex;flex-direction:column;align-items:center;max-width:210px;text-align:center;background:#fff;border-radius:10px;padding:2px 6px}
+.etapa-n{font-size:13px;font-weight:700;color:var(--m-purple);letter-spacing:.02em}
+.etapa-nome{font-size:15px;line-height:1.3;color:#2b2340}
+.chip{margin-top:4px;font-size:12.5px;font-weight:700;color:var(--m-purple);background:var(--m-lavender);border-radius:999px;padding:2px 10px}
+.etapa.feito .no{background:var(--m-purple);color:#fff;border-color:var(--m-purple);box-shadow:0 4px 0 rgba(43,35,64,.35)}
+.etapa.feito .no::after{content:"";width:30px;height:30px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/30px no-repeat}
+.etapa.andamento .no{border:0;background:radial-gradient(circle,#fff 0 24px,transparent 25px),conic-gradient(var(--m-purple) 0 50%,var(--m-lavender-mid) 50% 100%)}
+.etapa.bloqueado .no{background:var(--m-lavender);border-color:var(--m-lavender-mid);color:#676565;box-shadow:none}
+.etapa.bloqueado .no::after{content:"";position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;
+  background:#676565 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/13px no-repeat}
+.etapa.bloqueado .etapa-n,.etapa.bloqueado .etapa-nome{color:#676565}
+.etapa.breve .no{border-style:dashed;color:#676565;box-shadow:none}
+/* Etapa sugerida: maior, roxa com anel amarelo por dentro e o balão "Começar"/"Continuar" */
+.etapa.sugerida .no{width:80px;height:80px;font-size:30px;background:var(--m-purple);color:var(--m-yellow);border:0;
+  box-shadow:inset 0 0 0 5px var(--m-purple),inset 0 0 0 10px var(--m-yellow),0 5px 0 rgba(43,35,64,.35)}
+.etapa.sugerida.andamento .no{background:var(--m-purple)}
+.bolha{position:relative;z-index:2;font:inherit;font-weight:700;font-size:16px;background:var(--m-purple);color:var(--m-yellow);border:0;border-radius:999px;padding:9px 22px;margin-bottom:10px;cursor:pointer;
+  box-shadow:0 3px 0 rgba(43,35,64,.35)}
+.bolha::after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-8px;border:8px solid transparent;border-top-color:var(--m-purple);border-bottom:0}
+/* Um anel que pulsa em volta da etapa sugerida (não mexe no tamanho do botão) */
+.etapa.sugerida .no::before{content:"";position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--m-purple);opacity:0;animation:pulso 2.2s ease-out infinite}
+@keyframes pulso{0%{transform:scale(.92);opacity:.55}100%{transform:scale(1.28);opacity:0}}
+.trilha-tela .logos{margin:10px 16px 0}
+
+/* Etapa concluída: comemoração */
+.concluida{width:100%;max-width:560px;margin:0 auto;padding:0 0 24px}
+.festa{position:relative;overflow:hidden;background:var(--m-purple);color:#fff;text-align:center;border-radius:0 0 26px 26px;padding:30px 20px 26px}
+.festa h2{color:var(--m-yellow);font-size:28px;line-height:1.15;margin:14px 0 6px;outline:none}
+.festa p{font-size:16.5px;line-height:1.45}
+.selo{width:96px;height:96px;display:block;margin:0 auto;position:relative;z-index:1}
+.selo circle{fill:var(--m-yellow)}
+.selo path{fill:none;stroke:var(--m-purple);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:0}
+.festa.anima .selo{animation:selo .55s cubic-bezier(.2,1.4,.4,1) both}
+.festa.anima .selo path{animation:risco .45s .35s ease-out both}
+@keyframes selo{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes risco{from{stroke-dashoffset:60}to{stroke-dashoffset:0}}
+.confete{position:absolute;inset:0;pointer-events:none}
+.confete i{position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;background:var(--m-yellow);opacity:0}
+.confete i:nth-child(3n){background:#fff;width:7px;height:7px;border-radius:50%}
+.confete i:nth-child(3n+1){background:var(--m-yellow-soft)}
+.confete i:nth-child(1){left:6%}.confete i:nth-child(2){left:14%}.confete i:nth-child(3){left:22%}.confete i:nth-child(4){left:30%}
+.confete i:nth-child(5){left:38%}.confete i:nth-child(6){left:46%}.confete i:nth-child(7){left:54%}.confete i:nth-child(8){left:62%}
+.confete i:nth-child(9){left:70%}.confete i:nth-child(10){left:78%}.confete i:nth-child(11){left:86%}.confete i:nth-child(12){left:93%}
+.confete i:nth-child(13){left:10%}.confete i:nth-child(14){left:82%}
+.festa.anima .confete i{animation:cai 1.6s ease-in both}
+.festa.anima .confete i:nth-child(2n){animation-duration:1.9s;animation-delay:.12s}
+.festa.anima .confete i:nth-child(3n){animation-duration:1.4s;animation-delay:.25s}
+.festa.anima .confete i:nth-child(4n){animation-delay:.4s}
+@keyframes cai{0%{opacity:1;transform:translateY(0) rotate(0)}85%{opacity:1}100%{opacity:0;transform:translateY(230px) rotate(320deg)}}
+.conc-corpo{padding:22px 20px 0;text-align:center;display:flex;flex-direction:column;align-items:center}
+.conc-corpo .prog-texto{color:#2b2340}
+.conc-corpo .prog-texto b{color:var(--m-purple)}
+.conc-corpo .prog{width:100%;background:var(--m-lavender)}
+.conc-corpo .prog span{background:var(--m-purple)}
+.mini{list-style:none;display:flex;gap:8px;justify-content:center;margin:14px 0 22px}
+.mini li{width:14px;height:14px;border-radius:50%;border:2px solid var(--m-purple);background:#fff}
+.mini li.feito{background:var(--m-purple)}
+.mini li.proxima{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--m-purple)}
+.btn-grande{font-size:18px;padding:14px 28px;width:100%;max-width:340px}
+.conc-nome{font-size:14.5px;line-height:1.4;color:#676565;margin:8px 0 18px;max-width:320px}
+.conc-corpo .btn-sec{width:100%;max-width:340px}
+@media (prefers-reduced-motion:reduce){
+  .etapa.sugerida .no::before,.festa.anima .selo,.festa.anima .selo path{animation:none}
+  .festa.anima .confete i{animation:none}
+  .prog span{transition:none}
 }

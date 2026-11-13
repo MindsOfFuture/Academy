@@ -771,7 +771,7 @@
       const exclusivas = cod === "M7-07" ? [NS, "Só o preço"] : [NS];
       const marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.estado === "naosei" ? [NS] : cod === "M7-11" ? sugestoes() : [];
       const mais = { "M7-07": "Mais de 3 critérios", "M7-10": "Mais de 3 opções", "M7-11": "Mais de 3 números" }[cod];
-      const outro = el(`<div id="ow" ${marcadas.includes("Outro") ? "" : "hidden"}><label class="rot-campo" for="outro">O que mais poderia atrapalhar?</label><input class="campo" id="outro" value="${esc(resp && resp.outro || "")}"></div>`);
+      const outro = el(`<div id="ow" ${marcadas.includes("Outro") ? "" : "hidden"}><label class="rot-campo" for="outro">O que mais poderia atrapalhar?</label><input class="campo" id="outro" data-falar value="${esc(resp && resp.outro || "")}"></div>`);
       const retornoMulti = (ultimo, aviso3) => {
         if (aviso3) return mostrar(caixa(caminho(cod, mais)));
         if (marcadas.includes(NS)) return mostrar(caixa(caminho(cod, NS)));

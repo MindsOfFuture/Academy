@@ -55,14 +55,9 @@ export async function GET(request: Request) {
         const dados = (pessoais as { phone: string | null; address: string | null; document: string | null; birth_date: string | null }[] | null)?.[0];
         const existingProfile = perfil ? { ...perfil, ...dados } : null;
 
-        // If profile exists and has required data, redirect to protected
-        if (
-            existingProfile?.full_name &&
-            existingProfile?.phone &&
-            existingProfile?.address &&
-            existingProfile?.document &&
-            existingProfile?.birth_date
-        ) {
+        // Só nome e nascimento são obrigatórios; telefone, endereço e documento
+        // ficam opcionais e se completam depois no perfil.
+        if (existingProfile?.full_name && existingProfile?.birth_date) {
             return redirectToInternalPath(nextPath || "/protected", request);
         }
 

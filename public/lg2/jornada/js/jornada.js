@@ -1,8 +1,10 @@
 /* Jornada completa do Laboratório de Gestão.
-   Abre os módulos publicados (as mesmas páginas das turmas) em ordem, um de cada vez.
-   Com TRAVAR = true, um módulo só libera quando o anterior chega ao resultado (a tela que mostra o botão do
-   próximo módulo); com TRAVAR = false, todos os módulos prontos ficam abertos (o "concluído" continua valendo).
-   Como abre as próprias páginas das turmas, qualquer mudança num módulo já aparece aqui. */
+   Abre na "Sua trilha": um caminho com as 10 etapas (os módulos publicados, as mesmas páginas das turmas).
+   Tocar numa etapa abre o módulo dentro da página; o botão "Trilha" no topo volta ao caminho.
+   Quando o módulo chega ao resultado (a tela que mostra a caixa do próximo módulo), a etapa conta como concluída;
+   o botão dessa caixa mostra a tela "Etapa N concluída!" com o convite para a próxima, em vez de pular direto.
+   Com TRAVAR = true, uma etapa só libera quando a anterior foi concluída; com TRAVAR = false, todas ficam abertas.
+   Antes de abrir qualquer coisa, espera a cópia do progresso guardada na conta (js/progresso.js). */
 (function () {
   'use strict';
 
@@ -23,7 +25,9 @@
     { n: 10, nome: 'Comunicação, vendas, pessoas e plano de ação', caminho: '/lg2/turma-b/m10/index.html' }
   ];
   var CHAVE = 'lg2-jornada';
+  var TOTAL = MODULOS.length;
   var prontos = MODULOS.filter(function (m) { return m.caminho; });
+  var ZIGUE = [0, 0.7, 1, 0.7, 0, -0.7, -1, -0.7]; // desenho do caminho: deslocamento de cada etapa para os lados
 
   function ler() {
     try {
@@ -53,75 +57,237 @@
   function moduloPorCaminho(caminho) {
     return prontos.find(function (m) { return m.caminho === caminho; }) || null;
   }
+  function modulo(n) { return MODULOS.find(function (x) { return x.n === n; }) || null; }
+  function quantosFeitos() { return prontos.filter(function (m) { return feito(m.n); }).length; }
+  function anteriorPronto(n) { return prontos[prontos.findIndex(function (x) { return x.n === n; }) - 1] || null; }
 
   var iframe = document.getElementById('modulo');
   var trilha = document.getElementById('trilha');
+  var telaTrilha = document.getElementById('trilha-tela');
+  var telaConcluida = document.getElementById('concluida');
   var aviso = document.getElementById('aviso');
   var fim = document.getElementById('fim');
+  var voltaTrilha = document.getElementById('volta-trilha');
+  var logoTopo = document.getElementById('logo-topo');
+  var topoKicker = document.getElementById('topo-kicker');
+  var topoTitulo = document.getElementById('topo-titulo');
+  var vista = null; // 'trilha' | 'modulo' | 'concluida' | 'fim'
 
+  // Respostas que o módulo guardou: serve para saber se a pessoa já começou a etapa.
+  function lerModulo(n) {
+    var R = window.ResumoNegocio;
+    try { return R && R.lerLocal ? R.lerLocal(n) : null; } catch (e) { return null; }
+  }
+  function comecou(n) {
+    var s = lerModulo(n);
+    return !!(s && ((s.R && typeof s.R === 'object' && Object.keys(s.R).length) || s.ini));
+  }
+  function andamento(m) {
+    if (!m.caminho) return 'breve';
+    if (feito(m.n)) return 'feito';
+    return comecou(m.n) ? 'andamento' : 'nada';
+  }
+  // Situação da etapa no caminho.
   function situacao(m) {
     if (!m.caminho) return 'breve';
     if (feito(m.n)) return 'feito';
-    return liberado(m.n) ? 'liberado' : 'bloqueado';
+    if (!liberado(m.n)) return 'bloqueado';
+    return comecou(m.n) ? 'andamento' : 'nada';
+  }
+  // Etapa sugerida: a que a pessoa estava fazendo (se ainda não concluiu) ou a primeira que falta.
+  function sugerida() {
+    if (estado.atual && !feito(estado.atual) && modulo(estado.atual) && modulo(estado.atual).caminho && liberado(estado.atual)) return estado.atual;
+    return primeiroPendente();
   }
 
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
+
+  // ---------- Topo ----------
+  function topo(kicker, titulo, comVolta) {
+    topoKicker.textContent = kicker;
+    topoTitulo.textContent = titulo;
+    voltaTrilha.hidden = !comVolta;
+    logoTopo.hidden = !!comVolta;
+  }
+
+  function progresso(alvoTexto, alvoBarra) {
+    var f = quantosFeitos();
+    alvoTexto.textContent = '';
+    alvoTexto.appendChild(el('b', '', String(f)));
+    alvoTexto.appendChild(document.createTextNode(' de ' + TOTAL + ' etapas'));
+    alvoBarra.style.width = Math.round((f / TOTAL) * 100) + '%';
+    alvoBarra.parentNode.setAttribute('aria-valuenow', String(f));
+    alvoBarra.parentNode.setAttribute('aria-valuetext', f + ' de ' + TOTAL + ' etapas concluídas');
+  }
+
+  // ---------- Trilha ----------
   function desenhar() {
-    trilha.innerHTML = '';
-    MODULOS.forEach(function (m) {
+    var sug = sugerida();
+    trilha.textContent = '';
+    MODULOS.forEach(function (m, i) {
       var s = situacao(m);
-      var li = document.createElement('li');
-      li.className = s + (estado.atual === m.n && iframe.hidden === false ? ' atual' : '');
-      var b = document.createElement('button');
+      var li = el('li', 'etapa ' + s + (m.n === sug ? ' sugerida' : ''));
+      li.setAttribute('data-n', m.n);
+      li.setAttribute('data-estado', s);
+      li.style.setProperty('--o', ZIGUE[i % ZIGUE.length]);
+      if (m.n === sug) {
+        var bolha = el('button', 'bolha', s === 'andamento' ? 'Continuar' : 'Começar');
+        bolha.type = 'button';
+        bolha.setAttribute('aria-label', (s === 'andamento' ? 'Continuar' : 'Começar') + ' a etapa ' + m.n);
+        bolha.addEventListener('click', function () { tocar(m); });
+        li.appendChild(bolha);
+      }
+      var b = el('button', 'no-btn');
       b.type = 'button';
-      b.textContent = m.n;
-      var rotulo = { feito: 'concluído', liberado: 'liberado', bloqueado: 'bloqueado', breve: 'em breve' }[s];
-      b.setAttribute('aria-label', 'Módulo ' + m.n + ' · ' + m.nome + ' (' + rotulo + ')');
-      b.title = 'Módulo ' + m.n + ' · ' + m.nome;
-      if (estado.atual === m.n) b.setAttribute('aria-current', 'step');
+      var rotulo = { feito: 'concluída', andamento: 'em andamento', nada: 'não começada', bloqueado: 'ainda fechada', breve: 'em breve' }[s];
+      b.setAttribute('aria-label', 'Etapa ' + m.n + ': ' + m.nome + ' (' + rotulo + ')');
+      if (m.n === sug) b.setAttribute('aria-current', 'step');
+      var no = el('span', 'no');
+      no.setAttribute('aria-hidden', 'true');
+      if (s !== 'feito') no.appendChild(el('span', 'no-num', String(m.n)));
+      b.appendChild(no);
+      var txt = el('span', 'rotulo');
+      txt.setAttribute('aria-hidden', 'true');
+      txt.appendChild(el('span', 'etapa-n', 'Etapa ' + m.n));
+      txt.appendChild(el('span', 'etapa-nome', m.nome));
+      if (s === 'andamento') txt.appendChild(el('span', 'chip', 'Em andamento'));
+      b.appendChild(txt);
       b.addEventListener('click', function () { tocar(m); });
       li.appendChild(b);
       trilha.appendChild(li);
     });
-    var atual = trilha.querySelector('.atual');
-    if (atual && atual.scrollIntoView) atual.scrollIntoView({ block: 'nearest', inline: 'center' });
+    progresso(document.getElementById('trilha-prog-texto'), document.getElementById('trilha-prog-barra'));
+    linhas();
   }
 
+  // Linha curva que liga as etapas (desenhada depois que as bolinhas estão no lugar).
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function linhas() {
+    if (telaTrilha.hidden) return;
+    var velho = trilha.querySelector('svg.linha');
+    if (velho) velho.remove();
+    var nos = [].slice.call(trilha.querySelectorAll('.no'));
+    if (nos.length < 2) return;
+    var base = trilha.getBoundingClientRect();
+    var pts = nos.map(function (n) {
+      var r = n.getBoundingClientRect();
+      return { x: r.left - base.left + r.width / 2, y: r.top - base.top + r.height / 2 };
+    });
+    var svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('class', 'linha');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('width', String(base.width));
+    svg.setAttribute('height', String(base.height));
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = pts[i], z = pts[i + 1], my = (a.y + z.y) / 2;
+      var p = document.createElementNS(SVGNS, 'path');
+      p.setAttribute('d', 'M' + a.x + ' ' + a.y + ' C' + a.x + ' ' + my + ' ' + z.x + ' ' + my + ' ' + z.x + ' ' + z.y);
+      var ok = feito(MODULOS[i].n) && feito(MODULOS[i + 1].n);
+      p.setAttribute('class', ok ? 'feita' : 'falta');
+      svg.appendChild(p);
+    }
+    trilha.insertBefore(svg, trilha.firstChild);
+  }
+  var redesenho = null;
+  window.addEventListener('resize', function () { clearTimeout(redesenho); redesenho = setTimeout(linhas, 120); });
+
   function tocar(m) {
-    if (!m.caminho) { aviso.textContent = 'O Módulo ' + m.n + ' ainda está sendo preparado pelo grupo.'; return; }
+    if (!m.caminho) { aviso.textContent = 'A Etapa ' + m.n + ' ainda está sendo preparada.'; return; }
     if (!liberado(m.n) && !feito(m.n)) {
-      var ant = prontos[prontos.findIndex(function (x) { return x.n === m.n; }) - 1];
-      aviso.textContent = 'Conclua o Módulo ' + ant.n + ' para liberar o Módulo ' + m.n + '.';
+      var ant = anteriorPronto(m.n);
+      aviso.textContent = 'Conclua a Etapa ' + ant.n + ' para liberar a Etapa ' + m.n + '.';
       return;
     }
     abrir(m.n);
   }
 
-  function abrir(n) {
-    var m = MODULOS.find(function (x) { return x.n === n; });
-    estado.atual = n; gravar();
-    fim.hidden = true; iframe.hidden = false;
-    aviso.textContent = 'Módulo ' + m.n + ' · ' + m.nome;
-    if (iframe.getAttribute('src') !== m.caminho) iframe.setAttribute('src', m.caminho);
+  // ---------- Trocas de tela ----------
+  var vigia = null;
+  function esconderTudo(manterModulo) {
+    telaTrilha.hidden = true; telaConcluida.hidden = true; fim.hidden = true;
+    if (!manterModulo) {
+      clearInterval(vigia);
+      iframe.hidden = true;
+      if (iframe.getAttribute('src') && iframe.getAttribute('src') !== 'about:blank') iframe.setAttribute('src', 'about:blank');
+    }
+  }
+  function mostrarTrilha() {
+    esconderTudo();
+    vista = 'trilha';
+    aviso.textContent = '';
+    topo('Laboratório de Gestão', 'Sua trilha', false);
+    telaTrilha.hidden = false;
     desenhar();
+    var alvo = trilha.querySelector('.sugerida');
+    var palco = document.querySelector('.palco');
+    palco.scrollTop = 0;
+    if (alvo && alvo.getBoundingClientRect().bottom > window.innerHeight) {
+      palco.scrollTop = Math.max(0, alvo.offsetTop - 120);
+    }
+  }
+
+  function abrir(n) {
+    var m = modulo(n);
+    estado.atual = n; gravar();
+    esconderTudo(vista === 'modulo');
+    vista = 'modulo';
+    iframe.hidden = false;
+    aviso.textContent = feito(n) ? 'Etapa concluída. Pode rever e mudar suas respostas.' : '';
+    topo('Etapa ' + m.n + ' de ' + TOTAL, m.nome, true);
+    if (iframe.getAttribute('src') !== m.caminho) iframe.setAttribute('src', m.caminho);
   }
 
   function concluir(n) {
     if (!feito(n)) {
-      estado.feitos.push(n); gravar(); desenhar();
-      var p = proximoPronto(n);
-      aviso.textContent = p && TRAVAR ? 'Módulo ' + n + ' concluído! O Módulo ' + p.n + ' foi liberado.' : 'Módulo ' + n + ' concluído!';
+      estado.feitos.push(n); gravar();
+      if (vista === 'modulo') aviso.textContent = 'Etapa ' + n + ' concluída!';
     }
   }
 
-  function seguir(n) {
-    var p = proximoPronto(n);
-    if (p) { abrir(p.n); return; }
-    estado.atual = null; gravar();
-    iframe.hidden = true; iframe.removeAttribute('src'); fim.hidden = false;
+  // Depois de tocar no botão do fim do módulo: comemora e convida para a próxima etapa.
+  function celebrar(n) {
+    var proxima = proximoPronto(n);
+    if (!proxima || feito(proxima.n)) { var p = primeiroPendente(); proxima = p ? modulo(p) : null; }
+    if (!proxima || !primeiroPendente()) { mostrarFim(); return; }
+    esconderTudo();
+    vista = 'concluida';
     aviso.textContent = '';
-    mostrarResumo();
-    desenhar();
+    topo('Laboratório de Gestão', 'Sua trilha', true);
+    document.getElementById('conc-titulo').textContent = 'Etapa ' + n + ' concluída!';
+    progresso(document.getElementById('conc-prog-texto'), document.getElementById('conc-prog-barra'));
+    var mini = document.getElementById('conc-mini');
+    mini.textContent = '';
+    MODULOS.forEach(function (m) {
+      var li = el('li', feito(m.n) ? 'feito' : m.n === proxima.n ? 'proxima' : '');
+      li.setAttribute('aria-hidden', 'true');
+      mini.appendChild(li);
+    });
+    var s = situacao(proxima);
+    var bt = document.getElementById('conc-proxima');
+    bt.textContent = (s === 'andamento' ? 'Continuar' : 'Começar') + ' a etapa ' + proxima.n;
+    bt.onclick = function () { abrir(proxima.n); };
+    document.getElementById('conc-nome').textContent = proxima.nome;
+    // Reinicia a animação a cada etapa concluída.
+    var festa = telaConcluida.querySelector('.festa');
+    festa.classList.remove('anima'); void festa.offsetWidth; festa.classList.add('anima');
+    telaConcluida.hidden = false;
+    document.querySelector('.palco').scrollTop = 0;
+    document.getElementById('conc-titulo').focus();
   }
+
+  function mostrarFim() {
+    esconderTudo();
+    vista = 'fim';
+    estado.atual = null; gravar();
+    aviso.textContent = '';
+    topo('Laboratório de Gestão', 'Jornada concluída', true);
+    fim.hidden = false;
+    mostrarResumo();
+  }
+
+  voltaTrilha.addEventListener('click', mostrarTrilha);
+  document.getElementById('conc-trilha').addEventListener('click', mostrarTrilha);
+  document.getElementById('fim-trilha').addEventListener('click', mostrarTrilha);
 
   // Resumo do negócio no fim da jornada: texto montado com as respostas dos módulos (só leitura).
   var jornadaAvisada = false;
@@ -148,19 +314,6 @@
   var painel = document.getElementById('painel');
   var abrePainel = document.getElementById('abre-painel');
   var fechaPainel = document.getElementById('fecha-painel');
-  function lerModulo(n) {
-    var R = window.ResumoNegocio;
-    try { return R && R.lerLocal ? R.lerLocal(n) : null; } catch (e) { return null; }
-  }
-  function comecou(n) {
-    var s = lerModulo(n);
-    return !!(s && ((s.R && typeof s.R === 'object' && Object.keys(s.R).length) || s.ini));
-  }
-  function andamento(m) {
-    if (!m.caminho) return 'breve';
-    if (feito(m.n)) return 'feito';
-    return comecou(m.n) ? 'andamento' : 'nada';
-  }
   function montarPainel() {
     var pars = [];
     try {
@@ -202,7 +355,7 @@
         bt.addEventListener('click', function () { fecharPainel(); abrir(m.n); });
         li.appendChild(bt);
       } else if (m.caminho) {
-        var ant = prontos[prontos.findIndex(function (x) { return x.n === m.n; }) - 1];
+        var ant = anteriorPronto(m.n);
         var t = document.createElement('span'); t.className = 'trava';
         t.textContent = 'Abre depois do Módulo ' + ant.n;
         li.appendChild(t);
@@ -214,7 +367,6 @@
   var diag = document.getElementById('diagnostico');
   var diagOrigem = null;
   function situacaoDiag(m) { var a = andamento(m); return a === 'feito' ? 'feito' : a === 'andamento' ? 'andamento' : 'nada'; }
-  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; }
   function montarDiagnostico() {
     var D = window.DiagnosticoLG2;
     var corpo = document.getElementById('diag-corpo');
@@ -316,10 +468,10 @@
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { if (!diag.hidden) fecharDiagnostico(); else fecharPainel(); } });
 
   // O resultado de cada módulo tem a caixa ".lg2-proximo". Quando ela aparece, o módulo está concluído.
-  // O botão dela ("Ir para o Módulo N" / "Voltar aos módulos") passa a seguir a jornada.
-  var vigia = null;
+  // O botão dela ("Ir para o Módulo N" / "Voltar aos módulos") passa a mostrar a tela de etapa concluída.
   iframe.addEventListener('load', function () {
     clearInterval(vigia);
+    if (iframe.hidden) return;
     var doc, caminho;
     try { doc = iframe.contentDocument; caminho = iframe.contentWindow.location.pathname; } catch (e) { return; }
     if (!doc || !caminho || caminho === 'blank') return;
@@ -327,17 +479,17 @@
     if (!m || (!liberado(m.n) && !feito(m.n))) {
       // Saiu da jornada ou tentou pular um módulo: volta ao módulo atual.
       var volta = estado.atual || primeiroPendente() || prontos[0].n;
-      iframe.setAttribute('src', MODULOS.find(function (x) { return x.n === volta; }).caminho);
+      iframe.setAttribute('src', modulo(volta).caminho);
       return;
     }
-    if (estado.atual !== m.n) { estado.atual = m.n; gravar(); desenhar(); }
+    if (estado.atual !== m.n) { estado.atual = m.n; gravar(); topo('Etapa ' + m.n + ' de ' + TOTAL, m.nome, true); }
     doc.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { fecharDiagnostico(); fecharPainel(); } });
     doc.addEventListener('click', function (ev) {
       var a = ev.target && ev.target.closest && ev.target.closest('.lg2-proximo a');
       if (!a) return;
       ev.preventDefault();
       concluir(m.n);
-      seguir(m.n);
+      celebrar(m.n);
     }, true);
     // Só conta quando a caixa está à vista: o Módulo 7, por exemplo, só mostra o botão do
     // próximo módulo quando a pessoa responde "Sim, pode seguir".
@@ -349,7 +501,12 @@
     vigia = setInterval(olhar, 600);
   });
 
-  var inicio = estado.atual && MODULOS.some(function (x) { return x.n === estado.atual && x.caminho; }) &&
-    (liberado(estado.atual) || feito(estado.atual)) ? estado.atual : primeiroPendente();
-  if (inicio) abrir(inicio); else seguir(prontos[prontos.length - 1].n);
+  // Começa depois de trazer o progresso guardado na conta (no máximo alguns segundos).
+  aviso.textContent = 'Carregando seu progresso…';
+  var sync = window.LG2Progresso && window.LG2Progresso.pronto ? window.LG2Progresso.pronto : Promise.resolve(false);
+  sync.catch(function () { return false; }).then(function () {
+    estado = ler();
+    if (prontos.length && prontos.every(function (m) { return feito(m.n); })) mostrarFim();
+    else mostrarTrilha();
+  });
 })();

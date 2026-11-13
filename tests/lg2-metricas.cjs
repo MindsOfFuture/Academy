@@ -58,6 +58,7 @@ function arquivo(urlPath) {
         enviados.push(JSON.parse(route.request().postData()));
         return route.fulfill({ status: 200, contentType: 'application/json', body: '{"accepted":true,"inserted":1}' });
       }
+      if (url.pathname === '/api/lg2/progresso') return route.fulfill({ status: 200, contentType: 'application/json', body: '{"u":"teste","dados":null,"atualizado_em":null}' });
       const nome = arquivo(url.pathname);
       if (!nome) return route.fulfill({ status: 404, body: '' });
       return route.fulfill({ status: 200, contentType: TIPOS[path.extname(nome)] || 'application/octet-stream', body: fs.readFileSync(nome) });

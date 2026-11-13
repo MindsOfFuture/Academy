@@ -35,6 +35,7 @@ const PUBLIC_EXACT_PATHS = [
   "/api/analytics/site",
   "/api/games/events",
   "/api/games/export",
+  "/api/lg2/progresso",
 ] as const;
 
 export function isPublicPath(pathname: string): boolean {

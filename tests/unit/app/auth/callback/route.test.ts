@@ -9,6 +9,22 @@ vi.mock("@/lib/supabase/server", () => ({
 
 import { GET } from "@/app/auth/callback/route";
 
+function mockProfile(perfil: { full_name: string | null }, pessoais: Record<string, string | null>) {
+  const profileQuery = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: perfil }),
+  };
+  createClientMock.mockResolvedValue({
+    auth: {
+      exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1", email: "teste@example.com", user_metadata: { full_name: "Pessoa Google" } } } }),
+    },
+    from: vi.fn(() => profileQuery),
+    rpc: vi.fn().mockResolvedValue({ data: [pessoais] }),
+  });
+}
+
 function mockSuccessfulCompleteProfile() {
   const profileQuery = {
     select: vi.fn().mockReturnThis(),
@@ -232,4 +248,25 @@ describe("GET /auth/callback", () => {
       );
     },
   );
+
+  it("nome + nascimento bastam: telefone, endereço e documento são opcionais", async () => {
+    mockProfile({ full_name: "Pessoa Teste" }, { phone: null, address: null, document: null, birth_date: "2000-01-01" });
+    const response = await GET(new Request(
+      "http://localhost:3000/auth/callback?code=valid&next=%2Flg2%2Fjornada%2Findex.html",
+      { headers: { host: "www.mindsofthefuture.com.br", "x-forwarded-proto": "https" } },
+    ));
+    expect(response.headers.get("location")).toBe("https://www.mindsofthefuture.com.br/lg2/jornada/index.html");
+  });
+
+  it("sem data de nascimento vai para completar o perfil levando o next", async () => {
+    mockProfile({ full_name: "Pessoa Google" }, { phone: "3200000000", address: "JF", document: "00000000000", birth_date: null });
+    const response = await GET(new Request(
+      "http://localhost:3000/auth/callback?code=valid&next=%2Flg2%2Fjornada%2Findex.html",
+      { headers: { host: "www.mindsofthefuture.com.br", "x-forwarded-proto": "https" } },
+    ));
+    const destino = new URL(response.headers.get("location")!);
+    expect(destino.pathname).toBe("/auth/complete-profile");
+    expect(destino.searchParams.get("from")).toBe("oauth");
+    expect(destino.searchParams.get("next")).toBe("/lg2/jornada/index.html");
+  });
 });

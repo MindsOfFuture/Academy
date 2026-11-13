@@ -152,12 +152,14 @@
     if (preco > 0 && vendas > 0) return { ano: preco * vendas * 12, mes: preco * vendas, de: 5 };
     return null;
   }
+  /* tipo de CNPJ pela sigla: "MEI (Microempreendedor Individual)" e o antigo "MEI" valem igual */
+  const sigla = (v) => (v == null ? v : String(v).split(" (")[0].trim());
   /* alerta forte quando o faturamento passa do limite do MEI */
   function alertaMei() {
     const f = faturamentoAno();
     if (!f || f.ano <= LIMITE_MEI_ANO) return "";
-    const cnpj = Motor.valor(S.R, "M8.P05");
-    if (cnpj && !["MEI", "Não", NS].includes(cnpj)) return "";          // EI, SLU ou LTDA já não são MEI
+    const cnpj = sigla(Motor.valor(S.R, "M8.P05"));
+    if (cnpj && !["MEI", "Não", NS].includes(cnpj)) return "";          // ME, EI, SLU ou LTDA já não são MEI
     const teto20 = LIMITE_MEI_ANO * (1 + TOLERANCIA_MEI);
     const origem = f.de ? ` ${selo(f.de)}` : "";
     const conta = `Você estima faturar ${reais(Math.round(f.mes))} por mês, cerca de <b class="num">${reais(Math.round(f.ano))} por ano</b>.${origem} O limite do MEI em 2026 é de ${reais(LIMITE_MEI_ANO)} por ano (${reais(LIMITE_MEI_ANO / 12)} por mês, em média).`;
@@ -713,13 +715,13 @@
       const ano = fat * 12;
       f.push(`Você estima faturar ${reais(fat)} por mês, cerca de ${reais(Math.round(ano))} por ano — ${ano <= LIMITE_MEI_ANO
         ? "dentro do limite do MEI (R$ 81 mil por ano), então o MEI pode ser um caminho se a sua ocupação for permitida."
-        : v("M8.P05") === "MEI"
+        : sigla(v("M8.P05")) === "MEI"
           ? "acima do limite do MEI (R$ 81 mil por ano): com esse faturamento, o seu negócio sai do MEI. Procure um contador ou a Sala do Empreendedor."
           : "acima do limite do MEI (R$ 81 mil por ano); converse com um contador sobre outras formas de abrir o CNPJ."}`);
     }
     const cnpj = v("M8.P05");
     if (cnpj === "Não") f.push("Você ainda não tem CNPJ.");
-    else if (cnpj) f.push(`Você já tem CNPJ (${cnpj}).`);
+    else if (cnpj && cnpj !== NS) f.push(`Você já tem CNPJ: ${cnpj}.`);
     if (S.cnae) f.push(`Você escolheu o CNAE ${S.cnae.cnae} (${minus(S.cnae.ocupacao.toLowerCase())}).`);
     const c2 = f.length;   // 2º: faturamento e CNPJ; 3º: a dúvida principal
     const duv = v("M8.P10");

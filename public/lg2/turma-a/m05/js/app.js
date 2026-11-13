@@ -550,7 +550,7 @@
       });
     }
     if (tipo === "texto") {
-      ent.appendChild(el(`<input class="campo" type="text" value="${esc(val || "")}">`));
+      ent.appendChild(el(`<input class="campo" type="text" data-falar value="${esc(val || "")}">`));
       return () => ent.querySelector("input").value;
     }
     if (tipo === "numero" || tipo === "percentual") {

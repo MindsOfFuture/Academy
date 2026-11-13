@@ -11,6 +11,7 @@ import {
   FileText, Calendar, School, GraduationCap, Users,
   Plus, X, ChevronRight, ChevronLeft, Check, ArrowLeft, Upload
 } from "lucide-react";
+
 import { mensagemDeAuth } from "@/lib/auth-errors";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,16 +20,31 @@ type UserType = "student" | "teacher";
 
 interface SignUpFormProps extends React.ComponentPropsWithoutRef<"div"> {
   onToggleView: () => void;
+  /** Caminho interno (já validado) para onde o link de confirmação devolve a pessoa. */
+  nextPath?: string | null;
 }
+
+/** Idade em anos completos; a data do campo é lida como data local (evita o dia anterior no fuso -03). */
+export function calcularIdade(birthDateStr: string, hoje = new Date()): number | null {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDateStr);
+  if (!partes) return null;
+  const [ano, mes, dia] = [Number(partes[1]), Number(partes[2]), Number(partes[3])];
+  let age = hoje.getFullYear() - ano;
+  const monthDiff = hoje.getMonth() + 1 - mes;
+  if (monthDiff < 0 || (monthDiff === 0 && hoje.getDate() < dia)) age--;
+  return age;
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SignUpForm({
   className,
   onToggleView,
+  nextPath,
   ...props
 }: SignUpFormProps) {
   // Steps control
   const [step, setStep] = useState(1);
-  const totalSteps = 4;
   const [direction, setDirection] = useState(0);
 
   // Common fields
@@ -44,8 +60,6 @@ export function SignUpForm({
 
   // Student-specific fields
   const [parentName, setParentName] = useState("");
-  const [school, setSchool] = useState("");
-  const [grade, setGrade] = useState("");
 
   // Teacher-specific fields
   const [schools, setSchools] = useState<string[]>([""]);
@@ -61,20 +75,11 @@ export function SignUpForm({
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
   const [signUpComplete, setSignUpComplete] = useState(false);
 
-  // Calculate age from birth date
-  const calculateAge = (birthDateStr: string): number | null => {
-    if (!birthDateStr) return null;
-    const today = new Date();
-    const birth = new Date(birthDateStr);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
-  const age = calculateAge(birthDate);
+  const age = calcularIdade(birthDate);
+  // Aluno: um passo só (nome, nascimento, acesso). Professor segue com os 4 passos.
+  const isStudent = userType === "student";
+  const totalSteps = isStudent ? 1 : 4;
+  const isMinor = age !== null && age < 18;
 
   // Teacher schools management
   const addSchool = () => setSchools([...schools, ""]);
@@ -89,33 +94,47 @@ export function SignUpForm({
     setSchools(updated);
   };
 
+  const validateNameAndBirth = (): string | null => {
+    if (!name.trim()) return "Por favor, preencha seu nome.";
+    if (name.trim().split(/\s+/).length < 2) return "Por favor, digite seu nome completo.";
+    if (!birthDate) return "Data de nascimento é obrigatória.";
+    const ageVal = calcularIdade(birthDate);
+    if (ageVal === null || ageVal < 0) return "Data de nascimento inválida.";
+    if (ageVal < 5) return "Idade mínima de 5 anos.";
+    return null;
+  };
+
+  const validateCredentials = (): string | null => {
+    if (!EMAIL_REGEX.test(email)) return "Por favor, insira um e-mail válido.";
+    if (password.length < 6) return "A senha deve ter no mínimo 6 caracteres.";
+    if (password !== repeatPassword) return "As senhas não conferem.";
+    if (!agreedToTerms) return "Você deve concordar com os Termos de Uso e Política de Privacidade.";
+    return null;
+  };
+
+  const validateStudent = (): string | null => {
+    const base = validateNameAndBirth();
+    if (base) return base;
+    if (isMinor && !parentName.trim()) return "Nome do responsável é obrigatório para menores de 18 anos.";
+    return validateCredentials();
+  };
+
   const validateStep = (currentStep: number): string | null => {
     switch (currentStep) {
-      case 1: // Perfil
-        if (!name.trim()) return "Por favor, preencha seu nome.";
-        if (name.trim().split(" ").length < 2) return "Por favor, digite seu nome completo.";
+      case 1: { // Perfil (professor)
+        const base = validateNameAndBirth();
+        if (base) return base;
         if (document.replace(/\D/g, "").length < 11) return "Documento inválido (mínimo 11 dígitos).";
-        if (!birthDate) return "Data de nascimento é obrigatória.";
-
-        const birth = new Date(birthDate);
-        if (birth > new Date()) return "Data de nascimento inválida.";
-        const ageVal = calculateAge(birthDate);
-        if (ageVal !== null && ageVal < 5) return "Idade mínima de 5 anos.";
-
         return null;
+      }
 
       case 2: // Contato
         if (address.trim().length < 5) return "Por favor, insira um endereço mais completo.";
         if (phone.replace(/\D/g, "").length < 10) return "Telefone inválido (mínimo 10 dígitos com DDD).";
         return null;
 
-      case 3: // Detalhes
-        if (userType === "student") {
-          if (!parentName.trim()) return "Nome do responsável é obrigatório.";
-          if (!school.trim()) return "Nome da escola é obrigatório.";
-          if (!grade.trim()) return "Série/Ano é obrigatório.";
-        }
-        if (userType === "teacher") {
+      case 3: // Detalhes (professor)
+        {
           if (!educationLevel) return "Selecione o grau de escolaridade.";
           if (!degree.trim()) return "Formação acadêmica é obrigatória.";
           if (schools.some(s => !s.trim())) return "Preencha todas as escolas ou remova as vazias.";
@@ -124,12 +143,7 @@ export function SignUpForm({
         return null;
 
       case 4: // Credenciais
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) return "Por favor, insira um e-mail válido.";
-        if (password.length < 6) return "A senha deve ter no mínimo 6 caracteres.";
-        if (password !== repeatPassword) return "As senhas não conferem.";
-        if (!agreedToTerms) return "Você deve concordar com os Termos de Uso e Política de Privacidade.";
-        return null;
+        return validateCredentials();
 
       default:
         return null;
@@ -157,7 +171,7 @@ export function SignUpForm({
     e.preventDefault();
     setError(null);
 
-    const errorMsg = validateStep(4);
+    const errorMsg = isStudent ? validateStudent() : validateStep(4);
     if (errorMsg) {
       setError(errorMsg);
       return;
@@ -190,20 +204,19 @@ export function SignUpForm({
         qualificationDocumentUrl = uploadPayload.url;
       }
 
+      // Aluno: só o mínimo. Telefone, endereço, documento e escola ficam para o perfil.
       const metadata: Record<string, unknown> = {
-        full_name: name,
+        full_name: name.trim(),
         user_type: userType,
-        phone,
-        address,
-        document,
         birth_date: birthDate,
       };
 
-      if (userType === "student") {
-        metadata.parent_name = parentName;
-        metadata.school = school;
-        metadata.grade = grade;
+      if (isStudent) {
+        if (isMinor) metadata.parent_name = parentName.trim();
       } else {
+        metadata.phone = phone;
+        metadata.address = address;
+        metadata.document = document;
         metadata.schools = schools.filter(s => s.trim());
         metadata.education_level = educationLevel;
         metadata.degree = degree;
@@ -215,7 +228,8 @@ export function SignUpForm({
         password,
         options: {
           data: metadata,
-          emailRedirectTo: `${window.location.origin}/protected`,
+          // O link do e-mail traz a pessoa de volta para onde ela estava (ex.: a jornada do LG2).
+          emailRedirectTo: `${window.location.origin}${nextPath ?? "/protected"}`,
         },
       });
 
@@ -273,11 +287,86 @@ export function SignUpForm({
     }),
   };
 
+  // Mesmos campos de acesso no passo único do aluno e no passo 4 do professor.
+  const credentialFields = (
+    <>
+              <div className="relative flex items-center">
+                <Mail className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <Input aria-label="Seu melhor E-mail" autoComplete="email" type="email" placeholder="Seu melhor E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+              </div>
+
+              <div className="relative flex items-center">
+                <Lock className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                {/* O Edge desenha um olho próprio em campo de senha; `[&::-ms-reveal]:hidden` o esconde para não duplicar o botão abaixo. */}
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Senha segura"
+                  aria-label="Senha segura"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  aria-label="Mostrar ou ocultar senha"
+                  className="absolute right-4 text-[#6A4A98] transition-colors z-20"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              <div className="relative flex items-center">
+                <Lock className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <Input
+                  type={showRepeatPassword ? "text" : "password"}
+                  placeholder="Confirme a senha"
+                  aria-label="Confirme a senha"
+                  autoComplete="new-password"
+                  value={repeatPassword}
+                  onChange={(e) => setRepeatPassword(e.target.value)}
+                  className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRepeatPassword(p => !p)}
+                  aria-label="Mostrar ou ocultar senha"
+                  className="absolute right-4 text-[#6A4A98] transition-colors z-20"
+                >
+                  {showRepeatPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              <div className="flex items-start space-x-3 pt-2 px-1">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6A4A98] focus:ring-[#6A4A98] cursor-pointer accent-[#6A4A98]"
+                />
+                <label htmlFor="terms" className="text-sm text-white/90 leading-tight">
+                  Li e concordo com os{" "}
+                  <Link href="/termos" className="underline hover:text-white font-semibold" target="_blank">
+                    Termos de Uso
+                  </Link>{" "}
+                  e{" "}
+                  <Link href="/privacidade" className="underline hover:text-white font-semibold" target="_blank">
+                    Política de Privacidade
+                  </Link>
+                  .
+                </label>
+              </div>
+    </>
+  );
+
   const getStepTitle = () => {
+    if (isStudent) return "Leva menos de um minuto";
     switch (step) {
       case 1: return "Quem é você?";
       case 2: return "Onde te encontramos?";
-      case 3: return userType === "student" ? "Sua Escola" : "Sua Carreira";
+      case 3: return "Sua Carreira";
       case 4: return "Acesso à conta";
       default: return "";
     }
@@ -298,23 +387,27 @@ export function SignUpForm({
             <h2 className="text-2xl font-bold text-white">Criar Conta</h2>
             <p className="text-white/80 text-sm font-medium h-5">{getStepTitle()}</p>
           </div>
-          <div className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">
-            Passo {step} de {totalSteps}
-          </div>
+          {!isStudent && (
+            <div className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">
+              Passo {step} de {totalSteps}
+            </div>
+          )}
         </div>
 
-        {/* Progress Bar */}
-        <div className="flex gap-2 w-full mt-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-1.5 flex-1 rounded-full transition-all duration-500",
-                i <= step ? "bg-white" : "bg-white/20"
-              )}
-            />
-          ))}
-        </div>
+        {/* Progress Bar (só no cadastro de professor, que tem vários passos) */}
+        {!isStudent && (
+          <div className="flex gap-2 w-full mt-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-1.5 flex-1 rounded-full transition-all duration-500",
+                  i <= step ? "bg-white" : "bg-white/20"
+                )}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main Form Content */}
@@ -366,25 +459,46 @@ export function SignUpForm({
                 <Input aria-label="Nome completo" autoComplete="name" type="text" placeholder="Nome completo" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} autoFocus />
               </div>
 
-              <div className="relative flex items-center">
-                <FileText className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input aria-label="CPF ou RG" type="text" placeholder="CPF ou RG" value={document} onChange={(e) => setDocument(e.target.value)} className={inputClass} />
-              </div>
+              {!isStudent && (
+                <div className="relative flex items-center">
+                  <FileText className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                  <Input aria-label="CPF ou RG" type="text" placeholder="CPF ou RG" value={document} onChange={(e) => setDocument(e.target.value)} className={inputClass} />
+                </div>
+              )}
 
               <div className="space-y-1">
               <label htmlFor="birthDate" className="text-sm text-white/70 ml-2">Data de nascimento</label>
               <div className="relative flex items-center">
                 <Calendar className="absolute left-4 text-[#6A4A98] z-10" size={20} />
                 <Input id="birthDate" type="date" autoComplete="bday" placeholder="Data de nascimento" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cn(inputClass, "pr-4")} />
-                {age !== null && (
+                {age !== null && age >= 0 && (
                   <span className="absolute right-4 text-[#6A4A98] text-sm font-medium">{age} anos</span>
                 )}
               </div>
               </div>
+
+              {isStudent && isMinor && (
+                <div className="space-y-1">
+                  <div className="relative flex items-center">
+                    <Users className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                    <Input aria-label="Nome do responsável" type="text" placeholder="Nome do responsável" value={parentName} onChange={(e) => setParentName(e.target.value)} className={inputClass} />
+                  </div>
+                  <p className="text-xs text-white/80 ml-2">Como você tem menos de 18 anos, precisamos do nome de um responsável.</p>
+                </div>
+              )}
+
+              {isStudent && (
+                <>
+                  {credentialFields}
+                  <p className="text-sm text-white/80 leading-relaxed text-center pt-1">
+                    O resto (telefone, endereço, escola) você completa depois no seu perfil, se quiser.
+                  </p>
+                </>
+              )}
             </motion.div>
           )}
 
-          {step === 2 && (
+          {step === 2 && !isStudent && (
             <motion.div
               key="step2"
               custom={direction}
@@ -413,7 +527,7 @@ export function SignUpForm({
             </motion.div>
           )}
 
-          {step === 3 && (
+          {step === 3 && !isStudent && (
             <motion.div
               key="step3"
               custom={direction}
@@ -424,24 +538,7 @@ export function SignUpForm({
               transition={{ duration: 0.2 }}
               className="space-y-4 w-full"
             >
-              {userType === "student" ? (
-                <>
-                  <div className="relative flex items-center">
-                    <Users className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                    <Input aria-label="Nome do responsável" type="text" placeholder="Nome do responsável" value={parentName} onChange={(e) => setParentName(e.target.value)} className={inputClass} autoFocus />
-                  </div>
-
-                  <div className="relative flex items-center">
-                    <School className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                    <Input aria-label="Escola atual" type="text" placeholder="Escola atual" value={school} onChange={(e) => setSchool(e.target.value)} className={inputClass} />
-                  </div>
-
-                  <div className="relative flex items-center">
-                    <GraduationCap className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                    <Input aria-label="Série / Ano" type="text" placeholder="Série / Ano" value={grade} onChange={(e) => setGrade(e.target.value)} className={inputClass} />
-                  </div>
-                </>
-              ) : (
+              {!isStudent && (
                 <>
                   <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
                     <label className="text-sm text-white/70 ml-2">Escolas onde leciona</label>
@@ -524,7 +621,7 @@ export function SignUpForm({
             </motion.div>
           )}
 
-          {step === 4 && (
+          {step === 4 && !isStudent && (
             <motion.div
               key="step4"
               custom={direction}
@@ -535,74 +632,7 @@ export function SignUpForm({
               transition={{ duration: 0.2 }}
               className="space-y-4 w-full"
             >
-              <div className="relative flex items-center">
-                <Mail className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input aria-label="Seu melhor E-mail" autoComplete="email" type="email" placeholder="Seu melhor E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoFocus />
-              </div>
-
-              <div className="relative flex items-center">
-                <Lock className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                {/* O Edge desenha um olho próprio em campo de senha; `[&::-ms-reveal]:hidden` o esconde para não duplicar o botão abaixo. */}
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Senha segura"
-                  aria-label="Senha segura"
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(p => !p)}
-                  aria-label="Mostrar ou ocultar senha"
-                  className="absolute right-4 text-[#6A4A98] transition-colors z-20"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-
-              <div className="relative flex items-center">
-                <Lock className="absolute left-4 text-[#6A4A98] z-10" size={20} />
-                <Input
-                  type={showRepeatPassword ? "text" : "password"}
-                  placeholder="Confirme a senha"
-                  aria-label="Confirme a senha"
-                  autoComplete="new-password"
-                  value={repeatPassword}
-                  onChange={(e) => setRepeatPassword(e.target.value)}
-                  className={cn(inputClass, "pr-12 [&::-ms-reveal]:hidden")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowRepeatPassword(p => !p)}
-                  aria-label="Mostrar ou ocultar senha"
-                  className="absolute right-4 text-[#6A4A98] transition-colors z-20"
-                >
-                  {showRepeatPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-
-              <div className="flex items-start space-x-3 pt-2 px-1">
-                <input
-                  type="checkbox"
-                  id="terms"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6A4A98] focus:ring-[#6A4A98] cursor-pointer accent-[#6A4A98]"
-                />
-                <label htmlFor="terms" className="text-sm text-white/90 leading-tight">
-                  Li e concordo com os{" "}
-                  <Link href="/termos" className="underline hover:text-white font-semibold" target="_blank">
-                    Termos de Uso
-                  </Link>{" "}
-                  e{" "}
-                  <Link href="/privacidade" className="underline hover:text-white font-semibold" target="_blank">
-                    Política de Privacidade
-                  </Link>
-                  .
-                </label>
-              </div>
+              {credentialFields}
             </motion.div>
           )}
         </AnimatePresence>
@@ -643,12 +673,12 @@ export function SignUpForm({
           </div>
         </motion.div>
       ) : (
-        <div className="flex w-full max-w-md gap-4 mt-auto">
+        <div className="flex w-full max-w-md flex-col-reverse gap-3 mt-auto sm:flex-row sm:gap-4">
           {step > 1 ? (
             <Button
               type="button"
               onClick={handlePrev}
-              className="flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
+              className="w-full sm:flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
             >
               <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
             </Button>
@@ -656,7 +686,7 @@ export function SignUpForm({
             <Button
               type="button"
               onClick={onToggleView}
-              className="flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
+              className="w-full sm:flex-1 rounded-full bg-transparent border-2 border-white/50 text-white hover:bg-white/10 hover:border-white h-12"
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Já tenho conta
             </Button>
@@ -666,7 +696,7 @@ export function SignUpForm({
             <Button
               type="button"
               onClick={handleNext}
-              className="flex-[2] rounded-full bg-white text-[#6A4A98] hover:bg-gray-100 font-bold h-12"
+              className="w-full sm:flex-[2] rounded-full bg-white text-[#6A4A98] hover:bg-gray-100 font-bold h-12"
             >
               Próximo <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
@@ -674,9 +704,9 @@ export function SignUpForm({
             <Button
               onClick={handleSignUp}
               disabled={isLoading}
-              className="flex-[2] rounded-full bg-emerald-400 text-emerald-950 hover:bg-emerald-300 font-bold h-12"
+              className="w-full sm:flex-[2] rounded-full bg-[#FFD300] text-[#684A97] hover:bg-[#FDCF60] font-bold h-12"
             >
-              {isLoading ? "Criando..." : "Concluir Cadastro"} <Check className="ml-2 h-4 w-4" />
+              {isLoading ? "Criando..." : isStudent ? "Criar minha conta" : "Concluir Cadastro"} <Check className="ml-2 h-4 w-4" />
             </Button>
           )}
         </div>

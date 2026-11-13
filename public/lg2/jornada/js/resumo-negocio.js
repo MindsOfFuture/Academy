@@ -236,7 +236,7 @@
     var leg = [];
     var cnpj = texto(r8["M8.P05"]);
     if (cnpj === "Não") leg.push("você ainda não tem CNPJ" + (texto(r8["M8.P07"]) === "Sim" ? " e a sua atividade pode ser MEI" : ""));
-    else if (cnpj) leg.push("você já tem CNPJ (" + cnpj + ")");
+    else if (cnpj && cnpj !== "Não sei") leg.push("você já tem CNPJ: " + cnpj);
     var via = texto(r9["M9-04"]);
     if (via === "Sim, foi aprovada") leg.push("a prefeitura já aprovou a atividade no endereço");
     else if (via === "Sim, foi negada") leg.push("a prefeitura negou a atividade no endereço escolhido");

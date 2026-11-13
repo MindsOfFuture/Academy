@@ -127,7 +127,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await semear({ 'lg2-turma-a-m01': M1,
     'lg2-turma-a-m05': { versao: 3, R: { 'M5.P36': { estado: 'valor', valor: '1500' }, 'M5.P37': { estado: 'valor', valor: '1500' } } } });
   await page.reload(); await btn('Começar').click();
-  await ateResultado({ 'M8.P05': 'MEI', 'M8.P02': 'Mercadoria' });
+  await ateResultado({ 'M8.P05': 'MEI (Microempreendedor Individual)', 'M8.P02': 'Mercadoria' });
   let st8 = await st();
   check(st8.R['M8.P04'].valor === '2250000' && st8.R['M8.P04'].de === 5, 'faturamento herdado do Módulo 5 (1.500 × 1.500)');
   let am = nrm(await page.textContent('#alerta-mei'));
@@ -149,6 +149,18 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P04'] = { estado: 'valor', valor: '6750' }; s.R['M8.P05'] = { estado: 'opcao', opcao: 'MEI' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
   check(await page.locator('#alerta-mei').count() === 0, 'R$ 81.000/ano exatos: sem alerta');
+  /* P05 com as siglas por extenso (nov/2026): resposta antiga "MEI" continua valendo; ME já tem CNPJ fora do MEI */
+  const p05 = async (opcao) => { await page.evaluate((o) => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P04'] = { estado: 'valor', valor: '9000' }; s.R['M8.P05'] = { estado: 'opcao', opcao: o }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); }, opcao); await page.reload(); await btn('Continuar de onde parei').click(); };
+  await p05('MEI');
+  check(await page.locator('#alerta-mei').count() === 1 && nrm(await page.textContent('#alerta-mei')).includes('sai do MEI'), 'P05 antigo "MEI": alerta de quem sai do MEI');
+  check(nrm(await page.textContent('#entendemos')).includes('sai do MEI'), 'P05 antigo "MEI": entendemos diz que sai do MEI');
+  await p05('MEI (Microempreendedor Individual)');
+  check(nrm(await page.textContent('#alerta-mei')).includes('sai do MEI'), 'P05 "MEI (Microempreendedor Individual)": alerta de quem sai do MEI');
+  check(nrm(await page.textContent('#entendemos')).includes('Você já tem CNPJ: MEI (Microempreendedor Individual).'), 'entendemos mostra o tipo por extenso');
+  for (const o of ['ME (Microempresa)', 'LTDA (Sociedade Limitada)', 'EI']) {
+    await p05(o);
+    check(await page.locator('#alerta-mei').count() === 0, `P05 "${o}": já tem CNPJ fora do MEI, sem alerta do MEI`);
+  }
   /* P04 "Não sei" salvo antes (nov/2026: o faturamento passou a ser obrigatório): a resposta antiga é apagada e a pergunta volta */
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P04'] = { estado: 'naosei' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
@@ -159,7 +171,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P04'] = { estado: 'valor', valor: '9000' }; s.hist = ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05']; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
   assert.equal(await atual(), 'M8.P05');
-  await escolher('MEI'); await btn('Continuar').click();
+  await escolher('MEI (Microempreendedor Individual)'); await btn('Continuar').click();
   check(nrm(await page.textContent('#retorno')).includes('sai do MEI'), 'P05 = MEI acima do limite: alerta logo na resposta');
 
   /* ===== Item 5 (Júlia, nov/2026): "Não sei" que não grava nem avança nas perguntas que o módulo usa ===== */

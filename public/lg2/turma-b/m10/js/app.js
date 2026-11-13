@@ -723,7 +723,7 @@
       const ops = lista.map((x) => x.tema);
       const marcadas = resp ? (resp.opcoes || []).filter((x) => ops.includes(x)) : [];
       let naosei = !!(resp && resp.naosei);
-      const outro = el(`<div><label class="rot-campo" for="outro">Outro (escreva)</label><input class="campo" id="outro" value="${esc((resp && resp.outro) || "")}"></div>`);
+      const outro = el(`<div><label class="rot-campo" for="outro">Outro (escreva)</label><input class="campo" id="outro" data-falar value="${esc((resp && resp.outro) || "")}"></div>`);
       const total = () => marcadas.length + (outro.querySelector("input").value.trim() ? 1 : 0);
       if (!ops.length) ent.appendChild(el(`<p class="diag-r">Nenhum ponto em aberto apareceu nos módulos deste aparelho. Escreva o que é mais urgente para você.</p>`));
       const m = multipla(ops, marcadas, [], (op) => {
@@ -778,9 +778,9 @@
       const uni = (u) => `<option value="${esc(u)}" ${v.unidade === u ? "selected" : ""}>${esc(u)}</option>`;
       ent.appendChild(el(`<div>
         ${prin ? `<div class="bloco b-ok"><b>Prioridade mais urgente</b><p>${esc(prin)}</p></div>` : ""}
-        <label class="rot-campo" for="acao">O que você vai fazer</label><input class="campo" id="acao" autocomplete="off" value="${esc(v.acao || "")}">
+        <label class="rot-campo" for="acao">O que você vai fazer</label><input class="campo" id="acao" data-falar autocomplete="off" value="${esc(v.acao || "")}">
         <label class="rot-campo" for="data">Até quando</label><input class="campo" id="data" type="date" min="${hoje}" value="${esc(v.data || "")}">
-        <label class="rot-campo" for="sinal">Que sinal vai mostrar que funcionou</label><input class="campo" id="sinal" autocomplete="off" placeholder="Ex.: pedidos pelo WhatsApp" value="${esc(v.sinal || "")}">
+        <label class="rot-campo" for="sinal">Que sinal vai mostrar que funcionou</label><input class="campo" id="sinal" data-falar autocomplete="off" placeholder="Ex.: pedidos pelo WhatsApp" value="${esc(v.sinal || "")}">
         <label class="rot-campo" for="numero">Quanto basta (número)</label><input class="campo" id="numero" inputmode="decimal" autocomplete="off" placeholder="Ex.: 5" value="${esc(v.numero || "")}">
         <label class="rot-campo" for="unidade">O que você vai contar</label><select class="campo" id="unidade"><option value="">Escolha</option>${Mo.UNIDADES_PLANO.map(uni).join("")}</select>
       </div>`));

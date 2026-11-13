@@ -3,10 +3,13 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Phone, MapPin, Calendar, FileText } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Calendar, FileText, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { normalizeNextPath } from "@/lib/utils";
+import { calcularIdade } from "@/components/auth/sign-up-form";
+
+const inputClass = "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]";
 
 function CompleteProfileContent() {
     const searchParams = useSearchParams();
@@ -21,6 +24,7 @@ function CompleteProfileContent() {
     const [address, setAddress] = useState("");
     const [document, setDocument] = useState("");
     const [birthDate, setBirthDate] = useState("");
+    const [parentName, setParentName] = useState("");
     const [userType, setUserType] = useState<"student" | "teacher">("student");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -31,30 +35,25 @@ function CompleteProfileContent() {
         }
     }, [isFromOAuth, router]);
 
-    const calculateAge = (birthDateStr: string): number | null => {
-        if (!birthDateStr) return null;
-        const today = new Date();
-        const birth = new Date(birthDateStr);
-        let age = today.getFullYear() - birth.getFullYear();
-        const monthDiff = today.getMonth() - birth.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-            age--;
-        }
-        return age;
-    };
+    const age = calcularIdade(birthDate);
+    const isTeacher = userType === "teacher";
+    const precisaResponsavel = !isTeacher && age !== null && age >= 0 && age < 18;
 
+    // Aluno: só nome, nascimento (e responsável, se menor). Telefone, endereço e
+    // documento são opcionais; para professor continuam obrigatórios.
     const validateForm = (): string | null => {
         if (!fullName.trim()) return "Nome completo é obrigatório";
-        if (fullName.trim().split(" ").length < 2) return "Digite seu nome completo";
-        if (!phone) return "Telefone é obrigatório";
-        if (phone.replace(/\D/g, "").length < 10) return "Telefone inválido";
-        if (!address.trim()) return "Endereço é obrigatório";
-        if (!document) return "Documento é obrigatório";
-        if (document.replace(/\D/g, "").length < 11) return "Documento inválido";
+        if (fullName.trim().split(/\s+/).length < 2) return "Digite seu nome completo";
         if (!birthDate) return "Data de nascimento é obrigatória";
+        if (age === null || age < 0) return "Data de nascimento inválida";
+        if (age < 5) return "Idade mínima de 5 anos";
+        if (precisaResponsavel && !parentName.trim()) return "Nome do responsável é obrigatório para menores de 18 anos";
 
-        const age = calculateAge(birthDate);
-        if (age !== null && age < 5) return "Idade mínima de 5 anos";
+        if (isTeacher && !phone) return "Telefone é obrigatório";
+        if (phone && phone.replace(/\D/g, "").length < 10) return "Telefone inválido";
+        if (isTeacher && !address.trim()) return "Endereço é obrigatório";
+        if (isTeacher && !document) return "Documento é obrigatório";
+        if (document && document.replace(/\D/g, "").length < 11) return "Documento inválido";
 
         return null;
     };
@@ -81,6 +80,7 @@ function CompleteProfileContent() {
                     address,
                     document,
                     birthDate,
+                    parentName: precisaResponsavel ? parentName.trim() : "",
                     userType,
                 }),
             });
@@ -133,7 +133,7 @@ function CompleteProfileContent() {
                     Complete seu Perfil
                 </h1>
                 <p className="text-sm text-gray-600 mb-6">
-                    Precisamos de algumas informações adicionais para finalizar seu cadastro.
+                    Só falta confirmar seu nome e sua data de nascimento.
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -181,72 +181,168 @@ function CompleteProfileContent() {
                         </div>
                     </div>
 
+                    {/* Birth Date */}
+                    <div>
+                        <label htmlFor="cp-birth" className="block text-sm font-medium text-gray-700 mb-1">
+                            Data de Nascimento
+                        </label>
+                        <div className="relative">
+                            <Calendar className="absolute left-3 top-3 text-gray-400" size={18} />
+                            <input
+                                id="cp-birth"
+                                type="date"
+                                value={birthDate}
+                                onChange={(e) => setBirthDate(e.target.value)}
+                                className={inputClass}
+                            />
+                        </div>
+                    </div>
+
+                    {precisaResponsavel && (
+                        <div>
+                            <label htmlFor="cp-parent" className="block text-sm font-medium text-gray-700 mb-1">
+                                Nome do responsável
+                            </label>
+                            <div className="relative">
+                                <Users className="absolute left-3 top-3 text-gray-400" size={18} />
+                                <input
+                                    id="cp-parent"
+                                    type="text"
+                                    value={parentName}
+                                    onChange={(e) => setParentName(e.target.value)}
+                                    placeholder="Nome de um responsável"
+                                    className={inputClass}
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-600">Como você tem menos de 18 anos, precisamos do nome de um responsável.</p>
+                        </div>
+                    )}
+
+                    {isTeacher ? (
+                        <>
                     {/* Phone */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="cp-phone" className="block text-sm font-medium text-gray-700 mb-1">
                             Telefone
                         </label>
                         <div className="relative">
                             <Phone className="absolute left-3 top-3 text-gray-400" size={18} />
                             <input
+                                id="cp-phone"
                                 type="tel"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                                 placeholder="(XX) XXXXX-XXXX"
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                className={inputClass}
                             />
                         </div>
                     </div>
 
                     {/* Address */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="cp-address" className="block text-sm font-medium text-gray-700 mb-1">
                             Endereço
                         </label>
                         <div className="relative">
                             <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
                             <input
                                 type="text"
+                                id="cp-address"
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
                                 placeholder="Rua, número, cidade"
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                className={inputClass}
                             />
                         </div>
                     </div>
 
                     {/* Document */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="cp-document" className="block text-sm font-medium text-gray-700 mb-1">
                             CPF/Documento
                         </label>
                         <div className="relative">
                             <FileText className="absolute left-3 top-3 text-gray-400" size={18} />
                             <input
                                 type="text"
+                                id="cp-document"
                                 value={document}
                                 onChange={(e) => setDocument(e.target.value)}
                                 placeholder="XXX.XXX.XXX-XX"
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                className={inputClass}
                             />
                         </div>
                     </div>
 
-                    {/* Birth Date */}
+                        </>
+                    ) : (
+                        <details className="rounded-lg border border-gray-200 p-3">
+                            <summary className="cursor-pointer text-sm font-medium text-[#6A4A98]">
+                                Adicionar mais dados (opcional)
+                            </summary>
+                            <div className="mt-3 space-y-4">
+                    {/* Phone */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Data de Nascimento
+                        <label htmlFor="cp-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                            Telefone
                         </label>
                         <div className="relative">
-                            <Calendar className="absolute left-3 top-3 text-gray-400" size={18} />
+                            <Phone className="absolute left-3 top-3 text-gray-400" size={18} />
                             <input
-                                type="date"
-                                value={birthDate}
-                                onChange={(e) => setBirthDate(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                id="cp-phone"
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="(XX) XXXXX-XXXX"
+                                className={inputClass}
                             />
                         </div>
                     </div>
+
+                    {/* Address */}
+                    <div>
+                        <label htmlFor="cp-address" className="block text-sm font-medium text-gray-700 mb-1">
+                            Endereço
+                        </label>
+                        <div className="relative">
+                            <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                id="cp-address"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="Rua, número, cidade"
+                                className={inputClass}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Document */}
+                    <div>
+                        <label htmlFor="cp-document" className="block text-sm font-medium text-gray-700 mb-1">
+                            CPF/Documento
+                        </label>
+                        <div className="relative">
+                            <FileText className="absolute left-3 top-3 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                id="cp-document"
+                                value={document}
+                                onChange={(e) => setDocument(e.target.value)}
+                                placeholder="XXX.XXX.XXX-XX"
+                                className={inputClass}
+                            />
+                        </div>
+                    </div>
+
+                            </div>
+                        </details>
+                    )}
+                    {!isTeacher && (
+                        <p className="text-xs text-gray-600">
+                            Telefone, endereço e documento você pode completar depois no seu perfil, se quiser.
+                        </p>
+                    )}
 
                     {error && (
                         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">

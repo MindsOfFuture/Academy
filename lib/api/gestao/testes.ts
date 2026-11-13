@@ -2,11 +2,11 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 export interface TesteResumo {
-  userId: string; nome: string; cpf: string; acessos: number; ultimoAcessoEm: string;
+  userId: string; nome: string; cpf: string | null; acessos: number; ultimoAcessoEm: string;
   modulosAbertos: number; modulosConcluidos: number; jornadaConcluida: boolean;
 }
 
-interface Linha { user_id: string; nome: string; cpf: string; acessos: number; ultimo_acesso_em: string; modulos_abertos: number; modulos_concluidos: number; jornada_concluida: boolean }
+interface Linha { user_id: string; nome: string; cpf: string | null; acessos: number; ultimo_acesso_em: string; modulos_abertos: number; modulos_concluidos: number; jornada_concluida: boolean }
 
 export async function resumoTestes(): Promise<TesteResumo[]> {
   const supabase = await createClient();
@@ -21,6 +21,7 @@ function campoCsv(valor: string | number): string {
 
 export function csvTestes(linhas: TesteResumo[]): string {
   const cabecalho = ["Nome", "CPF", "Acessos", "Último acesso", "Módulos abertos", "Módulos concluídos", "Jornada concluída"];
-  const conteudo = linhas.map((r) => [r.nome, r.cpf, r.acessos, r.ultimoAcessoEm, r.modulosAbertos, `${r.modulosConcluidos} de 10`, r.jornadaConcluida ? "sim" : "não"]);
+  // CPF só existe para quem entrou pelo formulário antigo do /teste.
+  const conteudo = linhas.map((r) => [r.nome, r.cpf ?? "—", r.acessos, r.ultimoAcessoEm, r.modulosAbertos, `${r.modulosConcluidos} de 10`, r.jornadaConcluida ? "sim" : "não"]);
   return `\uFEFF${[cabecalho, ...conteudo].map((linha) => linha.map(campoCsv).join(";")).join("\r\n")}`;
 }
