@@ -427,17 +427,31 @@ export interface Espaco {
     ativo: boolean;
 }
 
+export interface CursoRow {
+    id: string;
+    modalidade: string;
+    inicio: string;
+    fim: string | null;
+    n_alunos: number | null;
+}
+
 export interface TurmaRow {
     id: string;
     escola_id: string;
     nome: string;
+    status: StatusTurma;
+    motivo: string | null;
+    escola: { nome: string } | { nome: string }[] | null;
+    turma_curso: CursoRow[] | null;
+}
+
+/** Um curso da turma (Lego, depois Python…): cada um conta no número de alunos. */
+export interface Curso {
+    id: string;
     modalidade: string;
     inicio: string;
     fim: string | null;
-    status: StatusTurma;
-    motivo: string | null;
-    n_alunos: number | null;
-    escola: { nome: string } | { nome: string }[] | null;
+    nAlunos: number | null;
 }
 
 export interface Turma {
@@ -445,12 +459,10 @@ export interface Turma {
     escolaId: string;
     escolaNome: string;
     nome: string;
-    modalidade: string;
-    inicio: string;
-    fim: string | null;
     status: StatusTurma;
     motivo: string | null;
-    nAlunos: number | null;
+    /** Do mais antigo ao mais recente. */
+    cursos: Curso[];
 }
 
 export interface AlocacaoRow {
@@ -569,13 +581,12 @@ export interface Ocorrencia {
 /** O que muda ao editar um encontro já lançado; a equipe tem tela própria. */
 export type EdicaoEncontro = Omit<NovoEncontro, "equipe" | "responsaveis">;
 
-export interface NovaTurma {
+export type NovoCurso = Omit<Curso, "id">;
+
+/** Turma nova já com o primeiro curso. */
+export interface NovaTurma extends NovoCurso {
     escolaId: string;
     nome: string;
-    modalidade: string;
-    inicio: string;
-    fim: string | null;
-    nAlunos: number | null;
 }
 
 export interface NovaEscola {
@@ -605,11 +616,15 @@ export interface VCargaRow {
     escola_id: string | null;
     turma_id: string | null;
     horas: number | string;
+    horas_alocadas: number | string;
 }
 
 export interface CargaBolsista {
     bolsistaId: string;
     nome: string;
+    /** Horas alocadas no mês, cumpridas ou não; a divisão por escola e turma é delas. */
+    alocadas: number;
+    /** Das alocadas, as já cumpridas. */
     total: number;
     porEscola: { escolaId: string | null; nome: string; horas: number }[];
     porTurma: { turmaId: string | null; nome: string; horas: number }[];

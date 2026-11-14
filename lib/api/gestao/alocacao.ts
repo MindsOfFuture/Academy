@@ -15,6 +15,7 @@ import type {
   EncontroRow,
   NovaEscola,
   NovaTurma,
+  NovoCurso,
   NovoAfastamento,
   NovoEncontro,
   Ocorrencia,
@@ -81,12 +82,11 @@ function mapTurma(row: TurmaRow): Turma {
     escolaId: row.escola_id,
     escolaNome: primeiro(row.escola)?.nome ?? "Escola",
     nome: row.nome,
-    modalidade: row.modalidade,
-    inicio: row.inicio,
-    fim: row.fim,
     status: row.status,
     motivo: row.motivo,
-    nAlunos: row.n_alunos,
+    cursos: (row.turma_curso ?? [])
+      .map((c) => ({ id: c.id, modalidade: c.modalidade, inicio: c.inicio, fim: c.fim, nAlunos: c.n_alunos }))
+      .sort((a, b) => a.inicio.localeCompare(b.inicio)),
   };
 }
 
@@ -166,12 +166,13 @@ export async function listarTurmas(): Promise<Turma[]> {
   const { data, error } = await supabase
     .schema("gestao")
     .from("turma")
-    .select("id, escola_id, nome, modalidade, inicio, fim, status, motivo, n_alunos, escola(nome)")
+    .select("id, escola_id, nome, status, motivo, escola(nome), turma_curso(id, modalidade, inicio, fim, n_alunos)")
     .order("inicio", { ascending: false });
   throwOnError(error);
   return ((data ?? []) as unknown as TurmaRow[]).map(mapTurma);
 }
 
+/** A turma e o primeiro curso: o banco cria o curso a partir destas colunas (trigger). */
 export async function cadastrarTurma(turma: NovaTurma): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.schema("gestao").from("turma").insert({
@@ -186,22 +187,26 @@ export async function cadastrarTurma(turma: NovaTurma): Promise<void> {
 }
 
 /**
- * Edita nome, atividade e período. A escola não muda: os encontros já lançados
- * guardam a escola da turma, e trocá-la aqui deixaria os dois desencontrados.
+ * Edita o nome. A escola não muda: os encontros já lançados guardam a escola
+ * da turma, e trocá-la aqui deixaria os dois desencontrados.
  */
-export async function editarTurma(id: string, turma: Omit<NovaTurma, "escolaId">): Promise<void> {
+export async function editarTurma(id: string, nome: string): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .schema("gestao")
-    .from("turma")
-    .update({
-      nome: turma.nome,
-      modalidade: turma.modalidade,
-      inicio: turma.inicio,
-      fim: turma.fim,
-      n_alunos: turma.nAlunos,
-    })
-    .eq("id", id);
+  const { error } = await supabase.schema("gestao").from("turma").update({ nome }).eq("id", id);
+  throwOnError(error);
+}
+
+const linhaCurso = (c: NovoCurso) => ({ modalidade: c.modalidade, inicio: c.inicio, fim: c.fim, n_alunos: c.nAlunos });
+
+export async function adicionarCurso(turmaId: string, curso: NovoCurso): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("gestao").from("turma_curso").insert({ turma_id: turmaId, ...linhaCurso(curso) });
+  throwOnError(error);
+}
+
+export async function editarCurso(id: string, curso: NovoCurso): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("gestao").from("turma_curso").update(linhaCurso(curso)).eq("id", id);
   throwOnError(error);
 }
 
@@ -792,24 +797,25 @@ export function agruparCarga(
     acc.minutos += a.atraso_minutos;
     atrasoPorPessoa.set(a.bolsista_id, acc);
   }
-  const porPessoa = new Map<string, { total: number; escola: Map<string | null, number>; turma: Map<string | null, number> }>();
+  type Acc = { alocadas: number; total: number; escola: Map<string | null, number>; turma: Map<string | null, number> };
+  const vazio = (): Acc => ({ alocadas: 0, total: 0, escola: new Map(), turma: new Map() });
+  const porPessoa = new Map<string, Acc>();
   for (const l of linhas) {
-    const horas = Number(l.horas);
-    const acc = porPessoa.get(l.bolsista_id) ?? { total: 0, escola: new Map(), turma: new Map() };
-    acc.total += horas;
+    const horas = Number(l.horas_alocadas);
+    const acc = porPessoa.get(l.bolsista_id) ?? vazio();
+    acc.alocadas += horas;
+    acc.total += Number(l.horas);
     acc.escola.set(l.escola_id, (acc.escola.get(l.escola_id) ?? 0) + horas);
     acc.turma.set(l.turma_id, (acc.turma.get(l.turma_id) ?? 0) + horas);
     porPessoa.set(l.bolsista_id, acc);
   }
   return bolsistas
-    .map((b) => {
-      const acc = porPessoa.get(b.id) ?? { total: 0, escola: new Map(), turma: new Map() };
-      return { b, acc };
-    })
-    .filter(({ b, acc }) => b.ativo || acc.total > 0)
+    .map((b) => ({ b, acc: porPessoa.get(b.id) ?? vazio() }))
+    .filter(({ b, acc }) => b.ativo || acc.alocadas > 0)
     .map(({ b, acc }) => ({
       bolsistaId: b.id,
       nome: b.nome,
+      alocadas: acc.alocadas,
       total: acc.total,
       porEscola: [...acc.escola.entries()]
         .filter(([, h]) => h > 0)
@@ -828,7 +834,7 @@ export function agruparCarga(
       atrasos: atrasoPorPessoa.get(b.id)?.atrasos ?? 0,
       minutosDeAtraso: atrasoPorPessoa.get(b.id)?.minutos ?? 0,
     }))
-    .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome));
+    .sort((a, b) => b.alocadas - a.alocadas || a.nome.localeCompare(b.nome));
 }
 
 export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
@@ -838,7 +844,7 @@ export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
     supabase
       .schema("gestao")
       .from("v_carga")
-      .select("bolsista_id, data, escola_id, turma_id, horas")
+      .select("bolsista_id, data, escola_id, turma_id, horas, horas_alocadas")
       .gte("data", de)
       .lte("data", ate),
     supabase.schema("gestao").from("escola").select("id, nome"),

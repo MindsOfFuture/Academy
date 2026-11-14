@@ -10,20 +10,30 @@ vi.mock("server-only", () => ({}));
 
 const eq = vi.fn(async () => ({ error: null }));
 const update = vi.fn(() => ({ eq }));
-const from = vi.fn(() => ({ update }));
+const insert = vi.fn(async () => ({ error: null }));
+const from = vi.fn(() => ({ update, insert }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ schema: (nome: string) => (nome === "gestao" ? { from } : null) }),
 }));
 
-import { editarEscola, editarTurma } from "@/lib/api/gestao/alocacao";
+import { adicionarCurso, editarCurso, editarEscola, editarTurma } from "@/lib/api/gestao/alocacao";
 
 describe("edição de turma e escola", () => {
-  it("editar a turma não manda a escola, mesmo que venha junto", async () => {
-    const dados = { nome: "Lego tarde", modalidade: "Lego", inicio: "2026-09-01", fim: null, nAlunos: 20, escolaId: "outra" };
-    await editarTurma("t1", dados);
+  it("editar a turma muda só o nome: nem escola nem curso", async () => {
+    await editarTurma("t1", "Lego tarde");
     expect(from).toHaveBeenLastCalledWith("turma");
-    expect(update).toHaveBeenLastCalledWith({ nome: "Lego tarde", modalidade: "Lego", inicio: "2026-09-01", fim: null, n_alunos: 20 });
+    expect(update).toHaveBeenLastCalledWith({ nome: "Lego tarde" });
     expect(eq).toHaveBeenLastCalledWith("id", "t1");
+  });
+
+  it("curso novo vai para a turma; editar o curso não troca a turma", async () => {
+    const curso = { modalidade: "Python", inicio: "2027-02-01", fim: null, nAlunos: 25 };
+    await adicionarCurso("t1", curso);
+    expect(from).toHaveBeenLastCalledWith("turma_curso");
+    expect(insert).toHaveBeenLastCalledWith({ turma_id: "t1", modalidade: "Python", inicio: "2027-02-01", fim: null, n_alunos: 25 });
+    await editarCurso("c1", { ...curso, nAlunos: 30 });
+    expect(update).toHaveBeenLastCalledWith({ modalidade: "Python", inicio: "2027-02-01", fim: null, n_alunos: 30 });
+    expect(eq).toHaveBeenLastCalledWith("id", "c1");
   });
 
   it("editar a escola atualiza nome, rede e cidade", async () => {

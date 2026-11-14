@@ -12,6 +12,7 @@ import type {
   NovaProducaoPesquisa,
   NovaReuniaoPesquisa,
   NovaTurma,
+  NovoCurso,
   NovoAfastamento,
   NovoEncontro,
   Ocorrencia,
@@ -165,24 +166,36 @@ export function validarEscola(form: FormData): Validado<NovaEscola> {
   return { ok: true, valor: { nome, categoria, cidade } };
 }
 
+export function validarNomeTurma(form: FormData): Validado<string> {
+  const nome = texto(form, "nome");
+  if (nome.length < 2 || nome.length > 120) return { ok: false, mensagem: "Dê um nome à turma (até 120 caracteres)." };
+  return { ok: true, valor: nome };
+}
+
 export function validarTurma(form: FormData): Validado<NovaTurma> {
   const escolaId = texto(form, "escolaId");
-  const nome = texto(form, "nome");
+  if (!escolaId) return { ok: false, mensagem: "Escolha a escola." };
+  const nome = validarNomeTurma(form);
+  if (!nome.ok) return nome;
+  const curso = validarCurso(form);
+  if (!curso.ok) return curso;
+  return { ok: true, valor: { escolaId, nome: nome.valor, ...curso.valor } };
+}
+
+export function validarCurso(form: FormData): Validado<NovoCurso> {
   const modalidade = texto(form, "modalidade");
   const inicio = texto(form, "inicio");
   const fim = texto(form, "fim");
   const alunos = texto(form, "nAlunos");
-  if (!escolaId) return { ok: false, mensagem: "Escolha a escola." };
-  if (nome.length < 2 || nome.length > 120) return { ok: false, mensagem: "Dê um nome à turma (até 120 caracteres)." };
-  if (modalidade.length < 2) return { ok: false, mensagem: "Informe a atividade, como Lego ou IA." };
-  if (!DATA_ISO.test(inicio)) return { ok: false, mensagem: "Informe quando a turma começa." };
+  if (modalidade.length < 2 || modalidade.length > 80) return { ok: false, mensagem: "Informe o curso, como Lego ou Python." };
+  if (!DATA_ISO.test(inicio)) return { ok: false, mensagem: "Informe quando o curso começa." };
   if (fim && (!DATA_ISO.test(fim) || fim < inicio)) {
     return { ok: false, mensagem: "O fim previsto não pode ser antes do início." };
   }
   if (alunos && !(/^\d{1,4}$/.test(alunos) && Number(alunos) <= 1000)) {
     return { ok: false, mensagem: "O número de alunos deve ser um número inteiro de 0 a 1000." };
   }
-  return { ok: true, valor: { escolaId, nome, modalidade, inicio, fim: fim || null, nAlunos: alunos ? Number(alunos) : null } };
+  return { ok: true, valor: { modalidade, inicio, fim: fim || null, nAlunos: alunos ? Number(alunos) : null } };
 }
 
 export function validarSituacaoTurma(form: FormData): Validado<{ status: StatusTurma; motivo: string | null }> {

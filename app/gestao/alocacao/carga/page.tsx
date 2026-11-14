@@ -7,8 +7,9 @@ import { SeletorMes } from "../../seletor-mes";
 import { diaCurto, horasTexto, mesDaUrl } from "../rotulos";
 
 /**
- * Carga do mês (spec 014): horas que contam por bolsista, divididas por escola
- * e turma. O equilíbrio é medido só em horas (decisão de 09/10/2026).
+ * Carga do mês (spec 014): horas alocadas por bolsista, divididas por escola e
+ * turma, e quanto delas já foi cumprido. O equilíbrio é medido só em horas
+ * (decisão de 09/10/2026).
  */
 
 function dataBr(iso: string): string {
@@ -26,26 +27,25 @@ export default async function CargaPage({ searchParams }: { searchParams: Promis
     .map((m) => ({ id: m.userProfileId, nome: m.nome }));
   // Quem pode substituir: a equipe ativa, como na página do encontro.
   const ativos = equipe.filter((m) => !m.desligadoEm).map((m) => ({ id: m.userProfileId, nome: m.nome }));
-  const maior = Math.max(1, ...carga.map((c) => c.total));
+  const maior = Math.max(1, ...carga.map((c) => c.alocadas));
 
   return (
     <div className="space-y-6">
       <SeletorMes mes={mes} titulo="Carga de" />
-      <p className="text-sm text-muted-foreground">
-        Conta o que foi cumprido. Encontro que já passou sem marcação conta como cumprido; falta, substituição,
-        encontro cancelado e turma que não abriu não contam. Quando alguém cobre outra pessoa, as horas cobertas vão
-        para quem cobriu.
-      </p>
 
       <ul className="divide-y rounded-lg border bg-white shadow-sm">
         {carga.map((c) => (
           <li key={c.bolsistaId} className="space-y-2 p-4">
             <div className="flex items-baseline justify-between gap-2">
               <p className="font-medium">{c.nome}</p>
-              <p className="font-semibold tabular-nums">{horasTexto(c.total)}</p>
+              <p className="text-right tabular-nums">
+                <span className="font-semibold">{horasTexto(c.alocadas)}</span>
+                <span className="block text-xs text-muted-foreground">{horasTexto(c.total)} cumpridas</span>
+              </p>
             </div>
-            <div className="h-2 rounded-full bg-gray-100" aria-hidden>
-              <div className="h-2 rounded-full bg-[#684A97]" style={{ width: `${(c.total / maior) * 100}%` }} />
+            <div className="relative h-2 rounded-full bg-gray-100" aria-hidden>
+              <div className="absolute h-2 rounded-full bg-[#684A97]/30" style={{ width: `${(c.alocadas / maior) * 100}%` }} />
+              <div className="absolute h-2 rounded-full bg-[#684A97]" style={{ width: `${(c.total / maior) * 100}%` }} />
             </div>
             <p className="text-sm text-muted-foreground">
               {c.porEscola.length

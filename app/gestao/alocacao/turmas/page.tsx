@@ -1,7 +1,7 @@
 import { listarTurmas } from "@/lib/api/gestao/alocacao";
 import { listEscolas } from "@/lib/api/gestao/entities";
 import { exigirMembro } from "../../guard";
-import { FormEscola, FormSituacaoTurma, FormTurma } from "../forms";
+import { FormCurso, FormEscola, FormSituacaoTurma, FormTurma } from "../forms";
 import { STATUS_TURMA } from "../rotulos";
 
 /**
@@ -40,18 +40,38 @@ export default async function TurmasPage() {
                     {STATUS_TURMA[t.status]}
                   </span>
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {t.modalidade} · {t.escolaNome} · desde {dataBr(t.inicio)}
-                  {t.fim && ` até ${dataBr(t.fim)}`}
-                  {t.nAlunos !== null && ` · ${t.nAlunos} ${t.nAlunos === 1 ? "aluno" : "alunos"}`}
-                </p>
+                <p className="text-sm text-muted-foreground">{t.escolaNome}</p>
               </div>
+              <ul className="space-y-2 border-l-2 border-[#684A97]/20 pl-3 text-sm">
+                {t.cursos.map((c) => (
+                  <li key={c.id}>
+                    <details>
+                      <summary className="cursor-pointer">
+                        <span className="font-medium">{c.modalidade}</span> · desde {dataBr(c.inicio)}
+                        {c.fim && ` até ${dataBr(c.fim)}`}
+                        {c.nAlunos !== null && ` · ${c.nAlunos} ${c.nAlunos === 1 ? "aluno" : "alunos"}`}
+                      </summary>
+                      <div className="pt-3">
+                        <FormCurso key={[c.modalidade, c.inicio, c.fim, c.nAlunos].join("|")} turmaId={t.id} curso={c} />
+                      </div>
+                    </details>
+                  </li>
+                ))}
+                <li>
+                  <details>
+                    <summary className="cursor-pointer font-medium text-[#684A97]">Novo curso</summary>
+                    <div className="pt-3">
+                      <FormCurso key={t.cursos.length} turmaId={t.id} />
+                    </div>
+                  </details>
+                </li>
+              </ul>
               {/* As chaves remontam os formulários com o que foi salvo (ver a página do encontro). */}
               <FormSituacaoTurma key={`${t.status}|${t.motivo}`} turma={t} />
               <details className="text-sm">
-                <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
+                <summary className="cursor-pointer font-medium text-[#684A97]">Editar nome</summary>
                 <div className="pt-3">
-                  <FormTurma key={[t.nome, t.modalidade, t.inicio, t.fim, t.nAlunos].join("|")} escolas={opcoesEscola} turma={t} />
+                  <FormTurma key={t.nome} escolas={opcoesEscola} turma={t} />
                 </div>
               </details>
             </li>

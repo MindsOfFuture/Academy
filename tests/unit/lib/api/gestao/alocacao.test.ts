@@ -38,11 +38,11 @@ describe("agruparCarga", () => {
 
   it("bolsista em duas escolas no mês: total e divisão por escola e turma", () => {
     const linhas = [
-      { bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: "4.00" },
-      { bolsista_id: "bia", data: "2026-10-12", escola_id: "e1", turma_id: "t1", horas: "4.00" },
-      { bolsista_id: "bia", data: "2026-10-19", escola_id: "e2", turma_id: "t2", horas: "2.50" },
-      { bolsista_id: "bia", data: "2026-10-20", escola_id: "e2", turma_id: null, horas: "0" },
-      { bolsista_id: "caio", data: "2026-10-19", escola_id: "e2", turma_id: "t2", horas: 4 },
+      { bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: "4.00", horas_alocadas: "4.00" },
+      { bolsista_id: "bia", data: "2026-10-12", escola_id: "e1", turma_id: "t1", horas: "4.00", horas_alocadas: "4.00" },
+      { bolsista_id: "bia", data: "2026-10-19", escola_id: "e2", turma_id: "t2", horas: "2.50", horas_alocadas: "2.50" },
+      { bolsista_id: "bia", data: "2026-10-20", escola_id: "e2", turma_id: null, horas: "0", horas_alocadas: "0" },
+      { bolsista_id: "caio", data: "2026-10-19", escola_id: "e2", turma_id: "t2", horas: 4, horas_alocadas: 4 },
     ];
     const bolsistas = [
       { id: "bia", nome: "Bia", ativo: true },
@@ -61,8 +61,8 @@ describe("agruparCarga", () => {
 
   it("todo bolsista ativo aparece, mesmo com 0 h; só coordenação nunca; desligado só com horas", () => {
     const linhas = [
-      { bolsista_id: "coord", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4 },
-      { bolsista_id: "saiu-com-horas", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 2 },
+      { bolsista_id: "coord", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4, horas_alocadas: 4 },
+      { bolsista_id: "saiu-com-horas", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 2, horas_alocadas: 2 },
     ];
     const bolsistas = [
       { id: "zeca", nome: "Zeca", ativo: true },
@@ -76,7 +76,7 @@ describe("agruparCarga", () => {
   });
 
   it("atrasos: conta e soma por pessoa, sem mexer nas horas; sem atraso, zero", () => {
-    const linhas = [{ bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4 }];
+    const linhas = [{ bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4, horas_alocadas: 4 }];
     const bolsistas = [
       { id: "bia", nome: "Bia", ativo: true },
       { id: "caio", nome: "Caio", ativo: true },
@@ -90,6 +90,21 @@ describe("agruparCarga", () => {
       ["Caio", 0, 0, 0],
     ]);
     expect(agruparCarga(linhas, bolsistas, escolas, turmas)[0]).toMatchObject({ atrasos: 0, minutosDeAtraso: 0 });
+  });
+
+  it("encontro futuro entra nas alocadas e na divisão, ainda não nas cumpridas", () => {
+    const linhas = [
+      { bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4, horas_alocadas: 4 },
+      { bolsista_id: "bia", data: "2026-10-26", escola_id: "e2", turma_id: "t2", horas: 0, horas_alocadas: 3 },
+      { bolsista_id: "caio", data: "2026-10-27", escola_id: "e2", turma_id: "t2", horas: 0, horas_alocadas: 2 },
+    ];
+    const bolsistas = [
+      { id: "caio", nome: "Caio", ativo: false },
+      { id: "bia", nome: "Bia", ativo: true },
+    ];
+    const carga = agruparCarga(linhas, bolsistas, escolas, turmas);
+    expect(carga.map((c) => [c.nome, c.alocadas, c.total])).toEqual([["Bia", 7, 4], ["Caio", 2, 0]]);
+    expect(carga[0].porEscola.map((e) => e.horas)).toEqual([4, 3]);
   });
 });
 

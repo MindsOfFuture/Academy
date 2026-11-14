@@ -115,6 +115,16 @@ export default async function AlocacaoPage({
     <div className="space-y-6">
       <SeletorMes mes={mes} parametros={filtro ? { espaco: filtro.id } : undefined} />
 
+      <div className="flex justify-end">
+        {/* Link comum: o navegador baixa o .ics que a rota devolve, com o mesmo filtro da tela. */}
+        <a
+          href={`/gestao/calendario?${new URLSearchParams(filtro ? { mes, espaco: filtro.id } : { mes })}`}
+          className="rounded-md border border-[#684A97] px-4 py-2 text-sm font-medium text-[#684A97] hover:bg-[#684A97]/10"
+        >
+          Exportar para o Google Agenda
+        </a>
+      </div>
+
       {espacosDoFiltro.length > 0 && (
         <nav aria-label="Espaço" className="flex flex-wrap gap-2 text-sm">
           {[{ id: null, nome: "Todos" }, ...espacosDoFiltro].map((s) => {

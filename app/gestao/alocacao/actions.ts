@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
 import {
+  adicionarCurso,
   alocar,
   atualizarAlocacao,
   cadastrarEscola,
@@ -15,6 +16,7 @@ import {
   criarEncontro,
   criarEncontros,
   definirSituacaoTurma,
+  editarCurso,
   editarEncontro,
   editarEscola,
   editarEspaco,
@@ -36,11 +38,13 @@ import {
   mensagemDeErro,
   sucesso,
   validarAfastamento,
+  validarCurso,
   validarEncontro,
   validarEscola,
   validarEspaco,
   validarLote,
   validarMudancaAlocacao,
+  validarNomeTurma,
   validarRepeticao,
   validarSituacaoTurma,
   validarTurma,
@@ -106,15 +110,34 @@ export async function editarEscolaAction(_anterior: EstadoAcao | null, form: For
   return executar(() => editarEscola(id, escola.valor), "Escola atualizada.");
 }
 
-/** O formulário manda a escola da turma só para passar na validação; ela não muda. */
 export async function editarTurmaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   const negado = await exigirCoordenacao();
   if (negado) return negado;
   const id = campo(form, "turmaId");
-  const turma = validarTurma(form);
+  const nome = validarNomeTurma(form);
   if (!id) return falha("Turma não informada.");
-  if (!turma.ok) return falha(turma.mensagem);
-  return executar(() => editarTurma(id, turma.valor), "Turma atualizada.");
+  if (!nome.ok) return falha(nome.mensagem);
+  return executar(() => editarTurma(id, nome.valor), "Turma atualizada.");
+}
+
+export async function adicionarCursoAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const turmaId = campo(form, "turmaId");
+  const curso = validarCurso(form);
+  if (!turmaId) return falha("Turma não informada.");
+  if (!curso.ok) return falha(curso.mensagem);
+  return executar(() => adicionarCurso(turmaId, curso.valor), "Curso adicionado.");
+}
+
+export async function editarCursoAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const id = campo(form, "cursoId");
+  const curso = validarCurso(form);
+  if (!id) return falha("Curso não informado.");
+  if (!curso.ok) return falha(curso.mensagem);
+  return executar(() => editarCurso(id, curso.valor), "Curso atualizado.");
 }
 
 export async function situacaoTurmaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {

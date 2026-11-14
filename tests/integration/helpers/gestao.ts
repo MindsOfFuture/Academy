@@ -47,6 +47,8 @@ export const GESTAO_EM_ORDEM = [
   "20261116_gestao_espacos",
   "20261117_gestao_pesquisa",
   "20261118_gestao_lembrete_meta_atrasada",
+  "20261119_gestao_horas_alocadas",
+  "20261119_gestao_cursos_da_turma",
 ] as const;
 
 export type MigracaoGestao = (typeof GESTAO_EM_ORDEM)[number];

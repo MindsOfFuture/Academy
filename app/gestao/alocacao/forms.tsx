@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import type {
   Alocacao,
   ConflitoHorario,
+  Curso,
   Encontro,
   EscolaSummary,
   Espaco,
@@ -20,6 +21,7 @@ import type {
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
 import { FUNCAO, SITUACAO, STATUS_TURMA, TIPO_ENCONTRO } from "./rotulos";
 import {
+  adicionarCursoAction,
   afastamentoAction,
   alocarAction,
   atualizarAlocacaoAction,
@@ -30,6 +32,7 @@ import {
   concluirEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
+  editarCursoAction,
   editarEncontroAction,
   editarEscolaAction,
   editarEspacoAction,
@@ -284,7 +287,9 @@ export function FormEncontro({
   function escolherTurma(id: string) {
     setTurmaId(id);
     const turma = turmas.find((t) => t.id === id);
-    if (turma) setModalidade(turma.modalidade);
+    // O curso mais recente da turma; a coordenação ainda pode trocar no campo.
+    const curso = turma?.cursos.at(-1);
+    if (curso) setModalidade(curso.modalidade);
     setPrincipal({ equipe: new Set(equipes[id] ?? []), responsaveis: new Set() });
   }
 
@@ -1043,9 +1048,33 @@ export function FormEscola({ escola }: { escola?: EscolaSummary }) {
   );
 }
 
+/** Curso, período e alunos: no cadastro da turma (o primeiro curso) e em cada curso dela. */
+function CamposCurso({ curso }: { curso?: Curso }) {
+  return (
+    <>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Curso</span>
+        <Input name="modalidade" required maxLength={80} defaultValue={curso?.modalidade} placeholder="Lego, Python, IA…" />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Início</span>
+        <Input name="inicio" type="date" required defaultValue={curso?.inicio} />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Fim previsto (opcional)</span>
+        <Input name="fim" type="date" defaultValue={curso?.fim ?? ""} />
+      </label>
+      <label className="space-y-1">
+        <span className={rotuloCampo}>Número de alunos (opcional)</span>
+        <Input name="nAlunos" type="number" min={0} max={1000} step={1} defaultValue={curso?.nAlunos ?? ""} />
+      </label>
+    </>
+  );
+}
+
 /**
- * Cadastra; com `turma`, edita nome, atividade e período. A escola de uma turma
- * não muda: os encontros já lançados guardam a escola dela.
+ * Cadastra a turma com o primeiro curso; com `turma`, edita o nome. A escola de
+ * uma turma não muda: os encontros já lançados guardam a escola dela.
  */
 export function FormTurma({ escolas, turma }: { escolas: Opcao[]; turma?: Turma }) {
   const [estado, acao, enviando] = useAcao(turma ? editarTurmaAction : cadastrarTurmaAction);
@@ -1055,45 +1084,43 @@ export function FormTurma({ escolas, turma }: { escolas: Opcao[]; turma?: Turma 
       {!turma && <h3 className="font-semibold">Cadastrar turma</h3>}
       <div className="grid gap-3 sm:grid-cols-2">
         {turma ? (
-          <>
-            <input type="hidden" name="turmaId" value={turma.id} />
-            <input type="hidden" name="escolaId" value={turma.escolaId} />
-          </>
+          <input type="hidden" name="turmaId" value={turma.id} />
         ) : (
           <label className="space-y-1">
             <span className={rotuloCampo}>Escola</span>
             <Escolha name="escolaId" opcoes={escolas} vazio="Escolha…" required />
           </label>
         )}
-        <label className="space-y-1">
-          <span className={rotuloCampo}>Atividade</span>
-          <Input name="modalidade" required defaultValue={turma?.modalidade} placeholder="Lego, IA, Educação Financeira…" />
-        </label>
-        <label className="space-y-1 sm:col-span-2">
+        <label className={turma ? "space-y-1 sm:col-span-2" : "space-y-1"}>
           <span className={rotuloCampo}>Nome da turma</span>
-          <Input name="nome" required maxLength={120} defaultValue={turma?.nome} placeholder="Lego de segunda à tarde" />
+          <Input name="nome" required maxLength={120} defaultValue={turma?.nome} placeholder="9º A de segunda à tarde" />
         </label>
-        <label className="space-y-1">
-          <span className={rotuloCampo}>Início</span>
-          <Input name="inicio" type="date" required defaultValue={turma?.inicio} />
-        </label>
-        <label className="space-y-1">
-          <span className={rotuloCampo}>Fim previsto (opcional)</span>
-          <Input name="fim" type="date" defaultValue={turma?.fim ?? ""} />
-        </label>
-        <label className="space-y-1">
-          <span className={rotuloCampo}>Número de alunos (opcional)</span>
-          <Input name="nAlunos" type="number" min={0} max={1000} step={1} defaultValue={turma?.nAlunos ?? ""} />
-        </label>
+        {!turma && <CamposCurso />}
       </div>
       <Button type="submit" disabled={enviando}>
-        {turma ? "Salvar alterações" : "Salvar turma"}
+        {turma ? "Salvar nome" : "Salvar turma"}
       </Button>
       <Aviso estado={estado} />
     </form>
   );
 }
 
+/** Novo curso da turma (`turmaId`) ou edição de um curso dela (`curso`). */
+export function FormCurso({ turmaId, curso }: { turmaId: string; curso?: Curso }) {
+  const [estado, acao, enviando] = useAcao(curso ? editarCursoAction : adicionarCursoAction);
+  return (
+    <form action={acao} className="space-y-3">
+      <input type="hidden" name={curso ? "cursoId" : "turmaId"} value={curso?.id ?? turmaId} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <CamposCurso curso={curso} />
+      </div>
+      <Button type="submit" disabled={enviando}>
+        {curso ? "Salvar curso" : "Adicionar curso"}
+      </Button>
+      <Aviso estado={estado} />
+    </form>
+  );
+}
 
 export function FormSituacaoTurma({ turma }: { turma: Turma }) {
   const [estado, acao, enviando] = useAcao(situacaoTurmaAction);

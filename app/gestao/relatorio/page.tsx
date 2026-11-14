@@ -39,6 +39,12 @@ export default async function RelatorioPage({ searchParams }: { searchParams: Pr
         >
           Baixar relatório (.docx)
         </a>
+        <a
+          href={`/gestao/calendario?mes=${mes}&meus=1`}
+          className="rounded-md border border-[#684A97] px-4 py-2 text-sm font-medium text-[#684A97] hover:bg-[#684A97]/10"
+        >
+          Exportar meus encontros para o Google Agenda
+        </a>
       </div>
 
       <RegistroDoMes
