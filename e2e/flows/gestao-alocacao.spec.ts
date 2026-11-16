@@ -107,12 +107,12 @@ test('coordenação: cria, edita, conclui e confere no histórico', async ({ pag
   await linhaA.getByLabel('Situação').selectOption({ label: 'Faltou avisando' });
   await linhaA.getByLabel('Motivo ou observação').fill('Prova na faculdade');
   await linhaA.getByRole('button', { name: 'Salvar' }).click();
-  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_A}\\s*· Faltou avisando`));
+  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_A}\\s*(?:Responsável|Apoio)?\\s*·Faltou avisando`));
 
   await equipe.getByRole('group', { name: 'Acrescentar pessoas' }).getByLabel(BOLSISTA_B).check();
   await equipe.getByRole('button', { name: 'Alocar' }).click();
   await expect(equipe.getByRole('status')).toHaveText('Pessoa alocada.');
-  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_B}\\s*· Prevista`));
+  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_B}\\s*(?:Responsável|Apoio)?\\s*·Prevista`));
 
   // Encerrar
   await page.getByRole('button', { name: 'Concluir encontro' }).click();
@@ -120,8 +120,8 @@ test('coordenação: cria, edita, conclui e confere no histórico', async ({ pag
   await janela.getByLabel('Relatório do encontro').fill('Encontro de teste automatizado, sem turma real.');
   await janela.getByRole('button', { name: 'Concluir', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Reabrir encontro' })).toBeVisible();
-  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_B}\\s*· Cumprida`));
-  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_A}\\s*· Faltou avisando`));
+  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_B}\\s*(?:Responsável|Apoio)?\\s*·Cumprida`));
+  await expect(equipe).toContainText(new RegExp(`${BOLSISTA_A}\\s*(?:Responsável|Apoio)?\\s*·Faltou avisando`));
 
   // Histórico
   const historico = page.getByRole('region', { name: 'Histórico' });
