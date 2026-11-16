@@ -8,6 +8,7 @@ vi.mock("@/lib/api/articles", () => ({
   getArticles: () => getArticles(),
   getArticleBySlug: (s: string) => getArticleBySlug(s),
   getArticleById: (s: string) => getArticleById(s),
+  getProducoes: async () => [],
 }));
 vi.mock("@/components/navbar/navbar", () => ({ default: () => <nav /> }));
 vi.mock("@/components/footer/footer", () => ({ default: () => <footer /> }));

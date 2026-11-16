@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { obterEncontro } from "@/lib/api/gestao/alocacao";
+import { chamadaDoEncontro, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { usuarioAtualId } from "@/lib/api/gestao/melhorias";
-import { FormNotaEncerramento, FormPresentes } from "../../alocacao/forms";
+import { FormChamada, FormNotaEncerramento, FormPresentes } from "../../alocacao/forms";
 import { NotasPendentes, Relatorio, Resumo, jaComecou } from "../../alocacao/resumo";
 import { TIPO_ENCONTRO, diaCurto } from "../../alocacao/rotulos";
 import { exigirMembro } from "../../guard";
@@ -23,6 +23,7 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
 
   const [encontro, eu] = await Promise.all([obterEncontro(id), usuarioAtualId()]);
   if (!encontro) notFound();
+  const chamada = await chamadaDoEncontro(encontro);
 
   const minha = encontro.alocacoes.find(
     (a) => a.bolsistaId === eu && (a.situacao === "prevista" || a.situacao === "cumprida"),
@@ -49,8 +50,11 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
         )}
         <Relatorio encontro={encontro} />
         <NotasPendentes encontro={encontro} />
+        {podeEscrever && chamada && (
+          <FormChamada key={chamada.ausentes.join()} encontroId={encontro.id} chamada={chamada} />
+        )}
         {podeEscrever && (encontro.escolaId || encontro.turmaId) && (
-          <FormPresentes encontroId={encontro.id} presentes={encontro.presentes} />
+          <FormPresentes key={encontro.presentes ?? ""} encontroId={encontro.id} presentes={encontro.presentes} />
         )}
         {podeEscrever && <FormNotaEncerramento encontroId={encontro.id} nota={minha.notaEncerramento} link={minha.linkComprovacao} />}
       </section>

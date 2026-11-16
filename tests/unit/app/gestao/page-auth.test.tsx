@@ -196,11 +196,28 @@ describe("rota /gestao", () => {
     expect(screen.queryByRole("link", { name: "Artigos" })).not.toBeInTheDocument();
   });
 
-  it("mostra Artigos dentro da pesquisa só à coordenação", async () => {
+  it("artigos do site são um filtro de Produções, só da coordenação", async () => {
     flagLigada = true;
     papelMembro = "coordenacao";
-    render(await PesquisaPage({ searchParams: Promise.resolve({}) }));
-    expect(screen.getByRole("link", { name: "Artigos" })).toHaveAttribute("href", "/gestao/pesquisa/artigos");
+    render(await PesquisaPage({ searchParams: Promise.resolve({ parte: "producoes", tipo: "site" }) }));
+    expect(screen.getByRole("link", { name: "Artigos" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Produções" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Nenhum artigo ainda.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Novo artigo" })).toHaveAttribute("href", "/gestao/pesquisa/artigos?artigo=novo");
+  });
+
+  it("bolsista não vê o filtro de artigos nem com o endereço dele", async () => {
+    flagLigada = true;
+    papelMembro = "bolsista";
+    render(await PesquisaPage({ searchParams: Promise.resolve({ parte: "producoes", tipo: "site" }) }));
+    expect(screen.queryByRole("link", { name: "Artigos" })).not.toBeInTheDocument();
+    expect(screen.getByText("Nenhuma produção ainda.")).toBeInTheDocument();
+  });
+
+  it("a lista antiga de artigos leva para o filtro em Produções", async () => {
+    flagLigada = true;
+    papelMembro = "coordenacao";
+    await expect(ArtigosPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(/NEXT_REDIRECT/);
   });
 
   it("dá a aba Equipe só à coordenação; Metas, Pesquisa e Melhorias aos dois", () => {

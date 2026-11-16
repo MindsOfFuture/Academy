@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { historicoDoEncontro, listarEspacos, listarTurmas, obterEncontro } from "@/lib/api/gestao/alocacao";
+import { chamadaDoEncontro, historicoDoEncontro, listarEspacos, listarTurmas, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { listEscolas } from "@/lib/api/gestao/entities";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import { exigirMembro } from "../../guard";
@@ -9,6 +9,7 @@ import {
   FormAlocar,
   FormCancelarEncontro,
   FormConcluirEncontro,
+  FormChamada,
   FormPresentes,
   FormEditarEncontro,
   FormRemoverAlocacao,
@@ -72,7 +73,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
     listEscolas(),
   ]);
   if (!encontro) notFound();
-  const historico = await historicoDoEncontro(encontro);
+  const [historico, chamada] = await Promise.all([historicoDoEncontro(encontro), chamadaDoEncontro(encontro)]);
 
   const ativos = equipe.filter((m) => !m.desligadoEm).map((m) => ({ id: m.userProfileId, nome: m.nome }));
   const jaAlocados = new Set(encontro.alocacoes.map((a) => a.bolsistaId));
@@ -128,8 +129,11 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
         )}
         <Relatorio encontro={encontro} />
         <NotasPendentes encontro={encontro} />
+        {!cancelado && comecou && chamada && (
+          <FormChamada key={chamada.ausentes.join()} encontroId={encontro.id} chamada={chamada} />
+        )}
         {!cancelado && comecou && (encontro.escolaId || encontro.turmaId) && (
-          <FormPresentes encontroId={encontro.id} presentes={encontro.presentes} />
+          <FormPresentes key={encontro.presentes ?? ""} encontroId={encontro.id} presentes={encontro.presentes} />
         )}
         {cancelado ? (
           <p className="rounded-md bg-gray-100 p-2 text-sm">

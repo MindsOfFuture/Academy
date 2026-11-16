@@ -443,6 +443,7 @@ export interface TurmaRow {
     motivo: string | null;
     escola: { nome: string } | { nome: string }[] | null;
     turma_curso: CursoRow[] | null;
+    aluno_turma: { id: string; nome: string; ativo: boolean }[] | null;
 }
 
 /** Um curso da turma (Lego, depois Python…): cada um conta no número de alunos. */
@@ -463,6 +464,19 @@ export interface Turma {
     motivo: string | null;
     /** Do mais antigo ao mais recente. */
     cursos: Curso[];
+    /** Lista para a chamada (opcional): só quem está ativo, por nome. */
+    alunos: AlunoTurma[];
+}
+
+export interface AlunoTurma {
+    id: string;
+    nome: string;
+}
+
+/** Chamada de um encontro de turma com lista: os alunos e quem faltou. */
+export interface Chamada {
+    alunos: AlunoTurma[];
+    ausentes: string[];
 }
 
 export interface AlocacaoRow {
@@ -583,10 +597,11 @@ export type EdicaoEncontro = Omit<NovoEncontro, "equipe" | "responsaveis">;
 
 export type NovoCurso = Omit<Curso, "id">;
 
-/** Turma nova já com o primeiro curso. */
+/** Turma nova já com o primeiro curso e, se vier, a lista de alunos. */
 export interface NovaTurma extends NovoCurso {
     escolaId: string;
     nome: string;
+    alunos: string[];
 }
 
 export interface NovaEscola {
@@ -628,9 +643,29 @@ export interface CargaBolsista {
     total: number;
     porEscola: { escolaId: string | null; nome: string; horas: number }[];
     porTurma: { turmaId: string | null; nome: string; horas: number }[];
-    /** Encontros do mês com atraso registrado e a soma dos minutos. */
+}
+
+/** Uma falta ou um atraso de alguém num encontro do mês. */
+export interface OcorrenciaFalta {
+    alocacaoId: string;
+    encontroId: string;
+    data: string;
+    horario: string;
+    modalidade: string;
+    tipo: "faltou_avisou" | "faltou_sem_aviso" | "atraso";
+    minutos: number | null;
+    motivo: string | null;
+}
+
+export interface FaltasDoBolsista {
+    bolsistaId: string;
+    nome: string;
+    faltasAvisando: number;
+    faltasSemAviso: number;
     atrasos: number;
     minutosDeAtraso: number;
+    /** Por data. */
+    ocorrencias: OcorrenciaFalta[];
 }
 
 export interface RegistroHistorico {
@@ -816,7 +851,8 @@ export interface NovaMeta {
 // Pesquisa (aba "Pesquisa")
 // ---------------------------------------------------------------------------
 
-export type TipoProducao = "artigo_congresso" | "artigo_publicado" | "relatorio" | "substack" | "ebook" | "outro";
+/** Artigo não é produção: é o artigo do site (`public.article`). */
+export type TipoProducao = "relatorio" | "substack" | "ebook" | "video" | "outro";
 
 export interface NovaReuniaoPesquisa {
     data: string;

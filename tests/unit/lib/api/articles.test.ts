@@ -28,6 +28,13 @@ describe("artigos do site filtram só os publicados", () => {
     expect(mockClient.chain.eq).toHaveBeenCalledWith("status", "published");
   });
 
+  it("autor é o dos metadados do artigo, não quem o cadastrou", async () => {
+    mockQueryResponse(mockClient, { id: "1", title: "A", content: "Texto do artigo.\n\n**Autores:** Ana Lima, Bia Souza\n\n**DOI:** 10.1/x" });
+    expect((await getArticleBySlug("a"))?.authorName).toBe("Ana Lima, Bia Souza");
+    mockQueryResponse(mockClient, { id: "2", title: "B", content: "<p>Sem bloco</p>" });
+    expect((await getArticleBySlug("b"))?.authorName).toBeNull();
+  });
+
   it("getArticles", async () => {
     mockQueryResponse(mockClient, [{ id: "1", title: "A" }]);
     expect(await getArticles()).toHaveLength(1);

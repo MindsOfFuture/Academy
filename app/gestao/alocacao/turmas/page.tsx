@@ -1,7 +1,7 @@
 import { listarTurmas } from "@/lib/api/gestao/alocacao";
 import { listEscolas } from "@/lib/api/gestao/entities";
 import { exigirMembro } from "../../guard";
-import { FormCurso, FormEscola, FormSituacaoTurma, FormTurma } from "../forms";
+import { FormAlunos, FormCurso, FormEscola, FormSituacaoTurma, FormTurma } from "../forms";
 import { STATUS_TURMA } from "../rotulos";
 
 /**
@@ -68,6 +68,14 @@ export default async function TurmasPage() {
               </ul>
               {/* As chaves remontam os formulários com o que foi salvo (ver a página do encontro). */}
               <FormSituacaoTurma key={`${t.status}|${t.motivo}`} turma={t} />
+              <details className="text-sm">
+                <summary className="cursor-pointer font-medium text-[#684A97]">
+                  Alunos{t.alunos.length > 0 && ` (${t.alunos.length})`}
+                </summary>
+                <div className="pt-3">
+                  <FormAlunos key={t.alunos.map((a) => a.id).join()} turma={t} />
+                </div>
+              </details>
               <details className="text-sm">
                 <summary className="cursor-pointer font-medium text-[#684A97]">Editar nome</summary>
                 <div className="pt-3">

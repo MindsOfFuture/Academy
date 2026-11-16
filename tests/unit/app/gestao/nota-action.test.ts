@@ -6,17 +6,30 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/api/gestao/auth", () => ({ ensureGestaoMember: async () => "bolsista" }));
 
-const { escreverNotaEncerramento, registrarPresentes } = vi.hoisted(() => ({
+const { escreverNotaEncerramento, registrarPresentes, registrarChamada } = vi.hoisted(() => ({
   escreverNotaEncerramento: vi.fn(async () => false),
   registrarPresentes: vi.fn(async () => undefined),
+  registrarChamada: vi.fn(async () => undefined),
 }));
 vi.mock("@/lib/api/gestao/alocacao", async (original) => ({
   ...(await original<typeof import("@/lib/api/gestao/alocacao")>()),
   escreverNotaEncerramento,
   registrarPresentes,
+  registrarChamada,
 }));
 
-import { escreverNotaAction, registrarPresentesAction } from "@/app/gestao/alocacao/actions";
+import { escreverNotaAction, registrarChamadaAction, registrarPresentesAction } from "@/app/gestao/alocacao/actions";
+
+describe("registrarChamadaAction", () => {
+  it("quem ficou desmarcado na lista é quem faltou", async () => {
+    const f = new FormData();
+    f.set("encontroId", "e1");
+    for (const a of ["a1", "a2", "a3"]) f.append("aluno", a);
+    f.append("presente", "a2");
+    expect(await registrarChamadaAction(null, f)).toMatchObject({ ok: true });
+    expect(registrarChamada).toHaveBeenCalledWith("e1", ["a1", "a3"]);
+  });
+});
 
 const NOTA = "Turma animada, 18 alunos.";
 

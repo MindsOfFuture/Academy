@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { usuarioDaRequisicao } from "@/lib/supabase/server";
+import { listarArtigos } from "@/lib/api/gestao/artigos";
 import { buscarProducao, buscarReuniao, listarProducoes, listarReunioes } from "@/lib/api/gestao/pesquisa";
 import type { ProducaoPesquisa, ReuniaoPesquisa, TipoProducao } from "@/lib/api/gestao/types";
 import { TIPO_PRODUCAO } from "@/lib/api/gestao/validacao";
@@ -8,8 +9,9 @@ import { cn } from "@/lib/utils";
 import { exigirMembro } from "../guard";
 import { FormProducao, FormReuniao } from "./forms";
 import { PartesDaPesquisa } from "./partes";
+import { LISTA_ARTIGOS, ListaArtigos } from "./artigos/lista";
 
-/** Pesquisa: reuniões e produções para todos os membros; artigos do site para a coordenação. */
+/** Pesquisa: reuniões e produções para todos os membros; em Produções, os artigos do site para a coordenação. */
 
 const LISTA = "/gestao/pesquisa";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,22 +58,31 @@ export default async function PesquisaPage({ searchParams }: { searchParams: Pro
   }
 
   const tipoValido = tipo && Object.hasOwn(TIPO_PRODUCAO, tipo) ? (tipo as TipoProducao) : undefined;
+  const site = producoes && coordenacao && tipo === "site";
+  const novo = site ? "/gestao/pesquisa/artigos?artigo=novo" : producoes ? `${LISTA}?parte=producoes&id=novo` : `${LISTA}?id=novo`;
   return (
     <section aria-labelledby="pesquisa" className="space-y-4">
       <h2 id="pesquisa" className="sr-only">
         Pesquisa
       </h2>
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-200">
-        <PartesDaPesquisa atual={producoes ? "producoes" : "reunioes"} coordenacao={coordenacao} />
+        <PartesDaPesquisa atual={producoes ? "producoes" : "reunioes"} />
         <Link
-          href={producoes ? `${LISTA}?parte=producoes&id=novo` : `${LISTA}?id=novo`}
+          href={novo}
           className="mb-2 rounded-md bg-[#684A97] px-4 py-2 text-sm font-medium text-white hover:bg-[#684A97]/90"
         >
-          {producoes ? "Nova produção" : "Nova reunião"}
+          {site ? "Novo artigo" : producoes ? "Nova produção" : "Nova reunião"}
         </Link>
       </div>
       {producoes ? (
-        <ListaProducoes producoes={await listarProducoes(tipoValido)} tipo={tipoValido} podeEditar={podeEditar} />
+        <div className="space-y-3">
+          <Filtros atual={site ? "site" : tipoValido} coordenacao={coordenacao} />
+          {site ? (
+            <ListaArtigos artigos={await listarArtigos()} />
+          ) : (
+            <ListaProducoes producoes={await listarProducoes(tipoValido)} podeEditar={podeEditar} />
+          )}
+        </div>
       ) : (
         <ListaReunioes reunioes={await listarReunioes()} podeEditar={podeEditar} />
       )}
@@ -120,38 +131,43 @@ function ListaReunioes({
   );
 }
 
-function ListaProducoes({
-  producoes,
-  tipo,
-  podeEditar,
-}: {
-  producoes: ProducaoPesquisa[];
-  tipo: TipoProducao | undefined;
-  podeEditar: (p: ProducaoPesquisa) => boolean;
-}) {
+/** Tipos de produção e, para a coordenação, os artigos do site. */
+function Filtros({ atual, coordenacao }: { atual: TipoProducao | "site" | undefined; coordenacao: boolean }) {
   const filtros: [string, string, boolean][] = [
-    [`${LISTA}?parte=producoes`, "Todos", !tipo],
+    [`${LISTA}?parte=producoes`, "Todos", !atual],
+    ...(coordenacao ? [[LISTA_ARTIGOS, "Artigos", atual === "site"] as [string, string, boolean]] : []),
     ...Object.entries(TIPO_PRODUCAO).map(
-      ([valor, rotulo]): [string, string, boolean] => [`${LISTA}?parte=producoes&tipo=${valor}`, rotulo, tipo === valor],
+      ([valor, rotulo]): [string, string, boolean] => [`${LISTA}?parte=producoes&tipo=${valor}`, rotulo, atual === valor],
     ),
   ];
   return (
-    <div className="space-y-3">
-      <nav aria-label="Filtrar por tipo" className="flex flex-wrap gap-2">
-        {filtros.map(([href, rotulo, ativo]) => (
-          <Link
-            key={href}
-            href={href}
-            aria-current={ativo ? "page" : undefined}
-            className={cn(
-              "rounded-full border px-3 py-1 text-sm",
-              ativo ? "border-[#684A97] bg-[#684A97] text-white" : "border-gray-300 text-gray-700 hover:border-[#684A97]",
-            )}
-          >
-            {rotulo}
-          </Link>
-        ))}
-      </nav>
+    <nav aria-label="Filtrar por tipo" className="flex flex-wrap gap-2">
+      {filtros.map(([href, rotulo, ativo]) => (
+        <Link
+          key={href}
+          href={href}
+          aria-current={ativo ? "page" : undefined}
+          className={cn(
+            "rounded-full border px-3 py-1 text-sm",
+            ativo ? "border-[#684A97] bg-[#684A97] text-white" : "border-gray-300 text-gray-700 hover:border-[#684A97]",
+          )}
+        >
+          {rotulo}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function ListaProducoes({
+  producoes,
+  podeEditar,
+}: {
+  producoes: ProducaoPesquisa[];
+  podeEditar: (p: ProducaoPesquisa) => boolean;
+}) {
+  return (
+    <>
       {producoes.length === 0 ? (
         vazio("Nenhuma produção ainda.")
       ) : (
@@ -184,6 +200,6 @@ function ListaProducoes({
           ))}
         </ul>
       )}
-    </div>
+    </>
   );
 }

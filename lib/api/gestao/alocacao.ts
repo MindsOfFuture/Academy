@@ -16,6 +16,10 @@ import type {
   NovaEscola,
   NovaTurma,
   NovoCurso,
+  FaltasDoBolsista,
+  OcorrenciaFalta,
+  AlunoTurma,
+  Chamada,
   NovoAfastamento,
   NovoEncontro,
   Ocorrencia,
@@ -87,6 +91,10 @@ function mapTurma(row: TurmaRow): Turma {
     cursos: (row.turma_curso ?? [])
       .map((c) => ({ id: c.id, modalidade: c.modalidade, inicio: c.inicio, fim: c.fim, nAlunos: c.n_alunos }))
       .sort((a, b) => a.inicio.localeCompare(b.inicio)),
+    alunos: (row.aluno_turma ?? [])
+      .filter((a) => a.ativo)
+      .map((a) => ({ id: a.id, nome: a.nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome)),
   };
 }
 
@@ -166,24 +174,46 @@ export async function listarTurmas(): Promise<Turma[]> {
   const { data, error } = await supabase
     .schema("gestao")
     .from("turma")
-    .select("id, escola_id, nome, status, motivo, escola(nome), turma_curso(id, modalidade, inicio, fim, n_alunos)")
+    .select("id, escola_id, nome, status, motivo, escola(nome), turma_curso(id, modalidade, inicio, fim, n_alunos), aluno_turma(id, nome, ativo)")
     .order("inicio", { ascending: false });
   throwOnError(error);
   return ((data ?? []) as unknown as TurmaRow[]).map(mapTurma);
 }
 
-/** A turma e o primeiro curso: o banco cria o curso a partir destas colunas (trigger). */
+/**
+ * A turma e o primeiro curso: o banco cria o curso a partir destas colunas
+ * (trigger). A lista de alunos, se veio, entra sem mexer no número informado.
+ */
 export async function cadastrarTurma(turma: NovaTurma): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.schema("gestao").from("turma").insert({
-    escola_id: turma.escolaId,
-    nome: turma.nome,
-    modalidade: turma.modalidade,
-    inicio: turma.inicio,
-    fim: turma.fim,
-    n_alunos: turma.nAlunos,
-  });
+  const { data, error } = await supabase
+    .schema("gestao")
+    .from("turma")
+    .insert({
+      escola_id: turma.escolaId,
+      nome: turma.nome,
+      modalidade: turma.modalidade,
+      inicio: turma.inicio,
+      fim: turma.fim,
+      n_alunos: turma.nAlunos,
+    })
+    .select("id")
+    .single();
   throwOnError(error);
+  if (turma.alunos.length) await gravarAlunos((data as { id: string }).id, turma.alunos, false);
+}
+
+async function gravarAlunos(turmaId: string, nomes: string[], atualizarNumero: boolean): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .schema("gestao")
+    .rpc("definir_alunos", { p_turma: turmaId, p_nomes: nomes, p_atualizar_numero: atualizarNumero });
+  throwOnError(error);
+}
+
+/** Troca a lista de alunos; o número de alunos do curso mais recente passa a ser o total. */
+export async function definirAlunos(turmaId: string, nomes: string[]): Promise<void> {
+  await gravarAlunos(turmaId, nomes, true);
 }
 
 /**
@@ -617,6 +647,30 @@ export async function escreverNotaEncerramento(encontroId: string, nota: string,
   return data === true;
 }
 
+/** Alunos da turma do encontro e quem faltou; nulo se a turma não tem lista. */
+export async function chamadaDoEncontro(encontro: Encontro): Promise<Chamada | null> {
+  if (!encontro.turmaId) return null;
+  const supabase = await createClient();
+  const [alunos, faltas] = await Promise.all([
+    supabase.schema("gestao").from("aluno_turma").select("id, nome").eq("turma_id", encontro.turmaId).eq("ativo", true).order("nome"),
+    supabase.schema("gestao").from("falta_aluno").select("aluno_id").eq("agenda_id", encontro.id),
+  ]);
+  throwOnError(alunos.error);
+  throwOnError(faltas.error);
+  if (!alunos.data?.length) return null;
+  return {
+    alunos: alunos.data as AlunoTurma[],
+    ausentes: ((faltas.data ?? []) as { aluno_id: string }[]).map((f) => f.aluno_id),
+  };
+}
+
+/** Grava a chamada: as faltas e, delas, o total de presentes. O banco confere quem pode e quando. */
+export async function registrarChamada(encontroId: string, ausentes: string[]): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.schema("gestao").rpc("registrar_chamada", { p_agenda: encontroId, p_ausentes: ausentes });
+  throwOnError(error);
+}
+
 /** Quantos alunos estavam no encontro. O banco confere quem pode e quando. */
 export async function registrarPresentes(encontroId: string, presentes: number): Promise<void> {
   const supabase = await createClient();
@@ -788,15 +842,7 @@ export function agruparCarga(
   bolsistas: { id: string; nome: string; ativo: boolean }[],
   escolas: Map<string, string>,
   turmas: Map<string, string>,
-  atrasos: { bolsista_id: string; atraso_minutos: number }[] = [],
 ): CargaBolsista[] {
-  const atrasoPorPessoa = new Map<string, { atrasos: number; minutos: number }>();
-  for (const a of atrasos) {
-    const acc = atrasoPorPessoa.get(a.bolsista_id) ?? { atrasos: 0, minutos: 0 };
-    acc.atrasos += 1;
-    acc.minutos += a.atraso_minutos;
-    atrasoPorPessoa.set(a.bolsista_id, acc);
-  }
   type Acc = { alocadas: number; total: number; escola: Map<string | null, number>; turma: Map<string | null, number> };
   const vazio = (): Acc => ({ alocadas: 0, total: 0, escola: new Map(), turma: new Map() });
   const porPessoa = new Map<string, Acc>();
@@ -831,8 +877,6 @@ export function agruparCarga(
           nome: turmaId ? (turmas.get(turmaId) ?? "Turma") : "Fora de turma",
           horas: h,
         })),
-      atrasos: atrasoPorPessoa.get(b.id)?.atrasos ?? 0,
-      minutosDeAtraso: atrasoPorPessoa.get(b.id)?.minutos ?? 0,
     }))
     .sort((a, b) => b.alocadas - a.alocadas || a.nome.localeCompare(b.nome));
 }
@@ -840,7 +884,7 @@ export function agruparCarga(
 export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
   const supabase = await createClient();
   const { de, ate } = limitesDoMes(mes);
-  const [{ data, error }, escolas, turmas, equipe, atrasos] = await Promise.all([
+  const [{ data, error }, escolas, turmas, equipe] = await Promise.all([
     supabase
       .schema("gestao")
       .from("v_carga")
@@ -850,16 +894,8 @@ export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
     supabase.schema("gestao").from("escola").select("id, nome"),
     supabase.schema("gestao").from("turma").select("id, nome"),
     listarEquipe(),
-    // Atraso é só informativo: fora da v_carga, não muda as horas.
-    supabase
-      .schema("gestao")
-      .from("agenda_bolsista")
-      .select("bolsista_id, atraso_minutos, agenda!inner(data)")
-      .not("atraso_minutos", "is", null)
-      .gte("agenda.data", de)
-      .lte("agenda.data", ate),
   ]);
-  for (const res of [{ error }, escolas, turmas, atrasos]) throwOnError(res.error);
+  for (const res of [{ error }, escolas, turmas]) throwOnError(res.error);
   const mapa = (linhas: unknown) => new Map(((linhas ?? []) as { id: string; nome: string }[]).map((l) => [l.id, l.nome]));
   const bolsistas = equipe
     .filter((m) => m.bolsista)
@@ -869,9 +905,63 @@ export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
     bolsistas,
     mapa(escolas.data),
     mapa(turmas.data),
-    (atrasos.data ?? []) as { bolsista_id: string; atraso_minutos: number }[],
   );
 }
+
+// ---------------------------------------------------------------------------
+// Faltas e atrasos
+// ---------------------------------------------------------------------------
+
+/**
+ * Faltas e atrasos do mês por pessoa, a partir dos encontros do mês. Encontro
+ * cancelado não conta. Só aparece quem tem alguma ocorrência; mais ocorrências
+ * primeiro.
+ */
+export function agruparFaltas(encontros: Encontro[]): FaltasDoBolsista[] {
+  const porPessoa = new Map<string, FaltasDoBolsista>();
+  for (const e of encontros) {
+    if (e.canceladoEm) continue;
+    for (const a of e.alocacoes) {
+      const tipos: OcorrenciaFalta["tipo"][] = [];
+      if (a.situacao === "faltou_avisou" || a.situacao === "faltou_sem_aviso") tipos.push(a.situacao);
+      if (a.atrasoMinutos && (a.situacao === "prevista" || a.situacao === "cumprida")) tipos.push("atraso");
+      if (!tipos.length) continue;
+      const p = porPessoa.get(a.bolsistaId) ?? {
+        bolsistaId: a.bolsistaId,
+        nome: a.bolsistaNome,
+        faltasAvisando: 0,
+        faltasSemAviso: 0,
+        atrasos: 0,
+        minutosDeAtraso: 0,
+        ocorrencias: [],
+      };
+      for (const tipo of tipos) {
+        if (tipo === "faltou_avisou") p.faltasAvisando += 1;
+        else if (tipo === "faltou_sem_aviso") p.faltasSemAviso += 1;
+        else {
+          p.atrasos += 1;
+          p.minutosDeAtraso += a.atrasoMinutos ?? 0;
+        }
+        p.ocorrencias.push({
+          alocacaoId: a.id,
+          encontroId: e.id,
+          data: e.data,
+          horario: e.horario,
+          modalidade: e.modalidade,
+          tipo,
+          minutos: tipo === "atraso" ? a.atrasoMinutos : null,
+          motivo: tipo === "atraso" ? null : a.motivo,
+        });
+      }
+      porPessoa.set(a.bolsistaId, p);
+    }
+  }
+  const total = (p: FaltasDoBolsista) => p.faltasAvisando + p.faltasSemAviso + p.atrasos;
+  return [...porPessoa.values()]
+    .map((p) => ({ ...p, ocorrencias: p.ocorrencias.sort((x, y) => x.data.localeCompare(y.data)) }))
+    .sort((x, y) => total(y) - total(x) || x.nome.localeCompare(y.nome));
+}
+
 
 // ---------------------------------------------------------------------------
 // Histórico

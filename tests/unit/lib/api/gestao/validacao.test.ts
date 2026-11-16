@@ -162,6 +162,17 @@ describe("validarTurma — número de alunos opcional", () => {
       expect(validarTurma(form({ ...TURMA, nAlunos })).ok).toBe(false);
     }
   });
+
+  it("lista de alunos: um por linha, sem linha vazia nem repetido; sem número, o número é o tamanho dela", () => {
+    const alunos = "Bia Souza\r\n\n  caio  lima \nbia souza\nDuda";
+    expect(validarTurma(form({ ...TURMA, alunos }))).toMatchObject({
+      ok: true,
+      valor: { alunos: ["Bia Souza", "caio lima", "Duda"], nAlunos: 3 },
+    });
+    expect(validarTurma(form({ ...TURMA, alunos, nAlunos: "30" }))).toMatchObject({ ok: true, valor: { nAlunos: 30 } });
+    expect(validarTurma(form(TURMA))).toMatchObject({ ok: true, valor: { alunos: [] } });
+    expect(validarTurma(form({ ...TURMA, alunos: "Bia\nX" }))).toMatchObject({ ok: false });
+  });
 });
 
 describe("artigos do site", () => {

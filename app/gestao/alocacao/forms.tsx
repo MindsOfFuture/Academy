@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
   Alocacao,
+  Chamada,
   ConflitoHorario,
   Curso,
   Encontro,
@@ -32,12 +33,14 @@ import {
   concluirEncontroAction,
   conflitosEncontroAction,
   criarEncontroAction,
+  definirAlunosAction,
   editarCursoAction,
   editarEncontroAction,
   editarEscolaAction,
   editarEspacoAction,
   editarTurmaAction,
   escreverNotaAction,
+  registrarChamadaAction,
   registrarPresentesAction,
   removerAlocacaoAction,
   situacaoTurmaAction,
@@ -1096,9 +1099,69 @@ export function FormTurma({ escolas, turma }: { escolas: Opcao[]; turma?: Turma 
           <Input name="nome" required maxLength={120} defaultValue={turma?.nome} placeholder="9º A de segunda à tarde" />
         </label>
         {!turma && <CamposCurso />}
+        {!turma && <CampoAlunos />}
       </div>
       <Button type="submit" disabled={enviando}>
         {turma ? "Salvar nome" : "Salvar turma"}
+      </Button>
+      <Aviso estado={estado} />
+    </form>
+  );
+}
+
+function CampoAlunos({ alunos = [] }: { alunos?: string[] }) {
+  return (
+    <label className="space-y-1 sm:col-span-2">
+      <span className={rotuloCampo}>Alunos (opcional)</span>
+      <textarea
+        name="alunos"
+        rows={Math.min(12, Math.max(4, alunos.length + 1))}
+        defaultValue={alunos.join("\n")}
+        placeholder="Um nome por linha"
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      />
+    </label>
+  );
+}
+
+/** Lista de alunos da turma, para a chamada. Salvar põe o total no número de alunos do curso atual. */
+export function FormAlunos({ turma }: { turma: Turma }) {
+  const [estado, acao, enviando] = useAcao(definirAlunosAction);
+  return (
+    <form action={acao} className="space-y-3">
+      <input type="hidden" name="turmaId" value={turma.id} />
+      <CampoAlunos alunos={turma.alunos.map((a) => a.nome)} />
+      <Button type="submit" disabled={enviando}>
+        Salvar lista
+      </Button>
+      <Aviso estado={estado} />
+    </form>
+  );
+}
+
+/** Chamada: todos começam presentes; desmarca quem faltou. */
+export function FormChamada({ encontroId, chamada }: { encontroId: string; chamada: Chamada }) {
+  const [estado, acao, enviando] = useAcao(registrarChamadaAction);
+  const ausentes = new Set(chamada.ausentes);
+  return (
+    <form action={acao} className="space-y-2">
+      <input type="hidden" name="encontroId" value={encontroId} />
+      <fieldset className="space-y-1">
+        <legend className={rotuloCampo}>Chamada</legend>
+        <ul className="grid gap-1 sm:grid-cols-2">
+          {chamada.alunos.map((a) => (
+            <li key={a.id}>
+              <input type="hidden" name="aluno" value={a.id} />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="presente" value={a.id} defaultChecked={!ausentes.has(a.id)} />
+                {a.nome}
+              </label>
+            </li>
+          ))}
+        </ul>
+      </fieldset>
+      <Button type="submit" size="sm" disabled={enviando}>
+        {enviando ? "Salvando…" : "Salvar chamada"}
       </Button>
       <Aviso estado={estado} />
     </form>

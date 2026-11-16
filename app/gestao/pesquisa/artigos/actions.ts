@@ -37,7 +37,7 @@ export async function salvarArtigoAction(_anterior: EstadoAcao | null, form: For
     } else {
       criado = await criarArtigo(dados.valor, capaId);
     }
-    revalidatePath("/gestao/pesquisa/artigos");
+    revalidatePath("/gestao/pesquisa", "layout");
     revalidatePath("/");
   } catch (error) {
     return falha(mensagemDeErro(error));

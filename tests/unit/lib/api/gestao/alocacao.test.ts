@@ -8,6 +8,7 @@ import {
   acharEspacoOcupado,
   acharSobreposicoes,
   agruparCarga,
+  agruparFaltas,
   alocar,
   atualizarAlocacao,
   criarEncontro,
@@ -19,6 +20,7 @@ import {
   registrarPresentes,
 } from "@/lib/api/gestao/alocacao";
 import { validarEncontro, validarMudancaAlocacao } from "@/lib/api/gestao/validacao";
+import type { Encontro } from "@/lib/api/gestao/types";
 
 /**
  * Spec 014 — a soma da carga e o histórico legível. As horas de cada alocação
@@ -75,23 +77,6 @@ describe("agruparCarga", () => {
     ]);
   });
 
-  it("atrasos: conta e soma por pessoa, sem mexer nas horas; sem atraso, zero", () => {
-    const linhas = [{ bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4, horas_alocadas: 4 }];
-    const bolsistas = [
-      { id: "bia", nome: "Bia", ativo: true },
-      { id: "caio", nome: "Caio", ativo: true },
-    ];
-    const atrasos = [
-      { bolsista_id: "bia", atraso_minutos: 10 },
-      { bolsista_id: "bia", atraso_minutos: 25 },
-    ];
-    expect(agruparCarga(linhas, bolsistas, escolas, turmas, atrasos).map((c) => [c.nome, c.total, c.atrasos, c.minutosDeAtraso])).toEqual([
-      ["Bia", 4, 2, 35],
-      ["Caio", 0, 0, 0],
-    ]);
-    expect(agruparCarga(linhas, bolsistas, escolas, turmas)[0]).toMatchObject({ atrasos: 0, minutosDeAtraso: 0 });
-  });
-
   it("encontro futuro entra nas alocadas e na divisão, ainda não nas cumpridas", () => {
     const linhas = [
       { bolsista_id: "bia", data: "2026-10-05", escola_id: "e1", turma_id: "t1", horas: 4, horas_alocadas: 4 },
@@ -105,6 +90,42 @@ describe("agruparCarga", () => {
     const carga = agruparCarga(linhas, bolsistas, escolas, turmas);
     expect(carga.map((c) => [c.nome, c.alocadas, c.total])).toEqual([["Bia", 7, 4], ["Caio", 2, 0]]);
     expect(carga[0].porEscola.map((e) => e.horas)).toEqual([4, 3]);
+  });
+});
+
+describe("agruparFaltas", () => {
+  const aloc = (bolsistaId: string, situacao: string, extra: object = {}) => ({
+    id: `${bolsistaId}-x`,
+    bolsistaId,
+    bolsistaNome: bolsistaId === "bia" ? "Bia" : "Caio",
+    situacao,
+    atrasoMinutos: null,
+    motivo: null,
+    ...extra,
+  });
+  const encontro = (id: string, data: string, alocacoes: object[], canceladoEm: string | null = null) =>
+    ({ id, data, horario: "08:00 – 12:00", modalidade: "Lego", canceladoEm, alocacoes }) as unknown as Encontro;
+
+  it("conta faltas por tipo e atrasos com minutos; cancelado e substituída não contam", () => {
+    const pessoas = agruparFaltas([
+      encontro("e2", "2026-10-12", [aloc("bia", "cumprida", { atrasoMinutos: 15 }), aloc("caio", "faltou_avisou", { motivo: "Prova" })]),
+      encontro("e1", "2026-10-05", [aloc("bia", "faltou_sem_aviso"), aloc("caio", "substituida")]),
+      encontro("e3", "2026-10-19", [aloc("bia", "faltou_sem_aviso")], "2026-10-18T10:00:00Z"),
+      encontro("e4", "2026-10-26", [aloc("caio", "faltou_avisou", { atrasoMinutos: 30 })]),
+    ]);
+    expect(pessoas.map((p) => [p.nome, p.faltasSemAviso, p.faltasAvisando, p.atrasos, p.minutosDeAtraso])).toEqual([
+      ["Bia", 1, 0, 1, 15],
+      ["Caio", 0, 2, 0, 0],
+    ]);
+    expect(pessoas[0].ocorrencias.map((o) => [o.data, o.tipo])).toEqual([
+      ["2026-10-05", "faltou_sem_aviso"],
+      ["2026-10-12", "atraso"],
+    ]);
+    expect(pessoas[1].ocorrencias[0]).toMatchObject({ tipo: "faltou_avisou", motivo: "Prova" });
+  });
+
+  it("mês sem falta nem atraso não lista ninguém", () => {
+    expect(agruparFaltas([encontro("e1", "2026-10-05", [aloc("bia", "cumprida")])])).toEqual([]);
   });
 });
 

@@ -13,6 +13,7 @@ export default async function AlocacaoLayout({ children }: { children: React.Rea
           { href: "/gestao/alocacao/turmas", rotulo: "Turmas e escolas" },
           { href: "/gestao/alocacao/espacos", rotulo: "Espaços" },
           { href: "/gestao/alocacao/carga", rotulo: "Carga e afastamentos" },
+          { href: "/gestao/alocacao/faltas", rotulo: "Faltas e atrasos" },
         ]}
       />
       {children}

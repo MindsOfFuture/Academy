@@ -73,7 +73,6 @@ export interface ArticleRow {
     excerpt?: string | null;
     content?: string | null;
     published_at?: string | null;
-    author_id?: string | null;
     cover?: MediaRef;
 }
 
@@ -158,7 +157,8 @@ export interface ArticleSummary {
     excerpt?: string | null;
     content?: string | null;
     coverUrl?: string | null;
-    authorId?: string | null;
+    /** Autores do artigo, dos metadados do texto. */
+    authorName?: string | null;
     publishedAt?: string | null;
 }
 

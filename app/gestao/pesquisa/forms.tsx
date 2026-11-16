@@ -74,7 +74,7 @@ export function FormProducao({ producao, podeApagar }: { producao: ProducaoPesqu
         <input type="hidden" name="id" value={producao?.id ?? ""} />
         <label className="block space-y-1 sm:w-60">
           <span className={rotuloCampo}>Tipo</span>
-          <select name="tipo" required className={campoSelect} defaultValue={producao?.tipo ?? "artigo_congresso"}>
+          <select name="tipo" required className={campoSelect} defaultValue={producao?.tipo ?? "relatorio"}>
             {Object.entries(TIPO_PRODUCAO).map(([valor, rotulo]) => (
               <option key={valor} value={valor}>
                 {rotulo}

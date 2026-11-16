@@ -179,7 +179,25 @@ export function validarTurma(form: FormData): Validado<NovaTurma> {
   if (!nome.ok) return nome;
   const curso = validarCurso(form);
   if (!curso.ok) return curso;
-  return { ok: true, valor: { escolaId, nome: nome.valor, ...curso.valor } };
+  const alunos = validarAlunos(form);
+  if (!alunos.ok) return alunos;
+  // Sem número informado, o número de alunos é o tamanho da lista.
+  const nAlunos = curso.valor.nAlunos ?? (alunos.valor.length || null);
+  return { ok: true, valor: { escolaId, nome: nome.valor, ...curso.valor, nAlunos, alunos: alunos.valor } };
+}
+
+/** Lista de alunos, um por linha; linha em branco não conta, nome repetido conta uma vez. */
+export function validarAlunos(form: FormData): Validado<string[]> {
+  const linhas = texto(form, "alunos")
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(/\s+/g, " "))
+    .filter(Boolean);
+  // Fica a primeira grafia de cada nome.
+  const nomes = linhas.filter((n, i) => linhas.findIndex((m) => m.toLowerCase() === n.toLowerCase()) === i);
+  const ruim = nomes.find((n) => n.length < 2 || n.length > 120);
+  if (ruim) return { ok: false, mensagem: `Nome de aluno inválido: "${ruim}" (de 2 a 120 caracteres).` };
+  if (nomes.length > 1000) return { ok: false, mensagem: "A lista vai até 1000 alunos." };
+  return { ok: true, valor: nomes };
 }
 
 export function validarCurso(form: FormData): Validado<NovoCurso> {
@@ -446,11 +464,10 @@ export function validarAndamento(form: FormData): Validado<{ texto: string }> {
 }
 
 export const TIPO_PRODUCAO: Record<TipoProducao, string> = {
-  artigo_congresso: "Artigo em congresso",
-  artigo_publicado: "Artigo publicado",
   relatorio: "Relatório",
   substack: "Substack",
   ebook: "E-book",
+  video: "Vídeo",
   outro: "Outro",
 };
 

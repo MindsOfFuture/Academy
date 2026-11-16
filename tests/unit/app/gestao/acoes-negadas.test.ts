@@ -118,7 +118,9 @@ describe("ações da gestão recusam quem não pode", () => {
   // Bolsista pode: nota de encerramento, presentes, melhorias (exceto responder), andamento de meta, o próprio relatório
   // e criar/editar na pesquisa.
   const soCoordenacao = [
-    ...acoes(alocacao).filter(([n]) => n !== "escreverNotaAction" && n !== "registrarPresentesAction"),
+    ...acoes(alocacao).filter(
+      ([n]) => n !== "escreverNotaAction" && n !== "registrarPresentesAction" && n !== "registrarChamadaAction",
+    ),
     ...acoes(equipe),
     ...acoes(artigos),
     ...acoes(melhorias).filter(([n]) => n === "responderMelhoriaAction"),

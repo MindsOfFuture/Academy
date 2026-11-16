@@ -15,6 +15,7 @@ import {
   conflitosDeHorario,
   criarEncontro,
   criarEncontros,
+  definirAlunos,
   definirSituacaoTurma,
   editarCurso,
   editarEncontro,
@@ -27,6 +28,7 @@ import {
   obterEncontros,
   planejarLote,
   registrarAfastamento,
+  registrarChamada,
   registrarPresentes,
   removerAlocacao,
   substituirAlocacao,
@@ -38,6 +40,7 @@ import {
   mensagemDeErro,
   sucesso,
   validarAfastamento,
+  validarAlunos,
   validarCurso,
   validarEncontro,
   validarEscola,
@@ -339,6 +342,30 @@ export async function escreverNotaAction(_anterior: EstadoAcao | null, form: For
 }
 
 /** Alunos presentes: uma vez por encontro, por quem esteve nele ou pela coordenação (o banco decide). */
+export async function definirAlunosAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  const negado = await exigirCoordenacao();
+  if (negado) return negado;
+  const turmaId = campo(form, "turmaId");
+  const alunos = validarAlunos(form);
+  if (!turmaId) return falha("Turma não informada.");
+  if (!alunos.ok) return falha(alunos.mensagem);
+  return executar(() => definirAlunos(turmaId, alunos.valor), "Lista de alunos atualizada.");
+}
+
+/** Chamada: a lista vem inteira (`aluno`) e marcados os presentes; quem ficou desmarcado faltou. */
+export async function registrarChamadaAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
+  try {
+    await ensureGestaoMember();
+  } catch (error) {
+    return falha(error instanceof Error ? error.message : "Acesso negado.");
+  }
+  const id = campo(form, "encontroId");
+  if (!id) return falha("Encontro não informado.");
+  const presentes = new Set(form.getAll("presente"));
+  const ausentes = form.getAll("aluno").filter((a): a is string => typeof a === "string" && !presentes.has(a));
+  return executar(() => registrarChamada(id, ausentes), "Chamada registrada.");
+}
+
 export async function registrarPresentesAction(_anterior: EstadoAcao | null, form: FormData): Promise<EstadoAcao> {
   try {
     await ensureGestaoMember();

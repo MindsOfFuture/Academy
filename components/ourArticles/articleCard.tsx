@@ -39,7 +39,7 @@ export default function ArticleCard({ article, index = 0 }: { article: ArticleSu
 
       <div className="p-6 flex-1 flex flex-col">
         <div className="flex items-center text-sm text-gray-600 mb-3">
-          <span>{article.authorId || "Equipe"}</span>
+          <span className="truncate">{article.authorName || "Equipe"}</span>
           <span className="mx-2">•</span>
           <span>{article.publishedAt ? formatDate(article.publishedAt) : ""}</span>
           <span className="mx-2">•</span>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import Navbar from "@/components/navbar/navbar";
 import Footer from "@/components/footer/footer";
 import ArticleCard from "@/components/ourArticles/articleCard";
-import { getArticles, getArticleBySlug, getArticleById } from "@/lib/api/articles";
+import { getArticles, getArticleBySlug, getArticleById, getProducoes, type ProducaoDoSite } from "@/lib/api/articles";
+import { TIPO_PRODUCAO } from "@/lib/api/gestao/validacao";
 import type { ArticleSummary } from "@/lib/api/types";
 import { ArrowLeft, Calendar, Clock, Share2, Users, BookOpen, ExternalLink, Fingerprint, Tags } from "lucide-react";
 import { sanitizeRichText } from "@/lib/sanitize";
@@ -117,7 +118,57 @@ const formatDate = (dateString: string) =>
     timeZone: "America/Sao_Paulo",
   });
 
-function ListaDeArtigos({ articles }: { articles: ArticleSummary[] }) {
+function Producoes({ producoes }: { producoes: ProducaoDoSite[] }) {
+  return (
+    <section aria-labelledby="producoes" className="mt-16">
+      <h2 id="producoes" className="text-2xl md:text-3xl font-bold text-[#684A97]">
+        Produções da pesquisa
+      </h2>
+      <p className="mt-2 mb-6 flex items-center gap-2 text-sm text-gray-600">
+        <span className="h-2 w-2 rounded-full bg-[#E8473A]" />
+        {producoes.length} {producoes.length === 1 ? "produção" : "produções"}
+      </p>
+      <ul className="divide-y divide-gray-200 rounded-[14px] border border-gray-200">
+        {producoes.map((p) => (
+          <li key={p.id} className="flex flex-col gap-1 p-5 sm:flex-row sm:items-start sm:gap-6">
+            <span className="w-fit shrink-0 rounded-full bg-[#684A97]/10 px-3 py-1 text-xs font-semibold text-[#684A97] sm:mt-0.5 sm:w-36 sm:text-center">
+              {TIPO_PRODUCAO[p.tipo] ?? "Produção"}
+            </span>
+            <div className="min-w-0">
+              {p.link ? (
+                <a
+                  href={p.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-start gap-2 font-semibold text-gray-900 hover:text-[#684A97]"
+                >
+                  <span className="underline decoration-[#684A97]/30 underline-offset-2 group-hover:decoration-[#684A97]">
+                    {p.titulo}
+                  </span>
+                  <ExternalLink size={14} className="mt-1 shrink-0" aria-label="abre em outra aba" />
+                </a>
+              ) : (
+                <p className="font-semibold text-gray-900">{p.titulo}</p>
+              )}
+              <p className="text-sm text-gray-700">{p.autores}</p>
+              <p className="text-sm text-gray-500">
+                {[p.onde, formatarDia(p.data)].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** "2026-11-01" → "01/11/2026", sem passar por Date (sem fuso para errar o dia). */
+function formatarDia(iso: string): string {
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function ListaDeArtigos({ articles, producoes }: { articles: ArticleSummary[]; producoes: ProducaoDoSite[] }) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar showTextLogo={true} />
@@ -139,7 +190,7 @@ function ListaDeArtigos({ articles }: { articles: ArticleSummary[] }) {
       </header>
 
       <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-16 py-12">
-        {articles.length > 0 ? (
+        {articles.length > 0 || producoes.length > 0 ? (
           <>
             <p className="mb-6 flex items-center gap-2 text-sm text-gray-600">
               <span className="h-2 w-2 rounded-full bg-[#E8473A]" />
@@ -152,6 +203,7 @@ function ListaDeArtigos({ articles }: { articles: ArticleSummary[] }) {
                 </li>
               ))}
             </ul>
+            {producoes.length > 0 && <Producoes producoes={producoes} />}
           </>
         ) : (
           <div className="flex flex-col items-center text-center py-16">
@@ -180,7 +232,10 @@ export default async function ArticlePage({
 }) {
   const { slug: bruto } = await searchParams;
   const slug = Array.isArray(bruto) ? bruto[0] : bruto;
-  if (!slug) return <ListaDeArtigos articles={await getArticles()} />;
+  if (!slug) {
+    const [articles, producoes] = await Promise.all([getArticles(), getProducoes()]);
+    return <ListaDeArtigos articles={articles} producoes={producoes} />;
+  }
 
   // Mesma ordem da rota de API: slug primeiro, depois id
   const article = (await getArticleBySlug(slug)) ?? (await getArticleById(slug));

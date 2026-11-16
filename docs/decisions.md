@@ -530,3 +530,62 @@ Apagar artigo continua só com o admin.
 Consequência: o site filtra `status = 'published'` em `lib/api/articles.ts`,
 porque a RLS agora deixa a coordenação (e o admin) ler rascunhos pelo cliente com
 sessão. Capas trocadas ficam no bucket sem limpeza.
+
+## 029 — A turma tem cursos; o número de alunos soma curso por curso
+Status: aceita (2026-11-14)
+
+A mesma turma volta para outro curso (Lego e, depois, Python) e cada curso conta de novo
+no número de alunos da home. Turma passou a ter `gestao.turma_curso` (curso, período,
+número de alunos); `public.numeros_da_home()` soma os cursos.
+
+Decisão: `turma.modalidade`, `inicio`, `fim` e `n_alunos` **não foram apagadas** — viram
+os dados do primeiro curso. A migration `20261119_gestao_cursos_da_turma` copiou cada
+turma para um curso (com as triggers de autoria e auditoria desligadas só durante a
+cópia, porque elas exigem usuário) e um trigger `after insert` em `turma` cria o primeiro
+curso a partir dessas colunas. Assim o código anterior ao deploy continuou funcionando e
+o cadastro de turma não mudou de formato. O encontro não aponta para um curso: o
+formulário só preenche a modalidade com o curso mais recente.
+
+Consequência: editar as colunas antigas de `turma` não muda nenhum curso; o código lê
+só `turma_curso`. Na mesma leva, `gestao.v_carga` ganhou `horas_alocadas` (as mesmas
+regras de `horas`, sem esperar a data) e a Carga do mês mostra alocadas e cumpridas;
+`horas` não mudou, e o relatório mensal continua lendo o cumprido.
+
+## 030 — Lista de alunos e chamada; falta e atraso registrados no encontro
+Status: aceita (2026-11-16)
+
+A coordenação pediu chamada em que todos começam presentes e se desmarca quem faltou,
+e um lugar para ver faltas e atrasos da equipe.
+
+Decisão:
+- `gestao.aluno_turma` é opcional e identificada pelo nome dentro da turma (índice único
+  em `lower(btrim(nome))`). `gestao.definir_alunos` troca a lista inteira: quem sai fica
+  **inativo**, não é apagado, porque a chamada antiga aponta para ele. Salvar a lista põe
+  o total no `n_alunos` do curso mais recente, que segue editável à mão; lista vazia não
+  zera o número.
+- `gestao.falta_aluno` só se grava por `gestao.registrar_chamada` (security definer), que
+  delega a `registrar_presentes` as regras de quem pode e quando e grava o total de
+  presentes. Refazer a chamada não apaga a falta de quem já saiu da lista.
+- Falta e atraso da equipe se registram **na página do encontro** (situação e
+  "Atraso (min)" de cada pessoa). A subaba Alocação → Faltas e atrasos só mostra o mês.
+  A coordenação disse que não vai usar o atraso por enquanto; o campo fica pronto.
+
+Consequência: aluno homônimo na mesma turma precisa de um diferenciador no nome.
+
+## 031 — Artigo é o do site; toda produção da pesquisa vai para o site
+Status: aceita (2026-11-16) — muda o lugar da aba da 028, não as permissões
+
+"Artigo publicado", "Artigo em congresso" e os artigos do site eram a mesma coisa em
+três lugares. Artigo passou a ser só o de `public.article` (onde saiu fica no campo
+"Publicado em" dele); as produções ficam com relatório, Substack, e-book, vídeo e outro
+(`20261121_gestao_artigo_e_do_site`). Na gestão, os artigos viraram o filtro "Artigos"
+de Pesquisa → Produções (só coordenação); `/gestao/pesquisa/artigos` ficou só como
+editor.
+
+Toda produção aparece em `/artigos`, sem curadoria, por `public.producoes_do_site()`
+(security definer para o visitante, sem as do E2E, link só `http(s)`). O "Escrito por"
+do artigo e o autor no cartão vêm dos autores do bloco de metadados do texto
+(`separarMetadados`), nunca de quem cadastrou (`author_id`); sem autores, a linha some.
+
+Consequência: bolsista não registra artigo; produção cadastrada por qualquer membro fica
+pública na hora.
