@@ -9,11 +9,11 @@ export const PRODUCT_LABELS: Record<string, string> = {
   "/protected/modulos/educacao-financeira": "Educação Financeira",
   "/protected/modulos/educacao-financeira/financity": "Financity",
   "/protected/modulos/educacao-financeira/cidadania-financeira": "Cidadania Financeira",
-  "/protected/modulos/laboratorio-de-gestao": "Laboratório de Gestão (página de entrada)",
-  "/lg2": "Laboratório de Gestão (módulos do app)",
+  "/protected/modulos/laboratorio-de-gestao": "Empreenda+ (página de entrada)",
+  "/lg2": "Empreenda+ (módulos do app)",
 };
 
-export const LG2_START_NOTE = "Os números do Laboratório de Gestão começam a contar a partir de 06/11/2026.";
+export const LG2_START_NOTE = "Os números do Empreenda+ começam a contar a partir de 06/11/2026.";
 
 const numero = (valor: number) => valor.toLocaleString("pt-BR");
 
@@ -22,8 +22,8 @@ export function SiteMetricsPanel({ data }: { data: SiteMetricsData }) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <KpiCard icon={<UserPlus className="h-5 w-5" />} label="Novos cadastros no período" value={numero(data.novosCadastros)} />
-        <KpiCard icon={<Users className="h-5 w-5" />} label="Pessoas que usaram o Laboratório de Gestão" value={numero(data.lg2.usuarios)} />
-        <KpiCard icon={<Flag className="h-5 w-5" />} label="Jornada do Laboratório de Gestão concluída" value={numero(data.lg2.jornadaConcluida)} />
+        <KpiCard icon={<Users className="h-5 w-5" />} label="Pessoas que usaram o Empreenda+" value={numero(data.lg2.usuarios)} />
+        <KpiCard icon={<Flag className="h-5 w-5" />} label="Jornada do Empreenda+ concluída" value={numero(data.lg2.jornadaConcluida)} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -50,7 +50,7 @@ export function SiteMetricsPanel({ data }: { data: SiteMetricsData }) {
         </div>
 
         <div className="rounded-lg border bg-white p-4 shadow-sm">
-          <h3 className="mb-3 text-lg font-semibold text-gray-900">Laboratório de Gestão por módulo</h3>
+          <h3 className="mb-3 text-lg font-semibold text-gray-900">Empreenda+ por módulo</h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-500">
@@ -81,9 +81,9 @@ export function SiteMetrics({ filter }: { filter: DateFilter }) {
   const { data, loading, error } = useSiteMetrics(filter);
 
   return (
-    <section className="space-y-4" aria-label="Números do site e do Laboratório de Gestão">
+    <section className="space-y-4" aria-label="Números do site e do Empreenda+">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Números do site e do Laboratório de Gestão</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Números do site e do Empreenda+</h2>
         <p className="text-sm text-gray-500">Cadastros, acessos aos produtos e uso do app no período escolhido.</p>
       </div>
       {loading ? (

@@ -30,16 +30,25 @@
     "M9-02": [{ depois: "Não", opcao: O.outra, opcoes: [O.outra],
       texto: "Anotado. Mesmo fora dessas opções, a sua atividade pode pedir alguma licença ou autorização: confira na prefeitura ou na Sala do Empreendedor." }],
     "M9-03": [{ depois: O.loja, opcao: O.domicilio, opcoes: [O.domicilio],
-      texto: "Quem atende na casa do cliente não precisa de alvará para um ponto próprio. Mas a atividade pode precisar de licença própria, por exemplo da Vigilância Sanitária ou do conselho da profissão: confira na prefeitura. O registro ainda pede um endereço, em geral o da sua casa." }],
+      texto: "Quem atende na casa do cliente não precisa de alvará para um ponto próprio. Mas a atividade pode precisar de licença própria, por exemplo da Vigilância Sanitária ou do conselho da profissão: confira na prefeitura. O registro ainda pede um endereço, em geral o da sua casa. Alvará é a licença da prefeitura para um negócio funcionar num endereço." }],
   };
+  /* lote 16/11 (regra do "Não sei"): sem "Não sei" nas perguntas sobre a própria pessoa (onde vai trabalhar,
+     como, se recebe gente, onde guarda o gás, como é o espaço em casa) — ela sempre sabe. "Ainda não faço ideia"
+     (M9-03b) era o mesmo que "Não sei" e saiu junto. Nas outras, o "Não sei" fica e BLOQUEIA (mostra a ajuda, não grava).
+     Item H (16/11): perguntas de sim/não sobre a situação da pessoa também ficam só com as respostas reais
+     (já consultou a prefeitura? vai ter gás? vai guardar inflamáveis? o trabalho faz fumaça/barulho? vai ter obra?).
+     O "Não sei" fica só onde a resposta depende de uma regra de fora: saúde/Vigilância (M9-02), área do imóvel (M9-05),
+     quantidade de gás (M9-07a), convenção do condomínio (M9-08) e conselho profissional (M9-10). */
+  const SEM_NS = ["M9-01", "M9-03", "M9-03a", "M9-03b", "M9-04", "M9-06", "M9-07", "M9-07b", "M9-07c", "M9-09", "M9-11", "M9-12"];
   /* opções na ordem da tela: as do documento + as extras */
   function opcoes(D, cod) {
     const q = D.perguntas.find((x) => x.codigo === cod);
-    const lista = q ? q.caminhos.flatMap((c) => c.opcoes) : [];
+    let lista = q ? q.caminhos.flatMap((c) => c.opcoes) : [];
     (EXTRAS[cod] || []).forEach((e) => { const i = lista.indexOf(e.depois); lista.splice(i < 0 ? lista.length : i + 1, 0, e.opcao); });
+    if (SEM_NS.includes(cod)) lista = lista.filter((o) => o !== NS && o !== O.pIdeia);
     return lista;
   }
-  /* perguntas em que o "Não sei" mostra o aviso com "Já verifiquei" (texto do documento + regra das linhas) */
+  /* perguntas em que o "Não sei" seguido entrava nos alertas (só respostas antigas; desde o lote 16/11 o "Não sei" não é gravado) */
   const AVISO_NS = ["M9-02", "M9-03a", "M9-04", "M9-06", "M9-07", "M9-07a", "M9-07b", "M9-07c", "M9-08", "M9-10", "M9-11", "M9-12"];
 
   const op = (R, c) => { const r = R[c]; return !r ? null : r.estado === "naosei" ? NS : r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : null; };
@@ -98,13 +107,13 @@
 
   /* ---------- checklist: itens na ordem do instrumento ---------- */
   const ORGAOS = {
-    prefeitura: { nome: "Prefeitura e portal da Redesim ou Junta Comercial do estado", base: "M9.BT05" },
+    prefeitura: { nome: "Prefeitura e site da Junta Comercial do estado", base: "M9.BT05" },
     vigilancia: { nome: "Vigilância Sanitária", base: "M9.BT11" },
     bombeiros: { nome: "Bombeiros", base: "M9.BT14" },
     ambiental: { nome: "Órgão ambiental", base: "M9.BT15" },
     conselho: { nome: "Conselho profissional", base: "M9.BT16" },
     condominio: { nome: "Condomínio", base: "M9.BT09" },
-    anp: { nome: "ANP (revenda de gás)", base: "M9.BT22" },
+    anp: { nome: "Agência nacional do gás (para revender gás)", base: "M9.BT22" },
     detran: { nome: "Detran (veículo adaptado)", base: "M9.BT23" },
   };
   const ITENS = [
@@ -267,7 +276,7 @@
     return p.join("; ") + ".";
   }
 
-  const api = { NS, O, EXTRAS, opcoes, AVISO_NS, LIMITE, SIT, ORGAOS, ITENS, op, ns, local, sanitario, publico, sequencia, alimentoSemSaude, caminho, partesAviso, avisoNS, linkEstado, checklist, cruzamentos, alertas, proximos, encaminhamento, orgaos, linhaResumo };
+  const api = { NS, O, EXTRAS, SEM_NS, opcoes, AVISO_NS, LIMITE, SIT, ORGAOS, ITENS, op, ns, local, sanitario, publico, sequencia, alimentoSemSaude, caminho, partesAviso, avisoNS, linkEstado, checklist, cruzamentos, alertas, proximos, encaminhamento, orgaos, linhaResumo };
   raiz.Motor9 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -14,10 +14,17 @@ const { chromium } = require(process.env.PW || 'playwright');
 
 const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m07');
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf', '.webp': 'image/webp' };
+/* M07_SABOTAGEM=1: o "Não sei" das escolhas volta a gravar "naosei" (o teste tem de falhar) */
+const SABOTAGEM = process.env.M07_SABOTAGEM === '1';
 const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
+  if (SABOTAGEM && f.endsWith('js/app.js')) {
+    const s = fs.readFileSync(f, 'utf8'), alvo = 'erro(nsTocado ? MSG_ESCOLHA';
+    if (!s.includes(alvo)) throw new Error('sabotagem: alvo não encontrado');
+    return res.end(s.split(alvo).join('if (nsTocado) return { estado: "naosei" }; ' + alvo));
+  }
   fs.createReadStream(f).pipe(res);
 });
 let falhas = 0;
@@ -75,6 +82,12 @@ function contas() {
   /* reposição: 1.500 por mês ÷ 30 = 50 por dia; 1 por venda e 3 dias de prazo → 150; 12 por venda → 600 por dia, 1.800 */
   check('Reposição: 1.500 por mês = 50 vendas por dia; 1 item por venda = 50 por dia', Mo.vendasDia(1500) === 50 && Mo.consumoDia(1500, 1) === 50);
   check('Reposição: ponto de pedido com 3 dias = 150 (1 por venda) e 1.800 (12 por venda)', Mo.pontoDePedido(1500, 1, 3, 0) === 150 && Mo.pontoDePedido(1500, 12, 3, 0) === 1800 && Mo.pontoDePedido(1500, 1, 3, 20) === 170);
+  /* sazonalidade (lote 16/11): Até 10 h, apoio 2 h, 60 min por unidade → 8 por semana.
+     120 por mês × 1,5 = 180 no mês forte ÷ 4,33 = 41,57 → 42 por semana: não cabe.
+     20 × 1,25 = 25 ÷ 4,33 = 5,77 → 6 por semana: cabe. Faixa 11 a 20 h (9 a 18 por semana): 50 × 1,2 = 60 ÷ 4,33 = 13,86 → 14: talvez. */
+  { const c8 = cap({ horas: 'Até 10 h', apoio: 'Até 2 h', minUn: 60 }), cf = cap({ horas: 'De 11 a 20 h', apoio: 'Até 2 h', minUn: 60 });
+    const a = Mo.mesForte(120, 50, c8), b = Mo.mesForte(20, 25, c8), f = Mo.mesForte(50, 20, cf);
+    check('Sazonalidade: 120 + 50% = 180 no mês forte = 42 por semana > 8 (falta); 25 → 6 (cabe); faixa 9 a 18 com 14 (talvez)', a.mes === 180 && a.semana === 42 && a.estado === 'falta' && b.mes === 25 && b.semana === 6 && b.estado === 'cabe' && cf.lo.semana === 9 && cf.hi.semana === 18 && f.semana === 14 && f.estado === 'talvez' && Mo.mesForte(0, 50, c8) === null && Mo.mesForte(120, 0, c8) === null, [a, b, f, cf.lo, cf.hi]); }
   /* "Cenários do Módulo 6" não é testado: o Módulo 6 publicado não guarda cenários de faturamento */
 }
 
@@ -99,7 +112,7 @@ function estadoAte(cod, iniExtra, rExtra) {
   const R = {};
   for (const c of ORDEM) { if (c === cod) break; if (NEUTRO[c]) R[c] = NEUTRO[c]; }
   Object.assign(R, rExtra || {});
-  return { v: 1, ini: Object.assign({}, INI, iniExtra || {}), R, mapa: null, hist: [], inst: { forn: [], plano: {}, padrao: [], painel: [], folga: '' }, voltarResumo: false };
+  return { v: 2, ini: Object.assign({}, INI, iniExtra || {}), R, mapa: null, hist: [], inst: { forn: [], plano: {}, padrao: [], painel: [], folga: '' }, voltarResumo: false };
 }
 
 /* fragmentos literais de um texto com [colchetes] */
@@ -133,24 +146,27 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     await page.goto(URL);
     await page.click('#ir');
   };
-  /* resultado: o retrato completo fica num painel fechado; abre como a pessoa faria (toque no resumo) */
+  /* resultado: o retrato completo vem aberto (item I); se alguém fechou, abre como a pessoa faria (toque no resumo) */
   const abrirRetrato = async () => { if (!(await page.evaluate(() => document.querySelector('#retrato').open))) await page.click('#retrato > summary'); };
   const tocar = (txt) => page.evaluate((t) => {
-    const b = [...document.querySelectorAll('.opcao')].find((x) => x.textContent.trim() === t);
-    if (!b) throw new Error('opção inexistente: ' + t + ' :: ' + [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()).join('|'));
+    const txt = (x) => ((x.querySelector('.op-txt > b') || x).textContent).trim();
+    const b = [...document.querySelectorAll('.opcao')].filter((x) => x.offsetParent !== null || !x.closest('[hidden]')).find((x) => txt(x) === t);
+    if (!b) throw new Error('opção inexistente: ' + t + ' :: ' + [...document.querySelectorAll('.opcao')].map(txt).join('|'));
     b.click();
   }, txt);
   const caixa = async () => nrm(await page.evaluate(() => ['#retorno', '#junto', '#b1', '#b2'].map((s) => (document.querySelector(s) || {}).innerText || '').join(' ')));
   const ok = () => page.click('#ok');
   const preenche = (sel, v) => page.fill(sel, v);
   const coberto = new Set();
-  async function linha(cod, opcao, montar, acao, nome) {
+  async function linha(cod, opcao, montar, acao, nome, naDica) {
     const row = D.perguntas.find((q) => q.codigo === cod).caminhos.find((c) => c.opcao === opcao);
     if (!row) return check(`linha existe: ${cod} / ${opcao}`, false);
     await abrir(montar);
     await acao();
     await page.waitForTimeout(60);
-    const t = await caixa();
+    /* naDica: orientação que vale para qualquer resposta fica na "Ver dica" (antes de responder), não num balão */
+    const t = naDica ? nrm(await page.evaluate(() => (document.querySelector('.pergunta .dica-toggle') || {}).textContent || '')) + ((await caixa()).includes('Atividades com') || (await caixa()).includes('caminho imaginado') ? ' BALAO' : '') : await caixa();
+    if (naDica && t.includes(' BALAO')) return check(`${cod} · ${opcao}: ainda aparece como balão`, false, t);
     const falta = row.texto === '—' ? [] : fragmentos(row.texto).filter((f) => !t.includes(f));
     check(`${cod} · ${opcao}${nome ? ' · ' + nome : ''}`, !falta.length, { falta, tela: t });
     if (!falta.length) coberto.add(cod + '|' + opcao);
@@ -161,8 +177,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await linha('M7-01', 'Ajustei as etapas', E('M7-01'), async () => { await page.fill('.etapa-ed input >> nth=0', 'Receber o pedido'); await ok(); });
   await linha('M7-01', 'Mais de 8 etapas', E('M7-01'), async () => { await page.click('#mais'); await page.fill('.etapa-ed input >> nth=8', 'Pós-venda'); await page.click('#mais'); });
   await linha('M7-01', 'Retirou todas as etapas (vazio)', E('M7-01'), async () => { for (let i = 0; i < 8; i++) await page.click('.etapa-ed .x >> nth=0'); await ok(); });
-  await linha('M7-01', 'Não sei', E('M7-01'), () => page.click('#ns'));
-  await linha('M7-01', 'Qualquer resposta, com estágio = ideia', E('M7-01', { estagio: 'Ainda é uma ideia' }), async () => {});
+  await linha('M7-01', 'Qualquer resposta, com estágio = ideia', E('M7-01', { estagio: 'Ainda é uma ideia' }), async () => {}, 'na dica', true);
   /* M7-02 */
   await linha('M7-02', 'Tempo por unidade', E('M7-02'), async () => { await preenche('#th', '1'); await preenche('#tm', '30'); await ok(); });
   await linha('M7-02', 'Tempo do lote e unidades por lote', E('M7-02'), async () => { await preenche('#th', '1'); await preenche('#tm', '0'); await preenche('#un', '20'); await ok(); });
@@ -172,7 +187,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   /* M7-03 */
   for (const o of ['Até 2 h', 'De 3 a 5 h', 'De 6 a 10 h', 'Mais de 10 h', 'Não sei']) await linha('M7-03', o, E('M7-03'), () => tocar(o));
   /* M7-04 */
-  for (const o of ['Não, faço sozinho(a)', 'Sim, sem pagamento (família, amigo, parceiro)', 'Sim, pago alguém', 'Não sei']) await linha('M7-04', o, E('M7-04'), () => tocar(o));
+  for (const o of ['Não, faço sozinho(a)', 'Sim, sem pagamento (família, amigo, parceiro)', 'Sim, pago alguém']) await linha('M7-04', o, E('M7-04'), () => tocar(o));
   await linha('M7-04', 'Horas inválidas (negativo ou texto)', E('M7-04'), async () => { await tocar('Sim, pago alguém'); await preenche('#hajuda', '-3'); await ok(); });
   /* M7-05 */
   for (const o of ['Meu tempo', 'Um equipamento ou o espaço', 'Uma etapa que demora ou acumula', 'Falta ou atraso de material', 'Não sei']) await linha('M7-05', o, E('M7-05'), () => tocar(o));
@@ -182,32 +197,30 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await linha('M7-05a', 'Valor inválido (zero, negativo ou texto)', e5a, async () => { await preenche('#uv', '0'); await preenche('#tvm', '50'); await ok(); });
   await linha('M7-05a', 'Não sei', e5a, () => page.click('#ns'));
   /* M7-06 */
-  for (const o of ['Só um', 'Dois ou mais', 'Ainda não procurei', 'Não sei']) await linha('M7-06', 'Parte 1: ' + o, E('M7-06'), () => tocar(o));
+  for (const o of ['Só um', 'Dois ou mais', 'Ainda não procurei']) await linha('M7-06', 'Parte 1: ' + o, E('M7-06'), () => tocar(o));
   await linha('M7-06', 'Parte 2: No mesmo dia ou compro na hora', E('M7-06'), () => tocar('No mesmo dia ou compro na hora'));
   await linha('M7-06', 'Parte 2: De 1 a 3 dias / De 4 a 7 dias', E('M7-06'), () => tocar('De 1 a 3 dias'), '1 a 3');
   await linha('M7-06', 'Parte 2: De 1 a 3 dias / De 4 a 7 dias', E('M7-06'), () => tocar('De 4 a 7 dias'), '4 a 7');
   await linha('M7-06', 'Parte 2: Mais de 7 dias', E('M7-06'), () => tocar('Mais de 7 dias'));
-  await linha('M7-06', 'Parte 2: Não sei', E('M7-06'), async () => { await page.evaluate(() => { const bs = [...document.querySelectorAll('.opcao')].filter((x) => x.textContent.trim() === 'Não sei'); bs[1].click(); }); });
+  await linha('M7-06', 'Parte 2: Não sei', E('M7-06'), () => tocar('Não sei'));
   /* M7-07 */
   await linha('M7-07', 'De 1 a 3 critérios', E('M7-07'), async () => { await tocar('Prazo de entrega'); await tocar('Pedido mínimo'); });
   await linha('M7-07', 'Mais de 3 critérios', E('M7-07'), async () => { for (const o of ['Prazo de entrega', 'Pedido mínimo', 'Frete', 'Troca ou devolução']) await tocar(o); });
   await linha('M7-07', 'Só o preço', E('M7-07'), () => tocar('Só o preço'));
   await linha('M7-07', 'Nota fiscal e origem comprovada', E('M7-07'), () => tocar('Nota fiscal e origem comprovada'));
-  await linha('M7-07', 'Não sei', E('M7-07'), () => tocar('Não sei'));
   /* M7-08 */
-  for (const o of ['Sim, em poucos dias', 'Sim, em semanas ou meses', 'Não', 'Não sei']) await linha('M7-08', o, E('M7-08'), () => tocar(o));
+  for (const o of ['Sim, em poucos dias', 'Sim, em semanas ou meses', 'Não']) await linha('M7-08', o, E('M7-08'), () => tocar(o));
   /* M7-09 */
-  for (const o of ['Sigo um padrão ou receita anotada', 'Confiro no olho ou provando, sem nada anotado', 'Fico sabendo pelo cliente', 'Ainda não confiro', 'Não sei']) await linha('M7-09', o, E('M7-09'), () => tocar(o));
-  await linha('M7-09', 'Qualquer resposta, com atividade regulada em M4-11', E('M7-09', { regulada: 'Sim' }), () => tocar('Ainda não confiro'));
+  for (const o of ['Sigo um padrão ou receita anotada', 'Confiro no olho ou provando, sem nada anotado', 'Fico sabendo pelo cliente', 'Ainda não confiro']) await linha('M7-09', o, E('M7-09'), () => tocar(o));
+  await linha('M7-09', 'Qualquer resposta, com atividade regulada em M4-11', E('M7-09', { regulada: 'Sim' }), () => tocar('Ainda não confiro'), 'na dica', true);
   /* M7-10 */
-  for (const o of ['Atrasar a entrega', 'Errar o pedido', 'Produto chegar danificado ou estragado', 'Faltar material', 'Equipamento quebrar', 'Eu ficar doente ou sem tempo', 'Não sei']) await linha('M7-10', o, E('M7-10'), () => tocar(o));
+  for (const o of ['Atrasar a entrega', 'Errar o pedido', 'Produto chegar danificado ou estragado', 'Faltar material', 'Equipamento quebrar', 'Eu ficar doente ou sem tempo']) await linha('M7-10', o, E('M7-10'), () => tocar(o));
   await linha('M7-10', 'Outro', E('M7-10'), async () => { await tocar('Outro'); await ok(); });
   await linha('M7-10', 'Mais de 3 opções', E('M7-10'), async () => { for (const o of ['Atrasar a entrega', 'Errar o pedido', 'Faltar material', 'Equipamento quebrar']) await tocar(o); });
   /* M7-11 (já vem com sugestões marcadas) */
   await linha('M7-11', '2 ou 3 números', E('M7-11'), async () => {});
   await linha('M7-11', '1 número', E('M7-11'), async () => { await tocar('Quantidade feita ou atendida na semana'); await tocar('Pedidos entregues no prazo'); });
   await linha('M7-11', 'Mais de 3 números', E('M7-11', {}, { 'M7-05': { estado: 'opcao', opcao: 'Meu tempo' } }), async () => { await tocar('Reclamações ou refações'); await tocar('Vezes que faltou material'); });
-  await linha('M7-11', 'Não sei', E('M7-11'), () => tocar('Não sei'));
   /* M7-12 */
   await linha('M7-12', 'Texto preenchido', E('M7-12'), async () => { await preenche('#txt', 'Ver se preciso de alvará.'); await ok(); });
   await linha('M7-12', 'Em branco', E('M7-12'), ok);
@@ -278,11 +291,19 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Partida marca o tipo e o estágio herdados e mostra "Veio do Módulo"', /Veio do Módulo 5/.test(partida) && /Veio do Módulo 1/.test(partida) && await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Produto')));
   check('Partida traz volume, item e teste herdados (só o número de "60 pedidos")', (await page.inputValue('#f-volume')) === '200' && (await page.inputValue('#f-item')) === 'Farinha' && (await page.inputValue('#f-testeN')) === '60');
   check('Herança: quantidade da farinha por unidade = 1 kg ÷ 10 pães = 0,1 (em kg), com selo', (await page.inputValue('#f-uso')) === '0,1' && /\(em kg\)\s*Veio do Módulo 5/.test(nrm(await page.innerText('label[for="f-uso"]'))), nrm(await page.innerText('label[for="f-uso"]')));
+  /* item F do lote 16/11: o que já veio de outro módulo aparece num cartão pequeno com "Trocar", sem perguntar de novo */
+  { const card = await page.evaluate(() => ['oferta', 'item', 'uso', 'volume', 'testeN', 'testeDias'].map((c) => { const h = document.querySelector(`[data-herdado="${c}"]`), inp = document.querySelector(`#f-${c}`); return [c, !!h && !h.hidden && /Veio do Módulo \d/.test(h.textContent) && !!h.querySelector('[data-trocar]'), !!inp && inp.offsetParent === null]; }));
+    check('Herdados (F): oferta, item, quantidade, volume e teste em cartão "Veio do Módulo N · Trocar", sem o campo à vista', card.every((x) => x[1] && x[2]), card); }
+  check('Como calculamos (quantidade herdada): 1 kg ÷ 10 unidades que a receita rende = 0,1 kg', nrm(await page.innerText('#como-uso')) === 'Como calculamos: 1 kg ÷ 10 unidades que a receita rende = 0,1 kg em cada unidade.', await page.evaluate(() => (document.querySelector('#como-uso') || {}).textContent));
+  await page.click('[data-trocar="item"]');
+  check('Trocar abre o campo herdado e esconde o cartão', await page.isVisible('#f-item') && await page.isHidden('[data-herdado="item"]'));
   await page.fill('#f-item', 'Sal'); await page.dispatchEvent('#f-item', 'change');
   check('Trocar o item para outro material do Módulo 5 traz a quantidade dele (20 g ÷ 10 = 2 g)', (await page.inputValue('#f-uso')) === '2' && /\(em g\)/.test(await page.innerText('label[for="f-uso"]')));
+  check('Como calculamos (quantidade do sal): 20 g ÷ 10 = 2 g', nrm(await page.innerText('#como-uso')) === 'Como calculamos: 20 g ÷ 10 unidades que a receita rende = 2 g em cada unidade.');
   await page.fill('#f-item', 'Farinha'); await page.dispatchEvent('#f-item', 'change');
   await foto('m07_02_partida');
   await tocar('Até 10 h');
+  await page.click('[data-trocar="uso"]');
   await preenche('#f-uso', '0,5');
   await tocar('Toda semana');
   /* bug do testador: perda em branco ("deixe em branco se não sabe") tem de passar */
@@ -290,6 +311,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await ok();
   const errPerda = nrm(await page.innerText('#e-perda'));
   check('Perda inválida: mensagem simples ao lado do campo (sem "do teste")', errPerda === 'Use um número de 0 a 99, ou deixe em branco.' && !/do teste/.test(nrm(await page.innerText('body'))), errPerda);
+  await page.click('[data-trocar="testeN"]');
   await preenche('#f-testeN', 'muitos');
   await preenche('#f-perda', '');
   await ok();
@@ -316,6 +338,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await tocar('Um equipamento ou o espaço'); await ok();
   await preenche('#uv', '4'); await preenche('#tvm', '50'); await ok();
   check('M7-05a mostra a conta do forno: 36 por semana', /cabem cerca de 36 por semana/.test(await caixa()), await caixa());
+  check('Como calculamos (forno, na hora): 480 min ÷ 50 min = 9 vezes × 4 = 36 por semana', nrm(await page.innerText('#como-equip')).includes('480 min ÷ 50 min por vez = 9 vezes × 4 por vez = 36 por semana'), nrm(await page.innerText('#como-equip')));
   await foto('m07_05_equipamento');
   await ok();
   check('Fase "Fornecedores e estoque" aparece para fabricação (pergunta dos fornecedores)', /quantos fornecedores você tem/.test(nrm(await page.innerText('#pergunta'))), await page.innerText('#pergunta'));
@@ -326,11 +349,11 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await tocar('Sim, em poucos dias'); await ok();
   await tocar('Fico sabendo pelo cliente'); await ok();
   await tocar('Atrasar a entrega'); await tocar('Faltar material'); await ok();
-  const sug = await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => x.textContent.trim()));
+  const sug = await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => (x.querySelector('.op-txt > b') || x).textContent.trim()));
   check('M7-11 vem com sugestões ligadas ao gargalo e aos riscos', sug.includes('Quantidade feita ou atendida na semana') && sug.includes('Reclamações ou refações') && sug.length <= 3, sug);
   await ok();
   await preenche('#txt', 'Ver a licença da vigilância.'); await ok(); await ok();
-  check('Resultado leve: o retrato completo começa fechado, com o essencial à vista', await page.evaluate(() => { const d = document.querySelector('#retrato'); return !!d && !d.open && !!document.querySelector('#entendemos') && !!document.querySelector('#proximos') && !d.contains(document.querySelector('#entendemos')); }));
+  check('Resultado (item I): o retrato completo e o "Entenda os termos" já vêm abertos, com o essencial acima', await page.evaluate(() => { const d = document.querySelector('#retrato'); return !!d && d.open && [...document.querySelectorAll('#tela details')].every((x) => x.open) && !!document.querySelector('#entendemos') && !!document.querySelector('#proximos') && !d.contains(document.querySelector('#entendemos')); }));
   check('Resultado: Fornecedores e estoque na barra de fases (fabricação)', /Fornecedores e estoque/.test(nrm(await page.innerText('.etapas'))));
   await abrirRetrato();
   const res = nrm(await page.innerText('body'));
@@ -344,7 +367,10 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check(`Resumo: ponto de pedido com prazo de 10 dias = ${pp}`, new RegExp(`quando restarem ${pp}\\b`, 'i').test(res), pp);
   check('Resumo: compra do mês com perda de 5% = 106', /perda de 5%: 106/.test(res));
   /* "Como calculamos" embaixo dos números (relato das alunas, 05/11) */
-  check('Como calculamos (capacidade do forno): 480 min ÷ 50 min = 9 vezes × 4 = 36 por semana; no mês 164', nrm(await page.innerText('#como-capacidade')) === 'Como calculamos: 10 h por semana − 2 h de tarefas de apoio = 480 min para fazer; 480 min ÷ 50 min por vez = 9 vezes × 4 por vez = 36 por semana. No mês (4,33 semanas) = 164.', nrm(await page.innerText('#como-capacidade')));
+  check('Como calculamos (capacidade do forno): 480 min ÷ 50 min = 9 vezes × 4 = 36 por semana; no mês 164', nrm(await page.innerText('#como-capacidade')) === 'Como calculamos: 10 h por semana − 2 h de tarefas de apoio = 480 min para fazer; 480 min ÷ 50 min por vez = 9 vezes × 4 por vez = 36 por semana. No mês: 480 min × 4,33 semanas ÷ 50 min = 41 vezes × 4 = 164 (sempre arredondado para baixo).', nrm(await page.innerText('#como-capacidade')));
+  check('Como calculamos (volume): 200 − 164 = 36', nrm(await page.innerText('#como-volume')) === 'Como calculamos: 200 que você pretende − 164 que cabem no máximo = 36.', nrm(await page.innerText('#como-volume')));
+  check('Como calculamos (teste da ideia): 36 por semana ÷ 7 × 7 dias = 36', nrm(await page.innerText('#como-teste')) === 'Como calculamos: 36 por semana ÷ 7 dias × 7 dias = 36 que cabem no prazo do teste.', nrm(await page.innerText('#como-teste')));
+  check('Como calculamos (O que entendemos): a conta do mês logo abaixo da frase', nrm(await page.innerText('#como-entendemos')) === 'Como calculamos: 480 min por semana × 4,33 semanas ÷ 50 min por vez = 41 vezes × 4 = 164 por mês. Detalhes em “Sua capacidade”.', nrm(await page.innerText('#como-entendemos')));
   check('Como calculamos (compra do mês): 200 × 0,5 kg = 100 kg ÷ 95% = 106', nrm(await page.innerText('#como-compra')) === 'Como calculamos: 200 por mês × 0,5 kg em cada um = 100 kg; com a perda de 5%, dividimos por 95% (o que sobra depois da perda) = 106 (arredondado para cima).', nrm(await page.innerText('#como-compra')));
   check(`Como calculamos (reposição): ${pp} kg com 10 dias de prazo`, nrm(await page.innerText('#como-reposicao')).startsWith('Como calculamos: ') && nrm(await page.innerText('#como-reposicao')).includes(`× 10 dias de prazo do fornecedor = ${pp} kg`), nrm(await page.innerText('#como-reposicao')));
   check('Como calculamos: fonte menor que o texto do resultado', await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.como-calc')).fontSize) < parseFloat(getComputedStyle(document.querySelector('.diag-r')).fontSize)));
@@ -361,7 +387,6 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     check('Entendemos: parágrafos por assunto (oferta · tempo e meta · o que segura o ritmo)', ps.length === 3 && ps[0].startsWith('Você oferece') && /cabem/.test(ps[1]) && /ritmo/.test(ps[2]), ps); }
   check('Sem código interno na tela (M7-, M4-, M5-)', !/\bM\d-\d/.test(res), (res.match(/.{20}\bM\d-\d.{20}/) || [])[0]);
   const termosFonte = page.locator('#retrato .saiba').first();
-  await termosFonte.locator('summary').click();
   check('Resumo: fonte ligada ao termo fica acessível dentro da explicação', await termosFonte.locator('.p-fonte-termo a').count() > 0);
   await foto('m07_07_resumo');
   /* instrumento: quadro de fornecedores conta critérios sem voltar ao topo */
@@ -404,6 +429,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Serviço: tipo vem do Módulo 1 (nova pergunta do tipo)', await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Serviço')) && /Veio do Módulo 1/.test(await page.innerText('[data-campo="tipo"] legend')));
   check('Serviço: volume 40, material, item e quantidade por atendimento (200 ml) herdados do Módulo 5', (await page.inputValue('#f-volume')) === '40' && (await page.inputValue('#f-item')) === 'Shampoo automotivo' && (await page.inputValue('#f-uso')) === '200' && /\(em ml\)/.test(await page.innerText('label[for="f-uso"]')) && /Veio do Módulo 5/.test(await page.innerText('label[for="f-volume"]')));
   check('Serviço: tempo de 90 min herdado do Módulo 5', (await page.inputValue('#f-minUn')) === '90');
+  check('Como calculamos (tempo herdado): 1 h × 60 + 30 min = 90 min', nrm(await page.innerText('#como-minun')) === 'Como calculamos: 1 h × 60 + 30 min = 90 min por unidade.', await page.evaluate(() => (document.querySelector('#como-minun') || {}).textContent));
   await foto('m07_09_partida_servico');
   await tocar('Até 10 h');
   await ok();
@@ -425,6 +451,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await page.goto(URL); await page.click('#ir');
   check('Testador: tempo de 1500 h 12 min herdado (90.012 min) e volume "1.500" lido como 1500', (await page.inputValue('#f-minUn')) === '90012' && Mo.num(await page.inputValue('#f-volume')) === 1500, [await page.inputValue('#f-minUn'), await page.inputValue('#f-volume')]);
   await tocar('De 11 a 20 h');
+  await page.click('[data-trocar="volume"]');
   await preenche('#f-volume', '60 pedidos'); await ok();
   check('Receita B: texto em campo de número é recusado ("60 pedidos")', /Use só números/.test(await page.innerText('#e-volume')) && !(await page.$('#pergunta')));
   await preenche('#f-volume', '1.500'); await ok();
@@ -543,6 +570,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     const leg = nrm(await page.innerText('[data-campo="horas"] legend')), nota = nrm(await page.innerText('#nota-horas'));
     check(`Disponibilidade: "${m1}" (Módulo 1) → "${m7}", com selo e "Confira e ajuste"`, nrm(sel) === m7 && /Veio do Módulo 1/.test(leg) && nota.includes(`No Módulo 1 você respondeu “${m1}”`) && /Confira e ajuste/.test(nota), [sel, leg, nota]);
   }
+  await page.click('[data-trocar="horas"]');
   await tocar('Mais de 20 h');
   await page.click('[data-campo="tipo"] .opcao >> nth=0');
   await ok();
@@ -567,7 +595,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   const pRev = nrm(await page.innerText('.cartao-q'));
   check('Revenda: item = mercadoria do Módulo 5, 1 por venda, estoque do Módulo 6 com selo', (await page.inputValue('#f-item')) === 'Refrigerante 2 L' && /Veio do Módulo 5/.test(await page.innerText('label[for="f-item"]')) && (await page.inputValue('#f-uso')) === '1' && nrm(await page.evaluate(() => document.querySelector('[data-campo="estoque"] .opcao.sel').textContent)) === 'Sim, mantenho mercadoria guardada' && /Veio do Módulo 6/.test(await page.innerText('[data-campo="estoque"] legend')), pRev);
   check('Revenda: ponto de partida fala em mercadoria, sem "material" nem "cada unidade ou atendimento"', /Mercadoria principal e estoque/i.test(pRev) && !/Material principal|vai em cada unidade/i.test(pRev), (pRev.match(/.{80}(Material principal|vai em cada unidade).{40}/) || [pRev.slice(-300)])[0]);
-  if (SHOTS) { await page.locator('#f-item').scrollIntoViewIfNeeded(); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_partida_revenda.png') }); }
+  if (SHOTS) { await page.locator('#f3').scrollIntoViewIfNeeded(); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_partida_revenda.png') }); }
   await ok();
   await ok(); await ok(); /* mapa: retorno e segue */
   const t2 = nrm(await page.innerText('.cartao-q'));
@@ -581,7 +609,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await tocar('Até 2 h'); await ok();
   check('Revenda (ajuda): sem "preparo e produção"', !/produção|preparo/i.test(await page.innerText('.cartao-q')));
   await tocar('Não, faço sozinho(a)'); await ok();
-  check('Revenda (gargalo): espaço/veículo e mercadoria no lugar de equipamento e material', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()); return t.includes('O espaço para guardar ou o veículo de entrega') && t.includes('Falta ou atraso de mercadoria') && !t.includes('Um equipamento ou o espaço'); }));
+  check('Revenda (gargalo): espaço/veículo e mercadoria no lugar de equipamento e material', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => (x.querySelector('.op-txt > b') || x).textContent.trim()); return t.includes('O espaço para guardar ou o veículo de entrega') && t.includes('Falta ou atraso de mercadoria') && !t.includes('Um equipamento ou o espaço'); }));
   await tocar('O espaço para guardar ou o veículo de entrega'); await ok();
   check('Revenda (espaço): exemplo com carro, sem forno (na dica)', /carro leva 20 caixas/.test(await page.textContent('.cartao-q')) && !/forno/.test(await page.textContent('.cartao-q')));
   await preenche('#uv', '20'); await preenche('#tvh', '1'); await ok(); await ok();
@@ -590,7 +618,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Revenda (validade): pergunta sobre as mercadorias e dica de armazenamento em "Ver dica"', /Suas mercadorias estragam, vencem/.test(await page.innerText('#pergunta')) && /lugar limpo, seco e arejado/.test(await page.textContent('.dica-toggle #dica-estoque')));
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_validade.png') }); }
   await tocar('Sim, em semanas ou meses'); await ok();
-  check('Revenda (qualidade): conferência sem "receita" nem "provando"', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => x.textContent.trim()); return t.includes('Sigo uma lista de conferência anotada') && !t.some((x) => /receita|provando/.test(x)); }));
+  check('Revenda (qualidade): conferência sem "receita" nem "provando"', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => (x.querySelector('.op-txt > b') || x).textContent.trim()); return t.includes('Sigo uma lista de conferência anotada') && !t.some((x) => /receita|provando/.test(x)); }));
   await tocar('Sigo uma lista de conferência anotada'); await ok();
   await tocar('Faltar mercadoria'); await ok();
   await ok(); await ok(); await ok();
@@ -623,69 +651,140 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
         const n = await palavras();
         const dica = await page.evaluate(() => { const d = document.querySelector('.pergunta .dica-toggle'), q = document.querySelector('#pergunta'), ent = document.querySelector('#ent'); return !d || (!d.open && !!(q.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(d.compareDocumentPosition(ent) & Node.DOCUMENT_POSITION_FOLLOWING)); });
         const q = nrm(await page.innerText('#pergunta')).split(' ').length;
-        if (n > 60 || !dica || q > 16) longas.push([nome, cod, n, q, dica]);
+        /* limite 66 (era 60): +6 palavras para a linha de exemplo embaixo das opções difíceis (lote 16/11, item D) */
+        if (n > 66 || !dica || q > 16) longas.push([nome, cod, n, q, dica]);
       }
     }
-    check('Leve: toda pergunta (fabricação, revenda, serviço) com até 60 palavras na tela, enunciado de até 16 palavras e "Ver dica" fechada entre a pergunta e as respostas', !longas.length, longas);
+    check('Leve: toda pergunta (fabricação, revenda, serviço) com até 66 palavras na tela (60 + exemplo das opções), enunciado de até 16 palavras e "Ver dica" fechada entre a pergunta e as respostas', !longas.length, longas);
 
-    /* "Não sei" em cada pergunta: caixa "Como descobrir" com 2 passos, Copiar quando há pedido para a IA, e a resposta gravada continua "Não sei" */
+    /* ---------- lote 16/11 (A): "Não sei" bloqueia até haver resposta; sai das perguntas sobre a própria pessoa ---------- */
     const comoBox = (sel) => page.evaluate((s) => { const b = document.querySelector(s); if (!b) return null; const p = b.querySelector('[data-prompt]'); return { passos: [...b.querySelectorAll('li')].map((x) => x.textContent.trim()).filter(Boolean), tit: (b.querySelector('.como-tit') || {}).textContent, prompt: p ? p.textContent.trim() : '', copiar: !!b.querySelector('button[data-copiar]'), nota: (b.querySelector('.como-nota') || {}).textContent || '' }; }, sel);
     const marcas = /chatgpt|gemini|copilot|claude|openai|bard/i;
-    const NSQ = ['M7-01', 'M7-02', 'M7-03', 'M7-04', 'M7-05', 'M7-05a', 'M7-06', 'M7-07', 'M7-08', 'M7-09', 'M7-10', 'M7-11'];
+    const lerR = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{"R":{}}').R, CHAVE);
+    const MSG_ESCOLHA = 'Use a ajuda acima e escolha uma opção para continuar.', MSG_ESCREVA = 'Use a ajuda acima e escreva a sua resposta para continuar.';
+    /* [código, como tocar "Não sei", seletor da caixa, mensagem esperada, como responder de verdade] */
+    const FICA = [
+      ['M7-02', () => page.click('#ns'), '#retorno .como-descobrir', MSG_ESCREVA, async () => { await preenche('#th', '0'); await preenche('#tm', '20'); await ok(); }],
+      ['M7-03', () => tocar('Não sei'), '#retorno .como-descobrir', MSG_ESCOLHA, () => tocar('De 3 a 5 h')],
+      ['M7-05', () => tocar('Não sei'), '#retorno .como-descobrir', MSG_ESCOLHA, () => tocar('Meu tempo')],
+      ['M7-05a', () => page.click('#ns'), '#retorno .como-descobrir', MSG_ESCREVA, async () => { await preenche('#uv', '4'); await preenche('#tvm', '50'); await ok(); }],
+      ['M7-06', () => tocar('Não sei'), '#b2 .como-descobrir', MSG_ESCOLHA, async () => { await tocar('Dois ou mais'); await tocar('De 1 a 3 dias'); }],
+    ];
     const ruins = [];
-    for (const cod of NSQ) {
+    for (const [cod, ns, sel, msg, responder] of FICA) { try {
       const q = D.perguntas.find((x) => x.codigo === cod);
       await abrir(estadoDe(cod));
-      check(`Não sei (${cod}): nada de "Como descobrir" antes de tocar`, !(await page.$('.como-descobrir')));
-      if (await page.$('#ns')) await page.click('#ns'); else await tocar('Não sei');
-      const b = await comoBox(cod === 'M7-06' ? '#b1 .como-descobrir' : '#retorno .como-descobrir');
-      const okBox = b && b.tit === 'Como descobrir' && b.passos.length >= 2 && b.passos.every((x) => x.length > 20) && b.passos.join(' ') === q.comoDescobrir.join(' ')
-        && (q.promptIA ? b.copiar && b.prompt.length > 40 && b.nota === 'Copie, cole numa IA de sua preferência e troque o que está entre colchetes.' : !b.copiar)
-        && !marcas.test(b.passos.join(' ') + b.prompt + b.nota);
-      if (!okBox) ruins.push([cod, b]);
+      if (await page.$('.como-descobrir')) ruins.push([cod, 'caixa antes de tocar']);
+      const antes = JSON.stringify(await lerR());
+      const perg0 = await page.innerText('#pergunta');
+      await ns();
+      const b = await comoBox(sel);
+      const passos = cod === 'M7-06' ? q.comoDescobrir2 : q.comoDescobrir;
+      const dicaNS = q.caminhos.find((c) => c.opcao === (cod === 'M7-06' ? 'Parte 2: Não sei' : 'Não sei')).texto;
+      const okBox = b && b.tit === 'Como descobrir' && b.passos.join(' ') === passos.join(' ') && (q.promptIA ? b.copiar && b.nota === 'Copie, cole numa IA de sua preferência e troque o que está entre colchetes.' : !b.copiar) && !marcas.test(b.passos.join(' ') + b.prompt)
+        && (await caixa()).includes(nrm(dicaNS).replace(/'/g, "'")) && !!(await page.$('#nota-ns'));
+      if (!okBox) ruins.push([cod, 'caixa', b]);
+      if (await page.$('.opcao.sel[data-v="Não sei"]')) ruins.push([cod, 'Não sei ficou marcado']);
       if (q.promptIA && b && b.copiar) {
-        await page.click('#tela [data-copiar]');
-        await page.waitForTimeout(150);
-        const t = (await page.textContent('#tela [data-copiar]')).trim();
-        if (!/^(Copiado!|Toque e segure o texto para copiar)$/.test(t)) ruins.push([cod, 'copiar', t]);
+        await page.click(sel + ' [data-copiar]');
+        let tc = ''; for (let k = 0; k < 20 && !/^(Copiado!|Toque e segure)/.test(tc); k++) { await page.waitForTimeout(100); tc = (await page.textContent(sel + ' [data-copiar]')).trim(); }
+        if (!/^(Copiado!|Toque e segure o texto para copiar)$/.test(tc)) ruins.push([cod, 'copiar', tc]);
       }
-      if (cod === 'M7-06') {
-        const bs = await page.$$('.opcao');
-        await page.evaluate(() => { const bs = [...document.querySelectorAll('.opcao')].filter((x) => x.textContent.trim() === 'Não sei'); bs[1].click(); });
-        const b2 = await comoBox('#b2 .como-descobrir');
-        if (!(b2 && b2.passos.join(' ') === q.comoDescobrir2.join(' ') && !b2.copiar)) ruins.push([cod, 'parte 2', b2, bs.length]);
-      }
+      if (JSON.stringify(await lerR()) !== antes) ruins.push([cod, 'gravou ao tocar Não sei']);
       await ok();
-      const st = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R, CHAVE);
-      const r = st[cod] || {};
-      const gravou = cod === 'M7-06' ? r.estado === 'partes' && r.p1 === 'Não sei' && r.p2 === 'Não sei' : r.estado === 'naosei';
-      if (!gravou) ruins.push([cod, 'gravado', r]);
-      if (!(await page.$('#pergunta')) && !(await page.$('#entendemos'))) ruins.push([cod, 'não seguiu']);
-    }
-    check(`Não sei: ${NSQ.length} perguntas mostram "Como descobrir" com 2 passos dos dados (+ Copiar onde há pedido para a IA), sem nome de IA, gravam "Não sei" igual a antes e deixam seguir`, !ruins.length, ruins);
-    check('Não sei: os pedidos para a IA e os passos ficam nos dados (comoDescobrir/promptIA), sem marca de IA', NSQ.every((c) => (D.perguntas.find((x) => x.codigo === c).comoDescobrir || []).length >= 2) && !marcas.test(fs.readFileSync(path.join(DIR, 'dados/modulo7.js'), 'utf8')) && !marcas.test(fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8')));
-    /* o que já sabemos (oferta) entra no pedido; o resto fica entre colchetes para a pessoa trocar */
+      const e = nrm(await page.evaluate(() => { const x = document.querySelector('#erro'); return x && !x.hidden ? x.textContent : ''; }));
+      if (e !== msg || (await page.innerText('#pergunta')) !== perg0 || JSON.stringify(await lerR()) !== antes) ruins.push([cod, 'Continuar seguiu ou sem mensagem', e]);
+      await responder();
+      for (let k = 0; k < 2 && (await page.$('#pergunta')) && (await page.innerText('#pergunta')) === perg0; k++) await ok();
+      const r = (await lerR())[cod];
+      if (!r || r.estado === 'naosei' || r.p2 === 'Não sei' || ((await page.$('#pergunta')) && (await page.innerText('#pergunta')) === perg0)) ruins.push([cod, 'não seguiu depois de responder', r]);
+    } catch (e) { ruins.push([cod, 'erro', String(e).slice(0, 160)]); } }
+    check(`Não sei bloqueia (${FICA.map((x) => x[0]).join(', ')}): mostra \"Como descobrir\" + a dica do grupo, não marca, não grava, o Continuar pede a resposta e só segue com resposta de verdade`, !ruins.length, ruins);
+    await abrir(estadoDe('M7-02')); await page.click('#ns');
+    if (SHOTS) await foto('m07_naosei_ajuda');
     await abrir(estadoDe('M7-03')); await tocar('Não sei');
     const pr3 = ((await comoBox('#retorno .como-descobrir')) || {}).prompt || '';
     check('Não sei: o pedido para a IA já traz a oferta e deixa colchetes para a pessoa trocar', pr3.includes('Bolo de pote') && /\[[^\]]+\]/.test(pr3) && !pr3.includes('[o que você vende]'), pr3);
-    /* reabrir uma pergunta respondida com "Não sei" mostra a ajuda de novo */
-    await abrir(Object.assign(estadoDe('M7-09'), { hist: ['M7-09'], R: Object.assign(estadoDe('M7-09').R, { 'M7-09': { estado: 'naosei' } }) }));
-    await page.click('#v');
-    check('Não sei: Voltar leva à pergunta já respondida com "Não sei"', /confere se/.test(await page.innerText('#pergunta')));
-    check('Não sei: reabrir a pergunta já respondida com "Não sei" mostra a ajuda', !!(await page.$('#retorno .como-descobrir')));
-    if (SHOTS) await foto('m07_naosei_ajuda');
-    /* ponto de partida: "Não sei" nas escolhas também ajuda, e grava "Não sei" */
+    /* perguntas sobre a própria pessoa: sem "Não sei" */
+    const SAI = ['M7-01', 'M7-04', 'M7-06', 'M7-07', 'M7-08', 'M7-09', 'M7-10', 'M7-11'];
+    const comNS = [];
+    for (const cod of SAI) {
+      await abrir(estadoDe(cod));
+      const n = await page.evaluate(() => [...document.querySelectorAll('.opcao, #ns')].filter((x) => ((x.querySelector('.op-txt > b') || x).textContent.trim()) === 'Não sei').length);
+      if (n > (cod === 'M7-06' ? 1 : 0)) comNS.push([cod, n]);
+    }
+    check('Sem \"Não sei\" onde a pergunta é sobre a própria pessoa (M7-01, M7-04, M7-06 parte 1, M7-07, M7-08, M7-09, M7-10, M7-11)', !comNS.length && D.perguntas.filter((q) => SAI.includes(q.codigo)).every((q) => !q.caminhos.some((c) => c.opcao === 'Não sei' || c.opcao === 'Parte 1: Não sei')), comNS);
+    check('Mensagens de campo vazio sem citar \"Não sei\" nas perguntas sem ele', !/ou toque em “Não sei”/.test(fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8')));
+    /* ponto de partida: sem "Não sei" em horas, material e estoque; em regras e reposição ele bloqueia */
     await semear({ 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' } } } });
     await page.goto(URL); await page.click('#ir');
+    check('Ponto de partida: horas sem \"Não sei\"', !(await page.$('[data-campo="horas"] .opcao[data-v="Não sei"]')));
     await page.click('[data-campo="tipo"] .opcao >> nth=0');
-    await page.click('[data-campo="horas"] .opcao[data-v="Não sei"]');
-    const bp = await comoBox('[data-campo="horas"] .como-descobrir');
-    check('Ponto de partida: "Não sei" nas horas mostra 2 passos para descobrir', bp && bp.passos.length === 2 && bp.passos.join(' ') === D.partida_ajuda.horas.comoDescobrir.join(' '), bp);
-    await page.click('[data-campo="horas"] .opcao[data-v="Até 10 h"]');
-    check('Ponto de partida: trocar a resposta tira a ajuda', !(await page.$('[data-campo="horas"] .como-descobrir')));
-    await page.click('[data-campo="horas"] .opcao[data-v="Não sei"]');
+    await page.click('[data-campo="regulada"] .opcao[data-v="Não sei"]');
+    const bp = await comoBox('[data-campo="regulada"] .como-descobrir');
+    check('Ponto de partida: \"Não sei\" nas regras mostra os passos e não marca nada', bp && bp.passos.join(' ') === D.partida_ajuda.regulada.comoDescobrir.join(' ') && !(await page.$('[data-campo="regulada"] .opcao.sel')), bp);
     await ok();
-    check('Ponto de partida: "Não sei" continua gravado como antes', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE)).horas === 'Não sei');
+    check('Ponto de partida: Continuar depois de \"Não sei\" pede a resposta e não grava', nrm(await page.innerText('#e-regulada')) === MSG_ESCOLHA && !(await page.$('#pergunta')) && !(await page.evaluate((k) => localStorage.getItem(k), CHAVE)));
+    if (SHOTS) { await page.locator('[data-campo="regulada"]').scrollIntoViewIfNeeded(); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_partida_naosei.png') }); }
+    await page.click('[data-campo="regulada"] .opcao[data-v="Sim"]');
+    check('Ponto de partida: escolher uma resposta tira a ajuda', !(await page.$('[data-campo="regulada"] .como-descobrir')));
+    await ok();
+    check('Ponto de partida: com resposta, grava e segue', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE)).regulada === 'Sim' && !!(await page.$('#pergunta')));
+    /* respostas antigas "Não sei" (versão 1): viram sem resposta, sem apagar as outras */
+    const velho = estadoAte('ZZ');
+    Object.assign(velho, { v: 1 });
+    velho.ini = Object.assign({}, velho.ini, { horas: 'Não sei', regulada: 'Não sei' });
+    Object.assign(velho.R, { 'M7-03': { estado: 'naosei' }, 'M7-11': { estado: 'naosei', sugeridos: ['Pedidos entregues no prazo'] }, 'M7-06': { estado: 'partes', p1: 'Não sei', p2: 'De 1 a 3 dias', dias: '' }, 'M7-13': { estado: 'opcao', opcao: 'Sim, pode seguir' } });
+    await page.evaluate(([k, v]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(v)); }, [CHAVE, velho]);
+    await page.goto(URL);
+    const mig = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
+    check('Migração: versão 2, \"Não sei\" vira sem resposta e o resto fica', mig.v === 2 && !mig.R['M7-03'] && !mig.R['M7-11'] && !mig.R['M7-06'] && !mig.R['M7-13'] && mig.pre['M7-06'].p2 === 'De 1 a 3 dias' && !mig.ini.horas && !mig.ini.regulada && mig.ini.oferta === 'Bolo de pote' && JSON.stringify(mig.R['M7-02']) === JSON.stringify(NEUTRO['M7-02']) && JSON.stringify(mig.R['M7-10']) === JSON.stringify(NEUTRO['M7-10']), mig);
+    await page.click('#ir');
+    check('Migração: \"Continuar de onde parei\" abre a primeira pergunta sem resposta (tempo de apoio)', /quantas horas vão para clientes/.test(await page.innerText('#pergunta')));
+    await tocar('Até 2 h'); await ok(); await ok(); await ok();
+    check('Migração: fornecedores reabre com a parte que já estava respondida (prazo)', /quantos fornecedores/.test(await page.innerText('#pergunta')) && nrm(await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => x.textContent).join('|'))) === 'De 1 a 3 dias');
+  }
+
+  /* ---------- lote 16/11 (B): contas mostradas na hora; dinheiro em padrão brasileiro ---------- */
+  {
+    /* processo em diagrama (caixas ligadas por setas; gargalo marcado; quem faz na legenda) */
+    await abrir(E('ZZ', {}, { 'M7-05': { estado: 'opcao', opcao: 'Uma etapa que demora ou acumula', etapa: 'Produção' }, 'M7-04': { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 4 } })); await abrirRetrato();
+    const dg = await page.evaluate(() => { const f = document.querySelector('#diagrama-processo'); if (!f) return null; const lis = [...f.querySelectorAll('ol.lg2-diag-lista > li')];
+      return { n: lis.length, setas: f.querySelectorAll('.lg2-diag-seta').length, gargalo: lis.filter((l) => l.classList.contains('lg2-diag-gargalo')).map((l) => l.querySelector('.lg2-diag-tit').textContent), marca: (f.querySelector('.lg2-diag-gargalo .lg2-diag-marca') || {}).textContent, leg: (f.querySelector('figcaption') || {}).textContent,
+        vertical: lis.length > 1 && lis[1].getBoundingClientRect().top > lis[0].getBoundingClientRect().bottom - 1, borda: getComputedStyle(f.querySelector('.lg2-diag-gargalo .lg2-diag-caixa')).borderTopColor }; });
+    check('Processo em diagrama: 8 caixas em ordem (<ol>), 7 setas, uma por linha no celular, gargalo "Produção" com borda coral e "quem faz" na legenda', dg && dg.n === 8 && dg.setas === 7 && dg.vertical && dg.gargalo.join() === 'Produção' && dg.marca === 'Gargalo' && dg.borda === 'rgb(232, 71, 58)' && dg.leg === 'Quem faz: você, com ajuda de família ou amigos, 4 h por semana.' && !(await page.$('ol.mapa')), dg);
+    if (SHOTS) { await page.evaluate(() => document.querySelector('#diagrama-processo').scrollIntoView({ block: 'start' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_diagrama_resultado.png') }); }
+    await abrir(E('M7-01')); await ok();
+    check('M7-01: o caminho confirmado aparece em diagrama logo no retorno', (await page.locator('#retorno #diagrama-m701 ol > li').count()) === 8);
+    if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_diagrama_m701.png'), fullPage: true }); }
+    /* sazonalidade lida do Módulo 5 (M5.SZ): 120 por mês, +50% em dezembro e janeiro → 42 por semana; cabem 8 */
+    const SZ = { estado: 'opcao', opcao: 'Sim, tem meses mais fortes e mais fracos', fortes: [12, 1], fracos: [6], maisPct: 50, menosPct: 20 };
+    const comSZ = async (sz, st) => { await page.evaluate(([k, v, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(v)); if (s) localStorage.setItem('lg2-turma-a-m05', JSON.stringify({ R: { 'M5.SZ': s } })); }, [CHAVE, st, sz]); await page.goto(URL); await page.click('#ir'); await abrirRetrato(); };
+    await comSZ(SZ, E('ZZ', { minUn: 60 }));
+    check('Sazonalidade no resultado: "Nos meses fortes (dezembro e janeiro) você precisaria fazer 42 por semana; hoje cabem 8." em tom de aviso, com sugestão', await page.evaluate(() => { const s = document.querySelector('#sazonal'); return !!s && s.classList.contains('b-alerta'); }) && nrm(await page.innerText('#sazonal')).includes('Nos meses fortes (dezembro e janeiro) você precisaria fazer 42 por semana; hoje cabem 8.') && /encomendas com antecedência/.test(await page.innerText('#sazonal')), await page.evaluate(() => (document.querySelector('#sazonal') || {}).textContent));
+    check('Como calculamos (sazonalidade): 120 × 1,5 = 180 ÷ 4,33 = 42', nrm(await page.innerText('#como-sazonal')) === 'Como calculamos: 120 por mês × 1,5 (50% a mais) = 180 no mês forte; 180 ÷ 4,33 semanas = 42 por semana (arredondado para cima).', nrm(await page.innerText('#como-sazonal')));
+    if (SHOTS) { await page.evaluate(() => document.querySelector('#sazonal').scrollIntoView({ block: 'center' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_sazonal.png') }); }
+    await comSZ(Object.assign({}, SZ, { maisPct: 25 }), E('ZZ', { minUn: 60, volume: '20' }));
+    check('Sazonalidade que cabe (20 + 25% = 25 → 6 por semana; cabem 8): frase sem alerta', !(await page.$('#sazonal.b-alerta')) && nrm(await page.innerText('#sazonal')).startsWith('Nos meses fortes (dezembro e janeiro) você precisaria fazer 6 por semana; hoje cabem 8.'));
+    await comSZ({ estado: 'opcao', opcao: 'Não, é parecido o ano todo' }, E('ZZ', { minUn: 60 }));
+    const semSZ = !(await page.$('#sazonal'));
+    await comSZ(null, E('ZZ', { minUn: 60 }));
+    check('Sazonalidade: "Não" ou sem resposta no Módulo 5 = nada a mais', semSZ && !(await page.$('#sazonal')));
+
+    await abrir(E('M7-02'));
+    await preenche('#th', '1'); await preenche('#tm', '0'); await preenche('#un', '20'); await ok();
+    check('Como calculamos (rodada): 1 h (60 min) ÷ 20 unidades = 3 min por unidade', nrm(await page.innerText('#como-lote')) === 'Como calculamos: 1 h (60 min) ÷ 20 unidades = 3 min por unidade.', await page.evaluate(() => (document.querySelector('#como-lote') || {}).textContent));
+    await abrir(E('ZZ', { volume: '200', uso: '0,5', usoUn: 'kg' }, { 'M7-06': { estado: 'partes', p1: 'Dois ou mais', p2: 'Mais de 7 dias', dias: '10' } })); await abrirRetrato();
+    await page.fill('#folga', '5');
+    check('Simulador (folga): a conta da reposição muda enquanto digita', nrm(await page.innerText('#como-reposicao')).includes('34 kg + 5 de folga = 39'), nrm(await page.innerText('#como-reposicao')));
+    if (SHOTS) { await page.evaluate(() => document.querySelector('#repo').scrollIntoView({ block: 'center' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_folga_ao_vivo.png') }); }
+    await page.dispatchEvent('#folga', 'change'); await page.waitForTimeout(100);
+    await page.fill('.forn >> nth=0 >> [data-f="preco"]', '1425.06'); await page.dispatchEvent('.forn >> nth=0 >> [data-f="preco"]', 'change');
+    check('Dinheiro no campo: \"1425.06\" vira \"1.425,06\" (com R$ ao lado)', (await page.inputValue('.forn >> nth=0 >> [data-f="preco"]')) === '1.425,06' && /R\$/.test(await page.innerText('.forn >> nth=0 >> .linha >> nth=0')));
+    /* perda: o Módulo 5 já perguntou se a pessoa costuma perder; \"Não\" vira 0% sem perguntar de novo */
+    await semear({ 'lg2-turma-a-m05': { R: { 'M5.P01': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' }, 'M5.P26': { estado: 'opcao', opcao: 'Não' } } } });
+    await page.goto(URL); await page.click('#ir');
+    check('Herança (F): \"perde produtos?\" = Não no Módulo 5 → perda 0% em cartão \"Veio do Módulo 5\"', (await page.inputValue('#f-perda')) === '0' && /Perda:\s*0%\s*Veio do Módulo 5/.test(nrm(await page.innerText('[data-herdado="perda"]'))));
   }
 
   check('Sem erros de página', !erros.length, erros);

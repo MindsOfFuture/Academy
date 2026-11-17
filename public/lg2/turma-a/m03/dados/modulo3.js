@@ -1,5 +1,7 @@
-/* Módulo 3 (Turma A): 22 perguntas reescritas pelo grupo (abas "Perguntas reescritas" e
-   "Caminhos por resposta"). Mapa, base e conexões vêm do template do grupo. */
+/* Dados do Módulo 3 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO3 = {
  "origem": "m03_reescritas.xlsx (Perguntas reescritas + Caminhos por resposta)",
  "modulo": {
@@ -217,7 +219,7 @@ window.MODULO3 = {
      "texto": "Mercado é o lugar, na rua ou na internet, onde quem vende encontra quem quer comprar. Prompt: \"Eu [descreva o que você faz ou quer fazer]. Me faça 5 perguntas simples que me ajudem a explicar, com as minhas palavras, em que ramo eu trabalho e o que eu vendo. Não escreva a resposta por mim.\""
     }
    ],
-   "naosei": true,
+   "naosei": false,
    "variantes": {
     "ideia": {
      "pergunta": "Em que ramo você quer trabalhar e o que quer vender?"
@@ -263,8 +265,8 @@ window.MODULO3 = {
    "codigo": "M3.P03",
    "bloco": "Bloco 1: Oportunidades do Negócio",
    "titulo": "Soluções Alternativas Conhecidas",
-   "pergunta": "Se o cliente não comprar de você, o que ele compra no lugar?",
-   "tipo": "Texto livre",
+   "pergunta": "O que as pessoas escolhem no lugar [do que você vende]?",
+   "tipo": "Alternativas (marcar + quais)",
    "caminhos": [
     {
      "opcao": "Resposta preenchida",
@@ -272,28 +274,81 @@ window.MODULO3 = {
      "texto": "—"
     },
     {
-     "opcao": "Resposta vazia ou muito curta",
-     "tipo": "Dica",
-     "texto": "Pense: se o cliente não comprasse de você, o que ele faria? Ex.: quem vende bolo caseiro perde cliente para a padaria."
+     "opcao": "Nenhuma opção marcada",
+     "tipo": "Alerta",
+     "texto": "Marque pelo menos uma opção para continuar."
     },
     {
      "opcao": "Não sei",
      "tipo": "Dica",
-     "texto": "Tudo bem. Pense em onde o cliente compraria se você não existisse."
+     "texto": "Tudo bem. Pense no que as pessoas fazem quando querem isso e não compram de você."
     }
    ],
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Se o cliente que você imagina não comprar de você, o que ele compra no lugar?"
+     "pergunta": "O que as pessoas escolhem no lugar [do que você quer vender]?"
     }
    },
-   "dica": "Pense em quem \"rouba\" o seu cliente quando ele não compra com você. Se você vende marmitas, a alternativa pode ser a padaria da esquina, o salgado ou o mercado.",
+   "dica": "Pense em tudo o que a pessoa pode fazer em vez de comprar de você: comprar de outro negócio, levar outra coisa, fazer sozinha ou deixar para depois.",
    "comoDescobrir": [
-    "Pergunte a 3 clientes ou conhecidos: “Quando não compra comigo, onde compra ou o que faz no lugar?”",
-    "Repare no que existe perto de você que resolve a mesma vontade: padaria, mercado, fazer em casa."
+    "Pergunte a 3 pessoas que poderiam comprar de você: “Quando você precisa disso, onde compra ou o que faz?”",
+    "Repare no que existe perto de você que resolve a mesma necessidade: outro produto, fazer em casa ou deixar para depois."
    ],
-   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu descobrir o que o meu cliente compra ou faz no lugar quando não compra comigo. Não responda por mim nem cite números."
+   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu descobrir o que as pessoas escolhem no lugar do que eu vendo: outro negócio, outro produto, fazer em casa ou ficar sem. Não responda por mim nem cite números.",
+   "alternativas": [
+    {
+     "valor": "Compra de outro negócio que vende o mesmo",
+     "curto": "outro negócio que vende o mesmo",
+     "rotulo": {
+      "Serviço": "Contrata outra pessoa ou empresa que faz o mesmo"
+     },
+     "ex": {
+      "Produto": "Ex.: outra pessoa que faz bolo, a padaria do bairro",
+      "Serviço": "Ex.: o salão do bairro, outra manicure",
+      "Mercadoria": "Ex.: a farmácia, uma loja na internet",
+      "": "Ex.: outra pessoa ou loja que vende parecido"
+     },
+     "nota": "Os nomes de quem vende o mesmo você escreve mais adiante."
+    },
+    {
+     "valor": "Compra outra coisa que resolve a mesma necessidade",
+     "curto": "outra coisa que resolve a mesma necessidade",
+     "quais": true,
+     "ex": {
+      "Produto": "Ex.: quem não compra bolo leva sorvete ou biscoito do mercado",
+      "Serviço": "Ex.: quem não faz a unha no salão compra unha postiça",
+      "Mercadoria": "Ex.: compra uma marca mais barata no mercado",
+      "": "Ex.: quem não compra marmita leva um lanche da padaria"
+     },
+     "ph": {
+      "Produto": "Ex.: sorvete do mercado",
+      "Serviço": "Ex.: unha postiça",
+      "Mercadoria": "Ex.: marca mais barata do mercado",
+      "": "Ex.: lanche da padaria"
+     }
+    },
+    {
+     "valor": "Faz em casa ou faz sozinho",
+     "curto": "fazer em casa ou sozinho",
+     "ex": {
+      "Produto": "Ex.: faz o próprio bolo em casa",
+      "Serviço": "Ex.: faz a unha sozinha",
+      "Mercadoria": "Ex.: faz uma receita caseira",
+      "": "Ex.: cozinha em casa"
+     }
+    },
+    {
+     "valor": "Deixa para depois ou fica sem",
+     "curto": "deixar para depois ou ficar sem",
+     "ex": {
+      "Produto": "Ex.: compra só em data especial",
+      "Serviço": "Ex.: deixa para fazer só antes de uma festa",
+      "Mercadoria": "Ex.: espera uma promoção",
+      "": "Ex.: guarda o dinheiro e não compra agora"
+     }
+    }
+   ]
   },
   {
    "codigo": "M3.P04",
@@ -354,7 +409,7 @@ window.MODULO3 = {
      "texto": "Prompt: \"Minha ideia é [descreva a ideia]. Me faça 5 perguntas simples para eu descobrir se ela pode dar certo: se tem gente que compra, quanto custa começar e o que eu preciso ter.\" Responda cada pergunta com dados reais (clientes, preços, custos)."
     }
    ],
-   "naosei": true,
+   "naosei": false,
    "variantes": {
     "ideia": {
      "pergunta": "Por que você acredita que essa ideia pode dar certo?",
@@ -479,18 +534,18 @@ window.MODULO3 = {
    "caminhos": [
     {
      "opcao": "No meu bairro e na minha cidade",
-     "tipo": "Dica",
-     "texto": "Seu foco é perto de você. Os concorrentes mais próximos tendem a ser os da mesma cidade."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Na minha região (estado e cidades próximas)",
-     "tipo": "Dica",
-     "texto": "Você pretende atender várias cidades. Pense em como a entrega ou o atendimento vai chegar até elas."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "No Brasil todo",
-     "tipo": "Dica",
-     "texto": "Vender para o país todo costuma exigir pensar em frete, prazo de entrega e venda pela internet."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Também fora do Brasil",
@@ -513,7 +568,7 @@ window.MODULO3 = {
      "pergunta": "Até onde você vende ou pretende vender?"
     }
    },
-   "dica": "Escolha o tamanho do seu alcance hoje: apenas no seu bairro/cidade, na região vizinha, no Brasil todo ou até para fora do país."
+   "dica": "Escolha o tamanho do seu alcance hoje: apenas no seu bairro/cidade, na região vizinha, no Brasil todo ou até para fora do país. Quanto mais longe você vende, mais precisa pensar em frete, prazo de entrega e venda pela internet."
   },
   {
    "codigo": "M3.P10",
@@ -575,15 +630,13 @@ window.MODULO3 = {
      "18 a 29 anos",
      "30 a 44 anos",
      "45 a 59 anos",
-     "60 anos ou mais",
-     "Não sei"
+     "60 anos ou mais"
     ],
     "Renda": [
      "Até 1 salário mínimo",
      "De 1 a 3 salários mínimos",
      "De 3 a 6 salários mínimos",
-     "Mais de 6 salários mínimos",
-     "Não sei"
+     "Mais de 6 salários mínimos"
     ],
     "Ocupação": [
      "Estudantes",
@@ -591,15 +644,13 @@ window.MODULO3 = {
      "Autônomos e trabalhadores por conta própria",
      "Servidores públicos",
      "Aposentados",
-     "Donas e donos de casa",
-     "Não sei"
+     "Donas e donos de casa"
     ],
     "Onde mora": [
      "No meu bairro ou arredores (local)",
      "Em vários bairros da minha cidade",
      "Em outras cidades da região",
-     "Em todo o Brasil (vendas online/entrega)",
-     "Não sei dizer"
+     "Em todo o Brasil (vendas online/entrega)"
     ],
     "O que precisa resolver (a dor)": [
      "Economizar dinheiro / Buscar o menor preço",
@@ -607,8 +658,7 @@ window.MODULO3 = {
      "Resolver uma emergência ou problema imediato",
      "Buscar qualidade, status ou experiência diferenciada",
      "Estilo de vida, lazer ou bem-estar",
-     "Outro",
-     "Não sei dizer"
+     "Outro"
     ],
     "Ramo": [
      "Comércio (lojas, mercados)",
@@ -616,29 +666,25 @@ window.MODULO3 = {
      "Serviços (salões, oficinas, escritórios)",
      "Indústria ou fábrica",
      "Construção",
-     "Escolas, órgãos públicos e associações",
-     "Não sei"
+     "Escolas, órgãos públicos e associações"
     ],
     "Tamanho": [
      "Microempreendedor (MEI)",
      "Micro ou pequena empresa",
      "Média empresa",
-     "Grande empresa",
-     "Não sei"
+     "Grande empresa"
     ],
     "Equipe": [
      "Só o dono",
      "2 a 9 pessoas",
      "10 a 49 pessoas",
-     "50 pessoas ou mais",
-     "Não sei"
+     "50 pessoas ou mais"
     ],
     "Local": [
      "No meu bairro ou arredores (local)",
      "Em vários bairros da minha cidade",
      "Em outras cidades da região",
-     "Em todo o Brasil (vendas online/entrega)",
-     "Não sei dizer"
+     "Em todo o Brasil (vendas online/entrega)"
     ]
    },
    "dica": "Pense no seu cliente principal. Se for Pessoa, pense na idade, onde mora e no que ela precisa. Se for Empresa, pense no ramo e tamanho do negócio dela.",
@@ -690,7 +736,43 @@ window.MODULO3 = {
    "codigo": "M3.P12",
    "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
    "titulo": "Barreiras de Entrada",
-   "pergunta": "Seria difícil alguém abrir um negócio igual ao seu? O que dificulta?",
+   "pergunta": "Seria difícil alguém abrir um negócio igual ao seu?",
+   "tipo": "Seleção única",
+   "caminhos": [
+    {
+     "opcao": "Sim, seria difícil",
+     "tipo": "Nenhum",
+     "texto": "—"
+    },
+    {
+     "opcao": "Mais ou menos",
+     "tipo": "Nenhum",
+     "texto": "—"
+    },
+    {
+     "opcao": "Não, seria fácil",
+     "tipo": "Nenhum",
+     "texto": "—"
+    }
+   ],
+   "naosei": false,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Quando você começar, seria difícil alguém abrir um negócio igual?"
+    }
+   },
+   "dica": "Pense se qualquer pessoa conseguiria começar a vender o mesmo que você amanhã, com pouco dinheiro e sem licença.",
+   "opcoes": [
+    "Sim, seria difícil",
+    "Mais ou menos",
+    "Não, seria fácil"
+   ]
+  },
+  {
+   "codigo": "M3.P12B",
+   "bloco": "Bloco 2: Entender o Mercado e seus Clientes",
+   "titulo": "Barreiras de Entrada (o que dificulta)",
+   "pergunta": "O que dificultaria alguém copiar o seu negócio?",
    "tipo": "Texto livre",
    "caminhos": [
     {
@@ -712,50 +794,99 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Quando você começar, seria difícil alguém abrir um negócio igual? O que dificultaria?",
+     "pergunta": "Quando você começar, o que dificultaria alguém copiar o seu negócio?",
      "caminhos": {
       "Resposta vazia ou muito curta": "Pense no que você já tem e que alguém começando do zero não teria: uma receita ou técnica sua, um fornecedor bom, gente que já conhece o seu trabalho, o lugar onde você está. Isso ajuda a ver o que pode proteger o seu negócio."
      }
     }
    },
    "dica": "Pense no que impede qualquer pessoa de te copiar amanhã. É o valor das máquinas? Uma autorização difícil de conseguir? Ou o fato de seu nome já ser muito famoso?",
-   "nao": true,
    "comoDescobrir": [
     "Some o que você gastou ou vai gastar para começar (equipamento, licença, curso) e pense se qualquer um teria isso.",
     "Pergunte a 2 clientes ou conhecidos por que comprariam de você e não de outro: confiança e nome conhecido protegem."
+   ],
+   "mostrarSe": {
+    "codigo": "M3.P12",
+    "diferente": "Não, seria fácil"
+   }
+  },
+  {
+   "codigo": "M3.P13A",
+   "bloco": "Bloco 3: Onde está o Negócio",
+   "titulo": "Divulgação (como o cliente fica sabendo)",
+   "pergunta": "Como as pessoas ficam sabendo de você?",
+   "tipo": "Seleção múltipla",
+   "caminhos": [
+    {
+     "opcao": "Indicação (boca a boca)",
+     "tipo": "Nenhum",
+     "texto": "—"
+    },
+    {
+     "opcao": "Outro",
+     "tipo": "Nenhum",
+     "texto": "—"
+    },
+    {
+     "opcao": "Não sei",
+     "tipo": "Prompt de IA",
+     "texto": "Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu descobrir como as pessoas ficam sabendo de um negócio como o meu: indicação, redes sociais, WhatsApp, Google, placa ou feira. Não escolha por mim.\""
+    },
+    {
+     "opcao": "Nenhuma opção marcada",
+     "tipo": "Alerta",
+     "texto": "Marque pelo menos uma opção para continuar."
+    }
+   ],
+   "opcoes": [
+    "Indicação (boca a boca)",
+    "Instagram ou outras redes sociais",
+    "Status ou grupos de WhatsApp",
+    "Google ou Google Maps",
+    "Placa, fachada ou panfleto",
+    "Feira ou evento",
+    "Outro",
+    "Não sei"
+   ],
+   "naosei": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Como as pessoas vão ficar sabendo de você?"
+    }
+   },
+   "dica": "Pense em como alguém ouviu falar de você pela primeira vez: alguém indicou, viu no Instagram, achou no Google ou passou na frente. Para quem está começando, a indicação de clientes satisfeitos costuma ser o caminho mais forte.",
+   "placeholder_outro": "Ex.: carro de som",
+   "comoDescobrir": [
+    "Pergunte aos últimos 5 clientes (ou a conhecidos) como ficaram sabendo de você.",
+    "Veja como os concorrentes aparecem: Instagram, Google Maps, placa na rua ou indicação."
    ]
   },
   {
    "codigo": "M3.P13",
    "bloco": "Bloco 3: Onde está o Negócio",
    "titulo": "Canais de Venda",
-   "pergunta": "Por onde o cliente encontra e compra de você?",
+   "pergunta": "Por onde o cliente compra de você?",
    "tipo": "Seleção múltipla",
    "caminhos": [
     {
-     "opcao": "Indicação (boca a boca)",
-     "tipo": "Dica",
-     "texto": "Considere pedir a clientes satisfeitos que indiquem você. Para quem está começando, a indicação costuma ser o caminho mais forte."
-    },
-    {
      "opcao": "WhatsApp (WhatsApp Business)",
-     "tipo": "Dica",
-     "texto": "Considere atender e fechar pedidos pelo WhatsApp. O WhatsApp Business é gratuito e tem catálogo, horário de atendimento e respostas prontas."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Instagram e outras redes sociais (catálogo)",
-     "tipo": "Dica",
-     "texto": "Considere mostrar o seu trabalho com fotos e um catálogo no Instagram ou no Facebook, e fechar a venda por mensagem."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Atendimento direto ou presencial (loja, feira, ponto)",
-     "tipo": "Dica",
-     "texto": "Considere loja, feira, ponto de atendimento ou venda direta."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Atendimento em domicílio (vou até o cliente)",
-     "tipo": "Dica",
-     "texto": "Considere o tempo e o custo de ir até o cliente e em quais bairros você atende."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Aplicativos de entrega (iFood e outros)",
@@ -764,23 +895,23 @@ window.MODULO3 = {
     },
     {
      "opcao": "Marketplace (ex.: Mercado Livre, Shopee)",
-     "tipo": "Dica",
-     "texto": "Considere plataformas onde o cliente procura e compra de vários vendedores."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Site ou aplicativo próprio",
-     "tipo": "Dica",
-     "texto": "Considere se o cliente consegue achar e comprar sem falar com você."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Outro",
-     "tipo": "Dica",
-     "texto": "Escreva onde mais o cliente encontra e compra de você."
+     "tipo": "Nenhum",
+     "texto": "—"
     },
     {
      "opcao": "Não sei",
      "tipo": "Prompt de IA",
-     "texto": "Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro] e ainda não defini como vou vender. Me faça 5 perguntas simples para eu descobrir por onde os meus clientes preferem me encontrar e comprar: indicação, WhatsApp, Instagram, atendimento presencial ou em domicílio, aplicativo de entrega, marketplace ou site. Não escolha por mim.\""
+     "texto": "Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro] e ainda não defini como vou vender. Me faça 5 perguntas simples para eu descobrir por onde os meus clientes preferem fazer o pedido e pagar: WhatsApp, Instagram, atendimento presencial ou em domicílio, aplicativo de entrega, marketplace ou site. Não escolha por mim.\""
     },
     {
      "opcao": "Nenhuma opção marcada",
@@ -789,7 +920,6 @@ window.MODULO3 = {
     }
    ],
    "opcoes": [
-    "Indicação (boca a boca)",
     "WhatsApp (WhatsApp Business)",
     "Instagram e outras redes sociais (catálogo)",
     "Atendimento direto ou presencial (loja, feira, ponto)",
@@ -803,17 +933,14 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Por onde o cliente vai encontrar e comprar de você?",
-     "caminhos": {
-      "Outro": "Escreva onde mais o cliente vai poder encontrar e comprar de você."
-     }
+     "pergunta": "Por onde o cliente vai comprar de você?",
+     "caminhos": {}
     }
    },
-   "dica": "Marque os lugares onde você fecha negócio: na sua loja física, na conversa do WhatsApp, no perfil do Instagram, em feiras ou em sites/aplicativos.",
-   "rotulo_naosei": "Ainda não defini",
+   "dica": "Marque onde o cliente faz o pedido e paga: na conversa do WhatsApp, no Instagram, na sua loja ou feira, na casa dele ou em sites e aplicativos. O WhatsApp Business é gratuito e tem catálogo e respostas prontas.",
    "placeholder_outro": "Ex.: feira de domingo",
    "comoDescobrir": [
-    "Pergunte aos últimos 5 clientes (ou a conhecidos) como ficaram sabendo de você e por onde pediram.",
+    "Pergunte aos últimos 5 clientes (ou a conhecidos) por onde preferem fazer o pedido e pagar.",
     "Veja por onde os concorrentes recebem pedidos: Instagram, WhatsApp, aplicativo ou ponto."
    ],
    "rotulos_opcoes": {
@@ -829,52 +956,53 @@ window.MODULO3 = {
    "codigo": "M3.P14",
    "bloco": "Bloco 3: Onde está o Negócio",
    "titulo": "Diagnóstico da Empresa",
-   "pergunta": "O que o seu negócio faz de melhor? E o que precisa melhorar?",
-   "tipo": "Texto livre (2 campos)",
+   "pergunta": "O que o seu negócio faz de melhor?",
+   "tipo": "Texto livre",
    "caminhos": [
     {
-     "opcao": "Preencheu os dois campos",
+     "opcao": "Resposta preenchida",
      "tipo": "Nenhum",
      "texto": "—"
     },
     {
-     "opcao": "Preencheu só um dos campos",
+     "opcao": "Resposta vazia ou muito curta",
      "tipo": "Dica",
-     "texto": "Todo negócio tem pontos fortes e pontos a melhorar. Tente escrever pelo menos um de cada."
-    },
-    {
-     "opcao": "Não sei",
-     "tipo": "Dica",
-     "texto": "Pense no que os clientes elogiam e no que costumam reclamar."
+     "texto": "Escreva pelo menos uma coisa que você faz bem. Ex.: atendimento rápido e simpático."
     }
    ],
-   "campos": [
-    "O que meu negócio faz de melhor",
-    "O que ainda preciso melhorar"
-   ],
-   "naosei": true,
+   "naosei": false,
    "variantes": {
     "ideia": {
-     "pergunta": "O que o seu negócio vai fazer de melhor? E o que precisa aprender?",
-     "campos": {
-      "O que meu negócio faz de melhor": "O que imagino que meu negócio vai fazer de melhor",
-      "O que ainda preciso melhorar": "O que ainda preciso aprender ou melhorar"
-     },
-     "caminhos": {
-      "Não sei": "Pense no que você já faz bem e no que os clientes costumam elogiar ou reclamar em negócios parecidos com o seu."
-     }
+     "pergunta": "O que o seu negócio vai fazer de melhor?"
     }
    },
-   "dica": "Seja sincero: escreva o seu \"superpoder\" (ex.: atendimento rápido e simpático) e o seu ponto fraco (ex.: demora para organizar as contas).",
-   "placeholders": {
-    "O que meu negócio faz de melhor": "Ex.: atendimento rápido e simpático",
-    "O que ainda preciso melhorar": "Ex.: organizar melhor as contas"
-   },
-   "comoDescobrir": [
-    "Releia elogios e reclamações que você já recebeu (conversas, avaliações) e anote os que se repetem.",
-    "Pergunte a 2 clientes ou amigos: “O que eu faço bem? E o que eu poderia melhorar?”"
+   "dica": "Seja sincero: escreva o seu \"superpoder\". Ex.: atendimento rápido e simpático, receita da família, entrega no mesmo dia."
+  },
+  {
+   "codigo": "M3.P14B",
+   "bloco": "Bloco 3: Onde está o Negócio",
+   "titulo": "Diagnóstico da Empresa",
+   "pergunta": "O que o seu negócio precisa melhorar?",
+   "tipo": "Texto livre",
+   "caminhos": [
+    {
+     "opcao": "Resposta preenchida",
+     "tipo": "Nenhum",
+     "texto": "—"
+    },
+    {
+     "opcao": "Resposta vazia ou muito curta",
+     "tipo": "Dica",
+     "texto": "Escreva pelo menos um ponto a melhorar. Ex.: organizar melhor as contas."
+    }
    ],
-   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu descobrir o que o meu negócio faz de melhor e o que ainda preciso melhorar. Não responda por mim."
+   "naosei": false,
+   "variantes": {
+    "ideia": {
+     "pergunta": "O que você ainda precisa aprender ou melhorar?"
+    }
+   },
+   "dica": "Todo negócio tem pontos a melhorar. Ex.: demora para organizar as contas, pouca divulgação, falta de embalagem boa."
   },
   {
    "codigo": "M3.P15",
@@ -977,7 +1105,7 @@ window.MODULO3 = {
    "codigo": "M3.P18",
    "bloco": "Bloco 4: Definição da Concorrência",
    "titulo": "Conhecimento sobre os Concorrentes",
-   "pergunta": "Onde esses concorrentes ficam e como eles trabalham?",
+   "pergunta": "Como cada concorrente trabalha?",
    "tipo": "Texto livre",
    "caminhos": [
     {
@@ -997,18 +1125,20 @@ window.MODULO3 = {
     }
    ],
    "naosei": true,
-   "dica": "Descubra detalhes dos vizinhos: qual o horário de funcionamento deles, quanto cobram pelo frete e como respondem no WhatsApp.",
+   "dica": "Para cada um, anote o horário, se entrega (e quanto cobra de frete) e como responde no WhatsApp.",
    "comoDescobrir": [
     "Busque o nome de cada concorrente no Google Maps e anote endereço, horário e fotos.",
     "Mande uma mensagem como cliente perguntando prazo e entrega e repare em quanto tempo respondem."
    ],
-   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu observar, só com o celular, onde ficam os meus concorrentes e como eles trabalham: horário, entrega e atendimento. Não invente nomes de lojas nem cite números."
+   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu observar, só com o celular, onde ficam os meus concorrentes e como eles trabalham: horário, entrega e atendimento. Não invente nomes de lojas nem cite números.",
+   "porConcorrente": "texto",
+   "placeholder": "Ex.: abre das 8h às 18h, entrega no bairro, responde rápido no WhatsApp"
   },
   {
    "codigo": "M3.P20",
    "bloco": "Bloco 4: Definição da Concorrência",
    "titulo": "Faixa de Preço",
-   "pergunta": "Quanto os outros cobram por algo parecido com o que você vende?",
+   "pergunta": "Quanto cada concorrente cobra por algo parecido com o seu?",
    "tipo": "Faixa de preço (R$)",
    "caminhos": [
     {
@@ -1025,39 +1155,41 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "Quanto os outros cobram por algo parecido com o que você quer vender?",
+     "pergunta": "Quanto cada concorrente cobra por algo parecido com o que você quer vender?",
      "caminhos": {
       "Informou valores": "Os outros costumam cobrar em torno de R$ [valor]. Use esse valor como referência para definir o seu preço."
      }
     }
    },
    "campos": [
-    "Menor preço que você viu (R$)",
-    "Maior preço que você viu (R$)"
+    "Menor preço (R$)",
+    "Maior preço (R$)"
    ],
-   "dica": "Descubra o valor cobrado por 3 concorrentes. Anote o valor mais baixo, o mais alto e o valor médio cobrado por eles. Exemplo: \"De R$ 30 a R$ 50\".",
+   "dica": "Veja o preço de algo parecido com o que você vende no perfil, no cardápio ou pedindo um orçamento. Se viu mais de um preço, anote o menor e o maior.",
    "comoDescobrir": [
     "Escolha 3 concorrentes e veja o preço de algo parecido com o seu no perfil, no cardápio ou no anúncio.",
     "Se o preço não estiver à vista, peça um orçamento pelo WhatsApp e anote o menor e o maior valor."
    ],
-   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu pesquisar sozinho quanto os outros cobram por algo parecido. Não cite preços nem números."
+   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu pesquisar sozinho quanto os outros cobram por algo parecido. Não cite preços nem números.",
+   "porConcorrente": "preco"
   },
   {
    "codigo": "M3.P22",
    "bloco": "Bloco 4: Definição da Concorrência",
-   "titulo": "Pontos Fortes e Fracos dos Concorrentes",
-   "pergunta": "O que os outros fazem bem? E onde deixam a desejar?",
-   "tipo": "Texto livre (2 campos)",
+   "titulo": "Pontos Fortes dos Concorrentes",
+   "pergunta": "O que cada concorrente faz bem?",
+   "tipo": "Texto livre",
+   "porConcorrente": "texto",
    "caminhos": [
     {
-     "opcao": "Preencheu os dois campos",
+     "opcao": "Resposta preenchida",
      "tipo": "Nenhum",
      "texto": "—"
     },
     {
-     "opcao": "Preencheu só um dos campos",
+     "opcao": "Resposta vazia ou muito curta",
      "tipo": "Dica",
-     "texto": "Tente escrever pelo menos um ponto forte e uma falha dos outros. Ex.: demoram para responder, entrega atrasada."
+     "texto": "Escreva pelo menos um ponto forte. Ex.: entrega rápido."
     },
     {
      "opcao": "Não sei",
@@ -1065,27 +1197,53 @@ window.MODULO3 = {
      "texto": "1. No Google Maps, leia avaliações de 5 estrelas e de 1 ou 2 estrelas. 2. No Instagram, leia os comentários. 3. Anote os elogios e as reclamações que mais se repetem."
     }
    ],
-   "campos": [
-    "O que os outros fazem bem",
-    "Onde os outros deixam a desejar"
+   "naosei": true,
+   "dica": "Leia as avaliações no Google Maps ou os comentários no Instagram e veja o que os clientes elogiam.",
+   "placeholder": "Ex.: entrega rápido",
+   "comoDescobrir": [
+    "No Google Maps, leia 5 avaliações boas de cada concorrente.",
+    "Anote os elogios que mais se repetem (ex.: entrega rápida, preço bom)."
+   ],
+   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu ler as avaliações dos meus concorrentes e anotar o que eles fazem bem. Não invente opiniões nem cite números."
+  },
+  {
+   "codigo": "M3.P22B",
+   "bloco": "Bloco 4: Definição da Concorrência",
+   "titulo": "Pontos Fracos dos Concorrentes",
+   "pergunta": "Onde cada concorrente deixa a desejar?",
+   "tipo": "Texto livre",
+   "porConcorrente": "texto",
+   "caminhos": [
+    {
+     "opcao": "Resposta preenchida",
+     "tipo": "Nenhum",
+     "texto": "—"
+    },
+    {
+     "opcao": "Resposta vazia ou muito curta",
+     "tipo": "Dica",
+     "texto": "Escreva pelo menos uma falha. Ex.: demora para responder."
+    },
+    {
+     "opcao": "Não sei",
+     "tipo": "Passo a passo",
+     "texto": "1. No Google Maps, leia avaliações de 5 estrelas e de 1 ou 2 estrelas. 2. No Instagram, leia os comentários. 3. Anote os elogios e as reclamações que mais se repetem."
+    }
    ],
    "naosei": true,
-   "dica": "Leia as avaliações no Google Maps ou comentários no Instagram dos concorrentes. Veja o que os clientes elogiam e do que mais reclamam (ex.: atraso na entrega).",
-   "placeholders": {
-    "O que os outros fazem bem": "Ex.: entregam rápido",
-    "Onde os outros deixam a desejar": "Ex.: demoram para responder"
-   },
+   "dica": "Leia as avaliações no Google Maps ou os comentários no Instagram e veja do que os clientes mais reclamam (ex.: atraso na entrega).",
+   "placeholder": "Ex.: demora para responder",
    "comoDescobrir": [
-    "No Google Maps, leia 5 avaliações boas e 5 ruins de cada concorrente.",
-    "Anote o elogio e a reclamação que mais se repetem (ex.: entrega rápida, demora para responder)."
+    "No Google Maps, leia 5 avaliações ruins (1 ou 2 estrelas) de cada concorrente.",
+    "Anote as reclamações que mais se repetem (ex.: atraso, demora para responder)."
    ],
-   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu ler as avaliações dos meus concorrentes e anotar o que eles fazem bem e onde deixam a desejar. Não invente opiniões nem cite números."
+   "promptIA": "Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu ler as avaliações dos meus concorrentes e anotar onde eles deixam a desejar. Não invente opiniões nem cite números."
   },
   {
    "codigo": "M3.P19",
    "bloco": "Bloco 4: Definição da Concorrência",
    "titulo": "Comparação com Concorrentes",
-   "pergunta": "Ao lado dos outros, como o seu negócio se sai?",
+   "pergunta": "Ao lado de cada concorrente, como o seu negócio se sai?",
    "tipo": "Tabela (Melhor / Igual / Pior)",
    "caminhos": [
     {
@@ -1113,12 +1271,13 @@ window.MODULO3 = {
    "naosei": false,
    "variantes": {
     "ideia": {
-     "pergunta": "Ao lado dos outros, como você acha que o seu negócio vai se sair?"
+     "pergunta": "Ao lado de cada concorrente, como o seu negócio vai se sair?"
     }
    },
    "dica": "Compare lado a lado o seu negócio com os outros em 4 pontos: Preço, Qualidade, Atendimento e Prazo de Entrega. Avalie se você é melhor, igual ou pior.",
    "outro": "Outro ponto",
-   "placeholder_outro": "Ex.: variedade de sabores: melhor"
+   "placeholder_outro": "Ex.: variedade de sabores: melhor",
+   "porConcorrente": "tabela"
   },
   {
    "codigo": "M3.P21",
@@ -1143,7 +1302,7 @@ window.MODULO3 = {
      "texto": "Pense no que os clientes elogiam em você. Volte aqui depois de se comparar com os outros e ver o que eles fazem bem e onde deixam a desejar."
     }
    ],
-   "naosei": true,
+   "naosei": false,
    "variantes": {
     "ideia": {
      "pergunta": "O que o seu cliente vai ganhar comprando com você e não com o vizinho?",
@@ -1152,8 +1311,7 @@ window.MODULO3 = {
      }
     }
    },
-   "dica": "Diga o seu grande atrativo! Pode ser um brinde exclusivo, atendimento personalizado, entregar no mesmo dia ou garantia facilitada.",
-   "oculta": true
+   "dica": "Diga o seu grande atrativo! Pode ser um brinde exclusivo, atendimento personalizado, entregar no mesmo dia ou garantia facilitada."
   }
  ],
  "regras": [],

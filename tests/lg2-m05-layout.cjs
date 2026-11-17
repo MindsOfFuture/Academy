@@ -31,6 +31,7 @@ const server = http.createServer(async (req, res) => {
   await fill(['Camiseta']);
   assert.match(await page.textContent('.contexto .chip'), /^Mercadoria: Camiseta$/);
   await fill(['200']); await fill(['10']); await esc('Não'); await esc('Não');
+  await esc('Não, o cliente busca ou vem até mim');
   assert.equal(await etapaAtual(), 2, 'gastos fixos = etapa 2');
   assert.equal((await st()).hist.at(-1), 'M5.PG', 'formas de pagamento abrem os gastos');
   // Alterar volta à pergunta do nome, com o nome preenchido
@@ -39,10 +40,12 @@ const server = http.createServer(async (req, res) => {
   assert.equal(await page.inputValue('#ent input'), 'Camiseta');
   assert.deepEqual((await st()).hist, ['M5.P00', 'M5.P01', 'M5.P10']);
   await fill(['Camiseta lisa']); await fill(['200']); await fill(['10']); await esc('Não'); await esc('Não');
+  await esc('Não, o cliente busca ou vem até mim');
   await esc('Dinheiro');
   for (let i = 0; i < 6; i++) await esc('Não');
   assert.equal(await etapaAtual(), 3, 'quantidade = etapa 3');
   await fill(['50']);
+  await esc('Não, é parecido o ano todo');
   assert.equal(await etapaAtual(), 3, 'preço = etapa 3');
   await fill(['30']);
   assert.equal(await etapaAtual(), 3, 'análise do preço = etapa 3');

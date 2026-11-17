@@ -150,7 +150,7 @@ body.com-video{overflow:hidden}
 .acoes{display:flex;flex-direction:column;gap:10px;margin-top:20px}
 .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:none;border-radius:12px;font:inherit;font-weight:700;font-size:16.5px;padding:14px;cursor:pointer;line-height:1.25;text-align:center}
 .btn-primario{background:var(--m-purple);color:#fff}
-.btn-primario:disabled{background:var(--m-lavender-mid);color:#fff;cursor:not-allowed}
+.btn-primario:disabled{background:var(--m-lavender);color:var(--m-purple);cursor:not-allowed}
 .btn-claro{background:var(--m-lavender);color:var(--m-purple)}
 .btn-linha{background:#fff;color:var(--m-purple);border:2px solid var(--m-purple)}
 .seta::after{content:"";flex:0 0 18px;height:18px;background:var(--i-seta) center/contain no-repeat}
@@ -182,6 +182,7 @@ body.com-video{overflow:hidden}
 .ver-mais{margin-top:6px}
 .ver-mais summary{cursor:pointer;color:var(--m-purple);font-weight:700;font-size:16px}
 .aviso-roxo .ver-mais summary{color:#fff;text-decoration:underline}
+.aviso-roxo p,.ajuda-box .aviso-roxo p{color:#fff}
 .aviso-roxo p+.ver-mais p,.ver-mais p{margin-top:6px}
 .para-onde{margin:18px 0}
 .para-onde .cartao{background:#fff;margin-top:10px}
@@ -215,3 +216,9 @@ body.com-video{overflow:hidden}
 /* Continuar logo abaixo da pergunta (padrão único) */
 .acoes-q{padding:16px 0 4px}
 .acoes-q .btn{width:100%}
+
+/* lote 16/11: exemplo curto embaixo da opção; nota do "Não sei" (só mostra a ajuda, não grava) */
+.op-ex{display:block;font-size:16px;color:var(--m-gray);margin-top:2px;line-height:1.3}
+.ajuda-ns{margin-top:4px}
+.nota-ns{margin-top:10px;font-size:16px;font-weight:700;color:var(--m-purple)}
+.seta:disabled::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23684A97' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E")}

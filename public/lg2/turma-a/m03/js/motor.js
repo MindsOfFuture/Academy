@@ -25,6 +25,9 @@
 
   function campo(q) {
     const t = String(q.tipo || "");
+    /* lote 16/11: uma resposta para cada concorrente citado (texto, preço ou tabela) e as alternativas da pergunta 3 */
+    if (q.porConcorrente) return "conc";
+    if (/alternativas/i.test(t)) return "alternativas";
     /* "Seleção múltipla + campos" (perfil do cliente): marca uma ou mais opções e cada uma abre os seus campos */
     if (/\+\s*campos/i.test(t)) return "escolhacampos";
     /* lista de nomes (um nome por campo) e tabela Melhor / Igual / Pior (lote 4, relatório da Ana Luiza) */
@@ -38,7 +41,9 @@
   }
 
   /* visivel = não foi pulada pelo desvio (o que sai do caminho é descartado); mostrada = visível e não escondida */
-  const visivel = (q, R) => !(DESVIO.pula.includes(q.codigo) && R[DESVIO.de] && R[DESVIO.de].opcao === DESVIO.se);
+  /* mostrarSe (lote 16/11): a pergunta depende da resposta de outra (ex.: "o que dificulta" some se copiar seria fácil) */
+  const condOk = (q, R) => { const c = q.mostrarSe; if (!c) return true; const r = R[c.codigo]; return !(r && (r.opcao === c.diferente || r.valor === c.diferente)); };
+  const visivel = (q, R) => condOk(q, R) && !(DESVIO.pula.includes(q.codigo) && R[DESVIO.de] && R[DESVIO.de].opcao === DESVIO.se);
   const mostrada = (q, R) => visivel(q, R) && !q.oculta;
   const visiveis = (M, R) => M.perguntas.filter((q) => mostrada(q, R));
 
@@ -60,7 +65,16 @@
   }
   /* lote 4: nenhuma pergunta é pulada por herança (o que veio do Módulo 1 aparece num bloco para confirmar;
      a pergunta da dor ficou escondida e recebe a dor marcada no perfil do cliente) */
-  function pulada() { return false; }
+  /* lote 16/11 (sem pergunta repetida na jornada): a pergunta já respondida em módulo anterior não aparece de novo.
+     O que vende (Módulo 1) e quem compra (Módulo 2, M2.P07) entram prontos; a pessoa troca pelo cartão "Trocar".
+     Se ela trocou (resposta sem a marca de herança), a pergunta volta a ser dela e aparece. */
+  function pulada(q, R, H) {
+    if (!H) return false;
+    const r = R[q.codigo];
+    if (q.codigo === "M3.P01") return !!H.p01 && (!r || !!r.doM1);
+    if (q.codigo === "M3.P10") return !!(H.m2 && H.m2.tipo) && (!r || r.herdado === "M2");
+    return false;
+  }
   function telas(M, R, H) {
     const lista = M.perguntas.filter((q) => mostrada(q, R) && !pulada(q, R, H)).map((q) => q.codigo);
     const out = [];
@@ -72,10 +86,8 @@
   }
   const tela = (M, R, H, cod) => telas(M, R, H).find((t) => t.includes(cod)) || [cod];
   function proxima(M, R, cod, H) {
-    const idx = (c) => M.perguntas.findIndex((p) => p.codigo === c);
-    const i = cod ? idx(cod) : -1;
-    const t = telas(M, R, H).find((t) => t.some((c) => idx(c) > i) && !t.some((c) => idx(c) === i) && idx(t[0]) > i);
-    return t ? t[0] : "RESULTADO";
+    const lista = telas(M, R, H).flat(), i = cod ? lista.indexOf(cod) : -1;
+    return lista[i + 1] || "RESULTADO";
   }
   /* textos da versão "o que você imagina" (quem ainda não começou) */
   /* quem "já fez um pouco para testar" também ainda não vende: usa a versão própria (se houver) ou a de quem ainda não começou */
@@ -134,6 +146,13 @@
   const media = (ns) => ns.reduce((a, b) => a + b, 0) / ns.length;
   const reais = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const piores = (tab) => Object.values(tab || {}).filter((v) => v === "Pior").length;
+  /* preços informados: por concorrente (menor e maior de cada um) ou, na resposta antiga, a faixa geral */
+  function precos(r) {
+    if (!r) return [];
+    if (r.porNome && Object.keys(r.porNome).length) return [].concat(...Object.values(r.porNome).map((x) => (x && x.min != null ? [...new Set([x.min, x.max])] : [])));
+    if (r.min != null) return [...new Set([r.min, r.max])];
+    return numeros(r.valor);
+  }
 
   function linhaE(q, opcao, troca, est) {
     const c = (q.caminhos || []).find((x) => x.opcao === opcao);
@@ -159,6 +178,16 @@
       lista = ops.map((o) => linha(q, o));
       const vals = [].concat(...ops.map((o) => q.campos[o])).map((c) => (r.campos || {})[c]);
       if (vals.some((v) => !String(v || "").trim())) lista.push(linha(q, "Campos complementares incompletos"));
+    } else if (tipo === "alternativas") {
+      lista = [(r.tipos || []).length || !vazioTxt(r.valor) ? linha(q, "Resposta preenchida") : linha(q, "Nenhuma opção marcada")];
+    } else if (tipo === "conc") {
+      const pn = r.porNome || {};
+      if (q.porConcorrente === "preco") { const ns = precos(r); lista = [ns.length ? linha(q, "Informou valores", reais(media(ns))) : null]; }
+      else if (q.porConcorrente === "tabela") {
+        lista = [linha(q, "Sei comparar (texto livre)")];
+        const tabs = Object.keys(pn).length ? Object.values(pn).map((x) => x && x.tabela) : [r.tabela];
+        if (tabs.some((t) => piores(t) >= 3)) lista.push(linha(q, "Marcou 'Pior' em 3 ou mais critérios"));
+      } else lista = [Object.values(pn).some((x) => !vazioTxt(x)) || !vazioTxt(r.valor) ? linha(q, "Resposta preenchida") : null];
     } else if (tipo === "lista") {
       lista = [(r.nomes || []).length || !vazioTxt(r.valor) ? linha(q, "Resposta preenchida") : null];
     } else if (tipo === "tabela") {
@@ -230,7 +259,7 @@
     return !!String(r.valor || "").trim();
   }
 
-  const API = { montar, campo, visivel, mostrada, ehNS, ehNao, NAO, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, naoVende, varias, opcoesDe, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
+  const API = { montar, campo, visivel, precos, condOk, mostrada, ehNS, ehNao, NAO, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, naoVende, varias, opcoesDe, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
                 mostraveis, bloqueia, corrigir, lerPreco, faixaPreco, PRECO_ALTO, PRECO_RAZAO, partesPrompt, passos, pendente, texto, hipotese, NS, DESVIO };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

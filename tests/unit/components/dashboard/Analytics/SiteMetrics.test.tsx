@@ -19,19 +19,19 @@ const EXEMPLO: Dados = {
   },
 };
 
-describe("Números do site e do Laboratório de Gestão", () => {
+describe("Números do site e do Empreenda+", () => {
   it("mostra cadastros, acessos por produto, os 10 módulos e a jornada", () => {
     render(<SiteMetricsPanel data={EXEMPLO} />);
     expect(screen.getByText("Novos cadastros no período").parentElement?.parentElement).toHaveTextContent("27");
-    expect(screen.getByText("Jornada do Laboratório de Gestão concluída").parentElement?.parentElement).toHaveTextContent("6");
-    const produto = screen.getByText("Laboratório de Gestão (página de entrada)").closest("tr")!;
+    expect(screen.getByText("Jornada do Empreenda+ concluída").parentElement?.parentElement).toHaveTextContent("6");
+    const produto = screen.getByText("Empreenda+ (página de entrada)").closest("tr")!;
     expect(within(produto).getByText("88")).toBeInTheDocument();
     expect(within(produto).getByText("542")).toBeInTheDocument();
-    expect(screen.getByText("Laboratório de Gestão (módulos do app)").closest("tr")).toHaveTextContent("1.234");
+    expect(screen.getByText("Empreenda+ (módulos do app)").closest("tr")).toHaveTextContent("1.234");
     for (let n = 1; n <= 10; n += 1) expect(screen.getByText(`Módulo ${n}`)).toBeInTheDocument();
     const ultimo = within(screen.getByText("Módulo 10").closest("tr")!).getAllByRole("cell").map((c) => c.textContent);
     expect(ultimo).toEqual(["Módulo 10", "22", "3"]);
-    expect(screen.getByText("Os números do Laboratório de Gestão começam a contar a partir de 06/11/2026.")).toBeInTheDocument();
+    expect(screen.getByText("Os números do Empreenda+ começam a contar a partir de 06/11/2026.")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/@|[0-9a-f]{8}-[0-9a-f]{4}/);
   });
 

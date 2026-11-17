@@ -217,7 +217,7 @@
     esconderTudo();
     vista = 'trilha';
     aviso.textContent = '';
-    topo('Laboratório de Gestão', 'Sua trilha', false);
+    topo('Empreenda+', 'Sua trilha', false);
     telaTrilha.hidden = false;
     desenhar();
     var alvo = trilha.querySelector('.sugerida');
@@ -254,7 +254,7 @@
     esconderTudo();
     vista = 'concluida';
     aviso.textContent = '';
-    topo('Laboratório de Gestão', 'Sua trilha', true);
+    topo('Empreenda+', 'Sua trilha', true);
     document.getElementById('conc-titulo').textContent = 'Etapa ' + n + ' concluída!';
     progresso(document.getElementById('conc-prog-texto'), document.getElementById('conc-prog-barra'));
     var mini = document.getElementById('conc-mini');
@@ -282,7 +282,7 @@
     vista = 'fim';
     estado.atual = null; gravar();
     aviso.textContent = '';
-    topo('Laboratório de Gestão', 'Jornada concluída', true);
+    topo('Empreenda+', 'Jornada concluída', true);
     fim.hidden = false;
     mostrarResumo();
   }
@@ -395,7 +395,19 @@
     corpo.setAttribute('aria-busy', 'true');
     var data = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
     document.getElementById('diag-data').textContent = 'Situação em ' + data;
+    corpo.appendChild(el('p', 'diag-vazio', 'Montando o seu diagnóstico…'));
     D.carregarDados(prontos, function () {
+      try { desenharDiagnostico(D, corpo); }
+      catch (e) {
+        corpo.textContent = '';
+        corpo.appendChild(el('p', 'diag-vazio', 'Não conseguimos montar o diagnóstico agora. Feche e abra de novo; se continuar, recarregue a página. Suas respostas continuam salvas.'));
+        corpo.removeAttribute('aria-busy');
+        if (window.console) console.warn('diagnóstico:', e);
+      }
+    });
+  }
+  function desenharDiagnostico(D, corpo) {
+    {
       corpo.textContent = '';
       var mods = prontos.map(function (m) { return { n: m.n, nome: m.nome, caminho: m.caminho, situacao: situacaoDiag(m) }; });
       var r = D.montar(mods, function (n) { return window['MODULO' + n] || null; });
@@ -473,7 +485,7 @@
       });
       corpo.appendChild(s4);
       corpo.removeAttribute('aria-busy');
-    });
+    }
   }
   function abrirDiagnostico(ev) {
     diagOrigem = ev && ev.currentTarget && ev.currentTarget !== window ? ev.currentTarget : null;
@@ -493,7 +505,21 @@
   document.getElementById('ver-diag-fim').addEventListener('click', abrirDiagnostico);
   document.getElementById('ver-diag-painel').addEventListener('click', abrirDiagnostico);
   document.getElementById('fecha-diag').addEventListener('click', fecharDiagnostico);
-  document.getElementById('imprime-diag').addEventListener('click', function () { window.print(); });
+  document.getElementById('imprime-diag').addEventListener('click', function () {
+    if (window.PlanoNegocio) window.PlanoNegocio.limparImpressao();
+    window.print();
+  });
+  // Plano de negócio (js/plano.js): documento próprio para imprimir ou salvar em PDF, com as contas separadas.
+  function baixarPlano(ev) {
+    if (!window.PlanoNegocio) return;
+    window.PlanoNegocio.imprimir({
+      botao: ev.currentTarget,
+      modulos: prontos.map(function (m) { return { n: m.n, nome: m.nome, caminho: m.caminho, situacao: situacaoDiag(m) }; }),
+      aviso: function (t) { aviso.textContent = t; }
+    });
+  }
+  document.getElementById('baixa-plano-diag').addEventListener('click', baixarPlano);
+  document.getElementById('baixa-plano-fim').addEventListener('click', baixarPlano);
 
   function abrirPainel() {
     montarPainel();

@@ -6,7 +6,7 @@
   const D = window.MODULO1, M = Motor.montar(D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-a-m01";
-  const VERSAO = 4;                  // muda quando o conjunto de perguntas muda (v4: nova Pergunta 3A e Pergunta 8 com várias respostas)
+  const VERSAO = 5;                  // muda quando o conjunto de perguntas muda (v4: Pergunta 3A e Pergunta 8 com várias respostas; v5: "Não sei" não grava)
   const vazio = (s) => !s || !String(s).trim() || s === "—" || s === "-" || s === "Nenhum" || s === "Nenhuma";
 
   let S = carregar();                // { v, R: respostas, atual: código da tela atual }
@@ -16,8 +16,11 @@
   function carregar() {
     try {
       const s = JSON.parse(localStorage.getItem(CHAVE));
-      if (s && s.v === 2 && s.R) return migrar3(migrar2(s));
-      if (s && s.v === 3 && s.R) return migrar3(s);
+      let m = null;
+      if (s && s.v === 2 && s.R) m = migrar4(migrar3(migrar2(s)));
+      else if (s && s.v === 3 && s.R) m = migrar4(migrar3(s));
+      else if (s && s.v === 4 && s.R) m = migrar4(s);
+      if (m) { try { localStorage.setItem(CHAVE, JSON.stringify(m)); } catch {} return m; }   // grava já migrado
       return s && s.v === VERSAO && s.R ? s : novo();
     }
     catch { return novo(); }
@@ -45,6 +48,17 @@
     const r = s.R["M1.P08"];
     if (r && r.estado === "opcao" && !Array.isArray(r.opcoes)) r.opcoes = [r.opcao];
     if (r && !Motor.completa(M.porCodigo["M1.P08"], r)) delete s.R["M1.P08"];
+    s.v = 4;
+    if (s.atual === "RESULTADO") s.atual = faltando(s.R) || "RESULTADO";
+    return s;
+  }
+  /* v4 -> v5: "Não sei" deixou de ser resposta (só abre a ajuda). Respostas antigas "Não sei dizer" (5A, 7A)
+     ou "naosei" viram "sem resposta"; as outras respostas ficam. A pessoa responde quando passar por lá. */
+  function migrar4(s) {
+    Object.keys(s.R).forEach((c) => {
+      const r = s.R[c];
+      if (r && (r.estado === "naosei" || (r.estado === "opcao" && /^(n[ãa]o sei( dizer)?|ainda n[ãa]o (sei|pensei( nisso)?|defini))$/i.test(String(r.opcao || "").trim())))) delete s.R[c];
+    });
     s.v = VERSAO;
     if (s.atual === "RESULTADO") s.atual = faltando(s.R) || "RESULTADO";
     return s;
@@ -182,7 +196,6 @@
 
   /* ---------- "Não sei": caixa "Como descobrir" (passos + pedido pronto para a IA, com Copiar) ----------
      Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA). */
-  const NAO_SEI = /^n[ãa]o sei\b/i;
   function caixaComo(q) {
     if (!q.comoDescobrir || !q.comoDescobrir.length) return "";
     return `<section class="como-descobrir" role="status">
@@ -196,6 +209,27 @@
       </div>` : ""}
       ${q.aviso_ajuda ? `<p class="como-nota" data-ler>${esc(q.aviso_ajuda)}</p>` : ""}
     </section>`;
+  }
+  /* botão "Não sei" (ou "Ainda não sei o que vender"): abre/fecha a caixa "Como descobrir" e NÃO grava nada.
+     O Continuar só acende com uma resposta de verdade; a nota diz isso logo abaixo da ajuda. */
+  const NOTA_TEXTO = "Use a ajuda acima e escreva a sua resposta para continuar.";
+  const NOTA_OPCAO = "Use a ajuda acima e escolha uma opção para continuar.";
+  const ICO_AJUDA = SVG('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17v.5"/>');
+  function blocoAjuda(q, nota) {
+    if (!q.botao_ajuda || !q.comoDescobrir) return null;
+    const b = el(`<div class="ajuda-ns">
+      <div class="alt"><button class="btn-alt btn-ns" type="button" id="semideia" aria-expanded="false" aria-controls="comoideia">${ICO_AJUDA}<span>${esc(q.botao_ajuda)}</span></button></div>
+      <div id="comoideia" hidden></div>
+    </div>`);
+    const si = b.querySelector("#semideia"), ci = b.querySelector("#comoideia");
+    si.onclick = () => {
+      const abrir = ci.hidden;
+      ci.innerHTML = abrir ? caixaComo(q) + `<p class="nota-ns" role="status" data-ler>${esc(nota)}</p>` : "";
+      ci.hidden = !abrir;
+      si.setAttribute("aria-expanded", String(abrir));
+      if (abrir) { ligarCopiar(ci); ci.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+    };
+    return b;
   }
   function copiar(t, b, alvo) {
     const pronto = () => { b.textContent = "Copiado!"; setTimeout(() => { if (document.contains(b)) b.textContent = "Copiar"; }, 2000); };
@@ -315,17 +349,6 @@
         m = op ? op.mensagem : null;
         const extra = ent.querySelector(".outra");
         if (extra) extra.hidden = !(op && op.campo);
-        /* "Não sei": em vez de só seguir, mostra como descobrir (a resposta continua salva como "Não sei dizer") */
-        if (op && NAO_SEI.test(op.texto) && q.comoDescobrir) {
-          msg.innerHTML = caixaMensagem(m) + caixaComo(q);
-          ligarCopiar(msg);
-          return;
-        }
-      } else {
-        const ns = ent.querySelector("#ns");
-        const sel = !!r && r.estado === "naosei";
-        if (ns) { ns.classList.toggle("sel", sel); ns.setAttribute("aria-pressed", String(sel)); }
-        m = sel && q.botao_naosei ? q.botao_naosei.mensagem : null;
       }
       msg.innerHTML = caixaMensagem(m);
     }
@@ -349,7 +372,7 @@
         gravar(r);
       };
       q.opcoes.forEach((op) => {
-        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b data-ler>${esc(op.texto)}</b></span><span class="check" aria-hidden="true">✓</span></button>`);
+        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b data-ler>${esc(op.texto)}</b>${op.exemplo ? `<small class="op-ex" data-ler>${esc(op.exemplo)}</small>` : ""}</span><span class="check" aria-hidden="true">✓</span></button>`);
         b.onclick = () => {
           const ant = S.R[cod];
           const marc = lista(ant);
@@ -373,7 +396,7 @@
     } else if (q.tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoes.forEach((op) => {
-        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b data-ler>${esc(op.texto)}</b></span><span class="check" aria-hidden="true">✓</span></button>`);
+        const b = el(`<button class="opcao" type="button" data-op="${esc(op.texto)}" aria-pressed="false"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b data-ler>${esc(op.texto)}</b>${op.exemplo ? `<small class="op-ex" data-ler>${esc(op.exemplo)}</small>` : ""}</span><span class="check" aria-hidden="true">✓</span></button>`);
         b.onclick = () => {
           const ant = S.R[cod];
           const r = { estado: "opcao", opcao: op.texto };
@@ -392,29 +415,18 @@
           ent.appendChild(box);
         }
       });
+      const aj = blocoAjuda(q, NOTA_OPCAO);
+      if (aj) ent.appendChild(aj);
     } else {
       const r0 = S.R[cod];
       ent.appendChild(el(`<div>
         <textarea class="campo" id="txt" rows="3" placeholder="${esc(q.placeholder || "")}" aria-label="${esc(q.pergunta)}">${esc(r0 && r0.estado === "valor" ? r0.valor : "")}</textarea>
-        <div class="alt">
-          ${q.botao_naosei ? `<button class="btn-alt btn-ns" type="button" id="ns" aria-pressed="false"><span data-ler>${esc(q.botao_naosei.texto)}</span><span class="check" aria-hidden="true">✓</span></button>` : ""}
-          ${q.botao_ajuda && q.comoDescobrir ? `<button class="btn-alt" type="button" id="semideia" aria-expanded="false" aria-controls="comoideia">${SVG('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17v.5"/>')}<span>${esc(q.botao_ajuda)}</span></button>` : ""}
-        </div>
-        <div id="comoideia" hidden></div>
       </div>`));
       const txt = ent.querySelector("#txt");
       txt.oninput = () => gravar(txt.value.trim() ? { estado: "valor", valor: txt.value } : null);
       /* sem ideia ainda: abre "Como descobrir" sem gravar nada; o Continuar só acende com o texto escrito */
-      const si = ent.querySelector("#semideia"), ci = ent.querySelector("#comoideia");
-      if (si) si.onclick = () => {
-        const abrir = ci.hidden;
-        ci.innerHTML = abrir ? caixaComo(q) : "";
-        ci.hidden = !abrir;
-        si.setAttribute("aria-expanded", String(abrir));
-        if (abrir) { ligarCopiar(ci); ci.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
-      };
-      const ns = ent.querySelector("#ns");
-      if (ns) ns.onclick = () => { txt.value = ""; gravar({ estado: "naosei", texto: q.botao_naosei.texto }); };
+      const aj = blocoAjuda(q, NOTA_TEXTO);
+      if (aj) ent.firstElementChild.appendChild(aj);
       // O botão "Falar" de cada campo vem de js/falar.js (igual em todos os módulos).
     }
     atualizar();
@@ -499,6 +511,8 @@
     p.querySelector("#rev").onclick = () => ir(telaPergunta, Motor.proxima(M, {}, null));
     p.querySelector("#novo").onclick = () => { if (confirm("Começar de novo? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaInicio); } };
     ligarCopiar(p);
+    /* relatório do módulo aberto por padrão (pedido de 16/11): a pessoa ainda pode fechar */
+    p.querySelectorAll("details").forEach((d) => { d.open = true; });
     return p;
   }
 

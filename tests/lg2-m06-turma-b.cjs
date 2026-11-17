@@ -1,7 +1,8 @@
 /* Teste de navegação do LG2 M06 (Turma B) no navegador headless.
    Execute: PW=<caminho do pacote playwright> node tests/lg2-m06-turma-b.cjs
    Opcional: SHOTS=<pasta> grava os prints de celular (390x844); M06_DIR=<pasta> testa outra cópia;
-   M06_SABOTAGEM=1 serve o app sem a caixa "Como descobrir" (o teste da versão leve tem de falhar).
+   M06_SABOTAGEM=1 serve o app sem a caixa "Como descobrir"; M06_SABOTAGEM=2 faz o "Não sei" gravar "naosei"
+   (lote 16/11: o teste tem de falhar nos dois).
    Alcança todas as regras da aba 4, roda os casos da aba 8 (divergências são relatadas, não falham),
    confere os instrumentos contra a "saída esperada" da aba 5. Sai com código 1 se algo falhar. */
 const http = require('node:http');
@@ -15,8 +16,10 @@ const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
-  if (process.env.M06_SABOTAGEM && f.endsWith(path.join('js', 'app.js')))
-    return res.end(fs.readFileSync(f, 'utf8').replace('function caixaComo(q) {', 'function caixaComo(q) { return "";'));
+  if (process.env.M06_SABOTAGEM === '1' && f.endsWith(path.join('js', 'app.js')))
+    return res.end(fs.readFileSync(f, 'utf8').replace('function caixaComo(q, extra) {', 'function caixaComo(q, extra) { return "";'));
+  if (process.env.M06_SABOTAGEM === '2' && f.endsWith(path.join('js', 'app.js')))
+    return res.end(fs.readFileSync(f, 'utf8').replace('if (ns) ns.onclick = () => ajudaNS(true);', 'if (ns) ns.onclick = () => responder({ estado: "naosei" });'));
   fs.createReadStream(f).pipe(res);
 });
 
@@ -46,7 +49,14 @@ const NA_PAGINA = {
       if (!b) throw new Error('opção inexistente: ' + v + ' em ' + opc.map(rot).join('|'));
       b.click();
     };
-    if (a.tipo === 'ainda') { document.querySelector('#ainda-nao-sei').click(); return; }
+    if (a.tipo === 'formas') {   // a.vals = { forma: [taxa, dias, parte] }; o que não vier = 0 / divisão igual já preenchida
+      document.querySelectorAll('.forma').forEach((f) => { const v = (a.vals || {})[f.dataset.forma];
+        const put = (sel, x) => { const i = f.querySelector(sel); if (i && x !== undefined) i.value = x; else if (i && !i.value) i.value = '0'; };
+        put('.taxa', v && v[0]); put('.prazo', v && v[1]); if (v && v[2] !== undefined && f.querySelector('.parte')) f.querySelector('.parte').value = v[2]; }); }
+    if (a.tipo === 'saz') { [...document.querySelectorAll('#ent .opcao')].find((x) => x.textContent.trim().startsWith(a.v)).click();
+      (a.fortes || []).forEach((m) => document.querySelector(`.fortes [data-m="${m}"]`).click()); (a.fracos || []).forEach((m) => document.querySelector(`.fracos [data-m="${m}"]`).click());
+      if (a.mais !== undefined) document.querySelector('#sz-mais').value = a.mais; if (a.menos !== undefined) document.querySelector('#sz-menos').value = a.menos; }
+    if (a.tipo === 'parcelas') { const e = document.querySelector('#p-entrada'); if (e) e.value = a.entrada; document.querySelector('#p-n').value = a.n; }
     if (a.tipo === 'NS') { if (document.querySelector('#ns')) { document.querySelector('#ns').click(); return; } clicar('Não sei'); }
     else if (a.tipo === 'opcao') { clicar(a.v); if (a.detalhe !== undefined) document.querySelector('#detalhe').value = a.detalhe; }
     else if (a.tipo === 'multi') a.vs.forEach(clicar);
@@ -73,6 +83,8 @@ const NA_PAGINA = {
   page.on('dialog', (d) => d.accept());
   /* resultado leve: caixa, lista de compras e detalhes ficam em <details> fechados; abre para editar */
   const abrirResultado = () => page.evaluate(() => document.querySelectorAll('details.resultado-mais').forEach((d) => { d.open = true; }));
+  /* data fixa: a semana 1 do caixa começa "hoje" = 16/11/2026 (época do ano conferida à mão) */
+  await page.clock.setFixedTime(new Date('2026-11-16T10:00:00'));
   await page.goto(URL);
   const D = await page.evaluate(() => window.MODULO6);
   const ordem = await page.evaluate(() => Motor.montar(window.MODULO6).perguntas.map((p) => ({ codigo: p.codigo, campo: Motor.campo(p), opcoes: p.opcoesLista, condicao: p.condicao })));
@@ -97,6 +109,9 @@ const NA_PAGINA = {
   const neutro = (cod, alvo) => {
     const q = Q[cod];
     if (cod === 'Negócio') return { tipo: 'opcao', v: SECAO_NEGOCIO[alvo] || q.opcoes[0] };
+    if (q.campo === 'parcelas') return { tipo: 'parcelas', entrada: '100', n: '2' };
+    if (q.campo === 'formas') return { tipo: 'formas' };
+    if (q.campo === 'sazonal') return { tipo: 'saz', v: 'Não' };
     if (q.campo === 'numero') return { tipo: 'texto', v: '1000' };
     if (q.campo === 'texto') return { tipo: 'texto', v: 'Resposta de teste' };
     if (q.campo === 'multi') return { tipo: 'multi', vs: [q.opcoes.find((o) => o !== 'Não sei')] };
@@ -122,6 +137,8 @@ const NA_PAGINA = {
       if (cod === 'RESULTADO' || cod === alvo) return { cod, vistas, textos };
       vistas.push(cod);
       await page.evaluate(NA_PAGINA.agir, resp[cod] || neutro(cod, alvo));
+      /* aviso que não trava (valor alto ou diferente do outro módulo): o 2º Continuar segue */
+      if (await page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden && e.classList.contains('aviso'); })) await page.evaluate(() => document.querySelector('#ok').click());
       textos.push(await page.evaluate(NA_PAGINA.retorno));
       await olharRafael(cod);
       if (!(await page.evaluate(NA_PAGINA.seguir))) return { cod, vistas, textos, bloqueado: true };
@@ -129,13 +146,15 @@ const NA_PAGINA = {
     throw new Error('caminho sem fim');
   }
 
-  /* ---------- 1. todas as regras da aba 4 ---------- */
+  /* ---------- 1. todas as regras da aba 4 (lote 16/11) ----------
+     - regras de "Não sei" não disparam mais: o "Não sei" só mostra a ajuda e não grava (testado na seção do "Não sei");
+     - regras de resposta vazia/negativa/inválida citavam o "Não sei": viraram mensagem simples, sem gravar nem avançar;
+     - P10/P11/P13/P14 só apareciam com P01 = "Não sei": agora a P01 sempre tem resposta e elas não aparecem (relatado). */
   const LEITURA_OPCAO = { 'De 8 a 30 dias': '8 a 30 dias' };
+  const ehNS = (c) => /Não sei|sem outras op|junto com outras op/i.test(c);
+  const ehVazia = (c) => /^Resposta vazia|^Nenhuma resposta/i.test(c);
   function acaoDaRegra(r) {
     const c = r.condicao.trim(), q = Q[r.pergunta];
-    if (/^Resposta vazia|^Nenhuma resposta/i.test(c)) return { tipo: 'vazio', para: true };
-    if (/sem outras op/i.test(c)) return { tipo: 'multi', vs: ['Não sei'] };
-    if (/junto com outras op/i.test(c)) return { tipo: 'multi', vs: [q.opcoes[0], 'Não sei'] };
     if (/^Uma ou mais/i.test(c)) return { tipo: 'multi', vs: [q.opcoes[0], q.opcoes[1]] };
     if (/^Sim, com detalhes/i.test(c)) return { tipo: 'opcao', v: 'Sim', detalhe: 'Aluguel pago a cada 60 dias' };
     if (/^Sim, sem detalhes/i.test(c)) return { tipo: 'opcao', v: 'Sim', detalhe: '', para: true };
@@ -143,18 +162,27 @@ const NA_PAGINA = {
     if (/igual a zero/i.test(c)) return { tipo: 'texto', v: '0' };
     if (/v[aá]lidos informados/i.test(c)) return { tipo: 'texto', v: '2000' };
     if (/^Resposta preenchida|^Lista de .+ informada/i.test(c)) return { tipo: 'texto', v: 'Balcão, freezer e estoque inicial' };
-    if (/Não sei/.test(c)) return { tipo: 'NS' };
     return { tipo: 'opcao', v: LEITURA_OPCAO[c] || c.trim() };
   }
-  /* regras que, pela redação do grupo, valem junto com a regra-alvo (executadas como escritas) */
-  /* perguntas da seção do negócio que repetem P01/P02: só aparecem quando P01 = Não sei */
   const REPETE_P01 = ['M6.P10', 'M6.P11', 'M6.P13', 'M6.P14'];
-  const JUNTAS = { 'M6.R16': ['M6.R13'], 'M6.R18': ['M6.R17'] };
-  const alcancadas = [], faltando = [];
+  const JUNTAS = { 'M6.R18': ['M6.R17'] };
+  const alcancadas = [], faltando = [], semNS = [], vazias = [];
   for (const r of R) {
-    const a = acaoDaRegra(r);
-    const c = await caminho(REPETE_P01.includes(r.pergunta) ? { 'M6.P01': { tipo: 'NS' } } : {}, r.pergunta);
+    if (REPETE_P01.includes(r.pergunta)) { divergencias.push(`${r.codigo}: ${r.pergunta} só aparecia com P01 = "Não sei"; agora não aparece`); continue; }
+    if (r.pergunta === 'M6.P08') { divergencias.push(`${r.codigo}: o prazo único (P08) virou prazo por forma de pagamento (taxa, dias e parte); a regra não aparece mais`); continue; }
+    if (ehNS(r.condicao)) { semNS.push(r.codigo); continue; }
+    const c = await caminho({}, r.pergunta);
     if (c.cod !== r.pergunta) { faltando.push(`${r.codigo} (pergunta ${r.pergunta} não apareceu)`); continue; }
+    if (ehVazia(r.condicao)) {
+      await page.evaluate(() => document.querySelector('#ok').click());
+      const e = nrm(await page.evaluate(() => { const x = document.querySelector('#erro'); return x && !x.hidden ? x.textContent : ''; }));
+      const ok = /para continuar\.$/.test(e) && !/Não sei/.test(e) && (await page.evaluate(NA_PAGINA.atual)) === r.pergunta
+        && !(await page.evaluate((cd) => (JSON.parse(localStorage.getItem('lg2-turma-b-m06')) || { R: {} }).R[cd], r.pergunta))
+        && !(await page.$('#retorno .regra'));
+      (ok ? vazias : faltando).push(ok ? r.codigo : `${r.codigo} (vazia) -> "${e}"`);
+      continue;
+    }
+    const a = acaoDaRegra(r);
     await page.evaluate(NA_PAGINA.agir, a);
     const txt = nrm(await page.evaluate(NA_PAGINA.retorno));
     await olharRafael(r.codigo);
@@ -162,30 +190,39 @@ const NA_PAGINA = {
     const temSeguir = await page.evaluate(() => [...document.querySelectorAll('#acoes .btn-primario')].some((x) => /Seguir|Ver meu resumo/.test(x.textContent)));
     const mostradas = (await page.$$eval('#retorno .regra .r-texto', (x) => x.map((e) => e.textContent))).map(nrm).sort();
     const esperadas = [r.codigo, ...(JUNTAS[r.codigo] || [])].map((c) => nrm(R.find((x) => x.codigo === c).texto)).sort();
-    const ok = JSON.stringify(mostradas) === JSON.stringify(esperadas) && txt.includes(nrm(r.texto)) && (!r.alerta || txt.includes(nrm(r.alerta))) && agora === r.pergunta && (a.para ? !temSeguir : temSeguir)
+    /* BRIEF G: alerta de risco que depende da resposta fica no retorno (tom de aviso); os outros estão na "Ver dica", não no retorno */
+    const dicaTxt = nrm(await page.evaluate(() => (document.querySelector('#ver-dica') || {}).textContent || ''));
+    const risco = await page.evaluate((c) => Motor.ehRisco({ codigo: c }), r.codigo);
+    const okAlerta = !r.alerta || r.alerta === 'Nenhum' || (risco ? txt.includes(nrm(r.alerta)) : !txt.includes(nrm(r.alerta)) && dicaTxt.includes(nrm(r.alerta)));
+    const qAlerta = nrm(P.find((x) => x.codigo === r.pergunta).alerta);
+    const ok = JSON.stringify(mostradas) === JSON.stringify(esperadas) && txt.includes(nrm(r.texto)) && okAlerta && (!qAlerta || (!txt.includes(qAlerta) && dicaTxt.includes(qAlerta))) && agora === r.pergunta && (a.para ? !temSeguir : temSeguir)
       && !(/^Retornar à /.test(r.encaminhamento || '') && txt.includes(nrm(r.encaminhamento)));
     (ok ? alcancadas : faltando).push(ok ? r.codigo : `${r.codigo} (${r.condicao}) -> ${txt.slice(0, 120)}`);
   }
-  console.log(`INFO regras alcançadas: ${alcancadas.length} de ${R.length}`);
-  check(`todas as regras da aba 4 alcançadas (${alcancadas.length} de ${R.length})`, faltando.length === 0, faltando);
+  console.log(`INFO regras alcançadas: ${alcancadas.length}; vazias -> mensagem simples: ${vazias.length}; de "Não sei" (não disparam mais): ${semNS.length}; fora do caminho: ${R.length - alcancadas.length - vazias.length - semNS.length - faltando.length}`);
+  check(`regras da aba 4: respostas reais alcançadas, vazias com mensagem simples (${alcancadas.length} + ${vazias.length})`, faltando.length === 0 && alcancadas.length >= 20, faltando);
 
-  /* valores negativos e inválidos também param na regra "vazia, negativa ou inválida" */
-  for (const [cod, v] of [['M6.P02', '-5'], ['M6.P02', 'abc'], ['M6.P05', '-1'], ['M6.P07', 'xyz'], ['M6.P11', '-2']]) {
-    const r = R.find((x) => x.pergunta === cod && /inv[aá]lid/i.test(x.condicao));
-    await caminho(REPETE_P01.includes(cod) ? { 'M6.P01': { tipo: 'NS' } } : {}, cod);
+  /* valores negativos e inválidos: mensagem simples, não grava, não avança */
+  for (const [cod, v, msg] of [['M6.P02', '-5', 'O valor não pode ser negativo.'], ['M6.P02', 'abc', 'Digite só números. Ex.: 12,50'], ['M6.P05', '-1', 'O valor não pode ser negativo.'], ['M6.P07', 'xyz', 'Digite só números. Ex.: 12,50']]) {
+    await caminho({}, cod);
     await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v });
-    const txt = nrm(await page.evaluate(NA_PAGINA.retorno));
-    check(`${cod} = "${v}" mostra ${r.codigo} e não avança`, txt.includes(nrm(r.texto)) && (await page.evaluate(NA_PAGINA.atual)) === cod
+    check(`${cod} = "${v}": "${msg}" e não avança`, nrm(await page.textContent('#erro')) === msg && (await page.evaluate(NA_PAGINA.atual)) === cod
       && !(await page.evaluate((c) => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R[c], cod)));
   }
   /* condições F */
-  { const c = await caminho({ 'M6.P01': { tipo: 'NS' }, 'M6.P04': { tipo: 'multi', vs: ['Não sei'] } }, null);
-    check('P01 = Não sei esconde P02/P03; P04 só "Não sei" esconde P08', !c.vistas.includes('M6.P02') && !c.vistas.includes('M6.P03') && !c.vistas.includes('M6.P08'), c.vistas);
-    check('Negócio = Serviço mostra só P10..P12', JSON.stringify(c.vistas.slice(c.vistas.indexOf('Negócio') + 1)) === JSON.stringify(['M6.P10', 'M6.P11', 'M6.P12']), c.vistas); }
-  { const c = await caminho({ 'Negócio': { tipo: 'opcao', v: 'Mercadoria' }, 'M6.P16': { tipo: 'NS' } }, null);
-    check('"M01 ≠ Não sei" lido como P16 ≠ Não sei (P16 = Não sei esconde P17)', c.vistas.includes('M6.P16') && !c.vistas.includes('M6.P17') && c.vistas.includes('M6.P18'), c.vistas); }
-  { const c = await caminho({ 'M6.P01': { tipo: 'NS' }, 'Negócio': { tipo: 'opcao', v: 'Produto' }, 'M6.P13': { tipo: 'NS' } }, null);
-    check('Negócio = Produto: P13 = Não sei esconde P14, mostra P15', c.vistas.includes('M6.P15') && !c.vistas.includes('M6.P14') && !c.vistas.includes('M6.P10'), c.vistas); }
+  { const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'nada por enquanto' } }, null);
+    check('P01 sem compras esconde P02/P03; Negócio = Serviço mostra só P12 (P10/P11 repetem P01/P02)', !c.vistas.includes('M6.P02') && !c.vistas.includes('M6.P03')
+      && JSON.stringify(c.vistas.slice(c.vistas.indexOf('Negócio') + 1)) === JSON.stringify(['M6.P12']), c.vistas); }
+  { const c = await caminho({ 'Negócio': { tipo: 'opcao', v: 'Mercadoria' } }, null);
+    check('Negócio = Mercadoria: P16, P17 e P18', ['M6.P16', 'M6.P17', 'M6.P18'].every((x) => c.vistas.includes(x)), c.vistas); }
+  { const c = await caminho({ 'Negócio': { tipo: 'opcao', v: 'Produto' } }, null);
+    check('Negócio = Produto: P15 aparece, P13/P14 (repetem P01/P02) não', c.vistas.includes('M6.P15') && !c.vistas.includes('M6.P14') && !c.vistas.includes('M6.P13') && !c.vistas.includes('M6.P10'), c.vistas); }
+  { const c1 = await caminho({ 'M6.P03': { tipo: 'opcao', v: 'À vista' } }, null);
+    const c2 = await caminho({ 'M6.P03': { tipo: 'opcao', v: 'Parcelado' } }, null);
+    check('parcelas (pergunta nova) só para "Parcelado" / "Parte à vista e parte parcelado"', !c1.vistas.includes('M6.P03A') && c2.vistas.includes('M6.P03A'), [c1.vistas, c2.vistas]);
+    const c3 = await caminho({}, null);
+    check('P04 tem as mesmas opções do Módulo 5; depois dela vem taxa/prazo/parte por forma (M6.PF); o prazo único (P08) não aparece mais',
+      JSON.stringify(Q['M6.P04'].opcoes) === JSON.stringify(['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito', 'Outra forma']) && c3.vistas.indexOf('M6.PF') === c3.vistas.indexOf('M6.P04') + 1 && !c3.vistas.includes('M6.P08'), c3.vistas); }
 
   /* ---------- 2. casos de teste da aba 8 ---------- */
   for (const caso of D.casos) {
@@ -194,10 +231,10 @@ const NA_PAGINA = {
       const m = /^\s*(M6\.P\d{2})\s*=\s*(.+?)\s*$/.exec(par);
       if (!m) continue;
       const [, cod, v] = m, q = Q[cod];
-      if (v === 'Não sei') { resp[cod] = { tipo: 'NS' }; continue; }
+      if (v === 'Não sei') { nota.push(`${cod} = "Não sei" não grava mais (lote 16/11): respondido com valor neutro`); continue; }
       if (q.campo === 'numero') { if (/^(R\$\s*)?-?[\d.,]+$/.test(v)) resp[cod] = { tipo: 'texto', v }; else nota.push(`${cod} = "${v}" não é número na v0.2`); }
       else if (q.campo === 'texto') resp[cod] = { tipo: 'texto', v };
-      else if (q.opcoes.includes(v)) resp[cod] = q.campo === 'multi' ? { tipo: 'multi', vs: [v] } : { tipo: 'opcao', v };
+      else if ((q.opcoes || []).includes(v)) resp[cod] = q.campo === 'multi' ? { tipo: 'multi', vs: [v] } : { tipo: 'opcao', v };
       else nota.push(`${cod} = "${v}" não é opção da v0.2 (${q.opcoes.join('/')})`);
     }
     const c = await caminho(resp, null);
@@ -230,7 +267,7 @@ const NA_PAGINA = {
     const m = await page.evaluate(([e, s]) => Motor.projetar({ saldoInicial: e[0], semanas: [{ entradas: e[1], saidas: s[0] }] })[0].final, [e, s]);
     check(`I04 motor: ${e[0]} + ${e[1]} − ${s[0]} = ${esp}`, m === esp, m);
     /* BUG ALTO (05/11): a venda do mês entrava uma vez só e o saldo ficava parado. Caso conferido à mão:
-       caixa hoje R$ 2.000; investimento R$ 1.500 (sai na semana 1); vendas R$ 1.000/mês recebidas "Até 7 dias";
+       caixa hoje R$ 2.000; investimento R$ 1.500 (sai na semana 1); vendas R$ 1.000/mês no cartão de débito, sem taxa, caindo em 7 dias (1 semana depois);
        gastos de todo mês "Aluguel 300, luz 90" = R$ 390/mês.
        vendas por semana = 1.000 × 12 ÷ 52 = 230,769… → R$ 230,77 (entram a partir da semana 2);
        gastos por semana = 390 × 12 ÷ 52 = R$ 90,00 (toda semana).
@@ -238,8 +275,8 @@ const NA_PAGINA = {
        semana 2: 410 + 230,77 − 90 = R$ 550,77
        semana 13: 410 + 12 × (230,77 − 90) = 410 + 12 × 140,77 = 410 + 1.689,24 = R$ 2.099,24
        controle do período: entradas 12 × 230,77 = 2.769,24; saídas 1.590 + 12 × 90 = 2.670,00; saldo 2.000 + 2.769,24 − 2.670 = 2.099,24 */
-    await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel 300, luz 90' },
-      'M6.P07': { tipo: 'texto', v: '2000' }, 'M6.P08': { tipo: 'opcao', v: 'Até 7 dias' } }, null);
+    await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P04': { tipo: 'multi', vs: ['Cartão de débito'] }, 'M6.PF': { tipo: 'formas', vals: { 'Cartão de débito': ['0', '7'] } },
+      'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel 300, luz 90' }, 'M6.P07': { tipo: 'texto', v: '2000' } }, null);
     const linhas = await page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => ({ e: r.querySelector('[data-k="entradas"]').value, s: r.querySelector('[data-k="saidas"]').value, sf: r.querySelector('.sf').textContent.replace(/\s+/g, ' ').trim() })));
     check('I04: 13 semanas, cada uma com Entradas, Saídas e Saldo preenchidos', linhas.length === 13 && linhas.every((l) => l.e !== '' && l.s !== '' && l.sf !== ''), linhas.slice(0, 3));
     check('I04 conferido à mão: semana 1 = entradas 0,00 · saídas 1.590,00 · saldo R$ 410,00', linhas[0].e === '0,00' && linhas[0].s === '1.590,00' && linhas[0].sf === nrm(brl(410)), linhas[0]);
@@ -248,7 +285,7 @@ const NA_PAGINA = {
     check('I04: o saldo muda toda semana (não fica parado da semana 3 em diante)', new Set(linhas.map((l) => l.sf)).size === 13, linhas.map((l) => l.sf));
     const como = nrm(await page.textContent('#como-conta'));
     check('I04 explica a conta: vendas e gastos do mês por semana (× 12 ÷ 52), recebimento a partir da semana 2, investimento na semana 1',
-      como.includes('R$ 1.000,00 por mês = R$ 230,77 por semana (mês × 12 ÷ 52), a partir da semana 2') && como.includes('R$ 390,00 = R$ 90,00 por semana') && como.includes('(R$ 1.500,00) sai na semana 1'), como);
+      como.includes('Vendas: R$ 1.000,00 por mês × 12 ÷ 52 = R$ 230,77 por semana.') && como.includes('Cartão de débito: R$ 230,77 por semana = R$ 230,77; cai 1 semana depois (7 dias ÷ 7, arredondado para cima)') && como.includes('R$ 390,00 × 12 ÷ 52 = R$ 90,00 por semana') && como.includes('(R$ 1.500,00) sai na semana 1'), como);
     const t = nrm(await page.textContent('#i03'));
     check('I03 na tela (13 semanas): entradas R$ 2.769,24, saídas R$ 2.670,00, saldo R$ 2.099,24', ['Entradas' + brl(2769.24), 'Saídas' + brl(2670), 'Saldo' + brl(2099.24)].every((x) => t.replace(/\s/g, '').includes(x.replace(/\s/g, ''))), t);
     /* editar uma semana recalcula e passa o saldo adiante (a tabela fica em "Ver o caixa das 13 semanas", fechado) */
@@ -319,24 +356,45 @@ const NA_PAGINA = {
   const semM5 = { 'lg2-turma-a-m05': M5 };
   const tela = async () => page.evaluate(() => ({ selo: (document.querySelector('.herdado') || {}).innerText || '',
     sel: [...document.querySelectorAll('#ent .opcao.sel b')].map((x) => x.textContent), campo: (document.querySelector('#ent input, #ent textarea') || {}).value }));
-  { await caminho({}, 'M6.P04', semM5); const x = await tela();
-    check('P04 pré-marcada com as formas do Módulo 5 (crédito → à vista) e selo "Veio do Módulo 5"',
-      x.sel.join('|') === 'Dinheiro|Pix|Cartão de crédito à vista' && x.selo.includes('Veio do Módulo 5') && x.selo.includes('Confira e ajuste se quiser') && x.selo.includes('parcelado'), x);
-    await page.evaluate(NA_PAGINA.agir, { tipo: 'manter' });
-    const r = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P04']);
-    check('P04: só tocar Continuar grava as formas herdadas (com origem)', r && r.estado === 'multi' && r.opcoes.length === 3 && r.herdado === 5 && (await page.evaluate(NA_PAGINA.seguir)), r); }
-  { await caminho({}, 'M6.P05', semM5); const x = await tela();
-    check('P05 = preço × quantidade do Módulo 5 (50 × 20 = 1.000,00), com selo e a conta explicada', x.campo === '1.000,00' && x.selo.includes('R$ 50,00 por venda × 20 vendas'), x); }
-  { await caminho({}, 'M6.P06', semM5); const x = await tela();
-    check('P06 pré-preenchida com os gastos fixos do Módulo 5', x.campo === 'Aluguel: R$ 800,00; Água e luz: R$ 150,00; Internet: R$ 100,00' && x.selo.includes('R$ 1.050,00'), x); }
+  /* BRIEF F (nenhuma pergunta repetida): com a resposta do Módulo 5, P04/P05/P06 não aparecem; ficam num cartão "Veio do Módulo 5 · Trocar" */
+  { const c = await caminho({}, null, semM5);
+    check('F: com o Módulo 5 respondido, formas de pagamento, vendas do mês e gastos fixos não aparecem de novo', !['M6.P04', 'M6.P05', 'M6.P06'].some((x) => c.vistas.includes(x)) && c.vistas.includes('M6.P07'), c.vistas);
+    const R6 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R);
+    check('F: respostas reaproveitadas gravadas no formato de sempre, com a origem (Módulo 5)',
+      R6['M6.P04'] && R6['M6.P04'].estado === 'multi' && R6['M6.P04'].opcoes.join('|') === 'Pix|Dinheiro|Cartão de crédito' && R6['M6.P04'].herdado === 5
+      && R6['M6.P05'].valor === '1.000,00' && R6['M6.P05'].herdado === 5 && R6['M6.P06'].valor === 'Aluguel: R$ 800,00; Água e luz: R$ 150,00; Internet: R$ 100,00' && R6['M6.P06'].herdado === 5, R6);
+    await abrirResultado();
+    const hr = nrm(await page.evaluate(() => (document.querySelector('#herdadas-res') || {}).innerText || ''));
+    check('F: resultado lista as respostas que vieram de outros módulos, cada uma com "Trocar"', hr.includes('Veio do Módulo 5') && /vender por mês: R\$ 1\.000,00/.test(hr)
+      && (await page.$$('#herdadas-res [data-trocar]')).length === 3, hr); }
+  { await caminho({}, 'M6.PF', semM5);
+    const c0 = nrm(await page.evaluate(() => (document.querySelector('#herdadas') || {}).textContent || ''));
+    check('F: a tela seguinte mostra o cartão pequeno com a resposta reaproveitada e "Trocar"', c0.startsWith('Já respondido antes') && c0.includes('Veio do Módulo 5') && c0.includes('Como seus clientes vão pagar: Pix, Dinheiro, Cartão de crédito') && c0.includes('Trocar'), c0);
+    await caminho({}, 'M6.SZ', semM5);
+    const card = nrm(await page.evaluate(() => (document.querySelector('#herdadas') || {}).textContent || ''));
+    check('F: vendas do mês (Módulo 5) no cartão da tela seguinte', card.includes('Quanto espera vender por mês: R$ 1.000,00'), card);
+    await page.evaluate(() => { document.querySelector('#herdadas').open = true; document.querySelector('[data-trocar="M6.P05"]').click(); });
+    const x = await tela();
+    check('F: "Trocar" abre a pergunta com o valor de antes no campo', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P05' && x.campo === '1.000,00', x);
+    /* divergência: valor diferente do Módulo 5 avisa uma vez e segue no 2º Continuar */
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '1.200,00' });
+    const av = nrm(await page.textContent('#erro'));
+    await page.evaluate(() => document.querySelector('#ok').click());
+    const r5 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P05']);
+    check('valor diferente do Módulo 5: avisa ("No Módulo 5, esse valor era R$ 1.000,00") e o 2º Continuar grava sem a origem',
+      av.includes('No Módulo 5, esse valor era R$ 1.000,00') && r5 && r5.valor === '1.200,00' && !r5.herdado, { av, r5 });
+    await page.evaluate(NA_PAGINA.seguir);
+    check('depois de trocar, segue para a pergunta seguinte que ainda não foi respondida', (await page.evaluate(NA_PAGINA.atual)) === 'M6.SZ'); }
   { const s2 = { 'lg2-turma-a-m05': { versao: 3, R: { ...M5.R, 'M5.P36': { estado: 'naosei' } } } };
     await caminho({}, 'M6.P05', s2); const x = await tela();
-    check('"Não sei" no Módulo 5 não conta como herança (P05 vazia, sem selo)', x.campo === '' && !x.selo, x); }
-  { await caminho({ 'M6.P01': { tipo: 'NS' } }, 'M6.P10', semM5); const x = await tela();
-    check('P10 (P01 = Não sei) pré-preenchida com os itens do Módulo 5', x.campo === 'Shampoo automotivo, Cera' && x.selo.includes('Veio do Módulo 5'), x);
-    await page.evaluate(NA_PAGINA.agir, { tipo: 'manter' }); await page.evaluate(NA_PAGINA.seguir);
-    const y = await tela();
-    check('P11 pré-preenchida com a soma dos preços do Módulo 5 (30 + 45,50 = 75,50)', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P11' && y.campo === '75,50', y); }
+    check('"Não sei" no Módulo 5 não conta como resposta anterior (P05 aparece vazia, sem selo)', x.campo === '' && !x.selo, x); }
+  { const m1 = { 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: 'Entre R$ 500 e R$ 1.000' } }) };
+    const c = await caminho({}, null, m1);
+    const r7 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P07']);
+    check('F: dinheiro para usar (P07) vem do Módulo 1 ("Entre R$ 500 e R$ 1.000" = R$ 500,00, o menor da faixa) sem tela', !c.vistas.includes('M6.P07') && r7 && r7.valor === '500,00' && r7.herdado === 1, { v: c.vistas, r7 }); }
+  { const c = await caminho({ 'Negócio': { tipo: 'opcao', v: 'Produto' } }, null, { 'lg2-turma-a-m04': { R: { 'M4.P03': { estado: 'valor', valor: 'farinha, ovos' } } } });
+    const r15 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P15']);
+    check('F: materiais para produzir (P15) vêm do Módulo 4 sem tela', !c.vistas.includes('M6.P15') && r15 && r15.valor === 'farinha, ovos' && r15.herdado === 4, { v: c.vistas, r15 }); }
   { // repetição dentro do módulo: P10/P11 repetem P01/P02
     const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'Lavadora de alta pressão, aspirador' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'Negócio': { tipo: 'opcao', v: 'Serviço' } }, null);
     check('quem respondeu P01/P02 não vê P10/P11 (mesma pergunta); P12 continua', !c.vistas.includes('M6.P10') && !c.vistas.includes('M6.P11') && c.vistas.includes('M6.P12'), c.vistas);
@@ -358,17 +416,15 @@ const NA_PAGINA = {
     check('caixa: parágrafos por assunto (negócio · gasto e vendas · caixa nas 13 semanas)', box && box.n === 3 && box.p[0].startsWith('Você oferece') && /Para começar/.test(box.p[1]) && /semana/.test(box.p[2]), box && box.p);
     check('caixa junta módulos anteriores e este (ideia, tipo, estágio, investimento, vendas, semana negativa)',
       bt.includes('Você oferece um serviço: Lavagem de carro em domicílio.') && bt.includes('Você ainda não começou a vender.')
-      && bt.includes('Para começar, você estima gastar R$ 3.000,00, pagando à vista.') && bt.includes('Você espera vender cerca de R$ 1.000,00 por mês e receber o dinheiro em até 7 dias.')
+      && bt.includes('Para começar, você estima gastar R$ 3.000,00, pagando à vista.') && bt.includes('Você espera vender cerca de R$ 1.000,00 por mês')
       && bt.includes('Começando com R$ 500,00 no caixa, o seu dinheiro fica negativo na semana 1'), bt);
-    check('lista de respostas recolhida em "Ver suas respostas"', await page.evaluate(() => { const d = document.querySelector('details.respostas'); return !!d && !d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }));
+    check('BRIEF I: "Ver suas respostas" vem aberto no resultado', await page.evaluate(() => { const d = document.querySelector('details.respostas'); return !!d && d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }));
     const resumo = nrm(await page.evaluate(() => document.querySelector('details.respostas').textContent));
-    check('resumo mostra o selo "Veio do Módulo 5" nas respostas herdadas e "Veio do Módulo 1" no tipo', /Veio do Módulo 5 Dinheiro; Pix/.test(resumo) && /Veio do Módulo 1 Serviço/.test(resumo), resumo.slice(0, 500)); }
+    check('resumo mostra o selo "Veio do Módulo 5" nas respostas herdadas e "Veio do Módulo 1" no tipo', /Veio do Módulo 5 Pix; Dinheiro/.test(resumo) && /Veio do Módulo 1 Serviço/.test(resumo), resumo.slice(0, 500)); }
 
   /* ---------- 7. relatório 05/11: próximos passos, encaminhamentos, alertas, Módulo 1, campos numéricos, teclado ---------- */
-  { const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P07': { tipo: 'NS' }, 'M6.P09': { tipo: 'NS' },
+  { const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P07': { tipo: 'texto', v: '0' },
       'Negócio': { tipo: 'opcao', v: 'Mercadoria' }, 'M6.P16': { tipo: 'texto', v: 'Potes' }, 'M6.P17': { tipo: 'texto', v: '1000' } }, null);
-    const px = await page.$$eval('#proximos li', (l) => l.map((x) => x.textContent.trim()));
-    check('Próximos passos = só o que ficou em "Não sei", em linguagem simples', JSON.stringify(px) === JSON.stringify(['Informe quanto você tem em caixa hoje para usar no negócio.', 'Confira se algum pagamento ou recebimento tem prazo diferente dos outros.']), px);
     const corpo = await page.evaluate(() => document.body.innerText);
     check('resultado sem códigos internos (P02, "Preencher P17", "na P08")', !/\b(M\d+\.)?P\d{2}\b/.test(corpo), (corpo.match(/.{30}\bP\d{2}\b.{10}/) || [])[0]);
     const enc = await page.$$eval('.b-enc li', (l) => l.map((x) => x.textContent.trim()));
@@ -376,7 +432,8 @@ const NA_PAGINA = {
     const ale = nrm(await page.evaluate(() => (document.querySelector('#atencao') || {}).innerText || ''));
     await olharRafael('RESULTADO com alertas');
     const dic = await page.$$eval('#dicas li', (l) => l.map((x) => x.textContent.trim()));
-    check('alerta que depende da resposta fica em "Atenção, pelas suas respostas" (caixa = Não sei)', ale.includes('Sem essa informação, não é possível comparar os recursos disponíveis com as necessidades.'), ale);
+    const r25 = R.find((x) => x.codigo === 'M6.R25');
+    check('alerta que depende da resposta fica em "Atenção, pelas suas respostas" (caixa = 0)', !r25.alerta || r25.alerta === 'Nenhum' || ale.includes(nrm(r25.alerta)), { ale, a: r25.alerta });
     check('alertas genéricos saem dos alertas e vão para "Dicas gerais" (no máximo 4)', !ale.includes('O valor pode mudar após consultar preços e fornecedores.')
       && dic.length >= 1 && dic.length <= 4 && dic.every((d) => !ale.includes(nrm(d))), { ale, dic });
     await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' } }, null);
@@ -414,21 +471,42 @@ const NA_PAGINA = {
     } }
   { // estado salvo antes da correção (venda do mês uma vez só): a tabela é refeita
     await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m06', JSON.stringify({ dados: '2026-10-15',
-      R: { 'M6.P01': { estado: 'valor', valor: 'Potes' }, 'M6.P02': { estado: 'valor', valor: '1500' }, 'M6.P05': { estado: 'valor', valor: '1000' }, 'M6.P07': { estado: 'valor', valor: '2000' } },
+      R: { 'M6.P01': { estado: 'valor', valor: 'Potes' }, 'M6.P02': { estado: 'valor', valor: '1500' }, 'M6.P03': { estado: 'opcao', opcao: 'À vista' }, 'M6.P04': { estado: 'multi', opcoes: ['Pix'] },
+        'M6.PF': { estado: 'valor', valor: [{ forma: 'Pix', taxa: '0', prazo: '0', parte: '100' }] }, 'M6.P05': { estado: 'valor', valor: '1000' }, 'M6.SZ': { estado: 'opcao', opcao: 'Não, é parecido o ano todo' },
+        'M6.P06': { estado: 'valor', valor: 'nada' }, 'M6.P07': { estado: 'valor', valor: '2000' }, 'M6.P09': { estado: 'opcao', opcao: 'Não' }, 'Negócio': { estado: 'opcao', opcao: 'Serviço' }, 'M6.P12': { estado: 'opcao', opcao: 'Não' } },
       hist: ['M6.P01', 'RESULTADO'], prio: {}, cen: null,
       fluxo: { saldoInicial: 2000, semanas: [{ entradas: 1000, saidas: 1500 }, ...Array.from({ length: 12 }, () => ({ entradas: 0, saidas: 0 }))], semanaPagamento: 1, semanaRecebimento: 1 } })); });
     await page.reload(); await page.click('#ir');
     const sf = await page.$$eval('.fluxo .sf', (x) => x.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
-    // 2.000 − 1.500 + 230,77 por semana desde a semana 1 (prazo não informado) = 730,77 … 500 + 13 × 230,77 = 3.500,01
+    // 2.000 − 1.500 + 230,77 por semana desde a semana 1 (Pix, na hora) = 730,77 … 500 + 13 × 230,77 = 3.500,01
     check('fluxo salvo na versão antiga é refeito com as respostas (semana 1 = R$ 730,77; semana 13 = R$ 3.500,01)', sf[0] === nrm(brl(730.77)) && sf[12] === nrm(brl(3500.01)), sf); }
-
+  { // estado real do aplicativo (mesmo formato, valores inventados): sem versão; P04 com as opções antigas; P05/P06 vindas do Módulo 5
+    const M5real = { versao: 3, R: { 'M5.PG': { estado: 'valor', valor: ['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito'] }, 'M5.P24': { estado: 'opcao', opcao: 'Sim' },
+      'M5.P25': { estado: 'valor', valor: [{ forma: 'Pix', taxa: '0', prazo: '0', parte: '30' }, { forma: 'Dinheiro', taxa: '0', prazo: '0', parte: '10' }, { forma: 'Cartão de débito', taxa: '1,5', prazo: '1', parte: '30' }, { forma: 'Cartão de crédito', taxa: '3', prazo: '30', parte: '30' }] } } };
+    const antigo = { dados: '2026-10-15', R: { 'Negócio': { estado: 'opcao', opcao: 'Produto', herdado: 1 }, 'M6.P01': { estado: 'valor', valor: 'Forno' }, 'M6.P02': { estado: 'valor', valor: '2.000,00' },
+      'M6.P03': { estado: 'opcao', opcao: 'Parte à vista e parte parcelado' }, 'M6.P04': { estado: 'multi', opcoes: ['Dinheiro', 'Pix', 'Cartão de débito', 'Cartão de crédito à vista', 'Cartão de crédito parcelado'] },
+      'M6.P05': { estado: 'valor', valor: '4.000,00', herdado: 5 }, 'M6.P06': { estado: 'valor', valor: 'Água e luz: R$ 80,00', herdado: 5 }, 'M6.P07': { estado: 'valor', valor: '500' },
+      'M6.P08': { estado: 'opcao', opcao: 'Na hora' }, 'M6.P09': { estado: 'opcao', opcao: 'Sim', detalhe: 'Fornecedor a cada 15 dias' }, 'M6.P15': { estado: 'valor', valor: 'farinha', herdado: 5 } },
+      hist: ['M6.P01', 'M6.P09', 'M6.P15', 'RESULTADO'], prio: {}, fora: [], fluxo: { saldoInicial: 500, semanas: [] }, cen: { ini: 500, ent: 0, sai: 0 } };
+    await page.evaluate(([a, m5]) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m06', JSON.stringify(a)); localStorage.setItem('lg2-turma-a-m05', JSON.stringify(m5)); }, [antigo, M5real]);
+    await page.reload();
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')));
+    check('estado real: respostas mantidas (P05/P06 com a origem, P09 com detalhe, P08 guardada); P04 nas opções do Módulo 5; taxas do Módulo 5 reaproveitadas',
+      s.v === 2 && s.R['M6.P05'].valor === '4.000,00' && s.R['M6.P05'].herdado === 5 && s.R['M6.P06'].herdado === 5 && s.R['M6.P09'].detalhe === 'Fornecedor a cada 15 dias' && s.R['M6.P08'].opcao === 'Na hora'
+      && JSON.stringify(s.R['M6.P04'].opcoes) === JSON.stringify(['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito']) && s.R['M6.PF'] && s.R['M6.PF'].herdado === 5 && s.R['M6.PF'].valor.length === 4, s.R);
+    await page.click('#ir');
+    check('estado real: "Continuar" abre a pergunta nova que falta (parcelas da compra), sem perder nada', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P03A'); }
   /* ---------- 8. novas testadoras: atenção única, prioridade de compras, "Como calculamos" ---------- */
   { // (a) pergunta com regra + alerta da pergunta = um bloco só, sem repetição
     await caminho({}, 'M6.P05');
     await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '0' });
     const blocos = await page.$$eval('.b-alerta', (b) => b.map((x) => x.innerText));
     const itensAt = await page.$$eval('.b-alerta li', (l) => l.map((x) => x.textContent.trim()));
-    check('P05 = 0 (duas regras + alerta da pergunta): um único bloco "Atenção" com os alertas sem repetição', blocos.length === 1 && itensAt.length >= 2 && new Set(itensAt).size === itensAt.length, { blocos, itensAt });
+    const r18 = nrm(R.find((x) => x.codigo === 'M6.R18').alerta), r17 = nrm(R.find((x) => x.codigo === 'M6.R17').alerta), qa = nrm(P.find((x) => x.codigo === 'M6.P05').alerta);
+    check('G: P05 = 0: um único aviso "Fique de olho" só com o risco da resposta (sem vendas); o alerta geral da pergunta e o de "valor informado" ficam na dica',
+      blocos.length === 1 && nrm(blocos[0]).includes(r18) && !nrm(blocos[0]).includes(r17) && !nrm(blocos[0]).includes(qa) && /^Fique de olho/i.test(nrm(blocos[0])), { blocos });
+    await caminho({}, 'M6.P02'); await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '1500' });
+    check('G: resposta comum (P02 = 1.500) não abre balão de atenção', !(await page.$('#retorno .b-alerta')));
     // resultado com M1 acima do teto + semana negativa + alertas das respostas: um bloco só
     await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P07': { tipo: 'texto', v: '0' } }, null,
       { 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: 'Até R$ 100' } }) });
@@ -458,8 +536,8 @@ const NA_PAGINA = {
     check('lista de prioridades: "nada" não entra; "Tirar da lista" remove um item e continua fora ao recarregar',
       JSON.stringify(antes) === '["farinha","chocolate em pó"]' && JSON.stringify(depois) === '["farinha"]' && JSON.stringify(recarr) === '["farinha"]' && /chocolate em pó/.test(await page.textContent('#fora')), { antes, depois, recarr }); }
   { // (c) "Como calculamos" embaixo de cada número
-    await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel 300, luz 90' },
-      'M6.P07': { tipo: 'texto', v: '2000' }, 'M6.P08': { tipo: 'opcao', v: 'Até 7 dias' } }, null);
+    await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P04': { tipo: 'multi', vs: ['Cartão de débito'] }, 'M6.PF': { tipo: 'formas', vals: { 'Cartão de débito': ['0', '7'] } },
+      'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P06': { tipo: 'texto', v: 'Aluguel 300, luz 90' }, 'M6.P07': { tipo: 'texto', v: '2000' } }, null);
     await abrirResultado();
     const cm = await page.evaluate(() => Object.fromEntries(['i01', 'i03', 'i04', 'i05'].map((k) => [k, (document.querySelector('#como-' + k) || {}).innerText || ''])));
     check('"Como calculamos:" no investimento, no saldo, no fluxo e no cenário',
@@ -494,42 +572,23 @@ const NA_PAGINA = {
     await page.click('.caixa-faca summary');
     check('caixa "Faça" abre ao tocar', await page.evaluate(() => document.querySelector('.caixa-faca').open && document.querySelector('.caixa-faca p').getBoundingClientRect().height > 0));
     if (process.env.SHOTS) { await page.evaluate(() => { document.querySelector('.caixa-faca').open = false; window.scrollTo(0, 0); }); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l3_m06_p01_botoes.png'), fullPage: true }); } }
-  { // "Ainda não sei o que vou precisar comprar": sem calculadora, orientação curta, "falta descobrir" no resumo
+  { // P01 "Não sei" (fundiu "Ainda não sei o que vou precisar comprar"): ajuda + materiais do Módulo 5 como ponto de partida, sem gravar
     await caminho({}, 'M6.P01');
-    check('P01 tem o botão "Ainda não sei o que vou precisar comprar"', nrm(await page.textContent('#ainda-nao-sei')) === 'Ainda não sei o que vou precisar comprar');
-    await page.click('#ainda-nao-sei');
-    const ret = nrm(await page.evaluate(NA_PAGINA.retorno));
-    const r1 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P01']);
-    check('"Ainda não sei": grava como "Não sei" + marca aindaNaoSei e mostra como descobrir (unidade/atendimento, Módulo 4, Módulo 5)',
-      r1.estado === 'naosei' && r1.aindaNaoSei === true && /como descobrir o que comprar/i.test(ret) && ret.includes('uma unidade ou um atendimento')
-      && ret.includes('ficha técnica que você montou no Módulo 4') && ret.includes('materiais que você informou no Módulo 5') && !(await page.$('#retorno .b-alerta')), { r1, ret });
-    check('"Ainda não sei" sem Módulo 5: não oferece lista de partida', !(await page.$('#partida-m5')));
-    await page.evaluate(NA_PAGINA.seguir);
-    check('"Ainda não sei" não abre a calculadora: pula o valor e a forma de pagar as compras', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04');
-    const c = await caminho({ 'M6.P01': { tipo: 'ainda' } }, null);
-    const i02 = nrm(await page.textContent('#i02')), i01 = nrm(await page.textContent('#i01')), ent = nrm(await page.textContent('#entendemos'));
-    check('resumo: "Falta descobrir" o que comprar, com o caminho para descobrir, sem lista de prioridades e sem valor',
-      !c.vistas.includes('M6.P02') && !c.vistas.includes('M6.P03') && /falta descobrir/i.test(i02) && /como descobrir o que comprar/i.test(i02) && !(await page.$('#prio'))
-      && nrm(await page.textContent('#i01-val')) === '—' && i01.includes('falta descobrir o que você vai precisar comprar'), { vistas: c.vistas, i02, i01 });
-    check('"Ainda não sei" não repete a lista nem o valor dos equipamentos na seção do negócio', !c.vistas.includes('M6.P10') && !c.vistas.includes('M6.P11') && c.vistas.includes('M6.P12'), c.vistas);
-    check('resumo: "O que entendemos" diz que ainda vai descobrir o que comprar', ent.includes('Você ainda vai descobrir o que precisa comprar para começar'), ent);
-    const resp = nrm(await page.evaluate(() => [...document.querySelectorAll('.respostas .cartao')].find((x) => /O que você precisa comprar/.test(x.textContent)).textContent));
-    check('"Ver suas respostas": P01 aparece como "Ainda não sei o que vou precisar comprar · Falta descobrir"', resp.includes('Ainda não sei o que vou precisar comprar') && resp.includes('Falta descobrir'), resp);
-    check('resumo: o próximo passo pede a lista do que comprar', nrm(await page.textContent('#proximos')).includes('Liste o que você precisa comprar ou pagar para começar'));
-    if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#i02').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l3_m06_resultado_falta_descobrir.png') }); } }
-  { // com materiais no Módulo 5: oferece como ponto de partida e preenche a P01
-    const M5 = { 'lg2-turma-a-m05': { versao: 3, R: { 'M5.P03': { estado: 'valor', valor: ['farinha', 'leite condensado', 'pote com tampa'] } } } };
-    await caminho({}, 'M6.P01', M5);
-    await page.click('#ainda-nao-sei');
-    const pt = nrm(await page.evaluate(() => (document.querySelector('#partida-m5') || {}).innerText || ''));
-    check('"Ainda não sei" com Módulo 5: mostra os materiais de lá como ponto de partida, com selo', pt.includes('Veio do Módulo 5') && pt.includes('farinha, leite condensado, pote com tampa'), pt);
-    if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#retorno').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l3_m06_p01_ainda_nao_sei.png') }); }
+    check('P01: um só "Não sei" (saiu "Ainda não sei o que vou precisar comprar")', !(await page.$('#ainda-nao-sei')) && !!(await page.$('#ns')) && !/Ainda não sei o que vou/.test(await page.textContent('#tela')));
+    const M5m = { 'lg2-turma-a-m05': { versao: 3, R: { 'M5.P03': { estado: 'valor', valor: ['farinha', 'leite condensado', 'pote com tampa'] } } } };
+    await caminho({}, 'M6.P01', M5m);
+    const antes = await page.evaluate(() => localStorage.getItem('lg2-turma-b-m06'));
+    await page.click('#ns');
+    const pt = nrm(await page.evaluate(() => (document.querySelector('#ajudans #partida-m5') || {}).innerText || ''));
+    check('P01 "Não sei" com Módulo 5: a ajuda mostra os materiais de lá como ponto de partida, com selo, e nada é gravado',
+      pt.includes('Veio do Módulo 5') && pt.includes('farinha, leite condensado, pote com tampa') && (await page.evaluate(() => localStorage.getItem('lg2-turma-b-m06'))) === antes, pt);
+    if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#ajudans').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm06_depois_ajuda_naosei.png') }); }
     await page.click('#usar-m5');
-    check('"Usar essa lista como ponto de partida" volta à P01 com a lista no campo e o selo do Módulo 5',
-      (await page.evaluate(NA_PAGINA.atual)) === 'M6.P01' && (await page.inputValue('#ent textarea')) === 'farinha, leite condensado, pote com tampa' && nrm(await page.textContent('.herdado')).includes('Veio do Módulo 5'));
+    check('"Usar essa lista como ponto de partida" põe a lista no campo, com o selo do Módulo 5',
+      (await page.inputValue('#ent textarea')) === 'farinha, leite condensado, pote com tampa' && nrm(await page.textContent('.herdado')).includes('Veio do Módulo 5'));
     await page.click('#ok'); await page.evaluate(NA_PAGINA.seguir);
     const r1 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P01']);
-    check('lista de partida confirmada: grava os itens e segue para o valor das compras', r1.estado === 'valor' && !r1.aindaNaoSei && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P02', r1);
+    check('lista de partida confirmada: grava os itens e segue para o valor das compras', r1.estado === 'valor' && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P02', r1);
     check('M5 nunca é escrito pelo M6', !(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m05'))).includes('M6.')); }
 
   /* ---------- versão leve (nov/2026): capa curta, ≤ 60 palavras por pergunta, "Ver dica" fechada, ajuda no "Não sei" ---------- */
@@ -546,12 +605,14 @@ const NA_PAGINA = {
       R: neg ? { 'Negócio': { estado: 'opcao', opcao: neg }, 'M6.P01': { estado: 'naosei' } } : {}, hist: [c], prio: {}, fora: [], fluxo: null, cen: null })); }, [cod, NEG_DE[cod]]);
     await page.reload(); await page.click('#ir');
   }
+  /* BRIEF D (16/11): a P08 ganhou um exemplo curto embaixo de cada prazo (Pix, débito, crédito…): limite 72 só nela */
+  const LIMITE_PALAVRAS = { 'M6.P08': 72 };
   { const muitas = [], dicas = [], exemplos = [];
     for (const q of ordem) {
       await abrirDireto(q.codigo);
       if ((await page.evaluate(NA_PAGINA.atual)) !== q.codigo) { muitas.push(`${q.codigo}: não abriu`); continue; }
       const n = await palavras();
-      if (n > 60) muitas.push(`${q.codigo}: ${n}`);
+      if (n > (LIMITE_PALAVRAS[q.codigo] || 60)) muitas.push(`${q.codigo}: ${n}`);
       const d = await page.evaluate(() => { const v = document.querySelector('details#ver-dica'), h = document.querySelector('h2.q'), e = document.querySelector('#ent');
         return v && { aberta: v.open, txt: v.querySelector('summary').textContent.trim(), depoisQ: !!(h.compareDocumentPosition(v) & Node.DOCUMENT_POSITION_FOLLOWING), antesEnt: !!(v.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING),
           conteudo: v.querySelector('.ajuda, .conceito') ? v.querySelector('.ajuda, .conceito').textContent.trim().length : 0 }; });
@@ -564,69 +625,255 @@ const NA_PAGINA = {
     check('toda tela de pergunta tem ≤ 60 palavras visíveis antes de tocar em algo', muitas.length === 0, muitas);
     check('"Ver dica" fechada por padrão, entre a pergunta e as respostas, com a ajuda dentro', dicas.length === 0, dicas);
     check('campos de escrever e de valor trazem o exemplo dentro ("Ex.: …")', exemplos.length === 0, exemplos); }
+  /* ---------- BRIEF A: "Não sei" bloqueia (mostra a ajuda, não grava, Continuar não anda; com resposta, anda) ---------- */
   { await contexto.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
-    const sem = [], salvos = [], marca = [];
-    const comNS = ordem.filter((q) => q.codigo !== 'Negócio' && (q.opcoes || []).includes('Não sei'));
-    check('todas as 18 perguntas têm "Não sei" e texto de ajuda nos dados (comoDescobrir com 2 passos)', comNS.length === 18
-      && comNS.every((q) => { const x = D.perguntas.find((p) => p.codigo === q.codigo); return Array.isArray(x.comoDescobrir) && x.comoDescobrir.length >= 2 && x.comoDescobrir.every((s) => s.trim().length > 20); }), comNS.length);
-    const ESPERADO_NS = { multi: { estado: 'multi', opcoes: ['Não sei'] } };
+    const sem = [], gravou = [], andou = [], depois = [], marca = [], semBotao = [];
+    const SEM_NS = ['M6.P03', 'M6.P04', 'M6.P07', 'M6.P09', 'M6.P12', 'M6.P18'];
+    const comNS = ordem.filter((q) => (q.opcoes || []).includes('Não sei') && !REPETE_P01.includes(q.codigo) && q.codigo !== 'M6.P08');
+    check(`"Não sei" saiu de P03, P04, P07, P09, P12 e P18 (sobre a própria pessoa; Sim/Não da própria situação) e ficou em ${comNS.length} perguntas de fato a descobrir`,
+      SEM_NS.every((c) => !(Q[c].opcoes || []).includes('Não sei')) && comNS.length === 7, comNS.map((q) => q.codigo));
+    for (const c of SEM_NS) {
+      await caminho({ 'Negócio': { tipo: 'opcao', v: NEG_DE[c] || 'Mercadoria' } }, c);
+      if ((await page.evaluate(NA_PAGINA.atual)) !== c) { semBotao.push(c + ' (não abriu)'); continue; }
+      const tem = await page.evaluate(() => !!document.querySelector('#ns') || [...document.querySelectorAll('#ent .opcao')].some((x) => /^Não sei$/.test(x.textContent.trim())));
+      if (tem) semBotao.push(c);
+    }
+    check('onde o "Não sei" saiu, o botão/opção não existe', semBotao.length === 0, semBotao);
     for (const q of comNS) {
       const dq = D.perguntas.find((p) => p.codigo === q.codigo);
       if (/chatgpt|gemini|copilot|claude/i.test(JSON.stringify(dq))) marca.push(q.codigo);
-      await caminho(REPETE_P01.includes(q.codigo) ? { 'M6.P01': { tipo: 'NS' } } : {}, q.codigo);   // caminho real: respostas anteriores gravadas
-      let ao = null;
-      if (!(await page.$('#ns'))) {   // "Não sei" é opção: a caixa aparece no toque, antes do Continuar
-        await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].find((x) => x.querySelector('.op-txt b').textContent.trim() === 'Não sei').click());
-        ao = await page.evaluate(() => { const c = document.querySelector('#ajudans .como-ns'); return c && { n: [...c.querySelectorAll('ol > li')].filter((l) => l.textContent.trim()).length, vis: c.getBoundingClientRect().height > 0 }; });
-        if (!ao || ao.n < 2 || !ao.vis) sem.push(`${q.codigo}: sem caixa ao tocar a opção ${JSON.stringify(ao)}`);
-        await page.click('#ok');
-      } else await page.click('#ns');
-      const cx = await page.evaluate(() => { const c = document.querySelector('#retorno .como-ns');
+      await caminho({ 'Negócio': { tipo: 'opcao', v: NEG_DE[q.codigo] || 'Mercadoria' } }, q.codigo);
+      if ((await page.evaluate(NA_PAGINA.atual)) !== q.codigo) { sem.push(`${q.codigo}: não abriu`); continue; }
+      const antes = await page.evaluate(() => localStorage.getItem('lg2-turma-b-m06'));
+      if (await page.$('#ns')) await page.click('#ns');
+      else await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].find((x) => x.querySelector('.op-txt b').textContent.trim() === 'Não sei').click());
+      const cx = await page.evaluate(() => { const c = document.querySelector('#ajudans .como-ns');
         return c && { tit: c.querySelector('.como-tit').textContent.trim(), passos: [...c.querySelectorAll('ol > li')].map((l) => l.textContent.trim()), prompt: (c.querySelector('[data-prompt]') || {}).textContent || '',
           copiar: [...c.querySelectorAll('button')].filter((b) => b.textContent.trim() === 'Copiar').length, nota: c.innerText, vis: c.getBoundingClientRect().height > 0, dup: document.querySelectorAll('.como-ns').length }; });
       const okCx = cx && cx.vis && cx.dup === 1 && cx.tit === 'Como descobrir' && cx.passos.length === dq.comoDescobrir.length && cx.passos.every((x) => x.length > 0)
         && (dq.promptIA ? cx.prompt === dq.promptIA && cx.copiar === 1 && cx.nota.includes('Copie, cole numa IA de sua preferência e troque o que está entre colchetes.') : cx.copiar === 0);
       if (!okCx) sem.push(`${q.codigo}: ${JSON.stringify(cx)}`);
-      const r = await page.evaluate((c) => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R[c], q.codigo);
-      const esp = ESPERADO_NS[q.campo] || { estado: 'naosei' };
-      if (JSON.stringify(r) !== JSON.stringify(esp) || !(await page.evaluate(() => [...document.querySelectorAll('#acoes .btn-primario')].some((x) => /Seguir|Ver meu resumo/.test(x.textContent)))))
-        salvos.push(`${q.codigo}: ${JSON.stringify(r)}`);
-      if (q.codigo === 'M6.P05' && !(await page.$('#retorno .como-ns [data-copiar]'))) check('P05 "Não sei": botão Copiar presente', false);
-      else if (q.codigo === 'M6.P05') {   // Copiar: área de transferência (ou reserva) e aviso no botão
-        await page.click('#retorno .como-ns [data-copiar]');
-        await page.waitForTimeout(200);
-        const bt = (await page.textContent('#retorno .como-ns [data-copiar]')).trim();
+      if ((await page.evaluate(() => localStorage.getItem('lg2-turma-b-m06'))) !== antes) gravou.push(q.codigo);
+      await page.evaluate(() => document.querySelector('#ok').click());
+      const msg = nrm(await page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden ? e.textContent : ''; }));
+      if ((await page.evaluate(() => localStorage.getItem('lg2-turma-b-m06'))) !== antes) gravou.push(q.codigo + ' (Continuar)');
+      if ((await page.evaluate(NA_PAGINA.atual)) !== q.codigo || (await page.$('#acoes .btn-primario:not(#ok)')) || !/^Use a ajuda acima e (escreva a sua resposta|escolha uma opção) para continuar\.$/.test(msg)) andou.push(`${q.codigo}: "${msg}"`);
+      if (q.codigo === 'M6.P05') {   // Copiar: área de transferência (ou reserva) e aviso no botão
+        await page.click('#ajudans [data-copiar]');
+        let bt = '';
+        for (let i = 0; i < 10 && bt !== 'Copiado!'; i++) { await page.waitForTimeout(200); bt = (await page.textContent('#ajudans [data-copiar]')).trim(); }
         const clip = await page.evaluate(() => navigator.clipboard.readText().catch(() => null));
         check('Copiar põe o pedido na área de transferência e avisa "Copiado!"', bt === 'Copiado!' && (clip === null || clip === dq.promptIA), { bt, clip });
-        if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#retorno').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'l_m06_p05_naosei.png') }); }
       }
+      /* com resposta de verdade, anda */
+      const r = q.campo === 'numero' ? { tipo: 'texto', v: '100' } : q.campo === 'texto' ? { tipo: 'texto', v: 'Resposta de teste' } : { tipo: 'opcao', v: q.opcoes.find((o) => o !== 'Não sei') };
+      await page.evaluate(NA_PAGINA.agir, r);
+      if (!(await page.evaluate(NA_PAGINA.seguir))) depois.push(q.codigo);
     }
-    check('"Não sei" mostra "Como descobrir" com os passos (+ pedido para a IA com Copiar, quando há) em todas as perguntas', sem.length === 0, sem);
-    check('"Não sei" grava o mesmo valor de antes ({estado:"naosei"}; marcar só "Não sei" = multi ["Não sei"]) e deixa seguir', salvos.length === 0, salvos);
+    check('"Não sei" mostra "Como descobrir" (passos + pedido para a IA com Copiar) em todas as perguntas que o mantêm', sem.length === 0, sem);
+    check('"Não sei" não grava nada (estado salvo igual, ao tocar e ao tocar Continuar)', gravou.length === 0, gravou);
+    check('"Não sei" + Continuar: não avança e pede a resposta com mensagem simples', andou.length === 0, andou);
+    check('depois de responder de verdade, Continuar avança', depois.length === 0, depois);
     check('nenhum pedido para IA cita marca de ferramenta', marca.length === 0, marca); }
-  { // resultado: o que entendemos + próxima tarefa no alto; caixa e detalhes recolhidos; cada "Não sei" com o seu "Como descobrir"
-    await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'NS' }, 'M6.P07': { tipo: 'NS' } }, null);
-    const rs = await page.evaluate(() => {
-      const ord = (a, b) => !!(document.querySelector(a).compareDocumentPosition(document.querySelector(b)) & Node.DOCUMENT_POSITION_FOLLOWING);
-      const cf = document.querySelector('details#como-falta');
-      return { topo: ord('#entendemos', '#proximos') && ord('#proximos', '#i01') && ord('#proximos', '#atencao'),
-        fechados: [...document.querySelectorAll('details.resultado-mais')].map((d) => [d.id, d.open]),
-        como: cf && [...cf.querySelectorAll('details.como-mini')].map((d) => [d.querySelector('summary').textContent.trim(), d.querySelectorAll('.como-ns ol > li').length, d.open]),
-        prox: getComputedStyle(document.querySelector('.lg2-proximo')).display !== 'none' && document.querySelector('.lg2-proximo').getBoundingClientRect().height > 0 };
-    });
-    check('resultado: "O que entendemos" e a próxima tarefa vêm antes dos números; caixa, compras e detalhes fechados',
-      rs.topo && rs.fechados.length >= 4 && rs.fechados.every(([, o]) => !o) && ['mais-caixa', 'mais-detalhes', 'como-falta'].every((id) => rs.fechados.some(([i]) => i === id)) && rs.prox, rs);
-    check('resultado: "Como descobrir o que falta" traz um item fechado por "Não sei" (vendas e dinheiro em caixa), cada um com os passos',
-      rs.como && rs.como.length === 2 && /vender em um mês/.test(rs.como[0][0]) && /dinheiro/.test(rs.como[1][0]) && rs.como.every(([, n, o]) => n >= 2 && !o), rs.como); }
+  { // respostas antigas "Não sei" (estado v1) viram "sem resposta"; as outras ficam; versão sobe para 2
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m06', JSON.stringify({ dados: '2026-10-15',
+      R: { 'M6.P01': { estado: 'valor', valor: 'Forno' }, 'M6.P02': { estado: 'valor', valor: '1500' }, 'M6.P03': { estado: 'naosei' },
+        'M6.P04': { estado: 'multi', opcoes: ['Pix', 'Não sei'] }, 'M6.P05': { estado: 'naosei' }, 'M6.P07': { estado: 'opcao', opcao: 'Não sei' } },
+      hist: ['M6.P01', 'M6.P02', 'M6.P03', 'M6.P04', 'M6.P05', 'RESULTADO'], prio: { Forno: 'essencial agora' }, fora: [], fluxo: null, cen: null })); });
+    await page.reload();
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')));
+    check('migração: "Não sei" salvo vira sem resposta, o resto fica (P01, P02, Pix, prioridades), versão 2',
+      s.v === 2 && s.R['M6.P01'].valor === 'Forno' && s.R['M6.P02'].valor === '1500' && !s.R['M6.P03'] && !s.R['M6.P05'] && !s.R['M6.P07']
+      && JSON.stringify(s.R['M6.P04'].opcoes) === '["Pix"]' && s.prio.Forno === 'essencial agora', s);
+    await page.click('#ir');
+    check('migração: "Continuar de onde parei" abre a primeira pergunta que ficou sem resposta (P03)', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P03'); }
+  /* ---------- relatório de revisão (16/11): testes de aceite 2 a 6 ----------
+     Cenário do relatório, conferido à mão: preço R$ 9,50; custo de cada venda R$ 1,00 (a taxa do cartão agora sai das entradas);
+     50 vendas/mês = R$ 475,00; gastos fixos R$ 1.600,00 (aluguel 1.000, água e luz 300, gás 300) + perdas R$ 100,00 = R$ 1.700,00 (Módulo 5);
+     formas do Módulo 5: Pix 50% (sem taxa, na hora) e Cartão de crédito 50% (taxa 3,68%, cai em 30 dias = 5 semanas depois, arredondado para cima);
+     caixa hoje R$ 1.000,00 (Módulo 1, "Mais de R$ 1.000"); compras para começar R$ 5.000,00 = entrada R$ 1.000,00 + 4 × R$ 1.000,00 por mês;
+     vendas parecidas o ano todo.
+     vendas/semana = 475 × 12 ÷ 52 = 109,615… → 109,62; Pix 109,62 × 50% = 54,81 (semanas 1 a 13);
+     cartão 109,62 × 50% × (1 − 3,68%) = 52,79 (vendas da semana 1 caem na semana 6 -> semanas 6 a 13; 5 × 52,79 = 263,95 caem depois da 13)
+     saídas/semana = 369,23 (1.600) + 23,08 (100) + 11,54 (1,00 × 50 = 50,00) = 403,85; parcelas: entrada na semana 1, parcelas nas semanas 5 e 10
+     (k × 52 ÷ 12 → 4,33 e 8,67 semanas depois, arredondado); as parcelas 3 e 4 (semanas 14 e 18) ficam fora das 13 semanas.
+     semana 1: 1.000 + 54,81 − (403,85 + 1.000) = −349,04
+     entradas 13 sem.: 5 × 54,81 + 8 × (54,81 + 52,79) = 274,05 + 860,80 = 1.134,85; saídas: 13 × 403,85 + 3 × 1.000 = 8.250,05
+     saldo final = 1.000 + 1.134,85 − 8.250,05 = −6.115,20 (é também o menor saldo, semana 13) -> capital adicional R$ 6.115,20 */
+  const M5r = { versao: 3, R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P10': { estado: 'valor', valor: 'Brigadeiro' }, 'M5.P11': { estado: 'valor', valor: '50' }, 'M5.P12': { estado: 'valor', valor: '50' },
+    'M5.P24': { estado: 'opcao', opcao: 'Sim' }, 'M5.P25': { estado: 'valor', valor: [{ forma: 'Pix', taxa: '0', prazo: '', parte: '50' }, { forma: 'Cartão de crédito', taxa: '3,68', prazo: '30', parte: '50' }] },
+    'M5.P26': { estado: 'opcao', opcao: 'Sim' }, 'M5.P27': { estado: 'valor', valor: '100' }, 'M5.P28': { estado: 'opcao', opcao: 'Sim' }, 'M5.P29': { estado: 'valor', valor: '1000' },
+    'M5.P30': { estado: 'opcao', opcao: 'Sim' }, 'M5.P31': { estado: 'valor', valor: '300' }, 'M5.P32': { estado: 'opcao', opcao: 'Sim' }, 'M5.P33': { estado: 'valor', valor: [{ nome: 'Gás', v: '300' }] },
+    'M5.PG': { estado: 'valor', valor: ['Pix', 'Cartão de crédito'] }, 'M5.P36': { estado: 'valor', valor: '9,50' }, 'M5.P37': { estado: 'valor', valor: '50' },
+    'M5.SZ': { estado: 'opcao', opcao: 'Não, é parecido o ano todo' } } };
+  { const sem = { 'lg2-turma-a-m05': M5r, 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: 'Mais de R$ 1.000' } }) };
+    const resp = { 'M6.P01': { tipo: 'texto', v: 'Freezer, balcão' }, 'M6.P02': { tipo: 'texto', v: '5000' }, 'M6.P03': { tipo: 'opcao', v: 'Parte à vista e parte parcelado' },
+      'M6.P03A': { tipo: 'parcelas', entrada: '1.000,00', n: '4' }, 'M6.P09': { tipo: 'opcao', v: 'Não' }, 'M6.P17': { tipo: 'texto', v: '0' }, 'M6.P18': { tipo: 'opcao', v: 'Não' } };
+    /* "Como calculamos" na própria pergunta das parcelas, ao vivo */
+    await caminho(resp, 'M6.P03A', sem);
+    await page.fill('#p-entrada', '1.000,00'); await page.fill('#p-n', '4');
+    const cp = nrm(await page.textContent('#como-parcela'));
+    check('B: parcela calculada na hora, com a conta ("(R$ 5.000,00 da compra − R$ 1.000,00 de entrada) ÷ 4 parcelas = R$ 1.000,00 por mês")',
+      cp === 'Como calculamos: (R$ 5.000,00 da compra − R$ 1.000,00 de entrada) ÷ 4 parcelas = R$ 1.000,00 por mês.', cp);
+    await page.click('#ok');
+    const rp = nrm(await page.evaluate(NA_PAGINA.retorno));
+    check('parcelas: o retorno diz em que semanas caem (1, 5 e 10; 2 depois da semana 13)', rp.includes('entrada de R$ 1.000,00 na semana 1; parcelas de R$ 1.000,00 nas semanas 5 e 10; 2 parcelas ficam para depois da semana 13'), rp);
+    const c = await caminho(resp, null, sem);
+    check('dono: com o Módulo 5 respondido, as telas de formas de pagamento, taxas/prazos, vendas, época do ano, gastos e caixa não aparecem',
+      c.cod === 'RESULTADO' && !['M6.P04', 'M6.PF', 'M6.P05', 'M6.SZ', 'M6.P06', 'M6.P07', 'M6.P08'].some((x) => c.vistas.includes(x)), c.vistas);
+    const res = await page.evaluate(() => ({ abertos: [...document.querySelectorAll('#tela details')].every((d) => d.open),
+      prox: document.querySelector('.lg2-proximo').getBoundingClientRect().height > 0, caixa: !!document.querySelector('#caixa') && !document.querySelector('#caixa').closest('details') }));
+    check('BRIEF I: resultado com todas as seções abertas; menor saldo/capital à vista; botão do próximo módulo visível', res.abertos && res.prox && res.caixa, res);
+    const L = await page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => ({ e: r.querySelector('[data-k="entradas"]').value, s: r.querySelector('[data-k="saidas"]').value, sf: r.querySelector('.sf').textContent.replace(/\s+/g, ' ').trim() })));
+    const cf = nrm(await page.textContent('#confere-m5')), pr = nrm(await page.textContent('#como-conta'));
+    check('aceite 2: gastos do mês Módulo 5 (R$ 1.700,00) = aqui (R$ 1.600,00 + R$ 100,00 de perdas), origem mostrada',
+      cf.includes('No Módulo 5: R$ 1.600,00 fixos + R$ 100,00 de perdas + R$ 0,00 para você = R$ 1.700,00 por mês') && cf.includes('= R$ 1.700,00 por mês. Os dois batem.')
+      && pr.includes('Perdas: R$ 100,00 por mês × 12 ÷ 52 = R$ 23,08 por semana') && (await page.$$('#i04 .lbl .selo')).length >= 3, { cf });
+    check('aceite 2: custo de cada venda entra no caixa (R$ 1,00 × 50 vendas = R$ 50,00 por mês = R$ 11,54 por semana; a taxa sai das entradas)',
+      pr.includes('Custo de cada venda (a taxa já sai das entradas): R$ 1,00 × 50 vendas no mês (R$ 475,00 ÷ R$ 9,50) = R$ 50,00 por mês × 12 ÷ 52 = R$ 11,54 por semana'), pr);
+    check('aceite 3: entrada + parcela nas semanas 1, 5 e 10 (R$ 1.403,85 = 403,85 + 1.000); demais semanas R$ 403,85',
+      L.length === 13 && L.every((l, i) => l.s === ([0, 4, 9].includes(i) ? '1.403,85' : '403,85')), L.map((l) => l.s));
+    check('aceite 3: o que passa da semana 13 aparece à parte (2 parcelas, R$ 2.000,00)', pr.includes('Depois da semana 13 ainda faltam 2 parcelas (R$ 2.000,00)'), pr);
+    check('aceite 4: semanas 1 a 5 só Pix (R$ 54,81); da semana 6 em diante + cartão já sem taxa (54,81 + 52,79 = R$ 107,60)', L.every((l, i) => l.e === (i < 5 ? '54,81' : '107,60')), L.map((l) => l.e));
+    check('aceite 4 / dono: conta de cada forma explicada (vendas × parte × (1 − taxa), semana em que cai)',
+      pr.includes('Cartão de crédito: R$ 109,62 por semana × 50% × (1 − 3,68% de taxa) = R$ 52,79; cai 5 semanas depois (30 dias ÷ 7, arredondado para cima)')
+      && pr.includes('Pix: R$ 109,62 por semana × 50% = R$ 54,81; cai na mesma semana') && pr.includes('só caem depois da semana 13: R$ 263,95'), pr);
+    const n = (x) => +String(x).replace(/[^\d,−-]/g, '').replace('−', '-').replace(/\./g, '').replace(',', '.');
+    const soma = (k) => Math.round(L.reduce((a, l) => a + n(l[k]), 0) * 100) / 100;
+    const fim = n(L[12].sf);
+    check('aceite 5: saldo final = inicial + entradas − saídas (1.000 + 1.134,85 − 8.250,05 = −6.115,20)', soma('e') === 1134.85 && soma('s') === 8250.05 && Math.abs(1000 + soma('e') - soma('s') - fim) < 0.005 && fim === -6115.2 && L[0].sf === nrm('−R$ 349,04'), { e: soma('e'), s: soma('s'), fim, s1: L[0].sf });
+    const cx = await page.evaluate(() => ({ min: document.querySelector('#cx-min').innerText, fin: document.querySelector('#cx-final').innerText, cap: document.querySelector('#cx-capital .val').innerText,
+      cc: document.querySelector('#como-capital').innerText, cfin: document.querySelector('#como-final').innerText }));
+    check('aceite 5: menor saldo (semana 13), saldo final e capital adicional R$ 6.115,20, cada um com "Como calculamos"',
+      nrm(cx.min).includes('−R$ 6.115,20') && nrm(cx.min).includes('semana 13') && nrm(cx.fin).includes('−R$ 6.115,20') && nrm(cx.cap) === 'R$ 6.115,20'
+      && nrm(cx.cc).startsWith('Como calculamos: o saldo mais baixo das 13 semanas é −R$ 6.115,20, na semana 13. Para ele não ficar negativo, faltam R$ 6.115,20')
+      && nrm(cx.cfin) === 'Como calculamos: saldo final = R$ 1.000,00 (caixa hoje) + R$ 1.134,85 (tudo o que entra) − R$ 8.250,05 (tudo o que sai) = −R$ 6.115,20.', cx);
+    if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#caixa').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm06_depois_caixa_resumo.png') });
+      await page.evaluate(() => document.querySelector('#i04').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm06_depois_simulador.png') }); }
+    const tipar = async (sel, v) => { await page.fill(sel, v); await page.dispatchEvent(sel, 'change'); return page.inputValue(sel); };
+    const fmt = {};
+    for (const v of ['1425,06', '1.425,06', '1425.06', '', '0', '0,5', '1.000.000', '7.000,00']) fmt[v] = await tipar('#f-ini', v);
+    check('aceite 6: campo de dinheiro aceita vírgula e volta no padrão brasileiro (vazio = 0,00; 0,5 = 0,50; 1.000.000 = 1.000.000,00)',
+      JSON.stringify(fmt) === JSON.stringify({ '1425,06': '1.425,06', '1.425,06': '1.425,06', '1425.06': '1.425,06', '': '0,00', '0': '0,00', '0,5': '0,50', '1.000.000': '1.000.000,00', '7.000,00': '7.000,00' }), fmt);
+    const cc2 = nrm(await page.textContent('#como-capital')), cap2 = nrm(await page.textContent('#cx-capital .val'));
+    check('B: "Como calculamos" do capital se atualiza ao vivo (caixa R$ 7.000,00 -> menor saldo −R$ 115,20, capital R$ 115,20)', cap2 === 'R$ 115,20' && cc2.includes('−R$ 115,20'), { cap2, cc2 });
+    const ruins = await page.$$eval('#tela input[inputmode="decimal"]', (xs) => xs.map((x) => x.value).filter((v) => !/^\d{1,3}(\.\d{3})*,\d{2}$/.test(v)));
+    check('aceite 6: nenhum campo de dinheiro do resultado com ponto decimal (ex.: "1425.06")', ruins.length === 0, ruins);
+    await tipar('.cen[data-k="ent"]', '1425,06');
+    check('simulador de cenários: "1425,06" vira "1.425,06" e o resultado sai em R$ brasileiro', (await page.inputValue('.cen[data-k="ent"]')) === '1.425,06' && /R\$ [\d.]+,\d{2}/.test(await page.textContent('#cen-res')));
+    await tipar('#f-perdas', '0');
+    check('perdas mudadas: aviso de que os gastos do mês diferem do Módulo 5 e "No Módulo 5: R$ 100,00" ao lado do campo',
+      /diferentes dos do Módulo 5 \(R\$ 1\.700,00\)/.test(nrm(await page.textContent('#atencao'))) && nrm(await page.textContent('#i04')).includes('No Módulo 5: R$ 100,00')); }
+  /* ---------- dono: taxa e prazo por forma de pagamento + época do ano ----------
+     Conferido à mão: vendas R$ 1.300,00/mês × 12 ÷ 52 = R$ 300,00 por semana. Pix 40% = R$ 120,00 na mesma semana;
+     cartão de crédito 60% com 3,5% de taxa = 300 × 0,6 × 0,965 = R$ 173,70, caindo 30 dias depois = 5 semanas (semana 6 em diante).
+     Com época do ano (meses fortes: novembro, +50%; hoje = 16/11/2026): semanas 1 (16-22/11) e 2 (23-29/11) têm vendas de R$ 450,00 (× 1,5);
+     semana 3 (meio em 03/12) volta a × 1. Pix: 180, 180, 120…; cartão das semanas 1-2: 450 × 0,6 × 0,965 = R$ 260,55 caem nas semanas 6 e 7.
+     entradas: s1 180; s2 180; s3-s5 120; s6-s7 120 + 260,55 = 380,55; s8-s13 120 + 173,70 = 293,70. Sem época: s1-s5 120; s6-s13 293,70. */
+  { const resp = { 'M6.P01': { tipo: 'texto', v: 'Freezer' }, 'M6.P02': { tipo: 'texto', v: '0' }, 'M6.P04': { tipo: 'multi', vs: ['Pix', 'Cartão de crédito'] },
+      'M6.PF': { tipo: 'formas', vals: { 'Pix': ['0', '0', '40'], 'Cartão de crédito': ['3,5', '30', '60'] } }, 'M6.P05': { tipo: 'texto', v: '1300' },
+      'M6.P06': { tipo: 'texto', v: 'nada' }, 'M6.P07': { tipo: 'texto', v: '0' } };
+    await caminho(resp, 'M6.P04');
+    check('dono: sem Módulo 5, P04 pergunta com as MESMAS opções do Módulo 5', JSON.stringify(await page.$$eval('#ent .opcao .op-txt b', (b) => b.map((x) => x.textContent.trim()))) === JSON.stringify(['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito', 'Outra forma']));
+    await page.evaluate(NA_PAGINA.agir, resp['M6.P04']); await page.evaluate(NA_PAGINA.seguir);
+    const pf = await page.evaluate(() => [...document.querySelectorAll('.forma')].map((f) => ({ forma: f.dataset.forma, taxa: f.querySelector('.taxa').value, prazo: f.querySelector('.prazo').value, parte: (f.querySelector('.parte') || {}).value })));
+    check('dono: taxa, dias e parte por forma; Pix já vem sem taxa e na hora; partes começam divididas igualmente (50/50)',
+      JSON.stringify(pf) === JSON.stringify([{ forma: 'Pix', taxa: '0', prazo: '0', parte: '50' }, { forma: 'Cartão de crédito', taxa: '', prazo: '', parte: '50' }]), pf);
+    await page.evaluate(() => document.querySelector('#ok').click());
+    check('cartão sem taxa/prazo: pede para preencher e não grava', /Preencha a taxa e em quantos dias cai o dinheiro de “Cartão de crédito”/.test(await page.textContent('#erro'))
+      && !(await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.PF'])));
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'formas', vals: { 'Pix': ['0', '0', '30'], 'Cartão de crédito': ['3,5', '30', '60'] } });
+    check('partes que não somam 100%: pede para ajustar', /somam 90%/.test(await page.textContent('#erro')));
+    const ent = async (sz) => { await caminho({ ...resp, 'M6.SZ': sz }, null); return page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => r.querySelector('[data-k="entradas"]').value)); };
+    const e1 = await ent({ tipo: 'saz', v: 'Não' });
+    check('dono: cartão 60% com 3,5% caindo em 30 dias + Pix 40% -> semanas 1-5 R$ 120,00; 6-13 R$ 293,70 (120 + 173,70)',
+      JSON.stringify(e1) === JSON.stringify([...Array(5).fill('120,00'), ...Array(8).fill('293,70')]), e1);
+    const e2 = await ent({ tipo: 'saz', v: 'Sim', fortes: [11], mais: '50' });
+    check('dono: novembro forte (+50%): semanas 1-2 × 1,5 (Pix 180,00); o cartão delas (260,55) cai nas semanas 6-7',
+      JSON.stringify(e2) === JSON.stringify(['180,00', '180,00', '120,00', '120,00', '120,00', '380,55', '380,55', ...Array(6).fill('293,70')]), e2);
+    const fat = await page.$$eval('.fluxo .fator', (x) => x.map((e) => e.textContent.trim()));
+    const pr = nrm(await page.textContent('#como-conta'));
+    check('época do ano: fator na linha da semana e na conta ("Semanas 1, 2 caem em mês forte: vendas × 1,5 (+50%) = R$ 450,00 por semana")',
+      JSON.stringify(fat) === '["× 1,5","× 1,5"]' && pr.includes('a semana 1 começa hoje (16/11/2026)') && pr.includes('Semanas 1, 2 caem em mês forte: vendas × 1,5 (+50%) = R$ 450,00 por semana'), { fat, pr });
+    await ent({ tipo: 'saz', v: 'Sim', fracos: [1], menos: '20' });
+    check('época do ano: mês fraco dentro das 13 semanas vira aviso ("As vendas caem em janeiro: o caixa fica mais apertado.")', nrm(await page.textContent('#atencao')).includes('As vendas caem em janeiro: o caixa fica mais apertado.'));
+    const szM5 = { 'lg2-turma-a-m05': { versao: 3, R: { 'M5.SZ': { estado: 'opcao', opcao: 'Sim, tem meses mais fortes e mais fracos', fortes: [11], fracos: [], maisPct: 50, menosPct: 0 } } } };
+    const c2 = await caminho(resp, null, szM5);
+    const rz = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.SZ']);
+    const e3 = await page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => r.querySelector('[data-k="entradas"]').value));
+    check('época do ano do Módulo 5 (M5.SZ): sem tela aqui, gravada como M6.SZ com a origem, e entra na conta', !c2.vistas.includes('M6.SZ') && rz && rz.herdado === 5 && rz.maisPct === 50 && e3[0] === '180,00', { v: c2.vistas, rz, e3 });
+    const pf5 = { 'lg2-turma-a-m05': { versao: 3, R: { 'M5.PG': { estado: 'valor', valor: ['Pix', 'Cartão de crédito'] }, 'M5.P24': { estado: 'opcao', opcao: 'Sim' },
+      'M5.P25': { estado: 'valor', valor: [{ forma: 'Pix', taxa: '0', prazo: '', parte: '40' }, { forma: 'Cartão de crédito', taxa: '3,5', prazo: '30', parte: '60' }] } } } };
+    const c3 = await caminho({ ...resp, 'M6.P04': undefined, 'M6.PF': undefined }, null, pf5);
+    const r4 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R);
+    const e4 = await page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => r.querySelector('[data-k="entradas"]').value));
+    check('dono: M5.PG + taxas do Módulo 5 respondidos -> as telas de formas e de taxa/prazo não aparecem; a conta usa as taxas de lá',
+      !c3.vistas.includes('M6.P04') && !c3.vistas.includes('M6.PF') && r4['M6.PF'].herdado === 5 && r4['M6.P04'].herdado === 5 && e4[5] === '293,70', { v: c3.vistas, e4 }); }
+  /* ---------- dono: contas separadas (investimento, operação, caixa, capital de giro, retorno) ----------
+     Conferido à mão (mesmas respostas do cenário do relatório, vendas R$ 5.000,00/mês e preço R$ 10,00):
+     taxas = 5.000 × 50% × 3,68% = 92,00; custo = 500 vendas × R$ 1,00 = 500,00; perdas 100,00 -> variáveis 692,00
+     fixos 1.000 + 300 + 300 = 1.600,00; lucro = 5.000 − 1.600 − 692 = 2.708,00
+     retorno ao ano = 2.708 × 12 ÷ 5.000 = 6,4992 -> 649,9%; volta em 5.000 ÷ 2.708 = 1,846 -> 1,8 meses.
+     Com vendas de R$ 475,00 o lucro é 475 − 1.600 − (50 + 8,74 + 100) = −1.283,74: "o investimento não se paga". */
+  { const R0 = { 'M6.P02': { estado: 'valor', valor: '5000' }, 'M6.P03': { estado: 'opcao', opcao: 'Parte à vista e parte parcelado' }, 'M6.P03A': { estado: 'valor', valor: 'x', entrada: 1000, parcelas: 4 },
+      'M6.P04': { estado: 'multi', opcoes: ['Pix', 'Cartão de crédito'] }, 'M6.PF': { estado: 'valor', valor: [{ forma: 'Pix', taxa: '0', prazo: '0', parte: '50' }, { forma: 'Cartão de crédito', taxa: '3,68', prazo: '30', parte: '50' }] },
+      'M6.P05': { estado: 'valor', valor: '5000' }, 'M6.P06': { estado: 'valor', valor: 'Aluguel: R$ 1.000,00; Água e luz: R$ 300,00; Gás: R$ 300,00' }, 'M6.P07': { estado: 'valor', valor: '1000' } };
+    const x = await page.evaluate((R) => Motor.indicadores({ R, m5: { perdas: 100, custoVenda: 1, preco: 10 }, hoje: '2026-11-16' }), R0);
+    check('Motor.indicadores: investimento, fixos e variáveis por linha, lucro 2.708,00, retorno 649,9% ao ano, volta em 1,8 meses',
+      x.investimento === 5000 && x.parcelado.n === 4 && JSON.stringify(x.fixos.map((f) => [f.nome, f.valor])) === '[["Aluguel",1000],["Água e luz",300],["Gás",300]]'
+      && JSON.stringify(x.variaveis.map((f) => [f.nome, f.valor])) === '[["Materiais e custo de cada venda",500],["Taxas das vendas",92],["Perdas",100]]'
+      && x.entradasMes === 5000 && x.totalFixos === 1600 && x.totalVariaveis === 692 && x.lucroMes === 2708 && x.roiAno === 649.9 && x.paybackMeses === 1.8 && x.sePaga
+      && ['menorSaldo', 'semanaMenor', 'saldoFinal', 'capitalExtra', 'saldoInicial'].every((k) => typeof x[k] === 'number'), x);
+    const y = await page.evaluate((R) => Motor.indicadores({ R: { ...R, 'M6.P05': { estado: 'valor', valor: '475' } }, m5: { perdas: 100, custoVenda: 1, preco: 9.5 }, hoje: '2026-11-16' }), R0);
+    check('Motor.indicadores: lucro negativo (−1.283,74) -> sem retorno negativo (roiAno/paybackMeses = null, sePaga = false); capital extra = −menor saldo (6.115,20)',
+      y.lucroMes === -1283.74 && y.roiAno === null && y.paybackMeses === null && !y.sePaga && y.capitalExtra === 6115.2 && y.menorSaldo === -6115.2 && y.semanaMenor === 13, y); }
+  { // na tela: blocos separados com "Como calculamos" (cenário do relatório = prejuízo)
+    await caminho({ 'M6.P01': { tipo: 'texto', v: 'Freezer, balcão' }, 'M6.P02': { tipo: 'texto', v: '5000' }, 'M6.P03': { tipo: 'opcao', v: 'À vista' }, 'M6.P09': { tipo: 'opcao', v: 'Não' }, 'M6.P17': { tipo: 'texto', v: '0' } }, null,
+      { 'lg2-turma-a-m05': M5r, 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: 'Mais de R$ 1.000' } }) });
+    const b = await page.evaluate(() => ({ ordem: ['#i01', '#operacao', '#caixa', '#retorno-inv'].every((s, i, a) => !i || !!(document.querySelector(a[i - 1]).compareDocumentPosition(document.querySelector(s)) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      op: document.querySelector('#operacao').innerText, ret: document.querySelector('#retorno-inv').innerText }));
+    check('resultado: investimento → operação do mês → caixa/capital de giro → retorno, cada um com a conta; prejuízo dito com clareza',
+      b.ordem && nrm(b.op).includes('Vendas do mês (entradas) R$ 475,00') && nrm(b.op).includes('Taxas das vendas R$ 8,74') && nrm(b.op).includes('Falta no mês (prejuízo) −R$ 1.283,74')
+      && nrm(b.op).includes('Como calculamos: R$ 475,00 de vendas − R$ 1.600,00 de saídas fixas − R$ 158,74 de saídas que mudam com as vendas = −R$ 1.283,74 por mês')
+      && nrm(b.ret).includes('Com estes números o investimento não se paga') && !/−\d+[,.]?\d*%/.test(b.ret), b); }
+
+  /* ---------- dono: custo de entrega (M5.ENT) ----------
+     Conferido à mão: preço R$ 10,00 × 52 vendas = R$ 520,00/mês -> 520 × 12 ÷ 52 = R$ 120,00 por semana.
+     (a) entrega no preço: R$ 8,00 por entrega, 5 de cada 10 vendas -> R$ 4,00 por venda × 52 = R$ 208,00/mês × 12 ÷ 52 = R$ 48,00 por semana.
+     (b) cliente paga à parte R$ 5,00: (8 − 5) × 5/10 = R$ 1,50 por venda × 52 = R$ 78,00/mês -> R$ 18,00 por semana.
+     Sem gastos, compras nem caixa: a saída de cada semana é só a entrega. */
+  { const base = (ent) => ({ 'lg2-turma-a-m05': { versao: 3, R: { 'M5.PG': { estado: 'valor', valor: ['Pix'] }, 'M5.P24': { estado: 'opcao', opcao: 'Não' },
+      'M5.P36': { estado: 'valor', valor: '10' }, 'M5.P37': { estado: 'valor', valor: '52' }, 'M5.SZ': { estado: 'opcao', opcao: 'Não, é parecido o ano todo' },
+      'M5.P28': { estado: 'opcao', opcao: 'Não' }, 'M5.P30': { estado: 'opcao', opcao: 'Não' }, 'M5.P32': { estado: 'opcao', opcao: 'Não' }, ...(ent ? { 'M5.ENT': ent } : {}) } } });
+    const resp = { 'M6.P01': { tipo: 'texto', v: 'nada' }, 'M6.P07': { tipo: 'texto', v: '0' } };
+    const saidas = () => page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => r.querySelector('[data-k="saidas"]').value));
+    await caminho(resp, null, base({ estado: 'opcao', opcao: 'Sim, e a entrega já está no meu preço', custo: 8, tipoCusto: 'reais', aCada10: 5, cobra: null }));
+    const pa = nrm(await page.textContent('#pr-entrega')), sa = await saidas();
+    check('entrega no preço: linha "Entregas" (R$ 8,00 × 5 de cada 10 = R$ 4,00 por venda × 52 = R$ 208,00/mês = R$ 48,00/semana) e saídas de R$ 48,00',
+      pa === 'Entregas: R$ 8,00 por entrega × 5 de cada 10 vendas = R$ 4,00 por venda × 52 vendas no mês = R$ 208,00 por mês × 12 ÷ 52 = R$ 48,00 por semana.' && sa.every((x) => x === '48,00')
+      && (await page.inputValue('#f-entrega')) === '4,00', { pa, sa });
+    await caminho(resp, null, base({ estado: 'opcao', opcao: 'Sim, e o cliente paga a entrega à parte', custo: 8, tipoCusto: 'reais', aCada10: 5, cobra: 5 }));
+    const pb = nrm(await page.textContent('#pr-entrega')), sb = await saidas();
+    check('cliente paga a entrega à parte (R$ 5,00): (8 − 5) × 5/10 = R$ 1,50 por venda -> R$ 18,00 por semana', pb.includes('R$ 8,00 por entrega − R$ 5,00 que o cliente paga × 5 de cada 10 vendas = R$ 1,50 por venda') && sb.every((x) => x === '18,00'), { pb, sb });
+    await caminho(resp, null, base(null));
+    const pc0 = nrm(await page.textContent('#pr-entrega'));
+    check('sem a resposta de entrega no Módulo 5: não pergunta aqui; nota "Custo de entrega não informado (Módulo 5)" com link', pc0.startsWith('Custo de entrega não informado (Módulo 5).')
+      && !!(await page.$('#pr-entrega a[href*="m05"]')) && (await saidas()).every((x) => x === '0,00'), pc0); }
+
+  { // motor: parcela fecha o total e semanas pela regra 1 + arredondar(k × 52 ÷ 12)
+    const m = await page.evaluate(() => [1, 2, 3, 4, 6, 12].map(Motor.semanaParcela));
+    const pl = await page.evaluate(() => Motor.planoInvestimento({ 'M6.P02': { estado: 'valor', valor: '1000' }, 'M6.P03': { estado: 'opcao', opcao: 'Parcelado' }, 'M6.P03A': { estado: 'valor', valor: 'x', entrada: 0, parcelas: 3 } }));
+    check('motor: parcelas mensais nas semanas 5, 10, 14, 18, 27, 53; R$ 1.000 em 3 = 333,33 + 333,33 + 333,34', JSON.stringify(m) === '[5,10,14,18,27,53]'
+      && JSON.stringify([...pl.semanas, ...pl.depois].map((x) => x.valor)) === '[333.33,333.33,333.34]' && pl.aVista === 0, { m, pl }); }
 
   /* ---------- 4. persistência ---------- */
   await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno e balcão' } }, 'M6.P04');
-  await page.evaluate(NA_PAGINA.agir, { tipo: 'multi', vs: ['Pix', 'Boleto'] });
+  await page.evaluate(NA_PAGINA.agir, { tipo: 'multi', vs: ['Pix', 'Outra forma'] });
   await page.reload();
   check('após recarregar: botão "Continuar de onde parei"', (await page.textContent('#ir')).includes('Continuar'));
   await page.click('#ir');
-  check('após recarregar volta à P04 com Pix e Boleto marcados', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04'
-    && JSON.stringify(await page.$$eval('#ent .opcao.sel', (b) => b.map((x) => x.textContent.trim()))) === '["Pix","Boleto"]');
+  check('após recarregar volta à P04 com Pix e Outra forma marcados', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04'
+    && JSON.stringify(await page.$$eval('#ent .opcao.sel', (b) => b.map((x) => x.textContent.trim()))) === '["Pix","Outra forma"]');
   await page.evaluate(() => { localStorage.setItem('lg2-turma-b-m06', JSON.stringify({ R: { 'M6.P05': { estado: 'opcao', opcao: 'Sim' } }, hist: ['M6.P05'], prio: {} })); });
   await page.reload();
   check('respostas guardadas pela versão v0.1 são descartadas (começa do zero)', (await page.textContent('#ir')).includes('Começar'));
@@ -645,18 +892,19 @@ const NA_PAGINA = {
 
   /* ---------- prints de celular ---------- */
   if (process.env.SHOTS) {
-    const S = process.env.SHOTS, foto = async (n) => { await page.waitForTimeout(400); await page.screenshot({ path: path.join(S, `m06_${n}.png`) }); };
-    await page.evaluate(() => localStorage.clear()); await page.reload(); await foto('01_inicio');
-    await caminho({}, 'M6.P04');
-    await page.evaluate(NA_PAGINA.agir, { tipo: 'multi', vs: ['Pix', 'Cartão de crédito parcelado', 'Não sei'] });
-    await page.waitForTimeout(500); await page.evaluate(() => window.scrollTo(0, 0)); await foto('02_p04_varias_formas');
-    await caminho({}, 'M6.P09');
-    await page.evaluate(NA_PAGINA.agir, { tipo: 'opcao', v: 'Sim', detalhe: '' });
-    await page.waitForTimeout(500); await page.evaluate(() => window.scrollTo(0, 0)); await foto('03_p09_sim_sem_detalhes');
-    await caminho({}, 'Negócio'); await foto('04_negocio');
-    await caminho({ 'M6.P02': { tipo: 'texto', v: '1500' }, 'M6.P05': { tipo: 'texto', v: '1000' }, 'M6.P07': { tipo: 'texto', v: '2000' }, 'M6.P08': { tipo: 'opcao', v: 'Mais de 30 dias' }, 'Negócio': { tipo: 'opcao', v: 'Serviço' }, 'M6.P11': { tipo: 'texto', v: '2000' } }, null);
-    await page.evaluate(() => window.scrollTo(0, 0)); await foto('05_resultado');
-    await abrirResultado(); await page.evaluate(() => document.querySelector('#i04').scrollIntoView()); await foto('06_fluxo_13_semanas');
+    const S = process.env.SHOTS, foto = async (n, full) => { await page.waitForTimeout(400); await page.screenshot({ path: path.join(S, `m06_depois_${n}.png`), fullPage: !!full }); };
+    await page.evaluate(() => localStorage.clear()); await page.reload(); await foto('capa');
+    await caminho({}, 'M6.P02'); await foto('pergunta');
+    await page.click('#ns'); await page.evaluate(() => document.querySelector('#ok').click()); await page.evaluate(() => window.scrollTo(0, 0)); await foto('naosei_bloqueia', true);
+    await caminho({}, 'M6.P03');
+    await page.evaluate(() => document.querySelector('#ent .opcao').click()); await foto('opcao_selecionada');
+    await caminho({ 'M6.P04': { tipo: 'multi', vs: ['Pix', 'Cartão de crédito'] } }, 'M6.PF'); await foto('formas', true);
+    await caminho({}, 'M6.SZ'); await page.evaluate(NA_PAGINA.agir, { tipo: 'saz', v: 'Sim', fortes: [11, 12], fracos: [1], mais: '50', menos: '30' });
+    await page.evaluate(() => { document.querySelector('#erro').hidden = true; window.scrollTo(0, 0); }); await foto('sazonal', true);
+    await caminho({ 'M6.P03': { tipo: 'opcao', v: 'Parte à vista e parte parcelado' } }, 'M6.P03A');
+    await page.fill('#p-entrada', '1.000,00'); await page.fill('#p-n', '4'); await foto('parcelas');
+    const sem = { 'lg2-turma-a-m05': M5, 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: 'Entre R$ 500 e R$ 1.000' } }) };
+    await caminho({}, 'M6.SZ', sem); await page.evaluate(() => { const d = document.querySelector('#herdadas'); if (d) d.open = true; }); await foto('herdadas_trocar');
   }
 
   console.log('\nDIVERGÊNCIAS DA PLANILHA (relatadas, não falham):');

@@ -102,7 +102,7 @@ textarea.campo{resize:vertical;font-family:inherit}
 .r-texto{font-size:15px;color:#3d3650;margin:10px 0 12px}
 .bloco{border-radius:12px;padding:12px 15px;font-size:14.5px;margin-bottom:10px}
 .bloco b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
-.b-alerta{background:#fff7e0;border-left:4px solid var(--m-yellow-soft);color:#6b5200}
+.b-alerta{background:#fff7e0;border-left:4px solid var(--m-yellow-soft);color:#594600}
 .b-proximo{background:var(--m-lavender);border-left:4px solid var(--m-purple);color:#3d2f5c}
 .b-lacuna{background:#fff;border:2px solid var(--m-lavender);color:#3d3650}
 .b-lacuna ul{padding-left:18px}
@@ -241,7 +241,8 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 @media print{.reinicio,.chip-alterar,.btn-mais,.corr-item .btn,#q13 .opcoes{display:none!important}}
 
 /* Módulo 10: plano, checklist de sócios, retrato */
-.plano-frase{margin:.25rem 0 .75rem;padding:.9rem 1rem;border-radius:12px;background:var(--m-purple);color:#fff;font-weight:700;line-height:1.4}
+/* 16/11: ".cartao p" (texto escuro) ganhava do branco: frase do plano ilegível sobre o roxo */
+.plano-frase,.cartao p.plano-frase{margin:.25rem 0 .75rem;padding:.9rem 1rem;border-radius:12px;background:var(--m-purple);color:#fff;font-weight:700;line-height:1.4}
 .chk{display:flex;gap:.6rem;align-items:flex-start;padding:.45rem 0;font-size:1rem;cursor:pointer}
 .chk input{width:1.15rem;height:1.15rem;margin-top:.15rem;accent-color:var(--m-purple);flex:0 0 auto}
 .retrato{padding:.6rem 0;border-bottom:1px solid var(--m-lavender)}
@@ -294,7 +295,7 @@ textarea.msg-auto{resize:none;overflow:hidden;min-height:96px}
 .comecar{border-color:var(--m-purple)}
 .comecar-intro{margin-bottom:8px}
 .lista-comecar{list-style:none;padding:0;margin:0;display:grid;gap:10px}
-.lista-comecar li{display:flex;gap:12px;align-items:flex-start}
+.lista-comecar li:not(.lg2-diag-passo){display:flex;gap:12px;align-items:flex-start}
 .num-c{flex:0 0 30px;height:30px;border-radius:50%;background:var(--m-purple);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
 .lista-comecar li:first-child .num-c{background:var(--m-purple);box-shadow:0 0 0 3px var(--m-lavender)}
 .cartao .acao-c{font-size:15px;color:#2b2340;line-height:1.4}
@@ -302,3 +303,18 @@ textarea.msg-auto{resize:none;overflow:hidden;min-height:96px}
 .cartao .por-que{font-size:13px;color:var(--m-gray);margin-top:3px}
 @media print{.num-c{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .por-que a{white-space:nowrap}
+
+.dica-sociedade{margin:10px 0;padding:12px;border-left:4px solid #684A97;border-radius:8px;background:#f5f1fa;color:#4a4460}
+.como-calc,.cartao p.como-calc{font-size:13.5px;color:#4a4460;margin:4px 0 6px;line-height:1.4;padding-left:10px;border-left:3px solid var(--m-lavender-mid)}
+.dica-sociedade>b{display:block;color:#4a4460;margin-bottom:5px}
+.dica-sociedade p{margin:5px 0;color:#4a4460;line-height:1.5}
+.dica-sociedade .dica-fontes{font-size:13px}
+.dica-sociedade a{color:#684A97;text-decoration:underline}
+.dica-sociedade a:focus-visible{outline:3px solid #684A97;outline-offset:2px}
+@media print{.dica-sociedade{break-inside:avoid}}
+
+.contas{margin-top:8px}
+.op-ex{display:block;font-size:13px;color:#4a4460;font-weight:400;margin-top:2px}
+.opcao.sel .op-txt .op-ex{color:#4a4460}
+.como-descobrir .como-dica{margin:6px 0;color:#3d2f5c}
+.como-descobrir .nota-ns{margin:10px 0 0;font-weight:700;color:var(--m-purple)}

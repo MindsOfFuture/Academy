@@ -10,7 +10,7 @@ export const MODULOS_ESPECIAIS = [
     accent: "bg-purple-100 text-purple-700",
   },
   {
-    title: "Laboratório de Gestão",
+    title: "Empreenda+",
     description: "Transforme uma ideia de pequeno negócio em um plano de primeiros passos.",
     href: "/protected/modulos/laboratorio-de-gestao",
     icon: BriefcaseBusiness,

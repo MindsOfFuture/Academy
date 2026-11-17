@@ -124,7 +124,7 @@ a{color:var(--m-purple)}
 .video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0}
 /* observação pontual */
 .obs{background:#fff;border:2px solid var(--m-lavender);border-left:4px solid var(--m-coral);border-radius:12px;padding:10px 14px;font-size:16px;color:#3d3650;margin:6px 0 4px}
-.obs b{display:block;color:var(--m-coral);font-size:16px;margin-bottom:2px}
+.obs b{display:block;color:var(--m-purple);font-size:16px;margin-bottom:2px}
 /* análise do preço */
 .analise{margin-top:12px}
 .analise .bloco{font-size:16px}
@@ -263,7 +263,7 @@ a{color:var(--m-purple)}
 }
 /* aviso de valor fora do comum (preço muitas vezes o custo, faturamento alto): não trava, mas aparece forte */
 .bloco.aviso-forte{background:var(--m-paper);border:2px solid var(--m-coral);border-left-width:6px;color:#2b2340;font-size:16px}
-.bloco.aviso-forte b{color:var(--m-coral);font-size:13px}
+.bloco.aviso-forte b{color:var(--m-purple);font-size:13px}
 .bloco.aviso-forte p{margin:0}
 
 /* "Como calculamos: …" embaixo de cada número do resultado: discreta, em fonte menor */
@@ -335,3 +335,51 @@ a{color:var(--m-purple)}
 .painel-ajuda{border:none;padding:0}
 .item-salvo{grid-template-columns:1fr}
 .negocio .selo-m{display:block;border-radius:10px;margin:8px 0 0}
+
+/* Lote 16/11 */
+/* contraste: branco pequeno sobre coral não passa (3,9:1); no cartão coral todo texto fica grande e em negrito */
+.res-num.coral .lbl,.res-num.coral .sub{font-size:19px;font-weight:700;opacity:1;letter-spacing:.2px}
+.erro .como-calc{margin:6px 0 0;color:#3d3650}
+.calc-preco{background:#fff;border:2px solid var(--m-lavender);border-radius:12px;padding:12px 14px;margin:0 0 10px;color:#2b2340;font-size:16px}
+.calc-preco b{color:var(--m-purple)}
+.calc-preco p{margin:4px 0 8px}
+.calc-preco .linha{max-width:200px}
+.calc-preco .pp-val{font-size:17px;margin:10px 0 4px}
+.calc-preco .como-calc{margin:0 0 8px}
+.dica-regra{color:#3d3650}
+.nome-herdado{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;color:#3d3650}
+.mini em{display:block;font-style:normal;font-size:12.5px;color:var(--m-gray);margin-top:3px;line-height:1.3}
+
+/* "O que entrou na conta": aviso, não erro */
+.entrou{background:#fff;border:2px solid var(--m-lavender);border-radius:14px;padding:12px 14px;margin:0 0 12px;color:#2b2340}
+.entrou h3{color:var(--m-purple);font-size:18px;margin:0 0 8px}
+.entrou ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.entrou li{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:8px}
+.entrou li .ico{font-weight:700;min-width:18px;text-align:center}
+.entrou li.ok .ico{color:var(--m-purple)}
+.entrou li.falta{background:#fff7e0;color:#6b5200}
+.entrou-alerta{background:#fff7e0;border-left:4px solid var(--m-yellow-soft);color:#6b5200;border-radius:10px;padding:8px 12px;margin:0 0 8px;font-size:15px}
+.entrou-alerta b{color:#6b5200}
+.entrou-mao{font-size:15px;margin:10px 0 4px}
+
+/* sazonalidade */
+.ex-visivel{font-size:15px;color:#3d3650;background:var(--m-lavender);border-radius:10px;padding:8px 12px;margin:0 0 10px}
+.sz-meses{margin:6px 0 4px}
+.sz-rot{margin:10px 0 6px;color:var(--m-purple)}
+.meses{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.mes{font:inherit;font-size:15px;padding:8px 0;border-radius:10px;border:2px solid var(--m-lavender);background:#fff;color:#2b2340;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mes.sel{background:var(--m-purple);border-color:var(--m-purple);color:#fff;font-weight:700}
+.mes:disabled{background:var(--m-lavender);color:var(--m-gray);text-decoration:line-through;cursor:not-allowed}
+.sazonal{background:#fff;border:2px solid var(--m-lavender);border-radius:14px;padding:12px 14px;margin:0 0 12px;color:#2b2340}
+.sazonal h3{color:var(--m-purple);font-size:18px;margin:0 0 8px}
+.sz-tab th{font-size:13px;color:var(--m-gray);text-align:left;font-weight:700}
+.sz-tab td{font-size:14.5px}
+
+.entrou li.na{color:#3d3650}
+.entrou li.na .ico{color:var(--m-gray)}
+.ent-campos{margin:6px 0 4px}
+
+.dica-tip{background:var(--m-lavender);border-left:4px solid var(--m-purple);border-radius:10px;padding:8px 12px;margin:2px 0 6px;font-size:14.5px;color:#3d2f5c;list-style:none}
+.dica-tip b{color:var(--m-purple)}
+.reserva{border-top:2px solid var(--m-lavender);margin-top:10px;padding-top:8px}
+.res-linha{font-size:15.5px;margin:4px 0}
