@@ -1,8 +1,7 @@
-/* Gerado por extrair_m10.py a partir da planilha do Grupo 10 e depois ajustado à mão na versão leve
-   (nov/2026, pedido da coordenação): enunciados mais curtos (M10-06, M10-09, M10-11), "instrucao" (linha curta
-   à vista), capa.frase/minutos e, por pergunta, a ajuda do "Não sei" (comoDescobrir = passos; promptIA = pedido
-   pronto para copiar). Os textos das opções e dos caminhos não mudam: outros módulos e o diagnóstico leem os
-   valores salvos. Ao regenerar pelo extrator, reaplique esses campos. */
+/* Dados do Módulo 10 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO10 = {
  "origem": "Grupo 10 · Laboratório de Gestão II · FACC/UFJF",
  "fonte": {

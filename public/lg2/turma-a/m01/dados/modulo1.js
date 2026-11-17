@@ -1,9 +1,7 @@
-/* Dados do Módulo 1. Mapa, Base técnica e conexões vêm da planilha do grupo.
-   Versão leve (proposta, nov/2026): enunciados curtos, exemplos dentro do campo ("Ex.: ..."),
-   explicações em "Ver dica" (fechada) e, em cada "Não sei", a caixa "Como descobrir" (o "Não sei" só mostra a ajuda: não grava nada)
-   (comoDescobrir = passos; promptIA = pedido pronto para copiar). "exemplo" nas opções = linha pequena de exemplo. Os textos das opções não mudam:
-   outros módulos comparam esses valores salvos. "por_tipo" troca enunciado, opções ou dica
-   conforme a resposta da Pergunta 3A. */
+/* Dados do Módulo 1 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO1 = {
  "origem": "LG2_M01_planilha_do_grupo.xlsx",
  "modulo": {

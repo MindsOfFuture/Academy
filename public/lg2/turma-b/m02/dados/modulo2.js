@@ -1,8 +1,7 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao.
-   (nov/2026: editado a mao na versao leve — enunciados curtos, placeholder "Ex.:", inicio e, em cada
-   pergunta, comoDescobrir/promptIA do "Nao sei". Se regenerar pela ferramenta, refaca estes campos.
-   16/11/2026: opcoes sem "Nao sei"/"Ainda nao pensei nisso" em P01/P03/P04/P15/P18/P19, P16 e P20 com
-   oculta:true (o Modulo 3 pergunta mais completo), opcoesEx (exemplo sob a opcao) e termos simples nas regras.) */
+/* Dados do Módulo 2 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO2 = {
  "origem": "LG2_M02_planilha_do_grupo.xlsx",
  "modulo": {

@@ -1,5 +1,7 @@
-/* Módulo 3 (Turma A): 22 perguntas reescritas pelo grupo (abas "Perguntas reescritas" e
-   "Caminhos por resposta"). Mapa, base e conexões vêm do template do grupo. */
+/* Dados do Módulo 3 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO3 = {
  "origem": "m03_reescritas.xlsx (Perguntas reescritas + Caminhos por resposta)",
  "modulo": {

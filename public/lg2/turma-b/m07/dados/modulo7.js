@@ -1,12 +1,7 @@
-/* Gerado por extrair_m07.py a partir da planilha do Grupo 7 e depois ajustado à mão na versão leve
-   (nov/2026, pedido da coordenação): enunciados mais curtos (M7-01, M7-03, M7-05a, M7-06, M7-08, M7-09), "instrucao" (linha curta
-   à vista), abertura.frase/minutos e, por pergunta, a ajuda do "Não sei" (comoDescobrir = passos; promptIA = pedido
-   pronto para copiar; em M7-06 a 2ª parte usa comoDescobrir2). Ajuda do "Não sei" no ponto de partida: partida_ajuda.
-   Os textos das opções e dos caminhos não mudam: outros módulos e o diagnóstico leem os valores salvos.
-   Lote 16/11: "Não sei" saiu das perguntas sobre a própria pessoa (M7-01, M7-04, M7-06 parte 1, M7-07, M7-08, M7-09,
-   M7-10, M7-11 e, no ponto de partida, horas, material e estoque) e bloqueia nas demais; "exemplos" = linha curta de
-   exemplo embaixo de opções difíceis (por tipo: fab/serv/rev); textos de M7-01 (vazio), M7-02 (apoio) e M7-03 (Não sei).
-   Ao regenerar pelo extrator, reaplique esses campos (leve_dados_m07.py). */
+/* Dados do Módulo 7 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO7 = {
  "origem": "Laboratório de Gestão II · FACC/UFJF",
  "modulo": {

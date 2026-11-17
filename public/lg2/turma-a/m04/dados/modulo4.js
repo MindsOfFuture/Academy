@@ -1,21 +1,7 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo.
-   Ajuste manual em 05/11/2026 (relatório de teste aprovado): M4.P14 reescrita (enunciado, ajuda,
-   opções e opcoes_explica) e condicao_app da M4.P15 com as novas opções.
-   Ajuste de 05/11/2026 (2º lote): digitação, textos em segunda pessoa, exemplos por tipo (por_tipo),
-   ficha técnica do serviço (M4.P06 + M4.BT09S) e M4.P19 numérica.
-   Ajuste de 05/11/2026 (3º lote): papel e caneta em "O que ter em mãos", M4.P04 múltipla escolha,
-   alerta e próximo passo da M4.P11 juntos, M4.P12/M4.P13 sem "Não sei" e proposta de valor
-   (M4.PV1–M4.PV3, lida pelo Módulo 10) antes da M4.P12.
-   Ajuste de 05/11/2026 (4º lote): ficha técnica de ALIMENTO (por_tipo.Alimento na M4.P03 e no M4.BT09),
-   usada quando o produto é comida ou bebida.
-   Ajuste de 05/11/2026 (5º lote, Nayara e Arthur): dicas longas divididas (ajuda + ajuda_mais em "Ver mais"),
-   protótipo e oferta mínima junto da pré-venda na M4.P14 (conceitos_destaque), "Outro" da M4.P11 com campo,
-   M4.P16 sem o texto sobre o app e correções de escrita.
-   Versão leve (13/11/2026, pedido da coordenação): enunciados curtos, exemplo dentro do campo (placeholder),
-   legenda curta da M4.P02 (destaque_visivel), texto da capa (leve) e ajuda do "Não sei" em todas as perguntas
-   que têm "Não sei" (comoDescobrir: 2 passos; promptIA: pedido pronto para a IA; por tipo em por_tipo).
-   Lote 16/11/2026: "Não sei" só onde a resposta é um fato a descobrir (e bloqueia); exemplos
-   embaixo das opções (opcoes_ex); enunciado da M4.P12 em palavras simples. */
+/* Dados do Módulo 4 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO4 = {
  "origem": "M04.xlsx",
  "modulo": {

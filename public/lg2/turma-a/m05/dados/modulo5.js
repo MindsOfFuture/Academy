@@ -1,4 +1,7 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao (exceto o bloco 'leve' no fim do arquivo). */
+/* Dados do Módulo 5 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO5 = {
  "origem": "LG2_M05_planilha_do_grupo.xlsx",
  "modulo": {
@@ -1919,8 +1922,7 @@ window.MODULO5 = {
 /* Versão leve (nov/2026, pedido da coordenação; ajustado à mão, fora da planilha): capa curta,
    enunciados curtos ("curta" / "curtaPorTipo"), exemplo dentro do campo ("placeholder") e, por pergunta,
    a ajuda do "Não sei": comoDescobrir = 2 passos; promptIA = pedido pronto para copiar.
-   As opções e os valores salvos não mudam (outros módulos leem as respostas).
-   Ao regenerar este arquivo pela planilha, reaplique este bloco. */
+   As opções e os valores salvos não mudam (outros módulos leem as respostas). */
 window.MODULO5.leve = {
  "capa": {
   "frase": "Descubra quanto custa cada venda, quanto sobra e qual preço cobre seus gastos.",

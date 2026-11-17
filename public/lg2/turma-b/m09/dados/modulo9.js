@@ -1,4 +1,7 @@
-/* Gerado a partir do documento final do Grupo 9 (30/10/2026). Textos literais. */
+/* Dados do Módulo 9 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 /* Versão leve (nov/2026): capa.frase/minutos e, por pergunta, curta (enunciado curto na tela; "pergunta" segue literal),
    dica ("Ver dica") e a ajuda do "Não sei" (comoDescobrir = passos; promptIA = pedido pronto para uma IA). */
 window.MODULO9 = {
