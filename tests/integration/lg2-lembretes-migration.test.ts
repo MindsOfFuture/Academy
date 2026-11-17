@@ -10,6 +10,7 @@ import { PGlite } from "@electric-sql/pglite";
  */
 const PROGRESSO = readFileSync("supabase/migrations/20261113_lg2_progresso.sql", "utf8");
 const MIGRATION = readFileSync("supabase/migrations/20261119_lg2_lembretes.sql", "utf8");
+const NOMES_SIMPLES = readFileSync("supabase/migrations/20261120_lg2_lembretes_nomes_simples.sql", "utf8");
 
 const ANA = "8b000000-0000-4000-8000-000000000001"; // 2 etapas pela jornada, parada há 5 dias
 const BETO = "8b000000-0000-4000-8000-000000000002"; // só eventos (sem progresso salvo), parado
@@ -94,6 +95,8 @@ describe("lembrete de etapas do Empreenda+ (20261119)", () => {
     await db.exec(PROGRESSO);
     await db.exec(MIGRATION);
     await db.exec(MIGRATION); // idempotente
+    await db.exec(NOMES_SIMPLES);
+    await db.exec(NOMES_SIMPLES); // idempotente
 
     // A jornada guarda cada chave do localStorage como texto JSON.
     const jornada = (feitos: number[]) => JSON.stringify(JSON.stringify({ v: 1, feitos, atual: 1 }));
@@ -124,7 +127,8 @@ describe("lembrete de etapas do Empreenda+ (20261119)", () => {
     expect(ana.subject).toBe("Sua trilha no Empreenda+ está esperando por você");
     // Junta jornada (1, 2) e evento (3); faltam 4 a 10.
     expect(ana.html).toContain("<strong>3 de 10 etapas</strong>");
-    expect(ana.html).toContain("Etapa 4: Produto, proposta de valor e teste da ideia");
+    expect(ana.html).toContain("Etapa 4: Produto, por que comprar de você e teste da ideia");
+    expect(ana.html).not.toContain("proposta de valor");
     expect(ana.html).not.toContain("Etapa 3:");
     expect(ana.html).toContain("Olá, Ana&#60;b&#62;Souza&#60;/b&#62;!");
     expect(ana.html).not.toContain("<b>Souza");
@@ -138,7 +142,7 @@ describe("lembrete de etapas do Empreenda+ (20261119)", () => {
     const beto = r[1].email;
     expect(beto.html).toContain("Olá, tudo bem!");
     expect(beto.html).toContain("ainda não concluiu nenhuma etapa");
-    expect(beto.html).toContain("Etapa 1: Perfil do empreendedor");
+    expect(beto.html).toContain("Etapa 1: Você e a sua ideia de negócio");
   });
 
   it("redireciona tudo quando RESEND_TEST_RECIPIENT está preenchida", async () => {
