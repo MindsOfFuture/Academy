@@ -16,6 +16,8 @@ import type {
   NovaEscola,
   NovaTurma,
   NovoCurso,
+  EncontroDoCalendario,
+  TipoEncontro,
   FaltasDoBolsista,
   OcorrenciaFalta,
   AlunoTurma,
@@ -906,6 +908,49 @@ export async function cargaDoMes(mes: string): Promise<CargaBolsista[]> {
     mapa(escolas.data),
     mapa(turmas.data),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Calendário do bolsista
+// ---------------------------------------------------------------------------
+
+/** Encontros do mês de toda a equipe, com o mínimo para a grade; `minha` marca os de quem vê. */
+export async function calendarioDaEquipe(mes: string): Promise<EncontroDoCalendario[]> {
+  const supabase = await createClient();
+  const { de, ate } = limitesDoMes(mes);
+  const { data, error } = await supabase.schema("gestao").rpc("calendario_da_equipe", { p_de: de, p_ate: ate });
+  throwOnError(error);
+  return (
+    (data ?? []) as {
+      id: string;
+      data: string;
+      horario: string;
+      modalidade: string;
+      tipo: TipoEncontro;
+      numero_aula: number | null;
+      escola: string | null;
+      turma: string | null;
+      espaco: string | null;
+      cancelado: boolean;
+      concluido: boolean;
+      equipe: string[];
+      minha: boolean;
+    }[]
+  ).map((r) => ({
+    id: r.id,
+    data: r.data,
+    horario: r.horario,
+    modalidade: r.modalidade,
+    tipo: r.tipo,
+    numeroAula: r.numero_aula,
+    escolaNome: r.escola,
+    turmaNome: r.turma,
+    espacoNome: r.espaco,
+    cancelado: r.cancelado,
+    concluido: r.concluido,
+    equipe: r.equipe ?? [],
+    minha: r.minha,
+  }));
 }
 
 // ---------------------------------------------------------------------------

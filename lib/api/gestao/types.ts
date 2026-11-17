@@ -645,6 +645,25 @@ export interface CargaBolsista {
     porTurma: { turmaId: string | null; nome: string; horas: number }[];
 }
 
+/** Encontro como aparece no calendário do bolsista: sem nota, motivo nem atraso. */
+export interface EncontroDoCalendario {
+    id: string;
+    data: string;
+    horario: string;
+    modalidade: string;
+    tipo: TipoEncontro;
+    numeroAula: number | null;
+    escolaNome: string | null;
+    turmaNome: string | null;
+    espacoNome: string | null;
+    cancelado: boolean;
+    concluido: boolean;
+    /** Nomes de quem vai, responsável primeiro. */
+    equipe: string[];
+    /** Quem vê está no encontro (alocado ou cobrindo). */
+    minha: boolean;
+}
+
 /** Uma falta ou um atraso de alguém num encontro do mês. */
 export interface OcorrenciaFalta {
     alocacaoId: string;

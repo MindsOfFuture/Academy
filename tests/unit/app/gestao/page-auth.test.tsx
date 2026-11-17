@@ -224,6 +224,6 @@ describe("rota /gestao", () => {
     expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual([
       "Hoje", "Alocação", "Equipe", "Testes", "Treinamentos", "Relatório", "Metas", "Pesquisa", "Melhorias",
     ]);
-    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Treinamentos", "Relatório", "Metas", "Pesquisa", "Melhorias"]);
+    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Calendário", "Treinamentos", "Relatório", "Metas", "Pesquisa", "Melhorias"]);
   });
 });

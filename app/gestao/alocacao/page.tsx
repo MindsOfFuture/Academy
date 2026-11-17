@@ -7,14 +7,13 @@ import { exigirMembro } from "../guard";
 import { FormEncontro } from "./forms";
 import { CaixaLote, SelecaoLote } from "./lote";
 import { SeletorMes } from "../seletor-mes";
+import { GradeDoMes } from "../grade-do-mes";
 import { diaCurto, mesDaUrl, TIPO_ENCONTRO } from "./rotulos";
 
 /**
  * Calendário da alocação (spec 014): o mês inteiro, cada encontro com a equipe.
  * Com a seleção ligada, a mesma ação vale para vários encontros (spec 020).
  */
-
-const SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 /** Quem conta no encontro: substituído e retirado aparecem só no detalhe. */
 function presentes(e: Encontro) {
@@ -100,17 +99,6 @@ export default async function AlocacaoPage({
     ).values(),
   ].sort((a, b) => a.nome.localeCompare(b.nome));
 
-  const porDia = new Map<string, Encontro[]>();
-  for (const e of visiveis) porDia.set(e.data, [...(porDia.get(e.data) ?? []), e]);
-
-  const [ano, m] = mes.split("-").map(Number);
-  const primeiroDia = new Date(Date.UTC(ano, m - 1, 1)).getUTCDay();
-  const diasNoMes = new Date(Date.UTC(ano, m, 0)).getUTCDate();
-  const celulas: (string | null)[] = [
-    ...Array<null>(primeiroDia).fill(null),
-    ...Array.from({ length: diasNoMes }, (_, i) => `${mes}-${String(i + 1).padStart(2, "0")}`),
-  ];
-
   return (
     <div className="space-y-6">
       <SeletorMes mes={mes} parametros={filtro ? { espaco: filtro.id } : undefined} />
@@ -118,7 +106,7 @@ export default async function AlocacaoPage({
       <div className="flex justify-end">
         {/* Link comum: o navegador baixa o .ics que a rota devolve, com o mesmo filtro da tela. */}
         <a
-          href={`/gestao/calendario?${new URLSearchParams(filtro ? { mes, espaco: filtro.id } : { mes })}`}
+          href={`/gestao/calendario/exportar?${new URLSearchParams(filtro ? { mes, espaco: filtro.id } : { mes })}`}
           className="rounded-md border border-[#684A97] px-4 py-2 text-sm font-medium text-[#684A97] hover:bg-[#684A97]/10"
         >
           Exportar para o Google Agenda
@@ -145,35 +133,12 @@ export default async function AlocacaoPage({
       )}
 
       <SelecaoLote turmas={turmasDoMes} pessoas={pessoas}>
-        {/* Telas largas: grade do mês. */}
-        <div className="hidden overflow-hidden rounded-lg border bg-gray-200 md:grid md:grid-cols-7 md:gap-px">
-          {SEMANA.map((d) => (
-            <div key={d} className="bg-gray-50 p-2 text-center text-xs font-medium text-gray-600">
-              {d}
-            </div>
-          ))}
-          {celulas.map((dia, i) => (
-            <div key={dia ?? `vazio-${i}`} className="min-h-24 space-y-1 bg-white p-1">
-              {dia && <span className="text-xs text-gray-500">{Number(dia.slice(8))}</span>}
-              {dia && (porDia.get(dia) ?? []).map((e) => <CartaoEncontro key={e.id} e={e} />)}
-            </div>
-          ))}
-        </div>
-
-        {/* Celular: lista por dia. */}
-        <ul className="space-y-3 md:hidden">
-          {[...porDia.entries()].map(([dia, lista]) => (
-            <li key={dia} className="space-y-1">
-              <p className="text-sm font-medium">{diaCurto(dia)}</p>
-              {lista.map((e) => (
-                <CartaoEncontro key={e.id} e={e} />
-              ))}
-            </li>
-          ))}
-        </ul>
-        {visiveis.length === 0 && (
-          <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhum encontro lançado neste mês.</p>
-        )}
+        <GradeDoMes
+          mes={mes}
+          itens={visiveis}
+          cartao={(e) => <CartaoEncontro e={e} />}
+          vazio="Nenhum encontro lançado neste mês."
+        />
       </SelecaoLote>
 
       <FormEncontro

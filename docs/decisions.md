@@ -589,3 +589,18 @@ do artigo e o autor no cartão vêm dos autores do bloco de metadados do texto
 
 Consequência: bolsista não registra artigo; produção cadastrada por qualquer membro fica
 pública na hora.
+
+## 032 — O bolsista vê o calendário da equipe toda, só o essencial
+Status: aceita (2026-11-17)
+
+O bolsista ganhou a aba Calendário, com "Só os meus" e "Equipe toda". A RLS de
+`agenda` continua deixando o bolsista ler só os encontros em que está; a visão da
+equipe vem de `gestao.calendario_da_equipe(de, até)` (security definer, só membros,
+período de até 62 dias), que devolve data, horário, curso, escola, turma, espaço, se
+foi cancelado ou concluído e os nomes da equipe, mais `minha`. Motivo de falta, nota de
+encerramento, atraso, relatório e presentes ficam de fora. Encontro de teste segue a
+marcação da escola ou, sem escola, a das pessoas alocadas.
+
+Consequência: todo membro vê onde e quando cada colega está alocado. Só os próprios
+encontros abrem a página do encontro. A exportação para o Google Agenda saiu do
+Relatório e foi para o calendário (`/gestao/calendario/exportar`).

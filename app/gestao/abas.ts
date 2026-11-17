@@ -7,6 +7,7 @@ import type { AbaGestao } from "./nav";
  */
 export function abasDoPapel(papel: GestaoPapel): AbaGestao[] {
   const abas: AbaGestao[] = [{ href: "/gestao", rotulo: "Hoje" }];
+  if (papel !== "coordenacao") abas.push({ href: "/gestao/calendario", rotulo: "Calendário" });
   if (papel === "coordenacao") {
     abas.push({ href: "/gestao/alocacao", rotulo: "Alocação" });
     abas.push({ href: "/gestao/equipe", rotulo: "Equipe" });

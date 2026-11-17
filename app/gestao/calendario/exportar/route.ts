@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
 import { calendarioIcs, encontrosParaAgenda } from "@/lib/api/gestao/calendario";
 import { gestaoHabilitada } from "@/lib/api/gestao/feature-flags";
-import { mesDaUrl } from "../alocacao/rotulos";
+import { mesDaUrl } from "../../alocacao/rotulos";
 
 /**
  * Baixa os encontros do mês em .ics, para importar no Google Agenda. A
