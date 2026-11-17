@@ -37,7 +37,7 @@ window.MODULO1 = {
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "Sua ideia e uma primeira descrição do que você vende.",
    "combinado": "Não",
-   "obs": "No Módulo 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes."
+   "obs": "Na Etapa 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes."
   },
   {
    "modulo": "4.0",
@@ -45,7 +45,7 @@ window.MODULO1 = {
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "O que você já sabe e o que ainda precisa testar na sua ideia, além do seu tempo e do que você já tem.",
    "combinado": "Não",
-   "obs": "No Módulo 4 você vai usar essas informações para montar uma primeira oferta simples e testar a ideia gastando pouco."
+   "obs": "Na Etapa 4 você vai usar essas informações para montar uma primeira oferta simples e testar a ideia gastando pouco."
   },
   {
    "modulo": "6.0",
@@ -53,7 +53,7 @@ window.MODULO1 = {
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "Quanto dinheiro você pode usar e o que você já tem para trabalhar.",
    "combinado": "Não",
-   "obs": "No Módulo 6 você vai usar esse valor para planejar quanto investir no começo sem se arriscar."
+   "obs": "Na Etapa 6 você vai usar esse valor para planejar quanto investir no começo sem se arriscar."
   },
   {
    "modulo": "10.0",
@@ -61,7 +61,7 @@ window.MODULO1 = {
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "Seu retrato inicial: o tempo que você tem, o que limita você e o que motiva você.",
    "combinado": "Não",
-   "obs": "No Módulo 10, o seu tempo e o que limita você vão ajudar a definir o ritmo e as prioridades do seu plano de 90 dias."
+   "obs": "Na Etapa 10, o seu tempo e o que limita você vão ajudar a definir o ritmo e as prioridades do seu plano de 90 dias."
   }
  ],
  "base": [
@@ -148,7 +148,7 @@ window.MODULO1 = {
   "rotulo": "ETAPA 1",
   "titulo": "Você e a sua ideia",
   "descricao": "Responda perguntas rápidas e receba um resumo da sua ideia com uma tarefa para começar.",
-  "tempo": "Esta etapa leva uns 10 minutos",
+  "tempo": "Esta etapa leva cerca de 5 minutos",
   "botao": "Começar",
   "link": "O que esta etapa não faz",
   "mais": {

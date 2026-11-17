@@ -318,3 +318,20 @@ textarea.msg-auto{resize:none;overflow:hidden;min-height:96px}
 .opcao.sel .op-txt .op-ex{color:#4a4460}
 .como-descobrir .como-dica{margin:6px 0;color:#3d2f5c}
 .como-descobrir .nota-ns{margin:10px 0 0;font-weight:700;color:var(--m-purple)}
+
+/* 17/11 (tira a fricção): Continuar sempre à vista nas telas de pergunta — a área de ações (erro + Continuar)
+   fica presa ao pé da tela, com fundo branco e sombra leve em cima; ela ocupa o próprio espaço no fim do
+   cartão, então não cobre o último campo quando a pessoa rola até o fim */
+.acoes.acoes-fixas{position:sticky;bottom:0;z-index:5;background:#fff;margin:16px -16px -18px;padding:10px 16px max(12px, env(safe-area-inset-bottom));border-radius:0 0 18px 18px;box-shadow:0 -10px 12px -10px rgba(43,35,64,.25);gap:8px}
+.acoes-fixas .erro{margin-top:0}
+@media print{.acoes.acoes-fixas{position:static;box-shadow:none}}
+/* alvos de toque de 44 px (dica, ver mais, botões pequenos, links-botão) */
+.mini-b{flex:0 0 44px;width:44px;height:44px}
+.etapa-ed{gap:5px}
+.dica-toggle summary,.como-funciona summary,.ver-mais summary,.saiba summary,.cartao-q .saiba summary{min-height:44px;box-sizing:border-box;padding-top:10px;padding-bottom:10px}
+.resultado-mais>summary{min-height:44px;box-sizing:border-box}
+.btn-alt,.btn-copiar,.btn-mais,.chip-alterar,.trilha-link,.btn-voltar{min-height:44px;box-sizing:border-box}
+.retrato a{display:inline-block;min-height:44px;box-sizing:border-box;padding:11px 0}
+.chk{min-height:44px;box-sizing:border-box;align-items:center}
+.chk input{margin-top:0}
+.etapas-edicao{display:grid;gap:6px;margin-top:8px}

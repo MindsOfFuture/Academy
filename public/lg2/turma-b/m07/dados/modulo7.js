@@ -9,7 +9,7 @@ window.MODULO7 = {
   "nome": "Operação, fornecedores, capacidade e qualidade"
  },
  "abertura": {
-  "kicker": "Módulo 7: Operação, fornecedores, capacidade e qualidade",
+  "kicker": "Etapa 7: Operação, fornecedores, capacidade e qualidade",
   "titulo": "Como organizar o trabalho e a entrega",
   "objetivo": "Chegou a hora de organizar o que precisa acontecer para entregar o que você vende. Veja quanto cabe no seu tempo e o que precisa conferir antes de aceitar mais pedidos.",
   "para_voce_titulo": "Isso é para você que",
@@ -35,7 +35,7 @@ window.MODULO7 = {
    "Quando necessário, procure a universidade, órgãos responsáveis ou profissionais da área."
   ],
   "frase": "Veja quanto cabe no seu tempo e o que conferir antes de aceitar mais pedidos.",
-  "minutos": 15
+  "minutos": 10
  },
  "limites": "Não indica fornecedores por nome, não define preço, não diz quais regras sanitárias ou trabalhistas valem, não recomenda comprar equipamento ou contratar e não garante que a pessoa consegue atender a procura.",
  "fases": [
@@ -150,7 +150,7 @@ window.MODULO7 = {
     {
      "opcao": "Mais de 10 h",
      "retorno": "Atenção",
-     "texto": "[Se até 10h]: Esse tempo é maior que as horas que você disse ter no Módulo 1. Quer corrigir as horas ou este tempo?"
+     "texto": "[Se até 10h]: Esse tempo é maior que as horas que você disse ter na Etapa 1. Quer corrigir as horas ou este tempo?"
     },
     {
      "opcao": "Não sei",
@@ -187,7 +187,7 @@ window.MODULO7 = {
     {
      "opcao": "Sim, pago alguém",
      "retorno": "Atenção",
-     "texto": "Pagar alguém é um gasto e pode ter regras próprias. Confira se esse valor entrou nos gastos do Módulo 5 e busque orientação de um contador sobre a forma de contratar."
+     "texto": "Pagar alguém é um gasto e pode ter regras próprias. Confira se esse valor entrou nos gastos da Etapa 5 e busque orientação de um contador sobre a forma de contratar."
     },
     {
      "opcao": "Horas inválidas (negativo ou texto)",
@@ -333,7 +333,7 @@ window.MODULO7 = {
      "texto": "Pergunte ao fornecedor: 'Se eu pedir hoje, quando chega?'."
     }
    ],
-   "apoio": "Pense em [item principal do Módulo 4], o que mais pesa ou que, se faltar, para tudo. Quando pagar já foi visto no Módulo 6; aqui é o tempo até o item chegar.",
+   "apoio": "Pense em [item principal do Módulo 4], o que mais pesa ou que, se faltar, para tudo. Quando pagar já foi visto na Etapa 6; aqui é o tempo até o item chegar.",
    "tipo": "Seleção única (duas partes)",
    "comoDescobrir2": [
     "Pergunte ao fornecedor: “Se eu pedir hoje, quando chega?”. Peça a resposta por mensagem para guardar.",
@@ -498,7 +498,7 @@ window.MODULO7 = {
      "texto": "Escolha os 3 que mais preocupam. Os outros você pode incluir depois no checklist."
     }
    ],
-   "apoio": "Os riscos de mercado você já viu no Módulo 3 ([riscos do Módulo 3]). Aqui são os do dia a dia. Escolha até 3.",
+   "apoio": "Os riscos de mercado você já viu na Etapa 3 ([riscos do Módulo 3]). Aqui são os do dia a dia. Escolha até 3.",
    "tipo": "Seleção múltipla (até 3)",
    "instrucao": "Escolha até 3."
   },
@@ -537,14 +537,14 @@ window.MODULO7 = {
    "codigo": "M7-12",
    "fase": "Fechamento",
    "pergunta": "Quer anotar alguma ideia sobre regras, documentos ou próximos passos do negócio?",
-   "descobre": "Ideias para os próximos módulos",
+   "descobre": "Ideias para as próximas etapas",
    "aparece": "Sempre (campo opcional)",
    "guarda": "Ideias para depois",
    "caminhos": [
     {
      "opcao": "Texto preenchido",
      "retorno": "Resposta",
-     "texto": "Guardado! Vamos retomar isso no próximo módulo."
+     "texto": "Guardado! Vamos retomar isso na próxima etapa."
     },
     {
      "opcao": "Em branco",
@@ -552,7 +552,7 @@ window.MODULO7 = {
      "texto": "Tudo bem. Você não precisa ter nenhuma ideia agora."
     }
    ],
-   "apoio": "Opcional. Escreva em uma ou duas frases. Vamos guardar para os próximos módulos, sem analisar agora.",
+   "apoio": "Opcional. Escreva em uma ou duas frases. Vamos guardar para as próximas etapas, sem analisar agora.",
    "tipo": "Texto livre (opcional)",
    "instrucao": "Opcional."
   },
@@ -673,7 +673,7 @@ window.MODULO7 = {
    },
    {
     "bloco": "O que ainda falta definir",
-    "conteudo": "Tempos sem medida, prazos sem confirmação e lacunas dos sete módulos, sem repetição."
+    "conteudo": "Tempos sem medida, prazos sem confirmação e lacunas das sete etapas, sem repetição."
    },
    {
     "bloco": "Próximos passos",
@@ -730,7 +730,7 @@ window.MODULO7 = {
    },
    {
     "quando": "Ajuda paga (M7-04) sem gasto com funcionários no Módulo 5",
-    "mensagem": "Você disse que paga alguém, mas esse gasto não aparece no Módulo 5. Quer incluir?",
+    "mensagem": "Você disse que paga alguém, mas esse gasto não aparece na Etapa 5. Quer incluir?",
     "forma": "Pergunta gentil"
    },
    {
@@ -745,7 +745,7 @@ window.MODULO7 = {
    },
    {
     "quando": "Perdas no Módulo 5 e validade 'Não'",
-    "mensagem": "Você indicou perdas no Módulo 5. Elas acontecem em qual etapa do seu processo?",
+    "mensagem": "Você indicou perdas na Etapa 5. Elas acontecem em qual etapa do seu processo?",
     "forma": "Pergunta gentil"
    },
    {

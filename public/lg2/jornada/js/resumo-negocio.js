@@ -224,7 +224,7 @@
 
     /* 6. capacidade (Módulo 7) */
     var cap = capM7(ler(7));
-    if (cap && cap.zero) add(2, "No tempo que você tem, ainda não dá para fazer nem uma unidade por mês" + (cap.vol ? ", e você pretende fazer " + nf(cap.vol) : "") + ". Confira o tempo por unidade e as horas da semana no Módulo 7.");
+    if (cap && cap.zero) add(2, "No tempo que você tem, ainda não dá para fazer nem uma unidade por mês" + (cap.vol ? ", e você pretende fazer " + nf(cap.vol) : "") + ". Confira o tempo por unidade e as horas da semana na Etapa 7.");
     else if (cap) {
       var s6 = "No tempo que você tem, dá para fazer " + cap.texto + " por mês";
       if (cap.cmp && cap.cmp.tipo === "falta") s6 += ", menos do que " + (cap.vol === 1 ? "a unidade" : "os " + nf(cap.vol)) + " que você pretende fazer";

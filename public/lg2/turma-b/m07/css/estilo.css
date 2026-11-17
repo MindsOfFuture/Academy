@@ -312,3 +312,23 @@ table.painel input{width:100%;min-width:64px;border:1.5px solid var(--m-lavender
 .mapa-edit .etapa-ed+.etapa-ed,.mapa-edit .dica-mover+.etapa-ed{position:relative;margin-top:14px}
 .mapa-edit .etapa-ed+.etapa-ed::before,.mapa-edit .dica-mover+.etapa-ed::before{content:"";position:absolute;left:12px;top:-16px;height:12px;border-left:2px solid var(--m-purple)}
 .mapa-edit .etapa-ed+.etapa-ed::after,.mapa-edit .dica-mover+.etapa-ed::after{content:"";position:absolute;left:8px;top:-7px;border:5px solid transparent;border-top:6px solid var(--m-purple);border-bottom:0}
+
+/* lote 17/11 (tira a fricção) */
+/* C: Continuar sempre à vista nas perguntas: ações presas ao pé da tela (o conteúdo não fica coberto: a barra ocupa o seu lugar no fim do cartão) */
+.acoes-fixas{position:sticky;bottom:0;z-index:5;background:#fff;margin:14px -16px -18px;padding:10px 16px max(12px, env(safe-area-inset-bottom));
+  border-radius:0 0 18px 18px;box-shadow:0 -6px 14px -6px rgba(43,35,64,.18)}
+.acoes-fixas .acoes{margin-top:0}
+.acoes-fixas .erro{margin:0 0 10px}
+/* D: "Não se aplica" é uma resposta: mostra que está marcado */
+.btn-alt[aria-pressed="true"]{background:var(--m-purple);border-color:var(--m-purple);color:#fff}
+/* F: alvos de toque de pelo menos 44 px (sem mudar o visual além do necessário) */
+.dica-toggle summary,.como-funciona summary,.saiba summary,.resultado-mais>summary,.ver-mais summary{min-height:44px;display:flex;align-items:center}
+.dica-toggle summary::before,.como-funciona summary::before,.saiba summary::before,.ver-mais summary::before{content:"▸";margin-right:8px;font-size:.9em}
+.dica-toggle[open] summary::before,.como-funciona[open] summary::before,.saiba[open] summary::before,.ver-mais[open] summary::before{content:"▾"}
+.resultado-mais>summary::before{content:"▸";margin-right:8px;font-size:.9em}
+.resultado-mais[open]>summary::before{content:"▾"}
+.dica-toggle,.como-funciona{padding-top:0;padding-bottom:0}
+.dica-toggle[open],.como-funciona[open]{padding-bottom:10px}
+.btn-alt,.btn-copiar,.trocar,.chip-alterar,.btn-mais,.reinicio,.trilha-link{min-height:44px}
+.trilha-link{min-width:44px}
+.btn-copiar{padding:10px 16px}

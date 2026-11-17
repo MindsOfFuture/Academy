@@ -331,3 +331,28 @@ details.tec .tec-l{display:block;font-size:13.5px;color:#3d3650}
 details.tec .tec-l+.tec-l,details.tec .tec-l+.fonte{margin-top:4px}
 details.tec .tec-txt b{display:inline;color:#3d3650;font-size:13.5px;text-transform:none;letter-spacing:0;margin:0}
 details.tec .fonte{color:#3d3650}
+
+/* ===== lote 17/11 ("tira a fricção") ===== */
+/* C: Continuar (e a mensagem de erro) presos ao pé da tela nas perguntas: letra grande, celular pequeno ou deitado */
+.pe-fixo{position:sticky;bottom:0;z-index:5;background:#fff;margin:16px -16px -18px;padding:10px 16px max(12px, env(safe-area-inset-bottom));
+  border-radius:0 0 18px 18px;box-shadow:0 -6px 14px rgba(43,35,64,.08)}
+.pe-fixo .acoes{margin-top:0}
+.pe-fixo .erro{margin:0 0 8px}
+/* D: o enunciado recebe o foco (leitor de tela) sem moldura de foco no texto */
+.pergunta .q:focus{outline:none}
+/* B1: link do portal do estado dentro do retorno, com área de toque alta */
+a.link-estado{font-weight:700;padding:12px 0;overflow-wrap:anywhere}
+/* F: alvos de toque de pelo menos 44 px */
+.trilha-link,.voltar-topo,.trocar,.chk{min-height:44px}
+.trilha-link{display:inline-flex;align-items:center}
+.chk{align-items:center}
+.chk input{margin-top:0}
+.dica-toggle,.como-funciona{padding:0 14px}
+.dica-toggle[open],.como-funciona[open]{padding-bottom:10px}
+.dica-toggle summary,.como-funciona summary,details.mais summary,.saiba summary,details.tec summary,.como-mini summary{min-height:44px;padding:10px 0}
+details.tec summary,details.mais summary{padding:12px 0}
+.dica-toggle[open] summary,.como-funciona[open] summary{margin-bottom:0}
+.saiba{padding:0 14px}
+.saiba[open]{padding-bottom:10px}
+details.mais summary{margin-top:0}
+.resultado-mais>summary{min-height:44px}

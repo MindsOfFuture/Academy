@@ -136,7 +136,7 @@ const ESTADO = {
 
     assert.equal(d.titulo, 'Diagnóstico final do seu negócio');
     assert.match(d.data, new RegExp(`Situação em \\d{1,2} de [a-zç]+ de ${new Date().getFullYear()}`));
-    assert.deepEqual(d.secoes, ['Como está o seu negócio hoje', 'Pontos em aberto', 'Seu próximo passo', 'Suas respostas, módulo por módulo']);
+    assert.deepEqual(d.secoes, ['Como está o seu negócio hoje', 'Pontos em aberto', 'Seu próximo passo', 'Suas respostas, etapa por etapa']);
     assert.ok(d.proximo.includes('Comece por um ponto em aberto acima') && d.proximo.includes('salve seu progresso'), 'próximo passo usa as lacunas reais e orienta a salvar');
     assert.ok(d.cenario.length >= 1 && d.cenario.length <= 3, 'cenário = 1 a 3 parágrafos do resumo');
     assert.ok(d.cenario.join(' ').includes(OFERTA), 'o cenário fala do negócio da pessoa');
@@ -145,7 +145,7 @@ const ESTADO = {
     // Um bloco por módulo, na ordem, com a situação.
     assert.deepEqual(d.blocos.map((b) => b.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     const bloco = (n) => d.blocos.find((b) => b.n === n);
-    assert.match(bloco(1).titulo, /^Módulo 1 · Perfil do empreendedor/);
+    assert.match(bloco(1).titulo, /^Etapa 1 · Perfil do empreendedor/);
     assert.equal(bloco(1).estado, 'concluído');
     assert.equal(bloco(8).estado, 'em andamento');
     assert.equal(bloco(2).estado, 'não começou');
@@ -188,8 +188,8 @@ const ESTADO = {
 
     // Pontos em aberto = respostas "Não sei", com o módulo.
     assert.deepEqual(d.abertos, [
-      { q: semExemplo(pergunta(3, 'M3.P04').pergunta), m: 'Módulo 3', revisar: 'Rever Módulo 3' },
-      { q: semExemplo(pergunta(5, 'M5.P27').pergunta), m: 'Módulo 5', revisar: 'Rever Módulo 5' },
+      { q: semExemplo(pergunta(3, 'M3.P04').pergunta), m: 'Etapa 3', revisar: 'Rever Etapa 3' },
+      { q: semExemplo(pergunta(5, 'M5.P27').pergunta), m: 'Etapa 5', revisar: 'Rever Etapa 5' },
     ]);
 
     // Nada técnico na tela.
@@ -264,7 +264,7 @@ const ESTADO = {
     assert.ok(d3.blocos.slice(1).every((x) => x.estado === 'não começou' && !x.itens.length), 'sem respostas: módulos não começaram');
     assert.deepEqual(d3.abertos, []);
     assert.match(d3.texto, /Nenhuma pergunta ficou com “Não sei”/);
-    assert.ok(d3.proximo.includes('Continue pelo primeiro módulo') && d3.continuar === 'Continuar Módulo 1', 'sem lacunas, oferece o primeiro módulo pendente');
+    assert.ok(d3.proximo.includes('Continue pela primeira etapa') && d3.continuar === 'Continuar Etapa 1', 'sem lacunas, oferece o primeiro módulo pendente');
     await vazio.page.click('.diag-proximo button');
     await vazio.page.waitForFunction(() => document.getElementById('diagnostico').hidden && !document.getElementById('modulo').hidden && (document.getElementById('modulo').getAttribute('src') || '').endsWith('/m01/index.html'));
     assert.deepEqual(vazio.page.errors, []);

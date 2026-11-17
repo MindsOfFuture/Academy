@@ -54,9 +54,9 @@ it("o fim de cada módulo pronto leva ao próximo módulo pronto, em qualquer tu
     expect(blocos).toHaveLength(1);
     const seguinte = todos[i + 1];
     if (seguinte) {
-      expect(blocos[0]).toContain(`href="${caminhoModulo(seguinte.turma, seguinte.numero)}">Ir para o Módulo ${seguinte.numero}<`);
+      expect(blocos[0]).toContain(`href="${caminhoModulo(seguinte.turma, seguinte.numero)}">Ir para a Etapa ${seguinte.numero}<`);
     } else {
-      expect(blocos[0]).toContain(`href="/protected/modulos/laboratorio-de-gestao?aba=${turma}">Voltar aos módulos<`);
+      expect(blocos[0]).toContain(`href="/protected/modulos/laboratorio-de-gestao?aba=${turma}">Voltar às etapas<`);
     }
   });
 });

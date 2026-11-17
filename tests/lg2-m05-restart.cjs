@@ -66,10 +66,8 @@ const server = http.createServer(async (req, res) => {
       await assertFresh();
       await page.locator('.opcao').first().click();             // P00 -> P01
       await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-      await page.getByRole('button', { name: 'Seguir', exact: true }).click();
       await page.getByRole('button', { name: new RegExp('^' + branch) }).click();
       await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-      await page.getByRole('button', { name: 'Seguir', exact: true }).click();
       assert.equal((await state()).hist.at(-1), first);
       await page.locator('#ent input').fill('Item de teste ' + branch);
       const before = await state();
@@ -79,7 +77,6 @@ const server = http.createServer(async (req, res) => {
       assert.equal(await page.locator('#ent input').inputValue(), 'Item de teste ' + branch, 'Cancel preserves unsaved input');
       assert.equal(await page.locator('h2.q').textContent(), heading);
       await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-      await page.getByRole('button', { name: 'Seguir', exact: true }).click();
       const saved = await state();
       await page.reload();
       await page.getByRole('button', { name: 'Continuar de onde parei', exact: true }).click();
@@ -100,6 +97,8 @@ const server = http.createServer(async (req, res) => {
             const cls = await input.getAttribute('class');
             await input.fill(numeric || /valor/.test(cls || '') ? '10' : 'Insumo de teste');
           }
+          /* 17/11 (F8): a unidade não vem marcada; quem não escolhe vê a mensagem e escolhe */
+          for (const sel of await page.locator('#ent select').all()) if (!(await sel.inputValue())) await sel.selectOption('kg');
         }
         await page.getByRole('button', { name: 'Continuar', exact: true }).click();
         // aviso que não trava (ex.: preço 10 para custo 1 = 10 vezes o custo): o 2º Continuar segue
@@ -108,7 +107,8 @@ const server = http.createServer(async (req, res) => {
           await page.getByRole('button', { name: 'Continuar', exact: true }).click();
         }
         assert.equal(await page.locator('#erro').isVisible(), false, 'Valid fixture answer');
-        await page.getByRole('button', { name: /^(Seguir|Ver o resultado)$/ }).click();
+        /* 17/11 (A): Continuar já abriu a tela seguinte (sem "Seguir"/"Corrigir minha resposta") */
+        assert.equal(await page.locator('button').filter({ hasText: /^(Seguir|Corrigir minha resposta)$/ }).count(), 0, 'no extra step after Continuar');
       }
       assert.equal((await state()).hist.at(-1), 'RESULTADO');
       assert.equal(await page.locator('.passo').textContent(), 'Resultado');
@@ -133,7 +133,6 @@ const server = http.createServer(async (req, res) => {
     }
     await page.locator('.opcao').first().click();
     await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-    await page.getByRole('button', { name: 'Seguir', exact: true }).click();
     await restart(true);
     await assertFresh();
     await page.reload();

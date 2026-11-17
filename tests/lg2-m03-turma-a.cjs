@@ -19,6 +19,10 @@ const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
+  /* SABOTAGEM=seguir: volta o passo extra (retorno + 2º toque) | SABOTAGEM=semfixo: tira o Continuar preso ao pé da tela */
+  const sab = process.env.M03_SABOTAGEM;
+  if (sab === 'seguir' && f.endsWith('js/app.js')) return res.end(fs.readFileSync(f, 'utf8').replace('if (vis.length && (!vistoEm || Date.now() - vistoEm < 800)) anterior = vis;', 'if (vis.length) { mostrar(msg, vis); return botoes("mesmo"); }'));
+  if (sab === 'semfixo' && f.endsWith('css/estilo.css')) return res.end(fs.readFileSync(f, 'utf8').replace('.fixo-q{position:sticky;', '.fixo-q{position:static;'));
   fs.createReadStream(f).pipe(res);
 });
 
@@ -164,6 +168,14 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   const RR = async () => (await estado()).R;
   const erroTxt = () => page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden ? e.textContent : ''; });
   const naTela = async (n) => norm(await titulo()) === norm(P(n).pergunta);
+  /* E (lote 17/11): a jornada chama de Etapa; nenhum "Módulo" no texto visível */
+  async function semModulo(onde) { const t = await page.evaluate(() => document.body.innerText); const m = t.match(/.{0,30}m[óo]dulo.{0,30}/i); check(!m, `E: sem "Módulo" no texto visível (${onde}) ${m ? m[0] : ''}`); }
+  /* F (lote 17/11): botões, links-botão e summary com pelo menos 44 px de altura (as fontes do rodapé comum ficam com o pai) */
+  async function alvos44(onde) {
+    const pq = await page.evaluate(() => [...document.querySelectorAll('button, summary, a, [role=button]')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.height < 44 && !e.closest('.p-fontes li'); })
+      .map((e) => `${e.className || e.tagName} "${e.textContent.trim().slice(0, 20)}" ${Math.round(e.getBoundingClientRect().height)}`));
+    check(!pq.length, `F: alvos de toque >= 44 px (${onde}) ${pq.slice(0, 4).join(' | ')}`);
+  }
   async function semCodigos(onde) { check(!/\bP\d{2}\b|M3\.|rafael/i.test(await tela()), `sem códigos/nome na tela (${onde})`); }
   async function fonte16(onde) {
     const pequenos = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => {
@@ -205,14 +217,14 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(capa.h1 === 'Conhecendo o mercado e os concorrentes' && capa.txt === D.inicio.frase, `capa: título e uma frase (${capa.h1})`);
   const capaLeve = await page.evaluate(() => ({ tempo: (document.querySelector('.tempo') || {}).textContent, aberto: document.querySelector('.como-funciona').open,
     dentro: [...document.querySelectorAll('.cartao')].every((c) => c.closest('.como-funciona')), sum: document.querySelector('.como-funciona summary').textContent }));
-  check(capaLeve.tempo === 'Este módulo leva uns 15 minutos.' && capaLeve.sum === 'Como funciona' && !capaLeve.aberto && capaLeve.dentro, `capa leve: tempo + "Como funciona" fechado com os cartões (${JSON.stringify(capaLeve)})`);
+  check(capaLeve.tempo === 'Esta etapa leva cerca de 15 minutos.' && capaLeve.sum === 'Como funciona' && !capaLeve.aberto && capaLeve.dentro, `capa leve: tempo + "Como funciona" fechado com os cartões (${JSON.stringify(capaLeve)})`);
   check(!/Para quem já tem uma ideia/.test(await tela()), 'capa leve: explicações só ao abrir "Como funciona"');
   const palavrasTela = () => page.evaluate(() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + n(e.innerText), 0); });
   check(capa.cart[0].p === 'Para quem já tem uma ideia de negócio, mas quer pesquisar melhor o mercado, descobrir quem faz a mesma coisa e saber como se destacar na sua região.', 'capa: "Para quem é" simples');
   check(capa.cart[1].li.length === 3 && capa.cart[1].li[0] === 'A descrição simples da sua ideia de negócio.', 'capa: "O que ter em mãos" em 3 itens curtos');
-  check(capa.cart[2].li.length === 3 && capa.cart[2].li.some((x) => /Módulo 4: Produto, proposta de valor e teste da ideia/.test(x)) && !/Oferta e experimentação|Oferta e Testes/.test(capa.cart[2].li.join(' ')), 'capa: entrega com o nome certo do Módulo 4');
+  check(capa.cart[2].li.length === 3 && capa.cart[2].li.some((x) => /Etapa 4: Produto, proposta de valor e teste da ideia/.test(x)) && !/Oferta e experimentação|Oferta e Testes/.test(capa.cart[2].li.join(' ')), 'capa: entrega com o nome certo do Módulo 4');
   check(capa.ir, 'capa: Começar visível');
-  await semCodigos('capa'); await fonte16('capa');
+  await semCodigos('capa'); await fonte16('capa'); await semModulo('capa');
   check(await page.evaluate(() => [...document.querySelectorAll('.rodape img')].map((i) => i.alt).join()) === 'FACC,UFJF,Governo de Minas Gerais', 'rodapé com FACC/UFJF/MG');
   await shot('l4_m03_capa');
 
@@ -422,7 +434,8 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(JSON.stringify(await estado()) === antes7, 'P07 Não sei: nada é gravado ao tocar');
   await shot('l5_m03_p07_naosei');
   await clicar('#ok', 'Continuar'); await espera();
-  check(await naTela('7') && (await caixasR('#msg .caminho')).some((c) => c.tipo === 'Alerta') && await page.evaluate(() => /Marque pelo menos uma opção para continuar\./.test(document.querySelector('#msg').textContent)) && JSON.stringify(await estado()) === antes7, 'P07: só "Não sei" não deixa seguir');
+  check(await naTela('7') && await erroTxt() === 'Marque pelo menos uma opção para continuar.' && JSON.stringify(await estado()) === antes7, 'P07: só "Não sei" não deixa seguir (mensagem logo acima do Continuar)');
+  check((await caixasR('#msg .caminho')).some((c) => c.tit === 'USE A IA COM CUIDADO'), 'P07: o pedido para a IA do "Não sei" continua à vista depois da mensagem');
   check(await page.locator('#msg .como-descobrir').count() === 1, 'P07: os passos continuam à vista depois do aviso');
   await clicar('.opcao', 'Preço dos insumos subindo'); await clicar('.opcao', 'Outro'); await espera();
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op))) === '["Preço dos insumos subindo","Outro"]', 'P07: marcar uma opção tira o "Não sei"');
@@ -458,10 +471,10 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]);
   await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', 'Outro'); await espera();
   await page.locator('.campo-outro').fill('Festa de aniversário');
-  await clicar('.chip', 'Até 10 anos (infantil)');
+  await clicar('.chip', 'Até 10 anos (infantil)'); await espera(900);
+  check(await page.evaluate(() => [...document.querySelectorAll('#msg .caminho')].some((b) => b.dataset.op === 'Campos complementares incompletos')), 'A: P10 incompleto mostra a dica ao vivo, antes do Continuar');
   await clicar('#ok', 'Continuar'); await espera();
-  check(await clicar('#ok', 'Continuar mesmo assim'), 'P10: perfil incompleto não trava (Continuar mesmo assim)');
-  await espera();
+  check(await page.locator('#ok').textContent() !== 'Continuar mesmo assim' && await naTela('12'), 'A: P10 perfil incompleto segue com UM toque (sem "Continuar mesmo assim")');
   let R5 = await RR();
   check(R5['M3.P10'].opcao === PESSOAS && R5['M3.P10'].campos['Onde mora'] === LUGARES[0] && R5['M3.P10'].campos[DOR] === `${DORES[1]}; Outro: Festa de aniversário` && R5['M3.P10'].campos.Idade === 'Até 10 anos (infantil)',
     `P10: marcas guardadas como texto, no formato que os outros módulos leem (${JSON.stringify(R5['M3.P10'].campos)})`);
@@ -483,16 +496,14 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(!Motor.telas(MM, R6, { m2: { tipo: 'Os dois' } }).some((t) => t[0] === 'M3.P10'), 'Módulo 2: a tela do perfil não aparece de novo');
   const card2 = await page.evaluate(() => { const c = document.querySelector('.herdado-mini[data-cod="M3.P10"]'); return c && { selo: c.querySelector('.selo-m').textContent, txt: c.querySelector('.herdado-txt').textContent, b: c.querySelector('.trocar-h').textContent,
     antes: !!(c.compareDocumentPosition(document.querySelector('h2.q')) & Node.DOCUMENT_POSITION_FOLLOWING) }; });
-  check(card2 && card2.selo === 'Veio do Módulo 2' && card2.txt === 'Quem compra de você: Pessoas comuns e Empresas' && card2.b === 'Trocar' && card2.antes, `Módulo 2: cartão na tela seguinte, acima da pergunta (${JSON.stringify(card2)})`);
+  check(card2 && card2.selo === 'Veio da Etapa 2' && card2.txt === 'Quem compra de você: Pessoas comuns e Empresas' && card2.b === 'Trocar' && card2.antes, `Módulo 2: cartão na tela seguinte, acima da pergunta (${JSON.stringify(card2)})`);
   await shot('l5_m03_cartao_modulo2');
   await clicar('.trocar-h', 'Trocar'); await espera();
   const h2 = await page.evaluate(() => ({ sel: [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op), selo: (document.querySelector('.selo-m') || {}).textContent,
     chips: [...document.querySelectorAll('.campos .chip.sel')].map((c) => c.textContent) }));
-  check(await naTela('10') && JSON.stringify(h2.sel) === `["${PESSOAS}","Empresas"]` && h2.selo === 'Veio do Módulo 2. Confira e troque se quiser.', `Módulo 2: "Trocar" abre o perfil já marcado, com selo (${JSON.stringify(h2)})`);
+  check(await naTela('10') && JSON.stringify(h2.sel) === `["${PESSOAS}","Empresas"]` && h2.selo === 'Veio da Etapa 2. Confira e troque se quiser.', `Módulo 2: "Trocar" abre o perfil já marcado, com selo (${JSON.stringify(h2)})`);
   check(['60 anos ou mais', 'Aposentados', LUGARES[0], DORES[3]].every((x) => h2.chips.includes(x)), 'Módulo 2: marcas do perfil vindas do Módulo 2');
   await clicar('.opcao', 'Empresas'); await clicar('#ok', 'Continuar'); await espera();
-  if (await page.locator('#ok').textContent() === 'Continuar mesmo assim') await clicar('#ok', 'Continuar mesmo assim');
-  await espera();
   R6 = await RR();
   check(JSON.stringify(R6['M3.P10'].opcoes) === `["${PESSOAS}"]` && !R6['M3.P10'].herdado && R6['M3.P10'].campos.Idade === '60 anos ou mais' && await naTela('12'), 'Módulo 2: a troca fica guardada neste módulo e volta para a 12');
   check(await page.locator('.herdado-mini[data-cod="M3.P10"]').count() === 0 && Motor.telas(MM, R6, { m2: { tipo: 'Os dois' } }).some((t) => t[0] === 'M3.P10'), 'Módulo 2: depois de trocar, a pergunta passa a ser da pessoa (sem cartão)');
@@ -514,7 +525,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   const cx13 = await caixasR('#msg .caminho');
   check(cx13.length === 1 && /ainda não defini como vou vender/.test(cx13[0].prompt) && cx13[0].tit === 'USE A IA COM CUIDADO', 'P13: prompt para quem ainda não definiu, com o aviso');
   await clicar('#ok', 'Continuar'); await espera();
-  check(await naTela('13') && await page.evaluate(() => /Marque pelo menos um canal para continuar\./.test(document.querySelector('#msg').textContent)), 'P13: precisa marcar um canal');
+  check(await naTela('13') && await erroTxt() === 'Marque pelo menos um canal para continuar.', 'P13: precisa marcar um canal');
   await clicar('.opcao', 'Aplicativo de entrega'); await espera();
   check((await caixasR('#msg .caminho')).some((c) => c.tipo === 'Dica'), 'P13: aplicativo de entrega mostra a dica da taxa ao tocar');
   await clicar('.opcao', 'Aplicativo de entrega'); await clicar('.opcao', 'WhatsApp'); await clicar('.opcao', 'Outro'); await page.locator('.extra textarea').fill('Feira de domingo');
@@ -548,9 +559,8 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   await abrir('18', NOMES2);
   await concTxt('Doces da Ana', 'Abre cedo, entrega no bairro');
   await clicar('#ok', 'Continuar'); await espera();
-  check(/Você não respondeu para Padaria Central/.test(await erroTxt()) && await naTela('18') && !(await RR())['M3.P18'], 'concorrentes: um sem resposta avisa sem gravar');
-  await clicar('#ok', 'Continuar mesmo assim'); await espera();
-  check(JSON.stringify((await RR())['M3.P18'].porNome) === JSON.stringify({ 'Doces da Ana': 'Abre cedo, entrega no bairro' }) && await naTela('20'), 'concorrentes: "Continuar mesmo assim" grava só o respondido');
+  check(JSON.stringify((await RR())['M3.P18'].porNome) === JSON.stringify({ 'Doces da Ana': 'Abre cedo, entrega no bairro' }) && await naTela('20'), 'A: concorrente sem resposta não é passo extra: um toque grava só o respondido e segue');
+  check(/Você não respondeu para Padaria Central/.test(await page.evaluate(() => (document.querySelector('.sobre-ant') || {}).textContent || '')) && /Sobre a sua resposta anterior/.test(await page.evaluate(() => (document.querySelector('.sobre-ant b') || {}).textContent || '')), 'A: o aviso do concorrente sem resposta vem no topo da próxima tela');
 
   /* ============ R9. preço de cada concorrente (P20): menor e maior, erros e aviso ============ */
   await abrir('20', NOMES1);
@@ -603,11 +613,11 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   const b1 = await page.evaluate(() => { const c = document.querySelector('.herdado-mini[data-cod="M3.P01"]'); return { kick: document.querySelector('.passo').textContent, txt: c && c.querySelector('.herdado-txt').textContent,
     selo: c && c.querySelector('.selo-m').textContent, trocar: c && c.querySelector('.trocar-h').textContent }; });
   check(await atual() === 'M3.P02' && norm(await titulo()) === norm(P(2).variantes.ideia.pergunta) && b1.kick === 'Pergunta 1 de 21', `Módulo 1: a pergunta "o que vende" não aparece; começa na 2 (${b1.kick})`);
-  check(b1.txt === 'O que você vende: lavagem de carro em casa (serviço)' && b1.selo === 'Veio do Módulo 1' && b1.trocar === 'Trocar', `Módulo 1: cartão com o que veio e "Trocar" (${JSON.stringify(b1)})`);
+  check(b1.txt === 'O que você vende: lavagem de carro em casa (serviço)' && b1.selo === 'Veio da Etapa 1' && b1.trocar === 'Trocar', `Módulo 1: cartão com o que veio e "Trocar" (${JSON.stringify(b1)})`);
   check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'lavagem de carro em casa (serviço)', doM1: true }), 'Módulo 1: a resposta fica gravada com a marca de herança (outros módulos leem)');
   await shot('l5_m03_cartao_modulo1');
   await clicar('.trocar-h', 'Trocar'); await espera();
-  check(await page.inputValue('#ent textarea') === 'lavagem de carro em casa (serviço)' && await page.evaluate(() => (document.querySelector('.selo-m') || {}).textContent) === 'Veio do Módulo 1. Confira e ajuste se quiser.', 'Módulo 1: "Trocar" abre o campo com o que veio, com o selo');
+  check(await page.inputValue('#ent textarea') === 'lavagem de carro em casa (serviço)' && await page.evaluate(() => (document.querySelector('.selo-m') || {}).textContent) === 'Veio da Etapa 1. Confira e ajuste se quiser.', 'Módulo 1: "Trocar" abre o campo com o que veio, com o selo');
   await digitar('Lava-jato que vai até a casa do cliente'); await clicar('#ok', 'Continuar'); await espera();
   check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'Lava-jato que vai até a casa do cliente' }) && await atual() === 'M3.P02', 'Módulo 1: a troca fica guardada neste módulo e volta para a 2');
   check(await page.locator('.herdado-mini').count() === 0 && await kicker() === 'Pergunta 2 de 22', 'Módulo 1: depois de trocar, a pergunta volta a contar como da pessoa (sem cartão)');
@@ -647,9 +657,10 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await abrir('2');
-  check(await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'radiogroup'), 'Sim/Não: escolha única');
+  check(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].every((b) => b.getAttribute('aria-pressed') === 'false' && !b.hasAttribute('role'))), 'D: opções começam com aria-pressed="false"');
   for (const o of ['Sim', 'Não', 'Sim']) await page.locator(`#ent .opcao[data-op="${o}"]`).click();
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op))) === '["Sim"]', 'Sim/Não: só a última fica marcada');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.dataset.op + '=' + x.getAttribute('aria-pressed')))) === '["Sim=true","Não=false"]', 'D: escolha única: aria-pressed true na escolhida e false nas outras');
   check(await page.evaluate(() => getComputedStyle(document.querySelector('#ent .opcao')).webkitTapHighlightColor === 'rgba(0, 0, 0, 0)'), 'Sim/Não: sem realce azul do toque');
   for (const [n, R0] of [['2', {}], ['10', {}], ['15', {}], ['20', NOMES1], ['19', NOMES1], ['22B', NOMES1]]) {
     await abrir(n, R0);
@@ -657,8 +668,9 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
     check(v.n === 1 && v.acima && v.txt === 'Voltar', `Voltar no topo do cartão (tela ${n})`);
   }
   await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
-  await clicar('#limites', 'O que este módulo não faz'); await espera();
-  check(/Limites do módulo/.test(await tela()) && !/Quando procurar um profissional/.test(await tela()), 'limites: abre sem o quadro de profissional');
+  await clicar('#limites', 'O que esta etapa não faz'); await espera();
+  await semModulo('limites'); await alvos44('limites');
+  check(/Limites da etapa/.test(await tela()) && !/Quando procurar um profissional/.test(await tela()), 'limites: abre sem o quadro de profissional');
   await clicar('#v', 'Voltar'); await espera();
   check(await page.evaluate(() => !!document.querySelector('#ir')), 'limites: Voltar abre a capa');
 
@@ -711,8 +723,13 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
     }
     else if (n === '21') await digitar('Entrego no mesmo dia e faço sob medida');
     else await digitar(`Resposta da pergunta ${n} com detalhe`);
+    check(await page.evaluate(() => { const b = document.querySelector('#ok'); return !!b && !b.disabled && b.getAttribute('aria-disabled') !== 'true'; }), `B: Continuar sempre ativo (pergunta ${n})`);
     await clicar('#ok', 'Continuar'); await espera();
-    for (let k = 0; k < 2; k++) { const b = await page.$('#ok'); if (b && /Seguir|mesmo/.test(await b.textContent())) { await b.click(); await espera(); } }
+    /* A: um toque grava e já abre a próxima (ou o resultado); nada de "Seguir" nem "Corrigir minha resposta" */
+    const depois = await atual();
+    check(depois !== cod, `A: pergunta ${n} avança com UM toque em Continuar (${cod} → ${depois})`);
+    check(!(await page.evaluate(() => [...document.querySelectorAll('button')].some((b) => /^(Seguir|Corrigir minha resposta)$/.test(b.textContent.trim())))), `A: sem "Seguir"/"Corrigir minha resposta" depois da pergunta ${n}`);
+    check(await page.evaluate(() => { const a = document.activeElement; return !!a && (a.matches('h2.q') || a.matches('.conc-topo h2')); }), `D: depois de Continuar, o foco vai para o enunciado (${n})`);
     return n;
   }
   async function caminho(p02) {
@@ -772,7 +789,9 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
     && res.quadro.oportunidades.includes('Você se sai melhor que Doces da Ana em preço') && res.quadro.oportunidades.includes('Você se sai melhor que Padaria Central em qualidade'), `quadro: oportunidades montadas com as respostas (${res.quadro.oportunidades})`);
   check(res.quadro.ameacas.includes('O que pode atrapalhar: concorrente novo') && res.quadro.ameacas.includes('As pessoas podem escolher no lugar: lanche da padaria e fazer em casa ou sozinho')
     && res.quadro.ameacas.includes('Doces da Ana se sai melhor que você em atendimento e prazo (tempo para entregar)') && res.quadro.ameacas.includes('Padaria Central se sai melhor que você em preço'), `quadro: ameaças montadas com as respostas (${res.quadro.ameacas})`);
-  check(res.prox === 'Ir para o Módulo 4', 'resultado: botão do próximo módulo');
+  check(res.prox === 'Ir para a Etapa 4', 'E: resultado: link exato "Ir para a Etapa 4" na caixa lg2-proximo');
+  check(await page.evaluate(() => { const a = document.querySelector('.acoes.lg2-proximo a'); const r = a.getBoundingClientRect(); return r.height >= 44 && getComputedStyle(a).visibility === 'visible'; }), 'resultado: lg2-proximo visível');
+  await semModulo('resultado'); await alvos44('resultado');
   const leve = await page.evaluate(() => { const t = document.querySelector('#tarefa'), e = document.querySelector('#entendemos');
     return { tarefa: t && t.querySelector('b').textContent, txt: t && t.querySelector('p').textContent, ordem: !!(t && (e.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)),
       abertos: [...document.querySelectorAll('.resultado-mais, #respostas')].every((d) => d.open), n: document.querySelectorAll('.resultado-mais').length,
@@ -787,7 +806,11 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(await naTela('1') && await page.inputValue('#ent textarea') === 'Resposta da pergunta 1 com detalhe', 'Revisar respostas: volta à 1ª pergunta com a resposta');
   const cNao = await caminho('Não');
   check(JSON.stringify(cNao.vistos) === JSON.stringify(TELAS_NAO), `P02 Não: 17 telas (${cNao.vistos.join(',')})`);
-  check(cNao.kicks[2] === 'Pergunta 3 de 17', `P02 Não: contagem do topo encolhe para 17 (${cNao.kicks[2]})`);
+  check(cNao.kicks[2] === 'Pergunta 3 de 22', `G: P02 Não: o total do topo não pula no meio (${cNao.kicks[2]})`);
+  for (const [nome, ks] of [['Sim', cSim.kicks], ['Não', cNao.kicks]]) {
+    const ns = ks.map((k) => k.match(/^Pergunta (\d+) de (\d+)$/)).map((m) => m && [+m[1], +m[2]]);
+    check(ns.every(Boolean) && new Set(ns.map((x) => x[1])).size === 1 && ns.every((x, i) => i === 0 || x[0] === ns[i - 1][0] + 1), `G: P02 ${nome}: total estável e número que só anda para frente (${ks.join(', ')})`);
+  }
   const qNao = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#quadro-conc .q-cel')].map((c) => [c.dataset.q, { li: c.querySelectorAll('li').length, txt: c.textContent }])));
   check(qNao.oportunidades.li === 0 && /a anotar/.test(qNao.oportunidades.txt) && !/O que pode atrapalhar/.test(qNao.ameacas.txt), 'quadro: só com o que foi respondido; sem invenção');
   check(await page.evaluate(() => document.querySelector('.res-num .val').textContent.trim()) === '17 de 17', 'P02 Não: resultado conta 17 de 17');
@@ -823,7 +846,6 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(antigo10.includes('Você tinha escrito: Centro') && antigo10.includes('Você tinha escrito: Falta de tempo'), 'perfil antigo: o texto escrito antes aparece e não se perde');
   await clicar('.item-marcar[data-c="Onde mora"] .chip', LUGARES[1]);
   await clicar('#ok', 'Continuar'); await espera();
-  if (await page.locator('#ok').textContent() === 'Continuar mesmo assim') await clicar('#ok', 'Continuar mesmo assim');
   check((await RR())['M3.P10'].campos['Onde mora'] === `${LUGARES[1]}; Centro`, 'perfil antigo: marcar uma opção mantém o texto antigo junto');
   /* versão 7 (antes deste lote): "Não sei" vira sem resposta; o resto fica e aparece no resultado */
   await page.goto(URL);
@@ -864,6 +886,101 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   await page.evaluate((s) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m03', s); }, JSON.stringify({ v: 8, R: { 'M3.P01': { estado: 'valor', valor: 'Bolo da turma B' } }, hist: ['M3.P01'] }));
   await page.reload(); await espera();
   check((await RR())['M3.P01'].valor === 'Bolo da turma B' && await page.evaluate(() => document.querySelector('#ir').textContent === 'Continuar de onde parei'), 'chave antiga da turma B (versão atual): as respostas vêm para a turma A');
+
+
+  /* ============ R16. lote 17/11 "tira a fricção" (A–G) ============ */
+  await page.setViewportSize({ width: 390, height: 844 });
+  /* A: retorno ao vivo num campo de texto (antes de tocar Continuar) e UM toque para seguir */
+  await abrir('4');
+  await digitar('Pix'); await espera(900);
+  const vivo4 = await caixasR('#msg .caminho');
+  check(vivo4.length === 1 && vivo4[0].tipo === 'Dica' && await naTela('4'), `A: texto curto mostra a dica ao vivo, sem tocar Continuar (${vivo4.map((c) => c.tipo)})`);
+  await espera(1000);   // a pessoa lê a dica antes de tocar
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('5') && (await RR())['M3.P04'].valor === 'Pix', 'A: com a dica à vista, UM toque em Continuar grava e abre a próxima');
+  check(!(await page.locator('.sobre-ant').count()), 'A: retorno já visto ao vivo não se repete na próxima tela');
+  /* ao sair do campo o retorno aparece na hora */
+  await abrir('5'); await digitar('Sim'); await page.locator('#ent textarea').evaluate((t) => t.blur()); await espera(150);
+  check((await caixasR('#msg .caminho')).length === 1, 'A: ao sair do campo, o retorno aparece sem esperar');
+  /* tocou Continuar logo depois de digitar: o retorno vai num cartão pequeno no topo da próxima tela */
+  await abrir('5'); await digitar('Sim'); await clicar('#ok', 'Continuar'); await espera();
+  const sob = await page.evaluate(() => { const c = document.querySelector('.sobre-ant'); return c && { t: c.querySelector('b').textContent, p: c.querySelector('p').textContent, antes: !!(c.compareDocumentPosition(document.querySelector('h2.q')) & Node.DOCUMENT_POSITION_FOLLOWING) }; });
+  check(await naTela('7') && sob && sob.t === 'Sobre a sua resposta anterior' && sob.p === P(5).caminhos.find((c) => c.opcao === 'Resposta vazia ou muito curta').texto && sob.antes, `A: retorno não visto vai para o topo da próxima tela (${JSON.stringify(sob)})`);
+  /* escolha: retorno no toque */
+  await abrir('9'); await clicar('.opcao', 'Também fora do Brasil'); await espera();
+  check((await caixasR('#msg .caminho')).some((c) => c.tipo === 'Dica') && await naTela('9'), 'A: escolha mostra o retorno no toque');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('10') && !(await page.evaluate(() => [...document.querySelectorAll('button')].some((b) => /^(Seguir|Corrigir minha resposta)$/.test(b.textContent.trim())))), 'A: escolha com retorno segue com UM toque');
+  /* só o aviso de risco real (preço fora do comum) pede o 2º toque: coberto em R9 */
+
+  /* B: Continuar sempre ativo; sem resposta, mensagem simples logo acima do botão, com role="alert" */
+  for (const [n, R0, esperado] of [['2', {}, 'Escolha uma opção para continuar.'], ['5', {}, 'Escreva a sua resposta no campo acima para continuar.']]) {
+    await abrir(n, R0);
+    check(await page.evaluate(() => !document.querySelector('#ok').disabled), `B: Continuar ativo sem resposta (pergunta ${n})`);
+    await clicar('#ok', 'Continuar'); await espera();
+    const e = await page.evaluate(() => { const e = document.querySelector('#erro'), ok = document.querySelector('#ok'); const a = e.getBoundingClientRect(), b = ok.getBoundingClientRect();
+      return { txt: e.textContent, role: e.getAttribute('role'), acima: a.bottom <= b.top + 1 && b.top - a.bottom < 40, vis: a.top >= 0 && b.bottom <= innerHeight }; });
+    check(e.txt === esperado && e.role === 'alert' && e.acima && e.vis, `B: mensagem logo acima do Continuar, à vista (${n}: ${JSON.stringify(e)})`);
+  }
+
+  /* C: Continuar inteiro dentro da tela, sem rolar: 360x640, 390x844 com letra 130% e 740x360, em todas as perguntas */
+  const N2 = NOMES2, PREC = { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } };
+  for (const n of TELAS_SIM) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await abrir(n, Object.assign({}, PREC, ['18', '20', '22', '22B', '19'].includes(n) ? N2 : {}), {}, n === '3' ? T3 : null);
+    const fora = [];
+    for (const [w, h, fs] of [[360, 640, ''], [390, 844, '130%'], [740, 360, '']]) {
+      await page.setViewportSize({ width: w, height: h });
+      const m = await page.evaluate((fs) => { document.documentElement.style.fontSize = fs; window.scrollTo(0, 0); const b = document.querySelector('#ok').getBoundingClientRect();
+        return { y: Math.round(scrollY), top: Math.round(b.top), bot: Math.round(b.bottom), h: innerHeight }; }, fs);
+      if (!(m.y === 0 && m.top >= 0 && m.bot <= m.h)) fora.push(`${w}x${h}${fs}: ${JSON.stringify(m)}`);
+    }
+    await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+    check(!fora.length, `C: Continuar à vista sem rolar (pergunta ${n}) ${fora.join(' ')}`);
+  }
+  await page.setViewportSize({ width: 360, height: 640 });
+  await abrir('10'); await clicar('.opcao', PESSOAS); await clicar('.opcao', 'Empresas'); await espera();
+  const ultimo = await page.evaluate(() => { window.scrollTo(0, document.scrollingElement.scrollHeight); const cs = [...document.querySelectorAll('.cartao-q button, .cartao-q input, .cartao-q textarea')].filter((e) => e.offsetParent);
+    const u = cs[cs.length - 1].getBoundingClientRect(), f = document.querySelector('#fixo').getBoundingClientRect(); return { u: Math.round(u.bottom), f: Math.round(f.top) }; });
+  check(ultimo.u <= ultimo.f, `C: rolando até o fim, o último campo não fica embaixo do Continuar fixo (${JSON.stringify(ultimo)})`);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  /* D: múltipla, marcadores e tabela dizem se estão marcados; foco no enunciado depois de Continuar */
+  await abrir('7'); await clicar('.opcao', 'Concorrente novo'); await clicar('.opcao', 'Mudança de regra');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.dataset.op))) === '["Concorrente novo","Mudança de regra"]'
+    && await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].every((b) => ['true', 'false'].includes(b.getAttribute('aria-pressed')))), 'D: múltipla escolha com aria-pressed');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('8') && await page.evaluate(() => document.activeElement && document.activeElement.matches('h2.q') && document.activeElement.getAttribute('tabindex') === '-1'), 'D: depois de Continuar, o foco está no enunciado da pergunta nova');
+  await abrir('10'); await clicar('.opcao', PESSOAS); await clicar('.item-marcar[data-c="Idade"] .chip', '18 a 29 anos');
+  check(await page.evaluate(() => { const cs = [...document.querySelectorAll('.item-marcar[data-c="Idade"] .chip')]; return cs.every((c) => c.getAttribute('aria-pressed') === String(c.textContent === '18 a 29 anos')); }), 'D: marcadores do perfil com aria-pressed');
+  await abrir('19', NOMES1); await marcaC('Doces da Ana', 'Preço', 0);
+  check(await page.evaluate(() => [...document.querySelectorAll('.t-linha[data-crit="Preço"] .t-op')].map((b) => b.getAttribute('aria-pressed')).join() === 'true,false,false'), 'D: Melhor/Igual/Pior com aria-pressed');
+  await abrir('3', {}, {}, T3); await page.locator('#ent .opcao').nth(0).click();
+  check(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.getAttribute('aria-pressed')).join() === 'true,false,false,false'), 'D: alternativas da pergunta 3 com aria-pressed');
+
+  /* E/F: perguntas sem "Módulo" e com alvos de toque >= 44 px (inclusive dica aberta, Não sei aberto, cartão Veio da Etapa) */
+  for (const [n, R0, extra] of [['3', {}, 'ns'], ['4', {}, 'ns'], ['7', {}, 'dica'], ['10', {}, 'campos'], ['15', {}, 'ns'], ['18', NOMES1, 'ns'], ['19', NOMES1, ''], ['20', NOMES1, 'ns']]) {
+    await abrir(n, R0, {}, n === '3' ? T3 : null);
+    if (extra === 'ns') { await page.locator('#ns').click(); await espera(); }
+    if (extra === 'dica') await page.locator('.dica-q summary').click();
+    if (extra === 'campos') { await clicar('.opcao', PESSOAS); await espera(); }
+    await semModulo(`pergunta ${n}`); await alvos44(`pergunta ${n}${extra ? ' + ' + extra : ''}`);
+  }
+  await abrir('12', {}, { 'lg2-turma-b-m02': { v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' } } } });
+  await semModulo('cartão Veio da Etapa 2'); await alvos44('cartão Veio da Etapa 2');
+  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
+  await page.locator('.como-funciona summary').click(); await semModulo('capa aberta'); await alvos44('capa com Como funciona aberto');
+
+  /* G: tempo da capa = ~35 s por pergunta do caminho mais comum, em múltiplo de 5 min */
+  const min = (n) => Math.max(5, Math.round((n * 35) / 60 / 5) * 5);
+  check(min(22) === 15 && min(20) === 10, 'G: conta do tempo (22 perguntas → 15 min; 20 → 10 min)');
+  await page.goto(URL);
+  await page.evaluate(([m1, m2]) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); localStorage.setItem('lg2-turma-b-m02', m2); },
+    [JSON.stringify({ v: 3, R: { 'M1.P03': { estado: 'valor', valor: 'bolo caseiro' } } }), JSON.stringify({ v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' } } })]);
+  await page.reload(); await espera();
+  check(await page.evaluate(() => document.querySelector('.tempo').textContent) === 'Esta etapa leva cerca de 10 minutos.', 'G: com as Etapas 1 e 2 feitas (20 perguntas), a capa promete 10 minutos');
+  await clicar('#ir', 'Começar'); await espera();
+  check(await kicker() === 'Pergunta 1 de 20', `G: com as Etapas 1 e 2 feitas, o contador é de 20 (${await kicker()})`);
 
   check(erros.length === 0, 'sem erros de JavaScript: ' + erros.join(' | '));
   await browser.close(); servidor.close();

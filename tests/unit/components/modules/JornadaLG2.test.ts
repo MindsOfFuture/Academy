@@ -19,14 +19,16 @@ describe("Jornada completa do LG2", () => {
     expect(lidos).toEqual(esperado);
   });
 
-  it("tem o painel 'Seu negócio até aqui' no topo, com Fechar e a nota de revisão", () => {
+  it("tem o painel 'Meu resumo e plano' no topo, com Fechar, o plano e a nota de revisão", () => {
     const html = readFileSync(path.join(process.cwd(), "public/lg2/jornada/index.html"), "utf8");
     const topo = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
     expect(topo).toContain('id="abre-painel"');
-    expect(topo).toContain("Seu negócio até aqui");
+    expect(topo).toContain("Meu resumo e plano");
+    expect(html).toContain('id="baixa-plano-painel"');
+    expect(html).toContain('id="baixa-plano-trilha"');
     expect(html).toMatch(/role="dialog"[^>]*aria-modal="true"/);
     expect(html).toContain('id="fecha-painel">Fechar</button>');
-    expect(html).toContain("Montado com o que você respondeu. Se algo não estiver certo, abra o módulo e corrija.");
+    expect(html).toContain("Montado com o que você respondeu. Se algo não estiver certo, abra a etapa e corrija.");
     expect(jornada).toContain("Abrir para revisar");
     expect(jornada).toContain("'Escape'");
   });

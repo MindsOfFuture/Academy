@@ -93,7 +93,7 @@
   /* Textos novos tirados do documento de correções (15/10 e 22/10). */
   const NOTA_CONSUMO = {
     titulo: "Materiais de consumo e equipamentos",
-    texto: "Ingredientes, embalagens e materiais utilizados durante um atendimento entram no cálculo conforme a quantidade consumida. Já itens como formas, panelas, máquinas e tesouras não devem ter seu valor total de compra colocado como custo de um único produto ou atendimento: essas compras são investimentos e são registradas no Módulo 6.",
+    texto: "Ingredientes, embalagens e materiais utilizados durante um atendimento entram no cálculo conforme a quantidade consumida. Já itens como formas, panelas, máquinas e tesouras não devem ter seu valor total de compra colocado como custo de um único produto ou atendimento: essas compras são investimentos e são registradas na Etapa 6.",
     exemplo: "Se você trabalha como cabeleireiro, informe quanto de shampoo usa em cada atendimento. Não coloque o preço inteiro da tesoura como gasto de um único corte.",
     exemploProduto: "Se você faz bolos, informe quanto de farinha usa em cada receita. Não coloque o preço inteiro da forma ou da batedeira como gasto de um único bolo.",
   };
@@ -125,7 +125,7 @@
   };
   const MSG_SEM_SOBRA = "Com esses valores, cada venda não deixa sobra para cobrir os gastos do mês. Por isso, aumentar a quantidade vendida não resolve o problema.";
   const MSG_SIMULACAO = "Você ainda não vende com frequência: este resultado é uma simulação feita com estimativas.";
-  const MSG_ACIMA_MERCADO = "Seu preço está acima da faixa de mercado que você informou no Módulo 3. Avalie se os clientes percebem benefícios que justifiquem esse preço. A decisão final é sua.";
+  const MSG_ACIMA_MERCADO = "Seu preço está acima da faixa de mercado que você informou na Etapa 3. Avalie se os clientes percebem benefícios que justifiquem esse preço. A decisão final é sua.";
   const MSG_TEMPO = "Com o tempo informado, essa quantidade de atendimentos exige mais horas do que você tem disponíveis. Quer conferir esses dados?";
   /* Horas por mês, no máximo, pela resposta da pergunta 5 do Módulo 1 (todos os dias do mês).
      "Mais de 3 horas" e "Só nos fins de semana" não têm limite em número: não há comparação. */
@@ -149,7 +149,9 @@
     "M5.P26", "M5.P28", "M5.P30", "M5.P32", "M5.P34", "M5.P35", "M5.PH", "M5.SZ", "M5.ENT"];
   /* "Ainda não defini" (P36) é o mesmo que "Não sei": sai das opções (fica um "Não sei" só, que bloqueia). */
   const IGUAL_NAO_SEI = /^(ainda n[ãa]o defini|ainda n[ãa]o pensei( nisso)?|ainda n[ãa]o sei)$/i;
-  const MSG_RESPONDA_SEM_NS = "Responda para continuar.";
+  const MSG_RESPONDA_SEM_NS = "Escreva a sua resposta para continuar.";
+  /* 17/11 (F8): a unidade de cada item não vem marcada; sem escolher, mensagem simples */
+  const MSG_UNIDADE = "Escolha a unidade de cada item (kg, g, L, ml, unidade ou outro).";
   const MSG_ESCOLHA_SEM_NS = "Escolha uma opção para continuar.";
   const MSG_ESCREVA = "Use a ajuda acima e escreva a sua resposta para continuar.";
   const MSG_ESCOLHA = "Use a ajuda acima e escolha uma opção para continuar.";
@@ -290,6 +292,10 @@
 
   /* Próxima pergunta: "Ir para Pxx" da regra; se não houver, a coluna
      Próximo passo da pergunta (com os desvios Sim/Não escritos pelo grupo). */
+  /* 17/11 (relatório F8): preço pago e quanto vem na compra ficam NA MESMA TELA (código da tela = P04/P20), para o
+     preço dizer de quê ele é ("Preço de 1 kg"). As respostas continuam separadas e no mesmo formato (P04/P05, P20/P21). */
+  const JUNTAS = { "M5.P04": "M5.P05", "M5.P20": "M5.P21" };
+  const JUNTAS_PROX = { "M5.P04": "M5.P06", "M5.P20": "M5.P22" };
   function proxima(M, q, resp, r) {
     if (q.codigo === P_INICIAL) return "M5.P01";      // pergunta do Módulo 1 -> tipo de oferta
     if (q.codigo === P_FORMAS) return "M5.P24";       // formas de pagamento -> taxas
@@ -300,6 +306,7 @@
     if (q.codigo === "M5.P37") return P_SAZONAL;      // quantidade -> época do ano -> preço
     if (q.codigo === P_SAZONAL) return "M5.P36";
     if (q.codigo === "M5.P36") return PRECO;          // depois do preço, a análise do preço
+    if (JUNTAS[q.codigo]) return JUNTAS_PROX[q.codigo]; // 17/11: preço e quantidade comprada na mesma tela
     const p = proximaPlanilha(M, q, resp, r);
     if (p === "M5.P24") return P_ENTREGA;             // quem ia para as taxas passa antes pela entrega e pelas formas de pagamento
     return p === "M5.P36" ? "M5.P37" : p;             // quem ia para o preço vai antes para a quantidade
@@ -395,7 +402,8 @@
     }
     if (c === "por-item-unidade") {
       const vs = valor || [];
-      if (vs.some((x) => num(x.q) === null || !x.u)) return falha;
+      if (vs.some((x) => num(x.q) === null)) return falha;
+      if (vs.some((x) => !x.u)) return MSG_UNIDADE;
       if (vs.some((x) => num(x.q) <= 0) && /maior que zero/i.test(msg)) return msg;
       if (vs.some((x) => num(x.q) < 0)) return falha;
       const ant = anteriorPorItem(M, q, R);
@@ -798,7 +806,7 @@
     if (!(total > teto)) return null;
     const tipo = (R["M5.P01"] && R["M5.P01"].estado === "opcao") ? rotulo(R["M5.P01"].opcao) : null;
     return { total, teto, opcao,
-      texto: `No Módulo 1, sobre quanto dinheiro pode usar no negócio, você respondeu “${opcao}”. Só o que você informou aqui para ${O_QUE_COMPRA[tipo] || "as compras"} soma ${brl(total)}, acima desse valor. Confira os valores ou pense em começar com uma compra menor.` };
+      texto: `Na Etapa 1, sobre quanto dinheiro pode usar no negócio, você respondeu “${opcao}”. Só o que você informou aqui para ${O_QUE_COMPRA[tipo] || "as compras"} soma ${brl(total)}, acima desse valor. Confira os valores ou pense em começar com uma compra menor.` };
   }
 
   /* ---------------- herança do Módulo 1 (relatório do testador, 05/11) ----------------
@@ -892,7 +900,7 @@
     LIMITE_ACRESCIMO, LIMITE_FATURAMENTO, TETO_M1, MSG_NUMERO, MSG_FAT_ALTO, avisoValor, msgVezes, msgAbaixoCusto, abaixoCusto, gastoInicial, avisoInvestimento,
     exemploConceito, EXEMPLO_TIPO,
     SEM_NAO_SEI, IGUAL_NAO_SEI, MSG_RESPONDA_SEM_NS, MSG_ESCOLHA_SEM_NS, MSG_ESCREVA, MSG_ESCOLHA, msgFalta, naoResposta, migrar, cent, vendasParaCobrir, precoPossivel, gastoInicialPartes,
-    P_TEMPO, P_HORAS, HORAS_VALOR_M1, precisaHoras, componentes,
+    P_TEMPO, P_HORAS, HORAS_VALOR_M1, precisaHoras, componentes, JUNTAS, MSG_UNIDADE,
     RESERVA_PCT, DICA_SEM_GASTO, reserva, peComGasto,
     P_ENTREGA, ENT_NAO, ENT_COBRA, ENT_PRECO, ENT_EXEMPLO, entregaParams, entregaPorVenda, validarEntrega,
     P_SAZONAL, SZ_NAO, SZ_SIM, SZ_TEXTO_IDEIA, SZ_EXEMPLO, MESES, validarSazonal, sazonal };

@@ -383,3 +383,40 @@ a{color:var(--m-purple)}
 .dica-tip b{color:var(--m-purple)}
 .reserva{border-top:2px solid var(--m-lavender);margin-top:10px;padding-top:8px}
 .res-linha{font-size:15.5px;margin:4px 0}
+/* ---------- 17/11 "tira a fricção" ---------- */
+/* C: Continuar (e a mensagem acima dele) sempre à vista, preso ao pé da tela nas perguntas */
+html{scroll-padding-bottom:120px}
+.acoes-fixas{position:sticky;bottom:0;z-index:5;background:#fff;margin:16px -16px -18px;padding:10px 16px max(12px, env(safe-area-inset-bottom));box-shadow:0 -6px 14px rgba(104,74,151,.12);border-radius:0 0 18px 18px}
+.acoes-fixas .acoes{margin-top:0}
+.acoes-fixas .erro{margin:0 0 10px}
+@media print{.acoes-fixas{position:static;box-shadow:none}}
+/* A: retorno ao vivo, logo abaixo da resposta */
+.retorno-vivo .retorno{margin-top:8px}
+.retorno-vivo .r-texto{margin:6px 0 4px}
+/* F8: preço e quanto vem na compra, por item */
+.compra .item>span{font-size:15px}
+.compra .por-un{font-size:15px;color:#3d3650;margin:2px 0 2px}
+.compra .por-un b{color:var(--m-purple)}
+.compra .como-calc{margin:0 2px 4px}
+.compra-ref{font-weight:400;color:var(--m-gray);font-size:14px}
+/* F: alvos de toque com pelo menos 44 px de altura */
+.btn,.btn-alt,.btn-ajuda,.btn-mais,.unid,.mes,.reinicio,.voltar-topo,.trilha-link{min-height:44px}
+.alterar{min-height:44px;display:inline-flex;align-items:center;padding:4px 2px}
+.x{width:44px}
+.btn-alt,.btn-ajuda{display:inline-flex;align-items:center}
+.trilha-link{display:inline-flex;align-items:center}
+.ver,[data-ir-ajuste]{display:inline-flex;align-items:center;min-height:44px}
+.como-funciona summary,.resultado-mais>summary,.saiba summary,.ver-mais summary,.termos summary,.p-fontes summary{min-height:44px;padding:10px 0;line-height:24px;box-sizing:border-box}
+.dica-toggle summary{min-height:44px}
+.dica-toggle{padding-top:0;padding-bottom:0}
+/* C: celular deitado (pouca altura): faixa de cima mais baixa, para a pergunta aparecer junto do Continuar */
+@media (max-height:500px){
+  .etapas{display:none}
+  .barra-topo{padding:4px 16px 2px}
+  .heroi-compacta{padding-top:6px}
+  .heroi-compacta .reinicio{margin-bottom:6px}
+  .corpo{padding-top:8px}
+  .cartao-q{padding-top:8px}
+  .voltar-topo{margin-bottom:0}
+  .acoes-fixas{padding-top:6px;padding-bottom:max(6px, env(safe-area-inset-bottom))}
+}

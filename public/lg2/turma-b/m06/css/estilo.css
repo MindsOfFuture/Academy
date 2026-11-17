@@ -306,3 +306,35 @@ ul.contas li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;b
 ul.contas li b{white-space:nowrap}
 ul.contas .c-sub{display:block;font-weight:700;color:var(--m-purple);border-bottom:0;padding-top:10px}
 ul.contas .c-tot{font-weight:700;color:var(--m-purple);border-bottom:0;border-top:2px solid var(--m-purple)}
+
+/* ===== lote 17/11 (tira a fricção) ===== */
+/* Continuar sempre à vista: a área de ações fica presa ao pé da tela nas perguntas */
+.pe-acoes{position:sticky;bottom:0;z-index:5;background:#fff;margin:16px -16px -18px;padding:10px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));box-shadow:0 -6px 14px rgba(104,74,151,.12);border-radius:0 0 18px 18px}
+.pe-acoes .acoes{margin-top:0}
+.pe-acoes .erro,.pe-acoes #erro.aviso{margin:0 0 10px}
+.pe-acoes~.caixa:first-of-type{margin-top:22px}
+.cartao-q{padding-bottom:18px}
+.pergunta h2.q:focus{outline:none}
+/* retorno ao vivo, logo abaixo da resposta */
+#retorno .retorno{margin-top:14px}
+#retorno .r-texto{margin:8px 0}
+.r-mais{margin:2px 0 8px}
+/* cartão pequeno no alto da tela seguinte */
+.sobre-anterior{display:block;background:var(--m-lavender);border-left:4px solid var(--m-purple);border-radius:10px;padding:9px 12px;margin:0 0 12px;font-size:14px;color:#2b2140;line-height:1.45}
+.sobre-anterior>b{color:var(--m-purple)}
+.sobre-alerta b{color:var(--m-purple)}
+/* alvos de toque de pelo menos 44 px */
+.dica-toggle summary,.como-funciona summary,.ver-mais summary,.saiba summary,.premissas summary,.herdadas summary,.como-mini>summary,.resultado-mais>summary{min-height:44px;display:flex;align-items:center;flex-wrap:wrap}
+.caixa.recolhida summary{min-height:44px}
+.caixa.recolhida{padding-top:0;padding-bottom:0}
+.caixa.recolhida[open]{padding-bottom:10px}
+.dica-toggle summary::before,.como-funciona summary::before,.ver-mais summary::before,.saiba summary::before,.premissas summary::before,.herdadas summary::before,.como-mini>summary::before,.resultado-mais>summary::before{content:"▸";margin-right:6px;font-size:.9em}
+.dica-toggle[open] summary::before,.como-funciona[open] summary::before,.ver-mais[open] summary::before,.saiba[open] summary::before,.premissas[open] summary::before,.herdadas[open] summary::before,.como-mini[open]>summary::before,.resultado-mais[open]>summary::before{content:"▾"}
+.btn-alt,.btn-copiar,.trilha-link,.voltar-topo,.mes,.negocio-atual .btn-alt,.item-topo .btn-alt,.herdadas .trocar-h,#prio .opcoes.mini .opcao{min-height:44px}
+.trilha-link{min-width:44px}
+.herdadas .trocar-h{padding:6px 12px}
+.pr-entrega a,#pr-entrega a{display:inline-block;min-height:44px;line-height:44px}
+@media print{.pe-acoes{position:static;box-shadow:none}.sobre-anterior{display:none}}
+.dica-toggle,.como-funciona{padding:0 14px}
+.dica-toggle[open],.como-funciona[open]{padding-bottom:12px}
+.dica-toggle[open] summary,.como-funciona[open] summary{margin-bottom:0}

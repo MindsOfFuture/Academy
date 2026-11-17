@@ -101,7 +101,7 @@
     if (!h || !h.amplo) return "";
     const t = h.amplo === "varios"
       ? `Você marcou mais de um tipo de cliente (${h.grupos.join(" e ")}). Para o primeiro teste, escolha o grupo principal para começar. Se preferir, pode seguir assim.`
-      : `O público que veio do Módulo ${h.de} ainda está amplo. Para o primeiro teste, escolha o grupo principal para começar. Se preferir, pode seguir assim.`;
+      : `O público que veio da Etapa ${h.de} ainda está amplo. Para o primeiro teste, escolha o grupo principal para começar. Se preferir, pode seguir assim.`;
     return `<div class="bloco b-proximo aviso-amplo" id="aviso-amplo"><b>Para começar</b>${esc(t)}</div>`;
   }
   const tipoCurto = (s) => (/^produto/i.test(s) ? "Produto" : /^mercadoria/i.test(s) ? "Mercadoria" : /^servi/i.test(s) ? "Serviço" : "");
@@ -199,7 +199,7 @@
   /* cartão "Já sabemos": resposta reaproveitada + de onde veio + Trocar */
   function itemReuso(c) {
     const r = S.R[c]; if (!r) return "";
-    const de = r.de ? `Veio do Módulo ${r.de}` : "Veio da sua resposta anterior";
+    const de = r.de ? `Veio da Etapa ${r.de}` : "Veio da sua resposta anterior";
     return `<li><span class="ru-rot">${esc(ROTULO_REUSO[c] || "")}</span><span class="ru-val">${esc(rotulo(Motor.valor(S.R, c)))}</span><span class="ru-de">${de} · <button type="button" class="ru-trocar" data-trocar="${c}">Trocar</button></span></li>`;
   }
   function cartaoReuso(cods, titulo) {
@@ -273,8 +273,8 @@
     const op = opcaoDe(lerOutro(M1, "M1.P07"));
     if (!(op in TETO_M1) || n <= TETO_M1[op]) return "";
     return TETO_M1[op] === 0
-      ? `No Módulo 1 você disse que, por enquanto, não tem dinheiro para usar no negócio sem faltar para as contas da casa. Esse teste custa R$ ${fmt(n)}. Dá para fazer uma versão sem gastar?`
-      : `No Módulo 1 você disse que pode usar até R$ ${fmt(TETO_M1[op])} sem faltar para as contas da casa. Esse teste custa R$ ${fmt(n)}. Dá para fazer uma versão menor?`;
+      ? `Na Etapa 1 você disse que, por enquanto, não tem dinheiro para usar no negócio sem faltar para as contas da casa. Esse teste custa R$ ${fmt(n)}. Dá para fazer uma versão sem gastar?`
+      : `Na Etapa 1 você disse que pode usar até R$ ${fmt(TETO_M1[op])} sem faltar para as contas da casa. Esse teste custa R$ ${fmt(n)}. Dá para fazer uma versão menor?`;
   }
   function avisoNumero(cod, n) {
     if (cod === "M4.P20" && n > DIAS_AVISO) return `Esse prazo parece longo para um primeiro teste: ${fmt(n)} dias é mais de ${DIAS_AVISO} dias. Um teste curto, de 7 a 30 dias, ajuda você a decidir mais rápido. Confira o número.`;
@@ -304,14 +304,19 @@
   });
   if (window.visualViewport) window.visualViewport.addEventListener("resize", () => { clearTimeout(focoT); focoT = setTimeout(centrarCampo, 50); });
 
-  const selo = (n) => `<p class="selo-m"><b>Veio do Módulo ${n}</b> · Confira e ajuste se quiser.</p>`;
+  const selo = (n) => `<p class="selo-m"><b>Veio da Etapa ${n}</b> · Confira e ajuste se quiser.</p>`;
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const link = (u, t) => /^https?:/.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : esc(t || u);
   const txt = (s) => esc(String(s ?? "").trim()).replace(/\n/g, "<br>");   // quebras de linha da célula
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  function ir(f, a) {
+    tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0);
+    /* lote 17/11 (item D): na pergunta nova, o leitor de tela começa pelo enunciado */
+    const q = tela.querySelector(".cartao-q .q");
+    if (q) q.focus({ preventScroll: true });
+  }
 
   /* conceitos da Base técnica ligados à pergunta: pela fonte citada na pergunta */
   function conceitosDe(q) {
@@ -514,7 +519,7 @@
   function topo(trilha) {
     return `<div class="barra-topo">
       <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
-      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Etapa ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
     </div>`;
   }
   /* faixa roxa: o.kicker e o.titulo vêm do que a tela já mostrava; o.progresso (0-100) desenha a barra amarela */
@@ -528,7 +533,7 @@
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
-          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Etapa " + D.modulo.numero)}</div>
           <${tag} class="heroi-tit ${o.titClasse || ""}">${esc(o.titulo)}</${tag}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
@@ -561,9 +566,9 @@
   /* nome da opção na tela: "Mercadoria+ Serviço" (como está gravado) aparece "Mercadoria + Serviço" */
   const rotulo = (op) => String(op ?? "").replace(/\s*\+\s*/g, " + ");
   /* opção com bolinha; sem espaços entre as tags para o nome do botão continuar igual ao texto da opção */
-  const opcaoHtml = (op, sel, attrs, sub) => `<button class="opcao ${sel ? "sel" : ""}" data-op="${esc(op)}"${attrs || ""}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(rotulo(op))}</b>${sub ? `<small class="op-sub">${esc(sub)}</small>` : ""}</span></button>`;
+  const opcaoHtml = (op, sel, attrs, sub) => `<button type="button" class="opcao ${sel ? "sel" : ""}" data-op="${esc(op)}" aria-pressed="${sel ? "true" : "false"}"${attrs || ""}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(rotulo(op))}</b>${sub ? `<small class="op-sub">${esc(sub)}</small>` : ""}</span></button>`;
   function concluido() {
-    return `<section class="concluido"><div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Confira abaixo o resumo das suas respostas.</p></div></div></section>`;
+    return `<section class="concluido"><div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a Etapa ${esc(D.modulo.numero)}</h2><p>Confira abaixo o resumo das suas respostas.</p></div></div></section>`;
   }
   /* liga os botões comuns a todas as telas */
   function ligar(p) { p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); }); }
@@ -580,9 +585,9 @@
             <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
             <h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p>
             <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
-            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
+            <button class="btn btn-linha" id="limites">O que esta etapa não faz</button>
           </details>
-          <p class="tempo">Este módulo leva uns ${esc(D.leve.minutos)} minutos</p>
+          <p class="tempo">Esta etapa leva cerca de ${esc(D.leve.minutos)} minutos</p>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
@@ -606,9 +611,9 @@
     const p = el(`
       <div class="pag">
         ${topo("Limites")}
-        ${heroi({ titulo: "Limites do módulo" })}
+        ${heroi({ titulo: "Limites da etapa" })}
         <main class="corpo">
-          <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
+          <div class="cartao"><h3>O que a etapa não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
@@ -622,10 +627,14 @@
   }
 
   /* ================= pergunta ================= */
-  function progresso() {
-    const vistas = S.hist.filter((c) => c !== "RESULTADO").length;
-    return Math.min(100, Math.round((vistas / M.perguntas.length) * 100));
-  }
+  /* lote 17/11 (item G): total estável = o caminho mais longo possível (21 perguntas; as três da proposta de
+     valor, PV1–PV3, nunca ganham tela no caminho normal: reaproveitam a 9, a 11 e a 10). O número de cada pergunta
+     é a sua posição nessa lista, então nunca volta e o total nunca muda; a PV usa o número da pergunta 11. */
+  const ORD = {};
+  M.perguntas.filter((q) => !/^M4\.PV/.test(q.codigo)).forEach((q, i) => { ORD[q.codigo] = i + 1; });
+  const TOTAL = Object.keys(ORD).length;
+  const ordem = (cod) => ORD[cod] || ORD["M4.P11"];
+  function progresso(cod) { return Math.min(100, Math.round(((ordem(cod) - 1) / TOTAL) * 100)); }
 
   function telaPergunta(cod) {
     const q0 = M.porCodigo[cod], q = adapt(q0);
@@ -649,12 +658,11 @@
     const ficha = fichaVale(cod);
     const p = el(`
       <div class="pag">
-        ${heroi({ compacta: true, kicker: `Pergunta ${M.perguntas.indexOf(q0) + 1} de ${M.perguntas.length}`, progresso: progresso() })}
+        ${heroi({ compacta: true, kicker: `Pergunta ${ordem(cod)} de ${TOTAL}`, progresso: progresso(cod) })}
         <main class="corpo">
-          ${jaSabemos}
-          <div class="cartao-q pergunta">
+          <div class="cartao-q pergunta" data-cod="${esc(cod)}">
             ${voltarTopo()}
-            <h2 class="q">${esc(T(V.pergunta))}</h2>
+            <h2 class="q" tabindex="-1">${esc(T(V.pergunta))}</h2>
             ${vazio(q.destaque) || !q.destaque_visivel ? "" : `<div class="bloco b-proximo destaque">${txt(q.destaque)}</div>`}
             ${motivo ? `<p class="lembra">Antes você marcou “${esc(motivo)}”. Explique com as suas palavras.</p>` : ""}
             ${verDica([
@@ -674,10 +682,10 @@
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div id="como" aria-live="polite"></div>
-            <div class="erro" id="erro" hidden></div>
-            <div id="retorno"></div>
-            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            <div id="retorno" aria-live="polite"></div>
           </div>
+          ${jaSabemos /* lote 17/11: abaixo da pergunta, para a pergunta ficar no topo mesmo com o celular deitado */}
+          <div class="acoes acoes-fixas" id="acoes"><div class="erro" id="erro" role="alert" hidden></div><button class="btn btn-primario seta" id="ok">Continuar</button></div>
           ${rodape()}
         </main>
       </div>`);
@@ -700,7 +708,7 @@
       ent.classList.add("opcoes");
       V.opcoesLista.forEach((op) => {
         const b = el(opcaoHtml(op, escolhida === op, "", (q.opcoes_ex || {})[op]));
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); mostrarEscolha(); };
+        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => { const on = x === b; x.classList.toggle("sel", on); x.setAttribute("aria-pressed", on ? "true" : "false"); }); mostrarEscolha(); };
         ent.appendChild(b);
       });
       /* dica curta ao tocar cada opção: o que significa escolher aquilo (pergunta 14) */
@@ -715,12 +723,13 @@
       ent.classList.add("opcoes", "multipla");
       ent.appendChild(el(`<p class="dica-multi">Marque todas as que valem.</p>`));
       V.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao caixa-sel ${marcadas.includes(op) ? "sel" : ""}" data-op="${esc(op)}" role="checkbox" aria-checked="${marcadas.includes(op)}"><span class="radio quadrado" aria-hidden="true"></span><span class="op-txt"><b>${esc(rotulo(op))}</b>${(q.opcoes_ex || {})[op] ? `<small class="op-sub">${esc(q.opcoes_ex[op])}</small>` : ""}</span></button>`);
+        const b = el(`<button type="button" class="opcao caixa-sel ${marcadas.includes(op) ? "sel" : ""}" data-op="${esc(op)}" aria-pressed="${marcadas.includes(op)}"><span class="radio quadrado" aria-hidden="true"></span><span class="op-txt"><b>${esc(rotulo(op))}</b>${(q.opcoes_ex || {})[op] ? `<small class="op-sub">${esc(q.opcoes_ex[op])}</small>` : ""}</span></button>`);
         b.onclick = () => {
           if (marcadas.includes(op)) marcadas = marcadas.filter((x) => x !== op);
           else marcadas = op === Motor.NS ? [op] : marcadas.filter((x) => x !== Motor.NS).concat(op);
-          ent.querySelectorAll(".opcao").forEach((x) => { const on = marcadas.includes(x.dataset.op); x.classList.toggle("sel", on); x.setAttribute("aria-checked", on); });
+          ent.querySelectorAll(".opcao").forEach((x) => { const on = marcadas.includes(x.dataset.op); x.classList.toggle("sel", on); x.setAttribute("aria-pressed", on ? "true" : "false"); });
           mostrarComo(marcadas.includes(Motor.NS));
+          aoVivo();
         };
         ent.appendChild(b);
       });
@@ -750,6 +759,7 @@
         outroBox.hidden = !abre;
         if (abre && era && !initEscolha) outroBox.querySelector("textarea").focus();
       }
+      if (!initEscolha) aoVivo();
     }
     if (tipo === "escolha") mostrarEscolha();
     initEscolha = false;
@@ -762,7 +772,17 @@
     /* aviso de número fora do comum: aparece uma vez; tocar de novo com o mesmo valor segue */
     let avisoVisto = null;
     const okBtn = p.querySelector("#ok");
-    ent.addEventListener("input", () => { if (avisoVisto !== null) { avisoVisto = null; okBtn.textContent = "Continuar"; p.querySelector("#erro").hidden = true; } });
+    ent.addEventListener("input", () => { if (avisoVisto !== null) { avisoVisto = null; p.querySelector("#erro").hidden = true; } nomeOk(); });
+    /* lote 17/11 (item A): o retorno aparece enquanto a pessoa responde. Escolha: no toque. Campo: ao sair dele
+       ou depois de ~700 ms sem digitar. O Continuar grava e já abre a próxima pergunta. */
+    let vivoT = null;
+    if (tipo === "texto" || tipo === "numero") {
+      const campoR = ent.querySelector("input,textarea");
+      campoR.addEventListener("input", () => { clearTimeout(vivoT); vivoT = setTimeout(aoVivo, 700); });
+      campoR.addEventListener("change", () => { clearTimeout(vivoT); aoVivo(); });
+      campoR.addEventListener("blur", () => { clearTimeout(vivoT); aoVivo(); });
+    }
+    if (outroBox) outroBox.querySelector("textarea").addEventListener("input", nomeOk);
     okBtn.onclick = () => {
       if (tipo === "escolha") {
         if (!escolhida) return erro("Escolha uma opção para continuar.");
@@ -798,14 +818,38 @@
     function avisar(t) {
       const e = p.querySelector("#erro");
       e.classList.add("aviso-num");
-      e.innerHTML = `<b>Confira</b>${esc(t)}${/Módulo 1/.test(t) ? `<span class="selo-m"><b>Veio do Módulo 1</b></span>` : ""}<span class="aviso-dica">Se estiver certo, toque em “Continuar mesmo assim”.</span>`;
+      e.innerHTML = `<b>Confira</b>${esc(t)}${/Etapa 1/.test(t) ? `<span class="selo-m"><b>Veio da Etapa 1</b></span>` : ""}<span class="aviso-dica">Se estiver certo, toque em “Continuar mesmo assim”.</span>`;
       e.hidden = false;
       okBtn.textContent = "Continuar mesmo assim";
+    }
+    /* resposta da tela agora (sem gravar): null se ainda não há resposta que valha */
+    function provisoria() {
+      if (tipo === "escolha") return escolhida && escolhida !== Motor.NS ? { estado: "opcao", opcao: escolhida } : null;
+      if (tipo === "multipla") return marcadas.length && !marcadas.includes(Motor.NS) ? { estado: "opcoes", opcoes: V.opcoesLista.filter((o) => marcadas.includes(o)) } : null;
+      const v = ent.querySelector("input,textarea").value.trim();
+      if (!v) return null;
+      if (tipo === "numero") { const c = checarNumero(cod, v); if (c.erro) return null; return { estado: "valor", valor: cod === "M4.P21" ? fmt(lerNumero(v)) : v }; }
+      return { estado: "valor", valor: v };
+    }
+    /* na última pergunta do caminho o botão se chama "Ver meu resumo" */
+    function nomeOk() {
+      if (avisoVisto !== null) return;
+      const r = provisoria();
+      const R = r ? Object.assign({}, S.R, { [cod]: r }) : S.R;
+      okBtn.textContent = Motor.proxima(M, R, cod) === "RESULTADO" ? "Ver meu resumo" : "Continuar";
+    }
+    function aoVivo() {
+      nomeOk();
+      const r = provisoria();
+      const box = p.querySelector("#retorno");
+      if (!r) { box.innerHTML = ""; return; }
+      const R = Object.assign({}, S.R, { [cod]: r });
+      box.innerHTML = retornoHtml(Motor.regrasAgora(M, R, cod), Motor.valor(R, cod));
+      ligarCopiar(box); ligarTrocar(box);
     }
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
-      okBtn.textContent = "Continuar";
       /* "Não sei" nunca chega aqui (lote 16/11): a caixa de ajuda aparece no toque e nada é gravado */
       if (r0.estado === "naosei" || (r0.estado === "opcao" && r0.opcao === Motor.NS)) return erro(MSG_NS_TEXTO);
       S.R[cod] = r0;
@@ -814,21 +858,15 @@
       /* respostas de perguntas que deixaram de aparecer são descartadas */
       limparInvisiveis();
       salvar();
-      const regras = Motor.regrasAgora(M, S.R, cod);
       const prox = seguinte(cod);
-      mostrarRetorno(regras, prox, Motor.valor(S.R, cod));
+      if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox);
     }
 
-    function mostrarRetorno(regras, prox, v) {
-      const ehNS = v === Motor.NS;
-      const box = p.querySelector("#retorno");
+    /* retorno da resposta (lote 17/11: mostrado ao vivo, antes do Continuar; a conta da ficha já fica ao vivo na própria ficha) */
+    function retornoHtml(regras, v) {
       const se = Motor.retornoSe(q, v);
-      /* versão leve: no "Não sei", a caixa "Como descobrir" (passos + pedido para a IA) substitui o texto antigo e o roteiro solto */
-      if (ehNS) como.innerHTML = "";
-      box.innerHTML = `<div class="retorno">
-        ${ehNS ? caixaComo(q) : ""}
-        ${ehNS || vazio(q.resposta) ? "" : cod === "M4.P15" && v === "Sim" ? `<div class="bloco b-alerta"><b>Atenção</b>${txt(T(q.resposta))}</div>` : `<p class="r-texto r-pergunta">${txt(T(q.resposta))}</p>`}
-        ${S.R[cod] && S.R[cod].ficha && S.R[cod].ficha.custo_unidade !== undefined ? `<div class="fc-res">${fichaResHtml(S.R[cod].ficha, fichaVale(cod) || "Produto")}</div>` : ""}
+      return `<div class="retorno">
+        ${vazio(q.resposta) ? "" : cod === "M4.P15" && v === "Sim" ? `<div class="bloco b-alerta"><b>Atenção</b>${txt(T(q.resposta))}</div>` : `<p class="r-texto r-pergunta">${txt(T(q.resposta))}</p>`}
         ${vazio(se) ? "" : `<div class="bloco b-proximo">${txt(se)}</div>`}
         ${regras.map((r) => `
           <div class="regra">
@@ -836,21 +874,11 @@
             ${vazio(r.alerta) || ALERTA_REPETIDO.includes(r.codigo) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${txt(T(r.alerta))}</div>`}
             ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${txt(r.encaminhamento)}</div>`}
           </div>`).join("")}
-        ${ehNS && !vazio(q.alerta_naosei) ? `<div class="bloco b-alerta bloqueio"><b>Atenção</b>${txt(T(q.alerta_naosei))}</div>` : ""}
-        ${prox && !vazio(q.proximo) && PROXIMO_FICA.includes(cod) ? `<div class="bloco b-proximo"><b>Próximo passo</b>${txt(T(q.proximo))}</div>` : ""}
+        ${!vazio(q.proximo) && PROXIMO_FICA.includes(cod) ? `<div class="bloco b-proximo"><b>Próximo passo</b>${txt(T(q.proximo))}</div>` : ""}
       </div>`;
-      ligarCopiar(box); ligarTrocar(box);
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
-      if (!prox) return;            // bloqueado: continua o botão "Continuar", que exige a resposta
-      const acoes = p.querySelector("#acoes");
-      acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
-      b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
-      acoes.appendChild(b);
-      const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
-      c.onclick = () => ir(telaPergunta, cod);
-      acoes.appendChild(c);
     }
+    /* resposta já gravada (voltar/revisar): o retorno dela aparece de saída */
+    if (resp && !ehAuto(resp)) aoVivo(); else nomeOk();
     return p;
   }
 
@@ -899,7 +927,7 @@
               <div class="etapa-topo"><span class="etq">${i + 1}</span><b>${esc(T(Motor.versao(M, S.R, adapt(q)).pergunta))}</b></div>
               <p>${txt(mostrar(q.codigo))}</p>
               ${S.R[q.codigo].ficha && S.R[q.codigo].ficha.custo_unidade !== undefined ? `<div class="fc-res">${fichaResHtml(S.R[q.codigo].ficha, fichaVale(q.codigo) || "Produto")}</div>` : ""}
-              ${de ? `<p class="selo-m"><b>Veio do Módulo ${de}</b></p>` : S.R[q.codigo].igual ? `<p class="selo-m"><b>Veio da sua resposta anterior</b></p>` : ""}
+              ${de ? `<p class="selo-m"><b>Veio da Etapa ${de}</b></p>` : S.R[q.codigo].igual ? `<p class="selo-m"><b>Veio da sua resposta anterior</b></p>` : ""}
               ${vazio(se) ? "" : `<p class="mini-info">${txt(se)}</p>`}
               ${vazio(adapt(q).proximo) || !PROXIMO_FICA.includes(q.codigo) ? "" : `<p class="mini-info"><b>Próximo passo:</b> ${txt(T(adapt(q).proximo))}</p>`}
             </div>`; }).join("")}
@@ -911,7 +939,7 @@
           ${ale.length ? "" : ""}
           ${lac.length ? `<div class="bloco b-lacuna"><b>O que ainda falta saber</b><ul>${lac.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : ""}
           ${enc.length ? `<div class="bloco b-enc"><b>Quem procurar, pelas suas respostas</b>${enc.map(esc).join(" · ")}</div>` : ""}
-          <div class="secao-titulo">O que este módulo entrega</div>
+          <div class="secao-titulo">O que esta etapa entrega</div>
           <div class="cartao"><p>${esc(D.mapa.entrega)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
@@ -924,7 +952,7 @@
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
           ${botaoVoltar()}
-          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-a/m05/index.html">Ir para o Módulo 5</a></div>
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-a/m05/index.html">Ir para a Etapa 5</a></div>
           ${rodape(true)}
         </main>
       </div>`);
@@ -949,7 +977,7 @@
       return v && v !== Motor.NS && !isNaN(n) ? avisoNumero(c, n) : "";
     }).filter(Boolean);
     if (!lista.length) return "";
-    return `<div class="bloco b-alerta avisos-num"><b>Confira estes números</b>${lista.map((t) => `<p>${esc(t)}</p>${/Módulo 1/.test(t) ? `<p class="selo-m"><b>Veio do Módulo 1</b></p>` : ""}`).join("")}</div>`;
+    return `<div class="bloco b-alerta avisos-num"><b>Confira estes números</b>${lista.map((t) => `<p>${esc(t)}</p>${/Etapa 1/.test(t) ? `<p class="selo-m"><b>Veio da Etapa 1</b></p>` : ""}`).join("")}</div>`;
   }
 
   /* resposta como aparece no resumo: nome da opção arrumado e, no "Outro", o texto escrito */

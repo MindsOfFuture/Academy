@@ -14,8 +14,11 @@ const { chromium } = require(process.env.PW || 'playwright');
 
 const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m07');
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf', '.webp': 'image/webp' };
-/* M07_SABOTAGEM=1: o "Não sei" das escolhas volta a gravar "naosei" (o teste tem de falhar) */
+/* M07_SABOTAGEM=1: o "Não sei" das escolhas volta a gravar "naosei" (o teste tem de falhar).
+   M07_SABOTAGEM=2: volta o passo extra (o 1º Continuar só mostra o retorno; lote 17/11, item A: o teste tem de falhar).
+   M07_SABOTAGEM=3: o Continuar volta a ficar sem lugar fixo no pé da tela (item C: o teste tem de falhar). */
 const SABOTAGEM = process.env.M07_SABOTAGEM === '1';
+const SAB = process.env.M07_SABOTAGEM || '';
 const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
@@ -24,6 +27,16 @@ const servidor = http.createServer((req, res) => {
     const s = fs.readFileSync(f, 'utf8'), alvo = 'erro(nsTocado ? MSG_ESCOLHA';
     if (!s.includes(alvo)) throw new Error('sabotagem: alvo não encontrado');
     return res.end(s.split(alvo).join('if (nsTocado) return { estado: "naosei" }; ' + alvo));
+  }
+  if (SAB === '2' && f.endsWith('js/app.js')) {
+    const s = fs.readFileSync(f, 'utf8'), alvo = '    function avancar(r0) {\n';
+    if (!s.includes(alvo)) throw new Error('sabotagem 2: alvo não encontrado');
+    return res.end(s.split(alvo).join('    let passoExtra = true;\n' + alvo + '      if (passoExtra) { passoExtra = false; return; }\n'));
+  }
+  if (SAB === '3' && f.endsWith('css/estilo.css')) {
+    const s = fs.readFileSync(f, 'utf8'), alvo = '.acoes-fixas{position:sticky;';
+    if (!s.includes(alvo)) throw new Error('sabotagem 3: alvo não encontrado');
+    return res.end(s.split(alvo).join('.acoes-fixas{position:static;'));
   }
   fs.createReadStream(f).pipe(res);
 });
@@ -133,7 +146,11 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   /* ---------- capa = PDF de abertura ---------- */
   const capa = nrm(await page.innerText('body'));
   const A = D.abertura;
-  check('Capa leve: título, uma frase, tempo estimado e Começar', capa.includes(nrm(A.titulo)) && capa.includes(nrm(A.frase)) && capa.includes(`Este módulo leva uns ${A.minutos} minutos`) && (await page.innerText('#ir')).trim() === 'Começar', capa);
+  check('Capa leve: título, uma frase, tempo estimado e Começar', capa.includes(nrm(A.titulo)) && capa.includes(nrm(A.frase)) && capa.includes(`Esta etapa leva cerca de ${A.minutos} minutos`) && (await page.innerText('#ir')).trim() === 'Começar', capa);
+  /* G (lote 17/11): caminho mais comum (fabricação, sem gargalo de equipamento) = 12 perguntas + ~3 itens do ponto de partida
+     (os outros vêm das etapas anteriores) + a confirmação do retrato = 16 × 35 s = 9,3 min → múltiplo de 5 = 10 */
+  check('Capa (G): tempo prometido bate com o caminho típico (16 × 35 s ≈ 9 min → cerca de 10 minutos)', A.minutos === Math.max(5, Math.round(16 * 35 / 60 / 5) * 5) && A.minutos === 10, A.minutos);
+  check('Capa (E): "Etapa", nunca "Módulo", no texto visível e no título da aba', !/[Mm]ódulo/.test(capa) && /^Etapa 7 · /.test(await page.title()), [capa.match(/.{30}[Mm]ódulo.{30}/), await page.title()]);
   const comoF = await page.evaluate(() => { const d = document.querySelector('details.como-funciona'); return d ? { aberto: d.open, resumo: d.querySelector('summary').textContent.trim(), txt: d.textContent.replace(/\s+/g, ' ') } : null; });
   const faltaCapa = [A.objetivo, ...A.para_voce, ...A.no_final, ...A.nao_faz].filter((t) => !comoF || !comoF.txt.includes(nrm(t)));
   check('Capa: o texto do PDF de abertura fica em "Como funciona", fechado', comoF && !comoF.aberto && comoF.resumo === 'Como funciona' && !faltaCapa.length && !capa.includes(nrm(A.para_voce[0])), [comoF && comoF.aberto, faltaCapa]);
@@ -154,7 +171,9 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     if (!b) throw new Error('opção inexistente: ' + t + ' :: ' + [...document.querySelectorAll('.opcao')].map(txt).join('|'));
     b.click();
   }, txt);
-  const caixa = async () => nrm(await page.evaluate(() => ['#retorno', '#junto', '#b1', '#b2'].map((s) => (document.querySelector(s) || {}).innerText || '').join(' ')));
+  const caixa = async () => nrm(await page.evaluate(() => ['#retorno', '#junto', '#b1', '#b2', '#erro'].map((s) => (document.querySelector(s) || {}).innerText || '').join(' ')));
+  /* sair do campo (o retorno ao vivo aparece ao sair do campo ou ~700 ms depois de parar de digitar) */
+  const sair = (sel) => page.locator(sel).blur();
   const ok = () => page.click('#ok');
   const preenche = (sel, v) => page.fill(sel, v);
   const coberto = new Set();
@@ -173,14 +192,14 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   }
   const E = estadoAte;
   /* M7-01 */
-  await linha('M7-01', 'Sim, está parecido', E('M7-01'), ok);
-  await linha('M7-01', 'Ajustei as etapas', E('M7-01'), async () => { await page.fill('.etapa-ed input >> nth=0', 'Receber o pedido'); await ok(); });
+  await linha('M7-01', 'Sim, está parecido', E('M7-01'), async () => {});
+  await linha('M7-01', 'Ajustei as etapas', E('M7-01'), async () => { await page.fill('.etapa-ed input >> nth=0', 'Receber o pedido'); await sair('.etapa-ed input >> nth=0'); });
   await linha('M7-01', 'Mais de 8 etapas', E('M7-01'), async () => { await page.click('#mais'); await page.fill('.etapa-ed input >> nth=8', 'Pós-venda'); await page.click('#mais'); });
   await linha('M7-01', 'Retirou todas as etapas (vazio)', E('M7-01'), async () => { for (let i = 0; i < 8; i++) await page.click('.etapa-ed .x >> nth=0'); await ok(); });
   await linha('M7-01', 'Qualquer resposta, com estágio = ideia', E('M7-01', { estagio: 'Ainda é uma ideia' }), async () => {}, 'na dica', true);
   /* M7-02 */
-  await linha('M7-02', 'Tempo por unidade', E('M7-02'), async () => { await preenche('#th', '1'); await preenche('#tm', '30'); await ok(); });
-  await linha('M7-02', 'Tempo do lote e unidades por lote', E('M7-02'), async () => { await preenche('#th', '1'); await preenche('#tm', '0'); await preenche('#un', '20'); await ok(); });
+  await linha('M7-02', 'Tempo por unidade', E('M7-02'), async () => { await preenche('#th', '1'); await preenche('#tm', '30'); await sair('#tm'); });
+  await linha('M7-02', 'Tempo do lote e unidades por lote', E('M7-02'), async () => { await preenche('#th', '1'); await preenche('#tm', '0'); await preenche('#un', '20'); await sair('#un'); });
   await linha('M7-02', 'Tempo zero, negativo ou texto', E('M7-02'), async () => { await preenche('#th', '0'); await preenche('#tm', '0'); await ok(); });
   await linha('M7-02', 'Tempo muito alto (acima de 12 h por unidade; limiar a validar)', E('M7-02'), async () => { await preenche('#th', '90'); await ok(); });
   await linha('M7-02', 'Não sei', E('M7-02'), () => page.click('#ns'));
@@ -193,7 +212,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   for (const o of ['Meu tempo', 'Um equipamento ou o espaço', 'Uma etapa que demora ou acumula', 'Falta ou atraso de material', 'Não sei']) await linha('M7-05', o, E('M7-05'), () => tocar(o));
   /* M7-05a */
   const e5a = E('M7-05a', {}, { 'M7-05': { estado: 'opcao', opcao: 'Um equipamento ou o espaço' } });
-  await linha('M7-05a', 'Unidades por vez e tempo por vez', e5a, async () => { await preenche('#uv', '4'); await preenche('#tvm', '50'); await ok(); });
+  await linha('M7-05a', 'Unidades por vez e tempo por vez', e5a, async () => { await preenche('#uv', '4'); await preenche('#tvm', '50'); await sair('#tvm'); });
   await linha('M7-05a', 'Valor inválido (zero, negativo ou texto)', e5a, async () => { await preenche('#uv', '0'); await preenche('#tvm', '50'); await ok(); });
   await linha('M7-05a', 'Não sei', e5a, () => page.click('#ns'));
   /* M7-06 */
@@ -222,8 +241,8 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await linha('M7-11', '1 número', E('M7-11'), async () => { await tocar('Quantidade feita ou atendida na semana'); await tocar('Pedidos entregues no prazo'); });
   await linha('M7-11', 'Mais de 3 números', E('M7-11', {}, { 'M7-05': { estado: 'opcao', opcao: 'Meu tempo' } }), async () => { await tocar('Reclamações ou refações'); await tocar('Vezes que faltou material'); });
   /* M7-12 */
-  await linha('M7-12', 'Texto preenchido', E('M7-12'), async () => { await preenche('#txt', 'Ver se preciso de alvará.'); await ok(); });
-  await linha('M7-12', 'Em branco', E('M7-12'), ok);
+  await linha('M7-12', 'Texto preenchido', E('M7-12'), async () => { await preenche('#txt', 'Ver se preciso de alvará.'); await page.waitForTimeout(900); });
+  await linha('M7-12', 'Em branco', E('M7-12'), async () => {});
   /* M7-13: no resumo */
   const tudo = estadoAte('ZZ');
   for (const o of ['Sim, pode seguir', 'Quero corrigir algo']) {
@@ -259,7 +278,6 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     await sobe.last().click(); await sobe.nth(nEt - 1).click();
     const v2 = await valores();
     check('Etapas: a etapa nova sobe duas posições com "Subir etapa"', v2.length === nEt + 1 && v2[nEt - 2] === 'Separar a encomenda' && v2[nEt] === v0[nEt - 1], v2);
-    await ok();
     const retorno = await caixa();
     await ok();
     const st = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
@@ -288,12 +306,12 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await page.click('#ir');
   const partida = nrm(await page.innerText('body'));
   check('Partida traz a oferta do Módulo 5', (await page.inputValue('#f-oferta')) === 'Pão de fermentação natural');
-  check('Partida marca o tipo e o estágio herdados e mostra "Veio do Módulo"', /Veio do Módulo 5/.test(partida) && /Veio do Módulo 1/.test(partida) && await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Produto')));
+  check('Partida marca o tipo e o estágio herdados e mostra "Veio da Etapa"', /Veio da Etapa 5/.test(partida) && /Veio da Etapa 1/.test(partida) && await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Produto')));
   check('Partida traz volume, item e teste herdados (só o número de "60 pedidos")', (await page.inputValue('#f-volume')) === '200' && (await page.inputValue('#f-item')) === 'Farinha' && (await page.inputValue('#f-testeN')) === '60');
-  check('Herança: quantidade da farinha por unidade = 1 kg ÷ 10 pães = 0,1 (em kg), com selo', (await page.inputValue('#f-uso')) === '0,1' && /\(em kg\)\s*Veio do Módulo 5/.test(nrm(await page.innerText('label[for="f-uso"]'))), nrm(await page.innerText('label[for="f-uso"]')));
+  check('Herança: quantidade da farinha por unidade = 1 kg ÷ 10 pães = 0,1 (em kg), com selo', (await page.inputValue('#f-uso')) === '0,1' && /\(em kg\)\s*Veio da Etapa 5/.test(nrm(await page.innerText('label[for="f-uso"]'))), nrm(await page.innerText('label[for="f-uso"]')));
   /* item F do lote 16/11: o que já veio de outro módulo aparece num cartão pequeno com "Trocar", sem perguntar de novo */
-  { const card = await page.evaluate(() => ['oferta', 'item', 'uso', 'volume', 'testeN', 'testeDias'].map((c) => { const h = document.querySelector(`[data-herdado="${c}"]`), inp = document.querySelector(`#f-${c}`); return [c, !!h && !h.hidden && /Veio do Módulo \d/.test(h.textContent) && !!h.querySelector('[data-trocar]'), !!inp && inp.offsetParent === null]; }));
-    check('Herdados (F): oferta, item, quantidade, volume e teste em cartão "Veio do Módulo N · Trocar", sem o campo à vista', card.every((x) => x[1] && x[2]), card); }
+  { const card = await page.evaluate(() => ['oferta', 'item', 'uso', 'volume', 'testeN', 'testeDias'].map((c) => { const h = document.querySelector(`[data-herdado="${c}"]`), inp = document.querySelector(`#f-${c}`); return [c, !!h && !h.hidden && /Veio da Etapa \d/.test(h.textContent) && !!h.querySelector('[data-trocar]'), !!inp && inp.offsetParent === null]; }));
+    check('Herdados (F): oferta, item, quantidade, volume e teste em cartão "Veio da Etapa N · Trocar", sem o campo à vista', card.every((x) => x[1] && x[2]), card); }
   check('Como calculamos (quantidade herdada): 1 kg ÷ 10 unidades que a receita rende = 0,1 kg', nrm(await page.innerText('#como-uso')) === 'Como calculamos: 1 kg ÷ 10 unidades que a receita rende = 0,1 kg em cada unidade.', await page.evaluate(() => (document.querySelector('#como-uso') || {}).textContent));
   await page.click('[data-trocar="item"]');
   check('Trocar abre o campo herdado e esconde o cartão', await page.isVisible('#f-item') && await page.isHidden('[data-herdado="item"]'));
@@ -326,17 +344,17 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await ok();
   check('Primeira pergunta = mapa do processo com o modelo de fabricação', /Este é o caminho de Pão de fermentação natural/.test(nrm(await page.innerText('#pergunta'))) && (await page.locator('.etapa-ed').count()) === 8);
   await foto('m07_03_mapa');
-  await ok(); await ok();
-  check('M7-02: unidades por vez vêm do rendimento da receita (Módulo 5), com selo', (await page.inputValue('#un')) === '10' && /Veio do Módulo 5/.test(await page.innerText('#ent')) && /Confira ou ajuste/.test(await page.innerText('#ent')));
+  await ok();
+  check('M7-02: unidades por vez vêm do rendimento da receita (Módulo 5), com selo', (await page.inputValue('#un')) === '10' && /Veio da Etapa 5/.test(await page.innerText('#ent')) && /Confira ou ajuste/.test(await page.innerText('#ent')));
   await foto('m07_04_tempo');
   await preenche('#un', '1');
-  await preenche('#th', '0'); await preenche('#tm', '10'); await ok();
-  check('M7-02 mostra "Anotado: cerca de 10 min por unidade"', /Anotado: cerca de 10 min por unidade/.test(await caixa()), await caixa());
+  await preenche('#th', '0'); await preenche('#tm', '10'); await sair('#tm');
+  check('M7-02 mostra "Anotado: cerca de 10 min por unidade" ao vivo, antes do Continuar', /Anotado: cerca de 10 min por unidade/.test(await caixa()), await caixa());
   await ok();
   await tocar('Até 2 h'); await ok();
   await tocar('Não, faço sozinho(a)'); await ok();
   await tocar('Um equipamento ou o espaço'); await ok();
-  await preenche('#uv', '4'); await preenche('#tvm', '50'); await ok();
+  await preenche('#uv', '4'); await preenche('#tvm', '50'); await sair('#tvm');
   check('M7-05a mostra a conta do forno: 36 por semana', /cabem cerca de 36 por semana/.test(await caixa()), await caixa());
   check('Como calculamos (forno, na hora): 480 min ÷ 50 min = 9 vezes × 4 = 36 por semana', nrm(await page.innerText('#como-equip')).includes('480 min ÷ 50 min por vez = 9 vezes × 4 por vez = 36 por semana'), nrm(await page.innerText('#como-equip')));
   await foto('m07_05_equipamento');
@@ -352,7 +370,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   const sug = await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => (x.querySelector('.op-txt > b') || x).textContent.trim()));
   check('M7-11 vem com sugestões ligadas ao gargalo e aos riscos', sug.includes('Quantidade feita ou atendida na semana') && sug.includes('Reclamações ou refações') && sug.length <= 3, sug);
   await ok();
-  await preenche('#txt', 'Ver a licença da vigilância.'); await ok(); await ok();
+  await preenche('#txt', 'Ver a licença da vigilância.'); await ok();
   check('Resultado (item I): o retrato completo e o "Entenda os termos" já vêm abertos, com o essencial acima', await page.evaluate(() => { const d = document.querySelector('#retrato'); return !!d && d.open && [...document.querySelectorAll('#tela details')].every((x) => x.open) && !!document.querySelector('#entendemos') && !!document.querySelector('#proximos') && !d.contains(document.querySelector('#entendemos')); }));
   check('Resultado: Fornecedores e estoque na barra de fases (fabricação)', /Fornecedores e estoque/.test(nrm(await page.innerText('.etapas'))));
   await abrirRetrato();
@@ -399,7 +417,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Quadro de fornecedores conta 1 de 2 sem voltar ao topo', /Atende 1 de 2/.test(fornText) && y1 > y0 / 2, { fornText: fornText.match(/Atende \d+ de \d+/)?.[0], y0, y1 });
   /* M7-13: confirmar libera o próximo módulo */
   await page.evaluate(() => [...document.querySelectorAll('#op13 .opcao')].find((x) => x.textContent.trim() === 'Sim, pode seguir').click());
-  check('Confirmar o retrato mostra o link para o Módulo 8', await page.isVisible('.lg2-proximo a[href="/lg2/turma-b/m08/index.html"]'));
+  check('Confirmar o retrato mostra o link "Ir para a Etapa 8"', await page.isVisible('.lg2-proximo a[href="/lg2/turma-b/m08/index.html"]') && (await page.innerText('.lg2-proximo a')).trim() === 'Ir para a Etapa 8');
   /* corrigir volta ao resumo */
   await page.evaluate(() => [...document.querySelectorAll('#op13 .opcao')].find((x) => x.textContent.trim() === 'Quero corrigir algo').click());
   await page.evaluate(() => document.querySelector('[data-c="M7-03"]').click());
@@ -415,7 +433,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   const fs3 = await page.evaluate(() => [...document.querySelectorAll('.etapas li')].map((x) => x.textContent.trim()));
   check('Serviço sem material: barra com 3 fases', fs3.length === 3 && !fs3.includes('Fornecedores e estoque'), fs3);
   await abrir(estadoAte('M7-01', { tipo: 'Serviço: atendo o cliente', material: 'Não', oferta: 'Manicure' }));
-  await ok(); await ok();
+  await ok();
   check('Serviço: a pergunta de tempo usa "atender"', /Quanto tempo você leva para atender Manicure\?/.test(await page.innerText('#pergunta')), await page.innerText('#pergunta'));
   /* serviço (lava-jato do testador): tipo do Módulo 1, volume, material e tempo do Módulo 5 */
   await page.evaluate(() => {
@@ -426,8 +444,8 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   });
   await page.goto(URL);
   await page.click('#ir');
-  check('Serviço: tipo vem do Módulo 1 (nova pergunta do tipo)', await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Serviço')) && /Veio do Módulo 1/.test(await page.innerText('[data-campo="tipo"] legend')));
-  check('Serviço: volume 40, material, item e quantidade por atendimento (200 ml) herdados do Módulo 5', (await page.inputValue('#f-volume')) === '40' && (await page.inputValue('#f-item')) === 'Shampoo automotivo' && (await page.inputValue('#f-uso')) === '200' && /\(em ml\)/.test(await page.innerText('label[for="f-uso"]')) && /Veio do Módulo 5/.test(await page.innerText('label[for="f-volume"]')));
+  check('Serviço: tipo vem do Módulo 1 (nova pergunta do tipo)', await page.evaluate(() => document.querySelector('[data-campo="tipo"] .opcao.sel').textContent.trim().startsWith('Serviço')) && /Veio da Etapa 1/.test(await page.innerText('[data-campo="tipo"] legend')));
+  check('Serviço: volume 40, material, item e quantidade por atendimento (200 ml) herdados do Módulo 5', (await page.inputValue('#f-volume')) === '40' && (await page.inputValue('#f-item')) === 'Shampoo automotivo' && (await page.inputValue('#f-uso')) === '200' && /\(em ml\)/.test(await page.innerText('label[for="f-uso"]')) && /Veio da Etapa 5/.test(await page.innerText('label[for="f-volume"]')));
   check('Serviço: tempo de 90 min herdado do Módulo 5', (await page.inputValue('#f-minUn')) === '90');
   check('Como calculamos (tempo herdado): 1 h × 60 + 30 min = 90 min', nrm(await page.innerText('#como-minun')) === 'Como calculamos: 1 h × 60 + 30 min = 90 min por unidade.', await page.evaluate(() => (document.querySelector('#como-minun') || {}).textContent));
   await foto('m07_09_partida_servico');
@@ -568,7 +586,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     await page.goto(URL); await page.click('#ir');
     const sel = await page.evaluate(() => (document.querySelector('[data-campo="horas"] .opcao.sel') || {}).textContent);
     const leg = nrm(await page.innerText('[data-campo="horas"] legend')), nota = nrm(await page.innerText('#nota-horas'));
-    check(`Disponibilidade: "${m1}" (Módulo 1) → "${m7}", com selo e "Confira e ajuste"`, nrm(sel) === m7 && /Veio do Módulo 1/.test(leg) && nota.includes(`No Módulo 1 você respondeu “${m1}”`) && /Confira e ajuste/.test(nota), [sel, leg, nota]);
+    check(`Disponibilidade: "${m1}" (Etapa 1) → "${m7}", com selo e "Confira e ajuste"`, nrm(sel) === m7 && /Veio da Etapa 1/.test(leg) && nota.includes(`Na Etapa 1 você respondeu “${m1}”`) && /Confira e ajuste/.test(nota), [sel, leg, nota]);
   }
   await page.click('[data-trocar="horas"]');
   await tocar('Mais de 20 h');
@@ -582,7 +600,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   /* 5d. herança: "Não sei" herdado não conta; material do serviço pelo Módulo 6 */
   await semear({ 'lg2-turma-a-m01': { R: { 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } }, 'lg2-turma-a-m04': { R: { 'M4.P15': { estado: 'naosei' } } }, 'lg2-turma-b-m06': { R: { 'M6.P12': { estado: 'opcao', opcao: 'Sim' } } }, 'lg2-turma-a-m05': { R: { 'M5.P37': { estado: 'valor', valor: '80' } } } });
   await page.goto(URL); await page.click('#ir');
-  check('Herança: vendas por mês (Módulo 5) e material do serviço (Módulo 6) com selo', (await page.inputValue('#f-volume')) === '80' && /Veio do Módulo 6/.test(await page.innerText('[data-campo="material"] legend')) && nrm(await page.evaluate(() => document.querySelector('[data-campo="material"] .opcao.sel').textContent)) === 'Sim');
+  check('Herança: vendas por mês (Módulo 5) e material do serviço (Módulo 6) com selo', (await page.inputValue('#f-volume')) === '80' && /Veio da Etapa 6/.test(await page.innerText('[data-campo="material"] legend')) && nrm(await page.evaluate(() => document.querySelector('[data-campo="material"] .opcao.sel').textContent)) === 'Sim');
   check('Herança: "Não sei" do Módulo 4 não vira resposta', !(await page.$('[data-campo="regulada"] .opcao.sel')));
   /* 5e. revenda (distribuidora de bebidas): sem perguntas de fabricação; estoque, armazenamento, validade e entrega */
   await semear({
@@ -593,15 +611,15 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   });
   await page.goto(URL); await page.click('#ir');
   const pRev = nrm(await page.innerText('.cartao-q'));
-  check('Revenda: item = mercadoria do Módulo 5, 1 por venda, estoque do Módulo 6 com selo', (await page.inputValue('#f-item')) === 'Refrigerante 2 L' && /Veio do Módulo 5/.test(await page.innerText('label[for="f-item"]')) && (await page.inputValue('#f-uso')) === '1' && nrm(await page.evaluate(() => document.querySelector('[data-campo="estoque"] .opcao.sel').textContent)) === 'Sim, mantenho mercadoria guardada' && /Veio do Módulo 6/.test(await page.innerText('[data-campo="estoque"] legend')), pRev);
+  check('Revenda: item = mercadoria do Módulo 5, 1 por venda, estoque do Módulo 6 com selo', (await page.inputValue('#f-item')) === 'Refrigerante 2 L' && /Veio da Etapa 5/.test(await page.innerText('label[for="f-item"]')) && (await page.inputValue('#f-uso')) === '1' && nrm(await page.evaluate(() => document.querySelector('[data-campo="estoque"] .opcao.sel').textContent)) === 'Sim, mantenho mercadoria guardada' && /Veio da Etapa 6/.test(await page.innerText('[data-campo="estoque"] legend')), pRev);
   check('Revenda: ponto de partida fala em mercadoria, sem "material" nem "cada unidade ou atendimento"', /Mercadoria principal e estoque/i.test(pRev) && !/Material principal|vai em cada unidade/i.test(pRev), (pRev.match(/.{80}(Material principal|vai em cada unidade).{40}/) || [pRev.slice(-300)])[0]);
   if (SHOTS) { await page.locator('#f3').scrollIntoViewIfNeeded(); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_partida_revenda.png') }); }
   await ok();
-  await ok(); await ok(); /* mapa: retorno e segue */
+  await ok(); /* mapa: um toque grava e segue */
   const t2 = nrm(await page.innerText('.cartao-q'));
   check('Revenda (tempo): fala em separar e entregar pedidos, sem "preparo e produção"', /Quanto tempo você leva para separar e entregar Refrigerante 2 L\?/.test(t2) && /Pedidos separados de uma vez/.test(t2) && !/produção|preparo/i.test(t2), t2);
   await page.click('#na');
-  check('Revenda (tempo): "Não se aplica ao meu negócio" deixa seguir', /fica de fora/.test(await caixa()));
+  check('Revenda (tempo): "Não se aplica ao meu negócio" marca (aria-pressed) e mostra o retorno antes do Continuar', /fica de fora/.test(await caixa()) && (await page.getAttribute('#na', 'aria-pressed')) === 'true');
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_tempo_nao_se_aplica.png') }); }
   await ok();
   const t3 = nrm(await page.innerText('#pergunta'));
@@ -612,7 +630,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Revenda (gargalo): espaço/veículo e mercadoria no lugar de equipamento e material', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => (x.querySelector('.op-txt > b') || x).textContent.trim()); return t.includes('O espaço para guardar ou o veículo de entrega') && t.includes('Falta ou atraso de mercadoria') && !t.includes('Um equipamento ou o espaço'); }));
   await tocar('O espaço para guardar ou o veículo de entrega'); await ok();
   check('Revenda (espaço): exemplo com carro, sem forno (na dica)', /carro leva 20 caixas/.test(await page.textContent('.cartao-q')) && !/forno/.test(await page.textContent('.cartao-q')));
-  await preenche('#uv', '20'); await preenche('#tvh', '1'); await ok(); await ok();
+  await preenche('#uv', '20'); await preenche('#tvh', '1'); await ok();
   await tocar('Dois ou mais'); await tocar('De 1 a 3 dias'); await ok();
   await tocar('Prazo de entrega'); await ok();
   check('Revenda (validade): pergunta sobre as mercadorias e dica de armazenamento em "Ver dica"', /Suas mercadorias estragam, vencem/.test(await page.innerText('#pergunta')) && /lugar limpo, seco e arejado/.test(await page.textContent('.dica-toggle #dica-estoque')));
@@ -621,7 +639,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Revenda (qualidade): conferência sem "receita" nem "provando"', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => (x.querySelector('.op-txt > b') || x).textContent.trim()); return t.includes('Sigo uma lista de conferência anotada') && !t.some((x) => /receita|provando/.test(x)); }));
   await tocar('Sigo uma lista de conferência anotada'); await ok();
   await tocar('Faltar mercadoria'); await ok();
-  await ok(); await ok(); await ok();
+  await ok(); await ok();
   await abrirRetrato();
   const rRev = nrm(await page.innerText('body'));
   const cuid = nrm(await page.innerText('#cuidados-revenda'));
@@ -754,8 +772,9 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
         vertical: lis.length > 1 && lis[1].getBoundingClientRect().top > lis[0].getBoundingClientRect().bottom - 1, borda: getComputedStyle(f.querySelector('.lg2-diag-gargalo .lg2-diag-caixa')).borderTopColor }; });
     check('Processo em diagrama: 8 caixas em ordem (<ol>), 7 setas, uma por linha no celular, gargalo "Produção" com borda coral e "quem faz" na legenda', dg && dg.n === 8 && dg.setas === 7 && dg.vertical && dg.gargalo.join() === 'Produção' && dg.marca === 'Gargalo' && dg.borda === 'rgb(232, 71, 58)' && dg.leg === 'Quem faz: você, com ajuda de família ou amigos, 4 h por semana.' && !(await page.$('ol.mapa')), dg);
     if (SHOTS) { await page.evaluate(() => document.querySelector('#diagrama-processo').scrollIntoView({ block: 'start' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_diagrama_resultado.png') }); }
-    await abrir(E('M7-01')); await ok();
-    check('M7-01: o caminho confirmado aparece em diagrama logo no retorno', (await page.locator('#retorno #diagrama-m701 ol > li').count()) === 8);
+    await abrir(E('M7-01'));
+    await page.click('.mover[data-a="desce"] >> nth=0');
+    check('M7-01: depois de mexer, o caminho aparece em diagrama no retorno, ao vivo, antes do Continuar (na ordem nova)', (await page.locator('#retorno #diagrama-m701 ol > li').count()) === 8 && (await page.locator('#retorno #diagrama-m701 ol > li').nth(0).innerText()).includes(await page.inputValue('#etapa-0')));
     if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_diagrama_m701.png'), fullPage: true }); }
     /* sazonalidade lida do Módulo 5 (M5.SZ): 120 por mês, +50% em dezembro e janeiro → 42 por semana; cabem 8 */
     const SZ = { estado: 'opcao', opcao: 'Sim, tem meses mais fortes e mais fracos', fortes: [12, 1], fracos: [6], maisPct: 50, menosPct: 20 };
@@ -772,7 +791,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     check('Sazonalidade: "Não" ou sem resposta no Módulo 5 = nada a mais', semSZ && !(await page.$('#sazonal')));
 
     await abrir(E('M7-02'));
-    await preenche('#th', '1'); await preenche('#tm', '0'); await preenche('#un', '20'); await ok();
+    await preenche('#th', '1'); await preenche('#tm', '0'); await preenche('#un', '20'); await sair('#un');
     check('Como calculamos (rodada): 1 h (60 min) ÷ 20 unidades = 3 min por unidade', nrm(await page.innerText('#como-lote')) === 'Como calculamos: 1 h (60 min) ÷ 20 unidades = 3 min por unidade.', await page.evaluate(() => (document.querySelector('#como-lote') || {}).textContent));
     await abrir(E('ZZ', { volume: '200', uso: '0,5', usoUn: 'kg' }, { 'M7-06': { estado: 'partes', p1: 'Dois ou mais', p2: 'Mais de 7 dias', dias: '10' } })); await abrirRetrato();
     await page.fill('#folga', '5');
@@ -784,7 +803,132 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     /* perda: o Módulo 5 já perguntou se a pessoa costuma perder; \"Não\" vira 0% sem perguntar de novo */
     await semear({ 'lg2-turma-a-m05': { R: { 'M5.P01': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' }, 'M5.P26': { estado: 'opcao', opcao: 'Não' } } } });
     await page.goto(URL); await page.click('#ir');
-    check('Herança (F): \"perde produtos?\" = Não no Módulo 5 → perda 0% em cartão \"Veio do Módulo 5\"', (await page.inputValue('#f-perda')) === '0' && /Perda:\s*0%\s*Veio do Módulo 5/.test(nrm(await page.innerText('[data-herdado="perda"]'))));
+    check('Herança (F): \"perde produtos?\" = Não na Etapa 5 → perda 0% em cartão \"Veio da Etapa 5\"', (await page.inputValue('#f-perda')) === '0' && /Perda:\s*0%\s*Veio da Etapa 5/.test(nrm(await page.innerText('[data-herdado="perda"]'))));
+  }
+
+
+  /* ---------- lote 17/11 (tira a fricção): A um toque, B Continuar ativo, C sempre à vista, D leitor de tela, E Etapa, G contador ---------- */
+  {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const e5 = { 'M7-05': { estado: 'opcao', opcao: 'Um equipamento ou o espaço' } };
+    const ORDEM_EQ = ['M7-01', 'M7-02', 'M7-03', 'M7-04', 'M7-05', 'M7-05a', 'M7-06', 'M7-07', 'M7-08', 'M7-09', 'M7-10', 'M7-11', 'M7-12'];
+    const textoCaminho = (cod, op) => D.perguntas.find((q) => q.codigo === cod).caminhos.find((c) => c.opcao === op).texto;
+    const pressed = () => page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].filter((x) => x.offsetParent !== null).map((x) => [(x.querySelector('.op-txt > b') || x).textContent.trim(), x.getAttribute('aria-pressed')]));
+    const proibidos = () => page.evaluate(() => [...document.querySelectorAll('button, a')].map((b) => b.textContent.replace(/\s+/g, ' ').trim()).filter((t) => t === 'Seguir' || /^Corrigir minha resposta/.test(t)));
+    const visivelTxt = () => page.evaluate(() => document.body.innerText);
+    const responder = {
+      'M7-01': async () => {},
+      'M7-02': async () => { await preenche('#th', '0'); await preenche('#tm', '30'); await sair('#tm'); },
+      'M7-03': () => tocar('Até 2 h'),
+      'M7-04': () => tocar('Sim, pago alguém').then(() => preenche('#hajuda', '4')),
+      'M7-05': () => tocar('Um equipamento ou o espaço'),
+      'M7-05a': async () => { await preenche('#uv', '4'); await preenche('#tvm', '50'); },
+      'M7-06': async () => { await tocar('Dois ou mais'); await tocar('De 1 a 3 dias'); },
+      'M7-07': () => tocar('Prazo de entrega'),
+      'M7-08': () => tocar('Não'),
+      'M7-09': () => tocar('Sigo um padrão ou receita anotada'),
+      'M7-10': () => tocar('Errar o pedido'),
+      'M7-11': async () => {},
+      'M7-12': async () => {},
+    };
+    await abrir(estadoAte('M7-01'));
+    const ruinsA = [], ruinsD = [], ruinsE = [], progresso = [];
+    let retornoCampo = '', retornoEscolha = '', pressUnica = null, pressMulti = null;
+    for (const cod of ORDEM_EQ) {
+      const perg0 = await page.innerText('#pergunta');
+      if ((await proibidos()).length) ruinsA.push([cod, 'botão proibido', await proibidos()]);
+      const txt = await visivelTxt();
+      if (/[Mm]ódulo|Grupo \d/.test(txt)) ruinsE.push([cod, (txt.match(/.{25}([Mm]ódulo|Grupo \d).{25}/) || [])[0]]);
+      progresso.push(await page.evaluate(() => { const b = document.querySelector('[role="progressbar"]'); return [b.getAttribute('aria-label'), Number(b.getAttribute('aria-valuenow'))]; }));
+      await responder[cod]();
+      if (cod === 'M7-02') retornoCampo = await caixa();
+      if (cod === 'M7-04') retornoEscolha = await caixa();
+      if (cod === 'M7-03') pressUnica = await pressed();
+      if (cod === 'M7-07') pressMulti = await pressed();
+      await ok();   /* UM clique */
+      await page.waitForTimeout(60);
+      const naPergunta = !!(await page.$('#pergunta'));
+      const mudou = !naPergunta || (await page.innerText('#pergunta')) !== perg0;
+      if (!mudou) ruinsA.push([cod, 'um clique não avançou', nrm(await page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden ? e.textContent : ''; }))]);
+      if (mudou && naPergunta && !(await page.evaluate(() => document.activeElement && document.activeElement.id === 'pergunta' && document.activeElement.getAttribute('tabindex') === '-1'))) ruinsD.push([cod, 'foco', await page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName))]);
+      if (!mudou) break;
+    }
+    const noResultado = /Você chegou ao retrato da sua operação/.test(await page.innerText('body'));
+    check('A (um toque): cada pergunta do caminho mais longo (13) avança com UM clique em Continuar, até o resultado', !ruinsA.length && noResultado, ruinsA);
+    check('A: nenhum botão "Seguir" nem "Corrigir minha resposta" nas perguntas', !ruinsA.some((x) => x[1] === 'botão proibido'));
+    check('A: retorno de campo aparece antes do Continuar (M7-02 ao sair do campo: "Anotado: cerca de 30 min por unidade")', /Anotado: cerca de 30 min por unidade/.test(retornoCampo), retornoCampo);
+    check('A: retorno de escolha aparece no toque, antes do Continuar (M7-04 \"Sim, pago alguém\")', fragmentos(textoCaminho('M7-04', 'Sim, pago alguém')).every((f) => retornoEscolha.includes(f)), retornoEscolha);
+    check('D: escolha única diz qual está marcada (aria-pressed true só na escolhida)', !!pressUnica && pressUnica.length >= 4 && pressUnica.every(([t, a]) => a === (t === 'Até 2 h' ? 'true' : 'false')), pressUnica);
+    check('D: múltipla escolha também (aria-pressed true só nas marcadas)', !!pressMulti && pressMulti.length >= 5 && pressMulti.every(([t, a]) => a === (t === 'Prazo de entrega' ? 'true' : 'false')), pressMulti);
+    check('D: depois de Continuar, o foco vai para o enunciado da pergunta nova', !ruinsD.length, ruinsD);
+    const tot = progresso.map((x) => (/de (\d+)$/.exec(x[0]) || [])[1]);
+    check('G: contador com total estável (13) e barra que nunca volta', tot.every((x) => x === '13') && progresso.every((x, k) => !k || x[1] > progresso[k - 1][1]), progresso);
+    { const resT = await visivelTxt();
+      if (/[Mm]ódulo|Grupo \d/.test(resT)) ruinsE.push(['resultado', (resT.match(/.{25}([Mm]ódulo|Grupo \d).{25}/) || [])[0]]); }
+    await page.evaluate(() => [...document.querySelectorAll('#op13 .opcao')].find((x) => x.textContent.trim() === 'Quero corrigir algo').click());
+    check('A: no resultado, a lista para corrigir não usa \"Corrigir minha resposta\" (\"Mudar esta resposta\")', !(await proibidos()).length && (await page.locator('#corr button', { hasText: 'Mudar esta resposta' }).count()) > 5);
+    check('D: confirmação do retrato diz qual está marcada', await page.evaluate(() => [...document.querySelectorAll('#op13 .opcao')].every((x) => x.getAttribute('aria-pressed') === String(x.textContent.trim() === 'Quero corrigir algo'))));
+    check('Resultado: o botão da próxima etapa continua escondido até \"Sim, pode seguir\"', await page.isHidden('.lg2-proximo'));
+    await page.evaluate(() => [...document.querySelectorAll('#op13 .opcao')].find((x) => x.textContent.trim() === 'Sim, pode seguir').click());
+    check('Resultado: \"Sim, pode seguir\" mostra \"Ir para a Etapa 8\" dentro de <div class=\"acoes lg2-proximo\">', await page.isVisible('div.acoes.lg2-proximo > a') && (await page.innerText('div.acoes.lg2-proximo > a')).trim() === 'Ir para a Etapa 8');
+    check('E: \"Etapa\", nunca \"Módulo\" nem \"Grupo N\", no texto visível das perguntas e do resultado', !ruinsE.length, ruinsE);
+    check('E: dados sem "rafael"', !/rafael/i.test(fs.readFileSync(path.join(DIR, 'dados/modulo7.js'), 'utf8') + fs.readFileSync(path.join(DIR, 'dados/fontes.js'), 'utf8')));
+
+    /* B: Continuar sempre ativo; sem resposta, mensagem simples logo acima do botão, com role="alert" */
+    const msgVazia = async () => page.evaluate(() => { const e = document.querySelector('#erro'), b = document.querySelector('#ok'); return { txt: e && !e.hidden ? e.textContent.trim() : '', role: e && e.getAttribute('role'), acima: !!e && e.getBoundingClientRect().bottom <= b.getBoundingClientRect().top + 1 && b.getBoundingClientRect().top - e.getBoundingClientRect().bottom < 30, desab: b.disabled || b.getAttribute('aria-disabled') === 'true' }; });
+    const ruinsB = [];
+    for (const [cod, esperado] of [['M7-03', 'Escolha uma opção para continuar.'], ['M7-02', 'Escreva o tempo para continuar.'], ['M7-07', 'Escolha pelo menos uma opção para continuar.'], ['M7-06', 'Responda as duas partes para continuar.']]) {
+      await abrir(estadoAte(cod));
+      const perg0 = await page.innerText('#pergunta');
+      const antes = await msgVazia();
+      if (antes.desab) ruinsB.push([cod, 'desabilitado']);
+      await ok();
+      const m = await msgVazia();
+      if (m.txt !== esperado || m.role !== 'alert' || !m.acima || m.desab || (await page.innerText('#pergunta')) !== perg0) ruinsB.push([cod, m]);
+    }
+    await semear({}); await page.goto(URL); await page.click('#ir');
+    { const antes = await msgVazia(); await ok(); const m = await msgVazia();
+      if (antes.desab || m.txt !== 'Escolha o tipo de oferta para continuar.' || m.role !== 'alert' || !m.acima) ruinsB.push(['partida', m]); }
+    check('B: Continuar sempre ativo; sem resposta, mensagem simples logo acima do botão com role="alert" (e não grava)', !ruinsB.length, ruinsB);
+
+    /* C: Continuar inteiro na tela, sem rolar, em 360x640, 390x844 com letra 130% e 740x360 (deitado) */
+    const ruinsC = [];
+    const telas = [['partida', null]].concat(ORDEM_EQ.map((c) => [c, estadoAte(c, {}, c === 'M7-05a' ? e5 : {})]));
+    for (const [w, h, fonte] of [[360, 640, ''], [390, 844, '130%'], [740, 360, '']]) {
+      await page.setViewportSize({ width: w, height: h });
+      for (const [cod, st] of telas) {
+        if (st) await abrir(st); else { await semear({}); await page.goto(URL); await page.click('#ir'); }
+        if (fonte) await page.evaluate((f) => { document.documentElement.style.fontSize = f; }, fonte);
+        await page.waitForTimeout(50);
+        const r = await page.evaluate(() => { const b = document.querySelector('#ok').getBoundingClientRect(); return { y: window.scrollY, top: Math.round(b.top), bottom: Math.round(b.bottom), left: Math.round(b.left), right: Math.round(b.right), W: innerWidth, H: innerHeight }; });
+        if (r.y !== 0 || r.top < 0 || r.bottom > r.H || r.left < 0 || r.right > r.W) ruinsC.push([`${w}x${h}${fonte ? ' ' + fonte : ''}`, cod, r]);
+      }
+    }
+    await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+    check('C: Continuar inteiro na tela, sem rolar, em todas as perguntas e no ponto de partida (360x640, 390x844 com letra 130%, 740x360)', !ruinsC.length, ruinsC.slice(0, 6));
+    /* C: a barra fixa não cobre o último campo: rolando até o fim, o campo fica todo acima do Continuar */
+    await page.setViewportSize({ width: 360, height: 640 });
+    await abrir(estadoAte('M7-01'));
+    await page.locator('#mais').scrollIntoViewIfNeeded();
+    const cob = await page.evaluate(() => { window.scrollTo(0, document.querySelector('#mais').getBoundingClientRect().bottom + scrollY - innerHeight + 200); const m = document.querySelector('#mais').getBoundingClientRect(), a = document.querySelector('.acoes-fixas').getBoundingClientRect(); return { mais: m.bottom, barra: a.top, pos: getComputedStyle(document.querySelector('.acoes-fixas')).position }; });
+    check('C: ações presas ao pé (sticky) sem cobrir o último item da pergunta', cob.pos === 'sticky' && cob.mais <= cob.barra + 1, cob);
+    if (SHOTS) { await abrir(estadoAte('M7-02')); await preenche('#th', '1'); await preenche('#tm', '0'); await preenche('#un', '20'); await sair('#un'); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_17_360x640_tempo.png') }); }
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    /* F: alvos de toque de pelo menos 44 px (resumos recolhíveis, Não sei, Copiar, Trocar, Alterar, Início) */
+    const ruinsF = [];
+    const altura = (sel) => page.evaluate((s) => [...document.querySelectorAll(s)].filter((x) => x.offsetParent !== null).map((x) => Math.round(x.getBoundingClientRect().height)), sel);
+    await semear({}); await page.goto(URL);
+    for (const s of ['details.como-funciona > summary', '.trilha-link']) for (const a of await altura(s)) if (a < 44) ruinsF.push([s, a]);
+    await abrir(estadoAte('M7-02'));
+    for (const s of ['.dica-toggle > summary', '#ns']) for (const a of await altura(s)) if (a < 44) ruinsF.push([s, a]);
+    await page.click('#ns');
+    for (const a of await altura('[data-copiar]')) if (a < 44) ruinsF.push(['copiar', a]);
+    await abrir(estadoAte('ZZ'));
+    for (const s of ['#retrato > summary', '.saiba > summary', '.chip-alterar', '.btn-copiar', '.btn-mais', '.p-fontes > summary']) for (const a of await altura(s)) if (a < 44) ruinsF.push([s, a]);
+    await semear({ 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' } } } }); await page.goto(URL); await page.click('#ir');
+    for (const a of await altura('.trocar')) if (a < 44) ruinsF.push(['trocar', a]);
+    check('F: alvos de toque com pelo menos 44 px de altura', !ruinsF.length, ruinsF);
   }
 
   check('Sem erros de página', !erros.length, erros);

@@ -127,7 +127,10 @@ const SEM_NS = ['M5.P00', 'M5.P01', 'M5.P02', 'M5.P10', 'M5.P17', 'M5.PG', 'M5.P
 for (const q of M.ordem) ok(q.botaoNaoSei === !SEM_NS.includes(q.codigo), `${q.codigo}: botão "Não sei" ${SEM_NS.includes(q.codigo) ? 'saiu (pergunta sobre a pessoa)' : 'fica (fato a descobrir)'}`);
 ok(!M.porCodigo['M5.P36'].opcoesLista.some((o) => /ainda n/i.test(o)) && Motor.botoesAlternativos(M, M.porCodigo['M5.P36']).length === 0, 'P36: "Ainda não defini" fundido no "Não sei" (sem botão alternativo)');
 ok(JSON.stringify(Motor.botoesAlternativos(M, M.porCodigo['M5.P37'])) === '["Ainda não comecei a vender"]', 'P37: "Ainda não comecei a vender" (resposta real) continua');
-ok(Motor.msgFalta(M.porCodigo['M5.P29'], false) === Motor.MSG_RESPONDA && Motor.msgFalta(M.porCodigo['M5.P29'], true) === 'Use a ajuda acima e escreva a sua resposta para continuar.' && Motor.msgFalta(M.porCodigo['M5.P24'], true) === 'Use a ajuda acima e escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P28'], false) === 'Escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P35'], false) === 'Responda para continuar.', 'mensagens de "falta responder" (com/sem Não sei, ajuda aberta)');
+ok(Motor.msgFalta(M.porCodigo['M5.P29'], false) === Motor.MSG_RESPONDA && Motor.msgFalta(M.porCodigo['M5.P29'], true) === 'Use a ajuda acima e escreva a sua resposta para continuar.' && Motor.msgFalta(M.porCodigo['M5.P24'], true) === 'Use a ajuda acima e escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P28'], false) === 'Escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P35'], false) === 'Escreva a sua resposta para continuar.', 'mensagens de "falta responder" (com/sem Não sei, ajuda aberta)');
+/* 17/11 (F8): preço e quantidade comprada na mesma tela; unidade sem marcação prévia */
+ok(Motor.proxima(M, M.porCodigo['M5.P04'], { estado: 'valor', valor: ['10'] }, null) === 'M5.P06' && Motor.proxima(M, M.porCodigo['M5.P20'], { estado: 'valor', valor: ['10'] }, null) === 'M5.P22', 'P04 (com a P05 na mesma tela) -> P06; P20 (com a P21) -> P22');
+ok(Motor.validar(M, M.porCodigo['M5.P05'], [{ q: '1', u: '' }], {}) === Motor.MSG_UNIDADE && Motor.MSG_UNIDADE === 'Escolha a unidade de cada item (kg, g, L, ml, unidade ou outro).', 'sem unidade escolhida: mensagem simples');
 ok(Motor.regra(M, M.porCodigo['M5.P36'], { estado: 'opcao', opcao: 'Ainda não defini' }) === null && Motor.regra(M, M.porCodigo['M5.P24'], { estado: 'naosei' }) === null, 'regras condicionadas a "Não sei"/"Ainda não defini" não disparam');
 {
   const S0 = { versao: 3, R: { 'M5.P00': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M5.P24': { estado: 'naosei' }, 'M5.P29': { estado: 'valor', valor: '500' }, 'M5.P36': { estado: 'opcao', opcao: 'Ainda não defini' }, 'M5.P37': { estado: 'opcao', opcao: 'Ainda não comecei a vender' } }, hist: ['M5.P00', 'M5.P24', 'M5.P29', 'M5.P37', 'M5.P36', 'PRECO', 'RESULTADO'] };
@@ -243,20 +246,31 @@ const server = http.createServer(async (req, res) => {
     }, [sel, txt]);
     const texto = async (sel) => norm(await page.evaluate((s) => [...document.querySelectorAll(s)].map((e) => e.textContent).join(' '), sel));
     const erroVisivel = () => page.evaluate(() => { const e = document.getElementById('erro'); return !!e && !e.hidden; });
-    const seguir = async () => {
-      ok(await clicar('#acoes button', 'Seguir') || await clicar('#acoes button', 'Ver o resultado'), `botão Seguir após ${await atual()}`);
+    /* 17/11 (A): Continuar grava e já abre a próxima pergunta. Não existe "Seguir" nem "Corrigir minha resposta";
+       com o código da tela anterior, confere que UM toque avançou e (D) que o foco foi para o enunciado novo */
+    const seguir = async (antes) => {
+      const extra = await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /^(Seguir|Corrigir minha resposta)$/.test(b.textContent.replace(/\s+/g, ' ').trim())).length);
+      const agora = await atual();
+      ok(extra === 0, `A: sem "Seguir"/"Corrigir minha resposta" (em ${agora})`);
+      if (antes) {
+        ok(agora !== antes, `A: um toque em Continuar avança (${antes} -> ${agora})`);
+        if (agora !== 'RESULTADO') ok(await page.evaluate(() => !!document.activeElement && document.activeElement.matches('h2.q') && document.activeElement.getAttribute('tabindex') === '-1'), `D: foco no enunciado depois de Continuar (${agora})`);
+      }
     };
     /* versão leve: palavras visíveis da tela da pergunta (antes de tocar em algo) e "Ver dica" fechada */
     const medidas = {};
     const medir = async () => {
       const m = await page.evaluate(() => {
         const painel = document.getElementById('painel'), dica = document.getElementById('dica');
-        if (!document.getElementById('ok') || document.querySelector('#retorno .retorno') || (painel && !painel.hidden) || !document.getElementById('erro').hidden) return null;
+        if (!document.getElementById('ok') || (painel && !painel.hidden) || !document.getElementById('erro').hidden) return null;
         if (dica && dica.open) return null;
         if (['sz-meses', 'ent-preco', 'ent-cobra'].some((id) => { const e = document.getElementById(id); return e && !e.hidden; })) return null;   // campos abertos depois de tocar numa opção   // meses abertos depois de tocar em "Sim"
 
         const palavras = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
-        return { n: palavras(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + palavras(e.innerText), 0), dica: !!dica };
+        /* o retorno ao vivo (17/11) aparece depois de responder: não conta nas palavras da pergunta */
+        /* lista de unidades fechada: só a opção à vista conta (o innerText traz todas as opções do <select>) */
+        const fechadas = [...document.querySelectorAll('#tela select')].reduce((a, s) => a + palavras([...s.options].map((o) => o.text).join(' ')) - palavras(s.options[s.selectedIndex] ? s.options[s.selectedIndex].text : ''), 0);
+        return { n: palavras(document.querySelector('#tela').innerText) - fechadas - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary, .retorno-vivo')].reduce((a, e) => a + palavras(e.innerText), 0), dica: !!dica };
       });
       if (!m) return;
       const c = await atual();
@@ -288,14 +302,17 @@ const server = http.createServer(async (req, res) => {
     const escolher = async (rot) => {
       const c = await atual();
       ok(await clicar('#ent .opcao', rot) || await clicar('#ent .opcao b', rot), `${c}: opção ${rot}`);
+      /* D: a opção diz ao leitor de tela se está marcada */
+      const pr = await page.$$eval('#ent .opcao', (xs) => xs.map((x) => [x.classList.contains('sel'), x.getAttribute('aria-pressed')]));
+      ok(pr.length && pr.every(([s, a]) => a === String(s)) && pr.filter(([s]) => s).length === (c === 'M5.PG' ? pr.filter(([s]) => s).length : 1), `D: ${c}: aria-pressed "true" só na escolhida ${JSON.stringify(pr)}`);
       await continuar();
       ok(!(await erroVisivel()), `${c}: resposta ${rot} aceita`);
-      await seguir();
+      await seguir(c);
     };
     const alt = async (rot) => {
       const c = await atual();
       ok(await clicar('.btn-alt', rot), `${c}: botão ${rot}`);
-      await seguir();
+      await seguir(c);
     };
     const preencher = async (vals, sels = [], seg = true) => {
       const c = await atual();
@@ -306,7 +323,7 @@ const server = http.createServer(async (req, res) => {
       await continuar();
       const e = await erroVisivel();
       ok(!e, `${c}: valores ${vals.join('|')} aceitos` + (e ? ' — erro: ' + await texto('#erro') : ''));
-      if (seg) await seguir();
+      if (seg) await seguir(c);
     };
     /* lote 3 (Nayara): "‹ Voltar" no topo do cartão, à esquerda, acima do texto; nenhum Voltar embaixo */
     const voltarNoTopo = async (onde) => {
@@ -435,7 +452,22 @@ const server = http.createServer(async (req, res) => {
     /* versão leve: capa com título, uma frase, tempo e Começar; o resto em "Como funciona" (fechado) */
     {
       const capa = await page.evaluate(() => ({ n: (() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + n(e.innerText), 0); })(), aberto: document.getElementById('como-funciona').open, frase: document.querySelector('.heroi-txt p').textContent, tempo: document.querySelector('.tempo').textContent }));
-      ok(capa.n <= 60 && !capa.aberto && capa.frase === D.leve.capa.frase && capa.tempo === 'Este módulo leva uns 20 minutos', 'capa leve: frase, tempo e "Como funciona" fechado ' + JSON.stringify(capa));
+      ok(capa.n <= 60 && !capa.aberto && capa.frase === D.leve.capa.frase && capa.tempo === 'Esta etapa leva cerca de 15 minutos', 'capa leve: frase, tempo e "Como funciona" fechado ' + JSON.stringify(capa));
+      /* G: tempo honesto = perguntas do caminho mais comum (Produto, gastos do mês com "Sim") × 35 s, múltiplo de 5 min */
+      {
+        const R = {}, sim = (c) => ({ estado: 'opcao', opcao: c });
+        const resp = { 'M5.P00': sim('Já vendo sempre'), 'M5.P01': sim('Produto: eu compro materiais e faço o que vendo'), 'M5.ENT': sim(Motor.ENT_NAO), 'M5.SZ': sim(Motor.SZ_NAO) };
+        let c = 'M5.P00', n = 0;
+        while (c && M.porCodigo[c] && n < 80) {
+          const q = M.porCodigo[c]; n++;
+          const r0 = resp[c] || (Motor.campo(q) === 'escolha' ? sim(q.opcoesLista[0]) : { estado: 'valor', valor: '1' });
+          R[c] = r0;
+          c = Motor.proxima(M, q, r0, Motor.regra(M, q, r0));
+          if (c === 'M5.P37' && R['M5.P35'] && !R['M5.PH']) c = 'M5.PH';
+        }
+        const min = Math.round(n * 35 / 60 / 5) * 5;
+        ok(n >= 25 && n <= 32 && D.leve.capa.minutos === min, `G: caminho mais comum com ${n} perguntas × 35 s = ${(n * 35 / 60).toFixed(1)} min -> capa diz ${D.leve.capa.minutos} (esperado ${min})`);
+      }
       ok((await texto('#como-funciona')).includes(norm(D.mapa.ter_em_maos)) && await page.locator('#como-funciona #limites').count() === 1, 'capa: o que ter em mãos e limites dentro de "Como funciona"');
     }
     console.log('PASS-stage: versão do estado');
@@ -455,15 +487,38 @@ const server = http.createServer(async (req, res) => {
     await ajudaTraz(M.porCodigo['M5.P03'].comoDescobrir[0], 'P03');
     await preencher(['Farinha', 'Ovo']);                            // P03
     {
+      /* 17/11 (relatório F8): quanto vem na compra e o preço, na mesma tela; o preço diz de quê ele é */
       await teclado('P04');
-      const ins = await page.locator('#ent input').all();
-      await ins[0].fill('dez'); await ins[1].fill('12');
+      ok(await atual() === 'M5.P04' && (await texto('h2.q')) === 'Como você compra cada item e quanto paga?' && await page.locator('#ent .compra').count() === 2, 'F8: P04 junta quanto vem na compra e o preço, um bloco por item');
+      const sels = await page.$$eval('#ent select', (xs) => xs.map((x) => x.value));
+      ok(JSON.stringify(sels) === '["",""]', 'F8: nenhuma unidade vem marcada (nem "unidade") ' + JSON.stringify(sels));
+      const phs = await page.$$eval('#ent input', (xs) => xs.map((x) => x.placeholder));
+      ok(!phs.includes('Ex.: 6,50') && phs.every((x) => x === ''), 'F8: sem o exemplo "Ex.: 6,50" igual para tudo ' + JSON.stringify(phs));
+      ok(JSON.stringify(await page.$$eval('#ent .rot-preco', (xs) => xs.map((x) => x.textContent))) === '["Preço que você paga","Preço que você paga"]', 'F8: antes da unidade, o rótulo do preço é geral');
+      const ins = await page.locator('#ent input').all();             // Farinha: quanto vem, preço; Ovo: quanto vem, preço
+      await ins[0].fill('1'); await ins[1].fill('10'); await ins[2].fill('12'); await ins[3].fill('12');
+      await continuar();
+      ok(await erroVisivel() && (await texto('#erro')) === Motor.MSG_UNIDADE && await atual() === 'M5.P04' && !(await state()).R['M5.P05'], 'F8: sem escolher a unidade, mensagem simples e não grava: ' + await texto('#erro'));
+      ok(await page.evaluate(() => document.getElementById('erro').getAttribute('role') === 'alert' && !document.getElementById('ok').disabled), 'B: mensagem com role=alert; Continuar nunca desativado');
+      const ss = await page.locator('#ent select').all();
+      await ss[0].selectOption('kg'); await ss[1].selectOption('unidade');
+      ok(JSON.stringify(await page.$$eval('#ent .rot-preco', (xs) => xs.map((x) => x.textContent))) === '["Preço de 1 kg","Preço das 12 unidades"]', 'F8: o rótulo do preço muda com a unidade: "Preço de 1 kg", "Preço das 12 unidades"');
+      ok(await page.locator('#ent .cq').first().getAttribute('placeholder') === 'Ex.: 1' && await page.locator('#ent .cq').nth(1).getAttribute('placeholder') === 'Ex.: 12', 'F8: exemplo do campo coerente com a unidade (1 kg, 12 unidades)');
+      await ss[0].selectOption('g'); await ins[0].fill('500');
+      ok((await texto('#ent .compra[data-i="0"] .rot-preco')) === 'Preço de 500 g' && await page.locator('#ent .cq').first().getAttribute('placeholder') === 'Ex.: 500', 'F8: em gramas, "Preço de 500 g"');
+      await page.waitForTimeout(900);
+      ok((await texto('#ent .compra[data-i="0"] .por-un')) === 'Sai a R$ 20,00 o kg.' && (await texto('#ent .compra[data-i="0"] .como-calc')) === 'Como calculamos: R$ 10,00 ÷ 500 g (0,5 kg) = R$ 20,00 o kg.', 'A: retorno ao vivo no campo (sem tocar em Continuar): quanto sai o kg, com a conta: ' + await texto('#ent .compra[data-i="0"]'));
+      ok((await texto('#ent .compra[data-i="1"] .por-un')) === 'Sai a R$ 1,00 cada unidade.', 'A: 12 ovos por R$ 12,00 -> R$ 1,00 cada unidade');
+      await ss[0].selectOption('kg'); await ins[0].fill('1');
+      await ins[1].fill('dez');
       await continuar();
       ok(await erroVisivel() && (await texto('#erro')) === Motor.MSG_NUMERO && await atual() === 'M5.P04' && !(await state()).R['M5.P04'], 'P04: texto no campo de R$ -> "Digite só números", não grava');
       ok(await page.locator('#ent input').first().getAttribute('inputmode') === 'decimal', 'P04: teclado numérico (inputmode decimal)');
+      await shot('m05_depois_precos_P04.png');
     }
-    await preencher(['10', '12']);                                  // P04 preço pago
-    await preencher(['1', '12'], ['kg', 'unidade']);                // P05 quanto vem
+    await preencher(['1', '10', '12', '12'], ['kg', 'unidade']);    // P04 + P05: quanto vem e preço pago
+    ok(JSON.stringify((await state()).R['M5.P04']) === '{"estado":"valor","valor":["10","12"]}' && JSON.stringify((await state()).R['M5.P05']) === '{"estado":"valor","valor":[{"q":"1","u":"kg"},{"q":"12","u":"unidade"}]}' && await atual() === 'M5.P06', 'F8: P04 e P05 gravadas no mesmo formato de antes; segue para a P06');
+    ok(JSON.stringify(await page.$$eval('#ent select', (xs) => xs.map((x) => x.value))) === '["kg","unidade"]' && (await texto('#ent .item')).includes('(compra: 1 kg)'), 'P06: unidade começa igual à da compra de cada item (resposta da própria pessoa)');
     /* P06: 2 kg usados de um pacote de 1 kg -> aviso para conferir (não trava de vez) */
     {
       const ins = await page.locator('#ent input').all();
@@ -481,6 +536,8 @@ const server = http.createServer(async (req, res) => {
     await ajudaTraz(M.porCodigo['M5.PT'].comoDescobrir[1], 'PT');
     await preencher(['0', '30']);                                   // PT: 30 min por unidade
     ok(await page.locator('#ent .opcao').count() === 2, 'P08: só Sim/Não ("Não sei" virou ajuda)');
+    ok(await clicar('#ent .opcao', 'Sim') && (await texto('#retorno')).includes(M.regrasDe['M5.P08'].find((r) => /Sim/.test(r.condicao)).texto) && await atual() === 'M5.P08', 'A: retorno ao vivo na escolha, antes de tocar em Continuar: ' + await texto('#retorno'));
+    await shot('m05_depois_retorno_ao_vivo_P08.png');
     ok(await page.locator('#naosei').count() === 0, 'P08: sem "Não sei" (a pessoa sabe se usa embalagem)');
     await escolher('Sim');                                          // P08 embalagem
     await preencher(['20', '10']);                                  // P09 pacote
@@ -523,6 +580,10 @@ const server = http.createServer(async (req, res) => {
     await page.click('#naosei');                                    // fecha o painel para o print
     await teclado('P29');
     await shot('03-aluguel-observacao-P29.png');
+    await page.locator('#ent input').fill('500');
+    ok((await texto('#retorno')) === '', 'A: campo: o retorno espera parar de digitar');
+    await page.waitForTimeout(900);
+    ok((await texto('#retorno')).includes('Esse valor será incluído nas contas mensais do negócio') && await atual() === 'M5.P29', 'A: retorno ao vivo no campo ~700 ms depois de digitar, antes de Continuar: ' + await texto('#retorno'));
     await preencher(['500']);
     await checarFixo(false); await escolher('Sim');                 // P30
     await checarFixo(false);                                        // P31
@@ -719,7 +780,7 @@ const server = http.createServer(async (req, res) => {
       if (esp === 'neg') ok(temB && temN && !temA, `preço ${v}: lucro negativo = baixo + "abaixo do custo"`);
       if (v === '15') await shot('05b-lucro-negativo.png');
       ok(t.includes(Motor.MSG_ACIMA_MERCADO) === (p > 40), `preço ${v}: aviso de acima da faixa do Módulo 3 só acima de R$ 40`);
-      ok(t.includes('Faixa de preço que você informou no Módulo 3: R$ 25,00 a R$ 40,00'), `preço ${v}: mostra a faixa do Módulo 3`);
+      ok(t.includes('Faixa de preço que você informou na Etapa 3: R$ 25,00 a R$ 40,00'), `preço ${v}: mostra a faixa do Módulo 3`);
       if (v === '30') ok(t.includes('R$ 10,00') && t.includes('33,3%') && t.includes('Margem sobre o preço'), 'preço 30, custo 20: sobra R$ 10,00 e margem 33,3% sobre o preço');
       if (v === '45') await shot('m05_preco_faixa_m3.png');
       if (v === '22') await shot('05-lucro-reverso-baixo.png');
@@ -761,29 +822,30 @@ const server = http.createServer(async (req, res) => {
     /* relatório 05/11: a tela que só repetia a resposta do Módulo 1 vira contexto no topo da 1ª pergunta real */
     ok(await atual() === 'M5.P01' && !(await state()).hist.includes('M5.P00'), 'estágio do Módulo 1: tela P00 pulada, abre direto em P01');
     ok((await state()).R['M5.P00'].opcao === 'Já vendi algumas vezes' && (await state()).R['M5.P00'].estado === 'opcao', 'P00 gravada no Módulo 5 (herdada)');
-    ok((await texto('#seu-negocio')).includes('Seu negócio: Corte de cabelo') && (await texto('#neg-estagio')).includes('Já vendi algumas vezes') && (await texto('#neg-estagio')).includes('Veio do Módulo 1'), 'P01: cartão "Seu negócio" com ideia e estágio do Módulo 1');
+    ok((await texto('#seu-negocio')).includes('Seu negócio: Corte de cabelo') && (await texto('#neg-estagio')).includes('Já vendi algumas vezes') && (await texto('#neg-estagio')).includes('Veio da Etapa 1'), 'P01: cartão "Seu negócio" com ideia e estágio do Módulo 1');
     ok(await page.locator('#ent .opcao').count() === 3 && await page.locator('#ent .opcao.sel').count() === 0, 'sem M1.P03A: P01 pergunta como antes (3 opções, nada marcado)');
     await shot('m05_P01_cartao_negocio.png');
     /* Trocar o estágio: abre a P00 com a resposta herdada marcada e o selo */
     ok(await clicar('#neg-estagio .alterar', 'Trocar') && await atual() === 'M5.P00', 'Trocar estágio abre a P00');
-    ok((await texto('#ent .opcao.sel')) === 'Já vendi algumas vezes' && (await texto('.selo-m')).includes('Veio do Módulo 1'), 'P00 aberta pelo Trocar: resposta herdada marcada + selo');
+    ok((await texto('#ent .opcao.sel')) === 'Já vendi algumas vezes' && (await texto('.selo-m')).includes('Veio da Etapa 1'), 'P00 aberta pelo Trocar: resposta herdada marcada + selo');
     await continuar(); await seguir();
     ok(await atual() === 'M5.P01' && (await state()).R['M5.P00'].herdado === 'M1', 'confirmar o mesmo estágio mantém a marca de herança e volta à P01');
     await escolher('Serviço');
     /* 16/11 (F): o nome do serviço já foi respondido no Módulo 1 -> a tela P17 é pulada; cartão com "Trocar" */
     ok(await atual() === 'M5.P18' && !(await state()).hist.includes('M5.P17'), 'P17 (nome) pulada: já respondida no Módulo 1');
     ok(JSON.stringify((await state()).R['M5.P17']) === JSON.stringify({ estado: 'valor', valor: 'Corte de cabelo', herdado: 'M1' }), 'P17 gravada com a resposta do Módulo 1 (mesmo formato + herdado)');
-    ok((await texto('#ctx-herdado')).includes('Serviço: Corte de cabelo') && (await texto('#ctx-herdado')).includes('Veio do Módulo 1') && await page.locator('#ctx-herdado [data-trocar="M5.P17"]').count() === 1, 'P18: etiqueta do item com "Veio do Módulo 1" e Trocar: ' + await texto('#ctx-herdado'));
+    ok((await texto('#ctx-herdado')).includes('Serviço: Corte de cabelo') && (await texto('#ctx-herdado')).includes('Veio da Etapa 1') && await page.locator('#ctx-herdado [data-trocar="M5.P17"]').count() === 1, 'P18: etiqueta do item com "Veio da Etapa 1" e Trocar: ' + await texto('#ctx-herdado'));
     await shot('m05_depois_herdado_nome.png');
-    ok(await clicar('#ctx-herdado .alterar', 'Trocar') && await atual() === 'M5.P17' && await page.inputValue('#ent input') === 'Corte de cabelo' && (await texto('.selo-m')).includes('Módulo 1'), 'Trocar abre a P17 com o nome do Módulo 1 e o selo');
+    ok(await clicar('#ctx-herdado .alterar', 'Trocar') && await atual() === 'M5.P17' && await page.inputValue('#ent input') === 'Corte de cabelo' && (await texto('.selo-m')).includes('Etapa 1'), 'Trocar abre a P17 com o nome do Módulo 1 e o selo');
     ok(JSON.stringify((await state()).hist.slice(-2)) !== '["M5.P18","M5.P17"]', 'Trocar tira a P18 do histórico');
     await continuar(); await seguir();      // P17 confirmada
     ok((await state()).R['M5.P17'].herdado === 'M1' && await atual() === 'M5.P18', 'confirmar o mesmo nome mantém a marca de herança');
     await escolher('Sim');                  // P18
     ok((await texto('#nota-consumo')).includes('tesoura') && (await texto('#nota-luz')).includes('luz'), 'P19: explicação de consumo e luz/água também no serviço');
     await preencher(['Shampoo']);           // P19
-    await preencher(['30']);                // P20
-    await preencher(['1'], ['L']);          // P21
+    ok(await atual() === 'M5.P20' && (await texto('h2.q')) === 'Como você compra cada material e quanto paga?', 'F8 (serviço): P20 junta quanto vem e o preço');
+    await preencher(['1', '30'], ['L']);    // P20 + P21: 1 L por R$ 30,00
+    ok(await atual() === 'M5.P22' && JSON.stringify((await state()).R['M5.P21'].valor) === '[{"q":"1","u":"L"}]' && JSON.stringify((await state()).R['M5.P20'].valor) === '["30"]', 'F8 (serviço): P20 e P21 gravadas no formato de antes; segue para a P22');
     await preencher(['50'], ['ml']);        // P22 -> 30 * 0,05 = 1,50
     await preencher(['1', '0']);            // P23
     await formas(['Cartão de débito']);
@@ -882,7 +944,7 @@ const server = http.createServer(async (req, res) => {
       ok(r01.estado === 'opcao' && r01.opcao === 'Serviço: meu cliente paga pelo trabalho que realizo' && r01.herdado === 'M1', 'M5.P01 gravada no mesmo formato ({estado, opcao}) + marca de herança');
     }
     ok((await texto('#seu-negocio')).includes('Seu negócio: Lava-jato em domicílio · Serviço'), 'cartão "Seu negócio: <ideia> · <tipo>"');
-    ok((await texto('#neg-tipo')).includes('Veio do Módulo 1') && (await texto('#neg-tipo .alterar')) === 'Trocar', 'tipo herdado com selo e Trocar');
+    ok((await texto('#neg-tipo')).includes('Veio da Etapa 1') && (await texto('#neg-tipo .alterar')) === 'Trocar', 'tipo herdado com selo e Trocar');
     ok((await texto('#seu-negocio')).includes('Confira e ajuste se quiser'), 'cartão pede para conferir');
     ok(await page.locator('.contexto').count() === 0, 'cartão substitui a etiqueta "Tipo escolhido"');
     ok(await page.locator('#neg-nome').count() === 0 && await page.locator('#neg-cab-trocar[data-trocar="M5.P17"]').count() === 1, 'cartão: nome igual à ideia do Módulo 1 não se repete; "Trocar" no título');
@@ -902,18 +964,18 @@ const server = http.createServer(async (req, res) => {
       const ent = await texto('#entendemos');
       ok(ent.includes('Seu negócio é “Lava-jato em domicílio” e, aqui, você analisou o serviço “Lava-jato em domicílio”') === false && ent.includes('Você analisou o serviço “Lava-jato em domicílio”'), 'entendemos: nome igual à ideia não se repete');
       ok(ent.includes('Você já vende') && ent.includes('R$ 200,00') && ent.includes('Cobrando R$ 60,00, sobram R$ 60,00 em cada atendimento') && ent.includes('4 atendimentos por mês') && ent.includes('Vendendo 40 por mês, sobram R$ 2.200,00'), 'entendemos (Serviço herdado): estágio, gastos, sobra, vendas para cobrir e o mês: ' + ent);
-      ok((await texto('.is-txt')).includes('Veio do Módulo 1') && await page.locator('.is-txt [data-trocar="M5.P01"]').count() === 1, 'resultado: tipo herdado com selo e Trocar');
+      ok((await texto('.is-txt')).includes('Veio da Etapa 1') && await page.locator('.is-txt [data-trocar="M5.P01"]').count() === 1, 'resultado: tipo herdado com selo e Trocar');
       await semNaN('resultado herdado');
       await page.locator('#entendemos').scrollIntoViewIfNeeded();
       await shot('m05_resultado_entendemos.png');
     }
     /* Trocar o tipo a partir do resultado: abre a P01 com o tipo herdado marcado */
     ok(await clicar('.is-txt .alterar', 'Trocar') && await atual() === 'M5.P01', 'Trocar (resultado) abre a pergunta do tipo');
-    ok((await texto('#ent .opcao.sel b')) === 'Serviço' && (await texto('.selo-m')).includes('Veio do Módulo 1'), 'P01 aberta pelo Trocar: tipo herdado marcado + selo');
+    ok((await texto('#ent .opcao.sel b')) === 'Serviço' && (await texto('.selo-m')).includes('Veio da Etapa 1'), 'P01 aberta pelo Trocar: tipo herdado marcado + selo');
     ok(!(await state()).hist.includes('RESULTADO'), 'Trocar tira o resultado do histórico');
     await escolher('Mercadoria');
     ok(await atual() === 'M5.P11' && !(await state()).R['M5.P01'].herdado && (await state()).R['M5.P10'].herdado === 'M1', 'trocar para Mercadoria: nome da mercadoria vem do Módulo 1 (P10 pulada), segue para a P11');
-    ok((await texto('#ctx-herdado')).includes('Mercadoria: Lava-jato em domicílio') && (await texto('#ctx-herdado')).includes('Veio do Módulo 1'), 'etiqueta mostra o tipo trocado e o nome herdado');
+    ok((await texto('#ctx-herdado')).includes('Mercadoria: Lava-jato em domicílio') && (await texto('#ctx-herdado')).includes('Veio da Etapa 1'), 'etiqueta mostra o tipo trocado e o nome herdado');
     ok(await clicar('#ctx-herdado .alterar', 'Trocar') && await atual() === 'M5.P10' && JSON.stringify((await state()).hist.slice(-2)) !== '["M5.P11","M5.P10"]', 'Trocar o nome substitui a tela seguinte no histórico');
     await page.locator('#ent input').fill('Cera automotiva'); await continuar(); await seguir();
     ok(!(await state()).R['M5.P10'].herdado && (await state()).R['M5.P10'].valor === 'Cera automotiva' && await atual() === 'M5.P11', 'nome trocado: sem marca de herança');
@@ -947,7 +1009,7 @@ const server = http.createServer(async (req, res) => {
     ok(tr.includes('149.900,0%') && (await texto('#aviso-acrescimo')).includes('1.500 vezes o custo'), 'resultado: acréscimo 149.900% com aviso claro');
     ok(await page.evaluate(() => [...document.querySelectorAll('#numeros .secao-titulo, #numeros .lbl')].filter((e) => /^acréscimo sobre o custo$/i.test(e.textContent.trim())).length) === 1, 'resultado: "Acréscimo sobre o custo" uma vez só');
     ok(tr.includes('R$ 2.250.000,00') && (await texto('#fat-alto')).includes(Motor.MSG_FAT_ALTO), 'faturamento R$ 2,25 milhões/mês: aviso de valor alto para negócio caseiro');
-    ok((await texto('#aviso-investimento')).includes('“Até R$ 100”') && (await texto('#aviso-investimento')).includes('R$ 1.500,00') && (await texto('#aviso-investimento')).includes('Veio do Módulo 1'), 'compra R$ 1.500 acima do "Até R$ 100" do Módulo 1: aviso citando o Módulo 1');
+    ok((await texto('#aviso-investimento')).includes('“Até R$ 100”') && (await texto('#aviso-investimento')).includes('R$ 1.500,00') && (await texto('#aviso-investimento')).includes('Veio da Etapa 1'), 'compra R$ 1.500 acima do "Até R$ 100" do Módulo 1: aviso citando o Módulo 1');
     ok((await texto('#pe-falta')).includes('falta informar os gastos fixos do mês'), 'sem gastos do mês: explica o que falta para o ponto de equilíbrio');
     ok(await page.locator('.lg2-proximo').count() === 1, 'avisos não travam: botão do próximo módulo presente');
     await semNaN('resultado números exagerados');
@@ -988,7 +1050,7 @@ const server = http.createServer(async (req, res) => {
       const campos = () => page.evaluate(() => [...document.querySelectorAll('#ajuste tr')].map((tr) => ({ rot: tr.cells[0].textContent.trim().replace(/\s*\([^)]*\)$/, ''), un: tr.cells[0].textContent.trim(), v: (tr.querySelector('input') || {}).value })));
       const cs = await campos();
       const pega = (rot, n = 0) => cs.filter((x) => x.rot === rot)[n];
-      ok(pega('Farinha') && pega('Preço que você paga').v === '10,00' && pega('Quanto vem quando compra').v === '1' && pega('Quanto usa').v === '500' && pega('Preço que você paga', 1).v === '12,00'
+      ok(pega('Farinha') && pega('Preço de 1 kg').v === '10,00' && pega('Quanto vem quando compra').v === '1' && pega('Quanto usa').v === '500' && pega('Preço das 12 unidades').v === '12,00'
         && pega('Quantas unidades você faz com essas quantidades').v === '10' && pega('Preço do pacote').v === '20,00' && pega('Quantas vêm no pacote').v === '10', 'ajuste: tabela traz os materiais, o rendimento e a embalagem com os valores respondidos ' + JSON.stringify(cs));
       ok(pega('Quanto vem quando compra').un === 'Quanto vem quando compra (kg)' && pega('Quanto usa').un === 'Quanto usa (g)', 'ajuste: unidade respondida aparece ao lado do nome');
       ok(pega('Aluguel').v === '300,00' && pega('Água e luz').v === '' && pega('Internet').v === '100,00' && pega('Preço de venda').v === '15,00' && pega('Vendas no mês').v === '50', 'ajuste: gastos do mês, preço e vendas na tabela, dinheiro em padrão brasileiro (300,00)');
@@ -999,13 +1061,13 @@ const server = http.createServer(async (req, res) => {
       const idx = (rot, n = 0) => cs.findIndex((x, i) => x.rot === rot && cs.slice(0, i).filter((y) => y.rot === rot).length === n) ;
       const inp = (rot, n = 0) => page.locator('#ajuste tr').nth(idx(rot, n)).locator('input');
       const antes = JSON.stringify((await state()).R);
-      await inp('Preço que você paga').fill('dez'); await page.click('#aj-recalcular');
+      await inp('Preço de 1 kg').fill('dez'); await page.click('#aj-recalcular');
       ok(!(await page.locator('#ajuste-erro').isHidden()) && (await texto('#ajuste-erro')) === Motor.MSG_NUMERO && JSON.stringify((await state()).R) === antes, 'ajuste: texto no campo -> "Digite só números", não grava');
-      await inp('Preço que você paga').fill('-5'); await page.click('#aj-recalcular');
+      await inp('Preço de 1 kg').fill('-5'); await page.click('#aj-recalcular');
       ok((await texto('#ajuste-erro')) === 'O valor não pode ser negativo.' && JSON.stringify((await state()).R) === antes, 'ajuste: valor negativo não grava');
-      await inp('Preço que você paga').fill(''); await page.click('#aj-recalcular');
+      await inp('Preço de 1 kg').fill(''); await page.click('#aj-recalcular');
       ok((await texto('#ajuste-erro')).startsWith('Preencha todos os valores') && JSON.stringify((await state()).R) === antes, 'ajuste: material em branco não grava');
-      await inp('Quanto vem quando compra').fill('0'); await inp('Preço que você paga').fill('20'); await page.click('#aj-recalcular');
+      await inp('Quanto vem quando compra').fill('0'); await inp('Preço de 1 kg').fill('20'); await page.click('#aj-recalcular');
       ok((await texto('#ajuste-erro')) === 'A quantidade deve ser maior que zero.' && JSON.stringify((await state()).R) === antes, 'ajuste: quantidade da embalagem zero não grava');
       await inp('Quanto vem quando compra').fill('1');
       await inp('Aluguel').fill('500'); await inp('Água e luz').fill('50'); await inp('Internet').fill('');
@@ -1056,7 +1118,7 @@ const server = http.createServer(async (req, res) => {
       };
       const tipos = { 'M5.P10': 'Mercadoria: compro pronto para revender', 'M5.P11': 'Mercadoria: compro pronto para revender', 'M5.P12': 'Mercadoria: compro pronto para revender', 'M5.P13': 'Mercadoria: compro pronto para revender', 'M5.P14': 'Mercadoria: compro pronto para revender', 'M5.P15': 'Mercadoria: compro pronto para revender', 'M5.P16': 'Mercadoria: compro pronto para revender',
         'M5.P17': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M5.P18': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M5.P19': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M5.P20': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M5.P21': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M5.P22': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M5.P23': 'Serviço: meu cliente paga pelo trabalho que realizo' };
-      let nBloq = 0, nSem = 0;
+      let nBloq = 0, nSem = 0, nJunto = 0;
       for (const q of M.ordem) {
         const R = JSON.parse(JSON.stringify(RP));
         if (tipos[q.codigo]) { R['M5.P01'].opcao = tipos[q.codigo]; R['M5.P10'] = { estado: 'valor', valor: 'Boné' }; R['M5.P17'] = { estado: 'valor', valor: 'Aula' }; R['M5.P19'] = { estado: 'valor', valor: ['Esmalte'] }; R['M5.P20'] = { estado: 'valor', valor: ['8'] }; R['M5.P21'] = { estado: 'valor', valor: [{ q: '10', u: 'ml' }] }; }
@@ -1064,7 +1126,9 @@ const server = http.createServer(async (req, res) => {
         await page.goto(URL0);
         await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { versao: 4, R, hist: [q.codigo] }]);
         await page.reload(); await page.click('#ir');
-        ok(await atual() === q.codigo, `${q.codigo}: aberta direto`);
+        const junto = { 'M5.P05': 'M5.P04', 'M5.P21': 'M5.P20' }[q.codigo];   // F8: na mesma tela do preço
+        ok(await atual() === (junto || q.codigo), `${q.codigo}: aberta direto${junto ? ' (na tela do preço, ' + junto + ')' : ''}`);
+        if (junto) { nJunto++; continue; }
         if (!q.botaoNaoSei) {
           ok(await page.locator('#naosei').count() === 0 && await page.locator('#ent .opcao, .btn-alt').filter({ hasText: /n[ãa]o sei|ainda n[ãa]o defini/i }).count() === 0, `${q.codigo}: sem "Não sei" (saiu)`);
           nSem++;
@@ -1078,7 +1142,7 @@ const server = http.createServer(async (req, res) => {
         ok(await erroVisivel() && (await texto('#erro')) === Motor.msgFalta(q, true) && await atual() === q.codigo && JSON.stringify(await state()) === antes && await page.locator('#retorno .retorno, #acoes button').filter({ hasText: /^Seguir$/ }).count() === 0, `${q.codigo}: "Não sei" não grava e o Continuar não avança (${await texto('#erro')})`);
         nBloq++;
       }
-      ok(nBloq === 24 && nSem === 19, `"Não sei" bloqueia em ${nBloq} perguntas; saiu de ${nSem}`);
+      ok(nBloq === 22 && nSem === 19 && nJunto === 2, `"Não sei" bloqueia em ${nBloq} telas (+${nJunto} perguntas na mesma tela do preço); saiu de ${nSem}`);
       console.log(`PASS-stage: "Não sei" bloqueia em ${nBloq} perguntas; saiu de ${nSem}`);
     }
 
@@ -1089,9 +1153,9 @@ const server = http.createServer(async (req, res) => {
       await page.reload(); await page.click('#ir');
       await escolher('Já vendo sempre');
       ok(await atual() === 'M5.P02' && (await state()).R['M5.P01'].herdado === 'M4' && (await state()).R['M5.P01'].opcao === 'Produto: eu compro materiais e faço o que vendo', 'tipo veio do Módulo 4 (P01 pulada)');
-      ok((await texto('#neg-tipo')).includes('Veio do Módulo 4') && await page.locator('#neg-tipo [data-trocar="M5.P01"]').count() === 1, 'cartão: tipo com "Veio do Módulo 4" e Trocar');
+      ok((await texto('#neg-tipo')).includes('Veio da Etapa 4') && await page.locator('#neg-tipo [data-trocar="M5.P01"]').count() === 1, 'cartão: tipo com "Veio da Etapa 4" e Trocar');
       await preencher(['Bolo']);
-      ok(JSON.stringify(await page.$$eval('#ent .lista input', (xs) => xs.map((x) => x.value))) === '["Farinha","Ovos","Açúcar"]' && (await texto('.selo-m')).includes('Módulo 4'), 'P03: materiais sugeridos do Módulo 4 (para conferir), com selo');
+      ok(JSON.stringify(await page.$$eval('#ent .lista input', (xs) => xs.map((x) => x.value))) === '["Farinha","Ovos","Açúcar"]' && (await texto('.selo-m')).includes('Etapa 4'), 'P03: materiais sugeridos do Módulo 4 (para conferir), com selo');
       await page.evaluate(() => { localStorage.setItem('lg2-turma-a-m04', JSON.stringify({ R: { 'M4.P02': { estado: 'opcao', opcao: 'Produto+ Serviço' } } })); });
       await page.evaluate((k) => localStorage.removeItem(k), KEY); await page.reload(); await page.click('#ir');
       await escolher('Já vendo sempre');
@@ -1163,7 +1227,7 @@ const server = http.createServer(async (req, res) => {
       await page.goto(URL0);
       await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); localStorage.setItem('lg2-turma-a-m04', JSON.stringify({ R: { 'M4.P04': { estado: 'opcoes', opcoes: ['Retirada presencial pelo cliente'] } } })); }, [KEY, { versao: 4, R, hist: Object.keys(R).concat('M5.ENT') }]);
       await page.reload(); await page.click('#ir');
-      ok(await atual() === 'M5.ENT' && (await texto('#ent .opcao.sel')) === Motor.ENT_NAO && (await texto('.selo-m')).includes('Módulo 4'), 'ENT: Módulo 4 só com retirada -> "o cliente busca" já marcado, com selo do Módulo 4');
+      ok(await atual() === 'M5.ENT' && (await texto('#ent .opcao.sel')) === Motor.ENT_NAO && (await texto('.selo-m')).includes('Etapa 4'), 'ENT: Módulo 4 só com retirada -> "o cliente busca" já marcado, com selo do Módulo 4');
       ok(await clicar('#ent .opcao', Motor.ENT_PRECO) && await page.locator('#ent-preco').isVisible(), 'ENT "já está no meu preço": pede custo e quantas de 10');
       await continuar();
       ok(await erroVisivel() && (await texto('#erro')) === 'Informe quanto custa cada entrega para você.' && await atual() === 'M5.ENT', 'ENT sem custo: não avança');
@@ -1185,11 +1249,92 @@ const server = http.createServer(async (req, res) => {
       await page.locator('#entrou').scrollIntoViewIfNeeded(); await shot('m05_depois_entrega_resultado.png');
       console.log('PASS-stage: entrega');
     }
+    /* ===== 14. Lote 17/11 "tira a fricção": C (Continuar à vista), E (Etapa, nunca Módulo), F (toque ≥ 44 px) ===== */
+    {
+      const op = (x) => ({ estado: 'opcao', opcao: x }), vl = (x) => ({ estado: 'valor', valor: x });
+      const RC = { 'M5.P00': op('Já vendo sempre'), 'M5.P01': op('Produto: eu compro materiais e faço o que vendo'), 'M5.P02': vl('Bolo de pote'), 'M5.P03': vl(['Farinha', 'Ovo', 'Gás de cozinha']),
+        'M5.P04': vl(['10', '12', '120']), 'M5.P05': vl([{ q: '1', u: 'kg' }, { q: '12', u: 'unidade' }, { q: '1', u: 'unidade' }]), 'M5.P06': vl([{ q: '500', u: 'g' }, { q: '6', u: 'unidade' }, { q: '0,05', u: 'unidade' }]),
+        'M5.P07': vl('10'), 'M5.P08': op('Sim'), 'M5.PG': vl(['Pix', 'Cartão de crédito']), 'M5.P24': op('Sim'), 'M5.P26': op('Sim'), 'M5.P28': op('Sim'), 'M5.P30': op('Sim'), 'M5.P32': op('Sim'), 'M5.P34': op('Sim'), 'M5.P35': vl('1000'), 'M5.P37': vl('100') };
+      const MERC = 'Mercadoria: compro pronto para revender', SERV = 'Serviço: meu cliente paga pelo trabalho que realizo';
+      const tipoDe = (c) => (/^M5\.P1[0-6]$/.test(c) ? MERC : /^M5\.P(1[7-9]|2[0-3])$/.test(c) ? SERV : null);
+      const abrirQ = async (c, R) => {
+        await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { versao: 4, R, hist: [c] }]);
+        await page.reload(); await page.click('#ir');
+      };
+      const montarR = (c) => {
+        const R = JSON.parse(JSON.stringify(RC));
+        if (tipoDe(c)) Object.assign(R, { 'M5.P01': op(tipoDe(c)), 'M5.P10': vl('Boné'), 'M5.P13': op('Sim'), 'M5.P15': op('Sim'), 'M5.P17': vl('Manicure'), 'M5.P18': op('Sim'), 'M5.P19': vl(['Esmalte', 'Acetona']), 'M5.P20': vl(['8', '10']), 'M5.P21': vl([{ q: '10', u: 'ml' }, { q: '100', u: 'ml' }]) });
+        delete R[c];
+        return R;
+      };
+      const fora = [];
+      let vistas = 0;
+      for (const [vw, zoom, nome] of [[{ width: 360, height: 640 }, '', '360x640'], [{ width: 390, height: 844 }, '130%', '390x844 com letra a 130%'], [{ width: 740, height: 360 }, '', '740x360 (deitado)']]) {
+        await page.setViewportSize(vw);
+        for (const q of M.ordem) {
+          await abrirQ(q.codigo, montarR(q.codigo));
+          if (zoom) await page.evaluate((z) => { document.documentElement.style.fontSize = z; }, zoom);
+          await page.waitForTimeout(30);
+          const r = await page.evaluate(() => { const b = document.getElementById('ok').getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom), h: innerHeight, y: Math.round(scrollY), pos: getComputedStyle(document.getElementById('acoes-fixas')).position }; });
+          vistas++;
+          if (!(r.top >= 0 && r.bottom <= r.h && r.y === 0 && r.pos === 'sticky')) fora.push(`${nome} ${q.codigo} ${JSON.stringify(r)}`);
+          if (q.codigo === 'M5.P04' && SHOTS) await shot(`m05_depois_P04_${vw.width}x${vw.height}${zoom ? '_130' : ''}.png`);
+        }
+      }
+      ok(fora.length === 0 && vistas === M.ordem.length * 3, `C: Continuar inteiro na tela, sem rolar, em ${vistas} telas (360x640, 130%, deitado)` + (fora.length ? ': ' + fora.slice(0, 8).join(' | ') : ''));
+      await page.setViewportSize({ width: 390, height: 844 });
+      /* com o último campo em foco, ele não fica escondido atrás da faixa do Continuar */
+      await abrirQ('M5.P33', montarR('M5.P33'));
+      await page.locator('#ent .lista .valor').last().focus();
+      await page.waitForTimeout(500);
+      ok(await page.evaluate(() => { const i = document.querySelector('#ent .lista .valor'), f = document.getElementById('acoes-fixas'); return i.getBoundingClientRect().bottom <= f.getBoundingClientRect().top; }), 'C: campo em foco fica acima da faixa do Continuar');
+
+      /* E: "Etapa", nunca "Módulo", no texto visível; link do fim "Ir para a Etapa 6" */
+      const semModulo = (onde) => page.evaluate((onde) => {
+        const clone = document.querySelector('#tela').cloneNode(true);
+        clone.querySelectorAll('.p-fontes, .p-linha-integrada, .p-rodape, script, style').forEach((e) => e.remove());
+        document.body.appendChild(clone); clone.style.cssText = 'position:absolute;left:-9999px;top:0;width:390px';
+        clone.querySelectorAll('details').forEach((d) => { d.open = true; });
+        const txt = clone.innerText; clone.remove();
+        return (txt.match(/[^.\n]{0,40}(m[óo]dulo|grupo \d)[^.\n]{0,30}/gi) || []).map((x) => onde + ': ' + x);
+      }, onde);
+      /* F: alvos de toque com pelo menos 44 px de altura (fora o cabeçalho comum e links no meio do texto) */
+      const pequenos = (onde) => page.evaluate((onde) => [...document.querySelectorAll('#tela button, #tela summary, #tela select, #tela a.btn, #tela a.ver, #tela [data-ir-ajuste], #tela .lg2-proximo a')]
+        .filter((e) => !e.closest('.p-linha-integrada') && e.offsetParent !== null && e.getClientRects().length && !e.closest('details:not([open]) > :not(summary)'))
+        .map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.height > 0 && r.height < 44)
+        .map(([e, r]) => `${onde}: ${e.tagName.toLowerCase()}.${e.className} "${e.textContent.trim().slice(0, 30)}" ${Math.round(r.height)}px`), onde);
+      const achados = [], peq = [];
+      await page.goto(URL0); await page.evaluate(() => localStorage.clear()); await page.reload();
+      await page.click('#como-funciona summary');
+      achados.push(...await semModulo('capa')); peq.push(...await pequenos('capa'));
+      await page.click('#limites'); achados.push(...await semModulo('limites'));
+      for (const c of ['M5.P03', 'M5.P04', 'M5.P06', 'M5.P29', 'M5.P33', 'M5.SZ', 'M5.P36']) {
+        await abrirQ(c, montarR(c));
+        if (c === 'M5.SZ') await clicar('#ent .opcao', Motor.SZ_SIM);
+        if (await page.locator('#dica').count()) await page.click('#dica summary');
+        if (await page.locator('#naosei').count()) await page.click('#naosei');
+        achados.push(...await semModulo(c)); peq.push(...await pequenos(c));
+      }
+      const RF = Object.assign(JSON.parse(JSON.stringify(RC)), { 'M5.P09': vl({ preco: '20', qtd: '10' }), 'M5.P25': vl([{ forma: 'Pix', taxa: '0', prazo: '', parte: '60' }, { forma: 'Cartão de crédito', taxa: '5', prazo: '30', parte: '40' }]), 'M5.P27': vl('30'), 'M5.P29': vl('300'), 'M5.P31': vl('80'), 'M5.P33': vl([{ nome: 'Internet', v: '50' }]), 'M5.SZ': op(Motor.SZ_NAO), 'M5.P36': vl('25') });
+      await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { versao: 4, R: RF, hist: Object.keys(RF).concat('PRECO') }]);
+      await page.reload(); await page.click('#ir');
+      ok(await atual() === 'PRECO', 'passo do preço aberto');
+      achados.push(...await semModulo('PRECO')); peq.push(...await pequenos('PRECO'));
+      await clicar('#res', 'Ver o resultado');
+      await page.waitForTimeout(100);
+      achados.push(...await semModulo('resultado')); peq.push(...await pequenos('resultado'));
+      ok(achados.length === 0, 'E: nenhum "Módulo" (nem "Grupo N") no texto visível: ' + achados.slice(0, 6).join(' | '));
+      ok((await texto('.acoes.lg2-proximo')) === 'Ir para a Etapa 6' && await page.locator('.acoes.lg2-proximo a').isVisible(), 'E: link do fim "Ir para a Etapa 6", visível, dentro de .acoes.lg2-proximo');
+      ok((await texto('.trilha')).includes('Etapa 5') && (await page.title()).startsWith('Etapa 5'), 'E: trilha e título dizem "Etapa 5"');
+      ok(peq.length === 0, `F: botões, resumos e listas com pelo menos 44 px de altura` + (peq.length ? ': ' + peq.slice(0, 10).join(' | ') : ''));
+      console.log('PASS-stage: (C) Continuar à vista, (E) Etapa, (F) toque ≥ 44 px');
+    }
     /* versão leve: cada tela de pergunta visitada com até 60 palavras visíveis antes de tocar em algo */
     {
       const lista = Object.entries(medidas);
       const faltam = M.ordem.map((q) => q.codigo).filter((c) => !(c in medidas));
-      ok(lista.length >= 34, `telas de pergunta medidas: ${lista.length} (sem medida: ${faltam.join(', ')})`);
+      /* P05 e P21 não são telas próprias desde 17/11 (ficam na tela do preço, P04 e P20) */
+      ok(lista.length >= 34 && !('M5.P05' in medidas) && !('M5.P21' in medidas), `telas de pergunta medidas: ${lista.length} (sem medida: ${faltam.join(', ')})`);
       console.log(`palavras por tela (máx.): ${JSON.stringify(medidas)} · sem medida: ${faltam.join(', ')}`);
       /* SZ e ENT: +10 palavras só para o exemplo visível pedido pelo dono */
       for (const [c, n] of lista) { const lim = c === 'M5.SZ' || c === 'M5.ENT' ? 70 : 60; ok(n <= lim, `${c}: ${n} palavras visíveis (máximo ${lim})`); }

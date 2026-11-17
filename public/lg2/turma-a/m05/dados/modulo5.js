@@ -20,13 +20,13 @@ window.MODULO5 = {
   ]
  },
  "mapa": {
-  "objetivo": "Ao final do módulo, o usuário será capaz de identificar e organizar os principais custos do seu negócio, simular preços e margens e estimar o ponto de equilíbrio. Também poderá comparar diferentes cenários de custos e preços para apoiar suas decisões.",
-  "usuario": "Destinado para pessoas que desejam iniciar ou que já possuem um pequeno negócio, seja no comércio, na produção ou na prestação de serviços. Geralmente, esses usuários chegam ao módulo com dificuldades para identificar e organizar os custos e despesas do negócio, definir um preço adequado para seus produtos ou serviços e compreender a margem obtida com as vendas. O módulo busca ajudá-los a analisar essas informações e simular diferentes cenários de custos e preços para apoiar suas decisões.",
-  "decisoes": "O módulo apoia o usuário na identificação e organização dos custos e despesas, na definição de preços e margens e na estimativa do ponto de equilíbrio, permitindo comparar diferentes cenários para auxiliar na tomada de decisões.",
-  "nao_faz": "O módulo não toma decisões pelo usuário, não garante resultados ou lucratividade e não define o “melhor” preço. As simulações são apenas estimativas, baseadas nos dados informados, e não substituem a avaliação de profissionais quando necessária.",
+  "objetivo": "Ao final da etapa, o usuário será capaz de identificar e organizar os principais custos do seu negócio, simular preços e margens e estimar o ponto de equilíbrio. Também poderá comparar diferentes cenários de custos e preços para apoiar suas decisões.",
+  "usuario": "Destinado para pessoas que desejam iniciar ou que já possuem um pequeno negócio, seja no comércio, na produção ou na prestação de serviços. Geralmente, esses usuários chegam a esta etapa com dificuldades para identificar e organizar os custos e despesas do negócio, definir um preço adequado para seus produtos ou serviços e compreender a margem obtida com as vendas. A etapa busca ajudá-los a analisar essas informações e simular diferentes cenários de custos e preços para apoiar suas decisões.",
+  "decisoes": "A etapa apoia o usuário na identificação e organização dos custos e despesas, na definição de preços e margens e na estimativa do ponto de equilíbrio, permitindo comparar diferentes cenários para auxiliar na tomada de decisões.",
+  "nao_faz": "A etapa não toma decisões pelo usuário, não garante resultados ou lucratividade e não define o “melhor” preço. As simulações são apenas estimativas, baseadas nos dados informados, e não substituem a avaliação de profissionais quando necessária.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
   "ter_em_maos": "O usuário precisa ter em mãos informações básicas sobre os custos e despesas do negócio, como custos por produto ou serviço, despesas fixas, taxas, perdas, embalagem e demais gastos envolvidos na operação.",
-  "entrega": "Ao final, o módulo entrega uma estimativa dos custos, preços, margens e ponto de equilíbrio, além de um resumo dos resultados e próximos passos para apoiar a análise do usuário.",
+  "entrega": "Ao final, a etapa entrega uma estimativa dos custos, preços, margens e ponto de equilíbrio, além de um resumo dos resultados e próximos passos para apoiar a análise do usuário.",
   "encaminhamentos": "Quando houver dúvidas ou necessidade de orientação sobre questões contábeis, tributárias, jurídicas ou técnicas específicas, o usuário deve ser encaminhado a um contador, advogado, responsável técnico ou órgão público competente, conforme o caso.",
   "caso_real": "",
   "riscos": "Os principais riscos são apresentar promessas de lucro, recomendações categóricas ou informações e regras desatualizadas. O grupo evita esses riscos tratando os resultados como estimativas e cenários, evitando afirmar qual é o melhor preço ou decisão e indicando a necessidade de confirmação em fontes oficiais ou com profissionais quando necessário."
@@ -1872,7 +1872,7 @@ window.MODULO5 = {
    "alerta": "—",
    "lacuna": "—",
    "proximo": "Calcular resultados",
-   "encaminhamento": "Resultado do módulo",
+   "encaminhamento": "Resultado da etapa",
    "fonte": "M5.BT11 / M5.BT12 / M5.BT13",
    "revisado": "—",
    "status": "Rascunho"
@@ -1926,7 +1926,7 @@ window.MODULO5 = {
 window.MODULO5.leve = {
  "capa": {
   "frase": "Descubra quanto custa cada venda, quanto sobra e qual preço cobre seus gastos.",
-  "minutos": 20,
+  "minutos": 15,
   "como_funciona": "Você responde uma pergunta por vez sobre um item que vende. Se não souber, toque em “Não sei”: mostramos como descobrir. No fim, você vê o custo de uma unidade, quanto sobra em cada venda e quantas vendas cobrem os gastos do mês."
  },
  "perguntas": {
@@ -1976,7 +1976,7 @@ window.MODULO5.leve = {
    "promptIA": "Eu faço [seu produto]. Liste os ingredientes ou materiais que normalmente são comprados para fazer uma receita, sem contar ferramentas e equipamentos."
   },
   "M5.P04": {
-   "placeholder": "Ex.: 6,50",
+   "curta": "Como você compra cada item e quanto paga?",
    "comoDescobrir": [
     "Procure a última nota, cupom ou comprovante de compra de cada item.",
     "Sem nota? Veja o preço no site ou aplicativo do mercado onde compra, ou pergunte ao fornecedor. Um valor aproximado serve."
@@ -2101,7 +2101,7 @@ window.MODULO5.leve = {
    "promptIA": "Liste os materiais que normalmente se gastam em um atendimento de [seu serviço], sem contar ferramentas e equipamentos."
   },
   "M5.P20": {
-   "placeholder": "Ex.: 8,90",
+   "curta": "Como você compra cada material e quanto paga?",
    "comoDescobrir": [
     "Procure a última nota, cupom ou comprovante de compra de cada material.",
     "Sem nota? Veja o preço no site da loja ou distribuidora onde compra, ou pergunte ao vendedor. Um valor aproximado serve."

@@ -234,6 +234,7 @@ textarea.campo{resize:vertical;font-family:inherit}
 @media print{.voltar-topo{display:none!important}}
 /* lote 16/11: respostas reaproveitadas ("Veio do Módulo N · Trocar"), ajuda do "Não sei" e conta da ficha técnica */
 .reuso{border:2px solid var(--m-lavender-mid);background:#fff;border-radius:12px;padding:10px 14px;margin:0 0 12px;color:#2b2340}
+.cartao-q+.reuso{margin-top:14px}
 .reuso .ru-tit{display:block;color:var(--m-purple);font-size:15px;margin-bottom:4px}
 .reuso ul{list-style:none;margin:0;padding:0}
 .reuso li{padding:6px 0;border-top:1px solid var(--m-lavender)}
@@ -258,3 +259,22 @@ textarea.campo{resize:vertical;font-family:inherit}
 .fc-falta{margin:0;font-size:15px;color:#2b2340}
 .caixa-sel .op-sub{font-weight:400}
 .dica-cuidado{border-left:3px solid var(--m-lavender-mid);padding-left:10px;margin-top:8px}
+/* lote 17/11: Continuar sempre à vista (área de ações presa ao pé da tela nas perguntas) */
+html{scroll-padding-bottom:120px}
+/* fica fora do cartão da pergunta (o cartão pode começar abaixo da dobra quando há o cartão "Já sabemos") */
+.corpo>.acoes-fixas{position:sticky;bottom:0;z-index:5;background:#fff;gap:8px;margin:0 -14px;padding:12px 14px max(12px, env(safe-area-inset-bottom));
+  box-shadow:0 -6px 14px rgba(43,35,64,.10)}
+.acoes-fixas .erro{margin-top:0;max-height:40vh;overflow:auto}
+.cartao-q .q:focus{outline:none}
+.cartao-q .q:focus-visible{outline:3px solid var(--m-purple);outline-offset:3px;border-radius:6px}
+/* lote 17/11: alvos de toque de pelo menos 44 px */
+#tela summary{min-height:44px;padding-top:10px;padding-bottom:10px}
+.dica-toggle,.como-funciona{padding-top:0;padding-bottom:0}
+.dica-toggle[open],.como-funciona[open]{padding-bottom:10px}
+.dica-toggle summary,.como-funciona summary{min-height:44px}
+.saiba{padding-top:0;padding-bottom:0}.saiba[open]{padding-bottom:10px}
+.respostas{padding-top:0}.calc-ficha{padding-top:0;padding-bottom:0}.calc-ficha[open]{padding-bottom:10px}
+.ru-trocar{display:inline-flex;align-items:center;min-height:44px;padding:4px 8px;margin:-6px 0}
+.btn-copiar,.btn-alt{min-height:44px}
+.voltar-topo{min-height:44px;margin:-10px 0 0}
+.trilha-link{min-height:44px}

@@ -75,22 +75,22 @@ ok('época do ano: meses fortes e fracos mudam o lucro do ano', () => {
   assert.equal(i.retorno.anual, 7112);                     // 9 × 500 + 2 × 1.604 − 596
 });
 
-ok('dado que falta vira "não informado (Módulo N)" e o indicador dependente diz o porquê', () => {
+ok('dado que falta vira "não informado (Etapa N)" e o indicador dependente diz o porquê', () => {
   const i = P.indicadores({ 5: m5('10', 200, 275) }, { hoje: HOJE });
   assert.equal(i.investimento.total, null);
-  assert.equal(linha(bloco(i, 'a'), /Investimento/).falta, 'não informado (Módulo 6)');
-  assert.equal(linha(bloco(i, 'b'), /Capital/).falta, 'não informado (Módulo 6)');
-  assert.match(linha(bloco(i, 'h'), /ROI/).falta, /não calculado: investimento inicial não informado \(Módulo 6\)/);
+  assert.equal(linha(bloco(i, 'a'), /Investimento/).falta, 'não informado (Etapa 6)');
+  assert.equal(linha(bloco(i, 'b'), /Capital/).falta, 'não informado (Etapa 6)');
+  assert.match(linha(bloco(i, 'h'), /ROI/).falta, /não calculado: investimento inicial não informado \(Etapa 6\)/);
   assert.equal(i.retorno.roi, null);
   const vazio = P.indicadores({}, { hoje: HOJE });
-  assert.equal(linha(bloco(vazio, 'c'), /Custos fixos/).falta, 'não informado (Módulo 5)');
-  assert.equal(linha(bloco(vazio, 'e'), /Preço/).falta, 'não informado (Módulo 5)');
+  assert.equal(linha(bloco(vazio, 'c'), /Custos fixos/).falta, 'não informado (Etapa 5)');
+  assert.equal(linha(bloco(vazio, 'e'), /Preço/).falta, 'não informado (Etapa 5)');
   assert.match(linha(bloco(vazio, 'f'), /empatar/).falta, /^não calculado/);
   assert.ok(vazio.blocos.every((b) => b.linhas.every((l) => l.valor === null || l.valor === 0 || isFinite(l.valor))));
   // aluguel com "Sim" e sem valor: não vira zero
   const semAluguel = m5('10', 200, 275); delete semAluguel.R['M5.P29'];
   const j = P.indicadores({ 5: semAluguel }, { hoje: HOJE });
-  assert.equal(linha(bloco(j, 'c'), /^Aluguel/).falta, 'não informado (Módulo 5)');
+  assert.equal(linha(bloco(j, 'c'), /^Aluguel/).falta, 'não informado (Etapa 5)');
   assert.equal(j.fixos.completo, false);
   // prejuízo: ROI e payback não são calculados, com o motivo
   const k = P.indicadores({ 5: m5('10', 200, 100), 6: m6('5.000,00') }, { hoje: HOJE });
@@ -283,7 +283,7 @@ function lerBackup(arq) {
     await b2.page.click('#abre-painel');
     await b2.page.click('#ver-diag-painel');
     await b2.page.waitForFunction(() => document.querySelectorAll('#diag-corpo .diag-modulo').length === 10);
-    await b2.page.getByRole('button', { name: 'Baixar meu plano de negócio', exact: true }).click();
+    await b2.page.click('#baixa-plano-diag');
     await esperarPlano(b2.page);
     await b2.page.emulateMedia({ media: 'print' });
     const viaDiag = await b2.page.evaluate(() => ({ plano: getComputedStyle(document.getElementById('plano')).display, diag: getComputedStyle(document.getElementById('diagnostico')).display }));
@@ -293,6 +293,15 @@ function lerBackup(arq) {
     await b2.page.emulateMedia({ media: 'print' });
     const soDiag = await b2.page.evaluate(() => ({ plano: getComputedStyle(document.getElementById('plano')).display, diag: getComputedStyle(document.getElementById('diagnostico')).position, classe: document.body.classList.contains('imprime-plano') }));
     ok('"Imprimir ou salvar em PDF" volta a imprimir o diagnóstico', () => assert.deepEqual(soDiag, { plano: 'none', diag: 'static', classe: false }));
+    // No meio da jornada, pelo painel "Meu resumo e plano": o plano sai sem abrir o diagnóstico, e o painel não fica por cima.
+    await b2.page.emulateMedia({ media: 'screen' });
+    await b2.page.click('#fecha-diag');
+    await b2.page.click('#abre-painel');
+    await b2.page.click('#baixa-plano-painel');
+    await esperarPlano(b2.page);
+    await b2.page.emulateMedia({ media: 'print' });
+    const viaPainel = await b2.page.evaluate(() => ({ plano: getComputedStyle(document.getElementById('plano')).display, painel: document.getElementById('painel').hidden }));
+    ok('pelo painel, o plano imprime sozinho e o painel fecha', () => assert.deepEqual(viaPainel, { plano: 'block', painel: true }));
     ok('sem erros de página (diagnóstico)', () => assert.deepEqual(b2.page.errors, []));
     await b2.ctx.close();
 
@@ -303,9 +312,9 @@ function lerBackup(arq) {
     await esperarPlano(b3.page);
     await b3.page.emulateMedia({ media: 'print' });
     const d3 = await lerPlano(b3.page);
-    ok('plano vazio: capítulos, blocos e "não informado (Módulo N)"', () => {
+    ok('plano vazio: capítulos, blocos e "não informado (Etapa N)"', () => {
       assert.deepEqual(d3.caps, CAPS); assert.equal(d3.blocos.length, 8);
-      assert.match(d3.texto, /não informado \(Módulo 5\)/); assert.match(d3.texto, /não informado \(Módulo 6\)/);
+      assert.match(d3.texto, /não informado \(Etapa 5\)/); assert.match(d3.texto, /não informado \(Etapa 6\)/);
       assert.doesNotMatch(d3.texto, /undefined|NaN|\[object|R\$ 0,00 \(preço\)/);
     });
     await b3.ctx.close();

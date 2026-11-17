@@ -20,14 +20,14 @@ window.MODULO4 = {
   ]
  },
  "mapa": {
-  "objetivo": "Ao final deste módulo, você vai conseguir detalhar o que oferece (os materiais de um produto ou as etapas de um serviço), montar a sua proposta de valor com o Canvas de Proposta de Valor e preparar um teste da sua ideia com clientes de verdade, para ver se o que você planejou atende ao que o seu público precisa ou se são necessários ajustes.",
-  "usuario": "Este módulo é para você que já tem uma ideia na cabeça e precisa amadurecê-la: pensar no que é necessário para colocá-la em prática e no que ela entrega de valor para o seu cliente.",
-  "decisoes": "Como este módulo ajuda você\n\nEste módulo guia você a pensar com clareza sobre o seu produto, o valor que ele entrega e se a ideia faz sentido para o seu público. As decisões são sempre suas. Nós orientamos o caminho, e você escolhe o destino.\n\nO que você vai fazer aqui:\n\n - Detalhar seu produto: organize as informações principais sobre o que você oferece.\n - Preencher o Canvas de Proposta de Valor: responda a perguntas simples, bloco por bloco (perfil do cliente, mapa de valor e outros), para entender quem você atende e o que realmente importa para essas pessoas.\n - Preparar o teste da sua ideia: receba um roteiro de perguntas e critérios para conversar com seu público e avaliar as respostas. A aplicação do teste fica por sua conta.\n - Identificar possíveis desencontros: com base no que você mesmo respondeu, mostramos onde o seu plano pode estar diferente do que o público precisa. Apontamos os pontos de atenção, mas não dizemos o que você deve fazer: a solução é sua.",
+  "objetivo": "Ao final desta etapa, você vai conseguir detalhar o que oferece (os materiais de um produto ou as etapas de um serviço), montar a sua proposta de valor com o Canvas de Proposta de Valor e preparar um teste da sua ideia com clientes de verdade, para ver se o que você planejou atende ao que o seu público precisa ou se são necessários ajustes.",
+  "usuario": "Esta etapa é para você que já tem uma ideia na cabeça e precisa amadurecê-la: pensar no que é necessário para colocá-la em prática e no que ela entrega de valor para o seu cliente.",
+  "decisoes": "Como esta etapa ajuda você\n\nEsta etapa guia você a pensar com clareza sobre o seu produto, o valor que ele entrega e se a ideia faz sentido para o seu público. As decisões são sempre suas. Nós orientamos o caminho, e você escolhe o destino.\n\nO que você vai fazer aqui:\n\n - Detalhar seu produto: organize as informações principais sobre o que você oferece.\n - Preencher o Canvas de Proposta de Valor: responda a perguntas simples, bloco por bloco (perfil do cliente, mapa de valor e outros), para entender quem você atende e o que realmente importa para essas pessoas.\n - Preparar o teste da sua ideia: receba um roteiro de perguntas e critérios para conversar com seu público e avaliar as respostas. A aplicação do teste fica por sua conta.\n - Identificar possíveis desencontros: com base no que você mesmo respondeu, mostramos onde o seu plano pode estar diferente do que o público precisa. Apontamos os pontos de atenção, mas não dizemos o que você deve fazer: a solução é sua.",
   "nao_faz": "Não sugere o produto ou serviço, não dá ideia de desenvolvimento, não determina a matéria-prima do produto, não faz o canvas por você e não instrui como fazer o teste da ideia.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
   "ter_em_maos": "Celular e acesso à internet. É bom ter papel e caneta à mão para anotar o que precisar.",
   "entrega": "Você recebe as suas ideias organizadas, com espaço para anotar como é feito o que você oferece (os materiais e as matérias-primas de um produto ou as etapas de um serviço), um canvas guiado e simplificado e, por fim, um guia para um possível teste da ideia, que mostra como proceder para chegar a uma viabilidade ideal.",
-  "encaminhamentos": "Advogado: quando surgir dúvida sobre informação obrigatória ao consumidor ou sobre uso de dados pessoais, já que o módulo não redige termo de consentimento nem aviso legal.\nVigilância Sanitária, Procon, Inmetro: quando o produto testado exigir registro, licença sanitária ou normas técnicas antes mesmo da venda de teste.\nContador: quando o teste já envolver emissão de nota fiscal, recebimento formal de valores ou mudança no enquadramento tributário do usuário.",
+  "encaminhamentos": "Advogado: quando surgir dúvida sobre informação obrigatória ao consumidor ou sobre uso de dados pessoais, já que a etapa não redige termo de consentimento nem aviso legal.\nVigilância Sanitária, Procon, Inmetro: quando o produto testado exigir registro, licença sanitária ou normas técnicas antes mesmo da venda de teste.\nContador: quando o teste já envolver emissão de nota fiscal, recebimento formal de valores ou mudança no enquadramento tributário do usuário.",
   "caso_real": "",
   "riscos": "Prometer um canvas modelo de negócio avançado; um teste de ideia complexo, que a pessoa não consegue realizar; direcionar o teste de ideia de forma errada, em que a pessoa vai chegar a uma conclusão precipitada, que não é a veridica. \nO grupo evita isso não fazendo afirmações concretas, promovendo um modelo de canvas simplificado e guiado por perguntas que façam a pessoa pensar ou de forma simples conseguir na IA, conduzir um teste de ideia também guiado, direcionado para o modelo de negócio da pessoa, e que esse teste não deixe ter margem para duvidas se o produto vale ou não a pena ser lançado. "
  },
@@ -62,7 +62,7 @@ window.MODULO4 = {
    "codigo": "M4.BT01",
    "conceito": "Proposta de valor",
    "definicao": "Frase clara que explica qual problema seu produto resolve, para quem e por que é diferente.",
-   "porque": "Sem uma proposta de valor clara, o usuário não sabe o que vai oferecer nem o que perguntar aos clientes nos próximos módulos.",
+   "porque": "Sem uma proposta de valor clara, o usuário não sabe o que vai oferecer nem o que perguntar aos clientes nas próximas etapas.",
    "exemplo": "Bolos personalizados entregues no mesmo dia para quem esqueceu a encomenda de aniversário.",
    "tipo_fonte": "Institucional",
    "fonte": "Sebrae, \"Proposta de valor: guia prático para criar e aplicar na sua empresa\"",
@@ -350,7 +350,7 @@ window.MODULO4 = {
    "condicao": "M4.P02 = Produto físico ou M4.P02 = Ambos",
    "opcoes": "Não sei",
    "resposta": "",
-   "proximo": "Se ainda não tem as quantidades, anote o que usou em uma unidade; depois o módulo de custos ajuda a estimar o custo por unidade.",
+   "proximo": "Se ainda não tem as quantidades, anote o que usou em uma unidade; depois a etapa de custos ajuda a estimar o custo por unidade.",
    "fonte": "M4.BT09 (fonte a substituir; ver aba Revisão e sugestões, item 12)",
    "status": "Rascunho",
    "resposta_naosei": "Em caso de dificuldade para preencher essa ficha técnica, indicamos que você use o seguinte prompt na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
@@ -361,7 +361,7 @@ window.MODULO4 = {
     "Mercadoria": {
      "pergunta": "Quais mercadorias você vai comprar prontas para revender e o que mais precisa?",
      "ajuda": "Liste o essencial, mesmo sem quantidades exatas. Ex.: conjuntos de roupa infantil do 2 ao 8, sacolas, etiquetas de preço.",
-     "proximo": "Se ainda não tem os preços de compra, anote o que já sabe; depois o módulo de custos ajuda a estimar o custo por unidade.",
+     "proximo": "Se ainda não tem os preços de compra, anote o que já sabe; depois a etapa de custos ajuda a estimar o custo por unidade.",
      "resposta_naosei": "Em caso de dificuldade para preencher essa lista, indicamos que você use o seguinte texto na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
      "prompt_ia": "Você vai me ajudar a montar a FICHA de uma mercadoria que eu quero comprar pronta para revender. Quero apenas o que é necessário para comprar, guardar e vender, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu da mercadoria.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar à minha mercadoria)\n- Descrição da mercadoria: o que é, modelos, tamanhos e cores.\n- De quem vou comprar e quanto pago por unidade.\n- Quantidade mínima de compra e prazo de entrega do fornecedor.\n- Frete ou deslocamento para buscar.\n- Embalagem, etiqueta e outros itens para vender cada unidade.\n- Como guardar e cuidados para não estragar ou perder.\n- Regras de troca e garantia.\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha organizada em seções, usando apenas o que eu informei. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nA MERCADORIA QUE QUERO DETALHAR É:\n[escreva aqui a sua mercadoria]",
      "ajuda_mais": "Essa lista é a base da ficha de cada mercadoria (o que você compra, de quem e por quanto). Sem uma lista clara, fica difícil repetir o teste ou calcular o custo.",
@@ -378,7 +378,7 @@ window.MODULO4 = {
       "titulo": "Ver um exemplo com brownie",
       "texto": "200 g de chocolate, 150 g de manteiga, 200 g de açúcar, 3 ovos e 100 g de farinha: uns R$ 30 de ingredientes. A assadeira rende 12 pedaços, mas 2 quebram, então ficam 10 para vender. Cada pedaço vai num saquinho de R$ 0,50. Dura 5 dias em pote fechado. Leva 1 hora por fornada.\n\nCusto por pedaço: R$ 30 ÷ 10 = R$ 3,00 + R$ 0,50 da embalagem = R$ 3,50."
      },
-     "proximo": "Se ainda não pesou os ingredientes, faça uma fornada anotando tudo; depois o módulo de custos ajuda a calcular o custo por unidade.",
+     "proximo": "Se ainda não pesou os ingredientes, faça uma fornada anotando tudo; depois a etapa de custos ajuda a calcular o custo por unidade.",
      "resposta_naosei": "Em caso de dificuldade para preencher essa ficha técnica, indicamos que você use o seguinte texto na sua Inteligência Artificial preferida para ajudar nessa etapa: ",
      "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um alimento que eu quero fazer para vender. Quero apenas o que é necessário para produzi-lo, sem análise de mercado, preço de venda ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do alimento.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir (por exemplo, pesar tudo na próxima fornada).\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR\n- Receita: cada ingrediente, a quantidade usada (em gramas ou ml) e quanto paguei por ele.\n- Rendimento: quantas unidades saem de uma receita (por fornada, assadeira ou panela).\n- Perda no preparo: aparas, quebra, o que queima ou estraga e não dá para vender.\n- Embalagem de cada unidade (pote, saquinho, caixa, etiqueta) e quanto ela custa.\n- Validade e como guardar (fora da geladeira, na geladeira ou no congelador).\n- Tempo de preparo de cada fornada ou pedido, contando assar e esfriar.\n- Utensílios e equipamentos que eu uso.\n- Cuidados de higiene no preparo.\n\nCONTA DO CUSTO POR UNIDADE\nCusto por unidade = custo da receita ÷ unidades boas para vender (o rendimento menos a perda) + custo da embalagem de uma unidade.\nExemplo (brownie): os ingredientes da receita custam R$ 30; a assadeira rende 12 pedaços, 2 quebram e sobram 10; R$ 30 ÷ 10 = R$ 3,00; mais R$ 0,50 do saquinho = R$ 3,50 por pedaço.\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica organizada em seções, usando apenas o que eu informei, com a conta do custo por unidade. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO ALIMENTO QUE QUERO DETALHAR É:\n[escreva aqui o seu alimento]",
      "ajuda_mais": "Anote também quanto se perde no preparo (aparas, quebra, o que estraga), a validade e como guardar, e o tempo de preparo de cada fornada ou pedido.\n\nCusto por unidade = custo da receita ÷ rendimento, mais a embalagem.",
@@ -404,7 +404,7 @@ window.MODULO4 = {
    "condicao": "M4.P02 = Produto físico ou M4.P03 = Produto + Serviço ",
    "opcoes": "De porta a porta pessoalmente; Plataformas (iFood); Entregador parceiro; Loja própria ou parceira; Retirada presencial pelo cliente",
    "resposta": "",
-   "resposta_naosei": "Reflita melhor sobre as opções. Cada opção tem um custo específico, que é importante definir para saber a viabilidade do seu negócio. Sem sabermos isso, poderemos encontrar problemas em outros módulos.",
+   "resposta_naosei": "Reflita melhor sobre as opções. Cada opção tem um custo específico, que é importante definir para saber a viabilidade do seu negócio. Sem sabermos isso, poderemos encontrar problemas em outras etapas.",
    "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto",
    "comoDescobrir": [
     "Pergunte a 3 possíveis clientes como preferem receber: buscar, receber em casa ou pedir por aplicativo.",
@@ -456,7 +456,7 @@ window.MODULO4 = {
    "condicao_app": "M4.P02 = Serviço ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+ Serviço",
    "prompt_ia": "Você vai me ajudar a montar a FICHA TÉCNICA de um serviço que eu quero oferecer. Quero apenas o que é necessário para realizar um atendimento, sem análise de mercado, preço ou divulgação.\n\nCOMO CONDUZIR\n- Confirme em uma frase o que entendeu do serviço.\n- Faça no máximo 3 perguntas por vez, em linguagem simples, e espere minha resposta.\n- Se eu não souber algo, não invente: marque como \"A definir\" e me diga rapidamente como descobrir.\n- Quem decide sou eu. Você apenas orienta.\n\nO QUE VOCÊ DEVE LEVANTAR (só o que se aplicar ao meu serviço)\n- Descrição do serviço: o que é, para quem e como o cliente recebe o resultado.\n- Etapas do atendimento, do pedido do cliente até o fim (agendar, deslocar, preparar, executar, conferir com o cliente, limpar).\n- Tempo de cada etapa e tempo total de um atendimento.\n- Materiais usados em cada atendimento e a quantidade gasta por atendimento.\n- Custo desses materiais por atendimento.\n- Equipamentos e ferramentas que uso em todos os atendimentos.\n- Deslocamento: distância e gasto, se eu for até o cliente.\n- Cuidados de higiene, qualidade e segurança (normas ou exigências legais, se houver).\n\nENTREGA FINAL\nQuando eu disser que terminei, monte a ficha técnica do atendimento organizada em seções, usando apenas o que eu informei, com o tempo total e o custo de material por atendimento. Itens sem resposta ficam como \"A definir\". No fim, liste o que ainda falta definir.\n\nO SERVIÇO QUE QUERO DETALHAR É:\n[escreva aqui o seu serviço]",
    "conceito_naosei": "M4.BT09S",
-   "ajuda_mais": "Ex. (manicure em domicílio): combinar horário, ir até a cliente, tirar o esmalte, cutilar, esmaltar e secar; cerca de 1 hora; algodão, acetona, lixa, palito e esmalte; uns R$ 6 de material por atendimento.\n\nO tempo e o custo por atendimento ajudam nas próximas perguntas e nos módulos de custos e de operação.",
+   "ajuda_mais": "Ex. (manicure em domicílio): combinar horário, ir até a cliente, tirar o esmalte, cutilar, esmaltar e secar; cerca de 1 hora; algodão, acetona, lixa, palito e esmalte; uns R$ 6 de material por atendimento.\n\nO tempo e o custo por atendimento ajudam nas próximas perguntas e nas etapas de custos e de operação.",
    "placeholder": "Ex.: combinar horário, ir até a cliente, fazer as unhas; 1 hora; R$ 6 de material",
    "comoDescobrir": [
     "Faça o serviço uma vez (pode ser num conhecido) e anote cada etapa, quanto tempo levou e o que usou.",
@@ -495,7 +495,7 @@ window.MODULO4 = {
    "opcoes": "Não sei",
    "resposta": "Vamos usar este grupo como o público do primeiro teste. Ele pode mudar depois de conversar com pessoas reais.",
    "alerta": "\"Todo mundo\" dificulta o teste: cada grupo compra por motivos diferentes, e fica difícil saber quem realmente faz parte do seu público.",
-   "proximo": "Se você já pesquisou clientes no módulo de clientes e necessidades, compare com o que escreveu aqui.",
+   "proximo": "Se você já pesquisou clientes na etapa de clientes e necessidades, compare com o que escreveu aqui.",
    "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
    "status": "Rascunho",
    "placeholder": "Ex.: pais de alunos da escola perto de casa",
@@ -574,7 +574,7 @@ window.MODULO4 = {
    "condicao": "sempre",
    "opcoes": "Preço; Prazo/rapidez; Atendimento; Qualidade/especialização; Conveniência; Outro; Não sei",
    "resposta": "Este motivo será tratado como o seu diferencial hipotético, a ser conferido no teste.",
-   "alerta": "Gostar da própria ideia não é o mesmo que ter um motivo de escolha para o cliente. Se ainda não há um motivo claro, essa informação ajuda a ajustar antes de testar. Se você já pesquisou concorrentes e alternativas no módulo de mercado, compare o seu motivo com o que eles oferecem.",
+   "alerta": "Gostar da própria ideia não é o mesmo que ter um motivo de escolha para o cliente. Se ainda não há um motivo claro, essa informação ajuda a ajustar antes de testar. Se você já pesquisou concorrentes e alternativas na etapa de mercado, compare o seu motivo com o que eles oferecem.",
    "proximo": "",
    "fonte": "M4.BT03 (Serasa Experian, consulta em 22/09/2026)",
    "status": "Rascunho",
@@ -786,7 +786,7 @@ window.MODULO4 = {
    "opcoes": "Sim; Não; Não sei",
    "resposta": "Vender sem conhecer as regras da atividade pode gerar problemas para você e para o cliente, mesmo em um teste.",
    "alerta": "O app não faz enquadramento jurídico nem sanitário.",
-   "fonte": "Pendente: fonte oficial datada sobre atividade regulada (ver módulo de licenças); M4.BT11 sem fonte ainda",
+   "fonte": "Pendente: fonte oficial datada sobre atividade regulada (ver etapa de licenças); M4.BT11 sem fonte ainda",
    "status": "Rascunho",
    "retorno_se": {
     "valores": [
@@ -924,7 +924,7 @@ window.MODULO4 = {
    "opcoes": "",
    "resposta": "Este é o seu limite de gasto. O app não indica um valor: a escolha é sua, de acordo com o que cabe no seu orçamento.",
    "alerta": "Usar dinheiro de despesas essenciais ou recorrer a dívidas aumenta o risco do teste. Compras difíceis de desfazer também aumentam o risco. É preciso ter cautela e um bom planejamento financeiro para não criar problemas.",
-   "proximo": "Compare este limite com o custo estimado no módulo de custos e prefira formas de teste que possam ser interrompidas sem perda grande.",
+   "proximo": "Compare este limite com o custo estimado na etapa de custos e prefira formas de teste que possam ser interrompidas sem perda grande.",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
    "status": "Rascunho",
    "placeholder": "Ex.: 50 (ou 0, se der para testar sem gastar)",
@@ -1008,7 +1008,7 @@ window.MODULO4 = {
    "codigo": "M4.R07",
    "pergunta": "M4.P03",
    "condicao": "M4.P03 preenchida (qualquer texto)",
-   "texto": "Lista registrada como rascunho da ficha técnica do produto. Você pode acrescentar quantidades no módulo de custos.",
+   "texto": "Lista registrada como rascunho da ficha técnica do produto. Você pode acrescentar quantidades na etapa de custos.",
    "alerta": "Itens pequenos (embalagem, perdas, taxa do cartão) costumam ser esquecidos e mudam o custo por unidade.",
    "lacuna": "Quantidades de cada item.",
    "proximo": "Próxima pergunta.",
@@ -1020,7 +1020,7 @@ window.MODULO4 = {
    "pergunta": "M4.P03",
    "condicao": "M4.P03 = Não sei",
    "texto": "Tudo bem não ter a lista completa agora. Anote pelo menos o item principal que o que você vai oferecer precisa para existir.",
-   "alerta": "Sem uma lista mínima de materiais, fica difícil estimar o custo por unidade no módulo seguinte e repetir o teste de forma consistente.",
+   "alerta": "Sem uma lista mínima de materiais, fica difícil estimar o custo por unidade na etapa seguinte e repetir o teste de forma consistente.",
    "lacuna": "Lista completa.",
    "proximo": "Próxima pergunta.",
    "encaminhamento": "Nenhum",
@@ -1034,6 +1034,6 @@ window.MODULO4 = {
  "casos": [],
  "leve": {
   "frase": "Você vai detalhar o que oferece, dizer por que o cliente compraria e planejar um teste pequeno da ideia.",
-  "minutos": 20
+  "minutos": 10
  }
 };

@@ -284,3 +284,26 @@ details.mais[open] summary{display:none}
 .pesquisou .nota-item{padding:8px 0;border-top:1px solid var(--m-lavender)}
 .pesquisou .nota-item:first-of-type{border-top:none}
 .pesquisou .nota-q{font-weight:700;color:var(--m-purple);font-size:14.5px}
+
+/* Lote 17/11 ("tira a fricção") */
+/* item C: nas perguntas, Continuar e a mensagem de erro presos ao pé da tela, sempre à vista
+   (letra grande, celular pequeno, celular deitado). Fundo branco, sombra leve em cima. */
+.acoes.acoes-fixas{position:sticky;bottom:0;z-index:5;background:#fff;margin:16px -16px 0;padding:10px 16px max(12px, env(safe-area-inset-bottom));
+  gap:8px;box-shadow:0 -6px 12px -6px rgba(43,35,64,.18)}
+.acoes-fixas .erro{margin-top:0}
+/* o campo em foco não fica escondido atrás da barra do Continuar */
+html{scroll-padding-bottom:120px}
+#retorno .retorno{margin-top:14px}
+#retorno .retorno:empty{display:none}
+/* item F: alvos de toque com pelo menos 44 px de altura */
+.dica-toggle summary,.como-funciona summary,.saiba summary,.notas summary,.como-mini summary{min-height:44px;display:flex;align-items:center}
+.dica-toggle summary::before,.como-funciona summary::before,.saiba summary::before,.notas summary::before,.como-mini summary::before{content:"";width:0;height:0;border-left:7px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-right:8px;transition:transform .15s}
+.dica-toggle[open] summary::before,.como-funciona[open] summary::before,.saiba[open] summary::before,.notas[open] summary::before,.como-mini[open] summary::before{transform:rotate(90deg)}
+.dica-toggle summary::-webkit-details-marker,.como-funciona summary::-webkit-details-marker,.saiba summary::-webkit-details-marker,.notas summary::-webkit-details-marker,.como-mini summary::-webkit-details-marker{display:none}
+.dica-toggle summary,.como-funciona summary,.saiba summary,.notas summary,.como-mini summary{list-style:none}
+details.mais summary{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;vertical-align:middle}
+.btn-mini,.btn-copiar,.btn-alt,.voltar-topo,.trilha-link,.alterar{min-height:44px}
+.btn-copiar{padding:10px 16px}
+.trilha-link{padding:6px 8px;margin-left:-8px}
+.alterar{padding:6px 8px}
+.voltar-topo{margin:-6px 0 4px}

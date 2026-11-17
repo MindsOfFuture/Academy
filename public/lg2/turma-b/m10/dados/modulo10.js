@@ -13,12 +13,12 @@ window.MODULO10 = {
   "nome": "Comunicação, vendas, pessoas e plano de ação"
  },
  "capa": {
-  "objetivo": "Ao final do módulo, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
-  "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam ao módulo com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. O módulo busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
+  "objetivo": "Ao final da etapa, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
+  "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam à etapa com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. A etapa busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
   "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
-  "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado.",
+  "entrega": "Ao final, a etapa entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado.",
   "frase": "Organize como você vende e saia com um plano dos 3 passos mais urgentes.",
-  "minutos": 15
+  "minutos": 10
  },
  "base": [
   {
@@ -117,7 +117,7 @@ window.MODULO10 = {
     {
      "opcao": "Ainda não falo com clientes",
      "retorno": "Dica",
-     "texto": "Pense em por onde o seu cliente prefere falar: o Módulo 2 mostrou onde ele procura ([onde procuram])."
+     "texto": "Pense em por onde o seu cliente prefere falar: a Etapa 2 mostrou onde ele procura ([onde procuram])."
     },
     {
      "opcao": "Não sei",
@@ -183,7 +183,7 @@ window.MODULO10 = {
     {
      "opcao": "Sim, sigo passos parecidos",
      "retorno": "Resposta",
-     "texto": "Confira o roteiro. Ele usa o que você já respondeu nos outros módulos."
+     "texto": "Confira o roteiro. Ele usa o que você já respondeu nas outras etapas."
     },
     {
      "opcao": "Depende do cliente",
@@ -201,7 +201,7 @@ window.MODULO10 = {
      "texto": "Lembre a última venda: o que aconteceu entre o primeiro contato e o pagamento?"
     }
    ],
-   "apoio": "Você já ouviu [pessoas ouvidas] pessoas no Módulo 2. Montamos um roteiro com o que você respondeu: [etapas]. Confira.",
+   "apoio": "Você já ouviu [pessoas ouvidas] pessoas na Etapa 2. Montamos um roteiro com o que você respondeu: [etapas]. Confira.",
    "tipo": "Seleção única + roteiro editável",
    "comoDescobrir": [
     "Lembre a última venda do começo ao fim: como a pessoa chegou, o que perguntou, como você disse o preço e como ela pagou.",
@@ -220,7 +220,7 @@ window.MODULO10 = {
     {
      "opcao": "Sim, peço opinião / Sim, ofereço de novo",
      "retorno": "Resposta",
-     "texto": "Anote o que os clientes dizem: isso alimenta o seu padrão de qualidade (Módulo 7)."
+     "texto": "Anote o que os clientes dizem: isso alimenta o seu padrão de qualidade (Etapa 7)."
     },
     {
      "opcao": "Não, só se o cliente me procura",
@@ -257,7 +257,7 @@ window.MODULO10 = {
     {
      "opcao": "Anúncio pago",
      "retorno": "Dica",
-     "texto": "Anúncio pago é um gasto. Confira se ele entrou nos seus gastos do Módulo 5 e defina um limite antes de começar."
+     "texto": "Anúncio pago é um gasto. Confira se ele entrou nos seus gastos da Etapa 5 e defina um limite antes de começar."
     },
     {
      "opcao": "Ainda não sei",
@@ -265,7 +265,7 @@ window.MODULO10 = {
      "texto": "Comece pelo que não custa: avisar quem já comprou e pedir indicação."
     }
    ],
-   "apoio": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3]. Anúncio pago é um gasto: confira se entrou nos gastos do Módulo 5 e defina um limite antes de começar.",
+   "apoio": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3]. Anúncio pago é um gasto: confira se entrou nos gastos da Etapa 5 e defina um limite antes de começar.",
    "tipo": "Seleção única",
    "instrucao": "Escolha a principal.",
    "comoDescobrir": [
@@ -298,7 +298,7 @@ window.MODULO10 = {
      "texto": "Converse com o sócio sobre os itens do checklist de acordo."
     }
    ],
-   "apoio": "Você disse no Módulo 8 que terá sócio. Combinar antes evita desentendimentos depois. Um acordo escrito ajuda a evitar dúvidas sobre trabalho, dinheiro e saída de um sócio; converse com um contador ou advogado sobre o documento.",
+   "apoio": "Você disse na Etapa 8 que terá sócio. Combinar antes evita desentendimentos depois. Um acordo escrito ajuda a evitar dúvidas sobre trabalho, dinheiro e saída de um sócio; converse com um contador ou advogado sobre o documento.",
    "tipo": "Seleção única",
    "comoDescobrir": [
     "Pergunte ao seu sócio se vocês já anotaram em algum lugar (papel, mensagem ou contrato) quem faz o quê e como dividem o dinheiro.",
@@ -325,7 +325,7 @@ window.MODULO10 = {
      "texto": "Etapa sem responsável costuma ser a que atrasa."
     }
    ],
-   "apoio": "Etapas do seu mapa (Módulo 7) que ainda estão sem responsável: [etapas].",
+   "apoio": "Passos do seu mapa do processo (Etapa 7) que ainda estão sem responsável: [etapas].",
    "tipo": "Seleção por etapa",
    "instrucao": "Escolha uma pessoa para cada etapa."
   },
@@ -357,7 +357,7 @@ window.MODULO10 = {
    "tipo": "Seleção única",
    "comoDescobrir": [
     "Durante uma semana, anote os pedidos que você recusou ou atrasou por falta de tempo e as tarefas que ficaram para depois.",
-    "Veja no Módulo 5 quanto sobra por mês. Contratar só cabe se essa sobra pagar a pessoa todo mês, até nos meses fracos."
+    "Veja na Etapa 5 quanto sobra por mês. Contratar só cabe se essa sobra pagar a pessoa todo mês, até nos meses fracos."
    ],
    "promptIA": "Tenho um pequeno negócio de [o que você vende]. Trabalho [quantas horas por semana] e vendo cerca de [quantas unidades por mês]. Sobram uns R$ [quanto sobra por mês]. Me ajude a pensar se já vale contratar alguém ou se é melhor começar com ajuda avulsa ou parceria, com os prós e os contras de cada caminho."
   },
@@ -408,7 +408,7 @@ window.MODULO10 = {
      "texto": "Deixamos marcadas as três que mais pesam pelo que você respondeu. Você pode trocar."
     }
    ],
-   "apoio": "Juntamos o que ficou em aberto nos módulos anteriores. Escolha até 3 ou escreva outro.",
+   "apoio": "Juntamos o que ficou em aberto nas etapas anteriores. Escolha até 3 ou escreva outro.",
    "tipo": "Seleção múltipla (até 3) + 'Outro'",
    "instrucao": "Escolha até 3 ou escreva outro.",
    "comoDescobrir": [
@@ -501,7 +501,7 @@ window.MODULO10 = {
      "texto": "Qual resposta você quer mudar?"
     }
    ],
-   "apoio": "Confira antes de salvar. Você pode corrigir qualquer resposta, de qualquer módulo.",
+   "apoio": "Confira antes de salvar. Você pode corrigir qualquer resposta, de qualquer etapa.",
    "tipo": "Seleção única"
   }
  ],
@@ -528,7 +528,7 @@ window.MODULO10 = {
   },
   {
    "nome": "Retrato final do percurso",
-   "mostra": "Uma linha por módulo: o que já se sabe (fato), o que ainda é hipótese e o que falta.",
+   "mostra": "Uma linha por etapa: o que já se sabe (fato), o que ainda é hipótese e o que falta.",
    "aviso": "Retrato com as suas respostas. Não é avaliação nem garantia."
   }
  ],
@@ -605,7 +605,7 @@ window.MODULO10 = {
    },
    {
     "bloco": "Retrato do negócio",
-    "conteudo": "Uma linha por módulo: o que já se sabe, o que é hipótese, o que falta."
+    "conteudo": "Uma linha por etapa: o que já se sabe, o que é hipótese, o que falta."
    },
    {
     "bloco": "Encaminhamento",

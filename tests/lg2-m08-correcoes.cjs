@@ -37,7 +37,11 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   const semear = (dados) => page.evaluate((d) => { localStorage.clear(); for (const [k, v] of Object.entries(d)) localStorage.setItem(k, JSON.stringify(v)); }, dados);
   const SHOTS = process.env.SHOTS;
   const shotNs = async (cod) => { if (!SHOTS) return; await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, `l_m08_depois_${cod.slice(-3).toLowerCase()}_naosei.png`) }); };
-  const seguir = () => page.locator('#acoes .btn-primario').first().click();
+  /* lote 17/11 (item A): um toque por pergunta. Não existe mais passo extra: "seguir" agora só confere que não sobrou
+     "Seguir" nem "Corrigir minha resposta" na tela (reintroduzir o passo extra faz o teste falhar) */
+  const seguir = async () => { check(await btn('Seguir').count() === 0 && await btn('Corrigir minha resposta').count() === 0, 'um toque: sem "Seguir" nem "Corrigir minha resposta"'); };
+  /* retorno ao vivo de campo: sai do campo (blur) e espera o retorno aparecer, antes do Continuar */
+  const sairDoCampo = async () => { await page.locator('#ent input, #ent textarea').evaluate((e) => e.blur()); await page.waitForTimeout(50); };
   const escolher = (op) => page.getByRole('button', { name: op, exact: true }).click();
   /* responde até o resultado: opção pedida, senão "Não" ou a 1ª; texto neutro quando o campo está vazio */
   const ateResultado = async (resp = {}) => {
@@ -48,7 +52,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
       else if (resp[cod] || !(await page.inputValue('#ent input, #ent textarea')))   // valor herdado fica como veio
         await page.fill('#ent input, #ent textarea', resp[cod] || (cod === 'M8.P04' ? '3000' : 'Faço bolos de pote'));
       await btn('Continuar').click();
-      if (!(await page.locator('#retorno .retorno').count())) await btn('Continuar').click();   // aviso de valor alto: 2º toque
+      if (await page.locator('#erro.erro-aviso:visible').count()) await btn('Continuar').click();   // aviso de valor alto: 2º toque (risco, fica em 2 passos)
+      check(await atual() !== cod, `${cod}: um toque em Continuar já abre a próxima`);
       await seguir();
     }
     assert.equal(await atual(), 'RESULTADO');
@@ -87,20 +92,32 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.focus('#ent input'); await page.setViewportSize({ width: 390, height: 450 }); await page.waitForTimeout(600);   // teclado aberto
   await btn('Continuar').click(); await page.waitForTimeout(200);
   check(/parece alto/.test(await page.textContent('#erro')) && (await st()).R['M8.P04'] === undefined, 'valor absurdo: aviso, ainda sem gravar');
+  check(await page.evaluate(() => { const e = document.querySelector('#erro'), ok = document.querySelector('#ok'); return e.getAttribute('role') === 'alert' && e.parentElement === ok.parentElement && (e.compareDocumentPosition(ok) & 4) > 0; }), 'item B: mensagem logo acima do Continuar, com role="alert"');
+  /* item A: o alerta do MEI aparece ao vivo, logo abaixo do campo, antes do Continuar */
+  await page.waitForSelector('#retorno #alerta-mei');
+  check(await page.locator('#retorno #alerta-mei').count() === 1 && await atual() === 'M8.P04', 'P04 acima do limite: alerta do MEI ao vivo, antes de gravar');
+  /* conta feita à mão: 2.250.000 × 12 = 27.000.000 */
+  check(nrm(await page.textContent('#retorno #alerta-mei')).includes('Como calculamos: R$ 2.250.000 por mês × 12 meses = R$ 27.000.000 por ano.'), 'P04: "Como calculamos" do ano no alerta');
+  check(nrm(await page.textContent('#retorno #alerta-mei')).includes('Limite por mês: R$ 81.000 ÷ 12 meses = R$ 6.750.'), 'P04: conta do limite por mês');
   { const bb = await page.locator('#ok').boundingBox(); check(bb && bb.y >= 0 && bb.y + bb.height <= 450, 'com o aviso e o teclado aberto, o Continuar continua visível ' + JSON.stringify(bb)); }
   await page.setViewportSize({ width: 390, height: 844 });
   await btn('Continuar').click();                                   // 2º toque com o mesmo valor segue
   check((await st()).R['M8.P04'] && (await st()).R['M8.P04'].valor === '2.250.000', 'segundo Continuar grava o valor alto');
-  check(await page.locator('#retorno #alerta-mei').count() === 1, 'P04 acima do limite: alerta do MEI já na resposta');
-  /* conta feita à mão: 2.250.000 × 12 = 27.000.000 */
-  check(nrm(await page.textContent('#retorno #alerta-mei')).includes('Como calculamos: R$ 2.250.000 por mês × 12 meses = R$ 27.000.000 por ano.'), 'P04: "Como calculamos" do ano no alerta');
-  check(nrm(await page.textContent('#retorno #alerta-mei')).includes('Limite por mês: R$ 81.000 ÷ 12 meses = R$ 6.750.'), 'P04: conta do limite por mês');
-  /* dentro do limite: 2.500,50 × 12 = 30.006 (centavos no padrão brasileiro, conta e resultado iguais) */
-  await btn('Corrigir minha resposta').click();
-  await page.fill('#ent input', '2500,50'); await btn('Continuar').click();
-  check((await st()).R['M8.P04'].valor === '2.500,50', 'valor guardado no padrão brasileiro: ' + (await st()).R['M8.P04'].valor);
-  check(nrm(await page.textContent('#conta-ano')) === 'Seu faturamento no ano Cerca de R$ 30.006 por ano: dentro do limite do MEI em 2026, que é de R$ 81.000 por ano. Como calculamos: R$ 2.500,50 por mês × 12 meses = R$ 30.006 por ano.', 'P04: conta do ano dentro do limite: ' + nrm(await page.textContent('#conta-ano')));
+  check(await atual() === 'M8.P05', 'aviso de risco confirmado: já abre a próxima pergunta');
+  await seguir();
+  /* dentro do limite: 2.500,50 × 12 = 30.006 (centavos no padrão brasileiro, conta e resultado iguais). Corrigir = Voltar do topo */
+  await btn('Voltar').click();
+  check(await atual() === 'M8.P04' && await page.inputValue('#ent input') === '2.250.000', 'Voltar reabre a P04 com o valor gravado');
+  await page.fill('#ent input', '2500,50'); await sairDoCampo();
+  check(nrm(await page.textContent('#conta-ano')) === 'Seu faturamento no ano Cerca de R$ 30.006 por ano: dentro do limite do MEI em 2026, que é de R$ 81.000 por ano. Como calculamos: R$ 2.500,50 por mês × 12 meses = R$ 30.006 por ano.', 'P04: conta do ano ao vivo, dentro do limite: ' + nrm(await page.textContent('#conta-ano')));
   check(await page.locator('#retorno #alerta-mei').count() === 0, 'dentro do limite: sem alerta');
+  /* sem sair do campo: o retorno aparece depois de ~700 ms sem digitar */
+  await page.fill('#ent input', '3000'); await page.waitForTimeout(1000);
+  check(nrm(await page.textContent('#conta-ano')).includes('R$ 36.000 por ano'), 'P04: retorno ao vivo após uma pausa na digitação (3.000 × 12 = 36.000)');
+  await page.fill('#ent input', '2500,50');
+  await btn('Continuar').click();
+  check((await st()).R['M8.P04'].valor === '2.500,50', 'valor guardado no padrão brasileiro: ' + (await st()).R['M8.P04'].valor);
+  check(await atual() === 'M8.P05', 'P04: um toque grava e abre a P05');
   await page.evaluate(() => localStorage.clear());
 
   /* ===== Item 2: tipo de oferta herdado (Mercadoria) e aviso ao escolher diferente ===== */
@@ -117,19 +134,25 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.click('#veio [data-trocar="M8.P02"]');
   assert.equal(await atual(), 'M8.P02');
   check(nrm(await page.textContent('#ent .opcao.sel .op-txt > b')) === 'Mercadoria', 'Trocar: P02 abre com Mercadoria marcada');
-  check(nrm(await page.textContent('#herdou .veio')) === 'Veio do Módulo 1', 'Trocar: selo na pergunta');
+  check(nrm(await page.textContent('#herdou .veio')) === 'Veio da Etapa 1', 'Trocar: selo na pergunta');
   check(await page.locator('#ent .op-ex').count() === 4, 'P02: exemplo embaixo de cada tipo');
   const ops2 = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
   assert.deepEqual(ops2, ['Produto', 'Mercadoria', 'Serviço', 'Produto e serviço', 'Não sei']);
-  await btn('Continuar').click();
   check(await page.locator('#aviso-tipo').count() === 0, 'mesma opção herdada: sem aviso');
-  await btn('Corrigir minha resposta').click();
-  await escolher('Produto'); await btn('Continuar').click();
-  const av = nrm(await page.textContent('#aviso-tipo'));
-  check(av.includes('No Módulo 1 você respondeu “Mercadoria: compro pronto para revender”') && av.includes('Aqui você escolheu “Produto”'), `aviso de divergência com o que foi dito antes: ${av}`);
-  check(await page.locator('#acoes .btn-primario').count() === 1, 'aviso não trava: Seguir disponível');
+  /* item D: escolha única diz se está marcada */
+  check(JSON.stringify(await page.$$eval('#ent .opcao', (x) => x.map((e) => e.getAttribute('aria-pressed')))) === JSON.stringify(['false', 'true', 'false', 'false', 'false']), 'P02: aria-pressed só na opção marcada (Mercadoria)');
+  await escolher('Produto');
+  /* item A: o aviso aparece no toque, antes do Continuar */
+  const av = nrm(await page.textContent('#retorno #aviso-tipo'));
+  check(av.includes('Na Etapa 1 você respondeu “Mercadoria: compro pronto para revender”') && av.includes('Aqui você escolheu “Produto”') && av.includes('escolha outra opção acima') && !/Corrigir/.test(av), `aviso de divergência ao vivo: ${av}`);
+  check(JSON.stringify(await page.$$eval('#ent .opcao', (x) => x.map((e) => e.getAttribute('aria-pressed')))) === JSON.stringify(['true', 'false', 'false', 'false', 'false']), 'P02: depois do toque, aria-pressed="true" só em Produto');
+  await escolher('Mercadoria');
+  check(await page.locator('#aviso-tipo').count() === 0, 'voltar à opção herdada tira o aviso na hora');
+  await escolher('Produto');
+  await btn('Continuar').click();
+  check(await atual() === 'M8.P03', 'aviso não trava: um toque segue com a escolha diferente');
+  check(await page.evaluate(() => document.activeElement && document.activeElement.matches('.cartao-q h2.q') && document.activeElement.getAttribute('tabindex') === '-1'), 'item D: depois de Continuar, o foco está no enunciado da pergunta nova');
   await seguir();
-  check(await atual() === 'M8.P03', 'seguiu com a escolha diferente');
   check(await page.locator('#veio [data-trocar="M8.P02"]').count() === 0, 'P02 trocada: sai do cartão');
   check((await st()).R['M8.P02'].opcao === 'Produto' && (await st()).R['M8.P02'].de === undefined, 'escolha diferente gravada sem selo');
   await ateResultado({ 'M8.P04': '3000' });
@@ -197,8 +220,10 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P04'] = { estado: 'valor', valor: '9000' }; s.hist = ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05']; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
   assert.equal(await atual(), 'M8.P05');
-  await escolher('MEI (Microempreendedor Individual)'); await btn('Continuar').click();
-  check(nrm(await page.textContent('#retorno')).includes('sai do MEI'), 'P05 = MEI acima do limite: alerta logo na resposta');
+  await escolher('MEI (Microempreendedor Individual)');
+  check(nrm(await page.textContent('#retorno')).includes('sai do MEI') && await page.locator('#folga-mei').count() === 0, 'P05 = MEI acima do limite: alerta ao vivo, no toque');
+  await btn('Continuar').click();
+  check(await atual() !== 'M8.P05', 'P05: um toque segue');
 
   /* versão leve (nov/2026): todo "Não sei" mostra "Como descobrir" com 2 passos escritos para a pergunta e,
      quando a pergunta tem pedido para a IA, o texto pronto e o botão "Copiar" */
@@ -255,11 +280,12 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     if (ops.length) await escolher(RESP[cod] || ops[0]);
     else await page.fill('#ent input, #ent textarea', cod === 'M8.P04' ? '3000' : cod === 'M8.P06' ? 'fabricação de bolos' : 'Faço bolos de pote');
     if (ops.length) check(!(await page.locator('#ns-ajuda').isVisible()), `${cod}: escolher uma opção esconde a explicação`);
-    await btn('Continuar').click();
-    { const r = (await st()).R[cod]; check(r && r.estado !== 'naosei' && r.opcao !== 'Não sei', `${cod}: com resposta, grava e avança`); }
     if (cod === 'M8.P04') {   // conta feita à mão: 3.000 × 12 = 36.000
-      check(nrm(await page.textContent('#conta-ano')).includes('Como calculamos: R$ 3.000 por mês × 12 meses = R$ 36.000 por ano.'), 'P04: "Como calculamos" logo na resposta');
+      await sairDoCampo();
+      check(nrm(await page.textContent('#conta-ano')).includes('Como calculamos: R$ 3.000 por mês × 12 meses = R$ 36.000 por ano.'), 'P04: "Como calculamos" ao vivo, antes do Continuar');
     }
+    await btn('Continuar').click();
+    { const r = (await st()).R[cod]; check(r && r.estado !== 'naosei' && r.opcao !== 'Não sei' && await atual() !== cod, `${cod}: com resposta, um toque grava e avança`); }
     await seguir();
   }
   check(await atual() === 'RESULTADO', 'chega ao resultado só com respostas de verdade');
@@ -304,7 +330,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     check(await atual() === 'M8.P03', `P02 (${nome}): sem tela do tipo`);
     { const r = (await st()).R['M8.P02']; check(r && r.opcao === val && r.de === mod && r.reuso === true, `P02 (${nome}): "${val}" gravado do Módulo ${mod}: ${JSON.stringify(r)}`); }
     const lin = nrm(await page.textContent('#veio .veio-linha[data-cod="M8.P02"]'));
-    check(lin.includes(`O que você vende: ${val}`) && lin.includes(`Veio do Módulo ${mod}`), `P02 (${nome}): cartão "${lin}"`);
+    check(lin.includes(`O que você vende: ${val}`) && lin.includes(`Veio da Etapa ${mod}`), `P02 (${nome}): cartão "${lin}"`);
   }
 
   /* ===== Lote 3 (nov/2026) ===== */
@@ -336,26 +362,30 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   check(await qm.count() === 1 && !(await qm.evaluate((d) => d.open)), 'P07: "Quem pode ser MEI" recolhido');
   check(await page.evaluate(() => document.querySelector('#acoes').compareDocumentPosition(document.querySelector('#quem-mei')) & 4) > 0, 'P07: "Quem pode ser MEI" embaixo do Continuar');
   await escolher('Sim'); await btn('Continuar').click(); await seguir();
-  await escolher('Não'); await btn('Continuar').click();   // P08
+  check(await atual() === 'M8.P08', 'chega à P08');
+  await escolher('Não');   // P08
   /* item G: o alerta da coluna I está na dica (antes de responder) e só aparece na resposta quando aponta um risco */
   check(await page.locator('#retorno .b-alerta').count() === 0, 'P08 = Não: sem balão de alerta');
-  await btn('Corrigir minha resposta').click();
   check(nrm(await page.textContent('details.dica-toggle #dica-extra')) === 'Atividades regulamentadas não podem ser exercidas sem habilitação.', 'P08: alerta dentro da dica');
-  await escolher('Sim'); await btn('Continuar').click();
-  check(nrm(await page.textContent('#retorno #alerta-resposta')) === 'Fique atento Atividades regulamentadas não podem ser exercidas sem habilitação.' && await page.locator('#acoes .btn-primario').count() === 1, 'P08 = Sim: aviso de risco, sem travar');
+  await escolher('Sim');
+  check(nrm(await page.textContent('#retorno #alerta-resposta')) === 'Fique atento Atividades regulamentadas não podem ser exercidas sem habilitação.', 'P08 = Sim: aviso de risco ao vivo, no toque');
+  await btn('Continuar').click();
+  check(await atual() === 'M8.P09', 'P08 = Sim: o aviso não trava, um toque segue');
   await seguir();
-  await escolher('Não'); await btn('Continuar').click();   // P09
+  await escolher('Não');   // P09
   check(await page.locator('#retorno .b-alerta').count() === 0, 'P09: sem balão de alerta para qualquer resposta');
+  await btn('Continuar').click();
   await seguir();
   /* item 4: fontes depois da dúvida principal */
   check(await atual() === 'M8.P10', 'chega à P10');
   check(await page.locator('#fontes-duvida').count() === 0, 'P10: fontes só depois da resposta');
-  await escolher('Se posso ser MEI'); await btn('Continuar').click();
+  await escolher('Se posso ser MEI');
   const fd = nrm(await page.textContent('#retorno #fontes-duvida'));
   for (const t of ['Onde tirar suas dúvidas', 'Sala do Empreendedor de Juiz de Fora', 'Portal do Empreendedor (gov.br)', 'Sebrae', '0800 570 0800', 'contador']) check(fd.includes(t), `P10 fontes: "${t}"`);
   const hrefs = await page.$$eval('#fontes-duvida a', (as) => as.map((a) => a.href));
   check(hrefs.includes('https://desenvolvejf.pjf.mg.gov.br/sme.html') && hrefs.includes('https://www.gov.br/empresas-e-negocios/pt-br/empreendedor') && hrefs.some((h) => h.startsWith('https://sebrae.com.br/')), 'P10: links oficiais ' + hrefs.join(' '));
   if (SHOTS) { await page.waitForTimeout(400); await page.locator('#fontes-duvida').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_fontes_duvida.png') }); }
+  await btn('Continuar').click();
   await seguir();
   check(await atual() === 'RESULTADO', 'resultado');
   /* item 2 no resultado: cartão aberto com os 4 critérios e a fonte */
@@ -404,7 +434,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.fill('#ent textarea', 'Faço tranças'); await btn('Continuar').click(); await seguir();
   await escolher('Serviço'); await btn('Continuar').click(); await seguir();
   check(await atual() === 'M8.P04' && (await st()).R['M8.P03'].opcao === 'Na casa do cliente (atendimento em domicílio)' && (await st()).R['M8.P03'].de === 9, 'P03: domicílio do Módulo 9 entra sem tela');
-  check(nrm(await page.textContent('#veio')).includes('Onde trabalha: Na casa do cliente (atendimento em domicílio)') && nrm(await page.textContent('#veio .veio')) === 'Veio do Módulo 9', 'P04: cartão com o local que veio do Módulo 9');
+  check(nrm(await page.textContent('#veio')).includes('Onde trabalha: Na casa do cliente (atendimento em domicílio)') && nrm(await page.textContent('#veio .veio')) === 'Veio da Etapa 9', 'P04: cartão com o local que veio do Módulo 9');
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_voltar_domicilio.png') }); }
 
   /* ===== Bug 16/11 ("Pergunta 6: escolho o CNAE e não acontece nada") ===== */
@@ -429,8 +459,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     check(fb.includes('Você escolheu 1091-1/02') && fb.includes('CONFEITEIRO(A) INDEPENDENTE') && fb.includes('está na lista de ocupações permitidas ao MEI'), 'retorno na hora: o que o código quer dizer: ' + fb); }
   check((await st()).R['M8.P06'].valor === '1091-1/02 - CONFEITEIRO(A) INDEPENDENTE' && (await st()).cnae.cnae === '1091-1/02', 'escolha já guardada (resposta da P06 e CNAE escolhido)');
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm08_depois_cnae_escolheu.png'), fullPage: true }); }
+  check(await page.locator('#retorno .cnae').count() >= 1, 'retorno ao vivo: mostra a ocupação da lista do MEI antes do Continuar');
   await btn('Continuar').click();
-  check(await page.locator('#retorno .cnae').count() >= 1, 'Continuar: mostra a ocupação da lista do MEI');
   await seguir();
   check(await atual() === 'M8.P08' || await atual() === 'M8.P09', 'P07 (lista do MEI) respondida pela escolha: sem tela; foi para ' + await atual());
   check(JSON.stringify((await st()).R['M8.P07']) === JSON.stringify({ estado: 'opcao', opcao: 'Sim', de: 'CNAE', reuso: true }), 'P07 = Sim, vindo do CNAE: ' + JSON.stringify((await st()).R['M8.P07']));
@@ -475,6 +505,127 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   { const ps = nrm(await page.textContent('#pesquisou'));
     check(ps.startsWith('O que você pesquisou') && ps.includes('Você já tem CNPJ? Se tem, de que tipo?') && ps.includes('No Cartão CNPJ vi que ainda não tenho empresa aberta.') && ps.includes('Onde: Site da Receita Federal · Data: 16/11/2026') && ps.includes('Achei confeiteiro na lista do gov.br.'), 'resumo: "O que você pesquisou": ' + ps); }
   check(await page.locator('#pesquisou').isVisible(), 'resumo: anotações à vista (e na impressão)');
+
+  /* ===== Lote 17/11 ("tira a fricção") ===== */
+  /* B4: quem JÁ é MEI e fatura dentro do limite não lê "o MEI pode ser um caminho": vê a folga até o limite, com a conta */
+  const base4 = { 'M8.P01': { estado: 'valor', valor: 'Faço bolos de pote' }, 'M8.P02': { estado: 'opcao', opcao: 'Produto' },
+    'M8.P03': { estado: 'opcao', opcao: 'Minha casa' } };
+  const resultadoMei = async (fat, p05) => {
+    const R = Object.assign({}, base4, { 'M8.P04': { estado: 'valor', valor: fat }, 'M8.P05': { estado: 'opcao', opcao: p05 },
+      'M8.P07': { estado: 'opcao', opcao: 'Sim' }, 'M8.P09': { estado: 'opcao', opcao: 'Não' }, 'M8.P10': { estado: 'opcao', opcao: 'Se posso ser MEI' } });
+    await semear({ [K]: { R, hist: ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P07', 'M8.P09', 'M8.P10', 'RESULTADO'] } });
+    await page.reload(); await btn('Continuar de onde parei').click();
+    assert.equal(await atual(), 'RESULTADO');
+    return nrm(await page.textContent('#entendemos'));
+  };
+  /* conta feita à mão: 3.000 × 12 = 36.000; 81.000 − 36.000 = 45.000 de folga */
+  for (const p05 of ['MEI (Microempreendedor Individual)', 'MEI']) {
+    const en = await resultadoMei('3.000', p05);
+    check(!en.includes('pode ser um caminho'), `B4 (${p05}): quem já é MEI não lê "pode ser um caminho": ${en}`);
+    check(en.includes('como você já é MEI, continua dentro do limite, com folga de R$ 45.000 por ano'), `B4 (${p05}): folga certa (81.000 − 36.000 = 45.000): ${en}`);
+    check(nrm(await page.textContent('#calc-folga')) === 'Como calculamos: R$ 81.000 (limite do MEI em 2026) − R$ 36.000 (seu faturamento no ano) = R$ 45.000 de folga por ano.', 'B4: "Como calculamos" da folga');
+    check(nrm(await page.textContent('#folga-mei')).includes('Ainda cabem R$ 45.000 por ano') && await page.locator('#alerta-mei').count() === 0, 'B4: cartão da folga no resumo, sem alerta');
+  }
+  /* centavos: 2.500,50 × 12 = 30.006; 81.000 − 30.006 = 50.994 */
+  check((await resultadoMei('2.500,50', 'MEI (Microempreendedor Individual)')).includes('com folga de R$ 50.994 por ano'), 'B4: folga com centavos (81.000 − 30.006 = 50.994)');
+  /* controle: sem CNPJ continua lendo que o MEI pode ser um caminho, sem folga */
+  { const en = await resultadoMei('3.000', 'Não');
+    check(en.includes('o MEI pode ser um caminho') && !en.includes('folga') && await page.locator('#folga-mei, #calc-folga').count() === 0, 'B4: sem CNPJ, o MEI pode ser um caminho (sem folga)'); }
+  /* B4 ao vivo na P05: tocar em MEI já mostra a folga */
+  await semear({ [K]: { R: Object.assign({}, base4, { 'M8.P04': { estado: 'valor', valor: '3.000' } }), hist: ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05'] } });
+  await page.reload(); await btn('Continuar de onde parei').click();
+  assert.equal(await atual(), 'M8.P05');
+  check(await page.locator('#folga-mei').count() === 0, 'P05: sem resposta, sem folga');
+  await escolher('MEI (Microempreendedor Individual)');
+  check(nrm(await page.textContent('#retorno #folga-mei')).includes('Ainda cabem R$ 45.000 por ano') && nrm(await page.textContent('#retorno #folga-mei')).includes('R$ 81.000 (limite do MEI em 2026) − R$ 36.000'), 'P05 = MEI dentro do limite: folga ao vivo, com "Como calculamos"');
+  check((await st()).R['M8.P05'] === undefined, 'retorno ao vivo não grava nada');
+  await escolher('Não');
+  check(await page.locator('#folga-mei').count() === 0, 'P05 = Não: a folga some na hora');
+
+  /* itens A, B, C, D, E e G percorrendo todas as perguntas em 3 telas difíceis */
+  const TELAS = [['360x640', 360, 640, false], ['390x844 com letra 130%', 390, 844, true], ['740x360 deitado', 740, 360, false]];
+  const RESP_C = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Sim', 'M8.P10': 'Se posso ser MEI' };
+  for (const [nome, w, h, z130] of TELAS) {
+    await page.setViewportSize({ width: w, height: h });
+    await semear({}); await page.reload();
+    if (z130) await page.evaluate(() => { document.documentElement.style.fontSize = '130%'; });
+    check(!/M[óo]dulo/.test(await page.innerText('#tela')) && nrm(await page.textContent('.tempo')) === 'Esta etapa leva cerca de 5 minutos', `${nome}: capa diz "Etapa" e tempo honesto (10 perguntas × 35 s ≈ 6 min → 5 min)`);
+    await btn('Começar').click();
+    const vistos = [], barras = [], totais = new Set();
+    for (let i = 0; i < 12 && (await atual()) !== 'RESULTADO'; i++) {
+      const cod = await atual();
+      vistos.push(cod);
+      check(await page.evaluate(() => window.scrollY) === 0, `${nome} ${cod}: abre no alto, sem rolar`);
+      const r = await page.evaluate(() => { const b = document.querySelector('#ok').getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: innerHeight, nome: document.querySelector('#ok').textContent.trim(), dis: document.querySelector('#ok').disabled }; });
+      check(r.top >= 0 && r.bottom <= r.h && r.nome === 'Continuar' && !r.dis, `${nome} ${cod}: Continuar inteiro na tela sem rolar, ativo: ${JSON.stringify(r)}`);
+      check(!/M[óo]dulo/.test(await page.innerText('#tela')), `${nome} ${cod}: nenhum "Módulo" visível`);
+      const m = nrm(await page.textContent('.passo')).match(/^Pergunta (\d+) de (\d+)$/);
+      totais.add(m && m[2]); barras.push(+(await page.getAttribute('.heroi-compacta .barra', 'aria-valuenow')));
+      /* item B: sem resposta, Continuar mostra a mensagem logo acima dele e não avança */
+      if (i === 0) {
+        await btn('Continuar').click();
+        check(await atual() === cod && await page.locator('#erro[role=alert]').isVisible() && /^Escreva a sua resposta para continuar\./.test(nrm(await page.textContent('#erro'))), `${nome}: sem resposta, mensagem simples e fica na pergunta`);
+        const e = await page.evaluate(() => { const a = document.querySelector('#erro').getBoundingClientRect(), b = document.querySelector('#ok').getBoundingClientRect(); return a.top >= 0 && a.bottom <= b.top + 1 && b.bottom <= innerHeight; });
+        check(e, `${nome}: mensagem e Continuar juntos, presos ao pé da tela`);
+      }
+      const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
+      if (ops.length) {
+        const alvo = RESP_C[cod] || ops[0];
+        await escolher(alvo);
+        const ap = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.getAttribute('aria-pressed')));
+        check(ap.every((v, k) => v === (ops[k] === alvo ? 'true' : 'false')), `${nome} ${cod}: aria-pressed certo depois do toque`);
+      } else await page.fill('#ent input, #ent textarea', cod === 'M8.P04' ? '3000' : cod === 'M8.P06' ? 'fabricação de bolos' : 'Faço bolos de pote');
+      { const b = await page.locator('#ok').boundingBox(); const vh = await page.evaluate(() => innerHeight); check(b && b.y >= 0 && b.y + b.height <= vh, `${nome} ${cod}: Continuar à vista depois de responder`); }
+      await btn('Continuar').click();
+      check(await atual() !== cod, `${nome} ${cod}: um toque em Continuar abre a próxima`);
+      await seguir();
+      if ((await atual()) !== 'RESULTADO') check(await page.evaluate(() => document.activeElement === document.querySelector('.cartao-q h2.q')), `${nome}: foco no enunciado da pergunta nova`);
+    }
+    check(await atual() === 'RESULTADO', `${nome}: chega ao resultado`);
+    check(JSON.stringify(vistos) === JSON.stringify(['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P09', 'M8.P10']), `${nome}: 10 perguntas: ${vistos}`);
+    check(totais.size === 1 && totais.has('10'), `${nome}: total de "Pergunta N de M" estável (10)`);
+    check(barras.every((v, k) => k === 0 || v > barras[k - 1]), `${nome}: barra só anda para frente: ${barras}`);
+    const txt = await page.innerText('#tela');
+    check(!/M[óo]dulo/.test(txt) && /Você concluiu a Etapa 8/.test(txt), `${nome}: resultado diz "Etapa", nunca "Módulo"`);
+    check(nrm(await page.textContent('.lg2-proximo a')) === 'Ir para a Etapa 9' && await page.locator('div.acoes.lg2-proximo').isVisible(), `${nome}: link "Ir para a Etapa 9" visível`);
+  }
+  await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+  await page.setViewportSize({ width: 390, height: 844 });
+  /* barra com perguntas puladas (P05 = MEI pula a P06): o total continua 10 e a barra não volta */
+  await semear({}); await page.reload(); await btn('Começar').click();
+  { const bs = [];
+    for (let i = 0; i < 12 && (await atual()) !== 'RESULTADO'; i++) {
+      const cod = await atual();
+      bs.push(+(await page.getAttribute('.heroi-compacta .barra', 'aria-valuenow')));
+      check(/ de 10$/.test(nrm(await page.textContent('.passo'))), `caminho com pulo ${cod}: total 10`);
+      const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
+      if (ops.length) await escolher(cod === 'M8.P05' ? 'MEI (Microempreendedor Individual)' : ops.includes('Não') ? 'Não' : ops[0]);
+      else await page.fill('#ent input, #ent textarea', cod === 'M8.P04' ? '3000' : 'Faço bolos de pote');
+      await btn('Continuar').click();
+    }
+    check(bs.every((v, k) => k === 0 || v > bs[k - 1]), 'caminho com pulo: barra só anda para frente: ' + bs); }
+
+  /* item F: alvos de toque ≥ 44 px (pergunta com dica, anotações, "Quem pode ser MEI", consulta; resumo com Copiar/Escolher/Trocar) */
+  const alturas = (sels) => page.evaluate((ss) => ss.flatMap((s) => [...document.querySelectorAll(s)].map((e) => { const r = e.getBoundingClientRect(); return { s, h: Math.round(r.height), w: r.width }; })).filter((x) => x.w > 0), sels);
+  await semear({ [K]: { R: Object.assign({}, base4, { 'M8.P04': { estado: 'valor', valor: '3.000' }, 'M8.P05': { estado: 'opcao', opcao: 'Não' }, 'M8.P06': { estado: 'valor', valor: 'fabricação de bolos' } }), hist: ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07'] } });
+  await page.reload(); await btn('Continuar de onde parei').click();
+  assert.equal(await atual(), 'M8.P07');
+  { const hs = await alturas(['details.dica-toggle > summary', 'details#notas > summary', 'details#quem-mei > summary', '#anexo', '#v', '.btn-copiar']);
+    check(hs.length >= 5 && hs.every((x) => x.h >= 44), 'item F: pergunta, alvos ≥ 44 px: ' + JSON.stringify(hs)); }
+  await page.click('details.dica-toggle > summary');
+  check(await page.$eval('details.dica-toggle', (d) => d.open), 'item F: "Ver dica" continua abrindo');
+  await escolher('Sim'); await btn('Continuar').click();
+  await ateResultado();
+  { const hs = await alturas(['#tela details > summary', '.btn-copiar-cnae', '.btn-escolher', '.alterar', '[data-inicio]', 'details.mais > summary']);
+    check(hs.length >= 5 && hs.every((x) => x.h >= 44), 'item F: resumo, alvos ≥ 44 px: ' + JSON.stringify(hs.filter((x) => x.h < 44))); }
+  await page.click('[data-inicio]');
+  { const hs = await alturas(['details.como-funciona > summary', '[data-inicio]']);
+    check(hs.length >= 1 && hs.every((x) => x.h >= 44), 'item F: capa, "Como funciona" ≥ 44 px: ' + JSON.stringify(hs)); }
+  await page.click('details.como-funciona > summary');
+  check(!/M[óo]dulo/.test(await page.innerText('#tela')), 'capa com "Como funciona" aberto: nenhum "Módulo"');
+  await btn('O que esta etapa não faz').click();
+  check(!/M[óo]dulo/.test(await page.innerText('#tela')) && nrm(await page.textContent('.heroi-tit')) === 'Limites da etapa', 'tela de limites: "Etapa", nunca "Módulo"');
+  await btn('Voltar').click();
 
   /* nada de "Grupo N" nem códigos na tela */
   check(!/Grupo \d/.test(await page.innerText('#tela')), 'sem "Grupo N" na tela');

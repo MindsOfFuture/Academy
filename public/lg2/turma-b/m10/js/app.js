@@ -40,6 +40,14 @@
       else if (k === "M10-10" && r.u) Object.keys(r.u).forEach((t) => { if (r.u[t] === "não sei") delete r.u[t]; });
     });
     s.v = VERSAO;
+    /* 17/11: "Módulo N" virou "Etapa N" no texto. Os pontos da lista de prioridades guardados com o texto antigo
+       ("… (Módulo 3)", "Rever uma resposta “Não sei” do Módulo 4") passam ao texto novo, para continuarem marcados */
+    const etapaTxt = (t) => typeof t === "string" ? t.replace(/\(Módulo (\d+)\)/g, "(Etapa $1)").replace(/“Não sei” do Módulo (\d+)/g, "“Não sei” da Etapa $1") : t;
+    const r9 = s.R["M10-09"];
+    if (r9 && Array.isArray(r9.opcoes)) r9.opcoes = r9.opcoes.map(etapaTxt);
+    const r10 = s.R["M10-10"];
+    if (r10 && r10.u) r10.u = Object.fromEntries(Object.entries(r10.u).map(([k, v]) => [etapaTxt(k), v]));
+    if (s.prioridade) s.prioridade = etapaTxt(s.prioridade);
     Object.entries(OP_ANTIGA).forEach(([cod, m]) => {
       const r = s.R[cod];
       if (!r) return;
@@ -62,11 +70,25 @@
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  /* nova tela; numa pergunta, o foco vai para o enunciado (o leitor de tela lê a pergunta nova) */
+  function ir(f, a) {
+    tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0);
+    const q = tela.querySelector(".cartao-q.pergunta h2.q[tabindex]");
+    if (q) try { q.focus({ preventScroll: true }); } catch (e) {}
+  }
   function redesenhar(f, a) { const y = window.scrollY; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, y); }
   const cap1 = (s) => { s = String(s || "").trim(); return s.charAt(0).toUpperCase() + s.slice(1); };
-  /* minúscula só na 1ª letra de cada item ("Redes sociais (Instagram, …), Loja física" → "redes sociais (Instagram, …), loja física") */
-  const lc = (s) => String(s || "").split(/,\s*(?![^()]*\))/).map((x) => x.charAt(0).toLowerCase() + x.slice(1)).join(", ");
+  /* minúscula só na 1ª letra de cada item ("Redes sociais (Instagram, …), Loja física" → "redes sociais (Instagram, …), loja física").
+     As palavras da própria pessoa não mudam de caixa quando são nome de marca ou rede (Instagram, WhatsApp, iFood…),
+     sigla (PIX, MEI) ou têm maiúscula no meio (WhatsApp, TikTok): só baixa a 1ª letra de palavra comum "Capitalizada". */
+  const NOMES_PROPRIOS = /^(instagram|insta|whatsapp|whats|zap|facebook|face|tiktok|youtube|kwai|pinterest|twitter|linkedin|telegram|messenger|google|gmail|ifood|rappi|uber|99|99food|shopee|mercado|amazon|magalu|olx|elo7|enjoei|aliexpress|shein|pix|picpay|nubank|sebrae|sumup|pagseguro|stone|cielo|juiz|minas|brasil)$/i;
+  const baixaPalavra = (w) => {
+    const m = /^([A-ZÀ-Ý])([a-zà-ÿ'’-]*)$/.exec(w.replace(/[.,;:!?)]+$/, ""));
+    if (!m || NOMES_PROPRIOS.test(w.replace(/[^\wÀ-ÿ]/g, ""))) return w;
+    return w.charAt(0).toLowerCase() + w.slice(1);
+  };
+  const minusc = (x) => String(x || "").replace(/^(\s*)(\S+)/, (_, sp, w) => sp + baixaPalavra(w));
+  const lc = (s) => String(s || "").split(/,\s*(?![^()]*\))/).map(minusc).join(", ");
   const curto = (s, n) => { s = String(s || "").replace(/\s+/g, " ").trim(); return s.length > (n || 90) ? s.slice(0, (n || 90) - 1).trimEnd() + "…" : s; };
 
   /* ---------- respostas dos Módulos 1 a 9 guardadas neste aparelho (só leitura) ---------- */
@@ -102,7 +124,7 @@
   /* preço sugerido no Módulo 5 (sem preço digitado lá): custo + acréscimo */
   function comoPrecoM5() {
     const e5 = lerEstado(5), c5 = RN.contaM5(e5);
-    return c5.sugerido && c5.custo > 0 ? `${RN.brl(c5.custo)} (custo de uma unidade) + ${nBR(Mo.num(e5 && e5.lucro))}% (acréscimo escolhido no Módulo 5) = ${RN.brl(c5.preco)}.` : "";
+    return c5.sugerido && c5.custo > 0 ? `${RN.brl(c5.custo)} (custo de uma unidade) + ${nBR(Mo.num(e5 && e5.lucro))}% (acréscimo escolhido na Etapa 5) = ${RN.brl(c5.preco)}.` : "";
   }
 
   /* tela de partida: o que dá para trazer dos módulos anteriores */
@@ -160,7 +182,7 @@
     const n11 = m7["M7-11"];
     return {
       ouvidas: ouv !== null && !isNaN(ouv) && ouv >= 0 ? ouv : null,
-      onde: onde && onde !== NS ? onde.toLowerCase() : null,
+      onde: onde && onde !== NS ? minusc(onde) : null,
       frequencia: freq && freq !== NS ? freq : null,
       recorrente: RECORRENTE.includes(freq),
       concorrente: conc ? curto(conc.split(/[,;\n]| e /)[0], 40) : null,
@@ -229,15 +251,15 @@
     let preco = c5.preco, sugerido = c5.sugerido, sobra = c5.sobra, pe = c5.pe;
     const pM = Mo.num(I().preco);
     if (pM > 0 && (preco === null || Math.abs(pM - preco) > 0.004)) { preco = pM; sugerido = false; sobra = c5.custo !== null ? preco - c5.custo - c5.taxa : null; pe = sobra > 0 && c5.mensal > 0 ? Math.ceil(c5.mensal / sobra - 1e-9) : null; }
-    if (preco !== null && sugerido && c5.custo > 0) out.push(`${RN.brl(c5.custo)} (custo de uma unidade) + ${nBR(Mo.num(e5 && e5.lucro))}% (acréscimo escolhido no Módulo 5) = ${RN.brl(preco)} de preço sugerido.`);
+    if (preco !== null && sugerido && c5.custo > 0) out.push(`${RN.brl(c5.custo)} (custo de uma unidade) + ${nBR(Mo.num(e5 && e5.lucro))}% (acréscimo escolhido na Etapa 5) = ${RN.brl(preco)} de preço sugerido.`);
     if (preco !== null && sobra !== null && c5.custo > 0) out.push(`${RN.brl(preco)} (preço) − ${RN.brl(c5.custo)} (custo de uma unidade)${c5.taxa > 0 ? ` − ${RN.brl(c5.taxa)} (taxas)` : ""} = ${RN.brl(sobra)} ${sobra > 0 ? "de sobra em cada venda" : "(não sobra dinheiro na venda)"}.`);
     if (c5.mensal > 0) {
-      const s = somaTxt(parcelasM5(), c5.mensal, "gastos do mês informados no Módulo 5");
+      const s = somaTxt(parcelasM5(), c5.mensal, "gastos do mês informados na Etapa 5");
       if (s) out.push(s);
       if (pe) { const x = c5.mensal / sobra; out.push(`${RN.brl(c5.mensal)} (gastos do mês) ÷ ${RN.brl(sobra)} (sobra por venda) = ${Math.abs(x - Math.round(x)) < 1e-9 ? `${nBR(pe, 0)} vendas por mês` : `${nBR(x, 1)}; arredondamos para cima: ${nBR(pe, 0)} vendas por mês`}.`); }
     } else if (preco !== null && c5.qtd) out.push(`${RN.brl(preco)} (preço) × ${nBR(c5.qtd)} vendas por mês = ${RN.brl(preco * c5.qtd)}.`);
     const p6 = parcelasM6(), invest = p6.reduce((a, b) => a + b, 0), tem = Mo.num(textoDe(lerR(6)["M6.P07"]));
-    if (invest > 0) { const s = somaTxt(p6, invest, "gastos para começar do Módulo 6"); if (s) out.push(s); }
+    if (invest > 0) { const s = somaTxt(p6, invest, "gastos para começar da Etapa 6"); if (s) out.push(s); }
     if (invest > 0 && tem >= 0 && tem < invest) out.push(`${RN.brl(invest)} (para começar) − ${RN.brl(tem)} (o que você tem) = ${RN.brl(invest - tem)} que faltam.`);
     const cap = comoCap();
     if (cap) out.push(cap);
@@ -330,8 +352,8 @@
       "Se houver ofertas guardadas": false, // o Módulo 1 publicado não guarda outras ofertas
     };
     s = s.replace(/\s*\[(Se [^\]]+)\]:\s*([\s\S]*)$/, (_, k, x) => (cond[k] ? " " + x : ""));
-    if (C.ouvidas == null) s = s.replace(/Você já ouviu \[pessoas ouvidas\] pessoas no Módulo 2\.\s*/, "");
-    if (!C.onde) s = s.replace(/: o Módulo 2 mostrou onde ele procura \(\[onde procuram\]\)/, "");
+    if (C.ouvidas == null) s = s.replace(/Você já ouviu \[pessoas ouvidas\] pessoas na Etapa 2\.\s*/, "");
+    if (!C.onde) s = s.replace(/: a Etapa 2 mostrou onde ele procura \(\[onde procuram\]\)/, "");
     if (!I().diferencial) s = s.replace(/\s*A mensagem pode partir do seu diferencial: \[diferencial do Módulo 3\]\./, "");
     const mapa = {
       "[canais de venda do Módulo 3]": I().canais ? canaisTxt() : "onde você vende",
@@ -342,7 +364,7 @@
       "[diferencial do Módulo 3]": I().diferencial || "",
       "[diferencial]": I().diferencial || "[o que o cliente ganha com você]",
       "[grupo em foco]": I().grupo || "[para quem]",
-      "[frequência]": C.frequencia ? C.frequencia.toLowerCase() : "",
+      "[frequência]": C.frequencia ? minusc(C.frequencia) : "",
       "[N]": nCap(C.cap7.c),
       "[volume]": C.cap7.vol ? Mo.fmt(C.cap7.vol) + " por mês" : "",
       "[concorrente]": C.concorrente || "um concorrente",
@@ -360,9 +382,9 @@
   function apoioDe(cod) {
     let t = Q[cod].apoio || "";
     /* o sócio é perguntado neste módulo (o Módulo 8 não faz essa pergunta) */
-    if (cod === "M10-06") t = t.replace("Você disse no Módulo 8 que terá sócio.", "Você disse que tem ou pretende ter sócio.");
+    if (cod === "M10-06") t = t.replace("Você disse na Etapa 8 que terá sócio.", "Você disse que tem ou pretende ter sócio.");
     /* [etapas] aqui são as etapas do mapa do Módulo 7, não o roteiro de venda */
-    return preencher(t, cod === "M10-07" ? { "[etapas]": juntarE(ctx().etapas7.map((x) => x.toLowerCase())) } : null);
+    return preencher(t, cod === "M10-07" ? { "[etapas]": juntarE(ctx().etapas7.map(minusc)) } : null);
   }
 
   /* ---------- roteiro de venda pré-montado (M10-03, instrumento "Roteiro de venda") ---------- */
@@ -388,6 +410,8 @@
   };
 
   /* ---------- perguntas: quais aparecem ---------- */
+  /* todas as perguntas que podem aparecer, na ordem (total estável da barra de progresso) */
+  const TODAS = ["M10-01", "M10-02", "M10-03", "M10-04", "M10-05", SOCIO, "M10-06", "M10-07", "M10-08", "M10-08a", "M10-09", "M10-10", "M10-11"];
   function sequencia() {
     const seq = ["M10-01", "M10-02", "M10-03", "M10-04", "M10-05", SOCIO];
     if (temSocio()) seq.push("M10-06");
@@ -400,7 +424,15 @@
   }
   const FASE = (cod) => (cod === SOCIO ? "Pessoas" : Q[cod].fase);
   /* M10-01 sem canais de venda conhecidos: a pergunta não fala em "Além de …" */
-  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : cod === "M10-01" && !canaisVenda() ? "Por onde falam os clientes?" : preencher(Q[cod].pergunta));
+  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : cod === "M10-01" && !canaisVenda() ? "Por onde falam os clientes?" : preencher(Q[cod].pergunta, { "[oferta em foco]": ofertaNaFrase() }));
+  /* oferta dentro de um enunciado: a resposta da pessoa só entra quando é curta e cabe na frase
+     ("…saber que bolo de pote existe…"); longa, com ":" ou com várias linhas vira "o seu negócio" */
+  const OFERTA_CURTA = 40;
+  function ofertaNaFrase() {
+    const o = oferta().replace(/[.;!]+$/, "").trim();
+    if (!o || o.length > OFERTA_CURTA || /[:;\n]/.test(o) || NS_RE.test(o)) return "o seu negócio";
+    return minusc(o);
+  }
 
   /* ---------- M10-01: as opções não repetem os canais de venda que já aparecem na pergunta ---------- */
   const canaisVenda = () => String(I().canais || "").trim();
@@ -432,7 +464,7 @@
     if (m7["M7-02"] && m7["M7-02"].estado === "naosei") add("Medir o tempo de produção", "media", 7);
     if (textoDe(m8["M8.P05"]) === "Não") {
       const d = textoDe(m8["M8.P10"]);
-      add(d && d !== NS ? `Tirar a dúvida sobre formalização: ${d.toLowerCase()}` : "Entender o que falta para formalizar o negócio", "media", 8);
+      add(d && d !== NS ? `Tirar a dúvida sobre formalização: ${minusc(d)}` : "Entender o que falta para formalizar o negócio", "media", 8);
     }
     if (opR("M10-02") === "Mais de 2 dias") add("Tempo de resposta aos clientes", "media", 10);
     const r7 = S.R["M10-07"];
@@ -440,8 +472,8 @@
     /* gravidade baixa: cada resposta "Não sei" dos módulos, dizendo o que falta fazer (texto curto da pergunta) */
     for (let n = 1; n <= 9; n++) {
       const ab = abertas(n);
-      ab.nomes.forEach((t) => add(`${t} (Módulo ${n})`, "baixa", n));
-      if (ab.outras) add(`Rever ${ab.outras === 1 ? "uma resposta" : `${ab.outras} respostas`} “Não sei” do Módulo ${n}`, "baixa", n);
+      ab.nomes.forEach((t) => add(`${t} (Etapa ${n})`, "baixa", n));
+      if (ab.outras) add(`Rever ${ab.outras === 1 ? "uma resposta" : `${ab.outras} respostas`} “Não sei” da Etapa ${n}`, "baixa", n);
     }
     return it;
   }
@@ -486,7 +518,7 @@
   function topo(trilha) {
     return `<div class="barra-topo">
       <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
-      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo 10</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Etapa 10</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
     </div>`;
   }
   function heroi(o) {
@@ -498,7 +530,7 @@
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
-          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo 10")}</div>
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Etapa 10")}</div>
           <${o.h1 ? "h1" : "h2"} class="heroi-tit">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
@@ -510,7 +542,7 @@
   }
   function barraFases(atual, tudo) {
     const fs = D.fases, n = fs.indexOf(atual);
-    return `<ol class="etapas" aria-label="Fases do módulo">${fs.map((f, i) => {
+    return `<ol class="etapas" aria-label="Fases da etapa">${fs.map((f, i) => {
       const st = tudo || i < n ? "feita" : i === n ? "atual" : "";
       return `<li class="${st}"${i === n && !tudo ? ' aria-current="step"' : ""}><span class="bola" aria-hidden="true"></span><span class="rot">${esc(f)}</span></li>`;
     }).join("")}</ol>`;
@@ -566,7 +598,7 @@
     </section>`;
   }
   function reiniciar() {
-    if (!confirm("Apagar todas as respostas deste módulo e recomeçar? Se quiser guardar, imprima o resultado antes.")) return;
+    if (!confirm("Apagar todas as respostas desta etapa e recomeçar? Se quiser guardar, imprima o resultado antes.")) return;
     try { localStorage.removeItem(CHAVE); } catch (e) {}
     S = novo();
     ir(telaCapa);
@@ -613,7 +645,7 @@
     const comecou = !!S.ini;
     const p = el(`<div class="pag">
       ${topo("")}
-      ${heroi({ grande: true, h1: true, kicker: "Módulo 10", titulo: D.modulo.nome, texto: K.frase })}
+      ${heroi({ grande: true, h1: true, kicker: "Etapa 10", titulo: D.modulo.nome, texto: K.frase })}
       <main class="corpo">
         <details class="como-funciona cartao"><summary>Como funciona</summary>
           <h3>Para quem é</h3><p>${esc(K.para_quem)}</p>
@@ -621,7 +653,7 @@
           <h3>O que você recebe no final</h3><p>${esc(K.entrega)}</p>
           <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas.</p>
         </details>
-        <p class="tempo">Este módulo leva uns ${esc(K.minutos)} minutos</p>
+        <p class="tempo">Esta etapa leva cerca de ${esc(K.minutos)} minutos</p>
         <div class="acoes">
           <button class="btn btn-primario seta" id="ir">${comecou ? "Continuar de onde parei" : "Começar"}</button>
           ${comecou ? `<button class="btn btn-linha" id="zerar">Recomeçar do zero</button>` : ""}
@@ -645,14 +677,14 @@
     const volta = o && o.volta;
     const base = S.ini ? Object.assign({ de: {} }, S.ini) : herdar();
     const f = Object.assign({}, base);
-    const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio do Módulo ${base.de[campo]}</span>` : "";
+    const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio da Etapa ${base.de[campo]}</span>` : "";
     const txt = (campo, rot, attrs, ph) => `<label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${ph ? `placeholder="${esc(ph)}"` : ""} ${attrs || ""}>`;
     const area = (campo, rot, ph) => `<label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><textarea class="campo" rows="2" id="f-${campo}" data-campo="${campo}" ${ph ? `placeholder="${esc(ph)}"` : ""}>${esc(f[campo] ?? "")}</textarea>`;
     const sel = (campo, ops, rot) => `<fieldset class="grupo" data-sel="${campo}"><legend>${esc(rot)} ${veio(campo)}</legend>
-      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div></fieldset>`;
+      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" aria-pressed="${f[campo] === x}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div></fieldset>`;
     const p = el(`<div class="pag">
       ${topo("Antes de começar")}
-      ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nos módulos anteriores. Confira, corrija ou complete. Nada aqui é obrigatório." })}
+      ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nas etapas anteriores. Confira, corrija ou complete. Nada aqui é obrigatório." })}
       <main class="corpo">
         <div class="cartao-q partida">
           ${botaoVoltar()}
@@ -668,14 +700,13 @@
           ${base.de && base.de.preco === 5 && comoPrecoM5() ? `<div id="como-preco">${comoLinha(comoPrecoM5())}</div>` : ""}
           ${txt("entrega", "Como chega ao cliente", "", "Ex.: entrega em casa ou retirada")}
           ${txt("pagamento", "Formas de pagamento", "", "Ex.: Pix, dinheiro, cartão")}
-          <div class="erro" id="erro" hidden></div>
-          <div class="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+          <div class="acoes acoes-fixas"><div class="erro" id="erro" role="alert" hidden></div><button class="btn btn-primario seta" id="ok">Continuar</button></div>
         </div>
         ${rodape()}
       </main>
     </div>`);
     p.querySelectorAll("fieldset[data-sel]").forEach((fs) => fs.querySelectorAll(".opcao").forEach((b) => {
-      b.onclick = () => { const k = fs.dataset.sel; f[k] = f[k] === b.dataset.v ? null : b.dataset.v; fs.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", f[k] === x.dataset.v)); };
+      b.onclick = () => { const k = fs.dataset.sel; f[k] = f[k] === b.dataset.v ? null : b.dataset.v; fs.querySelectorAll(".opcao").forEach((x) => { x.classList.toggle("sel", f[k] === x.dataset.v); x.setAttribute("aria-pressed", String(f[k] === x.dataset.v)); }); };
     }));
     p.querySelector("#v").onclick = () => { const u = S.hist[S.hist.length - 1]; if (S.voltarResumo || u === "RESULTADO") { S.voltarResumo = false; return ir(telaResultado); } volta && S.ini && u ? ir(telaPergunta, u) : ir(telaCapa); };
     let avisouPreco = null;
@@ -706,28 +737,27 @@
   /* ================= pergunta ================= */
   function telaPergunta(cod) {
     const q = cod === SOCIO ? { apoio: "" } : Q[cod];
-    const seq = sequencia();
-    const n = Math.max(1, seq.indexOf(cod) + 1);
+    /* barra com total estável (todas as perguntas que podem aparecer, na ordem): nunca volta para trás */
+    const n = Math.max(1, TODAS.indexOf(cod) + 1);
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const resp = S.R[cod];
     const p = el(`<div class="pag">
-      ${heroi({ pct: Math.round(n / seq.length * 100), compacta: true })}
+      ${heroi({ pct: Math.round(n / TODAS.length * 100), compacta: true })}
       <main class="corpo">
         <div class="cartao-q pergunta">
           ${botaoVoltar()}
-          <h2 class="q" id="pergunta">${esc(TXT(cod))}</h2>
+          <h2 class="q" id="pergunta" tabindex="-1">${esc(TXT(cod))}</h2>
           ${dicaHtml(q.apoio ? apoioDe(cod) : "", CONCEITO[cod] || [], (cod === "M10-08" && /cabem cerca de/.test(q.apoio ? apoioDe(cod) : "") ? comoLinha(comoCap()) : "") + (cod === "M10-06" ? dicaSociedadeHtml() : ""))}
           <div class="entrada" id="ent"></div>
-          <div class="erro" id="erro" hidden></div>
           <div id="retorno" aria-live="polite"></div>
-          <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+          <div class="acoes acoes-fixas" id="acoes"><div class="erro" id="erro" role="alert" hidden></div><button class="btn btn-primario seta" id="ok">Continuar</button></div>
         </div>
         ${rodape()}
       </main>
     </div>`);
     const ent = p.querySelector("#ent"), box = p.querySelector("#retorno"), err = p.querySelector("#erro");
     const mostrar = (html) => {
-      box.innerHTML = html || ""; err.hidden = true;
+      box.innerHTML = html || ""; if (!(aindaErrado && aindaErrado())) err.hidden = true;
       box.querySelectorAll("[data-copiar]").forEach((b) => { const alvo = b.parentNode.querySelector("[data-prompt]"); b.onclick = () => copiar(alvo.textContent, b, alvo); });
     };
     /* "Não sei": caixa "Como descobrir" com a dica da própria planilha para essa resposta; nada é gravado */
@@ -751,9 +781,9 @@
     function unica(ops, atual, aoTocar) {
       const wrap = el(`<div class="opcoes"></div>`);
       ops.forEach((op) => {
-        const b = el(`<button class="opcao ${atual === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span>${opTxt(op)}</button>`);
+        const b = el(`<button type="button" class="opcao ${atual === op ? "sel" : ""}" aria-pressed="${atual === op}"><span class="radio" aria-hidden="true"></span>${opTxt(op)}</button>`);
         /* "Não sei" não fica marcado (não é resposta): só abre a ajuda */
-        b.onclick = () => { const ns = op === NS; wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", !ns && x === b)); aoTocar(op); };
+        b.onclick = () => { const ns = op === NS; wrap.querySelectorAll(".opcao").forEach((x) => { const m = !ns && x === b; x.classList.toggle("sel", m); x.setAttribute("aria-pressed", String(m)); }); aoTocar(op); };
         wrap.appendChild(b);
       });
       return wrap;
@@ -761,9 +791,9 @@
     /* múltipla escolha; "exclusivas" desmarcam as outras */
     function multipla(ops, marcadas, exclusivas, aoMudar) {
       const wrap = el(`<div class="opcoes multi"></div>`);
-      const pintar = () => wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", marcadas.includes(x.dataset.v)));
+      const pintar = () => wrap.querySelectorAll(".opcao").forEach((x) => { const m = marcadas.includes(x.dataset.v); x.classList.toggle("sel", m); x.setAttribute("aria-pressed", String(m)); });
       ops.forEach((op) => {
-        const b = el(`<button class="opcao" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opTxt(op)}</button>`);
+        const b = el(`<button type="button" class="opcao" aria-pressed="false" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opTxt(op)}</button>`);
         b.onclick = () => {
           if (marcadas.includes(op)) marcadas.splice(marcadas.indexOf(op), 1);
           else if (exclusivas.includes(op)) marcadas.splice(0, marcadas.length, op);
@@ -787,33 +817,19 @@
       const prox = seq2[seq2.indexOf(cod) + 1];
       prox ? ir(telaPergunta, prox) : ir(telaResultado);
     }
-    let trocado = false;
-    function trocarParaSeguir(r0) {
-      const acoes = p.querySelector("#acoes");
-      acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario seta" id="ok">Continuar</button>`);
-      b.onclick = () => avancar(r0);
-      acoes.appendChild(b);
-      trocado = true;
-    }
-    /* mudou um campo depois do retorno: o Continuar volta a conferir o que está escrito agora */
-    ent.addEventListener("input", () => {
-      if (!trocado) return;
-      trocado = false;
-      const b = p.querySelector("#ok");
-      b.onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };
-    });
+    /* retorno ao vivo dos campos de texto: ~700 ms sem digitar ou ao sair do campo (um toque em Continuar basta) */
+    const aoVivo = (fn) => { let t = null; ent.addEventListener("input", () => { clearTimeout(t); t = setTimeout(fn, 700); }); ent.addEventListener("change", () => { clearTimeout(t); fn(); }); };
 
     if (cod === "M10-01") {
       const ops = ops01();
-      if (canaisVenda() && I().de && I().de.canais) ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${I().de.canais}</span></p>`));
+      if (canaisVenda() && I().de && I().de.canais) ent.appendChild(el(`<p class="herdado"><span class="veio">Veio da Etapa ${I().de.canais}</span></p>`));
       const EXC = ["Ainda não falo com clientes"];
       const marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.opcao ? [resp.opcao] : [];
       const ret = () => mostrar(!marcadas.length ? "" : EXC.includes(marcadas[0]) ? caixa(caminho(cod, marcadas[0])) : caixa(Q[cod].caminhos[0]));
       ent.appendChild(multipla(ops, marcadas, EXC, ret));
       ret();
       coletar = () => {
-        if (!marcadas.length) { erro("Marque pelo menos uma opção."); return null; }
+        if (!marcadas.length) { erro("Marque pelo menos uma opção para continuar."); return null; }
         if (marcadas[0] === EXC[0]) return { estado: "opcao", opcao: EXC[0] };
         return { estado: "multi", opcoes: ops.filter((o) => marcadas.includes(o)) };
       };
@@ -860,7 +876,7 @@
       const semSocio = opR(SOCIO) === "Não";
       const avisoSocio = () => {
         const xs = etapas.filter((e) => quem[e] === "Sócio");
-        return semSocio && xs.length ? `<div class="bloco b-alerta"><b>Atenção</b><p>Você respondeu que não tem sócio, mas marcou o sócio em: ${esc(juntarE(xs.map((x) => x.toLowerCase())))}. Confira quem vai cuidar ${xs.length > 1 ? "dessas etapas" : "dessa etapa"}.</p></div>` : "";
+        return semSocio && xs.length ? `<div class="bloco b-alerta"><b>Atenção</b><p>Você respondeu que não tem sócio, mas marcou o sócio em: ${esc(juntarE(xs.map(minusc)))}. Confira quem vai cuidar ${xs.length > 1 ? "dessas etapas" : "dessa etapa"}.</p></div>` : "";
       };
       const ret = () => {
         if (!etapas.every((e) => quem[e])) return mostrar(avisoSocio());
@@ -884,14 +900,14 @@
       const C = ctx();
       const ret = () => {
         const extra = [];
-        if (marcadas.includes("Menos variedade de opções") && C.variedade) extra.push(`<div class="bloco b-proximo"><b>Do Módulo 4</b><p>${esc(curto(C.variedade, 160))}</p></div>`);
-        if (marcadas.includes("Rever o tempo de apoio") && C.apoio7) extra.push(`<div class="bloco b-proximo"><b>Do Módulo 7</b><p>Tempo de apoio por semana: ${esc(C.apoio7)}.</p></div>`);
+        if (marcadas.includes("Menos variedade de opções") && C.variedade) extra.push(`<div class="bloco b-proximo"><b>Da Etapa 4</b><p>${esc(curto(C.variedade, 160))}</p></div>`);
+        if (marcadas.includes("Rever o tempo de apoio") && C.apoio7) extra.push(`<div class="bloco b-proximo"><b>Da Etapa 7</b><p>Tempo de apoio por semana: ${esc(C.apoio7)}.</p></div>`);
         mostrar(marcadas.length ? caixa(Q[cod].caminhos[0]) + extra.join("") : "");
       };
       ent.appendChild(multipla(ops, marcadas, ["Ainda nenhuma"], ret));
       ret();
       coletar = () => {
-        if (!marcadas.length) { erro("Marque pelo menos uma opção."); return null; }
+        if (!marcadas.length) { erro("Marque pelo menos uma opção para continuar."); return null; }
         return { estado: "multi", opcoes: ops.filter((o) => marcadas.includes(o)) };
       };
     } else if (cod === "M10-09") {
@@ -900,32 +916,36 @@
       const marcadas = resp ? (resp.opcoes || []).filter((x) => ops.includes(x)) : [];
       const outro = el(`<div><label class="rot-campo" for="outro">Outro</label><input class="campo" id="outro" data-falar placeholder="Escreva outro ponto" value="${esc((resp && resp.outro) || "")}"></div>`);
       const total = () => marcadas.length + (outro.querySelector("input").value.trim() ? 1 : 0);
-      if (!ops.length) ent.appendChild(el(`<p class="diag-r">Nenhum ponto em aberto apareceu nos módulos deste aparelho. Escreva o que é mais urgente para você.</p>`));
+      if (!ops.length) ent.appendChild(el(`<p class="diag-r">Nenhum ponto em aberto apareceu nas etapas deste aparelho. Escreva o que é mais urgente para você.</p>`));
+      const inOutro = outro.querySelector("input");
+      /* retorno ao vivo: lista marcada e/ou "Outro" escrito (antes o "Outro" só aparecia depois do Continuar) */
+      const ret9 = () => {
+        if (total() > Mo.LIMITE_PRIORIDADES) return mostrar(caixa(caminho(cod, "Mais de 3")));
+        mostrar((marcadas.length ? caixa(caminho(cod, "Até 3 itens da lista")) : "") + (inOutro.value.trim() ? caixa(caminho(cod, "Outro (texto)")) : ""));
+      };
       const m = multipla(ops, marcadas, [], (op) => {
         if (marcadas.includes(op) && total() > Mo.LIMITE_PRIORIDADES) {
           marcadas.splice(marcadas.indexOf(op), 1);
           m.pintar();
           return mostrar(caixa(caminho(cod, "Mais de 3")));
         }
-        mostrar(marcadas.length ? caixa(caminho(cod, "Até 3 itens da lista")) : "");
+        ret9();
       });
       ent.appendChild(m);
       ent.appendChild(outro);
-      outro.querySelector("input").oninput = () => { if (total() > Mo.LIMITE_PRIORIDADES) mostrar(caixa(caminho(cod, "Mais de 3"))); };
+      inOutro.addEventListener("input", () => { if (total() > Mo.LIMITE_PRIORIDADES) mostrar(caixa(caminho(cod, "Mais de 3"))); });
+      aoVivo(ret9);
       /* "Não sei": ajuda para escolher + as 3 que mais pesam pelo que a pessoa respondeu (sugestão, nada é marcado nem gravado) */
       if (ops.length) ent.appendChild(btnNaoSei(() => {
         const tres = Mo.tresPrimeiras(lista);
         ajudaNS(`Pelo que você respondeu, as que mais pesam são: ${tres.join("; ")}. Você pode escolher essas ou outras.`, "Use a ajuda acima e escolha até 3 pontos (ou escreva outro) para continuar.");
       }));
-      if (marcadas.length) mostrar(caixa(caminho(cod, "Até 3 itens da lista")));
-      let mostrouOutro = false;
+      if (marcadas.length || inOutro.value.trim()) ret9();
       coletar = () => {
         const o = outro.querySelector("input").value.trim();
         if (total() > Mo.LIMITE_PRIORIDADES) { mostrar(caixa(caminho(cod, "Mais de 3"))); return null; }
         if (!marcadas.length && !o) { erro(ops.length ? "Escolha até 3 pontos ou escreva outro para continuar. Em dúvida, toque em “Não sei” para ver como escolher." : "Escreva o que é mais urgente para você."); return null; }
-        const r0 = { estado: "multi", opcoes: ops.filter((x) => marcadas.includes(x)), outro: o, naosei: false };
-        if (o && !mostrouOutro) { mostrouOutro = true; mostrar(caixa(caminho(cod, "Outro (texto)"))); trocarParaSeguir(r0); return null; }
-        return r0;
+        return { estado: "multi", opcoes: ops.filter((x) => marcadas.includes(x)), outro: o, naosei: false };
       };
     } else if (cod === "M10-10") {
       const ops = partes(Q[cod].caminhos[0].opcao);
@@ -962,7 +982,7 @@
       ent.appendChild(btnNaoSei(() => {
         ajudaNS([dicaNS(), prin ? exemploPara(prin) : ""].filter(Boolean).join(" "), "Use a ajuda acima e escreva o que vai fazer e até quando para continuar.");
       }));
-      let avisouNum = false, avisouLonge = false, avisouAlto = null;
+      let avisouAlto = null;
       const C = ctx();
       const g = (id) => p.querySelector("#" + id).value.trim();
       /* só o que impede de gravar: ação e data vazias, número que não é número */
@@ -973,30 +993,38 @@
         return null;
       };
       aindaErrado = () => !!bloqueio();
+      const dados = () => ({ estado: "plano", acao: g("acao"), data: g("data"), sinal: g("sinal"), numero: g("numero"), unidade: g("unidade") });
+      const sugNum = () => [C.testeN && C.testeN !== NS ? `No teste da ideia (Etapa 4), você combinou: ${C.testeN}.` : "", C.numeros7.length ? `Números que você quer acompanhar (Etapa 7): ${lc(C.numeros7.join(", "))}.` : ""].filter(Boolean).map((x) => `<p class="diag-r">${esc(x)}</p>`).join("");
+      /* retorno ao vivo, enquanto a pessoa escreve: a frase do plano e os lembretes (sem número, data longe);
+         data passada também aparece aqui, e o Continuar não grava com ela */
+      const vivo = () => {
+        if (!g("acao") || !g("data")) return mostrar("");
+        const d = Mo.avaliarData(g("data"), hoje);
+        if (d === "invalida" || d === "passada") return mostrar(caixa(caminho(cod, "Data inválida (passada)")));
+        const nn = Mo.num(g("numero"));
+        if (g("numero") && (isNaN(nn) || nn <= 0)) return mostrar("");
+        const r0 = dados(); r0.frase = Mo.frasePlano(r0);
+        mostrar(caixa(caminho(cod, "Ação, data, sinal e número preenchidos"), { "[frase]": r0.frase.replace(/\.$/, "") })
+          + (!(nn > 0) ? caixa(caminho(cod, "Sem número")) + sugNum() : "")
+          + (d === "longe" ? caixa(caminho(cod, "Data acima de 90 dias")) : ""));
+      };
+      aoVivo(vivo);
+      if (v.acao && v.data) vivo();
       coletar = () => {
-        const r0 = { estado: "plano", acao: g("acao"), data: g("data"), sinal: g("sinal"), numero: g("numero"), unidade: g("unidade") };
+        const r0 = dados();
         const b = bloqueio();
         if (b) { erro(b); return null; }
         const d = Mo.avaliarData(r0.data, hoje);
-        if (d === "invalida" || d === "passada") { mostrar(caixa(caminho(cod, "Data inválida (passada)"))); return null; }
+        if (d === "invalida" || d === "passada") { mostrar(caixa(caminho(cod, "Data inválida (passada)"))); erro("Escolha uma data de hoje em diante para continuar."); return null; }
         const nn = Mo.num(r0.numero);
-        if (!(nn > 0) && !avisouNum) {
-          avisouNum = true;
-          const sug = [C.testeN && C.testeN !== NS ? `No teste da ideia (Módulo 4), você combinou: ${C.testeN}.` : "", C.numeros7.length ? `Números que você quer acompanhar (Módulo 7): ${C.numeros7.join(", ").toLowerCase()}.` : ""].filter(Boolean);
-          mostrar(caixa(caminho(cod, "Sem número")) + sug.map((x) => `<p class="diag-r">${esc(x)}</p>`).join(""));
-          return null;
-        }
-        /* número alto: avisa uma vez e deixa seguir com o mesmo valor */
+        /* número alto: aviso de risco, avisa uma vez e deixa seguir com o mesmo valor (único passo extra) */
         if (nn > Mo.META_ALTA && avisouAlto !== r0.numero) {
           avisouAlto = r0.numero;
           mostrar(`<div class="bloco b-alerta"><b>Confira</b><p>${esc(Mo.fmt(nn))} parece muito para um primeiro passo de um pequeno negócio. Se estiver certo, toque em Continuar de novo.</p></div>`);
           return null;
         }
-        if (d === "longe" && !avisouLonge) { avisouLonge = true; mostrar(caixa(caminho(cod, "Data acima de 90 dias"))); return null; }
         r0.frase = Mo.frasePlano(r0);
-        mostrar(caixa(caminho(cod, "Ação, data, sinal e número preenchidos"), { "[frase]": r0.frase.replace(/\.$/, "") }));
-        trocarParaSeguir(r0);
-        return null;
+        return r0;
       };
     } else if (cod === SOCIO) {
       let op = resp && resp.estado === "opcao" ? resp.opcao : null;
@@ -1012,7 +1040,7 @@
       /* M10-05 sem resposta: parte do que já foi dito (anúncio nos gastos do Módulo 5; redes sociais no Módulo 3) */
       if (cod === "M10-05" && !resp) {
         const sug = C.divulgacaoM5 ? ["Anúncio pago", 5] : canaisM3().some((x) => /redes sociais|instagram|facebook/i.test(x)) ? ["Catálogo no Instagram ou outra rede social", 3] : null;
-        if (sug) { op = rotuloAtual(cod, sug[0]); ent.appendChild(el(`<p class="herdado"><span class="veio">Veio do Módulo ${sug[1]}</span> Confira ou ajuste.</p>`)); }
+        if (sug) { op = rotuloAtual(cod, sug[0]); ent.appendChild(el(`<p class="herdado"><span class="veio">Veio da Etapa ${sug[1]}</span> Confira ou ajuste.</p>`)); }
       }
       const cruz = (o) => (cod === "M10-08" && o && o.startsWith("Sim") && C.cap7.cmp && C.cap7.cmp.tipo === "folga" ? cruzamento("Contratar e capacidade com folga (M7)", { "[folga]": Mo.fmt(C.cap7.cmp.n) }, comoLinha(comoFolga(C.cap7))) : "");
       let pediuNS = false;
@@ -1079,7 +1107,7 @@
   const TETO_M1 = { "Nada por enquanto": 0, "Até R$ 100": 100, "Entre R$ 100 e R$ 500": 500, "Entre R$ 500 e R$ 1.000": 1000 };
   const ALIMENTO = /\b(bolos?|doces?|docinhos?|brigadeiros?|salgad|comida|marmit|quentinh|lanches?|p[ãa]o|p[ãa]es|tortas?|pizzas?|sorvetes?|geladinh|gel[ée]ias?|chocolates?|trufas?|biscoitos?|cookies?|bebidas?|sucos?|caf[ée]|cervejas?|aliment|confeit|empad|coxinhas?|past[ée]is|pastel|hamb[úu]rguer|a[çc]a[íi]|temperos?|conservas?|queijos?|refei[çc]|cupcakes?|pudi[mn]|bombons?|panetones?|ovos de p[áa]scoa|sobremesas?|feijoada|churrasco)/i;
   const brl = (n) => RN.brl(n);
-  const modsTxt = (ms) => { const u = [...new Set(ms)].sort((a, b) => a - b); return u.length === 1 ? `Veio do Módulo ${u[0]}` : `Veio dos Módulos ${juntarE(u.map(String))}`; };
+  const modsTxt = (ms) => { const u = [...new Set(ms)].sort((a, b) => a - b); return u.length === 1 ? `Veio da Etapa ${u[0]}` : `Veio das Etapas ${juntarE(u.map(String))}`; };
   const tiposDe = (t) => {
     const s0 = String(t || "");
     if (!s0 || /^n[ãa]o sei/i.test(s0)) return null;
@@ -1102,7 +1130,7 @@
       if (preco > 0 && gasto && preco < gasto - 0.004) {
         const custoTxt = `${brl(gasto)}${c5.taxa > 0 ? " com as taxas" : ""}`;
         const como = taxa > 0 ? `${brl(c5.custo)} (custo de uma unidade) + ${brl(taxa)} (taxas, ${nBR(c5.taxa / c5.preco * 100)}% do preço) = ${brl(gasto)}.` : "";
-        out.push({ tipo: "preco", como, detalhe: `Seu preço (${brl(preco)}) está abaixo do custo de uma unidade (${custoTxt}).`, mods: [5], texto: `Seu preço de venda é ${brl(preco)}, mas fazer uma unidade custa ${custoTxt}. Assim, cada venda tira dinheiro do seu bolso. Confira a conta do preço no Módulo 5.` });
+        out.push({ tipo: "preco", como, detalhe: `Seu preço (${brl(preco)}) está abaixo do custo de uma unidade (${custoTxt}).`, mods: [5], texto: `Seu preço de venda é ${brl(preco)}, mas fazer uma unidade custa ${custoTxt}. Assim, cada venda tira dinheiro do seu bolso. Confira a conta do preço na Etapa 5.` });
       }
     }
     /* 1. quanto pode investir (Módulo 1) x gastos dos Módulos 4, 5 e 6 */
@@ -1110,26 +1138,26 @@
     if (p07 && TETO_M1[p07] != null) {
       const teto = TETO_M1[p07], acima = [], ms = [1];
       const n6 = ["M6.P02", "M6.P11", "M6.P14", "M6.P17"].reduce((a, k) => { const n = Mo.num(textoDe(m6[k])); return n > 0 ? a + n : a; }, 0);
-      if (n6 > teto) { acima.push(`no Módulo 6, a estimativa para começar é de ${brl(n6)}`); ms.push(6); }
+      if (n6 > teto) { acima.push(`na Etapa 6, a estimativa para começar é de ${brl(n6)}`); ms.push(6); }
       const n4 = Mo.num(textoDe(m4["M4.P21"]));
-      if (n4 > teto) { acima.push(`no Módulo 4, o primeiro teste pode custar até ${brl(n4)}`); ms.push(4); }
+      if (n4 > teto) { acima.push(`na Etapa 4, o primeiro teste pode custar até ${brl(n4)}`); ms.push(4); }
       const c5 = RN.contaM5(lerEstado(5));
-      if (c5.mensal > teto) { acima.push(`no Módulo 5, os gastos do mês somam ${brl(c5.mensal)}`); ms.push(5); }
-      const comoL = [n6 > teto ? somaTxt(parcelasM6(), n6, "gastos para começar do Módulo 6") : "", c5.mensal > teto ? somaTxt(parcelasM5(), c5.mensal, "gastos do mês do Módulo 5") : ""].filter(Boolean).join(" ");
-      if (acima.length) out.push({ tipo: "limite", como: comoL, detalhe: `Os gastos previstos passam do que você disse no Módulo 1 que pode usar (${teto === 0 ? "nada, por enquanto" : p07.charAt(0).toLowerCase() + p07.slice(1)}).`, mods: ms, texto: `No Módulo 1 você disse que pode usar ${teto === 0 ? "nada, por enquanto," : p07.charAt(0).toLowerCase() + p07.slice(1)} no negócio sem faltar para as contas da casa. Mas ${acima.join("; ")}. Confira se dá para começar menor ou se algum desses valores mudou.` });
+      if (c5.mensal > teto) { acima.push(`na Etapa 5, os gastos do mês somam ${brl(c5.mensal)}`); ms.push(5); }
+      const comoL = [n6 > teto ? somaTxt(parcelasM6(), n6, "gastos para começar da Etapa 6") : "", c5.mensal > teto ? somaTxt(parcelasM5(), c5.mensal, "gastos do mês da Etapa 5") : ""].filter(Boolean).join(" ");
+      if (acima.length) out.push({ tipo: "limite", como: comoL, detalhe: `Os gastos previstos passam do que você disse na Etapa 1 que pode usar (${teto === 0 ? "nada, por enquanto" : p07.charAt(0).toLowerCase() + p07.slice(1)}).`, mods: ms, texto: `No Etapa 1 você disse que pode usar ${teto === 0 ? "nada, por enquanto," : p07.charAt(0).toLowerCase() + p07.slice(1)} no negócio sem faltar para as contas da casa. Mas ${acima.join("; ")}. Confira se dá para começar menor ou se algum desses valores mudou.` });
     }
     /* 2. tipo de oferta diferente entre os módulos */
     const tipos = [[1, textoDe(m1["M1.P03A"])], [4, textoDe(m4["M4.P02"])], [5, textoDe(m5["M5.P01"])], [8, textoDe(m8["M8.P02"])]].map(([n, t]) => [n, tiposDe(t)]).filter(([, t]) => t);
     const briga = tipos.some(([, a], i) => tipos.some(([, b], j) => j > i && !a.some((x) => b.includes(x))));
-    if (briga) out.push({ tipo: "tipo", mods: tipos.map(([n]) => n), texto: `O tipo do seu negócio aparece diferente entre os módulos: ${tipos.map(([n, t]) => `${juntarE(t)} (Módulo ${n})`).join("; ")}. Confira qual é o certo: as contas de custo e as licenças mudam conforme o tipo.` });
+    if (briga) out.push({ tipo: "tipo", mods: tipos.map(([n]) => n), texto: `O tipo do seu negócio aparece diferente entre as etapas: ${tipos.map(([n, t]) => `${juntarE(t)} (Etapa ${n})`).join("; ")}. Confira qual é o certo: as contas de custo e as licenças mudam conforme o tipo.` });
     /* 3. sem sócio, mas etapas com o sócio */
     const r7 = S.R["M10-07"];
-    const comSocio = r7 && r7.quem ? Object.entries(r7.quem).filter(([, q]) => q === "Sócio").map(([e]) => e.toLowerCase()) : [];
+    const comSocio = r7 && r7.quem ? Object.entries(r7.quem).filter(([, q]) => q === "Sócio").map(([e]) => minusc(e)) : [];
     if (opR(SOCIO) === "Não" && comSocio.length) out.push({ tipo: "socio", mods: [10, 7], texto: `Você respondeu que não tem sócio, mas marcou o sócio como responsável por: ${juntarE(comSocio)}. Confira quem vai cuidar ${comSocio.length > 1 ? "dessas etapas" : "dessa etapa"}.` });
     /* 4. alimento x \"Não\" para a Vigilância Sanitária no Módulo 9 */
     if (textoDe(m9["M9-02"]) === "Não") {
       const ideia = [oferta(), textoDe(m1["M1.P03"]), textoDe(m4["M4.P01"]), textoDe(m8["M8.P01"])].find((x) => x && ALIMENTO.test(x));
-      if (ideia) out.push({ tipo: "vigilancia", detalhe: "Você vende alimento, mas no Módulo 9 respondeu que o que vende não afeta a saúde de quem compra.", mods: [9, 1], texto: `Você vende ${curto(ideia, 60).toLowerCase()}, que parece envolver alimento, mas no Módulo 9 respondeu que o que vende não afeta a saúde de quem compra. Quem vende alimento costuma precisar da Vigilância Sanitária, mesmo como MEI. Confira essa resposta no Módulo 9.` });
+      if (ideia) out.push({ tipo: "vigilancia", detalhe: "Você vende alimento, mas na Etapa 9 respondeu que o que vende não afeta a saúde de quem compra.", mods: [9, 1], texto: `Você vende ${minusc(curto(ideia, 60))}, que parece envolver alimento, mas na Etapa 9 respondeu que o que vende não afeta a saúde de quem compra. Quem vende alimento costuma precisar da Vigilância Sanitária, mesmo como MEI. Confira essa resposta na Etapa 9.` });
     }
     return out;
   }
@@ -1168,10 +1196,10 @@
       1: [oferta() ? `Você vende: ${curto(oferta(), 70)}` : null, t(1, "M1.P03A") ? `Tipo: ${t(1, "M1.P03A").split(":")[0].toLowerCase()}` : null, t(1, "M1.P07") ? `Dinheiro que pode usar: ${t(1, "M1.P07").charAt(0).toLowerCase() + t(1, "M1.P07").slice(1)}` : null],
       2: [m2p02 ? `Clientes: ${curto(m2p02.replace(/\.\s*Problema que você resolve:.*$/i, ""), 80)}` : null,
         m2p02 && /Problema que você resolve:/i.test(m2p02) ? `Problema que você resolve: ${curto(m2p02.split(/Problema que você resolve:\s*/i)[1], 80)}` : null,
-        t(2, "M2.P11") ? `Onde estão os clientes: ${t(2, "M2.P11").toLowerCase()}` : null,
+        t(2, "M2.P11") ? `Onde estão os clientes: ${minusc(t(2, "M2.P11"))}` : null,
         C.ouvidas != null ? `Pessoas ouvidas: ${Mo.fmt(C.ouvidas)}` : null,
         t(2, "M2.P20") && !t(3, "M3.P21") ? `Motivo para escolherem você: ${curto(t(2, "M2.P20"), 80)}` : null,
-        t(2, "M2.P21") && !SO_ELOGIOS.includes(t(2, "M2.P21")) ? `O que ouviu: ${t(2, "M2.P21").toLowerCase()}` : null],
+        t(2, "M2.P21") && !SO_ELOGIOS.includes(t(2, "M2.P21")) ? `O que ouviu: ${minusc(t(2, "M2.P21"))}` : null],
       3: [I().diferencial ? `Diferencial: ${curto(I().diferencial, 70)}` : null, canaisM3().length ? `Onde o cliente compra: ${curto(lc(canaisM3().join(", ")), 80)}` : null],
       4: [pv4.frase ? `Proposta de valor: ${pv4.frase.replace(/^Sua proposta de valor:\s*/, "")}` : I().proposta ? `Proposta de valor: ${curto(I().proposta, 70)}` : null,
         pv4.falta.length && pv4.falta.length < 3 ? `Falta na proposta de valor: ${juntarE(pv4.falta)}` : null],
@@ -1179,7 +1207,7 @@
       6: [I().pagamento ? `Formas de pagamento: ${curto(I().pagamento, 70)}` : null, n6 > 0 ? `Para começar: cerca de ${brl(n6)}` : null],
       7: [C.cap7.c && C.cap7.c.estado === "ok" && C.cap7.c.hi.mes === 0 ? "No tempo informado, ainda não cabe nem uma unidade por mês" : C.cap7.mes ? `Cabem ${C.cap7.mes} por mês` : C.etapas7.length ? `${C.etapas7.length} etapas no mapa do processo` : null],
       8: [t(8, "M8.P05") ? `CNPJ: ${t(8, "M8.P05")}` : null],
-      9: [t(9, "M9-03") ? `Onde vai funcionar: ${t(9, "M9-03").toLowerCase()}` : null, t(9, "M9-04") ? `Consulta na prefeitura: ${t(9, "M9-04").toLowerCase()}` : null],
+      9: [t(9, "M9-03") ? `Onde vai funcionar: ${minusc(t(9, "M9-03"))}` : null, t(9, "M9-04") ? `Consulta na prefeitura: ${minusc(t(9, "M9-04"))}` : null],
     };
     const hip = {
       1: I().estagio && I().estagio !== ESTAGIOS[2] ? "Ainda não vendeu: a ideia ainda precisa ser testada" : null,
@@ -1228,13 +1256,13 @@
     const vias = c01.map((x) => CANAL_TXT[x]).filter(Boolean);
     const domicilio = c01.includes("Na casa do cliente (atendimento em domicílio)");
     const falta = [];
-    if (!ideia) falta.push("o que você vende (Módulo 1)");
-    if (!cliente) falta.push("para quem você vende (Módulo 2 ou 3)");
-    if (!lugar && !domicilio) falta.push("onde você atende (Módulo 8 ou 9)");
-    if (!vias.length && !canaisVenda()) falta.push("por onde o cliente fala com você (primeira pergunta deste módulo)");
+    if (!ideia) falta.push("o que você vende (Etapa 1)");
+    if (!cliente) falta.push("para quem você vende (Etapa 2 ou 3)");
+    if (!lugar && !domicilio) falta.push("onde você atende (Etapa 8 ou 9)");
+    if (!vias.length && !canaisVenda()) falta.push("por onde o cliente fala com você (primeira pergunta desta etapa)");
     if (!ideia) return { texto: "", falta };
     const frase = (x) => { x = String(x).trim().replace(/[.;!]+$/, ""); return x.charAt(0).toUpperCase() + x.slice(1) + "."; };
-    const minus = (x) => (/^[A-ZÀ-Ú][a-zà-ú]/.test(x) ? x.charAt(0).toLowerCase() + x.slice(1) : x);
+    const minus = minusc;
     const t = [`Olá! Trabalho com ${minus(curto(ideia, 80).replace(/[.;!]+$/, ""))}${cliente ? ` para ${minus(curto(cliente, 80).replace(/[.;!]+$/, ""))}` : ""}.`];
     if (ganho) t.push(frase(curto(ganho, 160)));
     if (beneficio) t.push(`O que você ganha: ${minus(curto(beneficio, 140).replace(/[.;!]+$/, ""))}.`);
@@ -1279,7 +1307,7 @@
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao fim do percurso</h2><p>${esc(preencher(q12.apoio))}</p></div></div>
         </section>
-        ${entendemos.length ? `<section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3><div class="resumo-negocio">${entendemos.map((x) => `<p>${esc(x)}</p>`).join("")}</div>${contasRes.length ? `<div class="contas" id="contas">${contasRes.map(comoLinha).join("")}</div>` : ""}<p class="aviso-inst">Este resumo junta o que você respondeu nos 10 módulos. Se algo não estiver certo, corrija a resposta e o texto muda.</p></section>` : ""}
+        ${entendemos.length ? `<section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3><div class="resumo-negocio">${entendemos.map((x) => `<p>${esc(x)}</p>`).join("")}</div>${contasRes.length ? `<div class="contas" id="contas">${contasRes.map(comoLinha).join("")}</div>` : ""}<p class="aviso-inst">Este resumo junta o que você respondeu nos 10 etapas. Se algo não estiver certo, corrija a resposta e o texto muda.</p></section>` : ""}
         ${blocoComecar(comecar, estagioM1())}
         ${cz.length || pc.length ? `<section class="cartao"><h3>Pontos para conferir</h3>${pc.map((x) => `<div class="bloco b-alerta conferir"><b>Confira</b><p>${esc(x.texto)}</p>${comoLinha(x.como)}<p><span class="veio">${esc(modsTxt(x.mods))}</span></p></div>`).join("")}${cz.map((a) => `<div class="bloco ${a.x.forma === "Pergunta gentil" ? "b-alerta" : "b-proximo"}"><b>${esc(a.x.forma)}</b><p>${esc(a.texto)}</p>${comoLinha(a.como)}</div>`).join("")}</section>` : ""}
         <section class="cartao bloco-res"><h3>Seu plano</h3>
@@ -1314,13 +1342,13 @@
           ${r8a && r8a.opcoes ? linha("Alternativas que você já considerou", r8a.opcoes.join(", ")) : ""}
         </section>
         <section class="cartao bloco-res"><h3>Retrato do negócio</h3>
-          ${ret.map((x) => `<div class="retrato"><p class="diag-q">Módulo ${x.n} · ${esc(x.nome)}</p>
-            ${!x.feito ? `<p class="diag-r">Ainda não feito neste aparelho. <a href="${LINK(x.n)}">Abrir o Módulo ${x.n}</a></p>` : `
+          ${ret.map((x) => `<div class="retrato"><p class="diag-q">Etapa ${x.n} · ${esc(x.nome)}</p>
+            ${!x.feito ? `<p class="diag-r">Ainda não feito neste aparelho. <a href="${LINK(x.n)}">Abrir a Etapa ${x.n}</a></p>` : `
             ${x.sabe.length ? `<p class="diag-r">Já se sabe: ${esc(x.sabe.join(" · "))}</p>${comoLinha(x.como)}` : ""}
             ${x.hip ? `<p class="diag-r">Ainda a confirmar: ${esc(x.hip)}</p>` : ""}
             <p class="diag-r em-aberto">${esc(emAberto(x))}</p>
-            ${x.conferir ? `<p class="diag-r">Há um ponto para conferir com outro módulo (veja “Pontos para conferir”).</p>` : ""}
-            <p class="diag-r"><a href="${LINK(x.n)}">Abrir o Módulo ${x.n}</a></p>`}</div>`).join("")}
+            ${x.conferir ? `<p class="diag-r">Há um ponto para conferir com outra etapa (veja “Pontos para conferir”).</p>` : ""}
+            <p class="diag-r"><a href="${LINK(x.n)}">Abrir a Etapa ${x.n}</a></p>`}</div>`).join("")}
           ${avisoInst("Retrato final do percurso")}
         </section>
         ${enc ? `<section class="cartao"><h3>Encaminhamento</h3><div class="bloco b-enc"><p>${esc(enc)}</p></div></section>` : ""}
@@ -1329,19 +1357,19 @@
         </details>
         <section class="cartao-q pergunta" id="q12">
           <h2 class="q">${esc(preencher(q12.pergunta))}</h2>
-          <div class="opcoes" id="op12">${opcoesDe("M10-12").map((o) => `<button class="opcao ${r12 && r12.opcao === o ? "sel" : ""}" data-o="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`).join("")}</div>
+          <div class="opcoes" id="op12">${opcoesDe("M10-12").map((o) => `<button type="button" class="opcao ${r12 && r12.opcao === o ? "sel" : ""}" aria-pressed="${!!(r12 && r12.opcao === o)}" data-o="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`).join("")}</div>
           <div id="ret12">${r12 ? caixa(caminho("M10-12", r12.opcao)) : ""}</div>
-          <div id="corr" ${r12 && r12.opcao === "Quero corrigir algo" ? "" : "hidden"}>${respostas.map(([tx, k]) => `<div class="corr-item"><span>${esc(tx)}</span><button class="btn btn-claro editar" data-c="${k || "PARTIDA"}">Corrigir minha resposta</button></div>`).join("")}
-            <p class="diag-r">Para mudar uma resposta de outro módulo, use os links do retrato acima.</p></div>
+          <div id="corr" ${r12 && r12.opcao === "Quero corrigir algo" ? "" : "hidden"}>${respostas.map(([tx, k]) => `<div class="corr-item"><span>${esc(tx)}</span><button class="btn btn-claro editar" data-c="${k || "PARTIDA"}" aria-label="Corrigir: ${esc(tx)}">Corrigir</button></div>`).join("")}
+            <p class="diag-r">Para mudar uma resposta de outra etapa, use os links do retrato acima.</p></div>
         </section>
         <div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resultado</button><button class="btn btn-linha" id="zerar2">Recomeçar do zero</button></div>
-        <div class="acoes lg2-proximo"><a class="btn btn-claro" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/protected/modulos/laboratorio-de-gestao?aba=b">Voltar aos módulos</a></div>
+        <div class="acoes lg2-proximo"><a class="btn btn-claro" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/protected/modulos/laboratorio-de-gestao?aba=b">Voltar às etapas</a></div>
         ${rodape()}
       </main>
     </div>`);
     const comecarDiagrama = p.querySelector('#comecar-diagrama');
     if (comecarDiagrama) {
-      LG2Diagrama.render(comecarDiagrama, comecar.map((a) => ({ titulo: `${a.detalhe ? `${a.detalhe} ` : ""}${a.texto}`, marca: [ORIGEM_TXT[a.origem] || "", a.modulo && a.modulo < 10 ? `Abrir o Módulo ${a.modulo}` : ""].filter(Boolean).join(" · ") })));
+      LG2Diagrama.render(comecarDiagrama, comecar.map((a) => ({ titulo: `${a.detalhe ? `${a.detalhe} ` : ""}${a.texto}`, marca: [ORIGEM_TXT[a.origem] || "", a.modulo && a.modulo < 10 ? `Abrir a Etapa ${a.modulo}` : ""].filter(Boolean).join(" · ") })));
       const lista = comecarDiagrama.querySelector('ol'); if (lista) lista.classList.add('lista-comecar');
       comecarDiagrama.querySelectorAll('.lg2-diag-passo').forEach((li, i) => { li.dataset.origem = comecar[i].origem; const t = li.querySelector('.lg2-diag-tit'); t.classList.add('acao-c'); const nn = li.querySelector('.lg2-diag-num'); if (nn) nn.classList.add('num-c'); const m = li.querySelector('.lg2-diag-marca'); if (m) m.classList.add('por-que'); });
     }
