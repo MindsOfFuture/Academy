@@ -36,6 +36,10 @@ const PUBLIC_EXACT_PATHS = [
   "/api/games/events",
   "/api/games/export",
   "/api/lg2/progresso",
+  // Link "não quero mais receber" dos lembretes do Empreenda+: a pessoa pode
+  // estar deslogada; o token do e-mail é a credencial (spec 027).
+  "/lembretes/sair",
+  "/api/lembretes/sair",
 ] as const;
 
 export function isPublicPath(pathname: string): boolean {
