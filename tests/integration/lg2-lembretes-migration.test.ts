@@ -17,7 +17,8 @@ const CRIS = "8b000000-0000-4000-8000-000000000003"; // concluiu as 10
 const DUDA = "8b000000-0000-4000-8000-000000000004"; // usou ontem
 const EDU = "8b000000-0000-4000-8000-000000000005"; // nunca abriu o LG2
 const FABI = "8b000000-0000-4000-8000-000000000006"; // jornada com texto quebrado
-const PESSOAS = [ANA, BETO, CRIS, DUDA, EDU, FABI];
+const GABI = "8b000000-0000-4000-8000-000000000007"; // conta escondida da antiga entrada de teste
+const PESSOAS = [ANA, BETO, CRIS, DUDA, EDU, FABI, GABI];
 
 // Terça, 17/11/2026, 14h em Brasília (17h UTC).
 const AGORA = "2026-11-17T17:00:00Z";
@@ -87,7 +88,8 @@ describe("lembrete de etapas do Empreenda+ (20261119)", () => {
         ('${CRIS}', 'Cris', 'cris@x.br'),
         ('${DUDA}', 'Duda', 'duda@x.br'),
         ('${EDU}', 'Edu', 'edu@x.br'),
-        ('${FABI}', 'Fabi', 'fabi@x.br');
+        ('${FABI}', 'Fabi', 'fabi@x.br'),
+        ('${GABI}', 'Gabi', 'teste+4e19b50b@teste.mindsofthefuture.com.br');
     `);
     await db.exec(PROGRESSO);
     await db.exec(MIGRATION);
@@ -105,6 +107,7 @@ describe("lembrete de etapas do Empreenda+ (20261119)", () => {
     await evento(ANA, "lg2_module_completed", 3, dias(-6)); // concluiu a 3 fora da jornada
     await evento(BETO, "lg2_module_opened", 1, dias(-10));
     await evento(DUDA, "lg2_module_opened", 2, dias(-1));
+    await evento(GABI, "lg2_module_opened", 1, dias(-10)); // parada, mas e-mail inventado
   }, 60_000);
 
   afterAll(async () => {

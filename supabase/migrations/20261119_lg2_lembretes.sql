@@ -8,6 +8,7 @@
 -- Quem recebe: conta com uso do LG2 (progresso salvo ou evento lg2_*), menos de
 -- 10 etapas concluídas, sem uso há 3 dias e que não pediu para parar. No máximo
 -- 3 lembretes por período parado (3, +7 e +14 dias); voltar a usar zera a conta.
+-- Fica de fora a conta escondida da antiga entrada de teste (e-mail inventado).
 -- Só sai entre 9h e 19h de Brasília.
 --
 -- Parar os lembretes: link com token aleatório por pessoa (sem login), que chama
@@ -187,6 +188,9 @@ begin
   join public.user_profile up on up.id = c.user_id
   where cardinality(c.feitos) < 10
     and nullif(btrim(up.email), '') is not null
+    -- Contas escondidas da antiga entrada por nome+CPF (removida em 33874c6):
+    -- endereço inventado, o e-mail voltaria e prejudicaria a entrega dos outros.
+    and up.email !~* '@teste\.mindsofthefuture\.com\.br$'
     and not exists (select 1 from public.lg2_lembrete l where l.user_id = c.user_id and l.saiu_em is not null)
     and (
       (c.n = 0 and c.ult < p_agora - interval '3 days')
