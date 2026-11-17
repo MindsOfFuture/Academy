@@ -219,3 +219,30 @@ button.btn.btn-sec{border:2px solid var(--m-purple)}
   .festa.anima .confete i{animation:none}
   .prog span{transition:none}
 }
+
+/* Capa do Empreenda+ (antes de começar a jornada): roxo cheio em cima, título amarelo, faixa institucional sobre branco */
+body.na-capa .topo{display:none}
+.capa{width:100%;display:flex;flex-direction:column;background:#fff;min-height:100%}
+.capa-topo{background:var(--m-purple);color:#fff;padding:12px max(20px,calc(50% - 260px)) 64px;position:relative}
+.capa-barra{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.capa-logo{width:40px;height:40px}
+.capa-kicker{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:#fff;opacity:.92;margin-bottom:4px}
+.capa-titulo{font-size:clamp(46px,14vw,64px);line-height:1;font-weight:700;color:var(--m-yellow);letter-spacing:-.01em}
+.capa-titulo span{display:inline-block;position:relative;margin-left:.06em;width:.7em;height:.7em;vertical-align:.01em;background:var(--m-yellow);border-radius:.2em;color:transparent;overflow:hidden;box-shadow:inset 0 -.06em 0 rgba(43,35,64,.18)}
+/* o "+" é desenhado (duas barras centradas) para ficar no centro exato do quadrado; o caractere fica só para leitores de tela */
+.capa-titulo span::before,.capa-titulo span::after{content:"";position:absolute;left:50%;top:50%;background:var(--m-purple);border-radius:.05em;transform:translate(-50%,-50%)}
+.capa-titulo span::before{width:.42em;height:.11em}
+.capa-titulo span::after{width:.11em;height:.42em}
+.capa-sub{font-size:clamp(19px,5.4vw,23px);line-height:1.3;color:#fff;margin-top:12px;max-width:22ch}
+.capa-arte{width:calc(100% - 32px);max-width:528px;margin:-46px auto 0;border-radius:18px;overflow:hidden;box-shadow:0 10px 26px rgba(43,35,64,.22);aspect-ratio:1672/941;background:var(--m-lavender);position:relative;z-index:1}
+.capa-arte img{width:100%;height:100%;object-fit:cover;display:block}
+.capa-corpo{width:100%;max-width:560px;margin:0 auto;padding:20px 20px 22px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.capa-fatos{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-bottom:20px}
+.capa-fatos li{background:var(--m-lavender);border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;gap:3px}
+.capa-fatos b{color:var(--m-purple);font-size:15.5px;line-height:1.15}
+.capa-fatos span{font-size:13px;line-height:1.3;color:#4a4458}
+.btn-capa{font-size:19px;padding:15px 28px;width:100%;max-width:360px;background:var(--m-purple);color:#fff;box-shadow:0 4px 0 rgba(43,35,64,.35)}
+.btn-capa:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(43,35,64,.35)}
+.capa-nota{font-size:15px;line-height:1.45;color:#4a4458;margin-top:14px;max-width:34ch}
+.capa .logos{width:100%;margin-top:22px}
+.capa .sair{font-size:14px}

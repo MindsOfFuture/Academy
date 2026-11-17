@@ -1,5 +1,5 @@
 /* Jornada completa do LG2 (public/lg2/jornada/); execute: node tests/lg2-jornada.cjs.
-   A jornada abre na "Sua trilha" (caminho com as 10 etapas). Percorre os módulos de verdade, dentro da jornada,
+   Quem ainda não começou vê a capa do Empreenda+; "Começar a jornada" abre a "Sua trilha" (caminho com as 10 etapas). Percorre os módulos de verdade, dentro da jornada,
    respondendo cada tela com a primeira opção ou um texto/número neutro; ao tocar no botão do fim de cada módulo
    aparece a tela "Etapa N concluída!", que leva à etapa seguinte ou de volta à trilha.
    A trava é a constante TRAVAR do jornada.js. O teste roda os DOIS modos, seja qual for o valor do arquivo:
@@ -53,7 +53,17 @@ let forcarTravar = null; // null = serve o arquivo como está
         try { return !f.hidden && f.contentWindow.location.pathname.includes('/m' + String(n).padStart(2, '0') + '/') && f.contentDocument.readyState === 'complete'; } catch { return false; }
       }, n, { timeout: 10000 });
       await pg.goto(base + '/lg2/jornada/index.html');
+      // Antes de começar, a capa do Empreenda+ (sem o topo da trilha); "Começar a jornada" leva à trilha.
+      await pg.waitForSelector('#capa:not([hidden])');
+      assert.equal(await pg.textContent('#capa-titulo'), 'Empreenda+');
+      assert.equal(await pg.textContent('.capa-sub'), 'da ideia à renda: faça seu negócio acontecer');
+      assert.equal(await pg.isVisible('.topo'), false, 'a capa ocupa a tela, sem o topo');
+      assert.equal(await pg.$$eval('.capa .logos img', (xs) => xs.map((i) => i.alt).join(',')), 'FACC,UFJF,Governo de Minas Gerais');
+      assert.equal(await pg.$eval('.capa-arte img', (i) => i.complete && i.naturalWidth > 0), true, 'ilustração da capa carregada');
+      await pg.click('#capa-comecar');
       await pg.waitForSelector('#trilha-tela:not([hidden])');
+      assert.equal(await pg.isVisible('#capa'), false);
+      assert.equal(await pg.isVisible('.topo'), true);
       // A trilha é a primeira tela: nenhum módulo carregado ainda.
       assert.equal(await pg.$eval('#modulo', (f) => f.hidden && !/\/lg2\/turma/.test(f.getAttribute('src') || '')), true, 'a trilha abre antes de qualquer módulo');
       assert.equal(await pg.textContent('#topo-titulo'), 'Sua trilha');
@@ -118,8 +128,10 @@ let forcarTravar = null; // null = serve o arquivo como está
     };
 
     await page.goto(base + '/lg2/jornada/index.html');
+    await page.waitForSelector('#capa:not([hidden])');
+    await page.click('#capa-comecar');
     await page.waitForSelector('#trilha-tela:not([hidden])');
-    assert.equal(await atual(), null, 'a trilha abre primeiro, sem módulo aberto');
+    assert.equal(await atual(), null, 'depois da capa, a trilha, sem módulo aberto');
     assert.deepEqual(await situacoes(), ['nada', ...Array(9).fill('bloqueado')]);
     assert.deepEqual(await sugeridas(), [1]);
 

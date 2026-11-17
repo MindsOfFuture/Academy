@@ -1,5 +1,5 @@
 /* Jornada completa do Laboratório de Gestão.
-   Abre na "Sua trilha": um caminho com as 10 etapas (os módulos publicados, as mesmas páginas das turmas).
+   Quem ainda não começou vê antes a capa do Empreenda+ ("Começar a jornada"). Depois, abre na "Sua trilha": um caminho com as 10 etapas (os módulos publicados, as mesmas páginas das turmas).
    Tocar numa etapa abre o módulo dentro da página; o botão "Trilha" no topo volta ao caminho.
    Quando o módulo chega ao resultado (a tela que mostra a caixa do próximo módulo), a etapa conta como concluída;
    o botão dessa caixa mostra a tela "Etapa N concluída!" com o convite para a próxima, em vez de pular direto.
@@ -65,6 +65,7 @@
   var trilha = document.getElementById('trilha');
   var telaTrilha = document.getElementById('trilha-tela');
   var telaConcluida = document.getElementById('concluida');
+  var telaCapa = document.getElementById('capa');
   var aviso = document.getElementById('aviso');
   var fim = document.getElementById('fim');
   var voltaTrilha = document.getElementById('volta-trilha');
@@ -204,7 +205,8 @@
   // ---------- Trocas de tela ----------
   var vigia = null;
   function esconderTudo(manterModulo) {
-    telaTrilha.hidden = true; telaConcluida.hidden = true; fim.hidden = true;
+    telaTrilha.hidden = true; telaConcluida.hidden = true; fim.hidden = true; telaCapa.hidden = true;
+    document.body.classList.remove('na-capa');
     if (!manterModulo) {
       clearInterval(vigia);
       iframe.hidden = true;
@@ -284,6 +286,25 @@
     fim.hidden = false;
     mostrarResumo();
   }
+
+  // Capa do Empreenda+: aparece antes de a pessoa começar a jornada (nada feito, nada começado).
+  // Depois de tocar em "Começar a jornada", a entrada vai direto para a trilha (o aviso fica no progresso salvo).
+  function precisaCapa() {
+    if (estado.capa) return false;
+    return !estado.feitos.length && !prontos.some(function (m) { return comecou(m.n); });
+  }
+  function mostrarCapa() {
+    esconderTudo();
+    vista = 'capa';
+    aviso.textContent = '';
+    document.body.classList.add('na-capa');
+    telaCapa.hidden = false;
+    document.querySelector('.palco').scrollTop = 0;
+  }
+  document.getElementById('capa-comecar').addEventListener('click', function () {
+    estado.capa = true; gravar();
+    mostrarTrilha();
+  });
 
   voltaTrilha.addEventListener('click', mostrarTrilha);
   document.getElementById('conc-trilha').addEventListener('click', mostrarTrilha);
@@ -530,6 +551,7 @@
   sync.catch(function () { return false; }).then(function () {
     estado = ler();
     if (prontos.length && prontos.every(function (m) { return feito(m.n); })) mostrarFim();
+    else if (precisaCapa()) mostrarCapa();
     else mostrarTrilha();
   });
 })();
