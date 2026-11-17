@@ -134,10 +134,10 @@ textarea.campo{resize:vertical;font-family:inherit}
 
 /* resultado: números */
 .res-num{background:var(--m-purple);color:#fff;border-radius:var(--m-radius);padding:20px;text-align:center;margin:6px 0 12px}
-.res-num.coral{background:var(--m-coral)}
+.res-num.coral{background:var(--m-purple);box-shadow:inset 8px 0 0 var(--m-coral)}
 .res-num .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;opacity:.9}
 .res-num .val{font-size:38px;font-weight:700;color:var(--m-yellow);line-height:1.1;margin-top:4px}
-.res-num.coral .val{color:#fff}
+.res-num.coral .val{color:var(--m-yellow)}
 .res-num .sub{font-size:13px;opacity:.9;margin-top:6px;line-height:1.4}
 
 /* rodapé institucional */
@@ -155,7 +155,7 @@ textarea.campo{resize:vertical;font-family:inherit}
 .caixa .ex{color:var(--m-gray);font-style:italic;margin-top:4px}
 .caixa .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 9px;border-radius:var(--m-pill);background:var(--m-lavender);color:var(--m-purple)}
 .caixa-faca .tag{background:var(--m-purple);color:#fff}
-.caixa-ia .tag{background:var(--m-coral);color:#fff}
+.caixa-ia .tag{background:var(--m-lavender);color:var(--m-purple);border:1px solid var(--m-purple)}
 .prompt{background:var(--m-lavender);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13.5px}
 .btn-copiar{margin-top:8px;background:var(--m-purple);color:#fff;border:none;border-radius:var(--m-pill);font:inherit;font-weight:700;font-size:13px;padding:7px 14px;cursor:pointer}
 .mini-info{font-size:12.5px;color:var(--m-gray);margin-top:4px}
@@ -197,7 +197,8 @@ table.fluxo th{background:var(--m-purple);color:#fff;padding:7px 6px;text-align:
 table.fluxo td{border-bottom:1px solid var(--m-lavender);padding:4px 6px}
 table.fluxo input{width:100%;min-width:70px;border:1px solid var(--m-lavender-mid);border-radius:8px;padding:5px 6px;font:inherit}
 table.fluxo .sf{white-space:nowrap;font-weight:700;color:var(--m-purple)}
-table.fluxo tr.neg .sf{color:var(--m-coral)}
+table.fluxo tr.neg .sf{color:var(--m-purple);font-weight:700}
+table.fluxo tr.neg td:first-child{box-shadow:inset 4px 0 0 var(--m-coral)}
 table.fluxo th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .mini-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .mini-cards .cartao{margin:0}
@@ -269,3 +270,39 @@ table.fluxo th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .como-mini{margin:8px 0}
 .como-mini>summary{cursor:pointer;color:var(--m-purple);font-size:16px;padding:6px 0}
 @media print{.dica-toggle,.como-ns{break-inside:avoid}}
+/* lote 16/11: respostas reaproveitadas, parcelas, caixa das 13 semanas */
+.herdadas{background:var(--m-lavender);border-radius:10px;padding:8px 12px;margin:6px 0 10px}
+.herdadas summary{font-size:13.5px;color:var(--m-purple);font-weight:700;cursor:pointer}
+.herdadas ul{list-style:none;margin:4px 0 0;padding:0}
+.herdadas li{margin:6px 0;font-size:14px;color:#2b2140;line-height:1.5}
+.herdadas .selo{margin-right:4px}
+.herdadas .trocar-h{margin-left:6px;padding:2px 10px;font-size:13px}
+details.herdadas{background:#fff}
+.parcelas .linha{margin:8px 0}
+.como-dica{margin:6px 0;color:#2b2140}
+.confere-m5 p{margin:4px 0}
+.premissas{margin:6px 0 12px}
+.premissas summary{color:var(--m-purple);font-weight:700;cursor:pointer}
+.caixa-resumo .cartao p b{font-size:20px;color:var(--m-purple)}
+.dif-m5{display:inline;margin-left:4px}
+.b-aviso{border-left-color:var(--m-purple)}
+.b-aviso b{color:var(--m-purple)}
+.dica-toggle .cuidados{margin:6px 0 4px 18px;padding:0;font-size:14px;color:#2b2140}
+.dica-toggle .cuidados li{margin:3px 0}
+.forma{border:2px solid var(--m-lavender-mid);border-radius:12px;padding:6px 12px 8px;margin:8px 0}
+.forma legend{font-weight:700;color:var(--m-purple);padding:0 6px}
+.forma .linha .lbl{flex:1 1 auto}
+.forma .linha .campo{flex:0 0 90px;width:90px}
+.saz-det{margin-top:8px}
+.lbl-m{font-size:14px;font-weight:700;color:var(--m-purple);margin:10px 0 4px}
+.meses{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.mes{font:inherit;font-size:14px;padding:8px 0;border-radius:10px;border:2px solid var(--m-lavender-mid);background:#fff;color:var(--m-purple);cursor:pointer}
+.mes.sel{background:var(--m-purple);border-color:var(--m-purple);color:#fff}
+.fluxo .fator{display:block;font-size:11px;color:var(--m-purple);font-weight:700}
+[hidden]{display:none!important}
+.contas-tit{font-size:20px;color:var(--m-purple);margin:22px 0 4px}
+ul.contas{list-style:none;margin:6px 0;padding:0;font-size:14.5px;color:#2b2140}
+ul.contas li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--m-lavender)}
+ul.contas li b{white-space:nowrap}
+ul.contas .c-sub{display:block;font-weight:700;color:var(--m-purple);border-bottom:0;padding-top:10px}
+ul.contas .c-tot{font-weight:700;color:var(--m-purple);border-bottom:0;border-top:2px solid var(--m-purple)}

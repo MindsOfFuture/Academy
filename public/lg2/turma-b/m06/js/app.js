@@ -14,6 +14,14 @@
   /* as respostas guardadas pela planilha v0.1 usam outra numeração de perguntas: começam do zero */
   const DADOS = "2026-10-15";
   const MSG_NUMERO = "Digite só números. Ex.: 12,50";
+  /* "Não sei" não grava (lote 16/11): o Continuar só anda com uma resposta de verdade */
+  const MSG_ESCREVA = "Use a ajuda acima e escreva a sua resposta para continuar.";
+  const MSG_ESCOLHA_NS = "Use a ajuda acima e escolha uma opção para continuar.";
+  const MSG_RESPONDA = "Responda para continuar.";
+  const MSG_ESCOLHA = "Escolha uma opção para continuar.";
+  const MSG_MARQUE = "Marque pelo menos uma opção para continuar.";
+  const MSG_NEGATIVO = "O valor não pode ser negativo.";
+  const MAX_PARCELAS = 60;
   const MAX_DICAS = 4;     // "Dicas gerais" fica curta
   const SEM_COMPRAS = "Não tenho compras a fazer agora";
   const SEM_COMPRAS_RET = "Tudo bem: sem compras para começar agora. Pulamos o valor das compras e a lista de prioridades.";
@@ -48,10 +56,42 @@
     const a = document.activeElement;
     if (ehCampo(a)) mostrarCampo(a);
   });
+  /* versão do estado salvo: 2 = lote 16/11 ("Não sei" não grava mais). Migra sem apagar as outras respostas. */
+  const VERSAO = 2;
   let S = carregar();   // { R: respostas, hist: [códigos], prio: {item: categoria}, fluxo: null|{...}, cen: {...} }
   /* (herdarNegocio() roda logo abaixo, depois que o motor e as leituras estão prontos) */
-  function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.dados === DADOS ? s : novo(); } catch { return novo(); } }
-  function novo() { return { dados: DADOS, R: {}, hist: [], prio: {}, fora: [], fluxo: null, cen: null }; }
+  function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.dados === DADOS ? migrar(s) : novo(); } catch { return novo(); } }
+  function novo() { return { dados: DADOS, v: VERSAO, R: {}, hist: [], prio: {}, fora: [], fluxo: null, cen: null }; }
+  /* respostas antigas "Não sei" (botão, opção, "Ainda não sei o que vou precisar comprar" ou só "Não sei" marcado)
+     viram "sem resposta": a pessoa responde quando passar por lá; o histórico para nessa pergunta */
+  function migrar(s) {
+    if ((s.v || 1) >= VERSAO) return s;
+    const tiradas = [];
+    Object.keys(s.R || {}).forEach((k) => {
+      const r = s.R[k];
+      if (!r) return;
+      if (r.estado === "naosei" || r.aindaNaoSei || (r.estado === "opcao" && r.opcao === Motor.NS)) { delete s.R[k]; tiradas.push(k); }
+      else if (r.estado === "multi" && r.opcoes.includes(Motor.NS)) {
+        r.opcoes = r.opcoes.filter((o) => o !== Motor.NS);
+        if (!r.opcoes.length) { delete s.R[k]; tiradas.push(k); }
+      }
+    });
+    if (tiradas.length && Array.isArray(s.hist)) {
+      const i = s.hist.findIndex((c) => tiradas.includes(c));
+      if (i >= 0) s.hist = s.hist.slice(0, i + 1);
+      else if (s.hist[s.hist.length - 1] === "RESULTADO") s.hist = [...s.hist.slice(0, -1), tiradas[0]];
+    }
+    /* formas de pagamento: as opções agora são as do Módulo 5 (as antigas viram a equivalente) */
+    const r4 = s.R && s.R["M6.P04"];
+    if (r4 && r4.estado === "multi") {
+      const EQ = { "Cartão de crédito à vista": "Cartão de crédito", "Cartão de crédito parcelado": "Cartão de crédito", "Boleto": "Outra forma", "Transferência bancária": "Outra forma" };
+      const novas = r4.opcoes.map((o) => EQ[o] || o);
+      r4.opcoes = Motor.FORMAS_M5.filter((o) => novas.includes(o)).concat(novas.filter((o) => !Motor.FORMAS_M5.includes(o) && o !== Motor.NS)).filter((o, i, a) => a.indexOf(o) === i);
+    }
+    s.v = VERSAO; s.fluxo = s.fluxo && s.fluxo.v === 2 ? s.fluxo : null; s.cen = null;
+    try { localStorage.setItem(CHAVE, JSON.stringify(s)); } catch {}
+    return s;
+  }
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   /* ================= o que já veio de outros módulos (só leitura; nunca escreve nas chaves deles) ================= */
@@ -91,35 +131,108 @@
   }
   const brl0 = (n) => "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const numero = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  /* contas do Módulo 5 (motor5.js = cópia do motor do Módulo 5): gastos do mês por tipo e custo de cada venda */
+  function dadosM5() {
+    try {
+      const s = JSON.parse(localStorage.getItem(K[5]));
+      if (!s || !s.R || !window.Motor5) return null;
+      const c = window.Motor5.calcular(null, s.R);
+      const n = (x) => (isFinite(x) && x > 0 ? x : 0);
+      /* entrega (M5.ENT): custo por entrega × quantas de cada 10 vendas têm entrega; se o cliente paga a entrega à parte,
+         desconta o que ele paga. Se o motor do Módulo 5 já somar a entrega no custo de cada venda, ela sai de lá (não conta duas vezes). */
+      const e = s.R["M5.ENT"], preco = c.preco !== null && c.preco > 0 ? c.preco : 0;
+      let entrega = null;
+      if (e && e.estado === "opcao" && e.opcao) {
+        if (/^Não/i.test(e.opcao)) entrega = { porVenda: 0, opcao: e.opcao, custo: 0, a10: 0, cobra: 0 };
+        else {
+          const custo = n(Motor.num(e.custo)), porEntrega = e.tipoCusto === "pct" ? custo / 100 * preco : custo;
+          const cobra = /à parte/i.test(e.opcao) ? n(Motor.num(e.cobra)) : 0, a10 = e.aCada10 === null || e.aCada10 === undefined ? 10 : n(Number(e.aCada10));
+          entrega = { opcao: e.opcao, custo: Motor.cent(porEntrega), pct: e.tipoCusto === "pct" ? custo : null, cobra, a10,
+            porVenda: Motor.cent(Math.max(0, porEntrega - cobra) * a10 / 10) };
+        }
+      }
+      const entNoCusto = (c.linhas || []).filter((l) => /entrega/i.test(l.nome || "")).reduce((a, l) => a + n(l.valor), 0);
+      return { entrega, fixos: n(c.fixos), perdas: n(c.perdas), retirada: n(c.trabalho), mensal: n(c.mensal),
+        /* só o custo de cada venda: a taxa do cartão sai das entradas, forma por forma (não conta duas vezes) */
+        custoVenda: Motor.cent(Math.max(0, n(c.custoUnidade) - entNoCusto)),
+        custoUnidade: n(c.custoUnidade), taxa: n(c.taxa), preco: c.preco !== null && c.preco > 0 ? c.preco : 0 };
+    } catch (e) { return null; }
+  }
+  /* perguntas que repetem uma resposta já dada antes na jornada: com a resposta anterior, a tela não aparece
+     (fica um cartão "Veio do Módulo N · Trocar"); sem ela, a pergunta aparece normalmente */
+  const AUTO = ["M6.P04", "M6.PF", "M6.P05", "M6.SZ", "M6.P06", "M6.P07", "M6.P15", "M6.P16"];
+  const CURTA = { "M6.P04": "Como seus clientes vão pagar", "M6.PF": "Taxa, prazo e parte das vendas de cada forma", "M6.SZ": "Vendas conforme a época do ano", "M6.P05": "Quanto espera vender por mês", "M6.P06": "Gastos de todo mês",
+    "M6.P07": "Dinheiro para usar no negócio", "M6.P15": "Materiais para produzir", "M6.P16": "Mercadorias para revender" };
+  /* faixa do Módulo 1 -> valor usado aqui (o limite que a pessoa disse; dá para trocar pelo valor exato) */
+  const CAIXA_M1 = { "Nada por enquanto": 0, "Até R$ 100": 100, "Entre R$ 100 e R$ 500": 100, "Entre R$ 500 e R$ 1.000": 500, "Mais de R$ 1.000": 1000 };
+  /* taxa, prazo e parte de cada forma (M5.P24/P25, formato [{forma, taxa, prazo, parte}]). completa = dá para não perguntar */
+  function herancaFormas() {
+    const formas = (S.R["M6.P04"] && S.R["M6.P04"].estado === "multi" ? S.R["M6.P04"].opcoes : []);
+    if (!formas.length) return null;
+    const p24 = opcaoDe(doM5("P24")), p25 = doM5("P25"), lista = p25 && Array.isArray(p25.valor) ? p25.valor : [];
+    if (p24 !== "Sim" && p24 !== "Não") return null;
+    let completa = true;
+    const valor = formas.map((f) => {
+      const x = lista.find((y) => y && y.forma === f);
+      if (x) return { forma: f, taxa: String(x.taxa ?? ""), prazo: String(x.prazo ?? ""), parte: formas.length > 1 ? String(x.parte ?? "") : "100" };
+      if (p24 === "Não" && !Motor.ehCartao(f)) return { forma: f, taxa: "0", prazo: "0", parte: "" };
+      completa = false;
+      return { forma: f, taxa: p24 === "Não" ? "0" : "", prazo: "", parte: "" };
+    });
+    if (formas.length > 1 && valor.some((x) => !String(x.parte).trim())) completa = false;
+    return { formas: valor, completa, modulo: 5, nota: p24 === "Não" ? "No Módulo 5 você disse que não fica taxa nas vendas." : "Taxas que você informou no Módulo 5." };
+  }
   /* respostas do Módulo 5 que respondem perguntas daqui (pré-preenchidas; a pessoa confere e toca Continuar) */
   const FORMA_M5 = { "Pix": "Pix", "Dinheiro": "Dinheiro", "Cartão de débito": "Cartão de débito", "Cartão de crédito": "Cartão de crédito à vista", "Outra forma": "Outra forma" };
   function heranca(cod) {
     const q = M.porCodigo[cod];
     if (cod === "M6.P04") {
       const pg = listaDe(doM5("PG"));
-      const ops = q.opcoesLista.filter((o) => pg.some((f) => FORMA_M5[f] === o));
-      if (!ops.length) return null;
-      return { opcoes: ops, modulo: 5, nota: pg.includes("Cartão de crédito") ? "No Módulo 5 você marcou cartão de crédito. Se for aceitar parcelar, marque também “Cartão de crédito parcelado”." : "" };
+      const ops = q.opcoesLista.filter((o) => pg.includes(o));       // mesmas opções do Módulo 5
+      return ops.length ? { opcoes: ops, modulo: 5, nota: "" } : null;
+    }
+    if (cod === Motor.P_FORMAS) return herancaFormas();
+    if (cod === Motor.P_SAZ) {
+      const r = doM5("SZ");
+      if (!r || r.estado !== "opcao" || ![Motor.SZ_NAO, Motor.SZ_SIM].includes(r.opcao)) return null;
+      const sz = { estado: "opcao", opcao: r.opcao };
+      if (r.opcao === Motor.SZ_SIM) Object.assign(sz, { fortes: (r.fortes || []).slice(), fracos: (r.fracos || []).slice(), maisPct: r.maisPct || 0, menosPct: r.menosPct || 0 });
+      return { sz, modulo: 5, nota: "" };
     }
     if (cod === "M6.P05") {
       const preco = Motor.num(valorTxt(doM5("P36"))), qtd = Motor.num(valorTxt(doM5("P37")));
       if (!(preco > 0 && qtd > 0)) return null;
       return { valor: numero(preco * qtd), modulo: 5, nota: `Conta feita com o que você disse no Módulo 5: ${brl0(preco)} por venda × ${qtd.toLocaleString("pt-BR")} vendas no mês.` };
     }
+    if (cod === "M6.P07") {
+      const t = tetoM1();
+      if (!t || !(t.texto in CAIXA_M1)) return null;
+      const v = CAIXA_M1[t.texto];
+      return { valor: numero(v), modulo: 1, nota: `No Módulo 1 você disse “${t.texto}”. Usamos ${brl0(v)}${/^Entre|^Mais/.test(t.texto) ? " (o menor valor da faixa)" : ""}. Troque pelo valor exato, se souber.` };
+    }
     if (cod === "M6.P06") {
-      const it = [], sim = (c) => opcaoDe(doM5(c)) === "Sim";
+      const it = [], sim = (c) => opcaoDe(doM5(c)) === "Sim", nao = (c) => opcaoDe(doM5(c)) === "Não";
       const v = (c) => { const n = Motor.num(valorTxt(doM5(c))); return n > 0 ? n : null; };
       if (sim("P28") && v("P29")) it.push(["Aluguel", v("P29")]);
       if (sim("P30") && v("P31")) it.push(["Água e luz", v("P31")]);
       const outros = doM5("P33");
       if (sim("P32") && outros && Array.isArray(outros.valor))
         outros.valor.forEach((x) => { const n = Motor.num(x && x.v); if (x && String(x.nome || "").trim() && n > 0) it.push([String(x.nome).trim(), n]); });
-      if (!it.length) return null;
+      const m5 = dadosM5() || {};
+      const separadas = [m5.perdas ? `perdas (${brl0(m5.perdas)})` : "", m5.retirada ? `o que você separa para você (${brl0(m5.retirada)})` : "",
+        m5.custoVenda ? `o custo de cada venda (${brl0(m5.custoVenda)})` : ""].filter(Boolean);
+      const resto = separadas.length ? ` ${separadas.join(", ").replace(/, ([^,]*)$/, " e $1")} ${separadas.length > 1 ? "entram" : "entra"} como linhas próprias no caixa.` : "";
+      if (!it.length) return nao("P28") && nao("P30") && nao("P32") ? { valor: "Nenhum gasto fixo todo mês", modulo: 5, nota: "No Módulo 5 você disse que não paga aluguel, água e luz nem outros gastos todo mês." + resto } : null;
       const total = it.reduce((a, x) => a + x[1], 0);
-      return { valor: it.map(([n, x]) => `${n}: ${brl0(x)}`).join("; "), modulo: 5, nota: `São os gastos de todo mês que você informou no Módulo 5 (total de ${brl0(total)} por mês).` };
+      return { valor: it.map(([n, x]) => `${n}: ${brl0(x)}`).join("; "), modulo: 5, total, nota: `São os gastos fixos de todo mês que você informou no Módulo 5 (${brl0(total)} por mês).${resto}` };
     }
     const lista = { "M6.P10": "P19", "M6.P15": "P03" }[cod];
-    if (lista) { const l = listaDe(doM5(lista)); return l.length ? { valor: l.join(", "), modulo: 5, nota: "" } : null; }
+    if (lista) {
+      const l = listaDe(doM5(lista));
+      if (l.length) return { valor: l.join(", "), modulo: 5, nota: "" };
+      const m4 = cod === "M6.P15" ? valorTxt(lerOutro(K[4], "M4.P03")) : null;      // materiais ou ingredientes do Módulo 4
+      return m4 ? { valor: m4, modulo: 4, nota: "" } : null;
+    }
     if (cod === "M6.P11") {
       const precos = (doM5("P20") || {}).valor;
       const soma = Array.isArray(precos) ? precos.map((x) => Motor.num(x)).filter((n) => n > 0).reduce((a, n) => a + n, 0) : 0;
@@ -137,6 +250,8 @@
   const p01Respondida = (R) => !!R["M6.P01"] && R["M6.P01"].estado === "valor";
   function pulada(c, R) {
     if (c === Motor.NEGOCIO) return !!(R[c] && R[c].herdado);
+    if (autoHerdada(c, R)) return true;
+    if (c === "M6.P08") return true;      // o prazo agora é perguntado por forma de pagamento (M6.PF)
     if (c === "M6.P02" && R["M6.P01"] && R["M6.P01"].semCompras) return true;     // sem compras: não pergunta quanto vai gastar
     /* "Ainda não sei o que vou precisar comprar": também não repete a lista nem o valor dos equipamentos */
     return REPETE_P01.includes(c) && (p01Respondida(R) || ehAindaNaoSei(R));
@@ -144,6 +259,32 @@
   function proxima(R, cod) {
     let c = Motor.proxima(M, R, cod);
     while (c !== "RESULTADO" && pulada(c, R)) c = Motor.proxima(M, R, c);
+    return c;
+  }
+  /* sem gravar nada: a próxima tela seria o resultado? (perguntas repetidas com resposta anterior não contam) */
+  function proxPrevia(cod) {
+    const R = Object.assign({}, S.R);
+    let c = proxima(R, cod);
+    while (c !== "RESULTADO" && AUTO.includes(c) && !R[c]) { const h = heranca(c); if (!h || h.completa === false) break; R[c] = respHerdada(h); c = proxima(R, c); }
+    return c;
+  }
+  const autoHerdada = (c, R) => AUTO.includes(c) && !!(R[c] && R[c].herdado) && S.trocando !== c;
+  function respHerdada(h) {
+    if (h.sz) return Object.assign({}, h.sz, { herdado: h.modulo });
+    if (h.formas) return { estado: "valor", valor: h.formas.map((x) => Object.assign({}, x)), herdado: h.modulo };
+    return h.opcoes ? { estado: "multi", opcoes: h.opcoes.slice(), herdado: h.modulo } : { estado: "valor", valor: String(h.valor), herdado: h.modulo };
+  }
+  /* próxima TELA: pergunta repetida com resposta anterior não aparece; a resposta é usada e fica um cartão na tela seguinte */
+  function proxTela(cod) {
+    let c = proxima(S.R, cod);
+    while (c !== "RESULTADO" && AUTO.includes(c) && !S.R[c]) {
+      const h = heranca(c);
+      if (!h || h.completa === false) break;
+      S.R[c] = respHerdada(h); S.fluxo = null; S.cen = null;
+      S.pulou = [...(S.pulou || []).filter((x) => x !== c), c];
+      salvar();
+      c = proxima(S.R, c);
+    }
     return c;
   }
 
@@ -233,10 +374,17 @@
   }
   /* ---------- "Não sei": caixa "Como descobrir" (passos + pedido pronto para a IA, com Copiar) ----------
      Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA); a resposta salva não muda. */
-  function caixaComo(q) {
+  /* texto da planilha para quem não sabe (regra "Não sei" da aba 4): entra na caixa como dica */
+  function dicaNS(q) {
+    const r = Motor.regrasPara(M, q.codigo, q.opcoesLista.includes(Motor.NS) && Motor.campo(q) === "multi" ? { estado: "multi", opcoes: [Motor.NS] } : { estado: "naosei" })[0];
+    return r && !vazio(r.texto) ? r.texto : "";
+  }
+  function caixaComo(q, extra) {
     if (!q || !q.comoDescobrir || !q.comoDescobrir.length) return "";
+    const d = dicaNS(q);
     return `<section class="como-descobrir como-ns" role="status">
       <b class="como-tit">Como descobrir</b>
+      ${d ? `<p class="como-dica">${esc(d)}</p>` : ""}
       <ol>${q.comoDescobrir.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
       ${q.promptIA ? `<div class="pedir-ia">
         <b>Peça ajuda à IA</b>
@@ -244,14 +392,72 @@
         <p class="prompt" data-prompt>${esc(q.promptIA)}</p>
         <button class="btn-alt copiar" type="button" data-copiar>Copiar</button>
       </div>` : ""}
+      ${extra || ""}
     </section>`;
+  }
+  /* P01 "Não sei": os materiais listados no Módulo 5 podem ser o ponto de partida */
+  function partidaM5() {
+    const mat = materiaisM5();
+    return mat.length ? `<div class="partida" id="partida-m5"><span class="selo">Veio do Módulo 5</span>
+      <p>Você já listou estes materiais: ${esc(mat.join(", "))}. Eles podem ser o seu ponto de partida.</p>
+      <button class="btn-alt" type="button" id="usar-m5">Usar essa lista como ponto de partida</button></div>` : "";
+  }
+  /* aviso quando o valor novo é diferente do que veio de outro módulo */
+  function divergencia(cod, her, novo) {
+    if (cod === "M6.P06") {
+      const a = her.total !== undefined ? her.total : Motor.somaValores(her.valor), b = Motor.somaValores(novo);
+      return Math.abs(a - b) >= 0.01 ? `No Módulo ${her.modulo}, seus gastos fixos do mês somavam ${brl(a)}; aqui somam ${brl(b)}. Confira. Se estiver certo, toque em Continuar de novo.` : null;
+    }
+    if (Motor.campo(M.porCodigo[cod]) !== "numero") return null;
+    const a = Motor.num(her.valor), b = Motor.num(novo);
+    return isFinite(a) && isFinite(b) && Math.abs(a - b) >= 0.01 ? `No Módulo ${her.modulo}, esse valor era ${brl(a)}. Confira. Se ${brl(b)} estiver certo, toque em Continuar de novo.` : null;
+  }
+  /* respostas que vieram de outro módulo, sem tela: cartão pequeno com "Trocar" */
+  const pct = (x) => String(Motor.num(x)).replace(".", ",") + "%";
+  const listaMeses = (l) => { const n = (l || []).map((m) => Motor.MESES[m - 1]); return n.length > 1 ? n.slice(0, -1).join(", ") + " e " + n[n.length - 1] : n.join(""); };
+  function textoResp(r) {
+    if (r.estado === "multi") return r.opcoes.join(", ");
+    if (Array.isArray(r.valor)) return r.valor.map((x) => `${x.forma}: taxa ${pct(x.taxa || 0)}, cai em ${Motor.num(x.prazo) || 0} dias${r.valor.length > 1 ? `, ${pct(x.parte || 0)} das vendas` : ""}`).join("; ");
+    if (r.opcao === Motor.SZ_SIM) return [r.fortes && r.fortes.length ? `mais forte em ${listaMeses(r.fortes)} (+${r.maisPct}%)` : "", r.fracos && r.fracos.length ? `mais fraco em ${listaMeses(r.fracos)} (−${r.menosPct}%)` : ""].filter(Boolean).join("; ");
+    return Motor.valorDe(r);
+  }
+  function itemHerdado(c) {
+    const r = S.R[c];
+    const v = M.porCodigo[c] && Motor.campo(M.porCodigo[c]) === "numero" ? brl(Motor.num(r.valor)) : textoResp(r);
+    return `<li><span class="selo">Veio do Módulo ${esc(r.herdado)}</span> <b>${esc(CURTA[c])}:</b> ${esc(v)}
+      <button class="btn-alt trocar-h" type="button" data-trocar="${esc(c)}" aria-label="Trocar: ${esc(CURTA[c])}">Trocar</button></li>`;
+  }
+  function cartaoPulou() {
+    const l = (S.pulou || []).filter((c) => S.R[c] && S.R[c].herdado);
+    if (!l.length) return "";
+    /* um item: à vista; vários: resumo fechado, para a pergunta não descer */
+    return `<details class="herdadas" id="herdadas"${l.length === 1 ? " open" : ""}><summary>${l.length === 1 ? "Já respondido antes, não perguntamos de novo" : `${l.length} respostas vieram de módulos anteriores · ver ou trocar`}</summary><ul>${l.map(itemHerdado).join("")}</ul></details>`;
+  }
+  function ligarTrocar(p) {
+    p.querySelectorAll("[data-trocar]").forEach((b) => (b.onclick = () => { S.trocando = b.dataset.trocar; S.pulou = []; salvar(); ir(telaPergunta, b.dataset.trocar); }));
+  }
+  /* retorno das perguntas criadas pelo app: a conta, com os valores da pessoa */
+  function retornoApp(cod) {
+    if (cod === Motor.P_PARCELAS) {
+      const pl = Motor.planoInvestimento(S.R);
+      if (!pl.n) return "";
+      const sems = pl.semanas.map((x) => x.semana), dep = pl.depois.length;
+      return `<p class="r-texto" id="ret-parcelas">Parcelas registradas. No caixa das 13 semanas: ${pl.entrada ? `entrada de ${brl(pl.entrada)} na semana 1; ` : ""}${sems.length ? `parcelas de ${brl(pl.parcela)} na${sems.length > 1 ? "s semanas " + sems.slice(0, -1).join(", ") + " e " + sems[sems.length - 1] : " semana " + sems[0]}` : "nenhuma parcela vence nas 13 semanas"}${dep ? `; ${dep} ${dep === 1 ? "parcela fica" : "parcelas ficam"} para depois da semana 13` : ""}.</p>
+        ${como(`uma parcela por mês, a 1ª um mês depois da compra. 1 mês ≈ 4,33 semanas (52 semanas ÷ 12 meses), então as parcelas caem nas semanas ${[...pl.semanas, ...pl.depois].map((x) => x.semana).join(", ")}.`, "como-sem-parcelas")}`;
+    }
+    if (cod === Motor.P_CARTAO) {
+      const pct = Motor.PARTE_CARTAO[Motor.valor(S.R, Motor.P_CARTAO)];
+      return pct === undefined ? "" : `<p class="r-texto">Certo: ${pct}% das vendas esperam o prazo do cartão; os outros ${100 - pct}% entram na semana da venda.</p>`;
+    }
+    return "";
   }
   /* "Ver dica" fechada, entre a pergunta e as respostas: a ajuda da pergunta + os termos */
   function verDica(q) {
-    const cs = conceitosDe(q);
-    if (vazio(q.ajuda) && !cs.length) return "";
+    const cs = conceitosDe(q), cuidados = q.app ? [] : Motor.alertasDica(D, q);
+    if (vazio(q.ajuda) && !cs.length && !cuidados.length) return "";
     return `<details class="dica-toggle" id="ver-dica"><summary>Ver dica</summary>
       ${vazio(q.ajuda) ? "" : `<p class="ajuda">${esc(q.ajuda)}</p>`}
+      ${cuidados.length ? `<ul class="cuidados">${cuidados.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${cs.map((b) => `<div class="conceito"><b>${esc(b.conceito)}</b><p>${esc(vazio(b.definicao) ? b.porque : b.definicao)}</p>
         ${vazio(b.exemplo) ? "" : `<p class="ex">${esc(b.exemplo)}</p>`}</div>`).join("")}
     </details>`;
@@ -345,7 +551,7 @@
     p.querySelector("#ir").onclick = () => {
       const atual = S.hist[S.hist.length - 1];
       if (atual === "RESULTADO") ir(telaResultado);
-      else ir(telaPergunta, atual || proxima(S.R, null));
+      else ir(telaPergunta, atual || proxTela(null));
     };
     const z = p.querySelector("#zerar");
     if (z) z.onclick = () => { if (confirm("Apagar suas respostas e recomeçar?")) { S = novo(); herdarNegocio(); salvar(); ir(telaCapa); } };
@@ -396,11 +602,13 @@
           <div class="cartao-q pergunta" data-cod="${esc(cod)}">
             ${botaoVoltar()}
             ${faixaNeg}
+            ${cartaoPulou()}
             <h2 class="q">${esc(q.pergunta)}</h2>
             ${verDica(q)}
+            ${cod === "M6.P08" && Motor.temCartao(S.R) ? `<p class="mini-info" id="nota-cartao">Se você aceita cartão, responda pensando no cartão. Pix e dinheiro entram na hora.</p>` : ""}
             ${her ? `<div class="herdado"><span class="selo">Veio do Módulo ${her.modulo}</span><span>Confira e ajuste se quiser.</span>${her.nota ? `<p class="mini-info">${esc(her.nota)}</p>` : ""}</div>` : ""}
             <div class="entrada" id="ent"></div>
-            ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" id="sem-compras-btn">${SEM_COMPRAS}</button><button class="btn-alt" id="ainda-nao-sei">${AINDA_NAO_SEI}</button>` : ""}</div>` : ""}
+            ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" id="sem-compras-btn">${SEM_COMPRAS}</button>` : ""}</div>` : ""}
             <div id="ajudans"></div>
             <div class="erro" id="erro" hidden></div>
             <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
@@ -411,6 +619,7 @@
       </div>`);
     ligarCopiar(p);
     ligar(p);
+    ligarTrocar(p);
 
     p.querySelector("#v").onclick = () => {
       S.hist.pop();
@@ -442,6 +651,59 @@
         };
         ent.appendChild(b);
       });
+    } else if (tipo === "formas") {
+      /* partes iguais que somam 100 (a última fica com o resto: 33, 33, 34) */
+      const partePadrao = (i, n) => (i < n - 1 ? Math.floor(100 / n) : 100 - Math.floor(100 / n) * (n - 1));
+      /* uma caixa por forma: taxa (%), em quantos dias cai e parte das vendas (%); Pix e dinheiro já vêm com 0 */
+      const fs = (S.R["M6.P04"] && S.R["M6.P04"].opcoes) || [];
+      const ant = resp && Array.isArray(resp.valor) ? resp.valor : her && her.formas ? her.formas : [];
+      const varias = fs.length > 1;
+      fs.forEach((f) => {
+        const x = ant.find((y) => y.forma === f) || {}, cartao = Motor.ehCartao(f);
+        const pad = (v, d) => (v !== undefined && String(v).trim() !== "" ? String(v).replace(".", ",") : d);
+        ent.appendChild(el(`<fieldset class="forma" data-forma="${esc(f)}"><legend>${esc(f)}</legend>
+          <label class="linha"><span class="lbl">Taxa${cartao ? "" : " (se tiver)"}</span><input class="campo taxa" inputmode="decimal" placeholder="Ex.: 3,5" value="${esc(pad(x.taxa, cartao ? "" : "0"))}"><span class="unid">%</span></label>
+          <label class="linha"><span class="lbl">O dinheiro cai em</span><input class="campo prazo" inputmode="numeric" placeholder="Ex.: 30" value="${esc(pad(x.prazo, cartao ? "" : "0"))}"><span class="unid">dias</span></label>
+          ${varias ? `<label class="linha"><span class="lbl">Parte das vendas</span><input class="campo parte" inputmode="decimal" placeholder="Ex.: 50" value="${esc(pad(x.parte, String(partePadrao(fs.indexOf(f), fs.length))))}"><span class="unid">%</span></label>` : ""}
+        </fieldset>`));
+      });
+      ent.appendChild(el(`<p class="mini-info">Cai na hora? Coloque 0 dias.${varias ? " As partes precisam somar 100%." : ""}</p>`));
+    } else if (tipo === "sazonal") {
+      const ant = resp && resp.estado === "opcao" ? resp : her && her.sz ? her.sz : null;
+      escolhida = ant ? ant.opcao : null;
+      const meses = (cls, sel) => `<div class="meses ${cls}">${Motor.MESES.map((n, i) => `<button type="button" class="mes ${sel.includes(i + 1) ? "sel" : ""}" data-m="${i + 1}" aria-pressed="${sel.includes(i + 1)}">${n.slice(0, 3)}</button>`).join("")}</div>`;
+      ent.classList.add("opcoes");
+      q.opcoesLista.forEach((op) => {
+        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
+        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); det.hidden = op !== Motor.SZ_SIM; };
+        ent.appendChild(b);
+      });
+      const det = el(`<div class="saz-det"${escolhida === Motor.SZ_SIM ? "" : " hidden"}>
+        <p class="lbl-m">Meses mais fortes</p>${meses("fortes", ant && ant.fortes || [])}
+        <label class="linha"><span class="lbl">Nesses meses vende</span><input class="campo" id="sz-mais" inputmode="numeric" placeholder="Ex.: 50" value="${ant && ant.maisPct ? ant.maisPct : ""}"><span class="unid">% a mais</span></label>
+        <p class="lbl-m">Meses mais fracos</p>${meses("fracos", ant && ant.fracos || [])}
+        <label class="linha"><span class="lbl">Nesses meses vende</span><input class="campo" id="sz-menos" inputmode="numeric" placeholder="Ex.: 30" value="${ant && ant.menosPct ? ant.menosPct : ""}"><span class="unid">% a menos</span></label></div>`);
+      det.querySelectorAll(".mes").forEach((b) => (b.onclick = () => {
+        const outro = det.querySelector(b.closest(".fortes") ? ".fracos" : ".fortes").querySelector(`[data-m="${b.dataset.m}"]`);
+        b.classList.toggle("sel"); b.setAttribute("aria-pressed", b.classList.contains("sel"));
+        if (b.classList.contains("sel")) { outro.classList.remove("sel"); outro.setAttribute("aria-pressed", "false"); }   // um mês não é forte e fraco ao mesmo tempo
+      }));
+      ent.after(det);
+    } else if (tipo === "parcelas") {
+      const forma = Motor.valor(S.R, "M6.P03"), comEntrada = forma === "Parte à vista e parte parcelado";
+      ent.appendChild(el(`<div class="parcelas">
+        ${comEntrada ? `<label class="linha"><span class="lbl">Entrada (paga agora)</span><span class="unid">R$</span><input class="campo" id="p-entrada" inputmode="decimal" placeholder="Ex.: 1.000,00" value="${resp && resp.entrada ? numero(resp.entrada) : ""}"></label>` : ""}
+        <label class="linha"><span class="lbl">Quantas parcelas por mês</span><input class="campo" id="p-n" inputmode="numeric" placeholder="Ex.: 4" value="${resp && resp.parcelas ? resp.parcelas : ""}"></label>
+        <p class="como" id="como-parcela"></p></div>`));
+      const total = Motor.num(Motor.valor(S.R, "M6.P02")) || 0;
+      const atualizar = () => {
+        const e = comEntrada ? Motor.num(p.querySelector("#p-entrada").value) || 0 : 0, n = parseInt(p.querySelector("#p-n").value, 10);
+        const t = p.querySelector("#como-parcela");
+        if (!(n > 0) || e < 0 || e >= total) { t.innerHTML = `<b>Como calculamos:</b> ${comEntrada ? "(compra − entrada) ÷ parcelas" : "compra ÷ parcelas"}. Preencha para ver o valor de cada parcela.`; return; }
+        t.innerHTML = `<b>Como calculamos:</b> ${comEntrada ? `(${brl(total)} da compra − ${brl(e)} de entrada)` : brl(total)} ÷ ${n} ${n === 1 ? "parcela" : "parcelas"} = ${brl(Motor.cent((total - e) / n))} por mês.`;
+      };
+      ent.querySelectorAll("input").forEach((x) => (x.oninput = atualizar));
+      setTimeout(atualizar);
     } else {
       const v = resp && resp.estado === "valor" ? resp.valor : her ? her.valor : "";
       ent.appendChild(el(tipo === "numero"
@@ -449,35 +711,96 @@
         : `<textarea class="campo" rows="3"${q.exemplo ? ` placeholder="${esc(q.exemplo)}"` : ""}>${esc(v)}</textarea>`));
     }
     /* tocar "Não sei" (opção) já mostra como descobrir; nada muda na resposta salva */
+    let nsTocado = false;
     function ajudaNS(mostrar) {
       const a = p.querySelector("#ajudans");
-      a.innerHTML = mostrar ? caixaComo(q) : "";
-      if (mostrar) { ligarCopiar(a); a.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+      nsTocado = mostrar;
+      if (mostrar) p.querySelector("#erro").hidden = true;
+      a.innerHTML = mostrar ? caixaComo(q, cod === "M6.P01" ? partidaM5() : "") : "";
+      if (!mostrar) return;
+      ligarCopiar(a);
+      const usar = a.querySelector("#usar-m5");
+      if (usar) usar.onclick = () => {
+        const c = ent.querySelector("textarea"); c.value = materiaisM5().join(", ");
+        ajudaNS(false);
+        if (!p.querySelector(".herdado")) ent.before(el(`<div class="herdado"><span class="selo">Veio do Módulo 5</span><span>Apague o que não precisa comprar e acrescente o que faltar.</span></div>`));
+        c.focus();
+      };
+      a.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
     if (escolhida === Motor.NS || marcadas.includes(Motor.NS)) ajudaNS(true);
+    /* "Não sei": só mostra como descobrir; nada é gravado e o Continuar não anda sem resposta */
     const ns = p.querySelector("#ns");
-    if (ns) ns.onclick = () => responder({ estado: "naosei" });
+    if (ns) ns.onclick = () => ajudaNS(true);
     const sc = p.querySelector("#sem-compras-btn");
     if (sc) sc.onclick = () => responder({ estado: "valor", valor: SEM_COMPRAS, semCompras: true });
-    const ans = p.querySelector("#ainda-nao-sei");
-    if (ans) ans.onclick = () => responder({ estado: "naosei", aindaNaoSei: true });
+    const her0 = heranca(cod);       // resposta de outro módulo, para avisar quando o valor novo for diferente
 
     p.querySelector("#ok").onclick = () => {
+      if (tipo === "formas") {
+        const lista = [...ent.querySelectorAll(".forma")].map((f) => ({ forma: f.dataset.forma, taxa: f.querySelector(".taxa").value.trim(), prazo: f.querySelector(".prazo").value.trim(),
+          ...(f.querySelector(".parte") ? { parte: f.querySelector(".parte").value.trim() } : { parte: "100" }) }));
+        for (const x of lista) {
+          if (x.taxa === "" || x.prazo === "") return erro(`Preencha a taxa e em quantos dias cai o dinheiro de “${x.forma}”. Não sabe? Veja no aplicativo da maquininha ou do banco (sem taxa: 0).`);
+          const t = Motor.num(x.taxa), d = Number(x.prazo), pt = Motor.num(x.parte);
+          if (isNaN(t) || t < 0 || t >= 100) return erro(`Taxa de “${x.forma}”: digite um número de 0 a 99. Ex.: 3,5`);
+          if (!/^\d+$/.test(x.prazo) || d > 365) return erro(`Prazo de “${x.forma}”: digite os dias, só números. Ex.: 30 (na hora: 0)`);
+          if (isNaN(pt) || pt < 0) return erro(`Parte das vendas de “${x.forma}”: digite um número. Ex.: 50`);
+        }
+        const soma = lista.reduce((a, x) => a + Motor.num(x.parte), 0);
+        if (Math.abs(soma - 100) > 0.5) return erro(`As partes das vendas somam ${String(Math.round(soma * 10) / 10).replace(".", ",")}%. Ajuste para somar 100%.`);
+        const r = { estado: "valor", valor: lista };
+        if (her && her.formas && JSON.stringify(lista) === JSON.stringify(her.formas.map((x) => ({ forma: x.forma, taxa: x.taxa, prazo: x.prazo, parte: String(x.parte || "100") })))) r.herdado = her.modulo;
+        return responder(r);
+      }
+      if (tipo === "sazonal") {
+        if (!escolhida) return erro(MSG_ESCOLHA);
+        const r = { estado: "opcao", opcao: escolhida };
+        if (escolhida === Motor.SZ_SIM) {
+          const sel = (c) => [...p.querySelectorAll(`.saz-det .${c} .mes.sel`)].map((b) => +b.dataset.m);
+          const mais = p.querySelector("#sz-mais").value.trim(), menos = p.querySelector("#sz-menos").value.trim();
+          Object.assign(r, { fortes: sel("fortes"), fracos: sel("fracos"), maisPct: mais ? Number(mais) : 0, menosPct: menos ? Number(menos) : 0 });
+          if (!r.fortes.length && !r.fracos.length) return erro("Toque nos meses mais fortes ou mais fracos.");
+          if ((mais && !/^\d+$/.test(mais)) || (menos && !/^\d+$/.test(menos)) || r.menosPct > 100) return erro("Digite só números inteiros. Ex.: 50 (a menos: até 100)");
+          if ((r.fortes.length && !r.maisPct) || (r.fracos.length && !r.menosPct)) return erro("Diga quanto a mais ou a menos você vende nesses meses. Ex.: 50");
+        }
+        if (her && her.sz && JSON.stringify(r) === JSON.stringify(her.sz)) r.herdado = her.modulo;
+        return responder(r);
+      }
+      if (tipo === "parcelas") {
+        const forma = Motor.valor(S.R, "M6.P03"), comEntrada = forma === "Parte à vista e parte parcelado";
+        const total = Motor.num(Motor.valor(S.R, "M6.P02")) || 0;
+        const eTxt = comEntrada ? p.querySelector("#p-entrada").value.trim() : "", nTxt = p.querySelector("#p-n").value.trim();
+        const e = comEntrada ? Motor.num(eTxt) : 0, n = Number(nTxt);
+        if ((comEntrada && !eTxt) || !nTxt) return erro(MSG_RESPONDA);
+        if (comEntrada && (isNaN(e) || e < 0)) return erro(isNaN(e) ? MSG_NUMERO : MSG_NEGATIVO);
+        if (comEntrada && e >= total) return erro(`A entrada precisa ser menor que o valor da compra (${brl(total)}).`);
+        if (!/^\d+$/.test(nTxt) || n < 1 || n > MAX_PARCELAS) return erro(`Digite o número de parcelas, de 1 a ${MAX_PARCELAS}. Ex.: 4`);
+        const parcela = Motor.cent((total - e) / n);
+        return responder({ estado: "valor", entrada: e, parcelas: n,
+          valor: (comEntrada ? `Entrada de ${brl(e)} e ` : "") + `${n} ${n === 1 ? "parcela" : "parcelas"} de ${brl(parcela)} por mês` });
+      }
       if (tipo === "escolha" || tipo === "simnao_texto") {
-        if (!escolhida) return responder({ estado: "vazia" });
-        if (escolhida === Motor.NS) return responder({ estado: "naosei" });
+        if (!escolhida) return erro(MSG_ESCOLHA);
+        if (escolhida === Motor.NS) return erro(MSG_ESCOLHA_NS);
         const r0 = { estado: "opcao", opcao: escolhida };
         if (tipo === "simnao_texto" && escolhida === "Sim") r0.detalhe = p.querySelector("#detalhe").value.trim();
         return responder(r0);
       }
       if (tipo === "multi") {
-        if (!marcadas.length) return responder({ estado: "vazia" });
+        if (!marcadas.length || (marcadas.length === 1 && marcadas[0] === Motor.NS)) return erro(MSG_MARQUE);
         const r1 = { estado: "multi", opcoes: marcadas.slice() };
         if (her && her.opcoes && JSON.stringify(her.opcoes) === JSON.stringify(r1.opcoes)) r1.herdado = her.modulo;
         return responder(r1);
       }
       const r2 = Motor.envio(q, ent.querySelector("input,textarea").value);
-      if (her && r2.estado === "valor" && r2.valor === String(her.valor)) r2.herdado = her.modulo;
+      if (r2.estado === "vazia") return erro(nsTocado ? MSG_ESCREVA : MSG_RESPONDA);
+      if (r2.estado === "invalida") return erro(MSG_NUMERO);
+      if (r2.estado === "negativa") return erro(MSG_NEGATIVO);
+      if (her0 && r2.estado === "valor" && r2.valor === String(her0.valor)) r2.herdado = her0.modulo;
+      /* valor diferente do que veio do outro módulo: avisa uma vez (o 2º Continuar com o mesmo valor segue) */
+      const dif = her0 && !r2.herdado && r2.estado === "valor" ? divergencia(cod, her0, r2.valor) : null;
+      if (dif && avisado !== r2.valor) { avisado = r2.valor; return erro(dif, true); }
       /* valor fora do comum: avisa uma vez; o segundo Continuar com o mesmo valor segue */
       /* "nada, por enquanto." = sem compras agora: não vira item da lista de prioridades */
       if (cod === "M6.P01" && r2.estado === "valor" && Motor.semCompras(r2.valor)) r2.semCompras = true;
@@ -490,6 +813,8 @@
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
+      if (S.trocando === cod) S.trocando = null;
+      S.pulou = [];
       const regras = Motor.regrasPara(M, cod, r0);
       /* resposta vazia/inválida, ou regra cujo encaminhamento é "Retornar à Pxx": fica na pergunta */
       if (!Motor.valido(r0) || regras.some(Motor.retorna)) {
@@ -497,11 +822,14 @@
         if (!regras.length) return erro(r0.estado === "invalida" ? MSG_NUMERO : "Responda para continuar.");
         return mostrarRetorno(regras, null, true);
       }
+      /* formas de pagamento mudaram: taxa/prazo/parte de cada forma são perguntados de novo */
+      if (cod === "M6.P04" && S.R[Motor.P_FORMAS] && Array.isArray(S.R[Motor.P_FORMAS].valor)
+        && S.R[Motor.P_FORMAS].valor.map((x) => x.forma).join("|") !== (r0.opcoes || []).join("|")) delete S.R[Motor.P_FORMAS];
       S.R[cod] = r0;
       S.fluxo = null; S.cen = null;      // a projeção é refeita com as novas respostas
       limparInvisiveis();
       salvar();
-      mostrarRetorno(Motor.regrasAgora(M, S.R, cod), proxima(S.R, cod));
+      mostrarRetorno(Motor.regrasAgora(M, S.R, cod), proxPrevia(cod));
     }
 
     function mostrarRetorno(regras, prox, parado) {
@@ -510,7 +838,8 @@
       const descobrir = !parado && S.R[cod] && S.R[cod].aindaNaoSei;
       if (descobrir) regras = [];
       /* um só bloco de atenção na tela: alertas das regras + alerta da pergunta, sem repetição */
-      const atencao = descobrir ? [] : [...new Set([...regras.map((r) => r.alerta), ...(parado ? [] : [q.alerta])].filter((a) => !vazio(a)).map((a) => String(a).trim()))];
+      /* só o aviso que depende da resposta (risco real); o resto já está na dica da pergunta */
+      const atencao = descobrir ? [] : [...new Set(regras.filter(Motor.ehRisco).map((r) => r.alerta).filter((a) => !vazio(a)).map((a) => String(a).trim()))];
       const extra = !parado && S.R[cod] && S.R[cod].semCompras ? SEM_COMPRAS_RET : "";
       /* "Não sei": a caixa "Como descobrir" vem primeiro no retorno (uma só na tela) */
       const ns = !parado && !descobrir && S.R[cod] && S.R[cod].estado === "naosei"
@@ -521,6 +850,7 @@
         ${parado || descobrir || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
         ${descobrir ? `<p class="r-texto r-descobrir">Tudo bem. Por enquanto, pulamos o valor das compras. No seu resumo, isso fica como algo que falta descobrir.</p>${blocoComoDescobrir(true)}` : ""}
         ${extra ? `<p class="r-texto r-sem-compras">${esc(extra)}</p>` : ""}
+        ${parado ? "" : retornoApp(cod)}
         ${regras.map((r) => `
           <div class="regra">
             <p class="r-texto">${esc(r.texto)}</p>
@@ -528,7 +858,7 @@
             ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
             ${vazio(r.encaminhamento) || Motor.retorna(r) ? "" : `<div class="bloco b-enc"><b>Encaminhamento</b>${esc(r.encaminhamento)}</div>`}
           </div>`).join("")}
-        ${atencao.length ? `<div class="bloco b-alerta"><b>Atenção</b>${atencao.length === 1 ? esc(atencao[0]) : `<ul>${atencao.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`}</div>` : ""}
+        ${atencao.length ? `<div class="bloco b-alerta b-aviso"><b>Fique de olho</b>${atencao.length === 1 ? esc(atencao[0]) : `<ul>${atencao.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`}</div>` : ""}
       </div>`;
       ligarCopiar(box);
       if (parado) { box.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
@@ -541,7 +871,7 @@
       acoes.innerHTML = "";
       box.after(acoes);          // depois de ler o retorno, o Seguir fica logo abaixo dele
       const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
-      b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
+      b.onclick = () => { prox = proxTela(cod); if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
       acoes.appendChild(b);
       const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
       c.onclick = () => ir(telaPergunta, cod);
@@ -554,6 +884,8 @@
   function limparInvisiveis() {
     const R = {};
     if (S.R[Motor.NEGOCIO]) R[Motor.NEGOCIO] = S.R[Motor.NEGOCIO];   // o tipo de negócio vale para o módulo todo
+    /* respostas que vieram de outro módulo (sem tela) contam para as condições das próximas perguntas */
+    AUTO.forEach((k) => { if (autoHerdada(k, S.R)) R[k] = S.R[k]; });
     let cod = proxima(R, null);
     const vis = new Set();
     while (cod !== "RESULTADO") {
@@ -562,7 +894,8 @@
       R[cod] = S.R[cod];
       cod = proxima(R, cod);
     }
-    Object.keys(S.R).forEach((k) => { if (!vis.has(k) && k !== Motor.NEGOCIO) delete S.R[k]; });
+    const fica = (k) => vis.has(k) || k === Motor.NEGOCIO || k === "M6.P08" || (autoHerdada(k, S.R) && Motor.avaliar(S.R, M.porCodigo[k].condicao) === true);
+    Object.keys(S.R).forEach((k) => { if (!fica(k)) delete S.R[k]; });
   }
 
   /* ================= resultado: instrumentos da aba 5 ================= */
@@ -588,6 +921,7 @@
         <div class="sub">${temValor
           ? inv.partes.map((x) => `${esc(M.porCodigo[x.codigo].pergunta)} ${brl(x.valor)}`).join(" · ")
             + (inv.forma && inv.forma !== Motor.NS ? ` · ${esc(inv.forma)}` : "")
+            + (S.R[Motor.P_PARCELAS] ? ` · ${esc(S.R[Motor.P_PARCELAS].valor)}` : "")
           : ehAindaNaoSei(S.R) ? "Falta descobrir o que você vai precisar comprar." : esc(naoSeiP02.texto)}</div>
       </div>
       ${como(inv.semCompras ? "você disse que não tem compras a fazer agora, então o valor para começar é zero."
@@ -613,8 +947,17 @@
     if (neg.length) add(`<li id="atencao-fluxo">Vai sair mais dinheiro do que você terá em caixa na semana ${neg.join(", ")} da tabela de 13 semanas. Planeje como cobrir essa falta antes de começar.</li>`, "fluxo");
     cenario();
     if (Motor.cenario(S.cen.ini, S.cen.ent, S.cen.sai).alerta) add(`<li id="atencao-cen">No simulador de cenários, as saídas passam do que entra mais o dinheiro em caixa.</li>`, "cen");
+    const fr = mesesFracos(F);
+    if (fr.length) add(`<li id="atencao-saz">As vendas caem em ${listaMeses(fr)}: o caixa fica mais apertado.</li>`, "saz");
+    const r31 = D.regras.find((r) => r.codigo === "M6.R31");
+    if (r31 && (F.formas || []).some((f) => f.dias > 30)) add(`<li>${esc(r31.alerta)}</li>`, r31.alerta);
+    const m5 = dadosM5();
+    if (m5 && m5.mensal > 0) {
+      const aqui = Motor.cent((F.gastosMes || 0) + (F.perdasMes || 0) + (F.retiradaMes || 0));
+      if (Math.abs(aqui - m5.mensal) >= 0.005) add(`<li id="atencao-m5"><span class="selo">Veio do Módulo 5</span> Seus gastos do mês aqui (${brl(aqui)}) estão diferentes dos do Módulo 5 (${brl(m5.mensal)}). Confira em “Ver o caixa das 13 semanas”.</li>`, "m5");
+    }
     Motor.alertas(Motor.regrasTodas(M, S.R)).forEach((a) => add(`<li>${esc(a)}</li>`, a));
-    return itens.length ? `<div class="bloco b-alerta"><b>Atenção, pelas suas respostas</b><ul>${itens.join("")}</ul></div>` : "";
+    return itens.length ? `<div class="bloco b-alerta b-aviso"><b>Atenção, pelas suas respostas</b><ul>${itens.join("")}</ul></div>` : "";
   }
 
   function blocoI02() {
@@ -643,33 +986,147 @@
 
   const valor1NS = () => Motor.valor(S.R, "M6.P01") === Motor.NS;
   function fluxo() {
-    /* fluxo guardado antes da correção de 05/11 (venda do mês entrava uma vez só): refeito com as respostas */
-    if (!S.fluxo || S.fluxo.v !== Motor.FLUXO_V) { S.fluxo = Motor.fluxoInicial(S.R); S.cen = null; salvar(); }
+    /* fluxo de outra versão (05/11: venda do mês entrava uma vez só; 16/11: entram parcelas, cartão, perdas e custo de cada venda):
+       refeito com as respostas; da versão 2 ficam os valores do mês que a pessoa mudou na tela */
+    if (!S.fluxo || S.fluxo.v !== Motor.FLUXO_V) {
+      const velho = S.fluxo;
+      const m5 = dadosM5();
+      S.fluxo = Motor.fluxoInicial(S.R, m5 && Object.assign({}, m5, { entregaVenda: m5.entrega ? m5.entrega.porVenda : 0 }));
+      S.fluxo.entrega = m5 && m5.entrega;
+      if (velho && velho.v === 2) { ["saldoInicial", "vendasMes", "gastosMes"].forEach((k) => { if (isFinite(velho[k])) S.fluxo[k] = velho[k]; }); Motor.montarSemanas(S.fluxo); }
+      S.cen = null; salvar();
+    }
     return S.fluxo;
+  }
+  /* linhas do mês que podem vir do Módulo 5: selo de origem ou aviso de que mudou */
+  function origemM5(k, m5k) {
+    const m5 = Object.assign({}, dadosM5());
+    m5.entregaVenda = m5.entrega ? m5.entrega.porVenda : 0;
+    if (!m5 || !(m5[m5k] > 0)) return "";
+    const F = S.fluxo;
+    return Math.abs((F[k] || 0) - m5[m5k]) < 0.005 ? `<span class="selo">Veio do Módulo 5</span>`
+      : `<span class="mini-info dif-m5">No Módulo 5: ${brl(m5[m5k])}</span>`;
+  }
+  const CAMPOS_MES = [
+    ["f-ini", "saldoInicial", "Dinheiro em caixa hoje", null],
+    ["f-vendas", "vendasMes", "Vendas por mês", null],
+    ["f-gastos", "gastosMes", "Gastos fixos do mês", "fixos"],
+    ["f-perdas", "perdasMes", "Perdas no mês", "perdas"],
+    ["f-retirada", "retiradaMes", "O que você separa para você no mês", "retirada"],
+    ["f-custo", "custoVenda", "Custo de cada venda", "custoVenda"],
+    ["f-entrega", "entregaVenda", "Entrega por venda", "entregaVenda"],
+    ["f-preco", "precoVenda", "Preço de cada venda", "preco"] ];
+  /* gastos do mês aqui x Módulo 5 (fixos + perdas + o que separa para você) */
+  function conferenciaM5() {
+    const m5 = dadosM5(), F = fluxo();
+    if (!m5 || !(m5.mensal > 0)) return "";
+    const aqui = Motor.cent((F.gastosMes || 0) + (F.perdasMes || 0) + (F.retiradaMes || 0));
+    const igual = Math.abs(aqui - m5.mensal) < 0.005;
+    return `<div class="${igual ? "cartao" : "bloco b-alerta"} confere-m5" id="confere-m5"><b>Gastos do mês: Módulo 5 × aqui</b>
+      <p>No Módulo 5: ${brl(m5.fixos)} fixos + ${brl(m5.perdas)} de perdas + ${brl(m5.retirada)} para você = <b>${brl(m5.mensal)}</b> por mês.</p>
+      <p>Aqui: ${brl(F.gastosMes || 0)} + ${brl(F.perdasMes || 0)} + ${brl(F.retiradaMes || 0)} = <b>${brl(aqui)}</b> por mês.${igual ? " Os dois batem." : " Estão diferentes: confira qual está certo."}</p>
+      <p class="mini-info">O custo de cada venda fica fora dessa soma, porque muda com o número de vendas.</p></div>`;
+  }
+  /* premissas da projeção, em linguagem simples, com a conta de cada uma */
+  function premissas(F) {
+    const FS = "× 12 ÷ 52";
+    const nv = F.precoVenda > 0 ? F.nVendasMes : 0;
+    const li = [];
+    const pc = (n) => String(Math.round(n * 100) / 100).replace(".", ",");
+    li.push(`<li id="pr-vendas">Vendas: ${brl(F.vendasMes || 0)} por mês ${FS} = ${brl(F.vendasSemana || 0)} por semana.</li>`);
+    if (F.saz) {
+      const fort = F.fatores.filter((x) => x.fator > 1), frac = F.fatores.filter((x) => x.fator < 1);
+      li.push(`<li id="pr-saz">Época do ano: a semana 1 começa hoje (${dataBR(F.inicio)}). ${fort.length ? `Semanas ${fort.map((x) => F.fatores.indexOf(x) + 1).join(", ")} caem em mês forte: vendas × ${pc(fort[0].fator)} (+${F.saz.maisPct}%) = ${brl(Motor.cent(F.vendasSemana * fort[0].fator))} por semana. ` : ""}${frac.length ? `Semanas ${frac.map((x) => F.fatores.indexOf(x) + 1).join(", ")} caem em mês fraco: vendas × ${pc(frac[0].fator)} (−${F.saz.menosPct}%) = ${brl(Motor.cent(F.vendasSemana * frac[0].fator))} por semana. ` : ""}${!fort.length && !frac.length ? "nenhum mês forte ou fraco cai nessas 13 semanas." : ""}</li>`);
+    }
+    (F.formas || []).forEach((f, i) => {
+      const nome = f.forma === "Todas as vendas" ? "Todas as vendas" : f.forma;
+      const quando = f.sem ? `cai ${f.sem} ${f.sem === 1 ? "semana" : "semanas"} depois${f.dias !== null && f.dias !== undefined ? ` (${f.dias} dias ÷ 7, arredondado para cima)` : f.prazoTxt ? ` (${FRASE_PRAZO[f.prazoTxt]})` : ""}` : "cai na mesma semana";
+      li.push(`<li class="pr-forma" id="pr-forma-${i}">${esc(nome)}: ${brl(F.vendasSemana || 0)} por semana${(F.formas.length > 1) ? ` × ${pc(f.parte)}%` : ""}${f.taxa ? ` × (1 − ${pc(f.taxa)}% de taxa)` : ""} = ${brl(Motor.cent((F.vendasSemana || 0) * f.parte / 100 * (1 - f.taxa / 100)))}${F.saz ? " (antes da época do ano)" : ""}; ${quando}.</li>`);
+    });
+    if (F.aReceberDepois) li.push(`<li id="pr-depois">Vendas das últimas semanas que só caem depois da semana 13: ${brl(F.aReceberDepois)} (fora da tabela).</li>`);
+    li.push(`<li id="pr-gastos">Gastos fixos do mês: ${brl(F.gastosMes || 0)} ${FS} = ${brl(F.gastosSemana || 0)} por semana.</li>`);
+    if (F.perdasMes) li.push(`<li id="pr-perdas">Perdas: ${brl(F.perdasMes)} por mês ${FS} = ${brl(F.perdasSemana)} por semana.</li>`);
+    if (F.retiradaMes) li.push(`<li id="pr-retirada">O que você separa para você: ${brl(F.retiradaMes)} por mês ${FS} = ${brl(F.retiradaSemana)} por semana.</li>`);
+    li.push(F.custoVenda && F.precoVenda > 0
+      ? `<li id="pr-custo">Custo de cada venda (a taxa já sai das entradas): ${brl(F.custoVenda)} × ${numero(nv).replace(/,00$/, "")} vendas no mês (${brl(F.vendasMes || 0)} ÷ ${brl(F.precoVenda)}) = ${brl(F.variavelMes)} por mês ${FS} = ${brl(F.variavelSemana)} por semana.</li>`
+      : `<li id="pr-custo">Custo de cada venda: ${F.custoVenda ? "falta o preço de cada venda para contar quantas vendas são" : "não informado"} (preencha acima).</li>`);
+    const en = F.entrega;
+    if (F.entregaVenda > 0 && F.precoVenda > 0) {
+      const base = en && en.custo && Math.abs(en.porVenda - F.entregaVenda) < 0.005 ? `${en.pct !== null && en.pct !== undefined ? `${pc(en.pct)}% de ${brl(F.precoVenda)} = ` : ""}${brl(en.custo)} por entrega${en.cobra ? ` − ${brl(en.cobra)} que o cliente paga` : ""}${en.a10 !== 10 ? ` × ${en.a10} de cada 10 vendas` : ""} = ` : "";
+      li.push(`<li id="pr-entrega">Entregas: ${base}${brl(F.entregaVenda)} por venda × ${numero(nv).replace(/,00$/, "")} vendas no mês = ${brl(F.entregasMes)} por mês × 12 ÷ 52 = ${brl(F.entregasSemana)} por semana.</li>`);
+    } else if (en && /^Não/i.test(en.opcao)) li.push(`<li id="pr-entrega">Entregas: sem custo (no Módulo 5 você disse “${esc(en.opcao)}”).</li>`);
+    else if (!(F.entregaVenda > 0)) li.push(`<li id="pr-entrega">Custo de entrega não informado (Módulo 5). <a href="/lg2/turma-a/m05/index.html">Trocar no Módulo 5</a> ou preencha “Entrega por venda” acima.</li>`);
+    const pl = F.plano || {};
+    if (pl.n) {
+      li.push(`<li id="pr-invest">Compras para começar: ${brl(pl.total)}. ${pl.entrada ? `Entrada de ${brl(pl.entrada)}` : "Nada de entrada"}${pl.outros ? ` + ${brl(pl.outros)} de outras compras` : ""} na semana 1; ${pl.n} ${pl.n === 1 ? "parcela" : "parcelas"} de ${brl(pl.parcela)} por mês${pl.semanas.length ? `, nas semanas ${pl.semanas.map((x) => x.semana).join(", ")} (1 mês ≈ 4,33 semanas)` : ""}.`
+        + (pl.depois.length ? ` Depois da semana 13 ainda ${pl.depois.length === 1 ? "falta 1 parcela" : `faltam ${pl.depois.length} parcelas`} (${brl(pl.depois.reduce((a, x) => a + x.valor, 0))}).` : "") + `</li>`);
+    } else li.push(`<li id="pr-invest">O que você precisa para começar (${brl(F.investimento || 0)}) sai na semana 1.</li>`);
+    li.push(`<li>Dinheiro em caixa hoje: ${brl(F.saldoInicial || 0)} (é o saldo do começo da semana 1).</li>`);
+    return li.join("");
+  }
+  const dataBR = (iso) => { const [a, m, d] = String(iso).split("-"); return `${d}/${m}/${a}`; };
+  /* meses fracos que caem nas 13 semanas */
+  function mesesFracos(F) { return [...new Set((F.fatores || []).filter((x) => x.fator < 1).map((x) => x.mes))]; }
+  const ind = () => Motor.indicadores({ fluxo: fluxo(), R: S.R });
+  /* (b) operação do mês: entradas, saídas fixas e variáveis por linha, lucro do mês */
+  function blocoOperacao() {
+    const x = ind(), F = fluxo();
+    const linhas = (l) => l.map((v) => `<li><span>${esc(v.nome)}</span><b>${brl(v.valor)}</b></li>`).join("");
+    return `<div class="secao-titulo">Operação de um mês normal</div>
+      <ul class="contas" id="op-linhas">
+        <li class="c-ent"><span>Vendas do mês (entradas)</span><b>${brl(x.entradasMes)}</b></li>
+        <li class="c-sub">Saídas fixas</li>${linhas(x.fixos) || `<li><span>Nenhuma</span><b>${brl(0)}</b></li>`}
+        <li class="c-sub">Saídas que mudam com as vendas</li>${linhas(x.variaveis) || `<li><span>Nenhuma</span><b>${brl(0)}</b></li>`}
+        <li class="c-tot" id="op-lucro"><span>${x.lucroMes >= 0 ? "Sobra no mês (lucro)" : "Falta no mês (prejuízo)"}</span><b>${brl(x.lucroMes)}</b></li>
+      </ul>
+      ${como(`${brl(x.entradasMes)} de vendas − ${brl(x.totalFixos)} de saídas fixas − ${brl(x.totalVariaveis)} de saídas que mudam com as vendas = ${brl(x.lucroMes)} por mês${F.saz ? " (mês normal, sem a época do ano)" : ""}.`, "como-lucro")}`;
+  }
+  /* (e) retorno do investimento: ROI ao ano e em quantos meses o investimento volta */
+  function blocoRetorno() {
+    const x = ind(), pc = (n) => String(n).replace(".", ",");
+    if (!(x.investimento > 0)) return `<div class="secao-titulo">Retorno do investimento</div><p class="ajuda" id="ret-inv">Sem investimento inicial informado, não há retorno para calcular.</p>`;
+    if (!x.sePaga) return `<div class="secao-titulo">Retorno do investimento</div>
+      <div class="bloco b-alerta b-aviso" id="ret-inv"><b>Retorno</b>Com estes números o investimento não se paga: o mês não deixa sobra (${brl(x.lucroMes)}).</div>
+      ${como(`para o investimento voltar, cada mês precisa deixar sobra. Aqui: ${brl(x.lucroMes)} por mês.`, "como-retorno")}`;
+    return `<div class="secao-titulo">Retorno do investimento</div>
+      <div class="mini-cards" id="ret-inv">
+        <div class="cartao"><h3>Retorno ao ano</h3><p><b>${pc(x.roiAno)}%</b></p></div>
+        <div class="cartao"><h3>Volta em</h3><p><b>${pc(x.paybackMeses)} meses</b></p></div>
+      </div>
+      ${como(`retorno ao ano = ${brl(x.lucroMes)} de sobra por mês × 12 ÷ ${brl(x.investimento)} investidos = ${pc(x.roiAno)}%. Volta em = ${brl(x.investimento)} ÷ ${brl(x.lucroMes)} = ${pc(x.paybackMeses)} meses.`, "como-retorno")}`;
+  }
+  /* menor saldo, saldo final e capital adicional, à vista no resultado */
+  function blocoCaixa() {
+    const F = fluxo(), r = Motor.resumoCaixa(F), c = Motor.controle(F);
+    const falta = r.capital > 0;
+    return `<div class="secao-titulo">Seu caixa nas 13 semanas</div>
+      <p class="ajuda" id="cx-inicial">Começa com ${brl(c.inicial)} em caixa hoje.</p>
+      <div class="mini-cards caixa-resumo">
+        <div class="cartao" id="cx-min"><h3>Menor saldo</h3><p><b>${brl(r.min)}</b></p><p class="mini-info">na semana ${r.semanaMin}</p></div>
+        <div class="cartao" id="cx-final"><h3>Saldo final</h3><p><b>${brl(r.final)}</b></p><p class="mini-info">na semana 13</p></div>
+      </div>
+      <div class="res-num" id="cx-capital"><div class="lbl">Capital de giro: dinheiro extra necessário</div><div class="val">${brl(r.capital)}</div>
+        <div class="sub">${falta ? "Dinheiro a mais que você precisa ter no caixa para não ficar no negativo." : "Com essas contas, o caixa não fica negativo."}</div></div>
+      ${como(`o saldo mais baixo das 13 semanas é ${brl(r.min)}, na semana ${r.semanaMin}. ${falta ? `Para ele não ficar negativo, faltam ${brl(r.capital)}` : "Ele não fica negativo, então não falta dinheiro"} (capital adicional = saldo mais baixo com o sinal trocado, ou zero).`, "como-capital")}
+      ${como(`saldo final = ${brl(c.inicial)} (caixa hoje) + ${brl(c.entradas)} (tudo o que entra) − ${brl(c.saidas)} (tudo o que sai) = ${brl(c.saldo)}.`, "como-final")}
+      <details class="premissas" id="premissas" open><summary>O que entrou na conta</summary><ul class="mini-info como-conta" id="como-conta">${premissas(F)}</ul></details>`;
   }
   function blocoI04() {
     const ins = I("M6.I04"), F = fluxo(), P = Motor.projetar(F);
     const p09 = S.R["M6.P09"], p06 = Motor.valor(S.R, "M6.P06");
-    const entra = F.atraso ? `a partir da semana ${F.atraso + 1}, porque o dinheiro das vendas chega ${FRASE_PRAZO[F.prazo] || "depois"}` : "desde a semana 1";
     return `${cabInstr(ins)}
-      <div class="linha"><span class="lbl">Dinheiro em caixa hoje</span><span class="unid">R$</span><input class="campo" id="f-ini" inputmode="decimal" value="${numero(F.saldoInicial)}"></div>
-      <div class="linha"><span class="lbl">Vendas por mês</span><span class="unid">R$</span><input class="campo" id="f-vendas" inputmode="decimal" value="${numero(F.vendasMes || 0)}"></div>
-      <div class="linha"><span class="lbl">Gastos de todo mês</span><span class="unid">R$</span><input class="campo" id="f-gastos" inputmode="decimal" value="${numero(F.gastosMes || 0)}"></div>
-      ${como("em cada semana, saldo = saldo da semana anterior + entradas − saídas, começando pelo dinheiro em caixa hoje.", "como-i04")}
-      <ul class="mini-info como-conta" id="como-conta">
-        <li>Vendas: ${brl(F.vendasMes || 0)} por mês = ${brl(F.vendasSemana || 0)} por semana (mês × 12 ÷ 52), ${entra}.</li>
-        <li>Gastos de todo mês: ${brl(F.gastosMes || 0)} = ${brl(F.gastosSemana || 0)} por semana${p06 && p06 !== Motor.NS ? " (somamos os valores que você escreveu; ajuste acima se faltar algum)" : ""}.</li>
-        <li>O que você precisa para começar (${brl(F.investimento || 0)}) sai na semana 1.</li>
-      </ul>
+      ${CAMPOS_MES.map(([id, k, rot, m5k]) => `<div class="linha"><span class="lbl">${esc(rot)}${m5k ? ` ${origemM5(k, m5k)}` : ""}</span><span class="unid">R$</span><input class="campo f-mes" id="${id}" data-k="${k}" inputmode="decimal" value="${numero(F[k] || 0)}"></div>`).join("")}
+      ${conferenciaM5()}
+      ${como("em cada semana, saldo = saldo da semana anterior + entradas − saídas, começando pelo dinheiro em caixa hoje. Valores do mês viram valor por semana com × 12 ÷ 52 (um ano tem 12 meses e 52 semanas).", "como-i04")}
       <div class="tabela-wrap"><table class="fluxo">
         <thead><tr><th>Sem.</th><th>Entradas</th><th>Saídas</th><th>Saldo</th></tr></thead>
         <tbody>${P.map((s, i) => `<tr class="${s.final < 0 ? "neg" : ""}">
-          <td>${s.semana}</td>
+          <td>${s.semana}${F.fatores && F.fatores[i].fator !== 1 ? `<small class="fator">× ${String(F.fatores[i].fator).replace(".", ",")}</small>` : ""}</td>
           <td><input inputmode="decimal" aria-label="Entradas da semana ${s.semana}" data-i="${i}" data-k="entradas" value="${numero(s.entradas)}"></td>
           <td><input inputmode="decimal" aria-label="Saídas da semana ${s.semana}" data-i="${i}" data-k="saidas" value="${numero(s.saidas)}"></td>
           <td class="sf">${brl(s.final)}</td></tr>`).join("")}</tbody>
       </table></div>
-      <p class="mini-info">Você pode mudar qualquer semana; mudar vendas ou gastos do mês refaz a tabela.</p>
+      <p class="mini-info">Você pode mudar qualquer semana; mudar um valor do mês refaz a tabela.</p>
       ${p06 && p06 !== Motor.NS ? `<div class="bloco b-proximo"><b>${esc(M.porCodigo["M6.P06"].pergunta)}</b>${esc(p06)}</div>` : ""}
       ${p09 && p09.detalhe ? `<div class="bloco b-proximo"><b>${esc(M.porCodigo["M6.P09"].pergunta)}</b>${esc(p09.detalhe)}</div>` : ""}
       ${P.some((s) => s.alerta) ? `<p class="mini-info">Semanas em que falta dinheiro: ${P.filter((s) => s.alerta).map((s) => s.semana).join(", ")} (veja “Atenção” no alto do resumo).</p>` : ""}`;
@@ -695,11 +1152,11 @@
     cenario();
     const r = Motor.cenario(S.cen.ini, S.cen.ent, S.cen.sai);
     return `${cabInstr(ins)}
-      <div class="linha"><span class="lbl">Saldo inicial</span><span class="unid">R$</span><input class="campo cen" data-k="ini" inputmode="decimal" value="${S.cen.ini}"></div>
-      <div class="linha"><span class="lbl">Entradas previstas</span><span class="unid">R$</span><input class="campo cen" data-k="ent" inputmode="decimal" value="${S.cen.ent}"></div>
-      <div class="linha"><span class="lbl">Saídas previstas</span><span class="unid">R$</span><input class="campo cen" data-k="sai" inputmode="decimal" value="${S.cen.sai}"></div>
+      <div class="linha"><span class="lbl">Saldo inicial</span><span class="unid">R$</span><input class="campo cen" data-k="ini" inputmode="decimal" value="${numero(S.cen.ini)}"></div>
+      <div class="linha"><span class="lbl">Entradas previstas</span><span class="unid">R$</span><input class="campo cen" data-k="ent" inputmode="decimal" value="${numero(S.cen.ent)}"></div>
+      <div class="linha"><span class="lbl">Saídas previstas</span><span class="unid">R$</span><input class="campo cen" data-k="sai" inputmode="decimal" value="${numero(S.cen.sai)}"></div>
       <div class="res-num ${r.alerta ? "coral" : ""}" id="cen-res"><div class="lbl">Saldo do cenário</div><div class="val">${brl(r.saldo)}</div></div>
-      ${como("saldo inicial + entradas previstas − saídas previstas no cenário. Mude os valores para testar outras situações.", "como-i05")}
+      ${como(`${brl(S.cen.ini)} (saldo inicial) + ${brl(S.cen.ent)} (entradas) − ${brl(S.cen.sai)} (saídas) = ${brl(r.saldo)}. Mude os valores para testar outras situações.`, "como-i05")}
       ${r.alerta ? `<p class="mini-info">${esc(ins.limite)}</p>` : ""}`;
   }
 
@@ -731,11 +1188,12 @@
     out.push(vendas !== null ? `Você espera vender cerca de ${brl(vendas)} por mês${prazo ? ` e receber o dinheiro ${prazo}` : ""}.`
       : "Você ainda não estimou quanto vai vender por mês.");
     const c2 = out.length;   // 2º: gasto para começar e vendas; 3º: o caixa nas 13 semanas
-    const F = fluxo(), P = Motor.projetar(F), neg1 = P.find((x) => x.final < 0);
+    const F = fluxo(), P = Motor.projetar(F), neg1 = P.find((x) => x.final < 0), rc = Motor.resumoCaixa(F);
     const inicio = F.saldoInicial || numDe("M6.P07") !== null ? `Começando com ${brl(F.saldoInicial)} no caixa` : "Sem contar dinheiro guardado";
     out.push(`${inicio}, ${neg1
       ? `o seu dinheiro fica negativo na semana ${neg1.semana}: antes de começar, planeje como cobrir essa falta.`
       : "o seu dinheiro não fica negativo em nenhuma das 13 semanas da projeção."}`);
+    if (rc.capital > 0) out.push(`Para atravessar as 13 semanas, você precisa de mais ${brl(rc.capital)} no caixa.`);
     return emParagrafos(out, c1, c2);
   }
   const numDe = (c) => { const v = Motor.valor(S.R, c); return v === undefined || v === Motor.NS || isNaN(Motor.num(v)) ? null : Motor.num(v); };
@@ -754,7 +1212,7 @@
       return `<span class="selo">Falta descobrir</span>`;
     if (v === undefined) return `<span class="mini-info">Não apareceu no seu caminho</span>`;
     if (r && r.aindaNaoSei) return `${esc(AINDA_NAO_SEI)} <span class="selo">Falta descobrir</span>`;
-    return (r && r.herdado ? `<span class="selo">Veio do Módulo ${esc(r.herdado)}</span> ` : "") + esc(v) + (det ? ` · ${esc(det)}` : "");
+    return (r && r.herdado ? `<span class="selo">Veio do Módulo ${esc(r.herdado)}</span> ` : "") + esc(r && (Array.isArray(r.valor) || r.opcao === Motor.SZ_SIM) ? textoResp(r) : v) + (det ? ` · ${esc(det)}` : "");
   }
 
   /* resultado: cada "Não sei" leva o seu "Como descobrir" (fechado), com o pedido pronto para a IA */
@@ -765,6 +1223,11 @@
     return `<details class="resultado-mais" id="como-falta"><summary>Como descobrir o que falta</summary>
       ${qs.map((q) => `<details class="como-mini"><summary>${esc(q.pergunta)}</summary>${caixaComo(q)}</details>`).join("")}
     </details>`;
+  }
+  /* respostas reaproveitadas de outros módulos (sem tela aqui), com "Trocar" */
+  function blocoHerdadas() {
+    const l = AUTO.filter((c) => autoHerdada(c, S.R));
+    return l.length ? `<details class="resultado-mais herdadas" id="herdadas-res"><summary>Respostas que vieram de outros módulos</summary><ul>${l.map(itemHerdado).join("")}</ul></details>` : "";
   }
   function telaResultado() {
     const regras = Motor.regrasTodas(M, S.R);
@@ -786,7 +1249,12 @@
             : `<p class="ajuda" id="proximos">Nada ficou em aberto nas suas respostas. Acompanhe a tabela das 13 semanas e atualize os valores quando souber os preços de verdade.</p>`}
           ${blocoComoFalta()}
           <div id="atencao">${blocoAtencao()}</div>
+          <h2 class="contas-tit">Suas contas, separadas</h2>
           <div id="i01">${blocoI01()}</div>
+          <div id="operacao">${blocoOperacao()}</div>
+          <div id="caixa">${blocoCaixa()}</div>
+          <div id="retorno-inv">${blocoRetorno()}</div>
+          ${blocoHerdadas()}
           <details class="resultado-mais" id="mais-compras"><summary>Sua lista de compras</summary>
             <div id="i02">${blocoI02()}</div>
           </details>
@@ -817,7 +1285,10 @@
         </main>
       </div>`);
 
-    const refazer = (id, f) => { p.querySelector(id).innerHTML = f(); ligar(); };
+    /* relatório do módulo aberto por padrão (a pessoa ainda pode fechar) */
+    const abrir = (raiz) => raiz.querySelectorAll("details").forEach((d) => { d.open = true; });
+    abrir(p);
+    const refazer = (id, f) => { p.querySelector(id).innerHTML = f(); abrir(p.querySelector(id)); ligar(); };
     function ligar() {
       p.querySelectorAll("#prio .opcao").forEach((b) => (b.onclick = () => {
         const it = Motor.itens(S.R, S.fora)[+b.dataset.i]; S.prio[it] = b.dataset.c; salvar(); refazer("#i02", blocoI02);
@@ -827,28 +1298,27 @@
       }));
       const rp = p.querySelector("#repor");
       if (rp) rp.onclick = () => { S.fora = []; salvar(); refazer("#i02", blocoI02); };
-      const ini = p.querySelector("#f-ini");
-      ini.onchange = () => { S.fluxo.saldoInicial = Math.max(0, Motor.num(ini.value) || 0); S.cen = null; salvar(); atualizarCaixa(); };
-      [["#f-vendas", "vendasMes"], ["#f-gastos", "gastosMes"]].forEach(([sel, k]) => {
-        const x = p.querySelector(sel);
-        x.onchange = () => { S.fluxo[k] = Math.max(0, Motor.num(x.value) || 0); Motor.montarSemanas(S.fluxo); S.cen = null; salvar(); atualizarCaixa(); };
-      });
+      /* valores do mês: aceita "1.425,06", "1425,06" ou vazio (= zero); a tabela é refeita e o campo volta formatado */
+      p.querySelectorAll(".f-mes").forEach((x) => (x.onchange = () => {
+        S.fluxo[x.dataset.k] = Math.max(0, Motor.num(x.value) || 0); Motor.montarSemanas(S.fluxo); S.cen = null; salvar(); atualizarCaixa();
+      }));
       p.querySelectorAll(".fluxo input").forEach((x) => (x.onchange = () => {
         S.fluxo.semanas[+x.dataset.i][x.dataset.k] = Math.max(0, Motor.num(x.value) || 0); S.cen = null; salvar(); atualizarCaixa();
       }));
       p.querySelectorAll(".cen").forEach((x) => (x.onchange = () => {
-        S.cen[x.dataset.k] = Motor.num(x.value) || 0; salvar(); refazer("#i05", blocoI05); refazer("#atencao", blocoAtencao);
+        S.cen[x.dataset.k] = Motor.num(x.value) || 0; salvar(); const y = window.scrollY; refazer("#i05", blocoI05); refazer("#atencao", blocoAtencao); window.scrollTo(0, y);
       }));
     }
-    function atualizarCaixa() { p.querySelector("#entendemos").innerHTML = blocoEntendemos(); p.querySelector("#atencao").innerHTML = blocoAtencao(); p.querySelector("#i04").innerHTML = blocoI04(); p.querySelector("#i03").innerHTML = blocoI03(); p.querySelector("#i05").innerHTML = blocoI05(); ligar(); }
+    function atualizarCaixa() { const y = window.scrollY; p.querySelector("#entendemos").innerHTML = blocoEntendemos(); p.querySelector("#atencao").innerHTML = blocoAtencao(); p.querySelector("#caixa").innerHTML = blocoCaixa(); p.querySelector("#operacao").innerHTML = blocoOperacao(); p.querySelector("#retorno-inv").innerHTML = blocoRetorno(); p.querySelector("#i04").innerHTML = blocoI04(); p.querySelector("#i03").innerHTML = blocoI03(); p.querySelector("#i05").innerHTML = blocoI05(); ["#caixa", "#i04", "#i03", "#i05"].forEach((id) => abrir(p.querySelector(id))); ligar(); window.scrollTo(0, y); }
     ligar();
+    ligarTrocar(p);
     ligarCopiar(p);
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
 
     p.querySelector("#v").onclick = () => { S.hist.pop(); const a = S.hist.pop(); salvar(); ir(telaPergunta, a); };
     p.querySelector("#imp").onclick = () => { p.querySelectorAll("details").forEach((d) => (d.open = true)); window.print(); };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, proxima({}, null)); };
-    p.querySelector("#novo").onclick = () => { if (confirm("Começar uma nova análise? As respostas atuais serão apagadas.")) { S = novo(); herdarNegocio(); salvar(); ir(telaPergunta, proxima({}, null)); } };
+    p.querySelector("#novo").onclick = () => { if (confirm("Começar uma nova análise? As respostas atuais serão apagadas.")) { S = novo(); herdarNegocio(); salvar(); ir(telaPergunta, proxTela(null)); } };
     return p;
   }
 
@@ -863,6 +1333,24 @@
     </footer>`;
   }
 
+  /* BRIEF I: no resultado, as fontes (bloco posto pelo padrao.js, arquivo compartilhado) também abrem; uma vez só, a pessoa pode fechar */
+  if (typeof MutationObserver !== "undefined") new MutationObserver(() => {
+    if (!tela.querySelector(".lg2-proximo")) return;
+    document.querySelectorAll("details.p-fontes:not([data-aberto])").forEach((d) => { d.open = true; d.dataset.aberto = "1"; });
+  }).observe(document.body, { childList: true, subtree: true });
   herdarNegocio();
+  /* perguntas novas (parcelas, taxa/prazo por forma, época do ano) em respostas que já chegaram ao resultado:
+     usa o que já veio de outro módulo; se ainda faltar alguma, "Continuar de onde parei" abre nela */
+  (function completarNovas() {
+    if (!S.hist.length) return;
+    let c = proxima(S.R, null), mudou = false, falta = null;
+    for (let i = 0; c !== "RESULTADO" && i < 60; i++) {
+      if (!S.R[c] && AUTO.includes(c)) { const h = heranca(c); if (h && h.completa !== false) { S.R[c] = respHerdada(h); mudou = true; } }
+      if (!S.R[c] && !falta) falta = c;
+      c = proxima(S.R, c);
+    }
+    if (falta && S.hist[S.hist.length - 1] === "RESULTADO") { S.hist[S.hist.length - 1] = falta; mudou = true; }
+    if (mudou) { S.fluxo = null; S.cen = null; salvar(); }
+  })();
   ir(telaCapa);
 })();

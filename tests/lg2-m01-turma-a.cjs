@@ -38,22 +38,24 @@ const EXP = {
  "M1.P01": {
   "pergunta": "Como está a sua ideia hoje?", "apoio": null,
   "opcoes": [
-   ["Ainda está só na minha cabeça", "Dica: Antes de gastar dinheiro, teste sua ideia com pouca coisa. A gente te ajuda nas próximas perguntas."],
-   ["Já fiz um pouco para testar ou dar de amostra", "Dica: Ótimo começo! Pergunte a quem provou se compraria e por quanto."],
+   ["Ainda está só na minha cabeça", null],
+   ["Já fiz um pouco para testar ou dar de amostra", null],
    ["Já vendi algumas vezes", null],
    ["Já vendo sempre", null]
   ],
-  "ajuda": false
+  "ajuda": true,
+  "ajuda_texto": "Antes de gastar dinheiro, teste sua ideia com pouca coisa. Se alguém já provou, pergunte se compraria e por quanto."
  },
  "M1.P02": {
   "pergunta": "O que fez você querer ter um negócio?", "apoio": "Escolha o motivo principal.",
   "opcoes": [
-   ["Preciso de dinheiro logo para pagar as contas", "Dica: Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco."],
-   ["Vi que as pessoas precisam de algo que eu posso vender", "Dica: Antes de gastar, pergunte a algumas pessoas se elas comprariam."],
+   ["Preciso de dinheiro logo para pagar as contas", null],
+   ["Vi que as pessoas precisam de algo que eu posso vender", null],
    ["Quero ganhar um dinheiro a mais", null],
    ["Quero trabalhar por conta própria", null]
   ],
-  "ajuda": false
+  "ajuda": true,
+  "ajuda_texto": "Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco. Antes de gastar, pergunte a algumas pessoas se elas comprariam."
  },
  "M1.P03": {
   "pergunta": "O que você vende ou quer vender?", "apoio": null,
@@ -72,6 +74,7 @@ const EXP = {
    ["Mercadoria: compro pronto para revender", null],
    ["Serviço: meu cliente paga pelo trabalho que realizo", null]
   ],
+  "exemplos": ["Ex.: bolo de pote, sabonete, crochê", "Ex.: roupa ou perfume comprado para revender", "Ex.: manicure, conserto, faxina, aula"],
   "ajuda": true,
   "ajuda_texto": "Produto: você faz com materiais que compra. Mercadoria: você compra pronto e revende. Serviço: o cliente paga pelo seu trabalho.",
   "exemplo": "Ex.: bolo de pote é produto; roupa da fábrica para revender é mercadoria; lavar carro é serviço."
@@ -80,67 +83,67 @@ const EXP = {
   "pergunta": "Você já sabe fazer isso?", "apoio": null,
   "opcoes": [
    ["Sim, já faço bem", null],
-   ["Sei um pouco, ainda estou aprendendo", "Dica: Pratique com amigos e família antes de vender. Assim você ganha confiança."],
-   ["Ainda não sei fazer", "Dica: Tudo bem começar do zero. Procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."]
+   ["Sei um pouco, ainda estou aprendendo", null],
+   ["Ainda não sei fazer", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho."
+  "ajuda_texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Se vai começar do zero, procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."
  },
  "M1.P05": {
   "pergunta": "Quanto tempo por dia você tem para o negócio?", "apoio": null,
   "opcoes": [
-   ["Até 1 hora por dia", "Dica: Pouco tempo também dá certo. Comece com poucos clientes e faça sob encomenda."],
+   ["Até 1 hora por dia", null],
    ["De 1 a 3 horas por dia", null],
    ["Mais de 3 horas por dia", null],
-   ["Só nos fins de semana", "Dica: Venda em feiras, eventos ou por encomenda para entregar no fim de semana."]
+   ["Só nos fins de semana", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar."
+  "ajuda_texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana."
  },
  "M1.P05A": {
   "pergunta": "Se o negócio crescer, você consegue mais tempo para ele?", "apoio": null,
   "opcoes": [
    ["Sim, consigo arrumar mais tempo", null],
-   ["Não, meus horários não podem mudar", "Dica: Tudo bem. Seu negócio pode crescer devagar, no seu ritmo."],
-   ["Não sei dizer", null]
+   ["Não, meus horários não podem mudar", null]
   ],
-  "ajuda": false,
-  "naosei": ["Anote por uma semana o que você faz em cada parte do dia e marque onde sobra um tempinho.",
-   "Converse com quem mora com você: alguém pode ajudar com a casa ou com os filhos em alguns horários?"]
+  "ajuda": true,
+  "ajuda_texto": "Pense na sua semana: onde sobra um tempinho? Alguém em casa pode ajudar com a casa ou com os filhos em alguns horários? Se não der, tudo bem: o negócio pode crescer devagar, no seu ritmo."
  },
  "M1.P06": {
   "pergunta": "Você já tem o que precisa para trabalhar?", "apoio": null,
   "opcoes": [
    ["Sim, tenho tudo", null],
-   ["Tenho só uma parte", "Dica: Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar."],
-   ["Não tenho nada ainda", "Dica: Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."]
+   ["Tenho só uma parte", null],
+   ["Não tenho nada ainda", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa."
+  "ajuda_texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
  },
  "M1.P07": {
   "pergunta": "Quanto dinheiro você pode usar sem faltar para as contas da casa?", "apoio": null,
   "opcoes": [
-   ["Nada por enquanto", "Tudo bem: Dá para começar sem dinheiro. Na próxima pergunta vamos ver como."],
-   ["Até R$ 100", "Dica: Comece pequeno e use esse dinheiro aos poucos."],
+   ["Nada por enquanto", null],
+   ["Até R$ 100", null],
    ["Entre R$ 100 e R$ 500", null],
    ["Entre R$ 500 e R$ 1.000", null],
-   ["Mais de R$ 1.000", "Dica: Mesmo podendo usar mais, teste antes com pouco. Não pegue empréstimo no banco para começar."]
+   ["Mais de R$ 1.000", null]
   ],
   "video": true,
   "ajuda": true,
-  "ajuda_texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas."
+  "ajuda_texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro."
  },
  "M1.P07A": {
   "pergunta": "Como você pensa em começar sem dinheiro ou material?", "apoio": null,
   "opcoes": [
-   ["Pegando emprestado com amigos ou família", "Dica: Combine por escrito quanto e quando você vai devolver."],
+   ["Pegando emprestado com amigos ou família", null],
    ["Pagando alguém para fazer uma parte do trabalho", null],
    ["Vendendo por encomenda, com o cliente pagando uma parte antes", null],
-   ["Juntando dinheiro primeiro", null],
-   ["Não sei dizer", null]
+   ["Juntando dinheiro primeiro", null]
   ],
-  "ajuda": false,
+  "exemplos": [null, "Ex.: pagar alguém para costurar, entregar ou cozinhar uma parte", "Ex.: o cliente paga metade no pedido e o resto na entrega", null],
+  "ajuda": true,
+  "ajuda_texto": "Se for pegar emprestado, combine por escrito quanto e quando vai devolver.",
+  "botao_ajuda": "Não sei",
   "naosei": ["Pergunte a 3 pessoas se comprariam por encomenda e se pagariam metade adiantado. Esse dinheiro compra o material.",
    "Liste o que dá para pegar emprestado com família, vizinhos ou amigos: forno, ferramenta, espaço."]
  },
@@ -172,19 +175,19 @@ const EXP_TIPO = {
   Mercadoria: {
     'M1.P04': { pergunta: 'Você já conhece bem o que vai revender?',
       opcoes: [['Sim, conheço bem o produto e onde comprar', null],
-        ['Conheço um pouco, ainda estou pesquisando', 'Dica: Compare preço e qualidade em mais de um fornecedor antes de comprar muito.'],
-        ['Ainda não conheço', 'Dica: Tudo bem começar do zero. Compre pouco no começo e pesquise pelo menos 2 fornecedores.']],
-      ajuda_texto: 'Pense na qualidade, no preço e em onde comprar.',
+        ['Conheço um pouco, ainda estou pesquisando', null],
+        ['Ainda não conheço', null]],
+      ajuda_texto: "Pense na qualidade, no preço e em onde comprar. Compre pouco no começo e compare pelo menos 2 fornecedores antes de comprar muito.",
       exemplo: 'Ex.: Ana comprava roupas numa fábrica para ela e hoje revende para as vizinhas.' },
     'M1.P05': { exemplo: 'Ex.: “Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.”' },
-    'M1.P06': { ajuda_texto: 'Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar.' },
+    'M1.P06': { ajuda_texto: "Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo." },
     'M1.P07': { exemplo: 'Ex.: “Tenho R$ 500 guardados para as primeiras peças. Se eu não vender nada, não falta comida em casa.”' },
-    'M1.P08': { opcoes: OPS_P08_MERC },
+    'M1.P08': { opcoes: OPS_P08_MERC, exemplos: ['Fornecedor é quem vende para você. Ex.: fábrica, loja de atacado', null, null, null, null] },
   },
   'Serviço': {
     'M1.P04': { exemplo: 'Ex.: Maria foi costureira por 5 anos e hoje faz consertos de roupa em casa.' },
     'M1.P05': { exemplo: 'Ex.: “Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.”' },
-    'M1.P06': { ajuda_texto: 'Ex.: ferramentas, materiais de trabalho ou um espaço para atender.' },
+    'M1.P06': { ajuda_texto: "Ex.: ferramentas, materiais de trabalho ou um espaço para atender. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo." },
     'M1.P07': { exemplo: 'Ex.: “Tenho R$ 300 guardados para esmaltes e alicates. Se eu não tiver clientes, não falta comida em casa.”' },
   },
 };
@@ -213,7 +216,9 @@ ok(!/M1\.P04\.1|suprir essa falta/.test(dados), 'Pergunta 4A deve sair dos dados
 
 /* ---------- ajuste do "Não sei" e vídeos, direto nos dados ---------- */
 const CARD = 'Não sabe ou não entendeu? Assista ao vídeo';
-const COM_NAOSEI = ['M1.P05A', 'M1.P07A'];
+/* lote 16/11: "Não sei" só mostra a ajuda e não grava. Fica como botão onde a resposta é algo a descobrir
+   (P3: "Ainda não sei o que vender"; 7A: "Não sei"); sai da 5A (é sobre a própria pessoa). Nenhuma opção "Não sei". */
+const COM_NAOSEI = ['M1.P03', 'M1.P07A'];
 const COM_VIDEO = ['M1.P03', 'M1.P07'];
 function lerDados(txt) {
   const ctx = { window: {} };
@@ -225,10 +230,12 @@ function conferirAjuste(D) {
   const p = [];
   for (const q of D.perguntas) {
     const ops = (q.opcoes || []).map((o) => o.texto);
-    const ns = ops.filter((o) => /n[ãa]o sei/i.test(o) && o !== 'Ainda não sei fazer' && o !== 'Ainda não sei fazer direito');
-    if (COM_NAOSEI.includes(q.codigo)) {
-      if (ns.length !== 1 || ops[ops.length - 1] !== 'Não sei dizer') p.push(`${q.codigo}: "Não sei dizer" deve ser a última opção`);
-    } else if (ns.length) p.push(`${q.codigo}: não pode ter "${ns.join('", "')}"`);
+    const todas = ops.concat(...Object.values(q.por_tipo || {}).map((v) => (v.opcoes || []).map((o) => o.texto)));
+    const ns = todas.filter((o) => /n[ãa]o sei|ainda n[ãa]o (pensei|defini)/i.test(o) && o !== 'Ainda não sei fazer' && o !== 'Ainda não sei fazer direito');
+    if (ns.length) p.push(`${q.codigo}: não pode ter a opção "${ns.join('", "')}" (o "Não sei" não grava)`);
+    if (COM_NAOSEI.includes(q.codigo) !== !!q.botao_ajuda) p.push(`${q.codigo}: botão de ajuda ${q.botao_ajuda ? 'não deveria existir' : 'faltando'}`);
+    if (q.codigo === 'M1.P07A' && q.botao_ajuda !== 'Não sei') p.push('M1.P07A: botão deve ser "Não sei"');
+    if (!COM_NAOSEI.includes(q.codigo) && (q.comoDescobrir || q.promptIA)) p.push(`${q.codigo}: "Como descobrir" sem botão de "Não sei"`);
     if (q.botao_naosei) p.push(`${q.codigo}: não pode ter botão "${q.botao_naosei.texto}"`);
     if (COM_VIDEO.includes(q.codigo)) {
       if (!q.video || q.video.texto !== CARD) p.push(`${q.codigo}: falta o card de vídeo`);
@@ -236,7 +243,7 @@ function conferirAjuste(D) {
     } else if (q.video) p.push(`${q.codigo}: não deveria ter card de vídeo`);
     if (/Tudo bem/.test(JSON.stringify(q.botao_naosei || '')) ) p.push(`${q.codigo}: mensagem "Tudo bem" do Não sei`);
     /* versão leve: toda pergunta com "Não sei" (e a P3, com "Ainda não sei o que vender") traz passos e pedido para a IA */
-    if (COM_NAOSEI.includes(q.codigo) || q.codigo === 'M1.P03') {
+    if (COM_NAOSEI.includes(q.codigo)) {
       if (!Array.isArray(q.comoDescobrir) || !q.comoDescobrir.length || q.comoDescobrir.some((x) => !String(x || '').trim())) p.push(`${q.codigo}: falta "comoDescobrir"`);
       if (!String(q.promptIA || '').trim()) p.push(`${q.codigo}: falta "promptIA"`);
     }
@@ -249,12 +256,14 @@ ok(probs.length === 0, 'ajuste nos dados: ' + probs.join(' | '));
 /* sabotagem: cada estrago tem de ser apontado pelo conferidor */
 const sabot = [
   ['"Não sei dizer" volta na P1', (D) => D.perguntas[0].opcoes.push({ texto: 'Não sei dizer', mensagem: null })],
-  ['"Não sei dizer" sai da 5A', (D) => { const q = D.perguntas.find((x) => x.codigo === 'M1.P05A'); q.opcoes.pop(); }],
-  ['"Não sei dizer" fora do fim na 7A', (D) => { const q = D.perguntas.find((x) => x.codigo === 'M1.P07A'); q.opcoes.unshift(q.opcoes.pop()); }],
+  ['"Não sei dizer" volta na 5A', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P05A').opcoes.push({ texto: 'Não sei dizer', mensagem: null }); }],
+  ['"Ainda não pensei nisso" na 7A', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P07A').opcoes.push({ texto: 'Ainda não pensei nisso', mensagem: null }); }],
+  ['7A sem botão "Não sei"', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P07A').botao_ajuda; }],
+  ['botão "Não sei" na 5A', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P05A').botao_ajuda = 'Não sei'; }],
   ['"Ainda não sei" volta na P3', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P03').botao_naosei = { texto: 'Ainda não sei', mensagem: null }; }],
   ['card sem vídeo na P7', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P07').video; }],
   ['card na P1', (D) => { D.perguntas[0].video = { texto: CARD, url: null }; }],
-  ['5A sem "Como descobrir"', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P05A').comoDescobrir; }],
+  ['7A sem "Como descobrir"', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P07A').comoDescobrir; }],
   ['7A com passo vazio', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P07A').comoDescobrir.push(' '); }],
   ['P3 sem pedido para a IA', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P03').promptIA; }],
 ];
@@ -269,7 +278,13 @@ async function servidor() {
   const s = http.createServer((req, res) => {
     const f = path.resolve(dir, '.' + decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
     if (!f.startsWith(dir)) return res.writeHead(403).end();
-    fs.readFile(f, (e, b) => e ? res.writeHead(404).end() : res.writeHead(200, { 'Content-Type': tipos[path.extname(f)] || 'application/octet-stream' }).end(b));
+    fs.readFile(f, (e, b) => {
+      if (e) return res.writeHead(404).end();
+      /* M01_SABOTAGEM=1: o "Não sei" passa a gravar "naosei" (o teste tem de falhar) */
+      if (process.env.M01_SABOTAGEM && f.endsWith(path.join('js', 'app.js')))
+        b = String(b).replace('si.onclick = () => {', 'si.onclick = () => { try { const k = "lg2-turma-a-m01", st = JSON.parse(localStorage.getItem(k)); st.R[q.codigo] = { estado: "naosei", texto: q.botao_ajuda }; localStorage.setItem(k, JSON.stringify(st)); } catch {}');
+      res.writeHead(200, { 'Content-Type': tipos[path.extname(f)] || 'application/octet-stream' }).end(b);
+    });
   });
   await new Promise((r) => s.listen(0, '127.0.0.1', r));
   return { url: `http://127.0.0.1:${s.address().port}/`, close: () => s.close() };
@@ -301,7 +316,10 @@ async function servidor() {
     const b = [...document.querySelectorAll(sel)].find((x) => x.textContent.replace(/\s+/g, ' ').replace('✓', '').trim() === t);
     if (!b) return false; b.click(); return true;
   }, [sel, t]);
-  const opcao = (t) => clicarTexto('.opcao', t);
+  const opcao = (t) => page.evaluate((t) => {
+    const b = [...document.querySelectorAll('.opcao')].find((x) => x.querySelector('.op-txt b').textContent.trim() === t);
+    if (!b) return false; b.click(); return true;
+  }, t);
   const continuarDesligado = () => page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); return b ? b.disabled : null; });
   const continuar = async () => { ok(await clicarTexto('button', 'Continuar'), 'botão Continuar'); await page.waitForTimeout(30); };
   const msgAgora = () => page.evaluate(() => { const m = document.querySelector('#msg .msg'); return m ? m.querySelector('b').textContent + ': ' + m.querySelector('p').textContent : null; });
@@ -361,6 +379,26 @@ async function servidor() {
     ok(ouvir, `${onde}: botão Ouvir`);
   }
 
+  /* "Não sei" (botão): mostra a ajuda + nota, NÃO grava (estado salvo igual), Continuar não avança; tocar de novo fecha */
+  const NOTA_TEXTO = 'Use a ajuda acima e escreva a sua resposta para continuar.';
+  const NOTA_OPCAO = 'Use a ajuda acima e escolha uma opção para continuar.';
+  const salvoTudo = () => page.evaluate(() => localStorage.getItem('lg2-turma-a-m01'));
+  async function naoSeiBloqueia(c, nota) {
+    const antes = await salvoTudo();
+    ok(await clicarTexto('button', EXP[c].botao_ajuda), `${c}: botão "${EXP[c].botao_ajuda}"`);
+    await conferirComo(c, '#comoideia');
+    ok(await page.evaluate(() => (document.querySelector('#comoideia .nota-ns') || {}).textContent) === nota, `${c}: nota "${nota}" abaixo da ajuda`);
+    ok((await salvoTudo()) === antes, `${c}: "Não sei" não grava nada (estado salvo igual)`);
+    ok(await page.evaluate((c) => !(JSON.parse(localStorage.getItem('lg2-turma-a-m01') || '{}').R || {})[c], c), `${c}: sem resposta gravada depois do "Não sei"`);
+    ok((await continuarDesligado()) === true, `${c}: Continuar apagado só com "Não sei"`);
+    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); b.disabled = false; b.click(); });
+    await page.waitForTimeout(30);
+    ok((await cod()) === c, `${c}: Continuar (mesmo forçado) não avança só com "Não sei"`);
+    await clicarTexto('button', EXP[c].botao_ajuda);
+    ok(await page.evaluate(() => document.querySelector('#comoideia').hidden), `${c}: tocar de novo fecha a ajuda`);
+    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); b.disabled = true; });
+  }
+
   /* checagens de uma pergunta antes de responder */
   async function conferirPergunta(c, R, todasMsgs) {
     const e = expDe(c, R);
@@ -390,16 +428,22 @@ async function servidor() {
       ok(await page.evaluate(() => getComputedStyle(document.querySelector('.opcao .radio')).borderRadius === '6px'), `${c}: quadradinho (várias respostas), não bolinha`);
     }
     await regrasGerais(c);
-    ok(!/Não sei dizer|Ainda não sei\b(?! fazer)/.test(t.replace(/Não sei dizer/g, COM_NAOSEI.includes(c) ? '' : 'Não sei dizer').replace(c === 'M1.P03' ? 'Ainda não sei o que vender' : '@@', '')), `${c}: "Não sei" fora da 5A/7A`);
+    ok(!/Não sei dizer|Ainda não sei\b(?! fazer)|Ainda não pensei|Ainda não defini/.test(t.replace(c === 'M1.P03' ? 'Ainda não sei o que vender' : '@@', '')), `${c}: "Não sei" como opção`);
+    {
+      const bt = await page.evaluate(() => { const b = document.querySelector('#semideia'); return b ? b.textContent.trim() : null; });
+      ok(bt === (e.botao_ajuda || null), `${c}: botão de ajuda "${bt}" (esperado ${e.botao_ajuda || 'nenhum'})`);
+    }
+    if (e.exemplos) ok(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.opcao')].map((o) => { const x = o.querySelector('.op-ex'); return x ? x.textContent : null; }))) === JSON.stringify(e.exemplos), `${c}: linha de exemplo embaixo das opções`);
+    else ok(await page.evaluate(() => !document.querySelector('.op-ex')), `${c}: sem linha de exemplo nas opções`);
     ok(await page.evaluate(() => !document.querySelector('.como-descobrir')), `${c}: "Como descobrir" começa fechado`);
     ok(await page.evaluate(() => !document.querySelector('#ns, .video-card, .video-fundo')), `${c}: sem botão Não sei e sem card de vídeo (vídeo ainda não chegou)`);
     if (R.__novo) ok(await continuarDesligado() === true, `${c}: Continuar deve começar apagado`);
     if (e.opcoes) {
       const ops = await estadoOpcoes();
       ok(JSON.stringify(ops.map((o) => o.t)) === JSON.stringify(e.opcoes.map((o) => o[0])), `${c}: opções ${JSON.stringify(ops.map((o) => o.t))}`);
-      if (COM_NAOSEI.includes(c)) ok(ops.length && ops[ops.length - 1].t === 'Não sei dizer', `${c}: "Não sei dizer" deve ser a última`);
-      else ok(!ops.some((o) => o.t === 'Não sei dizer'), `${c}: "Não sei dizer" não pode aparecer`);
+      ok(!ops.some((o) => /^Não sei/.test(o.t)), `${c}: "Não sei" não pode ser opção`);
       if (R.__novo) ok((await msgAgora()) === null, `${c}: sem mensagem antes de responder`);
+      if (R.__novo && e.botao_ajuda) await naoSeiBloqueia(c, NOTA_OPCAO);
       if (todasMsgs && e.multi) {
         /* várias respostas: cada toque acrescenta; tocar de novo tira */
         const marcadas = [];
@@ -416,15 +460,11 @@ async function servidor() {
         ok(await page.evaluate(() => !JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R['M1.P08']), `${c}: sem nada marcado não guarda resposta`);
       } else if (todasMsgs) for (const [op, m] of e.opcoes) {
         await opcao(op);
-        ok((await msgAgora()) === m, `${c} / ${op}: mensagem "${await msgAgora()}" != "${m}"`);
+        ok((await msgAgora()) === null, `${c} / ${op}: orientação geral não aparece como retorno`);
         const st = await estadoOpcoes();
         ok(st.every((x) => (x.t === op) === x.sel && x.sel === x.check), `${c} / ${op}: ✓ só na escolhida`);
         if (c !== 'M1.P08' || op !== 'Outra coisa') ok(await continuarDesligado() === false, `${c} / ${op}: Continuar aceso`);
-        if (op === 'Não sei dizer') {
-          await conferirComo(c, '#msg');
-          const salvo = await page.evaluate((c) => JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R[c], c);
-          ok(JSON.stringify(salvo) === JSON.stringify({ estado: 'opcao', opcao: 'Não sei dizer' }), `${c}: "Não sei dizer" continua salvo igual (${JSON.stringify(salvo)})`);
-        } else ok(await page.evaluate(() => !document.querySelector('.como-descobrir')), `${c} / ${op}: sem "Como descobrir" fora do "Não sei"`);
+        ok(await page.evaluate(() => !document.querySelector('.como-descobrir')), `${c} / ${op}: sem "Como descobrir" fora do "Não sei"`);
       }
     }
   }
@@ -438,13 +478,7 @@ async function servidor() {
       const falar = await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /Falar/.test(b.getAttribute('aria-label') || b.textContent)).map((b) => b.getAttribute('aria-label')));
       ok(falar.length === 1 && falar[0] === 'Falar a resposta', 'P3: um botão "Falar a resposta" ao lado do campo');
       ok(await continuarDesligado() === true, 'P3: Continuar apagado sem texto');
-      if (R.__semideia) {
-        ok(await clicarTexto('button', EXP[c].botao_ajuda), 'P3: botão "Ainda não sei o que vender"');
-        await conferirComo(c, '#comoideia');
-        ok(await page.evaluate(() => !(JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R || {})['M1.P03']) && (await continuarDesligado()) === true, 'P3: a ajuda não grava resposta e o Continuar segue apagado');
-        await clicarTexto('button', EXP[c].botao_ajuda);
-        ok(await page.evaluate(() => document.querySelector('#comoideia').hidden), 'P3: tocar de novo fecha a ajuda');
-      }
+      if (R.__semideia) await naoSeiBloqueia(c, NOTA_TEXTO);
       await page.fill('#txt', v);
       ok((await msgAgora()) === null, 'P3: sem mensagem ao escrever');
     } else if (Array.isArray(v)) {
@@ -566,9 +600,9 @@ async function servidor() {
   ok(await page.evaluate(() => { const e = document.querySelector('.entendemos'); const n = e.querySelectorAll('p').length; return !e.querySelector('ul, ol, li') && n >= 1 && n <= 3; }),
     'resultado: "O que entendemos" em texto corrido (sem <li>, 1 a 3 <p>)');
   ok(await page.evaluate(() => { const e = document.querySelector('.entendemos'), d = document.querySelector('details.respostas');
-    return e.querySelector('h3').textContent === 'O que entendemos até aqui' && e.getBoundingClientRect().top < innerHeight && !!d && !d.open && d.querySelector('summary').textContent === 'Ver suas respostas' && (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING); }),
-    'resultado: caixa no topo (visível sem rolar) e respostas recolhidas abaixo dela');
-  ok(!(await texto()).includes('Você já sabe fazer bolo de pote?'), 'resultado: lista de respostas começa recolhida');
+    return e.querySelector('h3').textContent === 'O que entendemos até aqui' && e.getBoundingClientRect().top < innerHeight && !!d && d.open && d.querySelector('summary').textContent === 'Ver suas respostas' && (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING); }),
+    'resultado: caixa no topo (visível sem rolar) e respostas abertas abaixo dela (relatório aberto, 16/11)');
+  ok((await texto()).includes('Você já sabe fazer bolo de pote?'), 'resultado: lista de respostas começa aberta');
   await shot('06-resultado');
   await page.evaluate(() => { document.querySelector('details.respostas').open = true; });
   t = await texto();
@@ -577,12 +611,12 @@ async function servidor() {
     'Conheço poucas pessoas para vender ou me ajudar|Outra coisa: Medo de não vender', 'resultado: Pergunta 8 lista as duas preocupações');
   ok(t.includes('O que você oferece?') && t.includes('Produto: eu compro materiais e faço o que vendo'), 'resultado: resposta da 3A');
   ok(t.includes('Você já sabe fazer bolo de pote?') && t.includes('Bolo de pote'), 'resultado: resumo com P3/P4');
-  ok(/Ver suas respostas/i.test(t) && /Mais detalhes/.test(t) && !/Para onde seguem estas informações/i.test(t), 'resultado: resumo + "Mais detalhes" recolhido');
+  ok(/Ver suas respostas/i.test(t) && /Mais detalhes/.test(t) && /Para onde seguem estas informações/i.test(t), 'resultado: resumo + "Mais detalhes" aberto');
   {
     /* versão leve: o resultado começa pelo que importa (entendemos, tarefa, falta descobrir); o resto fica recolhido */
     const ordem = await page.evaluate(() => ['.entendemos', '.tarefa', '.b-lacuna', 'details.respostas', 'details.mais-detalhes', '.lg2-proximo'].map((s) => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().top + scrollY : -1; }));
     ok(ordem.every((y, i) => y >= 0 && (i === 0 || y > ordem[i - 1])), 'resultado: entendemos > tarefa > falta descobrir > respostas > mais detalhes > próximo módulo ' + JSON.stringify(ordem));
-    ok(await page.evaluate(() => { const d = document.querySelector('details.mais-detalhes'); return !d.open && !!d.querySelector('.aviso-roxo') && !!d.querySelector('details.para-onde'); }), 'resultado: profissional, "Para onde seguem" e aviso dentro de "Mais detalhes" (fechado)');
+    ok(await page.evaluate(() => { const d = document.querySelector('details.mais-detalhes'); return d.open && !!d.querySelector('.aviso-roxo') && !!d.querySelector('details.para-onde'); }), 'resultado: profissional, "Para onde seguem" e aviso dentro de "Mais detalhes" (aberto)');
   }
   await page.evaluate(() => { document.querySelector('details.mais-detalhes').open = true; });
   t = await texto();
@@ -593,11 +627,11 @@ async function servidor() {
     const prof = [...document.querySelectorAll('.cartao')].find((c) => c.querySelector('h3') && c.querySelector('h3').textContent === 'Quando procurar um profissional');
     const lim = document.querySelector('.aviso-roxo');
     const d1 = prof && prof.querySelector('details.ver-mais'), d2 = lim && lim.querySelector('details.ver-mais');
-    return !!d1 && !d1.open && d1.querySelector('summary').textContent === 'Ver mais' && prof.querySelector(':scope > p').textContent.length <= 220
-      && !!d2 && !d2.open && lim.querySelector(':scope > p').textContent.length <= 220;
-  }), 'resultado: textos longos com 1ª frase e "Ver mais" fechado');
-  ok(await page.evaluate(() => { const d = document.querySelector('details.para-onde'); return !!d && !d.open && d.querySelector('summary').textContent === 'Para onde seguem estas informações' && d.querySelectorAll('.cartao').length === 4; }),
-    'resultado: "Para onde seguem estas informações" recolhido (4 módulos dentro)');
+    return !!d1 && d1.open && d1.querySelector('summary').textContent === 'Ver mais' && prof.querySelector(':scope > p').textContent.length <= 220
+      && !!d2 && d2.open && lim.querySelector(':scope > p').textContent.length <= 220;
+  }), 'resultado: textos longos com 1ª frase e "Ver mais" (aberto no relatório)');
+  ok(await page.evaluate(() => { const d = document.querySelector('details.para-onde'); return !!d && d.open && d.querySelector('summary').textContent === 'Para onde seguem estas informações' && d.querySelectorAll('.cartao').length === 4; }),
+    'resultado: "Para onde seguem estas informações" aberto (4 módulos dentro)');
   ok(await page.evaluate(() => !/\bGrupo\s*\d|demais grupos|outros grupos/i.test(document.querySelector('#tela').textContent)), 'resultado: nenhuma menção a "Grupo N" ou aos outros grupos (nem no que está recolhido)');
   await shot('06b-resultado-respostas');
 
@@ -608,19 +642,15 @@ async function servidor() {
   await caminho('7A por P6', com({ 'M1.P06': 'Não tenho nada ainda', 'M1.P07': 'Mais de R$ 1.000' }));
   for (const op of EXP['M1.P07'].opcoes.map((o) => o[0]))
     await caminho(`P7 = ${op}`, com({ 'M1.P07': op }));
-  // "Não sei dizer" na 5A e na 7A (as únicas que ainda têm a opção) vira lacuna no resultado
-  await caminho('Não sei na 5A e na 7A', com({ 'M1.P05': 'Só nos fins de semana', 'M1.P05A': 'Não sei dizer', 'M1.P06': 'Não tenho nada ainda', 'M1.P07A': 'Não sei dizer' }));
-  t = await texto();
-  ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna li .falta-txt')].map((l) => l.textContent).join('|')) ===
-    'Ainda falta saber: se você consegue arrumar mais tempo quando o negócio crescer.|Ainda falta saber: como você vai começar sem dinheiro ou sem material.', 'resultado: o que falta descobrir = 5A e 7A, em linguagem simples');
-  ok(await page.evaluate(() => document.querySelector('.b-lacuna b').textContent) === 'O que ainda falta descobrir', 'resultado: título "O que ainda falta descobrir"');
-  ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna > ul > li')].every((l) => { const d = l.querySelector('details.como-mini'); return d && !d.open && d.querySelector('summary').textContent === 'Como descobrir' && d.querySelectorAll('.como-descobrir ol li').length >= 1 && !!d.querySelector('[data-copiar]'); })),
-    'resultado: cada lacuna tem "Como descobrir" (fechado) com passos e Copiar');
+  // 5A sem "Não sei"; 7A com "Não sei" tocado antes de responder (só ajuda): nada vira lacuna
+  await caminho('5A e 7A (Não sei na 7A só ajuda)', com({ 'M1.P05': 'Só nos fins de semana', 'M1.P05A': 'Não, meus horários não podem mudar', 'M1.P06': 'Não tenho nada ainda', 'M1.P07A': 'Vendendo por encomenda, com o cliente pagando uma parte antes' }), {
+    shots: { 'M1.P07A': async () => { await clicarTexto('button', 'Não sei'); await shot('07-7a-nao-sei-ajuda'); await clicarTexto('button', 'Não sei'); } } });
+  ok(await page.evaluate(() => !document.querySelector('.b-lacuna > ul > li') && !!document.querySelector('.b-lacuna .nada-falta')), 'resultado: "Não sei" da 7A não vira lacuna (não foi gravado)');
   {
     const f = [((await entendemos()) || []).join(' ')];
-    ok(f[0].includes('Você já sabe fazer isso bem e só tem os fins de semana para o negócio, e ainda não sabe se consegue arrumar mais tempo.') &&
-      f[0].includes('Você pode usar entre R$ 100 e R$ 500 sem faltar para as contas da casa, e ainda não tem o que precisa para trabalhar.') &&
-      f[0].includes('O que mais te preocupa agora é: ainda não saber fazer direito.'), 'entendemos: "Não sei dizer" da 5A/7A e preocupação única ' + JSON.stringify(f));
+    ok(f[0].includes('Você já sabe fazer isso bem e só tem os fins de semana para o negócio, e seus horários não podem mudar: o negócio cresce no seu ritmo.') &&
+      f[0].includes('Você pode usar entre R$ 100 e R$ 500 sem faltar para as contas da casa, e ainda não tem o que precisa para trabalhar; você pensa em começar vendendo por encomenda, com o cliente pagando uma parte antes.') &&
+      f[0].includes('O que mais te preocupa agora é: ainda não saber fazer direito.'), 'entendemos: 5A/7A e preocupação única ' + JSON.stringify(f));
   }
   // serviço, ideia ainda só na cabeça e todas as preocupações
   await caminho('serviço só na cabeça', com({ 'M1.P01': 'Ainda está só na minha cabeça', 'M1.P03': 'Lavagem de carro em domicílio.', __p4: 'lavagem de carro em domicílio',
@@ -655,8 +685,11 @@ async function servidor() {
     'aviso: já vende + ainda não sabe fazer ' + JSON.stringify(await avisosAgora()));
   ok(await page.evaluate(() => !!document.querySelector('.lg2-proximo')), 'aviso não trava: o resultado chega ao botão do próximo módulo');
   // ideia vaga na Pergunta 3: entra no que falta descobrir e a tarefa pede para definir a ideia
-  await caminho('ideia vaga', com({ 'M1.P03': 'não sei', __vaga: true, __semideia: true, 'M1.P05': 'Até 1 hora por dia', 'M1.P05A': 'Não sei dizer' }));
-  ok(JSON.stringify(await faltaAgora()) === JSON.stringify(['Ainda falta saber: o que exatamente você vai vender.', 'Ainda falta saber: se você consegue arrumar mais tempo quando o negócio crescer.']), 'falta descobrir (ideia vaga + 5A): ' + JSON.stringify(await faltaAgora()));
+  await caminho('ideia vaga', com({ 'M1.P03': 'não sei', __vaga: true, __semideia: true, 'M1.P05': 'Até 1 hora por dia', 'M1.P05A': 'Sim, consigo arrumar mais tempo' }));
+  ok(JSON.stringify(await faltaAgora()) === JSON.stringify(['Ainda falta saber: o que exatamente você vai vender.']), 'falta descobrir (ideia vaga): ' + JSON.stringify(await faltaAgora()));
+  ok(await page.evaluate(() => [...document.querySelectorAll('.b-lacuna > ul > li')].every((l) => { const d = l.querySelector('details.como-mini'); return d && d.open && d.querySelector('summary').textContent === 'Como descobrir' && d.querySelectorAll('.como-descobrir ol li').length >= 1 && !!d.querySelector('[data-copiar]'); })),
+    'resultado: cada lacuna tem "Como descobrir" (aberto) com passos e Copiar');
+  ok(await page.evaluate(() => document.querySelector('.b-lacuna b').textContent) === 'O que ainda falta descobrir', 'resultado: título "O que ainda falta descobrir"');
   ok(await tarefaAgora() === 'Escreva em uma frase o que você quer vender e para quem.', 'tarefa (ideia vaga): ' + await tarefaAgora());
   ok(!((await entendemos()) || []).join(' ').includes('não sei'), 'entendemos: não repete a ideia vaga');
   await shot('m01-resultado-falta-e-tarefa');
@@ -750,7 +783,7 @@ async function servidor() {
         ok(!(await aberto()) && await pc() === c, `${c}: Esc fecha o vídeo`);
       }
       if (c === 'M1.P03') await pv.fill('#txt', 'Bolo de pote');
-      else await clica('.opcao', c === 'M1.P07' ? 'Nada por enquanto' : (await pv.evaluate(() => document.querySelector('.opcao b').textContent)));
+      else await pv.evaluate((t) => { const b = t ? [...document.querySelectorAll('.opcao')].find((x) => x.querySelector('b').textContent === t) : document.querySelector('.opcao'); b.click(); }, c === 'M1.P07' ? 'Nada por enquanto' : null);
       await clica('button', 'Continuar');
     }
     ok(JSON.stringify(Object.keys(vistos).filter((c) => vistos[c])) === JSON.stringify(COM_VIDEO), `card só nas Perguntas 3 e 7: ${JSON.stringify(vistos)}`);
@@ -767,8 +800,33 @@ async function servidor() {
   await clicarTexto('button', 'Começar');
   ok(await cod() === 'M1.P02' && (await estadoOpcoes()).every((o) => !o.sel), 'v2: volta para a P2, que perdeu o "Não sei dizer"');
   const mig = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')));
-  ok(mig.v === 4 && JSON.stringify(Object.keys(mig.R).sort()) === JSON.stringify(['M1.P01', 'M1.P04', 'M1.P05', 'M1.P05A']) && mig.R['M1.P05A'].opcao === 'Não sei dizer',
-    'v2: tira só "Não sei dizer" da P2 e "Ainda não sei" da P3, guarda o resto (inclusive o da 5A): ' + JSON.stringify(mig));
+  ok(mig.v === 5 && JSON.stringify(Object.keys(mig.R).sort()) === JSON.stringify(['M1.P01', 'M1.P04', 'M1.P05']),
+    'v2: tira os "Não sei" (P2, P3 e 5A) e guarda o resto: ' + JSON.stringify(mig));
+
+  /* ---------- respostas da v4 com "Não sei dizer" (5A, 7A) e "naosei": viram "sem resposta", o resto fica ---------- */
+  {
+    const v4R = { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P02': { estado: 'opcao', opcao: 'Quero trabalhar por conta própria' },
+      'M1.P03': { estado: 'valor', valor: 'Lavagem de carro' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' },
+      'M1.P04': { estado: 'opcao', opcao: 'Sim, já faço bem' }, 'M1.P05': { estado: 'opcao', opcao: 'Até 1 hora por dia' }, 'M1.P05A': { estado: 'opcao', opcao: 'Não sei dizer' },
+      'M1.P06': { estado: 'opcao', opcao: 'Não tenho nada ainda' }, 'M1.P07': { estado: 'opcao', opcao: 'Até R$ 100' }, 'M1.P07A': { estado: 'opcao', opcao: 'Não sei dizer' },
+      'M1.P08': { estado: 'opcao', opcao: 'Outra coisa', opcoes: ['Outra coisa'], detalhe: 'Chuva' } };
+    await page.evaluate((R) => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'RESULTADO', R })), v4R);
+    await page.reload(); await page.waitForSelector('#ir');
+    const m4 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')));
+    const fica = Object.keys(v4R).filter((c) => !['M1.P05A', 'M1.P07A'].includes(c));
+    ok(m4.v === 5 && JSON.stringify(Object.keys(m4.R).sort()) === JSON.stringify(fica.sort()) && fica.every((c) => JSON.stringify(m4.R[c]) === JSON.stringify(v4R[c])),
+      'v4: "Não sei dizer" da 5A e da 7A vira sem resposta, as outras ficam iguais: ' + JSON.stringify(m4));
+    await clicarTexto('button', 'Começar');
+    ok(await cod() === 'M1.P05A' && (await estadoOpcoes()).every((o) => !o.sel) && (await continuarDesligado()) === true, 'v4 terminado: Começar leva à 5A, sem resposta');
+    await opcao('Sim, consigo arrumar mais tempo'); await continuar();
+    for (let i = 0; i < 3 && (await cod()) !== 'M1.P07A'; i++) {
+      ok((await continuarDesligado()) === false, `v4: ${await cod()} mantém a resposta antiga`); await continuar();
+    }
+    ok(await cod() === 'M1.P07A' && (await continuarDesligado()) === true, 'v4: chega à 7A (que também perdeu o "Não sei"), sem resposta');
+    await page.evaluate(() => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'M1.P04', R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'naosei', texto: 'Ainda não sei' } } })));
+    await page.reload(); await page.waitForSelector('#ir');
+    ok(JSON.stringify(Object.keys((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))).R)) === '["M1.P01"]', 'v4: resposta "naosei" vira sem resposta');
+  }
 
   /* ---------- respostas da v3 (Pergunta 8 com uma resposta só, sem a 3A) ---------- */
   const v3R = { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P02': { estado: 'opcao', opcao: 'Quero trabalhar por conta própria' },
@@ -877,5 +935,5 @@ async function servidor() {
   ok(erros.length === 0, 'erros na página: ' + erros.join(' | '));
   await browser.close(); srv.close();
   if (falhas.length) { console.log(`FAIL ${falhas.length} de ${checks} checagens`); falhas.forEach((f) => console.log(' - ' + f)); process.exit(1); }
-  console.log(`PASS ${checks} checagens · versão leve: capa curta, "Ver dica" fechada, exemplos no campo, até ${LIMITE_PALAVRAS} palavras por pergunta, "Como descobrir" + Copiar no "Não sei" (5A, 7A, P3) e no resultado · lote 3: Voltar só no topo acima da pergunta, textos longos com "Ver mais", "Para onde seguem" recolhido, sem "Grupo N" · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), "Não sei dizer" só na 5A/7A, card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
+  console.log(`PASS ${checks} checagens · versão leve: capa curta, "Ver dica" fechada, exemplos no campo, até ${LIMITE_PALAVRAS} palavras por pergunta, "Como descobrir" + Copiar no "Não sei" (P3, 7A; não grava, Continuar não avança) e no resultado · lote 3: Voltar só no topo acima da pergunta, textos longos com "Ver mais", "Para onde seguem" recolhido, sem "Grupo N" · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), nenhuma opção "Não sei" + migração v4→v5, exemplos embaixo das opções (3A, 7A), card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

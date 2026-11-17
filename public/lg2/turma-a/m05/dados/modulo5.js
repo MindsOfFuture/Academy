@@ -1,4 +1,7 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao (exceto o bloco 'leve' no fim do arquivo). */
+/* Dados do Módulo 5 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO5 = {
  "origem": "LG2_M05_planilha_do_grupo.xlsx",
  "modulo": {
@@ -1919,8 +1922,7 @@ window.MODULO5 = {
 /* Versão leve (nov/2026, pedido da coordenação; ajustado à mão, fora da planilha): capa curta,
    enunciados curtos ("curta" / "curtaPorTipo"), exemplo dentro do campo ("placeholder") e, por pergunta,
    a ajuda do "Não sei": comoDescobrir = 2 passos; promptIA = pedido pronto para copiar.
-   As opções e os valores salvos não mudam (outros módulos leem as respostas).
-   Ao regenerar este arquivo pela planilha, reaplique este bloco. */
+   As opções e os valores salvos não mudam (outros módulos leem as respostas). */
 window.MODULO5.leve = {
  "capa": {
   "frase": "Descubra quanto custa cada venda, quanto sobra e qual preço cobre seus gastos.",
@@ -1928,6 +1930,21 @@ window.MODULO5.leve = {
   "como_funciona": "Você responde uma pergunta por vez sobre um item que vende. Se não souber, toque em “Não sei”: mostramos como descobrir. No fim, você vê o custo de uma unidade, quanto sobra em cada venda e quantas vendas cobrem os gastos do mês."
  },
  "perguntas": {
+  "M5.ENT": {
+   "comoDescobrir": ["Lembre das últimas 10 vendas: quantas você levou ou mandou até o cliente?", "Veja quanto pagou ao motoboy ou ao aplicativo em cada entrega, ou quanto gasta de passagem ou combustível."]
+  },
+  "M5.SZ": {
+   "comoDescobrir": ["Lembre do último ano: em que meses você vendeu mais e em quais vendeu menos?", "Ainda não vende? Pense em quando as pessoas mais compram o que você oferece: datas, férias, frio ou calor."]
+  },
+  "M5.PT": {
+   "placeholder": ["Ex.: 0", "Ex.: 20"],
+   "comoDescobrir": ["Na próxima vez que fizer, olhe o relógio no começo e no fim, contando preparar, fazer e embalar.", "Fez várias de uma vez? Divida o tempo total pelo número de unidades. Ex.: 2 horas para 20 unidades = 6 minutos cada."],
+   "promptIA": "Eu faço [seu produto] em casa, [quantas] unidades por vez. Quanto tempo, em média, se leva para preparar, fazer e embalar cada unidade?"
+  },
+  "M5.PH": {
+   "placeholder": "Ex.: 60",
+   "comoDescobrir": ["Pense numa semana normal: quantas horas por dia você trabalha no negócio e em quantos dias.", "Multiplique: horas por dia × dias por semana × 4. Ex.: 3 horas × 5 dias × 4 = 60 horas por mês."]
+  },
   "M5.P00": {
    "comoDescobrir": [
     "Pense nas últimas 4 semanas: alguém pagou por algo que você fez, revendeu ou atendeu?",
@@ -2225,7 +2242,7 @@ window.MODULO5.leve = {
    "placeholder": "Ex.: 15",
    "comoDescobrir": [
     "Veja quanto você cobrou nas últimas vendas: mensagens, caderno ou comprovantes.",
-    "Ainda não tem preço? Pesquise 3 concorrentes (loja, internet, vizinhança) ou toque em “Ainda não defini” para ver um preço possível."
+    "Ainda não tem preço? Pesquise 3 concorrentes (loja, internet, vizinhança) ou use a conta abaixo para ver um preço possível."
    ],
    "promptIA": "Vendo [seu produto, mercadoria ou serviço] em [sua cidade e bairro]. Quanto cobram concorrentes parecidos? Me dê o menor, o mais comum e o maior preço."
   },

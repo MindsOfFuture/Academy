@@ -258,6 +258,8 @@
     if ((capa || resultado) && !pagina.querySelector('.p-fontes')) {
       var fontes = document.createElement('div');
       fontes.innerHTML = fontesHtml();
+      /* no resultado o relatório vem aberto (pedido de 16/11); na capa as fontes ficam recolhidas */
+      if (resultado && fontes.firstElementChild) fontes.firstElementChild.setAttribute('open', '');
       if (fontes.firstElementChild) pagina.appendChild(fontes.firstElementChild);
     }
     if ((capa || resultado) && !pagina.querySelector('.p-rodape') && !pagina.querySelector('.rodape')) {

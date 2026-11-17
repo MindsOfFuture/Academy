@@ -7,13 +7,17 @@
   const COD = /M2\.P\d{2}/g;
 
   function montar(D) {
-    const perguntas = D.perguntas.filter((p) => p.codigo);
+    /* oculta: pergunta que saiu do módulo (lote 16/11: o Módulo 3 faz a versão mais completa).
+       Fica nos dados para quem lê respostas antigas, mas não aparece nem dispara regra. */
+    const perguntas = D.perguntas.filter((p) => p.codigo && !p.oculta);
+    const ocultas = new Set(D.perguntas.filter((p) => p.codigo && p.oculta).map((p) => p.codigo));
+    const regras = D.regras.filter((r) => !refs(r.condicao).some((c) => ocultas.has(c)));
     const porCodigo = {};
     perguntas.forEach((p) => {
       p.opcoesLista = String(p.opcoes || "").split(";").map((s) => s.trim()).filter(Boolean);
       porCodigo[p.codigo] = p;
     });
-    return { D, perguntas, porCodigo };
+    return { D, perguntas, porCodigo, regras, ocultas };
   }
 
   /* pergunta de várias respostas ("Múltipla escolha" na planilha): guarda {estado:"opcao", opcao: a 1ª marcada,
@@ -81,12 +85,12 @@
     return "RESULTADO";
   }
   function regrasAgora(M, R, cod) {
-    return M.D.regras.filter((r) => {
+    return M.regras.filter((r) => {
       const rs = refs(r.condicao);
       return rs.includes(cod) && rs.every((c) => R[c] !== undefined) && avaliar(M, R, r.condicao) === true;
     });
   }
-  const regrasTodas = (M, R) => M.D.regras.filter((r) => avaliar(M, R, r.condicao) === true);
+  const regrasTodas = (M, R) => M.regras.filter((r) => avaliar(M, R, r.condicao) === true);
 
   /* ---- M2.I04 Quadro de evidências: conta as linhas da ficha (M2.I02) ---- */
   const SINAIS = ["forte", "fraco", "nenhum"];
@@ -143,8 +147,8 @@
     "M2.P07": "se os clientes são pessoas ou empresas", "M2.P08": "o que mais muda entre um cliente e outro", "M2.P09": "a fase da vida dos clientes",
     "M2.P10": "como os clientes reagem ao preço", "M2.P11": "onde estão os clientes", "M2.P12": "em que situação os clientes compram",
     "M2.P13": "o que pesa na escolha dos clientes", "M2.P14": "o tipo de empresa que compraria de você", "M2.P15": "por qual grupo começar",
-    "M2.P16": "como chegar até os clientes", "M2.P17": "a frequência de compra", "M2.P18": "quantas pessoas você já ouviu",
-    "M2.P19": "se alguém já tomou uma ação concreta", "M2.P20": "o motivo para escolherem você", "M2.P21": "se contaram um problema de verdade",
+    "M2.P16": "onde o cliente encontra você (no Módulo 3)", "M2.P17": "a frequência de compra", "M2.P18": "quantas pessoas você já ouviu",
+    "M2.P19": "se alguém já tomou uma ação concreta", "M2.P20": "o motivo para escolherem você (no Módulo 3)", "M2.P21": "se contaram um problema de verdade",
   };
   const CODIGO = /\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}[A-Za-z]?\b/;
   function limpa(t) {

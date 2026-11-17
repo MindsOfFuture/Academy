@@ -64,6 +64,42 @@
   const GENERICA = /^Resposta preenchida|^Lista de .+ informada|maior que zero|v[aá]lidos informados|^Uma ou mais|^Sim, com detalhes|^À vista$|^Na hora$/i;
   const REGRAS_GENERICAS = ["M6.R36"];
 
+  /* ---- lote 16/11 ----
+     "Não sei" sai das perguntas sobre a própria pessoa (o que ela decide ou já sabe dela mesma);
+     nas outras ele continua, mas só mostra a ajuda e não grava (o app trava o Continuar). */
+  const SEM_NAO_SEI = ["M6.P03", "M6.P04", "M6.P07", "M6.P09", "M6.P12", "M6.P18"];
+  /* exemplos curtos embaixo das opções (o texto da opção não muda: outros módulos comparam) */
+  const DESCR = {
+    "M6.P03": { "Parcelado": "Ex.: em 5 vezes no cartão ou no carnê", "Parte à vista e parte parcelado": "Ex.: dá uma entrada e parcela o resto" },
+    "M6.P08": { "Na hora": "Ex.: Pix e dinheiro", "Até 7 dias": "Ex.: cartão de débito", "8 a 30 dias": "Ex.: cartão de crédito à vista", "Mais de 30 dias": "Ex.: crédito parcelado, boleto a prazo" },
+    "M6.P18": { "Sim": "Ex.: ter algumas unidades a mais guardadas", "Não": "Ex.: só compra depois que o cliente pede" } };
+  /* perguntas criadas pelo app (não estão na planilha): parcelas da compra, taxa/prazo/parte de cada forma de pagamento
+     e vendas por época do ano */
+  const P_PARCELAS = "M6.P03A", P_FORMAS = "M6.PF", P_SAZ = "M6.SZ";
+  const PARCELADO = ["Parcelado", "Parte à vista e parte parcelado"];
+  /* formas de pagamento: as MESMAS opções da pergunta do Módulo 5 (M5.PG), para a resposta de lá valer aqui */
+  const FORMAS_M5 = ["Pix", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Outra forma"];
+  /* respostas antigas (opções da planilha) continuam valendo */
+  const CARTOES = ["Cartão de débito", "Cartão de crédito", "Cartão de crédito à vista", "Cartão de crédito parcelado"];
+  const ehCartao = (f) => CARTOES.includes(f) || /cart[aã]o|maquininha|aplicativo|site/i.test(f);
+  const temCartao = (R) => { const r = R["M6.P04"]; return !!r && r.estado === "multi" && r.opcoes.some(ehCartao); };
+  const temOutra = (R) => { const r = R["M6.P04"]; return !!r && r.estado === "multi" && r.opcoes.some((o) => !ehCartao(o)); };
+  /* sazonalidade: contrato com o Módulo 5 (M5.SZ) — {estado:"opcao", opcao, fortes:[1-12], fracos:[1-12], maisPct, menosPct} */
+  const SZ_NAO = "Não, é parecido o ano todo", SZ_SIM = "Sim, tem meses mais fortes e mais fracos";
+  const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const EXTRAS = [
+    { codigo: P_PARCELAS, depois: "M6.P03", app: true, tipo: "parcelas", campoApp: "parcelas",
+      pergunta: "Como vão ser as parcelas dessa compra?",
+      ajuda: "As parcelas são por mês. A primeira vence um mês depois da compra. Se ainda não fechou, use o que o vendedor ofereceu.",
+      condicao: "M6.P03 = Parcelado ou M6.P03 = Parte à vista e parte parcelado" },
+    { codigo: P_FORMAS, depois: "M6.P04", app: true, tipo: "formas", campoApp: "formas",
+      pergunta: "Em cada forma de pagamento: quanto fica de taxa e quando o dinheiro cai?",
+      ajuda: "A taxa e o prazo estão no aplicativo da maquininha ou do banco. Pix e dinheiro costumam não ter taxa e cair na hora. A parte das vendas é um chute: quanto das vendas vem por cada forma.",
+      condicao: (R) => !!(R["M6.P04"] && R["M6.P04"].estado === "multi" && R["M6.P04"].opcoes.length) },
+    { codigo: P_SAZ, depois: "M6.P05", app: true, tipo: "sazonal", campoApp: "sazonal",
+      pergunta: "Suas vendas mudam conforme a época do ano?",
+      ajuda: "Ex.: ovos de Páscoa em março e abril; sorvete no verão; material escolar em janeiro e fevereiro.",
+      opcoesLista: [SZ_NAO, SZ_SIM], condicao: "sempre" } ];
   const aspas = (s) => (String(s || "").match(/“([^”]+)”/g) || []).map((x) => x.slice(1, -1).trim());
   const regrasDe = (D, cod) => D.regras.filter((r) => r.codigo && r.pergunta === cod);
 
@@ -94,6 +130,16 @@
                     opcoesLista: ops, descricoes: NEG_DESCR, app: true };
       perguntas.splice(perguntas.indexOf(deps[0]), 0, neg);
     }
+    perguntas.forEach((p) => {
+      if (SEM_NAO_SEI.includes(p.codigo)) p.opcoesLista = p.opcoesLista.filter((o) => o !== NS);
+      if (p.codigo === "M6.P04") { p.opcoesLista = FORMAS_M5.slice(); p.opcoesPlanilha = String(p.opcoes || "").split(";").map((s) => s.trim()).filter(Boolean); }
+      if (DESCR[p.codigo]) p.descricoes = DESCR[p.codigo];
+    });
+    EXTRAS.forEach((x) => {
+      const q = Object.assign({ opcoesLista: [] }, x, x.opcoesLista ? { opcoesLista: x.opcoesLista.slice() } : {});
+      const i = perguntas.findIndex((p) => p.codigo === x.depois);
+      if (i >= 0) perguntas.splice(i + 1, 0, q);
+    });
     const porCodigo = {};
     perguntas.forEach((p) => (porCodigo[p.codigo] = p));
     const instr = {};
@@ -111,6 +157,7 @@
   const valor = (R, cod) => valorDe(R[cod]);
 
   function campo(q) {
+    if (q.campoApp) return q.campoApp;
     if (q.simNaoDetalhe) return "simnao_texto";
     if (q.multi) return "multi";
     if (/escolha|sim\/n/i.test(q.tipo)) return "escolha";
@@ -151,6 +198,7 @@
     return m[2] === "=" ? v === m[3].trim() : v !== m[3].trim();
   }
   function avaliar(R, cond0) {
+    if (typeof cond0 === "function") return cond0(R) ? true : false;
     const cond = LEITURA_COND[String(cond0 || "").trim()] || cond0;
     let indef = false;
     for (const parte of String(cond || "").split(/\s+ou\s+(?=M6\.P|Negócio)/)) {
@@ -199,7 +247,15 @@
   const generica = (r) => GENERICA.test(String(r.condicao || "").trim()) || REGRAS_GENERICAS.includes(r.codigo);
   const especificas = (rs) => rs.filter((r) => !generica(r));
   const lacunas = (rs) => semVazio(especificas(rs), "lacuna", "Nenhuma");
-  const alertas = (rs) => semVazio(especificas(rs), "alerta", "Nenhum");
+  /* lote 16/11 (BRIEF G): só fica como aviso o alerta que depende da resposta e aponta um risco real
+     (valor zero, prazo longo, prazo diferente); os outros aparecem para quase toda resposta e vão para a dica da pergunta */
+  const ALERTA_RISCO = ["M6.R05", "M6.R18", "M6.R25", "M6.R31", "M6.R34", "M6.R43", "M6.R54", "M6.R64"];
+  const ehRisco = (r) => ALERTA_RISCO.includes(r.codigo);
+  const alertas = (rs) => semVazio(rs.filter(ehRisco), "alerta", "Nenhum");
+  /* alertas que viraram dica: o da pergunta (aba 3) + os das regras de resposta comum dessa pergunta */
+  const alertasDica = (D, q) => [...new Set([q.alerta, ...regrasDe(D, q.codigo)
+    .filter((r) => !ehRisco(r) && !/Não sei|sem outras op|junto com outras op|^Resposta vazia|^Nenhuma resposta/i.test(r.condicao || "")).map((r) => r.alerta)]
+    .filter((x) => x && String(x).trim() && !/^Nenhum$/.test(String(x).trim())).map((x) => String(x).trim()))];
   const dicasGerais = (rs) => semVazio(rs.filter(generica), "alerta", "Nenhum");
   /* "Estimativa do investimento inicial" e "Estimativa do investimento" são o mesmo encaminhamento */
   const QUALIF = /\b(inicial|futuras|produtivo|para servicos|em mercadorias|em estoque)\b/g;
@@ -240,26 +296,147 @@
     return cent((String(txt).match(/\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?/g) || []).reduce((a, x) => a + num(x), 0));
   }
 
-  /* M6.I04: monta as 13 semanas a partir das respostas.
-     - entradas: vendas do mês (P05) × 12 ÷ 52 em toda semana, a partir da semana em que o prazo da P08 deixa o dinheiro entrar;
-     - saídas: gastos de todo mês (P06) × 12 ÷ 52 em toda semana + investimento inicial (P02+P11+P14+P17) na semana 1
-       (a v0.2 não pergunta número nem datas de parcelas, então o investimento sai todo na semana 1);
-     - saldo inicial = dinheiro que a pessoa já tem (P07). */
-  const FLUXO_V = 2;
-  function fluxoInicial(R) {
-    const p08 = valor(R, "M6.P08");
-    return montarSemanas({ v: FLUXO_V, saldoInicial: numDe(R, "M6.P07") || 0, vendasMes: numDe(R, "M6.P05") || 0,
-      gastosMes: somaValores(valor(R, "M6.P06")), investimento: investimento(R).valor || 0,
-      atraso: p08 in ATRASO ? ATRASO[p08] : 0, prazo: p08 in ATRASO ? p08 : null });
+  /* parcela k (1, 2, …) de uma compra mensal: vence k meses depois da semana 1.
+     1 mês = 52 ÷ 12 ≈ 4,33 semanas -> semana 1 + arredondar(k × 52 ÷ 12): 5, 10, 14, 18… */
+  const semanaParcela = (k) => 1 + Math.round(k * 52 / 12);
+  /* plano de pagamento do investimento: entrada na semana 1 + parcelas mensais; o que passa da semana 13 fica à parte */
+  function planoInvestimento(R) {
+    const inv = investimento(R), total = inv.valor || 0;
+    const p02 = numDe(R, "M6.P02") || 0, outros = cent(total - p02);
+    const r = R[P_PARCELAS], forma = valor(R, "M6.P03");
+    const plano = { total, aVista: total, parcelado: 0, entrada: 0, n: 0, parcela: 0, semanas: [], depois: [], outros, forma };
+    if (!PARCELADO.includes(forma) || !r || !(r.parcelas > 0)) return plano;
+    const entrada = forma === "Parcelado" ? 0 : Math.min(Math.max(0, r.entrada || 0), p02);
+    plano.entrada = entrada; plano.n = r.parcelas;
+    plano.parcelado = cent(p02 - entrada); plano.parcela = cent(plano.parcelado / r.parcelas);
+    plano.aVista = cent(entrada + outros);
+    for (let k = 1; k <= r.parcelas; k++) {
+      /* a última parcela fecha o total (sem sobrar centavo de arredondamento) */
+      const v = k < r.parcelas ? plano.parcela : cent(plano.parcelado - plano.parcela * (r.parcelas - 1));
+      const sem = semanaParcela(k);
+      (sem <= 13 ? plano.semanas : plano.depois).push({ k, semana: sem, valor: v });
+    }
+    return plano;
   }
-  /* refaz as 13 semanas a partir dos valores do mês (usado também quando a pessoa muda vendas/gastos na tela) */
+
+  /* dias até o dinheiro cair -> semanas depois da venda. Arredonda para CIMA: o dinheiro só conta na semana em que
+     já caiu, mesmo para vendas do fim da semana (30 dias ÷ 7 = 4,3 -> 5 semanas). */
+  const semanasDeDias = (d) => (d > 0 ? Math.ceil(d / 7) : 0);
+  /* formas de pagamento com parte, taxa e prazo (M6.PF, mesmo formato da taxa do Módulo 5: [{forma, parte, taxa, prazo}]).
+     Sem M6.PF (respostas antigas): uma forma só, sem taxa, com o prazo da P08. */
+  function formasFluxo(R) {
+    const pf = R[P_FORMAS];
+    if (pf && Array.isArray(pf.valor) && pf.valor.length) {
+      const l = pf.valor.map((x) => ({ forma: x.forma, parte: num(x.parte), taxa: num(x.taxa) || 0, dias: num(x.prazo) || 0 }));
+      const vazias = l.filter((x) => isNaN(x.parte)), soma = l.reduce((a, x) => a + (isNaN(x.parte) ? 0 : x.parte), 0);
+      if (l.length === 1) l[0].parte = 100;
+      else if (vazias.length) vazias.forEach((x) => (x.parte = Math.max(0, 100 - soma) / vazias.length));
+      const tot = l.reduce((a, x) => a + x.parte, 0) || 1;
+      return l.map((x) => Object.assign(x, { parte: x.parte * 100 / tot, sem: semanasDeDias(x.dias) }));
+    }
+    const p08 = valor(R, "M6.P08"), at = p08 in ATRASO ? ATRASO[p08] : 0;
+    return [{ forma: "Todas as vendas", parte: 100, taxa: 0, dias: null, sem: at, prazoTxt: p08 in ATRASO ? p08 : null }];
+  }
+  /* fator de cada semana pela época do ano: mês da semana (pelo dia do meio) nos fortes = 1 + mais%; nos fracos = 1 − menos% */
+  function fatoresSazonais(sz, inicio) {
+    const d0 = new Date(inicio + "T12:00:00");
+    return Array.from({ length: 13 }, (_, i) => {
+      const meio = new Date(d0.getTime() + (i * 7 + 3) * 864e5), mes = meio.getMonth() + 1;
+      let f = 1;
+      if (sz && sz.opcao === SZ_SIM) {
+        if ((sz.fortes || []).includes(mes)) f = 1 + (num(sz.maisPct) || 0) / 100;
+        else if ((sz.fracos || []).includes(mes)) f = Math.max(0, 1 - (num(sz.menosPct) || 0) / 100);
+      }
+      return { mes, fator: f, inicio: new Date(d0.getTime() + i * 7 * 864e5).toISOString().slice(0, 10) };
+    });
+  }
+  const hojeISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+
+  /* M6.I04: monta as 13 semanas a partir das respostas (versão 4 do fluxo, lote 16/11).
+     - semana 1 começa hoje; vendas da semana = vendas do mês (P05) × 12 ÷ 52 × fator da época (fortes/fracos);
+     - cada forma de pagamento: vendas da semana × parte × (1 − taxa), entrando na semana em que o dinheiro cai;
+     - saídas por semana (mês × 12 ÷ 52): gastos fixos (P06) + perdas + retirada para você + custo de cada venda
+       (custo × número de vendas = vendas ÷ preço, também com o fator da época). Perdas, retirada, custo e preço vêm do
+       Módulo 5 (o app passa em `m5`) e podem ser mudados na tela. A taxa das vendas sai das entradas (não do custo).
+     - investimento: entrada (ou tudo, se à vista) na semana 1; parcelas mensais nas semanas 5, 10…
+     - saldo inicial = dinheiro que a pessoa já tem (P07). */
+  const FLUXO_V = 4;
+  function fluxoInicial(R, m5, hoje) {
+    m5 = m5 || {};
+    const plano = planoInvestimento(R), sz = R[P_SAZ] || null;
+    return montarSemanas({ v: FLUXO_V, inicio: hoje || hojeISO(), saldoInicial: numDe(R, "M6.P07") || 0, vendasMes: numDe(R, "M6.P05") || 0,
+      gastosMes: somaValores(valor(R, "M6.P06")), perdasMes: m5.perdas || 0, retiradaMes: m5.retirada || 0,
+      custoVenda: m5.custoVenda || 0, entregaVenda: m5.entregaVenda || 0, precoVenda: m5.preco || 0, formas: formasFluxo(R), saz: sz && sz.opcao === SZ_SIM ? sz : null,
+      investimento: plano.total, plano });
+  }
+  /* refaz as 13 semanas a partir dos valores do mês (usado também quando a pessoa muda os valores na tela) */
   function montarSemanas(F) {
-    const ent = cent((F.vendasMes || 0) * FATOR_SEMANA), sai = cent((F.gastosMes || 0) * FATOR_SEMANA);
-    F.vendasSemana = ent; F.gastosSemana = sai;
+    const FS = FATOR_SEMANA;
+    F.vendasSemana = cent((F.vendasMes || 0) * FS);
+    F.fatores = fatoresSazonais(F.saz, F.inicio || hojeISO());
+    F.nVendasMes = F.precoVenda > 0 ? (F.vendasMes || 0) / F.precoVenda : 0;
+    F.variavelMes = cent(F.nVendasMes * (F.custoVenda || 0));
+    F.entregasMes = cent(F.nVendasMes * (F.entregaVenda || 0)); F.entregasSemana = cent(F.entregasMes * FS);
+    F.gastosSemana = cent((F.gastosMes || 0) * FS); F.perdasSemana = cent((F.perdasMes || 0) * FS);
+    F.retiradaSemana = cent((F.retiradaMes || 0) * FS); F.variavelSemana = cent(F.variavelMes * FS);
+    const fixo = cent(F.gastosSemana + F.perdasSemana + F.retiradaSemana);
+    const pl = F.plano || { aVista: F.investimento || 0, semanas: [] };
+    const inv = Array.from({ length: 13 }, (_, i) => (i === 0 ? pl.aVista || 0 : 0));
+    (pl.semanas || []).forEach((x) => { inv[x.semana - 1] = cent(inv[x.semana - 1] + x.valor); });
+    F.investSemanas = inv;
+    const ent = Array(13).fill(0), fora = { valor: 0 };
+    F.vendasSemanas = F.fatores.map((x) => cent(F.vendasSemana * x.fator));
+    (F.formas || []).forEach((f) => {
+      f.porSemana = F.vendasSemanas.map((v) => cent(v * f.parte / 100 * (1 - f.taxa / 100)));
+      f.porSemana.forEach((v, i) => { const j = i + (f.sem || 0); if (j < 13) ent[j] = cent(ent[j] + v); else fora.valor = cent(fora.valor + v); });
+    });
+    F.aReceberDepois = fora.valor;     // vendas das últimas semanas que só caem depois da semana 13
     F.semanas = Array.from({ length: 13 }, (_, i) => ({
-      entradas: i >= (F.atraso || 0) ? ent : 0,
-      saidas: cent(sai + (i === 0 ? F.investimento || 0 : 0)) }));
+      entradas: ent[i],
+      saidas: cent(fixo + cent(F.variavelSemana * F.fatores[i].fator) + cent((F.entregasSemana || 0) * F.fatores[i].fator) + inv[i]) }));
     return F;
+  }
+  /* ---- contas separadas (pedido do dono, 16/11): investimento, operação do mês, caixa, capital de giro e retorno ----
+     indicadores(x): x = fluxo pronto (objeto com `semanas`) ou { R, m5, hoje } (monta o fluxo). Função pura: a jornada copia
+     este arquivo como jornada/js/motor6.js para o "Plano de negócio". Devolve:
+     { investimento, aVista, parcelado: {entrada, n, parcela, semanas, depois},
+       entradasMes, fixos:[{nome, valor}], variaveis:[{nome, valor}], totalFixos, totalVariaveis, lucroMes,
+       saldoInicial, menorSaldo, semanaMenor, saldoFinal, capitalExtra, roiAno (% ao ano | null), paybackMeses (| null), sePaga (bool) }
+     Valores por mês sem a época do ano (mês "normal"); o caixa das 13 semanas já usa a época do ano. */
+  function itensFixos(txt, total) {
+    const partes = String(txt || "").split(/[;\n]+|,\s+(?=[A-Za-zÀ-ú])/).map((x) => x.trim()).filter(Boolean);
+    const itens = partes.map((x) => ({ nome: x.replace(/[:\-–]?\s*(R\$\s*)?\d[\d.,]*\s*$/, "").replace(/[:\s]+$/, "").trim(), valor: somaValores(x) }))
+      .filter((x) => x.valor > 0 && x.nome);
+    const soma = cent(itens.reduce((a, x) => a + x.valor, 0));
+    return itens.length && Math.abs(soma - total) < 0.005 ? itens : total > 0 ? [{ nome: "Gastos fixos do mês", valor: total }] : [];
+  }
+  function indicadores(x) {
+    const F = x && x.semanas ? x : x && x.fluxo ? x.fluxo : fluxoInicial(x.R, x.m5, x.hoje);
+    const R = (x && x.R) || {};
+    const pl = F.plano || { total: F.investimento || 0, aVista: F.investimento || 0, n: 0, semanas: [], depois: [] };
+    const vendas = cent(F.vendasMes || 0);
+    const taxas = cent((F.formas || []).reduce((a, f) => a + vendas * f.parte / 100 * (f.taxa || 0) / 100, 0));
+    const fixos = [...itensFixos(valor(R, "M6.P06"), cent(F.gastosMes || 0))];
+    if (F.retiradaMes) fixos.push({ nome: "O que você separa para você", valor: cent(F.retiradaMes) });
+    const variaveis = [
+      { nome: "Materiais e custo de cada venda", valor: cent(F.variavelMes || 0) },
+      { nome: "Entregas", valor: cent(F.entregasMes || 0) },
+      { nome: "Taxas das vendas", valor: taxas },
+      { nome: "Perdas", valor: cent(F.perdasMes || 0) } ].filter((v) => v.valor > 0);
+    const totalFixos = cent(fixos.reduce((a, v) => a + v.valor, 0)), totalVariaveis = cent(variaveis.reduce((a, v) => a + v.valor, 0));
+    const lucroMes = cent(vendas - totalFixos - totalVariaveis);
+    const rc = resumoCaixa(F), inv = cent(pl.total || 0);
+    const sePaga = lucroMes > 0 && inv > 0;
+    return { investimento: inv, aVista: cent(pl.aVista || 0), parcelado: pl.n ? { entrada: pl.entrada, n: pl.n, parcela: pl.parcela, semanas: pl.semanas.map((s) => s.semana), depois: pl.depois.length } : null,
+      entradasMes: vendas, fixos, variaveis, totalFixos, totalVariaveis, lucroMes,
+      saldoInicial: cent(F.saldoInicial || 0), menorSaldo: rc.min, semanaMenor: rc.semanaMin, saldoFinal: rc.final, capitalExtra: rc.capital,
+      roiAno: sePaga ? Math.round(lucroMes * 12 / inv * 1000) / 10 : null, paybackMeses: sePaga ? Math.round(inv / lucroMes * 10) / 10 : null, sePaga };
+  }
+  /* menor saldo, saldo final e capital adicional = o que falta para o saldo mais baixo não ficar negativo */
+  function resumoCaixa(F) {
+    const P = projetar(F);
+    const min = P.reduce((a, x) => (x.final < a.final ? x : a), P[0]);
+    return { min: min.final, semanaMin: min.semana, final: P[P.length - 1].final, capital: cent(Math.max(0, -min.final)), P };
   }
   /* "Saldo final da semana = saldo inicial da semana + entradas previstas − saídas previstas.
       O saldo final de uma semana passa a ser o saldo inicial da semana seguinte." */
@@ -281,7 +458,7 @@
   /* M6.I05: "Saldo do cenário = saldo inicial + entradas previstas no cenário − saídas previstas no cenário."
      limite: "Alertar quando houver período com saídas previstas superiores às entradas e ao saldo disponível." */
   function cenario(inicial, entradas, saidas) {
-    const saldo = inicial + entradas - saidas;
+    const saldo = cent(inicial + entradas - saidas);
     return { saldo, alerta: saidas > entradas + inicial };
   }
   /* M6.I02: itens das listas de compras (P01 e as listas das seções); categorias literais da regra */
@@ -312,8 +489,15 @@
   }
 
   const API = { montar, valor, valorDe, campo, temNaoSei, num, envio, valido, avaliar, proxima, casa, regrasPara,
-                regrasAgora, regrasTodas, retorna, lacunas, encaminhamentos, alertas, dicasGerais, pendencias, avisoValor,
+                regrasAgora, regrasTodas, retorna, lacunas, encaminhamentos, alertas, alertasDica, ehRisco, ALERTA_RISCO, dicasGerais, pendencias, avisoValor,
                 investimento, semanaDe, somaValores, montarSemanas, FATOR_SEMANA, ATRASO, FLUXO_V, LIMITES_AVISO,
+                planoInvestimento, semanaParcela, resumoCaixa, CARTOES, ehCartao, P_PARCELAS, P_FORMAS, P_SAZ, PARCELADO, SEM_NAO_SEI, temCartao, temOutra, cent,
+                FORMAS_M5, SZ_NAO, SZ_SIM, MESES, semanasDeDias, fatoresSazonais, formasFluxo, indicadores, itensFixos,
                 fluxoInicial, projetar, itensDe, semCompras, controle, cenario, categorias, itens, NS, COD, NEGOCIO };
-  if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
+  if (typeof module !== "undefined") module.exports = API;
+  else {
+    /* js/motor5.js (cópia do motor do Módulo 5, carregada antes) também se chama Motor: guarda como Motor5 */
+    if (raiz.Motor && raiz.Motor.calcular && !raiz.Motor5) raiz.Motor5 = raiz.Motor;
+    raiz.Motor = API;
+  }
 })(this);

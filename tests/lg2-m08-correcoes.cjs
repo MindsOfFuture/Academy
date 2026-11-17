@@ -24,7 +24,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   const page = await b.newPage({ viewport: { width: 390, height: 844 } });
   page.setDefaultTimeout(8000);
   const errs = [];
-  page.on('pageerror', (e) => errs.push(e.message));
+  page.on('pageerror', (e) => { errs.push(e.message); console.log('PAGEERROR', e.message); });
   page.on('dialog', (d) => d.accept());
   const st = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), K);
   const btn = (nome) => page.getByRole('button', { name: nome, exact: true });
@@ -43,7 +43,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   const ateResultado = async (resp = {}) => {
     for (let i = 0; i < 15 && (await atual()) !== 'RESULTADO'; i++) {
       const cod = await atual();
-      const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
+      const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
       if (ops.length) await escolher(resp[cod] || (ops.includes('Não') ? 'Não' : ops[0]));
       else if (resp[cod] || !(await page.inputValue('#ent input, #ent textarea')))   // valor herdado fica como veio
         await page.fill('#ent input, #ent textarea', resp[cod] || (cod === 'M8.P04' ? '3000' : 'Faço bolos de pote'));
@@ -92,6 +92,15 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await btn('Continuar').click();                                   // 2º toque com o mesmo valor segue
   check((await st()).R['M8.P04'] && (await st()).R['M8.P04'].valor === '2.250.000', 'segundo Continuar grava o valor alto');
   check(await page.locator('#retorno #alerta-mei').count() === 1, 'P04 acima do limite: alerta do MEI já na resposta');
+  /* conta feita à mão: 2.250.000 × 12 = 27.000.000 */
+  check(nrm(await page.textContent('#retorno #alerta-mei')).includes('Como calculamos: R$ 2.250.000 por mês × 12 meses = R$ 27.000.000 por ano.'), 'P04: "Como calculamos" do ano no alerta');
+  check(nrm(await page.textContent('#retorno #alerta-mei')).includes('Limite por mês: R$ 81.000 ÷ 12 meses = R$ 6.750.'), 'P04: conta do limite por mês');
+  /* dentro do limite: 2.500,50 × 12 = 30.006 (centavos no padrão brasileiro, conta e resultado iguais) */
+  await btn('Corrigir minha resposta').click();
+  await page.fill('#ent input', '2500,50'); await btn('Continuar').click();
+  check((await st()).R['M8.P04'].valor === '2.500,50', 'valor guardado no padrão brasileiro: ' + (await st()).R['M8.P04'].valor);
+  check(nrm(await page.textContent('#conta-ano')) === 'Seu faturamento no ano Cerca de R$ 30.006 por ano: dentro do limite do MEI em 2026, que é de R$ 81.000 por ano. Como calculamos: R$ 2.500,50 por mês × 12 meses = R$ 30.006 por ano.', 'P04: conta do ano dentro do limite: ' + nrm(await page.textContent('#conta-ano')));
+  check(await page.locator('#retorno #alerta-mei').count() === 0, 'dentro do limite: sem alerta');
   await page.evaluate(() => localStorage.clear());
 
   /* ===== Item 2: tipo de oferta herdado (Mercadoria) e aviso ao escolher diferente ===== */
@@ -99,11 +108,18 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     'M1.P03A': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' } } };
   await semear({ 'lg2-turma-a-m01': M1 });
   await page.reload(); await btn('Começar').click();
-  await btn('Continuar').click(); await seguir();                  // P01 herdada
+  /* item F: P01 e P02 já respondidas no Módulo 1 → sem tela; a 1ª tela é a P03, com o cartão "Veio do Módulo 1 · Trocar" */
+  check(await atual() === 'M8.P03', 'P01 e P02 do Módulo 1: sem tela, começa na P03');
+  { const cv = nrm(await page.textContent('#veio'));
+    check(cv.includes('O que você faz: Bolos de pote') && cv.includes('O que você vende: Mercadoria') && await page.locator('#veio .veio').count() === 2 && await page.locator('#veio [data-trocar]').count() === 2, 'cartão: o que veio do Módulo 1, com Trocar: ' + cv); }
+  check(JSON.stringify((await st()).R['M8.P02']) === JSON.stringify({ estado: 'opcao', opcao: 'Mercadoria', de: 1, reuso: true }), 'P02 gravada no formato do Módulo 8: ' + JSON.stringify((await st()).R['M8.P02']));
+  check(JSON.stringify((await st()).R['M8.P01']) === JSON.stringify({ estado: 'valor', valor: 'Bolos de pote', de: 1, reuso: true }), 'P01 gravada no formato do Módulo 8');
+  await page.click('#veio [data-trocar="M8.P02"]');
   assert.equal(await atual(), 'M8.P02');
-  check(nrm(await page.textContent('#ent .opcao.sel')) === 'Mercadoria', 'P02: Mercadoria do Módulo 1 marcada');
-  check(nrm(await page.textContent('#herdou .veio')) === 'Veio do Módulo 1' && /Confira e ajuste se quiser/.test(await page.textContent('#herdou')), 'P02: selo e convite a conferir');
-  const ops2 = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
+  check(nrm(await page.textContent('#ent .opcao.sel .op-txt > b')) === 'Mercadoria', 'Trocar: P02 abre com Mercadoria marcada');
+  check(nrm(await page.textContent('#herdou .veio')) === 'Veio do Módulo 1', 'Trocar: selo na pergunta');
+  check(await page.locator('#ent .op-ex').count() === 4, 'P02: exemplo embaixo de cada tipo');
+  const ops2 = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
   assert.deepEqual(ops2, ['Produto', 'Mercadoria', 'Serviço', 'Produto e serviço', 'Não sei']);
   await btn('Continuar').click();
   check(await page.locator('#aviso-tipo').count() === 0, 'mesma opção herdada: sem aviso');
@@ -114,6 +130,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   check(await page.locator('#acoes .btn-primario').count() === 1, 'aviso não trava: Seguir disponível');
   await seguir();
   check(await atual() === 'M8.P03', 'seguiu com a escolha diferente');
+  check(await page.locator('#veio [data-trocar="M8.P02"]').count() === 0, 'P02 trocada: sai do cartão');
   check((await st()).R['M8.P02'].opcao === 'Produto' && (await st()).R['M8.P02'].de === undefined, 'escolha diferente gravada sem selo');
   await ateResultado({ 'M8.P04': '3000' });
   check(await page.locator('#aviso-tipo').count() === 1, 'aviso de divergência também no resultado');
@@ -129,7 +146,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.reload(); await btn('Começar').click();
   await ateResultado({ 'M8.P05': 'MEI (Microempreendedor Individual)', 'M8.P02': 'Mercadoria' });
   let st8 = await st();
-  check(st8.R['M8.P04'].valor === '2250000' && st8.R['M8.P04'].de === 5, 'faturamento herdado do Módulo 5 (1.500 × 1.500)');
+  check(st8.R['M8.P04'].valor === '2.250.000' && st8.R['M8.P04'].de === 5 && st8.R['M8.P04'].reuso === true, 'faturamento herdado do Módulo 5 (1.500 × 1.500), no padrão brasileiro: ' + st8.R['M8.P04'].valor);
+  check(!st8.hist.includes('M8.P04') && !st8.hist.includes('M8.P02'), 'P02 e P04 reaproveitadas: sem tela');
   let am = nrm(await page.textContent('#alerta-mei'));
   for (const t of ['Atenção: faturamento acima do limite do MEI', 'R$ 27.000.000 por ano', 'R$ 81.000 por ano', 'sai do MEI', 'desenquadramento',
                    'mais de 20% do limite', 'contador', 'Sala do Empreendedor', 'Lei Complementar 238/2026']) check(am.includes(t), `alerta MEI: "${t}" em: ${am}`);
@@ -141,6 +159,9 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.reload(); await btn('Continuar de onde parei').click();
   am = nrm(await page.textContent('#alerta-mei'));
   check(am.includes('até 20% do limite') && am.includes('janeiro do ano seguinte') && am.includes('R$ 110.000'), `até 20%: ${am}`);
+  /* contas feitas à mão: 7.500 × 12 = 90.000; 81.000 + 20% (16.200) = 97.200 */
+  check(am.includes('Como calculamos: R$ 7.500 por mês × 12 meses = R$ 90.000 por ano.') && am.includes('Como calculamos: R$ 81.000 + 20% (R$ 16.200) = R$ 97.200 por ano.'), `até 20%: "Como calculamos": ${am}`);
+  check(nrm(await page.textContent('#calc-ano')) === 'Como calculamos: R$ 7.500 por mês × 12 meses = R$ 90.000 por ano.', 'resumo: conta do ano logo abaixo do que entendemos');
   /* sem MEI: o MEI não serve */
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P05'] = { estado: 'opcao', opcao: 'Não' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
@@ -163,10 +184,15 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   }
   /* P04 "Não sei" salvo antes (nov/2026: o faturamento passou a ser obrigatório): a resposta antiga é apagada e a pergunta volta */
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P04'] = { estado: 'naosei' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
-  await page.reload(); await btn('Continuar de onde parei').click();
-  check(await atual() === 'M8.P04', 'P04 "Não sei" antigo: volta à pergunta do faturamento');
+  await page.reload();
   check(!(await st()).R['M8.P04'] && (await st()).R['M8.P05'], 'P04 "Não sei" antigo: só essa resposta é apagada');
-  check(nrm(await page.inputValue('#ent input')) === '2250000', 'P04: valor do Módulo 5 (preço × vendas) já vem preenchido');
+  await btn('Começar').click();   // a P04 não estava na trilha salva (tinha vindo de outro módulo): recomeça do início, com as respostas guardadas
+  check(await atual() === 'M8.P03' && (await st()).R['M8.P04'].valor === '2.250.000' && (await st()).R['M8.P04'].de === 5, 'P04 "Não sei" antigo: o valor do Módulo 5 entra de novo, sem tela');
+  await btn('Continuar').click(); await seguir();
+  check(await atual() === 'M8.P05', 'P04 pulada');
+  check(nrm(await page.textContent('#veio')).includes('Faturamento por mês: R$ 2.250.000 por mês') && nrm(await page.textContent('#veio')).includes('Como calculamos: R$ 1.500 (preço de uma venda) × 1.500 (vendas por mês) = R$ 2.250.000 por mês.'), 'P05: cartão com o faturamento e a conta: ' + nrm(await page.textContent('#veio')));
+  await page.click('#veio [data-trocar="M8.P04"]');
+  check(await atual() === 'M8.P04' && await page.inputValue('#ent input') === '2.250.000', 'Trocar: o campo vem no padrão brasileiro');
   /* alerta na própria P05 ao escolher MEI */
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P04'] = { estado: 'valor', valor: '9000' }; s.hist = ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05']; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
@@ -196,52 +222,59 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     if (cod === 'M8.P05' || cod === 'M8.P07' || cod === 'M8.P04') await shotNs(cod);
   };
 
-  /* ===== Item 5 (Júlia, nov/2026): "Não sei" que não grava nem avança nas perguntas que o módulo usa ===== */
-  const PRECISA = ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05'];
+  /* ===== Lote 16/11 (item A): "Não sei" BLOQUEIA em toda pergunta que o mantém; saiu de P01, P03 e P10 (sobre a própria pessoa) ===== */
+  /* item H: sim/não sobre a própria pessoa (P05 "já tem CNPJ?") sem "Não sei"; regra externa (P07 lista do MEI, P08 responsável técnico, P09 alvará) mantém e bloqueia */
+  const COM_NS = ['M8.P02', 'M8.P04', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P09'];
+  const SEM_NS = ['M8.P01', 'M8.P03', 'M8.P05', 'M8.P10'];
+  const RESP = { 'M8.P02': 'Serviço', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Sim' };   // Serviço e Não: passa pela P06, P07 e P08
+  const vistosNs = [];
   await semear({});
   await page.reload(); await btn('Começar').click();
   for (let i = 0; i < 15 && (await atual()) !== 'RESULTADO'; i++) {
     const cod = await atual();
-    const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
-    if (PRECISA.includes(cod)) {
+    vistosNs.push(cod);
+    const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
+    const temNs = ops.includes('Não sei') || await btn('Não sei').count() > 0;
+    if (SEM_NS.includes(cod)) check(!temNs, `${cod}: pergunta sobre a própria pessoa, sem "Não sei"`);
+    if (COM_NS.includes(cod)) {
+      check(temNs, `${cod}: mantém o "Não sei"`);
+      const antes = JSON.stringify(await st());
       if (ops.length) await escolher('Não sei'); else await btn('Não sei').click();
       const aj = nrm(await page.textContent('#ns-ajuda'));
       check(await page.locator('#ns-ajuda').isVisible() && aj.startsWith('Como descobrir') && aj.includes('Precisamos desta resposta para seguir'), `${cod}: "Não sei" mostra como descobrir e pede a resposta (${aj.slice(0, 60)})`);
       await comoDescobrir(cod);
       check(await page.locator('#ent .opcao.sel').count() === 0, `${cod}: "Não sei" não fica marcado`);
-      check(!(await st()).R[cod], `${cod}: "Não sei" não grava`);
+      check(JSON.stringify(await st()) === antes, `${cod}: "Não sei" não grava nada (estado salvo igual)`);
       await btn('Continuar').click();
-      check(await atual() === cod && await page.locator('#retorno .retorno').count() === 0, `${cod}: não avança sem resposta`);
-      if (cod === 'M8.P01' || cod === 'M8.P04') { await shotNs(cod); }
-      if (ops.length) await escolher(ops.includes('Não') ? 'Não' : ops[0]);
-      else await page.fill('#ent input, #ent textarea', cod === 'M8.P04' ? '3000' : 'Faço bolos de pote');
-      check(!(await page.locator('#ns-ajuda').isVisible()) || ops.length === 0, `${cod}: escolher uma opção esconde a explicação`);
-      await btn('Continuar').click();
-      { const r = (await st()).R[cod]; check(r && r.estado !== 'naosei' && r.opcao !== 'Não sei', `${cod}: com resposta, grava`); }
-    } else {
-      /* nas outras, o "Não sei" continua valendo */
-      if (ops.length) await escolher('Não sei'); else await btn('Não sei').click();
-      if (ops.length) await btn('Continuar').click();
-      const r = (await st()).R[cod];
-      check(r && (ops.length ? JSON.stringify(r) === JSON.stringify({ estado: 'opcao', opcao: 'Não sei' }) : JSON.stringify(r) === JSON.stringify({ estado: 'naosei' })), `${cod}: "Não sei" continua aceito e gravado como antes (${JSON.stringify(r)})`);
-      check(!/Precisamos desta resposta/.test(await page.textContent('#ns-ajuda')), `${cod}: sem pedido de resposta obrigatória`);
-      await comoDescobrir(cod);
-      check(JSON.stringify((await st()).R[cod]) === JSON.stringify(r), `${cod}: tocar em Copiar não muda a resposta salva`);
+      check(await atual() === cod && await page.locator('#retorno .retorno').count() === 0, `${cod}: Continuar não avança sem resposta`);
+      const er = nrm(await page.textContent('#erro'));
+      check(/^(Escolha uma opção|Escreva a sua resposta) para continuar\. Se não souber, toque em “Não sei” para ver como descobrir\.$/.test(er), `${cod}: mensagem simples: ${er}`);
+      check(JSON.stringify(await st()) === antes, `${cod}: Continuar sem resposta não grava`);
+      if (cod === 'M8.P06') check(aj.includes('Se não achar o código, escreva o que você faz'), 'P06: dá para escrever a atividade no lugar do código');
+    } else check(SEM_NS.includes(cod), `${cod}: classificada`);
+    if (ops.length) await escolher(RESP[cod] || ops[0]);
+    else await page.fill('#ent input, #ent textarea', cod === 'M8.P04' ? '3000' : cod === 'M8.P06' ? 'fabricação de bolos' : 'Faço bolos de pote');
+    if (ops.length) check(!(await page.locator('#ns-ajuda').isVisible()), `${cod}: escolher uma opção esconde a explicação`);
+    await btn('Continuar').click();
+    { const r = (await st()).R[cod]; check(r && r.estado !== 'naosei' && r.opcao !== 'Não sei', `${cod}: com resposta, grava e avança`); }
+    if (cod === 'M8.P04') {   // conta feita à mão: 3.000 × 12 = 36.000
+      check(nrm(await page.textContent('#conta-ano')).includes('Como calculamos: R$ 3.000 por mês × 12 meses = R$ 36.000 por ano.'), 'P04: "Como calculamos" logo na resposta');
     }
     await seguir();
   }
-  check(await atual() === 'RESULTADO', '"Não sei" nas opcionais chega ao resultado');
-  check(nrm(await page.textContent('.res-num .sub')).startsWith('4 com'), `resultado: 4 "Não sei" (P06, P07, P09, P10): ${nrm(await page.textContent('.res-num .sub'))}`);
-  /* resultado: "O que falta descobrir" com um "Como descobrir" fechado para cada "Não sei" */
-  check(await page.locator('#falta > ul > li').count() === 4 && await page.locator('#falta details.como-mini').count() === 4, 'resultado: 4 lacunas, cada uma com "Como descobrir"');
-  check(await page.$$eval('#falta details.como-mini', (ds) => ds.every((d) => !d.open && d.querySelectorAll('ol > li').length === 2)), 'resultado: "Como descobrir" fechado, com 2 passos');
+  check(await atual() === 'RESULTADO', 'chega ao resultado só com respostas de verdade');
+  check(JSON.stringify(vistosNs) === JSON.stringify(['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P09', 'M8.P10']), 'passou pelas 10 perguntas: ' + vistosNs.join(','));
+  check(Object.values((await st()).R).every((r) => r.estado !== 'naosei' && r.opcao !== 'Não sei'), 'nenhum "Não sei" gravado');
+  check(nrm(await page.textContent('.res-num .sub')) === 'nenhuma com “Não sei”', 'resultado: nenhuma com "Não sei"');
+  check(await page.locator('#falta').count() === 0, 'resultado: sem lista de "Não sei"');
   check(nrm(await page.textContent('#tarefa')).startsWith('Seu próximo passo'), 'resultado: próximo passo');
-  check(await page.evaluate(() => document.querySelector('#entendemos').compareDocumentPosition(document.querySelector('#tarefa')) & 4 && document.querySelector('#tarefa').compareDocumentPosition(document.querySelector('#falta')) & 4), 'resultado: entendemos → próximo passo → falta descobrir');
-  /* "Não sei" antigo em P02 (outra pergunta obrigatória): apaga só ela e volta a perguntar */
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P02'] = { estado: 'opcao', opcao: 'Não sei' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
-  await page.reload(); await btn('Continuar de onde parei').click();
-  check(await atual() === 'M8.P02', 'P02 "Não sei" antigo: volta à pergunta do tipo');
-  check((await st()).R['M8.P01'] && !(await st()).R['M8.P02'], 'P02 "Não sei" antigo: as outras respostas ficam');
+  /* respostas antigas "Não sei" (opção, botão e pergunta que perdeu o "Não sei"): viram "sem resposta"; as outras ficam */
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P02'] = { estado: 'opcao', opcao: 'Não sei' }; s.R['M8.P06'] = { estado: 'naosei' }; s.R['M8.P10'] = { estado: 'opcao', opcao: 'Não sei' }; s.R['M8.P05'] = { estado: 'opcao', opcao: 'Não sei' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
+  await page.reload();
+  { const R = (await st()).R; check(!R['M8.P02'] && !R['M8.P05'] && !R['M8.P06'] && !R['M8.P10'] && R['M8.P01'] && R['M8.P04'] && R['M8.P09'], 'antigos "Não sei" apagados, outras respostas guardadas: ' + Object.keys(R).join(',')); }
+  await btn('Continuar de onde parei').click();
+  check(await atual() === 'M8.P02', '"Não sei" antigo: volta à 1ª pergunta que ficou sem resposta');
+  check(await page.locator('#ent .opcao.sel').count() === 0, '"Não sei" antigo: nada marcado');
 
   /* ===== Item 4: possíveis CNAEs compatíveis ===== */
   const resultadoCom = async (desc) => {
@@ -266,16 +299,12 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   ]) {
     await semear(dados);
     await page.reload(); await btn('Começar').click();
-    for (let i = 0; i < 4 && (await atual()) !== 'M8.P02'; i++) {
-      const campo = page.locator('#ent input, #ent textarea').first();
-      if (await campo.count() && !(await campo.inputValue())) await campo.fill('Bolos de pote');
-      await btn('Continuar').click();
-      if ((await atual()) !== 'M8.P02' && await page.locator('#acoes .btn-primario').count()) await seguir();
-    }
-    check(await atual() === 'M8.P02', `P02 (${nome}): chega à pergunta do tipo`);
-    check(nrm(await page.textContent('#ent .opcao.sel')) === val && await page.locator('#ent .opcao.sel').count() === 1, `P02 (${nome}): "${val}" já vem marcada`);
-    check(nrm(await page.textContent('#herdou .veio')) === `Veio do Módulo ${mod}`, `P02 (${nome}): selo "Veio do Módulo ${mod}"`);
-    if (mod === 5) { await page.waitForTimeout(400); if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'bento_m08_p02_veio_m5.png') }); }
+    /* item F (16/11): o tipo já respondido não tem tela; vem gravado e aparece no cartão da tela seguinte */
+    if ((await atual()) === 'M8.P01') { await page.fill('#ent textarea', 'Bolos de pote'); await btn('Continuar').click(); await seguir(); }
+    check(await atual() === 'M8.P03', `P02 (${nome}): sem tela do tipo`);
+    { const r = (await st()).R['M8.P02']; check(r && r.opcao === val && r.de === mod && r.reuso === true, `P02 (${nome}): "${val}" gravado do Módulo ${mod}: ${JSON.stringify(r)}`); }
+    const lin = nrm(await page.textContent('#veio .veio-linha[data-cod="M8.P02"]'));
+    check(lin.includes(`O que você vende: ${val}`) && lin.includes(`Veio do Módulo ${mod}`), `P02 (${nome}): cartão "${lin}"`);
   }
 
   /* ===== Lote 3 (nov/2026) ===== */
@@ -293,22 +322,31 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   check(await page.evaluate(() => { const q = document.querySelector('.cartao-q .q'), d = document.querySelector('details.dica-toggle'), e = document.querySelector('#ent'); return (q.compareDocumentPosition(d) & 4) && (d.compareDocumentPosition(e) & 4); }), 'P02: "Ver dica" entre a pergunta e as respostas');
   await escolher('Serviço'); await btn('Continuar').click(); await seguir();
   /* item 5: opção "Na casa do cliente (atendimento em domicílio)" */
-  const ops3 = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
-  check(JSON.stringify(ops3) === JSON.stringify(['Minha casa', 'Ponto comercial', 'Na casa do cliente (atendimento em domicílio)', 'Atendimento externo', 'Online', 'Não sei']), 'P03 com a opção de domicílio: ' + ops3.join(' | '));
+  const ops3 = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
+  check(JSON.stringify(ops3) === JSON.stringify(['Minha casa', 'Ponto comercial', 'Na casa do cliente (atendimento em domicílio)', 'Atendimento externo', 'Online']), 'P03 com a opção de domicílio, sem "Não sei": ' + ops3.join(' | '));
   await escolher('Na casa do cliente (atendimento em domicílio)'); await btn('Continuar').click(); await seguir();
   check((await st()).R['M8.P03'].opcao === 'Na casa do cliente (atendimento em domicílio)', 'domicílio gravado');
   /* P04..P06 */
   await page.fill('#ent input', '2500'); await btn('Continuar').click(); await seguir();
   await escolher('Não'); await btn('Continuar').click(); await seguir();
-  await btn('Não sei').click(); await seguir();
+  await page.fill('#ent textarea', 'manicure'); await btn('Continuar').click(); await seguir();
   /* item 2: "Quem pode ser MEI" na pergunta da lista do MEI, recolhido, embaixo do Continuar */
   check(await atual() === 'M8.P07', 'chega à P07');
   const qm = page.locator('details#quem-mei');
   check(await qm.count() === 1 && !(await qm.evaluate((d) => d.open)), 'P07: "Quem pode ser MEI" recolhido');
   check(await page.evaluate(() => document.querySelector('#acoes').compareDocumentPosition(document.querySelector('#quem-mei')) & 4) > 0, 'P07: "Quem pode ser MEI" embaixo do Continuar');
   await escolher('Sim'); await btn('Continuar').click(); await seguir();
-  await escolher('Não'); await btn('Continuar').click(); await seguir();   // P08
-  await escolher('Não'); await btn('Continuar').click(); await seguir();   // P09
+  await escolher('Não'); await btn('Continuar').click();   // P08
+  /* item G: o alerta da coluna I está na dica (antes de responder) e só aparece na resposta quando aponta um risco */
+  check(await page.locator('#retorno .b-alerta').count() === 0, 'P08 = Não: sem balão de alerta');
+  await btn('Corrigir minha resposta').click();
+  check(nrm(await page.textContent('details.dica-toggle #dica-extra')) === 'Atividades regulamentadas não podem ser exercidas sem habilitação.', 'P08: alerta dentro da dica');
+  await escolher('Sim'); await btn('Continuar').click();
+  check(nrm(await page.textContent('#retorno #alerta-resposta')) === 'Fique atento Atividades regulamentadas não podem ser exercidas sem habilitação.' && await page.locator('#acoes .btn-primario').count() === 1, 'P08 = Sim: aviso de risco, sem travar');
+  await seguir();
+  await escolher('Não'); await btn('Continuar').click();   // P09
+  check(await page.locator('#retorno .b-alerta').count() === 0, 'P09: sem balão de alerta para qualquer resposta');
+  await seguir();
   /* item 4: fontes depois da dúvida principal */
   check(await atual() === 'M8.P10', 'chega à P10');
   check(await page.locator('#fontes-duvida').count() === 0, 'P10: fontes só depois da resposta');
@@ -331,8 +369,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   /* item 3: Copiar e Escolher este em cada CNAE compatível */
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P01'] = { estado: 'valor', valor: 'Manicure e pedicure em domicílio' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload(); await btn('Continuar de onde parei').click();
-  check(await page.$eval('details#ocupacoes', (d) => !d.open), 'ocupações do MEI recolhidas no resultado');
-  await page.click('details#ocupacoes > summary');
+  /* item I: no resultado, toda seção recolhível vem aberta */
+  check(await page.$$eval('#tela details', (ds) => ds.length > 0 && ds.every((d) => d.open)), 'resultado: todas as seções abertas');
   const nSug = await page.locator('#sugestoes .cnae').count();
   check(nSug >= 1 && await page.locator('#sugestoes .btn-copiar-cnae').count() === nSug && await page.locator('#sugestoes .btn-escolher').count() === nSug, `cada CNAE sugerido tem Copiar e Escolher este (${nSug})`);
   check(await page.locator('#cnae-escolhido h3').count() === 0, 'sem escolha, sem CNAE escolhido');
@@ -350,9 +388,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   check(Math.abs((await page.evaluate(() => window.scrollY)) - y0) < 5, 'escolher não pula para o topo');
   if (SHOTS) { await page.waitForTimeout(400); await page.locator('#sugestoes').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_cnae_escolher.png') }); }
   await page.reload(); await btn('Continuar de onde parei').click();
-  await page.click('details#ocupacoes > summary');
   check(nrm(await page.textContent('#cnae-escolhido')).includes('9602-5/01') && nrm(await page.textContent('#entendemos')).includes('Você escolheu o CNAE 9602-5/01'), 'escolha guardada após recarregar e citada em "O que entendemos"');
-  if (SHOTS) { await page.click('details#mais-detalhes > summary'); await page.waitForTimeout(400); await page.locator('#quem-mei').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_quem_pode_ser_mei.png') }); }
+  if (SHOTS) { await page.waitForTimeout(400); await page.locator('#quem-mei').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_quem_pode_ser_mei.png') }); }
   /* a consulta da lista também deixa copiar e escolher */
   await btn('Consultar as ocupações permitidas ao MEI').click();
   await page.fill('#busca', 'cabeleireiro');
@@ -366,13 +403,83 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.reload(); await btn('Começar').click();
   await page.fill('#ent textarea', 'Faço tranças'); await btn('Continuar').click(); await seguir();
   await escolher('Serviço'); await btn('Continuar').click(); await seguir();
-  check(nrm(await page.textContent('#ent .opcao.sel')) === 'Na casa do cliente (atendimento em domicílio)' && nrm(await page.textContent('#herdou .veio')) === 'Veio do Módulo 9', 'P03: domicílio herdado do Módulo 9');
+  check(await atual() === 'M8.P04' && (await st()).R['M8.P03'].opcao === 'Na casa do cliente (atendimento em domicílio)' && (await st()).R['M8.P03'].de === 9, 'P03: domicílio do Módulo 9 entra sem tela');
+  check(nrm(await page.textContent('#veio')).includes('Onde trabalha: Na casa do cliente (atendimento em domicílio)') && nrm(await page.textContent('#veio .veio')) === 'Veio do Módulo 9', 'P04: cartão com o local que veio do Módulo 9');
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m08_voltar_domicilio.png') }); }
+
+  /* ===== Bug 16/11 ("Pergunta 6: escolho o CNAE e não acontece nada") ===== */
+  const ateP06 = async () => {
+    await semear({}); await page.reload(); await btn('Começar').click();
+    await page.fill('#ent textarea', 'Faço bolos de pote'); await btn('Continuar').click(); await seguir();
+    await escolher('Produto'); await btn('Continuar').click(); await seguir();
+    await escolher('Minha casa'); await btn('Continuar').click(); await seguir();
+    await page.fill('#ent input', '3000'); await btn('Continuar').click(); await seguir();
+    await escolher('Não'); await btn('Continuar').click(); await seguir();
+    assert.equal(await atual(), 'M8.P06');
+    check(nrm(await page.textContent('.passo')) === 'Pergunta 6 de 10', 'P06 é a tela "Pergunta 6"');
+  };
+  await ateP06();
+  await btn('Consultar as ocupações permitidas ao MEI').click();
+  await page.fill('#busca', 'confeit');
+  const cConf = page.locator('#lista .cnae', { hasText: 'CONFEITEIRO(A) INDEPENDENTE' }).first();
+  await cConf.getByRole('button', { name: 'Escolher este', exact: true }).tap().catch(() => cConf.getByRole('button', { name: 'Escolher este', exact: true }).click());
+  check(await atual() === 'M8.P06', 'escolher o CNAE volta para a Pergunta 6');
+  check(await page.inputValue('#ent textarea') === '1091-1/02 - CONFEITEIRO(A) INDEPENDENTE', 'a escolha aparece no campo: ' + await page.inputValue('#ent textarea'));
+  { const fb = nrm(await page.textContent('#cnae-feedback'));
+    check(fb.includes('Você escolheu 1091-1/02') && fb.includes('CONFEITEIRO(A) INDEPENDENTE') && fb.includes('está na lista de ocupações permitidas ao MEI'), 'retorno na hora: o que o código quer dizer: ' + fb); }
+  check((await st()).R['M8.P06'].valor === '1091-1/02 - CONFEITEIRO(A) INDEPENDENTE' && (await st()).cnae.cnae === '1091-1/02', 'escolha já guardada (resposta da P06 e CNAE escolhido)');
+  if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm08_depois_cnae_escolheu.png'), fullPage: true }); }
+  await btn('Continuar').click();
+  check(await page.locator('#retorno .cnae').count() >= 1, 'Continuar: mostra a ocupação da lista do MEI');
+  await seguir();
+  check(await atual() === 'M8.P08' || await atual() === 'M8.P09', 'P07 (lista do MEI) respondida pela escolha: sem tela; foi para ' + await atual());
+  check(JSON.stringify((await st()).R['M8.P07']) === JSON.stringify({ estado: 'opcao', opcao: 'Sim', de: 'CNAE', reuso: true }), 'P07 = Sim, vindo do CNAE: ' + JSON.stringify((await st()).R['M8.P07']));
+  { const cv = nrm(await page.textContent('#veio'));
+    check(cv.includes('Está na lista do MEI: Sim') && cv.includes('Veio da sua escolha do CNAE') && await page.locator('#veio [data-trocar="M8.P07"]').count() === 1, 'cartão "Veio da sua escolha do CNAE · Trocar": ' + cv); }
+  await ateResultado();
+  check(nrm(await page.textContent('details.respostas')).includes('1091-1/02 - CONFEITEIRO(A) INDEPENDENTE') && nrm(await page.textContent('#entendemos')).includes('Você escolheu o CNAE 1091-1/02'), 'CNAE no resumo');
+  /* código digitado: retorno na hora, enquanto digita */
+  await ateP06();
+  await page.fill('#ent textarea', '9602-5/01');
+  check(nrm(await page.textContent('#cnae-feedback')).includes('Código 9602-5/01'), 'código digitado: retorno na hora');
+  await page.fill('#ent textarea', '1234-5/67');
+  check(nrm(await page.textContent('#cnae-feedback')).includes('Não achamos este código'), 'código fora da lista: avisa');
+  await btn('Continuar').click(); await seguir();
+  check(await atual() === 'M8.P07', 'código fora da lista: a P07 continua sendo perguntada');
+
+  /* ===== Anotações da pesquisa (16/11): escrever, ir e voltar, recarregar, ver no resumo ===== */
+  await ateP06();
+  await btn('Voltar').click();   // P05
+  assert.equal(await atual(), 'M8.P05');
+  check(await page.$eval('details#notas', (d) => !d.open), 'anotações recolhidas quando vazias');
+  await page.click('details#notas > summary');
+  await page.fill('#nota-texto', 'No Cartão CNPJ vi que ainda não tenho empresa aberta.');
+  await page.fill('#nota-onde', 'Site da Receita Federal');
+  await page.fill('#nota-data', '2026-11-16');
+  check(JSON.stringify((await st()).notas['M8.P05']) === JSON.stringify({ texto: 'No Cartão CNPJ vi que ainda não tenho empresa aberta.', onde: 'Site da Receita Federal', data: '2026-11-16' }), 'anotação guardada no estado do módulo');
+  check(await page.locator('#notas .lg2-falar').count() >= 1, 'anotação com botão Falar');
+  if (SHOTS) { await page.waitForTimeout(400); await page.locator('#notas').scrollIntoViewIfNeeded(); await page.screenshot({ path: path.join(SHOTS, 'm08_depois_notas.png'), fullPage: true }); }
+  await escolher('Não'); await btn('Continuar').click(); await seguir();   // P06
+  await btn('Voltar').click();
+  check(await atual() === 'M8.P05' && await page.inputValue('#nota-texto') === 'No Cartão CNPJ vi que ainda não tenho empresa aberta.' && await page.$eval('details#notas', (d) => d.open), 'ir e voltar: anotação continua, aberta');
+  await page.reload(); await btn('Continuar de onde parei').click();
+  check(await page.inputValue('#nota-onde') === 'Site da Receita Federal' && await page.inputValue('#nota-data') === '2026-11-16', 'recarregar: anotação continua');
+  /* "Não sei" numa pergunta de pesquisa abre as anotações junto da ajuda */
+  await escolher('Não'); await btn('Continuar').click(); await seguir();
+  await page.fill('#ent textarea', 'fabricação de bolos'); await btn('Continuar').click(); await seguir();   // P07
+  await escolher('Não sei');
+  check(await page.$eval('details#notas', (d) => d.open), '"Não sei": anotações abertas junto do "Como descobrir"');
+  await page.fill('#nota-texto', 'Achei confeiteiro na lista do gov.br.');
+  await escolher('Sim'); await btn('Continuar').click(); await seguir();
+  await ateResultado();
+  { const ps = nrm(await page.textContent('#pesquisou'));
+    check(ps.startsWith('O que você pesquisou') && ps.includes('Você já tem CNPJ? Se tem, de que tipo?') && ps.includes('No Cartão CNPJ vi que ainda não tenho empresa aberta.') && ps.includes('Onde: Site da Receita Federal · Data: 16/11/2026') && ps.includes('Achei confeiteiro na lista do gov.br.'), 'resumo: "O que você pesquisou": ' + ps); }
+  check(await page.locator('#pesquisou').isVisible(), 'resumo: anotações à vista (e na impressão)');
 
   /* nada de "Grupo N" nem códigos na tela */
   check(!/Grupo \d/.test(await page.innerText('#tela')), 'sem "Grupo N" na tela');
   check(!/M8\.P|M5\.P|M1\.P/.test(await page.innerText('#tela')), 'sem código de pergunta na tela');
   assert.deepEqual(errs, [], 'sem pageerror');
-  console.log(`PASS: M08 correções (${ok} verificações: teclado, campo numérico, tipo de oferta herdado e aviso, alerta forte do MEI, CNAEs compatíveis, "Não sei" que pede resposta em P01–P05)`);
+  console.log(`PASS: M08 correções (${ok} verificações: teclado, campo numérico, tipo de oferta herdado e aviso, alerta forte do MEI, CNAEs compatíveis, "Não sei" que bloqueia em toda pergunta que o mantém, reuso de respostas de outros módulos, Como calculamos, alertas só quando há risco)`);
   await b.close(); server.close();
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

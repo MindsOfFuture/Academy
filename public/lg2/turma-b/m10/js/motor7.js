@@ -94,6 +94,18 @@
     return teto(necessidade / (1 - perdaPct / 100));
   }
 
+  /* sazonalidade (Módulo 5, "M5.SZ"): num mês forte o volume sobe maisPct%; quanto isso pede por semana x o que cabe.
+     mesForte e semana arredondados para cima (é o que precisa sair); estado: "cabe" (cabe até no mínimo da faixa),
+     "falta" (passa do máximo) ou "talvez" (dentro da faixa, ou acima do mínimo quando a faixa não tem máximo). */
+  function mesForte(volumeMes, maisPct, c) {
+    if (!(volumeMes > 0) || !(maisPct > 0)) return null;
+    const mes = teto(volumeMes * (1 + maisPct / 100));
+    const semana = teto(mes / SEMANAS_MES);
+    if (!c || c.estado !== "ok") return { mes, semana, estado: null };
+    const estado = semana <= c.lo.semana ? "cabe" : c.modo !== "min" && semana > c.hi.semana ? "falta" : "talvez";
+    return { mes, semana, estado, cabeLo: c.lo.semana, cabeHi: c.hi.semana };
+  }
+
   /* número digitado em pt-BR ("1.234,5", "90", "1,5") */
   function num(s) {
     if (typeof s === "number") return s;
@@ -106,7 +118,7 @@
   }
   const fmt = (n, casas = 0) => Number(n).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
-  const M = { SEMANAS_MES, DIAS_MES, LIMITE, vendasDia, HORAS, APOIO, capacidade, texto, comparar, teste, pontoDePedido, consumoDia, compraComPerda, num, fmt, piso, teto };
+  const M = { SEMANAS_MES, DIAS_MES, LIMITE, vendasDia, HORAS, APOIO, capacidade, texto, comparar, teste, pontoDePedido, consumoDia, compraComPerda, mesForte, num, fmt, piso, teto };
   if (typeof module !== "undefined" && module.exports) module.exports = M;
   raiz.Motor7 = M;
 })(typeof window !== "undefined" ? window : globalThis);

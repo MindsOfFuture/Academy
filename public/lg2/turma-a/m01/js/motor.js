@@ -30,7 +30,8 @@
       if (ops.some((o) => !o)) return false;
       return ops.some((o) => o.campo) ? !!String(r.detalhe || "").trim() : true;
     }
-    if (r.estado === "naosei") return true;
+    /* "Não sei" não é resposta: só mostra a ajuda. Resposta antiga "naosei" fica sem resposta. */
+    if (r.estado === "naosei") return false;
     if (r.estado === "valor") return !!String(r.valor || "").trim();
     if (r.estado === "opcao") {
       const op = (q.opcoes || []).find((o) => o.texto === r.opcao);
@@ -136,7 +137,7 @@
       const q = efetiva(M, R, M.porCodigo[c]), r = R[c];
       if (q.tipo === "multipla") return { q, pergunta: textoPergunta(M, R, q), valor: itens(q, r).join("; "), itens: itens(q, r), detalhe: "", naosei: false };
       return { q, pergunta: textoPergunta(M, R, q), valor: valor(R, c), detalhe: r.detalhe || "",
-        naosei: r.estado === "naosei" || valor(R, c) === "Não sei dizer" };
+        naosei: false };
     });
   }
 
@@ -173,7 +174,6 @@
   const TEMPO_MAIS = {
     "Sim, consigo arrumar mais tempo": ", e consegue arrumar mais tempo se ele crescer",
     "Não, meus horários não podem mudar": ", e seus horários não podem mudar: o negócio cresce no seu ritmo",
-    "Não sei dizer": ", e ainda não sabe se consegue arrumar mais tempo",
   };
   const DINHEIRO = {
     "Nada por enquanto": "Por enquanto, você não tem dinheiro para colocar no negócio",
@@ -221,7 +221,7 @@
     if (DINHEIRO[op("M1.P07")]) {
       let f = DINHEIRO[op("M1.P07")] + (MATERIAL[op("M1.P06")] || "");
       const a = op("M1.P07A");
-      if (a && a !== "Não sei dizer") f += "; você pensa em começar " + minuscula(a);
+      if (a) f += "; você pensa em começar " + minuscula(a);
       frases.push(f + ".");
     } else if (MATERIAL[op("M1.P06")]) frases.push("Você" + MATERIAL[op("M1.P06")].replace(/^,/, "") + ".");
     const c2 = frases.length;   // 2º: tempo, saber fazer e dinheiro; 3º: o que preocupa
@@ -247,8 +247,6 @@
   }
   const FALTA = {
     "M1.P03": "o que exatamente você vai vender",
-    "M1.P05A": "se você consegue arrumar mais tempo quando o negócio crescer",
-    "M1.P07A": "como você vai começar sem dinheiro ou sem material",
   };
   /* { codigo, texto }: o código deixa o resultado mostrar o "Como descobrir" daquela pergunta */
   function faltaItens(M, R) {
@@ -256,8 +254,8 @@
     caminho(M, R).forEach((c) => {
       const r = R[c];
       if (!r) return;
-      const ns = r.estado === "naosei" || (r.estado === "opcao" && r.opcao === "Não sei dizer");
-      if ((c === "M1.P03" && ideiaVaga(R)) || ns)
+      /* o "Não sei" não grava mais nada; aqui só entra a ideia vaga escrita na Pergunta 3 */
+      if (c === "M1.P03" && ideiaVaga(R))
         l.push({ codigo: c, texto: "Ainda falta saber: " + (FALTA[c] || minuscula(limpa(textoPergunta(M, R, efetiva(M, R, M.porCodigo[c]))))) + "." });
     });
     return l;

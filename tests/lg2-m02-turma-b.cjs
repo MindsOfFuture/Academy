@@ -10,7 +10,12 @@
    Versão leve (nov/2026): capa curta (frase + tempo, resto em "Como funciona"), perguntas com até LIMITE_PALAVRAS
    palavras visíveis, "Ver dica" fechada entre a pergunta e as respostas, exemplo dentro do campo, "Como descobrir"
    (passos + pedido para a IA com Copiar) em todo "Não sei" sem mudar o valor salvo, resultado com o principal no topo.
-   Sabotagem: M02_SABOTAGEM=1 serve o app sem a caixa "Como descobrir" (o teste tem de falhar). */
+   Sabotagem: M02_SABOTAGEM=1 serve o app sem a caixa "Como descobrir" (o teste tem de falhar).
+   Lote 16/11: "Não sei" BLOQUEIA (mostra "Como descobrir", não grava, Continuar não anda); "Ainda não pensei nisso" fundida
+   no "Não sei" da P01; sem "Não sei" nas perguntas sobre a própria pessoa (P03, P04, P15, P18, P19); P16 e P20 saíram
+   (o Módulo 3 pergunta mais completo; respostas antigas ficam salvas); migração v3 -> v4; "Como calculamos" nas contas;
+   exemplo sob opção difícil; botão "Ver o roteiro" que abre o roteiro de entrevista por cima da tela.
+   Sabotagem 2: M02_SABOTAGEM=2 deixa a escolha "Não sei" ser gravada (o teste tem de falhar). */
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
@@ -29,7 +34,7 @@ const ok = (cond, msg) => { if (!cond) falhas.push(msg); };
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 const semAspas = (s) => norm(s).replace(/^["“]+|["”]+$/g, '');
 /* versão leve: palavras visíveis numa tela de pergunta, antes de tocar em nada (innerText: o que está fechado não conta) */
-const LIMITE_PALAVRAS = 60;
+const LIMITE_PALAVRAS = 66;
 const contaPalavras = (s) => String(s || '').split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
 
 let playwright;
@@ -40,7 +45,28 @@ const app = fs.readFileSync(path.join(dir, 'js/app.js'), 'utf8');
 ok(/const CHAVE = "lg2-turma-b-m02";/.test(app), 'CHAVE deve ser lg2-turma-b-m02');
 ok(D.modulo.turma === 'Turma de 18', 'Capa C7 deve ser Turma de 18');
 const nP = M.perguntas.length, nR = D.regras.length;
-ok(nP === 21 && nR === 89, `contagens 21 perguntas / 89 regras (obtido ${nP}/${nR})`);
+const persist = ['M2.R05','M2.R15','M2.R16','M2.R17','M2.R19','M2.R60','M2.R61','M2.R62','M2.R73','M2.R74','M2.R75','M2.R77','M2.R78','M2.R82','M2.R83'];
+ok(nP === 19 && nR === 89, `contagens 19 perguntas visíveis / 89 regras (obtido ${nP}/${nR})`);
+/* Lote 16/11 G: alertas gerais não aparecem no retorno; alertas de risco dependentes da resposta permanecem. */
+const ALERTA_NA_DICA = new Set(['M2.R05','M2.R15','M2.R16','M2.R17','M2.R19','M2.R60','M2.R61','M2.R62','M2.R73','M2.R74','M2.R75','M2.R77','M2.R78','M2.R82','M2.R83']);
+const alertaVale = (r) => !ALERTA_NA_DICA.has(r.codigo);
+for (const c of persist) ok(D.regras.some((r) => r.codigo === c && ALERTA_NA_DICA.has(r.codigo)), `${c}: alerta geral foi movido para a dica`);
+const regraMorta = (r) => /=\s*(Não sei|Ainda não pensei nisso)\s*$/.test(String(r.condicao).trim()) || /M2\.P(16|20)\b/.test(r.condicao);
+const VIVAS = D.regras.filter((r) => !regraMorta(r));
+const nVivas = VIVAS.length;
+ok(JSON.stringify(M.regras.map((r) => r.codigo)) === JSON.stringify(D.regras.filter((r) => !/M2\.P(16|20)\b/.test(r.condicao)).map((r) => r.codigo)), 'motor: regras de P16/P20 fora');
+const SEM_NS = ['M2.P03', 'M2.P04', 'M2.P15', 'M2.P18', 'M2.P19', 'M2.P21'];
+for (const c of SEM_NS) ok(!M.porCodigo[c].opcoesLista.includes('Não sei'), `${c}: sem "Não sei" (pergunta sobre a própria pessoa)`);
+ok(JSON.stringify(M.porCodigo['M2.P01'].opcoesLista) === '["Sim","Em parte","Não sei"]', 'P01: "Ainda não pensei nisso" fundida no "Não sei"');
+ok(JSON.stringify(M.porCodigo['M2.P21'].opcoesLista) === '["Contaram um problema de verdade","Só elogiaram a ideia"]', 'P21: situação da própria conversa, sem Não sei');
+ok(JSON.stringify(M.porCodigo['M2.P04'].opcoesLista) === '["Sim","Não"]', 'P04: pergunta sim/não sobre situação própria, só Sim/Não');
+ok(!/Ainda não pensei/.test(JSON.stringify(D.perguntas)), 'nenhuma pergunta com "Ainda não pensei"');
+ok(M.porCodigo['M2.P10'].opcoesEx['Paga mais por diferencial'] && M.porCodigo['M2.P14'].opcoesEx['Órgãos públicos/instituições'], 'opções difíceis com exemplos curtos sob o rótulo literal');
+for (const c of ALERTA_NA_DICA) {
+  const r = D.regras.find((x) => x.codigo === c);
+  if (r) ok(!alertaVale(r), `${c}: orientação geral não aparece como Atenção no retorno`);
+}
+for (const c of ['M2.R09','M2.R13','M2.R26','M2.R38','M2.R88','M2.R89']) ok(alertaVale(D.regras.find((r) => r.codigo === c)), `${c}: alerta de risco dependente da resposta mantido`);
 ok(!JSON.stringify(D).match(/\b\d{4,5}-?\d{4}\b/), 'nenhum telefone no dados/modulo2.js');
 /* relatório de testadores (05/11/2026): erros de redação corrigidos */
 for (const errado of ['passo da separar', 'para serem comparados', 'comprar para a ideia', 'comprar para o produto', 'ainda ainda', 'datas exige planejamento', 'Não sei se você já conversou', '(separar os clientes em grupos)', '(a forma de dividir o público em grupos)', 'serão comparados entre si', 'interessada em comprar por trás', 'Responda as perguntas'])
@@ -67,6 +93,7 @@ function atomos(cond) {           // primeiro "ou"; dentro dele todos os "e"
     const m = a.trim().match(/^(M2\.P\d{2})\s*(<=|>=|=|<|>)\s*(.+)$/);
     if (!m) continue;
     const [, cod, op, alvo] = m;
+    if (!M.porCodigo[cod]) continue;
     if (op === '=' && alvo.trim() === 'Preenchido') out[cod] = 'TEXTO';
     else if (op === '=') out[cod] = alvo.trim();
     else out[cod] = NUM(parte);
@@ -115,6 +142,11 @@ async function servidor() {
         if (!String(b).includes(alvo)) throw new Error('sabotagem: trecho não encontrado');
         b = String(b).replace(alvo, 'return "";');
       }
+      if (process.env.M02_SABOTAGEM === '2' && f.endsWith(path.join('js', 'app.js'))) {
+        const alvo = 'if (escolhida === Motor.NS) { ajudaAoVivo(true); return erro(MSG_NS_ESCOLHA); }';
+        if (!String(b).includes(alvo)) throw new Error('sabotagem 2: trecho não encontrado');
+        b = String(b).replace(alvo, '');
+      }
       res.writeHead(200, { 'Content-Type': tipos[path.extname(f)] || 'application/octet-stream' }).end(b);
     });
   });
@@ -137,6 +169,7 @@ async function servidor() {
   const palavrasTela = () => page.evaluate(() => document.querySelector('#tela').innerText);
   const palavrasMax = {};
   const regrasNaTela = () => page.evaluate(() => [...document.querySelectorAll('.regra .r-texto')].map((x) => x.textContent));
+  const dicaTexto = (cod) => norm(M.porCodigo[cod] ? [M.porCodigo[cod].ajuda, ...D.regras.filter((r) => r.pergunta === cod && ALERTA_NA_DICA.has(r.codigo)).map((r) => r.alerta), ...D.regras.filter((r) => r.pergunta === cod).map((r) => r.alerta).filter((a) => ALERTA_NA_DICA.has(D.regras.find((r) => r.pergunta === cod && r.alerta === a)?.codigo))].filter((x) => x && x !== 'Nenhum').join(' ') : '');
   const porTexto = new Map(D.regras.map((r) => [norm(Motor.limpa(r.texto)), r.codigo]));
   const alcancadas = new Set();
 
@@ -194,28 +227,33 @@ async function servidor() {
 
     /* 2) todas as regras da aba 4 */
     let caminhos = 0;
-    for (const r of D.regras) {
+    for (const r of VIVAS) {
       if (alcancadas.has(r.codigo)) continue;
       const seq = planejar(atomos(r.condicao));
       caminhos++;
       await percorrer(seq, caminhos === 1 ? null : null);
       if (!alcancadas.has(r.codigo)) falhas.push(`regra ${r.codigo} (${r.condicao}) não apareceu no caminho ${seq.map((s) => s.join('=')).join('; ')}`);
     }
-    const inal = D.regras.filter((r) => !alcancadas.has(r.codigo)).map((r) => r.codigo);
-    console.log(`Regras alcançadas pela interface: ${alcancadas.size} de ${nR} (${caminhos} caminhos)${inal.length ? ' · inalcançáveis: ' + inal.join(', ') : ''}`);
+    const inal = VIVAS.filter((r) => !alcancadas.has(r.codigo)).map((r) => r.codigo);
+    const mortasVistas = D.regras.filter((r) => regraMorta(r) && alcancadas.has(r.codigo)).map((r) => r.codigo);
+    ok(!mortasVistas.length, `regras de "Não sei"/P16/P20 não devem aparecer (apareceram ${mortasVistas.join(', ')})`);
+    console.log(`Regras alcançadas pela interface: ${alcancadas.size} de ${nVivas} que ainda podem disparar (${nR - nVivas} de "Não sei"/P16/P20 não disparam mais; ${caminhos} caminhos)${inal.length ? ' · inalcançáveis: ' + inal.join(', ') : ''}`);
 
     /* 3) pergunta que mudou na v0.3 (próximo passo genérico da aba 3) + print */
     await inicio();
-    await responder('M2.P01', 'Não sei');
-    /* 10d) "Não sei" mostra um caminho para descobrir antes de seguir (regra da própria pergunta) */
-    const nsTxt = norm(await page.locator('#retorno .b-naosei').textContent());
-    ok(nsTxt.startsWith('Como descobrir') && M.porCodigo['M2.P01'].comoDescobrir.every((x) => nsTxt.includes(norm(x))), `P01 Não sei: "Como descobrir" com os passos da pergunta (obtido "${nsTxt}")`);
-    ok((await page.locator('#retorno .b-proximo').count()) === 0, 'P01 Não sei: sem Próximo passo repetido');
-    await page.locator('#retorno').scrollIntoViewIfNeeded();
+    /* 10d) "Não sei" na P01: mostra "Como descobrir" (passos + texto da regra da planilha), não grava e não avança */
+    await clicarTexto('#ent .opcao', 'Não sei');
+    const nsTxt = norm(await page.locator('#ajuda-ns .como-descobrir').textContent());
+    ok(nsTxt.startsWith('Como descobrir') && M.porCodigo['M2.P01'].comoDescobrir.every((x) => nsTxt.includes(norm(x))) && nsTxt.includes(norm(D.regras.find((r) => r.codigo === 'M2.R04').texto)), `P01 Não sei: "Como descobrir" com os passos e o texto da regra (obtido "${nsTxt}")`);
+    await page.click('#ok');
+    ok((await page.locator('#retorno .retorno').count()) === 0 && /Use a ajuda acima e escolha uma opção para continuar/.test(await page.locator('#erro').textContent()), 'P01 Não sei: Continuar não avança e pede uma opção');
+    ok(!(await page.evaluate(() => (JSON.parse(localStorage.getItem('lg2-turma-b-m02')) || { R: {} }).R['M2.P01'])), 'P01 Não sei: nada gravado');
+    await page.evaluate(() => window.scrollTo(0, 0));
     await shot('pergunta_v03');
 
     /* 10) relatório da Júlia: um bloco de cada, linguagem para o usuário, legal como Atenção, Continuar avança */
     const contar = () => page.evaluate(() => ({ a: document.querySelectorAll('#retorno .b-alerta').length, p: document.querySelectorAll('#retorno .b-proximo').length, ns: document.querySelectorAll('#retorno .b-naosei').length, t: document.querySelector('#retorno').innerText }));
+    const alertasNaTela = async () => page.evaluate(() => [...document.querySelectorAll('#retorno .b-alerta')].map((x) => x.innerText));
     await inicio();
     await responder('M2.P01', 'Sim');
     let k = await contar();
@@ -231,8 +269,14 @@ async function servidor() {
     ok(nomes[0] === 'Continuar', `botão depois do retorno se chama Continuar (obtido ${nomes.join('/')})`);
     await clicarTexto('#acoes .btn', 'Continuar');
     ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P02'].pergunta, 'Continuar leva à próxima pergunta (P02)');
+    await page.fill('#ent textarea', 'Mães do bairro'); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Continuar');
+    const dicaP03 = norm(await page.locator('.dica .ajuda').textContent());
+    ok(dicaP03.length > 0 && (await page.locator('#retorno .b-alerta').count()) === 0, 'P03: dica aparece antes da resposta, sem alerta prematuro');
+    await clicarTexto('#ent .opcao', 'Conversa com conhecidos'); await page.click('#ok');
+    const alerta03 = norm(await page.locator('#retorno .b-alerta').textContent());
+    ok(alerta03.includes(norm(D.regras.find((r) => r.codigo === 'M2.R09').alerta)) && await page.locator('#acoes .btn').count() > 0, 'P03: alerta específico para conversa com conhecidos fica como aviso, sem bloquear');
     /* em todas as regras: no máximo uma Atenção e um Próximo passo por pergunta; "Não sei" sempre explica */
-    for (const seq of [planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P04': 'Não' }), planejar({ 'M2.P05': 'Quase qualquer pessoa', 'M2.P08': 'Nenhuma muda muito' }), planejar({ 'M2.P04': 'Sim', 'M2.P18': '3', 'M2.P19': 'Não', 'M2.P21': 'Contaram um problema de verdade' }), planejar({ 'M2.P07': 'Os dois', 'M2.P08': 'Não sei', 'M2.P14': 'Não sei', 'M2.P17': 'Não sei', 'M2.P16': 'Não sei' })]) {
+    for (const seq of [planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P04': 'Não' }), planejar({ 'M2.P05': 'Quase qualquer pessoa', 'M2.P08': 'Nenhuma muda muito' }), planejar({ 'M2.P04': 'Sim', 'M2.P18': '3', 'M2.P19': 'Não', 'M2.P21': 'Contaram um problema de verdade' }), planejar({ 'M2.P07': 'Os dois', 'M2.P08': 'Motivo da compra', 'M2.P14': 'Pequenos negócios', 'M2.P17': 'Toda semana' })]) {
       await percorrer(seq, async (cod, v) => {
         const c = await contar();
         ok(c.a <= 1 && c.p <= 1 && c.ns <= 1, `${cod}=${v}: no máximo 1 Atenção e 1 Próximo passo (obtido ${c.a}/${c.p})`);
@@ -254,6 +298,8 @@ async function servidor() {
     for (const c of D.casos) {
       const alvo = {};
       String(c.respostas).split(';').forEach((p) => { const m = p.trim().match(/^(M2\.P\d{2})\s*=\s*(.+)$/); if (m) alvo[m[1]] = m[2].trim(); });
+      /* lote 16/11: "Não sei"/"Ainda não pensei nisso" não são mais gravados; P16/P20 saíram. O caso segue com a 1ª opção. */
+      for (const k of Object.keys(alvo)) if (/^(Não sei|Ainda não pensei nisso)$/.test(alvo[k]) || !M.porCodigo[k]) { div.push(`${c.codigo}: ${k} = ${alvo[k]} não é mais aceito no app (lote 16/11); o caso segue sem essa resposta`); delete alvo[k]; }
       const seq = planejar(alvo);
       const destravadas = Object.keys(comPreReq(alvo)).filter((k) => !(k in alvo));
       /* regras disparadas só pelas respostas do próprio caso (para conferir os "Nenhum") */
@@ -394,7 +440,7 @@ async function servidor() {
     await page.fill('#ent textarea', 'Mães do bairro');
     await page.reload();
     await clicarTexto('button', 'Continuar de onde parei');
-    ok((await page.locator('.passo').textContent()) === 'Pergunta 2 de 14', 'recarregar volta à pergunta em que parou (caminho típico: 14 perguntas, não 21)');
+    ok((await page.locator('.passo').textContent()) === 'Pergunta 2 de 12', 'recarregar volta à pergunta em que parou (caminho típico: 12 perguntas, não 19)');
     await page.click('#v');
     ok(await page.locator('#ent .opcao.sel').textContent() === 'Em parte', 'resposta anterior persiste após recarregar');
     ok(await page.evaluate(() => !!localStorage.getItem('lg2-turma-b-m02')), 'respostas gravadas na chave lg2-turma-b-m02');
@@ -403,7 +449,7 @@ async function servidor() {
     // 8a) P21 reescrita: linguagem simples, ponte com as conversas, ajuda explica elogio x problema
     const q21 = M.porCodigo['M2.P21'];
     ok(/^As pessoas com quem conversou contaram um problema de verdade ou só elogiaram\?$/.test(q21.pergunta), 'P21: enunciado novo (versão leve)');
-    ok(JSON.stringify(q21.opcoesLista) === JSON.stringify(['Contaram um problema de verdade', 'Só elogiaram a ideia', 'Não sei']), 'P21: opções novas');
+    ok(JSON.stringify(q21.opcoesLista) === JSON.stringify(['Contaram um problema de verdade', 'Só elogiaram a ideia']), 'P21: opções novas');
     ok(/que legal/.test(q21.ajuda) && /pergunta o preço/.test(q21.ajuda) && /reservar/.test(q21.ajuda), 'P21: ajuda explica elogio x problema de verdade');
     ok(!/Problema confirmado|Só elogios/.test(JSON.stringify(D)), 'nenhuma regra depende das opções antigas da P21');
     await percorrer(planejar({ 'M2.P04': 'Sim', 'M2.P18': '6', 'M2.P19': 'Sim', 'M2.P21': 'Contaram um problema de verdade' }), async (cod) => {
@@ -415,8 +461,8 @@ async function servidor() {
     });
     ok(alcancadas.has('M2.R89'), 'regra das respostas consistentes (R89) segue alcançável com a opção nova');
     // 8b) ramo curto (não conversou com ninguém): P21 não aparece e o caminho fica com 7 perguntas
-    const curto = planejar({ 'M2.P01': 'Ainda não pensei nisso', 'M2.P04': 'Não', 'M2.P05': 'Um único grupo', 'M2.P08': 'Nenhuma muda muito' });
-    ok(curto.length === 7 && !curto.some(([c]) => c === 'M2.P21'), `ramo curto deveria ter 7 perguntas sem a P21 (obtido ${curto.map((s) => s[0]).join(',')})`);
+    const curto = planejar({ 'M2.P01': 'Em parte', 'M2.P04': 'Não', 'M2.P05': 'Um único grupo', 'M2.P08': 'Nenhuma muda muito' });
+    ok(curto.length === 8 && !curto.some(([c]) => c === 'M2.P21'), `ramo curto deveria ter 8 perguntas sem a P21 (obtido ${curto.map((s) => s[0]).join(',')})`);
     await percorrer(curto);
     // 8c) herança: M1 (ideia, tipo, estágio) e M3 (perfil P10 + P11) semeados
     const M1 = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' }, 'M1.P03': { estado: 'valor', valor: 'Lavagem de carro em domicílio' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
@@ -454,7 +500,7 @@ async function servidor() {
     await page.click('#ok');
     ok(alcancadas.has('M2.R21') || (await regrasNaTela()).some((x) => norm(x) === norm(D.regras.find((r) => r.codigo === 'M2.R21').texto)), 'P07 herdada dispara a regra de "Pessoas"');
     // segue até o fim com respostas típicas e confere a caixa "O que entendemos até aqui"
-    const resto = [['M2.P08', 'Hábitos de compra'], ['M2.P13', 'Praticidade/rapidez'], ['M2.P16', 'Em parte'], ['M2.P17', 'Todo mês'], ['M2.P18', '4'], ['M2.P19', 'Não'], ['M2.P20', 'Não sei'], ['M2.P21', 'Só elogiaram a ideia']];
+    const resto = [['M2.P08', 'Hábitos de compra'], ['M2.P13', 'Praticidade/rapidez'], ['M2.P17', 'Todo mês'], ['M2.P18', '4'], ['M2.P19', 'Não'], ['M2.P21', 'Só elogiaram a ideia']];
     for (const [cod, v] of resto) {
       await clicarTexto('#acoes .btn', 'Continuar');
       const q = M.porCodigo[cod];
@@ -475,7 +521,7 @@ async function servidor() {
       if (Motor.campo(q) === 'escolha') { if (!(await clicarTexto('#ent .opcao', v))) throw new Error(`herança: opção ${v} ausente em ${cod}`); await page.click('#ok'); }
       else if (v === 'Não sei') await page.click('#ns'); else { await page.fill('#ent input, #ent textarea', v); await page.click('#ok'); }
     }
-    ok((await page.locator('.passo').textContent()) === 'Pergunta 14 de 14', 'caminho típico (lava-jato) termina em 14 de 14');
+    ok((await page.locator('.passo').textContent()) === 'Pergunta 12 de 12', 'caminho típico (lava-jato) termina em 12 de 12');
     await clicarTexto('#acoes .btn', 'Ver meu resumo');
     await page.waitForSelector('#entendemos');
     const ent = await page.locator('#entendemos p:not(.mini-info)').allTextContents();
@@ -484,10 +530,11 @@ async function servidor() {
     ok(await page.evaluate(() => { const e = document.querySelector('#entendemos'); return !e.querySelector('ul, ol, li') && e.querySelectorAll('p:not(.mini-info)').length >= 1; }), 'caixa "O que entendemos" sem <li> e com pelo menos um <p>');
     ok(ent.join(' ').split(/(?<=[.!?])\s+(?=[A-ZÀ-Ú])/).length >= 3, 'caixa "O que entendemos" continua com 3 ou mais frases');
     const entT = ent.join(' ');
-    for (const trecho of ['Você vende (ou quer vender) lavagem de carro em domicílio, que é um serviço, e você já começou a testar.', 'Seus clientes seriam principalmente pessoas que compram para si ou para a família', 'Você vê um único grupo de clientes; o que mais muda entre um cliente e outro é: hábitos de compra (praticidade/rapidez).', 'Cada cliente compraria todo mês, e você sabe em parte onde encontrar essas pessoas.', 'Você já conversou com 4 pessoas, mas ninguém fez nada concreto ainda. Por enquanto, o que você ouviu foi mais elogio do que um problema de verdade.'])
+    for (const trecho of ['Você vende (ou quer vender) lavagem de carro em domicílio, que é um serviço, e você já começou a testar.', 'Seus clientes seriam principalmente pessoas que compram para si ou para a família', 'Você vê um único grupo de clientes; o que mais muda entre um cliente e outro é: hábitos de compra (praticidade/rapidez).', 'Cada cliente compraria todo mês.', 'Você já conversou com 4 pessoas, mas ninguém fez nada concreto ainda. Por enquanto, o que você ouviu foi mais elogio do que um problema de verdade.'])
       ok(entT.includes(trecho), `"O que entendemos" deveria trazer: ${trecho} (obtido: ${entT})`);
     ok(await page.evaluate(() => { const c = document.querySelector('.corpo'); const e = document.querySelector('#entendemos'); const r = document.querySelector('.res-num'); return e.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING; }), 'caixa "O que entendemos" fica acima dos números do resultado');
-    ok(await page.evaluate(() => { const d = document.querySelector('details#suas-respostas'); return d && !d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }), 'lista de respostas recolhida em "Ver suas respostas"');
+    ok(await page.evaluate(() => { const r = document.querySelector('.corpo'); return [...r.querySelectorAll('details')].length > 0 && [...r.querySelectorAll('details')].every((d) => d.open); }), 'todas as seções recolhíveis do resultado abrem por padrão');
+    ok(await page.evaluate(() => { const d = document.querySelector('details#suas-respostas'); return d && d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }), 'lista de respostas aberta em "Ver suas respostas"');
     ok((await page.locator('#suas-respostas .veio').count()) === 2, 'respostas herdadas (P02 e P07) aparecem com selo na lista');
     const corpoRes = await page.evaluate(() => { const c = document.querySelector('.corpo').cloneNode(true); c.querySelectorAll('details.saiba:not(#suas-respostas)').forEach((d) => d.remove()); return c.innerText; });
     ok(!/M2\.[PI]\d{2}/.test(corpoRes), 'resultado sem códigos internos (M2.Pxx/M2.Ixx)');
@@ -495,8 +542,8 @@ async function servidor() {
     await shot('resultado_entendemos');
     // 9e) formato do estado salvo, lido por outros módulos (Módulo 10): {v, R:{código:{estado, opcao|valor}}}
     const est = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(est.v === 3 && est.R['M2.P17'].estado === 'opcao' && est.R['M2.P17'].opcao === 'Todo mês' && est.R['M2.P18'].estado === 'valor' && est.R['M2.P18'].valor === '4'
-      && est.R['M2.P21'].opcao === 'Só elogiaram a ideia' && est.R['M2.P02'].estado === 'valor' && est.R['M2.P20'].estado === 'naosei', `estado salvo no formato esperado (obtido ${JSON.stringify(est.R).slice(0, 300)})`);
+    ok(est.v === 4 && est.R['M2.P17'].estado === 'opcao' && est.R['M2.P17'].opcao === 'Todo mês' && est.R['M2.P18'].estado === 'valor' && est.R['M2.P18'].valor === '4'
+      && est.R['M2.P21'].opcao === 'Só elogiaram a ideia' && est.R['M2.P02'].estado === 'valor' && !est.R['M2.P20'] && !JSON.stringify(est.R).includes('naosei'), `estado salvo no formato esperado (obtido ${JSON.stringify(est.R).slice(0, 300)})`);
     const outros = await page.evaluate(() => [localStorage.getItem('lg2-turma-a-m01'), localStorage.getItem('lg2-turma-a-m03')]);
     ok(outros[0] === JSON.stringify(M1) && outros[1] === JSON.stringify(M3), 'Módulos 1 e 3 não são alterados (só leitura)');
     // 8d) "Não sei" no Módulo 3 não conta como herança
@@ -505,7 +552,7 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Começar');
     ok((await page.locator('#contexto').count()) === 0, 'sem dado do Módulo 1, não mostra o contexto');
-    for (const [cod, v] of [['M2.P01', 'Ainda não pensei nisso'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo']]) { await clicarTexto('#ent .opcao', v); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Continuar'); }
+    for (const [cod, v] of [['M2.P01', 'Em parte'], ['M2.P02', 'Mães do bairro'], ['M2.P03', 'Conversa com conhecidos'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo']]) { if (cod === 'M2.P02') await page.fill('#ent textarea', v); else await clicarTexto('#ent .opcao', v); await page.click('#ok'); await clicarTexto('#acoes .btn', 'Continuar'); }
     ok((await page.locator('#ent .opcao.sel').count()) === 0 && (await page.locator('#herdado').count()) === 0, '"Não sei" do Módulo 3 não pré-marca a P07');
     // 9c) sem tipo do negócio, o exemplo da planilha (bolo) continua
     ok(/bolo/.test(M.porCodigo['M2.P05'].ajuda), 'P05 da planilha fala de bolo');
@@ -532,7 +579,7 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Começar');
     const mig = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(mig.v === 3 && mig.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'resposta antiga "Só elogios" convertida para a opção nova');
+    ok(mig.v === 4 && mig.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'resposta antiga "Só elogios" convertida para a opção nova');
 
     /* ===== lote 3 (Duda, Gaby, José Inácio, Nayara, Arthur) ===== */
     const CODIGO = /\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}|\b[PI]\d{2}\b/;
@@ -556,7 +603,7 @@ async function servidor() {
     await page.click('#v');
     ok(await page.evaluate(() => !!document.querySelector('#ir')), '1ª pergunta: Voltar volta para a capa');
     // códigos (Nayara): em todos os caminhos, a tela inteira (pergunta + retorno) não mostra Mx.Pyy
-    for (const seq of [planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P15': 'Não sei', 'M2.P07': 'Os dois', 'M2.P04': 'Sim', 'M2.P18': '3' }), planejar({ 'M2.P05': 'Quase qualquer pessoa', 'M2.P08': 'Nenhuma muda muito', 'M2.P04': 'Não' }), planejar({ 'M2.P01': 'Não sei', 'M2.P08': 'Não sei', 'M2.P16': 'Não sei', 'M2.P17': 'Não sei' })])
+    for (const seq of [planejar({ 'M2.P05': 'De dois a três grupos', 'M2.P15': 'Pode pagar mais', 'M2.P07': 'Os dois', 'M2.P04': 'Sim', 'M2.P18': '3' }), planejar({ 'M2.P05': 'Quase qualquer pessoa', 'M2.P08': 'Nenhuma muda muito', 'M2.P04': 'Não' }), planejar({ 'M2.P01': 'Em parte', 'M2.P03': 'Suposição, ainda sem conferir', 'M2.P08': 'Onde moram/trabalham', 'M2.P17': 'Uma vez' })])
       await percorrer(seq, async (cod) => { await semCodigo(cod + ' (pergunta e retorno)'); });
     await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
     await semCodigo('resultado (tudo aberto, como na impressão)');
@@ -587,7 +634,7 @@ async function servidor() {
     ok(Motor.multipla(M.porCodigo['M2.P08']) && M.porCodigo['M2.P08'].opcoesLista.includes('Outra'), 'P08: várias respostas e opção "Outra"');
     const ateP08 = async () => {
       await inicio();
-      for (const [c, v] of [['M2.P01', 'Ainda não pensei nisso'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo'], ['M2.P07', 'Pessoas']]) { await responder(c, v); await clicarTexto('#acoes .btn', 'Continuar'); }
+      for (const [c, v] of [['M2.P01', 'Em parte'], ['M2.P02', 'TEXTO'], ['M2.P03', 'Conversa com conhecidos'], ['M2.P04', 'Não'], ['M2.P05', 'Um único grupo'], ['M2.P07', 'Pessoas']]) { await responder(c, v); await clicarTexto('#acoes .btn', 'Continuar'); }
       ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P08'].pergunta, 'chegou na P08');
     };
     await ateP08();
@@ -616,7 +663,7 @@ async function servidor() {
     const seguintes = [];
     for (let i = 0; i < 2; i++) { await clicarTexto('#acoes .btn', 'Continuar'); seguintes.push(norm(await page.locator('h2.q').textContent())); await clicarTexto('#ent .opcao', i === 0 ? 'Adultos que trabalham' : 'Praticidade/rapidez'); await page.click('#ok'); }
     ok(JSON.stringify(seguintes) === JSON.stringify([M.porCodigo['M2.P09'].pergunta, M.porCodigo['M2.P13'].pergunta]), `P08 com 2 marcadas abre P09 e P13 (obtido ${seguintes.join(' | ')})`);
-    for (const [c, v] of [['M2.P16', 'Sim'], ['M2.P17', 'Todo mês']]) { await clicarTexto('#acoes .btn', 'Continuar'); await clicarTexto('#ent .opcao', v); await page.click('#ok'); }
+    for (const [c, v] of [['M2.P17', 'Todo mês']]) { await clicarTexto('#acoes .btn', 'Continuar'); await clicarTexto('#ent .opcao', v); await page.click('#ok'); }
     await clicarTexto('#acoes .btn', 'Ver meu resumo');
     await page.waitForSelector('#entendemos');
     const ent8 = norm(await page.locator('#entendemos').innerText());
@@ -629,7 +676,7 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Continuar de onde parei');
     const mig8 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(mig8.v === 3 && JSON.stringify(mig8.R['M2.P08'].opcoes) === '["Motivo da compra"]' && mig8.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'P08: resposta única da versão 2 migrada para lista (v3)');
+    ok(mig8.v === 4 && JSON.stringify(mig8.R['M2.P08'].opcoes) === '["Motivo da compra"]' && mig8.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'P08: resposta única da versão 2 migrada para lista (v3)');
     ok(JSON.stringify(await marc()) === JSON.stringify(['Motivo da compra']), 'P08 migrada aparece marcada');
 
     // P15 (Nayara): o aviso diz onde fica o quadro e leva até ele
@@ -672,67 +719,177 @@ async function servidor() {
     console.log(`Palavras visíveis por pergunta (máx.): ${Object.entries(palavrasMax).map(([c, n]) => c.slice(3) + '=' + n).join(' ')}`);
     // exemplo dentro do campo nas perguntas de escrever
     for (const q of M.perguntas.filter((x) => Motor.campo(x) !== 'escolha')) ok(/^Ex\.: /.test(q.placeholder || ''), `${q.codigo}: exemplo "Ex.: …" dentro do campo`);
-    // "Não sei" em TODAS as perguntas: caixa "Como descobrir" com passos (+ Copiar quando há pedido para a IA) e valor salvo igual ao de antes
+    // lote 16/11: "Não sei" BLOQUEIA. Em cada pergunta que o mantém: tocar mostra "Como descobrir", não grava,
+    // Continuar não avança (mensagem simples); depois de uma resposta de verdade, avança. Onde saiu, não há "Não sei".
     const comNS = M.perguntas.filter((q) => q.opcoesLista.includes(Motor.NS));
-    ok(comNS.length === nP, `todas as perguntas têm "Não sei" (obtido ${comNS.length})`);
-    const salvoEsperado = (q) => Motor.campo(q) !== 'escolha' ? { estado: 'naosei' } : Motor.multipla(q) ? { estado: 'opcao', opcao: 'Não sei', opcoes: ['Não sei'] } : { estado: 'opcao', opcao: 'Não sei' };
+    ok(comNS.length === nP - SEM_NS.length && comNS.every((q) => !SEM_NS.includes(q.codigo)), `"Não sei" só nas perguntas de fato a descobrir (obtido ${comNS.map((q) => q.codigo).join(',')})`);
     const caixaNS = (sel) => page.evaluate((sel) => { const c = document.querySelector(sel); return c ? { tit: (c.querySelector('.como-tit') || {}).textContent, passos: [...c.querySelectorAll('ol > li')].map((x) => x.textContent.trim()), prompt: c.querySelector('[data-prompt]') ? c.querySelector('[data-prompt]').textContent : null, copiar: [...c.querySelectorAll('button')].map((b) => b.textContent.trim()), nota: (c.querySelector('.como-nota') || {}).textContent || '' } : null; }, sel);
-    let nsConferidas = 0;
-    for (const q of comNS) {
-      const seq = planejar({ [q.codigo]: 'Não sei' });
+    const estadoDe = () => page.evaluate(() => localStorage.getItem('lg2-turma-b-m02'));
+    const abrirPergunta = async (q) => {
+      const seq = planejar({ [q.codigo]: '__' });
       const i = seq.findIndex(([c]) => c === q.codigo);
-      if (i < 0) { falhas.push(`${q.codigo}: caminho até a pergunta não encontrado`); continue; }
+      if (i < 0) return false;
       const R = {};
-      seq.slice(0, i).forEach(([c, v]) => { const qq = M.porCodigo[c]; R[c] = v === 'Não sei' ? { estado: 'naosei' } : Motor.campo(qq) === 'escolha' ? (Motor.multipla(qq) ? { estado: 'opcao', opcao: v, opcoes: [v] } : { estado: 'opcao', opcao: v }) : { estado: 'valor', valor: v === 'TEXTO' ? 'Texto de teste' : v }; });
+      seq.slice(0, i).forEach(([c, v]) => { const qq = M.porCodigo[c]; R[c] = Motor.campo(qq) === 'escolha' ? (Motor.multipla(qq) ? { estado: 'opcao', opcao: v, opcoes: [v] } : { estado: 'opcao', opcao: v }) : { estado: 'valor', valor: v === 'TEXTO' ? 'Texto de teste' : v }; });
       await page.goto(srv.url + 'index.html');
-      await page.evaluate((e) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', e); }, JSON.stringify({ v: 3, R, hist: seq.slice(0, i + 1).map(([c]) => c), fichas: [], plano: { meta: '', prazo: '', feitos: [] }, grupos: [] }));
+      await page.evaluate((e) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', e); }, JSON.stringify({ v: 4, R, hist: seq.slice(0, i + 1).map(([c]) => c), fichas: [], plano: { meta: '', prazo: '', feitos: [] }, grupos: [] }));
       await page.reload();
       await clicarTexto('button', 'Continuar de onde parei');
-      if (norm(await page.locator('h2.q').textContent()) !== norm(q.pergunta) && q.codigo !== 'M2.P21') { falhas.push(`${q.codigo}: não abriu a pergunta`); continue; }
+      return q.codigo === 'M2.P21' || norm(await page.locator('h2.q').textContent()) === norm(q.pergunta);
+    };
+    let nsConferidas = 0;
+    for (const q of M.perguntas) {
+      if (!(await abrirPergunta(q))) { falhas.push(`${q.codigo}: não abriu a pergunta`); continue; }
       const esc = Motor.campo(q) === 'escolha';
-      if (esc) {
-        ok((await page.locator('.como-descobrir').count()) === 0, `${q.codigo}: sem "Como descobrir" antes de tocar em "Não sei"`);
-        await clicarTexto('#ent .opcao', 'Não sei');
-        const vivo = await caixaNS('#ajuda-ns .como-descobrir');
-        ok(vivo && vivo.passos.length >= 2 && vivo.passos.every((x) => x.length > 20), `${q.codigo}: tocar em "Não sei" mostra na hora "Como descobrir" com 2 passos (obtido ${JSON.stringify(vivo)})`);
-        ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')).R)[q.codigo]), `${q.codigo}: tocar em "Não sei" não grava antes do Continuar (como antes)`);
-        await page.click('#ok');
-      } else await page.click('#ns');
-      await page.waitForSelector('#retorno .retorno');
-      const cx = await caixaNS('#retorno .como-descobrir');
-      ok(cx && cx.tit === 'Como descobrir' && JSON.stringify(cx.passos) === JSON.stringify(q.comoDescobrir.map(norm)) && cx.passos.length >= 2, `${q.codigo}: "Como descobrir" com os passos da pergunta (obtido ${JSON.stringify(cx)})`);
-      ok((await page.locator('.como-descobrir').count()) === 1, `${q.codigo}: uma só caixa "Como descobrir" depois do Continuar`);
-      if (q.promptIA) ok(cx && cx.prompt === q.promptIA && cx.copiar.includes('Copiar') && /IA de sua preferência/.test(cx.nota), `${q.codigo}: pedido para a IA com "Copiar"`);
-      ok(!/chatgpt|gemini|copilot|claude/i.test(JSON.stringify(cx)), `${q.codigo}: sem marca de IA`);
-      const salvo = (await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')).R))[q.codigo];
-      ok(JSON.stringify(salvo) === JSON.stringify(salvoEsperado(q)), `${q.codigo}: "Não sei" salvo como antes (obtido ${JSON.stringify(salvo)})`);
-      ok((await page.locator('#acoes .btn').first().textContent()) !== '' && (await page.locator('#acoes .btn').allTextContents()).some((x) => /^(Continuar|Ver meu resumo)$/.test(x)), `${q.codigo}: depois do "Não sei" dá para seguir`);
-      if (q.codigo === 'M2.P01' && cx) {
-        await page.evaluate(() => { const c = document.querySelector('#retorno .como-descobrir'); c.scrollIntoView({ block: 'start' }); window.scrollBy(0, -120); });
-        await shot('l_naosei_p01');
-        await page.click('#retorno [data-copiar]');
-        await page.waitForTimeout(150);
-        const st = await page.locator('#retorno [data-copiar]').textContent();
+      if (!q.opcoesLista.includes(Motor.NS)) {
+        const tem = await page.evaluate(() => !!document.querySelector('#ns') || [...document.querySelectorAll('#ent .opcao')].some((b) => b.textContent.trim() === 'Não sei'));
+        ok(!tem, `${q.codigo}: sem botão/opção "Não sei"`);
+        continue;
+      }
+      ok((await page.locator('.como-descobrir').count()) === 0, `${q.codigo}: sem "Como descobrir" antes de tocar em "Não sei"`);
+      const antes = await estadoDe();
+      if (esc) await clicarTexto('#ent .opcao', 'Não sei'); else await page.click('#ns');
+      const vivo = await caixaNS('#ajuda-ns .como-descobrir');
+      ok(vivo && vivo.tit === 'Como descobrir' && vivo.passos.length >= 2 && q.comoDescobrir.every((x, k) => vivo.passos[k] === norm(x)), `${q.codigo}: tocar em "Não sei" mostra "Como descobrir" com os passos (obtido ${JSON.stringify(vivo)})`);
+      if (q.promptIA) ok(vivo && vivo.prompt === q.promptIA && vivo.copiar.includes('Copiar') && /IA de sua preferência/.test(vivo.nota), `${q.codigo}: pedido para a IA com "Copiar"`);
+      ok(!/chatgpt|gemini|copilot|claude/i.test(JSON.stringify(vivo)), `${q.codigo}: sem marca de IA`);
+      await page.click('#ok');
+      ok((await page.locator('#retorno .retorno').count()) === 0, `${q.codigo}: Continuar com só "Não sei" não avança`);
+      ok(/^Use a ajuda acima e (escolha uma opção|escreva a sua resposta) para continuar\.$/.test(norm(await page.locator('#erro').textContent())) && await page.locator('#erro').isVisible(), `${q.codigo}: mensagem simples para responder`);
+      ok((await estadoDe()) === antes, `${q.codigo}: "Não sei" não grava nada`);
+      ok((await page.locator('.como-descobrir').count()) === 1, `${q.codigo}: uma só caixa "Como descobrir"`);
+      if (q.codigo === 'M2.P05') {
+        await page.evaluate(() => { const c = document.querySelector('#ajuda-ns'); c.scrollIntoView({ block: 'start' }); window.scrollBy(0, -160); });
+        await shot('l_naosei_p05');
+        await page.click('#ajuda-ns [data-copiar]');
+        let st = '';
+        for (let k = 0; k < 20; k++) { st = await page.locator('#ajuda-ns [data-copiar]').textContent(); if (st !== 'Copiar') break; await page.waitForTimeout(100); }
         ok(st === 'Copiado!' || /Toque e segure/.test(st), `Copiar confirma a cópia ou seleciona o texto (obtido "${st}")`);
       }
+      // depois de uma resposta de verdade, avança
+      const real = esc ? q.opcoesLista.find((o) => o !== Motor.NS && o !== Motor.OUTRA) : null;
+      if (esc) await clicarTexto('#ent .opcao', real); else await page.fill('#ent input, #ent textarea', 'Resposta de teste');
+      await page.click('#ok');
+      ok((await page.locator('#retorno .retorno').count()) === 1, `${q.codigo}: com resposta de verdade, avança`);
+      const salvo = JSON.parse(await estadoDe()).R[q.codigo];
+      ok(salvo && salvo.estado !== 'naosei' && salvo.opcao !== 'Não sei' && !(salvo.opcoes || []).includes('Não sei'), `${q.codigo}: grava a resposta de verdade (obtido ${JSON.stringify(salvo)})`);
       nsConferidas++;
     }
-    console.log(`"Não sei" com "Como descobrir" conferido em ${nsConferidas} de ${comNS.length} perguntas`);
-    // resultado: o principal no topo (entendemos + tarefa + o que falta), o resto fechado; cada "Não sei" leva o seu "Como descobrir"
-    await percorrer(planejar({ 'M2.P01': 'Não sei', 'M2.P04': 'Não', 'M2.P16': 'Não sei' }));
+    console.log(`"Não sei" que bloqueia conferido em ${nsConferidas} de ${comNS.length} perguntas; sem "Não sei": ${SEM_NS.join(', ')}`);
+
+    // migração v3 -> v4: "Não sei"/"Ainda não pensei nisso" antigos viram "sem resposta" (com a caixa à vista); o resto fica; P16/P20 intocadas
+    await page.goto(srv.url + 'index.html');
+    const velho = { v: 3, R: { 'M2.P01': { estado: 'opcao', opcao: 'Ainda não pensei nisso' }, 'M2.P04': { estado: 'opcao', opcao: 'Sim' }, 'M2.P05': { estado: 'opcao', opcao: 'Não sei' }, 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' }, 'M2.P08': { estado: 'opcao', opcao: 'Motivo da compra', opcoes: ['Motivo da compra', 'Hábitos de compra'] }, 'M2.P16': { estado: 'opcao', opcao: 'Sim' }, 'M2.P18': { estado: 'valor', valor: '3' }, 'M2.P20': { estado: 'naosei' } }, hist: ['M2.P01', 'M2.P04', 'M2.P18', 'M2.P20', 'M2.P05', 'M2.P07', 'M2.P08'], fichas: [{ situacao: 'Vizinha', frequencia: '1 vez por mês', motivo: 'preço', sinal: 'forte' }], plano: { meta: '', prazo: '', feitos: [] }, grupos: [] };
+    await page.evaluate((e) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', e); }, JSON.stringify(velho));
+    await page.reload();
+    const mv = JSON.parse(await estadoDe());
+    ok(mv.v === 4 && !mv.R['M2.P01'] && !mv.R['M2.P05'] && JSON.stringify(mv.R['M2.P08'].opcoes) === '["Motivo da compra","Hábitos de compra"]' && mv.R['M2.P04'].opcao === 'Sim' && mv.R['M2.P07'].opcao === 'Pessoas' && mv.R['M2.P18'].valor === '3'
+      && JSON.stringify(mv.R['M2.P16']) === '{"estado":"opcao","opcao":"Sim"}' && JSON.stringify(mv.R['M2.P20']) === '{"estado":"naosei"}' && mv.fichas.length === 1, `migração v4: "Não sei" antigo vira sem resposta, resto intacto (obtido ${JSON.stringify(mv)})`);
+    await clicarTexto('button', 'Continuar de onde parei');
+    ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P01'].pergunta && (await page.locator('#ajuda-ns .como-descobrir').count()) === 1, 'migração: reabre a 1ª pergunta que era "Não sei", sem resposta e com "Como descobrir" à vista');
+    await clicarTexto('#ent .opcao', 'Sim'); await page.click('#ok');
+    const mv2 = JSON.parse(await estadoDe());
+    ok(mv2.R['M2.P01'].opcao === 'Sim' && mv2.R['M2.P04'].opcao === 'Sim' && mv2.R['M2.P18'].valor === '3' && mv2.R['M2.P16'] && mv2.R['M2.P20'], `migração: responder a P01 não apaga as outras respostas nem as de P16/P20 (obtido ${JSON.stringify(mv2.R)})`);
+
+    // resultado: o principal no topo (entendemos + tarefa + o que falta), o resto fechado
+    await percorrer(planejar({ 'M2.P01': 'Em parte', 'M2.P04': 'Não', 'M2.P03': 'Suposição, ainda sem conferir' }));
     const res = await page.evaluate(() => {
       const ordem = ['#entendemos', '#tarefa', '#falta', '#mais-detalhes', '.lg2-proximo'].map((s) => document.querySelector(s));
       const emOrdem = ordem.every(Boolean) && ordem.every((e, i) => i === 0 || (ordem[i - 1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING));
       return { emOrdem, mais: document.querySelector('#mais-detalhes') && document.querySelector('#mais-detalhes').open,
-        tarefa: document.querySelector('#tarefa').innerText, ns: [...document.querySelectorAll('#falta .ns-item')].map((li) => ({ t: li.firstChild.textContent, como: !!li.querySelector('details.como-mini:not([open]) .como-descobrir ol li') })),
+        tarefa: document.querySelector('#tarefa').innerText, ns: document.querySelectorAll('#falta .ns-item').length,
         regrasFora: [...document.querySelectorAll('.regra')].filter((r) => !r.closest('#mais-detalhes')).length };
     });
-    ok(res.emOrdem && res.mais === false && res.regrasFora === 0, `resultado: entendemos → tarefa → o que falta → "Mais detalhes" (fechado) → próximo módulo (obtido ${JSON.stringify({ o: res.emOrdem, m: res.mais, r: res.regrasFora })})`);
+    ok(res.emOrdem && res.mais === true && res.regrasFora === 0, `resultado: entendemos → tarefa → o que falta → "Mais detalhes" aberto → próximo módulo (obtido ${JSON.stringify({ o: res.emOrdem, m: res.mais, r: res.regrasFora })})`);
     ok(/^Sua próxima tarefa/i.test(norm(res.tarefa)) && norm(res.tarefa).length > 30, `resultado: tarefa à vista (obtido "${res.tarefa}")`);
-    ok(res.ns.length === 2 && res.ns.every((x) => x.como), `resultado: cada "Não sei" com "Como descobrir" fechado (obtido ${JSON.stringify(res.ns)})`);
+    ok(res.ns === 0, 'resultado: nenhum "Não sei" gravado para listar');
     ok((await page.locator('.lg2-proximo').count()) === 1 && /<div class="acoes lg2-proximo"><a class="btn btn-primario"[^>]*href="\/lg2\/turma-a\/m03\/index.html">Ir para o Módulo 3<\/a><\/div>/.test(app), 'caixa do próximo módulo igual');
     await page.evaluate(() => window.scrollTo(0, 0));
     await shot('l_resultado');
+
+    /* ===== roteiro de entrevista aberto por cima da tela (lote 16/11) ===== */
+    // em toda pergunta, o botão "Ver o roteiro" existe se e só se algum texto mostrado cita o roteiro
+    const roteiroNaPergunta = async (q, resp) => {
+      await abrirPergunta(q);
+      if (Motor.campo(q) === 'escolha') await clicarTexto('#ent .opcao', resp); else await page.fill('#ent input, #ent textarea', resp);
+      await page.click('#ok');
+      await page.waitForSelector('#retorno .retorno');
+    };
+    // P04 = Sim: o próximo passo cita "O roteiro de entrevista ..."
+    await roteiroNaPergunta(M.porCodigo['M2.P04'], 'Não');
+    const retTxt = norm(await page.locator('#retorno').innerText());
+    ok(/roteiro de entrevista/i.test(retTxt) && (await page.locator('#retorno [data-roteiro]').count()) === 1, `P04 Não: o retorno cita o roteiro e tem "Ver o roteiro" (obtido "${retTxt.slice(0, 200)}")`);
+    await page.evaluate(() => { const b = document.querySelector('#retorno [data-roteiro]'); b.scrollIntoView({ block: 'center' }); });
+    const antesRot = { y: await page.evaluate(() => window.scrollY), est: await estadoDe(), html: await page.evaluate(() => document.querySelector('#tela').innerHTML), passo: await page.locator('.passo').textContent() };
+    await page.locator('#retorno [data-roteiro]').click();
+    await page.waitForSelector('[role="dialog"]');
+    await page.waitForTimeout(400);
+    const dlg = await page.evaluate(() => { const d = document.querySelector('[role="dialog"]'); return { modal: d.getAttribute('aria-modal'), tit: d.querySelector('#lg2-rot-tit').textContent, txt: d.innerText, foco: d.contains(document.activeElement), fechar: [...d.querySelectorAll('button')].map((b) => b.textContent.trim()), telaInerte: document.querySelector('#tela').inert, url: location.href }; });
+    ok(dlg.modal === 'true' && dlg.tit === 'Roteiro de entrevista' && dlg.foco && dlg.fechar.includes('Fechar') && dlg.telaInerte, `painel do roteiro: dialog modal com título, foco dentro e "Fechar" (obtido ${JSON.stringify({ ...dlg, txt: undefined })})`);
+    const dtxt = norm(dlg.txt);
+    for (const x of ['Para que serve', 'Com quem conversar', 'Quantas conversas', 'Comece pelo passado', 'onde comprou da última vez', 'quanto pagou', 'o que faria diferente', 'se pediria orçamento de novo', 'Feche a conversa', 'Anote no mesmo dia', norm(D.base.find((b) => /Entrevista com cliente/.test(b.conceito)).exemplo)])
+      ok(dtxt.includes(x), `painel do roteiro: falta "${x}"`);
+    ok(/Você ainda não registrou nenhuma conversa/.test(dtxt), 'painel do roteiro: sem fichas, diz que não há anotações');
+    ok(!/M2\.[PI]\d{2}/.test(dtxt) && !/Grupo \d/.test(dtxt), 'painel do roteiro sem códigos internos nem "Grupo N"');
+    await shot('l_roteiro_painel');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    const depoisRot = { y: await page.evaluate(() => window.scrollY), est: await estadoDe(), html: await page.evaluate(() => document.querySelector('#tela').innerHTML), passo: await page.locator('.passo').textContent(), foco: await page.evaluate(() => document.activeElement && document.activeElement.hasAttribute('data-roteiro')), dlg: await page.locator('[role="dialog"]').count() };
+    ok(depoisRot.dlg === 0, 'Esc fecha o painel do roteiro');
+    ok(depoisRot.y === antesRot.y && depoisRot.est === antesRot.est && depoisRot.html === antesRot.html && depoisRot.passo === antesRot.passo, `fechar o roteiro volta ao mesmo ponto: mesma tela, rolagem e respostas (rolagem ${antesRot.y} → ${depoisRot.y})`);
+    ok(depoisRot.foco, 'fechar o roteiro devolve o foco ao botão "Ver o roteiro"');
+    // de uma pergunta com resposta ainda não confirmada: o que foi marcado continua marcado; com fichas, o painel mostra a contagem
+    await abrirPergunta(M.porCodigo['M2.P08']);
+    await clicarTexto('#ent .opcao', 'Motivo da compra');
+    ok(await page.evaluate(() => [...document.querySelectorAll('#ent .op-ex')].some((x) => /festa, presente/.test(x.textContent))), 'P08: exemplo pequeno embaixo da opção difícil');
+    ok(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent).includes('Motivo da compra')), 'P08: o texto da opção não muda com o exemplo');
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await shot('l_p08_exemplos');
+    // P02: texto escrito e ainda não confirmado continua igual depois de abrir o roteiro pela caixa "Use a IA com cuidado"
+    await abrirPergunta(M.porCodigo['M2.P02']);
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m02')); s.fichas = [{ situacao: 'Vizinha, compra para aniversário', frequencia: '1 vez por mês', motivo: 'preço', sinal: 'forte' }, { situacao: 'Colega de trabalho', frequencia: '', motivo: 'perto', sinal: 'fraco' }]; localStorage.setItem('lg2-turma-b-m02', JSON.stringify(s)); });
+    await page.fill('#ent textarea', 'Mães que trabalham fora');
+    const cxIA = page.locator('details.caixa-ia');
+    await cxIA.evaluate((d) => { d.open = true; });
+    ok((await cxIA.locator('[data-roteiro]').count()) === 1, 'P02: caixa "Use a IA" cita o roteiro e tem "Ver o roteiro"');
+    await cxIA.locator('[data-roteiro]').scrollIntoViewIfNeeded();
+    const yRot = await page.evaluate(() => window.scrollY);
+    await cxIA.locator('[data-roteiro]').click();
+    await page.waitForSelector('[role="dialog"]');
+    const notas = norm(await page.locator('.lg2-rot-notas').innerText());
+    ok(/2 conversas registradas/.test(notas) && /1 com sinal forte, 1 com sinal fraco/.test(notas) && /Vizinha, compra para aniversário/.test(notas), `painel do roteiro mostra as anotações das conversas (obtido "${notas}")`);
+    await page.getByRole('button', { name: 'Fechar', exact: true }).click();
+    ok((await page.locator('[role="dialog"]').count()) === 0 && (await page.evaluate(() => window.scrollY)) === yRot, 'botão "Fechar" fecha e mantém a rolagem');
+    ok((await page.locator('#ent textarea').inputValue()) === 'Mães que trabalham fora' && (await page.locator('#retorno .retorno').count()) === 0 && !JSON.parse(await estadoDe()).R['M2.P02'], 'P02: o texto ainda não confirmado continua igual e nada é gravado ao abrir o roteiro');
+    // resultado: a tarefa padrão cita o roteiro e tem o botão; o painel abre sem sair do resultado
+    await page.goto(srv.url + 'index.html'); await page.evaluate(() => localStorage.clear()); await page.reload();
+    await percorrer(planejar({ 'M2.P01': 'Em parte', 'M2.P04': 'Não', 'M2.P05': 'Um único grupo', 'M2.P08': 'Nenhuma muda muito' }));
+    const tarefaRot = await page.evaluate(() => ({ t: document.querySelector('#tarefa').innerText, b: !!document.querySelector('#tarefa [data-roteiro]') }));
+    ok(/roteiro de entrevista/i.test(tarefaRot.t) ? tarefaRot.b : true, `resultado: tarefa que cita o roteiro tem "Ver o roteiro" (obtido ${JSON.stringify(tarefaRot)})`);
+    ok((await page.locator('#tela [data-roteiro]').count()) >= 1, 'resultado: pelo menos um "Ver o roteiro"');
+    await page.locator('#tela [data-roteiro]').first().click();
+    await page.waitForSelector('[role="dialog"]');
+    ok(await page.evaluate(() => !!document.querySelector('.concluido')), 'resultado: o roteiro abre por cima, sem sair do resultado');
+    await page.keyboard.press('Escape');
+    // capa: "Como funciona" cita o roteiro na entrega
+    await page.goto(srv.url + 'index.html');
+    ok((await page.locator('#como-funciona [data-roteiro]').count()) === 1, 'capa: "Como funciona" cita o roteiro e tem "Ver o roteiro"');
+    // sem texto que cite o roteiro, não há botão (P07)
+    await abrirPergunta(M.porCodigo['M2.P07']);
+    const cita07 = /roteiro de entrevista|M2\.I01/i.test([M.porCodigo['M2.P07'].ajuda, ...D.educativo.filter((e) => e.onde === 'M2.P07').map((e) => e.texto + e.exemplo)].join(' '));
+    ok((await page.locator('#tela [data-roteiro]').count() > 0) === cita07, 'P07: "Ver o roteiro" só onde o texto cita o roteiro');
+
+    /* ===== "Como calculamos" (lote 16/11) ===== */
+    await page.goto(srv.url + 'index.html');
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', JSON.stringify({ v: 4, R: {}, hist: [], fichas: ['forte', 'forte', 'fraco', 'fraco', 'nenhum'].map((s) => ({ situacao: 'Pessoa ' + s, frequencia: '', motivo: 'preço', sinal: s })), plano: { meta: '', prazo: '', feitos: [] }, grupos: [{ nome: 'Mães', alcancar: 3, necessidade: 3, pagar: 2 }] })); });
+    await page.reload();
+    await clicarTexto('button', 'Instrumentos: roteiro, ficha, plano e quadro');
+    const ce = norm(await page.locator('#calc-evid').textContent());
+    ok(ce === 'Como calculamos: 2 pessoas com sinal forte ÷ 5 entrevistas salvas na ficha × 100 = 40%.', `quadro de evidências: "Como calculamos" com os números da pessoa (obtido "${ce}")`);   // conta à mão: 2/5 = 0,4 → 40%
+    const cg = norm(await page.locator('#grupos .calc-grupo').first().textContent());
+    ok(cg === 'Como calculamos: 3 (alcançar) + 3 (necessidade) + 2 (pagar) = 8 pontos.', `quadro dos grupos: "Como calculamos" (obtido "${cg}")`);
+    await page.locator('#calc-evid').scrollIntoViewIfNeeded();
+    await shot('l_calc_evidencias');
 
     /* 7) resultado (caso T06 do grupo) para o print */
     const t06 = D.casos.find((c) => c.codigo === 'M2.T06');

@@ -1,6 +1,7 @@
-/* GERADO por ferramentas/extrair.py a partir da planilha do grupo. Nao editar a mao.
-   (nov/2026: editado a mao na versao leve — enunciados curtos, placeholder "Ex.:", inicio e, em cada
-   pergunta, comoDescobrir/promptIA do "Nao sei". Se regenerar pela ferramenta, refaca estes campos.) */
+/* Dados do Módulo 2 do Empreenda+. Partiram do material produzido pelos estudantes do Laboratório de Gestão II
+   e agora são mantidos diretamente neste arquivo, que é a fonte oficial (não há mais geração pela planilha).
+   Os textos das opções são lidos por outros módulos e pelo diagnóstico: ao trocar uma opção, ajuste quem a lê
+   e migre as respostas salvas. */
 window.MODULO2 = {
  "origem": "LG2_M02_planilha_do_grupo.xlsx",
  "modulo": {
@@ -112,7 +113,7 @@ window.MODULO2 = {
    "codigo": "M2.BT05",
    "conceito": "Ocasião, frequência e critérios de escolha de compra",
    "definicao": "Quando e com que frequência a pessoa costuma comprar aquele tipo de produto ou serviço, e o que ela leva em conta para escolher entre opções (preço, prazo, qualidade, localização, confiança).",
-   "porque": "Ajuda a entender se o negócio depende de compras raras (festas) ou recorrentes (dia a dia), o que muda a forma de divulgar e vender.",
+   "porque": "Ajuda a entender se o negócio depende de compras raras (festas) ou que se repetem sempre (dia a dia), o que muda a forma de divulgar e vender.",
    "exemplo": "Um bolo de aniversário costuma ser comprado com poucos dias de antecedência; já marmitas fitness podem ser compradas toda semana.",
    "tipo_fonte": "Institucional",
    "fonte": "Sebrae PR, \"12 dicas para conhecer e entender seu público-alvo\"",
@@ -155,7 +156,7 @@ window.MODULO2 = {
    "ajuda": "Pense na pessoa que mais compraria de você. Não precisa ter certeza: uma ideia inicial já vale.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Sim; Em parte; Ainda não pensei nisso; Não sei",
+   "opcoes": "Sim; Em parte; Não sei",
    "resposta": "Mostra se você parte de uma ideia de público ou do zero. Muda as próximas perguntas.",
    "alerta": "Nenhum",
    "proximo": "Pense em quem já pediu, perguntou ou comprou algo parecido com o que você oferece: essa pessoa é um bom ponto de partida.",
@@ -194,7 +195,7 @@ window.MODULO2 = {
    "ajuda": "Escolha a origem principal. Ser sincero aqui ajuda a separar o que já foi confirmado do que ainda é palpite.",
    "tipo": "Escolha",
    "condicao": "M2.P01 = Sim ou M2.P01 = Em parte",
-   "opcoes": "Experiência própria com esse público; Pesquisa em internet/redes/dados; Conversa com conhecidos; Suposição, ainda sem conferir; Não sei",
+   "opcoes": "Experiência própria com esse público; Pesquisa em internet/redes/dados; Conversa com conhecidos; Suposição, ainda sem conferir",
    "resposta": "Mostra o quanto do que você sabe sobre o público já foi conferido.",
    "alerta": "Decidir com base em suposição não conferida aumenta o risco.",
    "proximo": "Separe o que você já confirmou do que ainda é suposição; as conversas (M2.I01) servem para conferir.",
@@ -213,7 +214,7 @@ window.MODULO2 = {
    "ajuda": "Considere qualquer conversa direta, pessoal ou por mensagem, sobre o problema que você quer resolver. Conte quem poderia comprar de fato, não só amigos próximos.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Sim; Não; Não sei",
+   "opcoes": "Sim; Não",
    "resposta": "Define se o app vai te orientar a fazer entrevistas antes de seguir.",
    "alerta": "Nenhum",
    "proximo": "O roteiro de entrevista (M2.I01) ajuda a conversar com possíveis clientes, mesmo que você já tenha conversado com alguém antes.",
@@ -300,7 +301,11 @@ window.MODULO2 = {
     "Pense em 2 clientes diferentes. O que faz um escolher diferente do outro: idade, dinheiro, onde mora, o motivo ou o costume?",
     "Marque o que apareceu. Se nada muda, marque “Nenhuma muda muito”."
    ],
-   "promptIA": "Eu vendo [o que você vende]. Me ajude a descobrir o que mais muda entre um cliente e outro: idade, quanto podem pagar, onde moram, o motivo da compra ou o costume. Me faça perguntas simples."
+   "promptIA": "Eu vendo [o que você vende]. Me ajude a descobrir o que mais muda entre um cliente e outro: idade, quanto podem pagar, onde moram, o motivo da compra ou o costume. Me faça perguntas simples.",
+   "opcoesEx": {
+    "Motivo da compra": "Ex.: festa, presente ou dia a dia",
+    "Hábitos de compra": "Ex.: compra toda semana, só pela internet, só em promoção"
+   }
   },
   {
    "codigo": "M2.P09",
@@ -337,7 +342,10 @@ window.MODULO2 = {
     "Veja quanto cobram por algo parecido perto de você e pergunte a 2 clientes se achariam caro.",
     "Repare: quando o preço sobe um pouco, eles trocam de lugar ou continuam comprando?"
    ],
-   "promptIA": "Eu vendo [o que você vende] para [quem compra]. Me dê 3 perguntas simples para eu fazer aos clientes e descobrir se eles buscam o menor preço ou pagam mais por algo melhor."
+   "promptIA": "Eu vendo [o que você vende] para [quem compra]. Me dê 3 perguntas simples para eu fazer aos clientes e descobrir se eles buscam o menor preço ou pagam mais por algo melhor.",
+   "opcoesEx": {
+    "Paga mais por diferencial": "Ex.: paga mais por entrega rápida ou por mais qualidade"
+   }
   },
   {
    "codigo": "M2.P11",
@@ -412,7 +420,10 @@ window.MODULO2 = {
     "Pense em quais negócios usariam o que você vende no dia a dia deles (ex.: restaurante, salão, escritório).",
     "Veja se são pequenos negócios do bairro, empresas maiores ou órgãos públicos."
    ],
-   "promptIA": "Eu vendo [o que você vende] em [sua cidade]. Que tipos de empresa poderiam comprar isso para usar no próprio negócio? Me faça perguntas antes de listar."
+   "promptIA": "Eu vendo [o que você vende] em [sua cidade]. Que tipos de empresa poderiam comprar isso para usar no próprio negócio? Me faça perguntas antes de listar.",
+   "opcoesEx": {
+    "Órgãos públicos/instituições": "Ex.: prefeitura, escola, hospital, associação"
+   }
   },
   {
    "codigo": "M2.P15",
@@ -421,7 +432,7 @@ window.MODULO2 = {
    "ajuda": "Escolha o que mais pesaria na sua decisão de por onde começar.",
    "tipo": "Escolha",
    "condicao": "M2.P05 = De dois a três grupos",
-   "opcoes": "Mais fácil de alcançar; Maior necessidade; Pode pagar mais; Não sei",
+   "opcoes": "Mais fácil de alcançar; Maior necessidade; Pode pagar mais",
    "resposta": "Ajuda a priorizar um grupo para as primeiras conversas.",
    "alerta": "Tentar atender todos os grupos de uma vez no início pode dispersar tempo e dinheiro.",
    "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
@@ -431,7 +442,10 @@ window.MODULO2 = {
     "Para cada grupo, pense: é fácil chegar até eles? Eles precisam muito? Podem pagar?",
     "Escolha o que mais pesa para você agora. O quadro para comparar os grupos, nos instrumentos, ajuda nisso."
    ],
-   "promptIA": "Tenho estes grupos de clientes: [seus grupos]. Me ajude a decidir por qual começar, comparando facilidade de alcançar, necessidade e capacidade de pagar. Me faça perguntas antes de decidir."
+   "promptIA": "Tenho estes grupos de clientes: [seus grupos]. Me ajude a decidir por qual começar, comparando facilidade de alcançar, necessidade e capacidade de pagar. Me faça perguntas antes de decidir.",
+   "opcoesEx": {
+    "Mais fácil de alcançar": "Ex.: moram perto ou já estão no seu WhatsApp"
+   }
   },
   {
    "codigo": "M2.P16",
@@ -443,14 +457,15 @@ window.MODULO2 = {
    "opcoes": "Sim; Em parte; Ainda não; Não sei",
    "resposta": "Um grupo só serve para começar se for possível alcançá-lo.",
    "alerta": "Nenhum",
-   "proximo": "Use o canal que você conhece para chamar as pessoas para as conversas (M2.I03).",
+   "proximo": "Use o lugar ou a rede que você conhece (ex.: grupo de WhatsApp, feira, igreja) para chamar as pessoas para as conversas (M2.I03).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho",
    "comoDescobrir": [
     "Pense onde essas pessoas passam o tempo: grupos de WhatsApp do bairro, igreja, escola, academia, Instagram, feira.",
     "Pergunte a 2 clientes: “Onde você costuma ver ofertas disso?”"
    ],
-   "promptIA": "Eu vendo [o que você vende] para [quem compra] em [seu bairro e cidade]. Me ajude a pensar onde encontrar essas pessoas, perto de casa e na internet. Me faça perguntas antes de sugerir."
+   "promptIA": "Eu vendo [o que você vende] para [quem compra] em [seu bairro e cidade]. Me ajude a pensar onde encontrar essas pessoas, perto de casa e na internet. Me faça perguntas antes de sugerir.",
+   "oculta": true
   },
   {
    "codigo": "M2.P17",
@@ -460,7 +475,7 @@ window.MODULO2 = {
    "tipo": "Escolha",
    "condicao": "sempre",
    "opcoes": "Uma vez; Algumas vezes por ano; Todo mês; Toda semana; Não sei",
-   "resposta": "Isso ajuda a entender se o negócio depende de compras raras ou recorrentes.",
+   "resposta": "Isso ajuda a entender se o negócio depende de compras raras ou que se repetem sempre.",
    "alerta": "Nenhum",
    "proximo": "Guarde essa estimativa para comparar com o que aparecer nas entrevistas.",
    "fonte": "Sebrae PR, 25/09/2026",
@@ -478,7 +493,7 @@ window.MODULO2 = {
    "ajuda": "Conte apenas conversas em que você realmente ouviu a pessoa falar sobre a própria experiência, não apenas elogios rápidos.",
    "tipo": "Número",
    "condicao": "M2.P04 = Sim",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "resposta": "Esse número mostra o tamanho da evidência que você já reuniu.",
    "alerta": "Poucas pessoas ouvidas não permitem tirar conclusões definitivas.",
    "proximo": "O plano de coleta de evidências (M2.I03) ajuda a organizar as próximas conversas.",
@@ -497,7 +512,7 @@ window.MODULO2 = {
    "ajuda": "Ações contam mais do que elogios: procure algo que a pessoa realmente fez, não apenas disse.",
    "tipo": "Escolha",
    "condicao": "M2.P18 > 0",
-   "opcoes": "Sim; Não; Não sei",
+   "opcoes": "Sim; Não",
    "resposta": "Isso diferencia um sinal forte de interesse de um simples elogio.",
    "alerta": "Elogio sozinho não é evidência suficiente de que existe gente realmente interessada em comprar.",
    "proximo": "Registre esse resultado no quadro de evidências (M2.I04).",
@@ -526,7 +541,8 @@ window.MODULO2 = {
     "Pergunte a quem conversou com você: “O que faria você comprar de mim e não de outro lugar?”",
     "Anote as palavras da pessoa: preço, prazo, qualidade, confiança ou lugar."
    ],
-   "promptIA": "Eu vendo [o que você vende]. Me dê 3 perguntas simples para descobrir, conversando, por que um cliente escolheria comprar de mim em vez de outra opção."
+   "promptIA": "Eu vendo [o que você vende]. Me dê 3 perguntas simples para descobrir, conversando, por que um cliente escolheria comprar de mim em vez de outra opção.",
+   "oculta": true
   },
   {
    "codigo": "M2.P21",
@@ -535,7 +551,7 @@ window.MODULO2 = {
    "ajuda": "Elogio é quando a pessoa só diz “que legal!”, “adorei a ideia!” ou “eu compraria”, mas não faz nada depois. Problema de verdade é quando a pessoa conta a dificuldade que tem no dia a dia (por exemplo: “não tenho tempo de levar o carro para lavar”), pergunta o preço, pede para reservar ou já paga um sinal.",
    "tipo": "Escolha",
    "condicao": "M2.P04 = Sim",
-   "opcoes": "Contaram um problema de verdade; Só elogiaram a ideia; Não sei",
+   "opcoes": "Contaram um problema de verdade; Só elogiaram a ideia",
    "resposta": "Essa resposta ajuda a decidir se você já pode testar a sua ideia (Módulo 4) ou se vale conversar com mais gente antes.",
    "alerta": "Seguir só com elogios pode levar a testar a ideia sem saber se alguém compraria de verdade.",
    "proximo": "Se ainda for só elogio, volte a conversar e peça um passo concreto: perguntar o preço, reservar ou pagar um sinal.",
@@ -664,7 +680,7 @@ window.MODULO2 = {
    "texto": "Partir de uma suposição é normal; o importante é testá-la antes de investir.",
    "alerta": "Decidir preço, estoque ou divulgação com base em suposição aumenta o risco.",
    "lacuna": "Quais partes da suposição já podem ser conferidas",
-   "proximo": "Trate a suposição como hipótese e confira com o roteiro de entrevista (M2.I01).",
+   "proximo": "Trate a suposição como um palpite a conferir e confira com o roteiro de entrevista (M2.I01).",
    "encaminhamento": "Nenhum",
    "fonte": "Sebrae PR, 25/09/2026",
    "status": "Rascunho"
@@ -891,7 +907,7 @@ window.MODULO2 = {
    "codigo": "M2.R29",
    "pergunta": "M2.P08",
    "condicao": "M2.P08 = Hábitos de compra",
-   "texto": "Dividir por hábitos (frequência, canal, o que a pessoa valoriza) usa comportamento observável, o que costuma ser mais útil que características gerais.",
+   "texto": "Dividir por hábitos (frequência, onde compra, o que a pessoa valoriza) usa comportamento observável, o que costuma ser mais útil que características gerais.",
    "alerta": "Nenhum",
    "lacuna": "Como as pessoas compram hoje esse tipo de produto",
    "proximo": "Responda M2.P13.",
@@ -927,7 +943,7 @@ window.MODULO2 = {
    "codigo": "M2.R32",
    "pergunta": "M2.P09",
    "condicao": "M2.P09 = Jovens/estudantes",
-   "texto": "Jovens e estudantes podem ter rotina, orçamento e canais de compra diferentes de outros grupos. Confirme isso ouvindo pessoas desse grupo.",
+   "texto": "Jovens e estudantes podem ter rotina, orçamento e lugares de compra diferentes de outros grupos. Confirme isso ouvindo pessoas desse grupo.",
    "alerta": "Nenhum",
    "lacuna": "O que esse grupo valoriza e onde costuma comprar",
    "proximo": "Inclua pessoas desse grupo no plano de coleta (M2.I03).",
@@ -963,7 +979,7 @@ window.MODULO2 = {
    "codigo": "M2.R35",
    "pergunta": "M2.P09",
    "condicao": "M2.P09 = Idosos/aposentados",
-   "texto": "Esse grupo pode ter hábitos e canais de compra próprios. Confirme ouvindo pessoas do grupo, sem presumir.",
+   "texto": "Esse grupo pode ter hábitos e lugares de compra próprios. Confirme ouvindo pessoas do grupo, sem presumir.",
    "alerta": "Nenhum",
    "lacuna": "Como esse grupo prefere comprar e receber o produto",
    "proximo": "Inclua pessoas desse grupo no plano de coleta (M2.I03).",
@@ -1000,7 +1016,7 @@ window.MODULO2 = {
    "pergunta": "M2.P10",
    "condicao": "M2.P10 = Busca o menor preço",
    "texto": "Se o público busca o menor preço, a concorrência por preço tende a ser forte. Vale conferir quanto as pessoas pagam hoje por alternativas.",
-   "alerta": "Competir só por preço baixo pode reduzir a margem; vale analisar os custos no Módulo 5 antes de decidir.",
+   "alerta": "Competir só por preço baixo pode reduzir o que sobra para você em cada venda (a margem); vale analisar os custos no Módulo 5 antes de decidir.",
    "lacuna": "Quanto as pessoas pagam hoje por alternativas",
    "proximo": "Pergunte, nas entrevistas, quanto pagaram na última compra parecida (M2.I01).",
    "encaminhamento": "Nenhum",
@@ -1083,10 +1099,10 @@ window.MODULO2 = {
    "codigo": "M2.R45",
    "pergunta": "M2.P11",
    "condicao": "M2.P11 = Outras cidades/online",
-   "texto": "Vender para outras cidades ou pela internet amplia o alcance, mas exige pensar em frete, prazos e canais.",
+   "texto": "Vender para outras cidades ou pela internet amplia o alcance, mas exige pensar em frete, prazos e em como vender (site, rede social, entrega).",
    "alerta": "Frete, prazo e concorrência de fora podem mudar o custo e a oferta.",
-   "lacuna": "Por quais canais esse público seria alcançado",
-   "proximo": "Escolha um canal e uma região para as primeiras conversas (M2.I03).",
+   "lacuna": "Por onde chegar até esse público (ex.: Instagram, WhatsApp, entrega)",
+   "proximo": "Escolha uma forma de chegar até as pessoas (ex.: Instagram ou grupo do bairro) e uma região para as primeiras conversas (M2.I03).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1156,7 +1172,7 @@ window.MODULO2 = {
    "pergunta": "M2.P13",
    "condicao": "M2.P13 = Preço",
    "texto": "Quando o preço pesa mais, a comparação com concorrentes e alternativas tende a ser direta.",
-   "alerta": "Disputar apenas por preço pode reduzir a margem.",
+   "alerta": "Disputar apenas por preço pode reduzir o que sobra para você em cada venda (a margem).",
    "lacuna": "Quanto as alternativas custam hoje",
    "proximo": "Pergunte, nas entrevistas, quanto a pessoa pagou por alternativas (M2.I01).",
    "encaminhamento": "Nenhum",
@@ -1287,7 +1303,7 @@ window.MODULO2 = {
    "codigo": "M2.R62",
    "pergunta": "M2.P15",
    "condicao": "M2.P15 = Pode pagar mais",
-   "texto": "Começar pelo grupo que pode pagar mais pode melhorar a margem, mas só ajuda se ele realmente comprar.",
+   "texto": "Começar pelo grupo que pode pagar mais pode deixar mais dinheiro em cada venda, mas só ajuda se ele realmente comprar.",
    "alerta": "Supor que um grupo paga mais, sem conferir, é arriscado.",
    "lacuna": "Se esse grupo demonstra interesse real",
    "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
@@ -1313,8 +1329,8 @@ window.MODULO2 = {
    "condicao": "M2.P16 = Sim",
    "texto": "Saber onde encontrar o público facilita as entrevistas e a divulgação.",
    "alerta": "Nenhum",
-   "lacuna": "Se esse canal alcança de fato o grupo escolhido",
-   "proximo": "Use esse canal para chamar as pessoas para as conversas (M2.I03).",
+   "lacuna": "Se esse lugar ou rede alcança de fato o grupo escolhido",
+   "proximo": "Use esse lugar ou rede para chamar as pessoas para as conversas (M2.I03).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1323,9 +1339,9 @@ window.MODULO2 = {
    "codigo": "M2.R65",
    "pergunta": "M2.P16",
    "condicao": "M2.P16 = Em parte",
-   "texto": "Conhecer só parte dos canais é comum. Vale pesquisar onde esse grupo já compra ou conversa.",
+   "texto": "Conhecer só parte dos lugares onde esse público está é comum. Vale pesquisar onde esse grupo já compra ou conversa.",
    "alerta": "Nenhum",
-   "lacuna": "Quais canais ainda não são conhecidos",
+   "lacuna": "Em que lugares ou redes esse público ainda pode estar",
    "proximo": "Pergunte a pessoas do grupo onde costumam procurar algo parecido (M2.I01).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
@@ -1335,7 +1351,7 @@ window.MODULO2 = {
    "codigo": "M2.R66",
    "pergunta": "M2.P16",
    "condicao": "M2.P16 = Ainda não",
-   "texto": "Se ainda não sabe como chegar ao público, ouvir quem já compra de outros lugares pode mostrar os canais usados.",
+   "texto": "Se ainda não sabe como chegar ao público, ouvir quem já compra de outros lugares pode mostrar onde essas pessoas compram (ex.: feira, WhatsApp, loja do bairro).",
    "alerta": "Um grupo difícil de alcançar encarece a divulgação e as entrevistas.",
    "lacuna": "Onde o grupo costuma procurar ou comprar",
    "proximo": "Pergunte a pessoas do grupo onde costumam procurar algo parecido e registre as respostas (M2.I02).",
@@ -1570,10 +1586,10 @@ window.MODULO2 = {
    "codigo": "M2.R85",
    "pergunta": "M2.P01 + M2.P04",
    "condicao": "M2.P01 = Sim e M2.P04 = Não",
-   "texto": "Você tem clareza sobre o público, mas ainda não conversou com possíveis clientes. Essa clareza pode ser só uma hipótese.",
+   "texto": "Você tem clareza sobre o público, mas ainda não conversou com possíveis clientes. Essa clareza pode ser só um palpite.",
    "alerta": "Ter certeza sem conversar com clientes pode levar a decisões baseadas em suposição.",
    "lacuna": "Se a ideia de público se confirma quando se ouvem pessoas reais",
-   "proximo": "Trate a descrição do público (M2.P02) como hipótese e teste com o roteiro de entrevista (M2.I01).",
+   "proximo": "Trate a descrição do público (M2.P02) como um palpite a conferir e teste com o roteiro de entrevista (M2.I01).",
    "encaminhamento": "Nenhum",
    "fonte": "Guia do Desafio, 3.2, set/2026",
    "status": "Rascunho"
@@ -1621,7 +1637,7 @@ window.MODULO2 = {
    "texto": "As respostas combinam: várias pessoas ouvidas, alguém já fez algo concreto e elas contaram um problema de verdade. Isso fortalece a sua ideia, mas ainda não garante vendas.",
    "alerta": "Com poucas pessoas, o resultado ainda é um indício, não uma prova.",
    "lacuna": "Se o padrão se mantém com pessoas fora do seu círculo próximo",
-   "proximo": "Registre os sinais no quadro de evidências (M2.I04) e leve a hipótese para o Módulo 4 testar com uma oferta pequena.",
+   "proximo": "Registre os sinais no quadro de evidências (M2.I04) e leve essa ideia para o Módulo 4 testar com uma oferta pequena.",
    "encaminhamento": "Nenhum",
    "fonte": "Guia do Desafio, 3.2, set/2026",
    "status": "Rascunho"

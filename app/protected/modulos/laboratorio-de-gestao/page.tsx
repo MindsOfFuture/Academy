@@ -23,8 +23,8 @@ export default async function LaboratorioDeGestaoPage({
 
   return (
     <ModulePageShell
-      title="Laboratório de Gestão"
-      description="Os módulos feitos pelos grupos do Laboratório de Gestão II para apoiar quem está abrindo um pequeno negócio. Escolha a sua turma."
+      title="Empreenda+"
+      description="O Empreenda+ reúne os módulos feitos pelos estudantes do Laboratório de Gestão II para apoiar quem está abrindo um pequeno negócio. Escolha a sua turma."
     >
       <nav aria-label="Turmas" className="mb-6 flex flex-wrap gap-2">
         {ABAS.map((a) => (

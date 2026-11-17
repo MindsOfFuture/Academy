@@ -232,3 +232,29 @@ textarea.campo{resize:vertical;font-family:inherit}
 .cj-item strong,.conceitos-juntos .ex strong{color:var(--m-purple)}
 .conceitos-juntos .dica-mais .ex{margin-top:6px}
 @media print{.voltar-topo{display:none!important}}
+/* lote 16/11: respostas reaproveitadas ("Veio do Módulo N · Trocar"), ajuda do "Não sei" e conta da ficha técnica */
+.reuso{border:2px solid var(--m-lavender-mid);background:#fff;border-radius:12px;padding:10px 14px;margin:0 0 12px;color:#2b2340}
+.reuso .ru-tit{display:block;color:var(--m-purple);font-size:15px;margin-bottom:4px}
+.reuso ul{list-style:none;margin:0;padding:0}
+.reuso li{padding:6px 0;border-top:1px solid var(--m-lavender)}
+.reuso li:first-child{border-top:0}
+.ru-rot{display:block;font-size:14px;color:var(--m-gray)}
+.ru-val{display:block;font-size:16px;line-height:1.35}
+.ru-de{display:block;font-size:14px;color:var(--m-purple);margin-top:2px}
+.ru-trocar{background:none;border:0;padding:4px 2px;font:inherit;font-weight:700;color:var(--m-purple);text-decoration:underline;cursor:pointer;min-height:32px}
+.nota-ns{font-size:16px;font-weight:700;color:var(--m-purple);margin:8px 0}
+.ns-regra{font-size:16px;color:#2b2340}
+.calc-ficha{border:2px solid var(--m-lavender-mid);border-radius:12px;padding:10px 14px;margin:10px 0;background:#fff;color:#2b2340}
+.calc-ficha summary{cursor:pointer;font-weight:700;color:var(--m-purple)}
+.fc-dica{font-size:14px;color:var(--m-gray);margin:6px 0}
+.fc-linha{display:block;margin:8px 0}
+.fc-linha>span:first-child{display:block;font-size:15px;margin-bottom:3px}
+.fc-campo{display:flex;gap:8px;align-items:center}
+.fc-campo .campo{flex:1 1 0}
+.fc-res{background:var(--m-lavender);border-radius:10px;padding:8px 12px;margin:8px 0;color:#2b2340}
+.fc-total{margin:0;font-size:16px}
+.fc-total b{color:var(--m-purple);font-size:18px}
+.como-calc{margin:4px 0 0;font-size:15px;line-height:1.4;color:#2b2340}
+.fc-falta{margin:0;font-size:15px;color:#2b2340}
+.caixa-sel .op-sub{font-weight:400}
+.dica-cuidado{border-left:3px solid var(--m-lavender-mid);padding-left:10px;margin-top:8px}

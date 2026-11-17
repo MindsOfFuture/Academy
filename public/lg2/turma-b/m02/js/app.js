@@ -15,7 +15,12 @@
      Respostas salvas antes são convertidas para as opções novas. */
   /* v3 (lote 3): a pergunta sobre o que mais muda entre os clientes (M2.P08) passou a aceitar várias respostas
      e ganhou "Outra". A resposta única salva antes vira uma lista com ela (nada é descartado). */
-  const VERSAO = 3;
+  /* v4 (lote 16/11): "Não sei" não é mais resposta (bloqueia até haver resposta concreta) e "Ainda não pensei nisso"
+     foi fundida nele. Respostas antigas "Não sei" viram "sem resposta" (a pessoa responde quando passar por lá,
+     com a caixa "Como descobrir" à vista); as outras respostas ficam. Perguntas que saíram (P16, P20) não são tocadas. */
+  const VERSAO = 4;
+  const ERA_NS = (r) => !!r && (r.estado === "naosei" || (r.estado === "opcao" && (r.opcao === "Não sei" || r.opcao === "Ainda não pensei nisso"
+    || (Array.isArray(r.opcoes) && r.opcoes.length > 0 && r.opcoes.every((o) => o === "Não sei")))));
   const P21_ANTIGAS = { "Problema confirmado": "Contaram um problema de verdade", "Só elogios": "Só elogiaram a ideia" };
   let migrou = false;
   let S = carregar();               // { v, R: respostas (+ veio: módulo de origem), hist: [códigos] }
@@ -31,6 +36,16 @@
         }
         const r8 = s.R["M2.P08"];
         if (r8 && r8.estado === "opcao" && !Array.isArray(r8.opcoes)) r8.opcoes = [r8.opcao];
+        if (!(lido.v >= 4)) {
+          const tiradas = M.perguntas.map((q) => q.codigo).filter((c) => ERA_NS(s.R[c]));
+          tiradas.forEach((c) => { delete s.R[c]; });
+          if (tiradas.length) {
+            s.pendentes = [...new Set((s.pendentes || []).concat(tiradas))];
+            /* "Continuar de onde parei" leva à primeira pergunta que ficou sem resposta */
+            const i = (s.hist || []).findIndex((c) => tiradas.includes(c));
+            if (i >= 0) s.hist = s.hist.slice(0, i + 1);
+          }
+        }
         s.v = VERSAO;
         migrou = lido.v !== undefined || Object.keys(s.R).length > 0;
       }
@@ -202,6 +217,11 @@
     return t;
   }
   const L = (s) => esc(Motor.limpa(s));    // texto da planilha sem códigos internos
+  /* roteiro de entrevista: todo texto que fala dele ganha o botão "Ver o roteiro", que abre o roteiro por cima da tela (js/roteiro.js) */
+  const RT = window.LG2Roteiro;
+  const cita0 = (t) => !!RT && RT.cita(t);
+  const btnRoteiro = () => (RT ? RT.botao() : "");
+  const roteiroSe = (...ts) => (ts.some(cita0) ? `<div class="tem-roteiro">${btnRoteiro()}</div>` : "");
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch {} }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -230,6 +250,7 @@
         ${vazio(e.exemplo) ? "" : `<p class="ex">${L(exTipo("educativo." + D.educativo.indexOf(e), e.exemplo))}</p>`}
         ${vazio(e.prompt) ? "" : `<div class="prompt"><p>${esc(e.prompt)}</p><button class="btn-copiar" data-t="${esc(e.prompt)}">Copiar texto</button></div>
           <p class="ex">${esc(e.conferir)}</p>`}
+        ${roteiroSe(e.texto, e.exemplo)}
         <span class="fonte">Fonte: ${esc(e.fonte)}</span>
       </details>`).join("");
   }
@@ -271,11 +292,22 @@
   }
   /* "Não sei": caixa "Como descobrir" (passos + pedido pronto para a IA, com Copiar).
      Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA); a resposta salva não muda. */
+  /* a regra da planilha para "Não sei" deixou de disparar (o "Não sei" não é gravado): o texto dela entra na caixa,
+     como frase de abertura, e o caminho que ela sugeria vira o último passo */
+  const regraNS = (q) => D.regras.find((r) => String(r.condicao).trim() === `${q.codigo} = Não sei`);
   function caixaComo(q, classe) {
     if (!q || !q.comoDescobrir || !q.comoDescobrir.length) return "";
+    const rn = regraNS(q);
+    /* passo que manda para outra pergunta ("siga para a pergunta…") não serve: aqui a pessoa só segue depois de responder */
+    const ex0 = rn && tem(rn.proximo) && !SO_NAVEGA.test(rn.proximo) ? semNavegar(rn.proximo) : null;
+    const extra = ex0 && !/M2\.P\d{2}/.test(ex0) ? ex0 : null;
+    const passos = q.comoDescobrir.concat(extra ? [Motor.limpa(extra)] : []);
+    const cita = passos.some(cita0) || (extra && cita0(extra));
     return `<section class="como-descobrir ${classe || ""}" role="status">
       <b class="como-tit">Como descobrir</b>
-      <ol>${q.comoDescobrir.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${rn && tem(rn.texto) ? `<p class="como-intro">${L(rn.texto)}</p>` : ""}
+      <ol>${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${cita ? `<div class="tem-roteiro">${btnRoteiro()}</div>` : ""}
       ${q.promptIA ? `<div class="pedir-ia">
         <b>Peça ajuda à IA</b>
         <p class="como-nota">Copie, cole numa IA de sua preferência e troque o que está entre colchetes.</p>
@@ -325,6 +357,8 @@
   const botaoVoltar = () => `<button class="voltar-topo" type="button" id="v"><span aria-hidden="true">‹ </span>Voltar</button>`;
   /* opção com bolinha; sem espaços entre as tags para o nome do botão continuar igual ao texto da opção */
   const opcaoHtml = (op, sel, attrs) => `<button class="opcao ${sel ? "sel" : ""}"${attrs || ""}><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`;
+  /* exemplo curto embaixo de uma opção difícil (fora do botão: o texto da opção, que outros módulos comparam, não muda) */
+  const exOpcao = (q, op) => (q && q.opcoesEx && q.opcoesEx[op] ? `<p class="op-ex">${esc(q.opcoesEx[op])}</p>` : "");
   function concluido() {
     return `<section class="concluido"><div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Confira abaixo o que entendemos sobre os seus clientes.</p></div></div></section>`;
   }
@@ -348,7 +382,7 @@
           <details class="como-funciona" id="como-funciona"><summary>Como funciona</summary>
             <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
             <h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p>
-            <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
+            <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>${roteiroSe(D.mapa.entrega)}
             <div class="acoes"><button class="btn btn-linha" id="limites">O que este módulo não faz</button></div>
           </details>
           ${rodape()}
@@ -408,44 +442,13 @@
       <p class="ajuda">${esc(l.objetivo)}</p>`;
   }
 
-  /* ---- roteiro de entrevista: para que serve e como usar (relatório de 12/11) ---- */
-  function blocoUsoRoteiro() {
-    const itens = [
-      ["Para que serve", "Descobrir, conversando, como as pessoas compram hoje e se o problema que você imagina existe mesmo. Não é para vender nem para apresentar a sua ideia."],
-      ["Com quem conversar", "Com pessoas do público que você imagina e que já compraram algo parecido. Prefira quem não é da sua família nem amigo próximo: elas tendem a concordar por educação."],
-      ["Quantas conversas", "Comece com 3 nesta semana e chegue a pelo menos 5. O ideal é ouvir de 8 a 10 pessoas."],
-      ["O que anotar", "Logo depois de cada conversa, registre a pessoa na ficha de perfil de cliente, aqui embaixo: quem é, de quanto em quanto tempo compra, por que escolhe e se mostrou interesse de verdade."],
-      ["O que fazer com as respostas", "Depois das conversas, veja no quadro de evidências quantas pessoas mostraram interesse de verdade e use o quadro para comparar os grupos para decidir por quem começar."],
-    ];
-    return `<div class="cartao roteiro-uso" id="roteiro-uso"><h3>Como usar este roteiro</h3>
-      <dl>${itens.map(([t, d]) => `<dt>${t}</dt><dd>${d}</dd>`).join("")}</dl></div>`;
-  }
-  /* as perguntas do roteiro: as do exemplo da planilha (aba 5, saída esperada), sem reescrever */
-  function perguntasRoteiro() {
-    const t = String(I("M2.I01").ex_saida || ""), m = t.match(/sobre\s+(.+?)\.?$/);
-    return m ? m[1].split(/,\s+|\s+e\s+(?=se\s)/).map((x) => x.trim()).filter(Boolean) : [];
-  }
+  /* ---- roteiro de entrevista: o "como usar" e o "passo a passo" vêm de js/roteiro.js (o mesmo texto do painel
+     "Ver o roteiro", que abre por cima de qualquer tela que cite o roteiro) ---- */
   /* perguntas a mais que as próprias respostas da pessoa pediram ("Pergunte, nas entrevistas, …") */
   function perguntasDasRespostas() {
     return [...new Set(Motor.regrasTodas(M, S.R).map((r) => r.proximo)
       .filter((x) => /^Pergunte,?\s+nas entrevistas/i.test(String(x || ""))).map((x) => Motor.limpa(x)))];
   }
-  function blocoPassosRoteiro() {
-    const bt = D.base.find((b) => /Entrevista com cliente/i.test(b.conceito)) || D.base[2] || {};
-    const extras = perguntasDasRespostas();
-    const passos = [
-      ["Antes da conversa", `<p>${esc(bt.definicao)}</p>`],
-      ["Comece pelo passado", `<p>Peça para a pessoa lembrar da última vez que comprou algo parecido. Por exemplo:</p><p class="ex">${esc(bt.exemplo)}</p>`],
-      ["Faça as perguntas, uma de cada vez", `<p>Deixe a pessoa falar e não corrija. Pergunte sobre:</p>
-        <ul>${perguntasRoteiro().map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-        ${extras.length ? `<p id="roteiro-extras-tit">Pelas suas respostas neste módulo, vale perguntar também:</p><ul id="roteiro-extras">${extras.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`],
-      ["Feche a conversa", `<p>Agradeça. Só agora, se quiser, conte da sua ideia. Repare se a pessoa toma alguma atitude, como pedir orçamento ou indicar alguém.</p>`],
-      ["Anote no mesmo dia", `<p>Registre a conversa na ficha de perfil de cliente, logo abaixo. <a href="#form">Ir para a ficha</a></p>`],
-    ];
-    return `<div class="cartao"><h3>O roteiro, passo a passo</h3>
-      <ol class="roteiro-passos" id="roteiro-passos">${passos.map(([t, h]) => `<li><b>${t}</b>${h}</li>`).join("")}</ol></div>`;
-  }
-
   /* ---- ficha de perfil e quadro para comparar os grupos: o que preencher, com exemplo (relatório de 12/11) ---- */
   const FICHA_EX = { situacao: "Ex.: mãe de 2 filhos, compra bolo para aniversário", frequencia: "Ex.: 1 vez por mês", motivo: "Ex.: preço, perto de casa" };
   function blocoComoFicha() {
@@ -458,6 +461,8 @@
       </dl></div>`;
   }
   const soNumero = (t) => /^[\d\s.,]+$/.test(t);
+  /* conta do quadro de evidências em palavras, com os números da pessoa (o % é arredondado para baixo, como na frase) */
+  const comoEvid = (Q) => `Como calculamos: ${Q.contagem.forte} ${Q.contagem.forte === 1 ? "pessoa" : "pessoas"} com sinal forte ÷ ${Q.total} ${Q.total === 1 ? "entrevista salva" : "entrevistas salvas"} na ficha × 100 = ${Q.pct}%.`;
   function validarFicha(f) {
     if (!f.situacao) return { erro: "Escreva quem é a pessoa entrevistada. Ex.: mãe de 2 filhos, compra bolo para aniversário.", campo: "#f-sit" };
     if (soNumero(f.situacao)) return { erro: "Na situação, escreva com palavras quem é a pessoa, e não um número. Ex.: mãe de 2 filhos, compra bolo para aniversário.", campo: "#f-sit" };
@@ -491,7 +496,8 @@
       </ol>
       ${ex.length ? `<p class="mini-info"><b>Exemplo preenchido</b></p>
       <div class="tabela-ex"><table id="ex-quadro"><thead><tr><th>Grupo</th><th>Alcançar</th><th>Necessidade</th><th>Pagar</th><th>Total</th></tr></thead>
-        <tbody>${ex.map((g) => `<tr><td>${esc(cap(g.nome))}</td>${g.n.map((x) => `<td>${x}</td>`).join("")}<td><b>${g.n.reduce((a, b) => a + b, 0)}</b></td></tr>`).join("")}</tbody></table></div>` : ""}
+        <tbody>${ex.map((g) => `<tr><td>${esc(cap(g.nome))}</td>${g.n.map((x) => `<td>${x}</td>`).join("")}<td><b>${g.n.reduce((a, b) => a + b, 0)}</b></td></tr>`).join("")}</tbody></table></div>
+      <p class="calc">Como calculamos: ${ex.map((g) => `${g.n.join(" + ")} = ${g.n.reduce((a, b) => a + b, 0)} pontos (${esc(g.nome)})`).join("; ")}.</p>` : ""}
     </div>`;
   }
   /* frase da saída esperada da planilha (aba 5): "Com as notas informadas, … merece ser testado primeiro; confirme com mais conversas." */
@@ -528,8 +534,7 @@
         <main class="corpo">
           ${botaoVoltar()}
           ${cabSimples(i1)}
-          ${blocoUsoRoteiro()}
-          ${blocoPassosRoteiro()}
+          ${RT ? RT.blocos({ ids: true, ficha: true, extras: perguntasDasRespostas() }) : ""}
           ${blocoEducativo(D.educativo.filter((e) => e.tipo === "Faça"))}
           <div class="aviso">${esc(i1.limite)}</div>
 
@@ -566,7 +571,8 @@
             <div class="sub">forte · fraco · nenhum${Q.motivo ? ` — motivo mais citado: ${esc(Q.motivo.t)}` : ""}</div>
           </div>
           <p class="mini-info" id="quadro-origem">${Q.total ? `Contado a partir das ${Q.total} entrevista(s) salvas na ficha de perfil de cliente.` : `O quadro conta as entrevistas salvas na ficha de perfil de cliente. Registre uma pessoa entrevistada e toque em “Salvar na ficha” para ele mudar.`} <a href="#form">Registrar entrevista</a></p>
-          ${Q.total ? `<p class="r-texto" id="frase">${esc(Q.frase)}</p>` : ""}
+          ${Q.total ? `<p class="r-texto" id="frase">${esc(Q.frase)}</p>
+          <p class="calc" id="calc-evid">${esc(comoEvid(Q))}</p>` : ""}
           <div class="aviso">${esc(i4.limite)}</div>
 
           ${i5.codigo ? `${cabSimples(i5)}
@@ -574,6 +580,7 @@
           <div class="cartao" id="grupos">
             ${SG.map((g) => `<div class="item"><div class="etapa-topo"><b>${esc(g.nome)}</b>${g.total !== null ? `<span class="etq">${g.total}</span>` : ""}<button class="voltar x" data-gx="${g.i}">remover</button></div>
               ${NOTAS.map((n) => `<label class="mini-info">${esc(n.nome)} <span class="escala">(${esc(n.escala)})</span></label>${nota(g, n.k)}`).join("")}
+              ${g.total !== null ? `<p class="calc calc-grupo">Como calculamos: ${+g.alcancar} (alcançar) + ${+g.necessidade} (necessidade) + ${+g.pagar} (pagar) = ${g.total} pontos.</p>` : ""}
               ${g.total === null ? `<p class="falta-nota">Falta dar nota: ${esc(NOTAS.filter((n) => !(+g[n.k] >= 1 && +g[n.k] <= 3)).map((n) => n.nome.toLowerCase()).join(", "))}.</p>` : ""}</div>`).join("")}
             ${fraseGrupos(SG, i5)}
             <label class="mini-info" for="g-nome">Novo grupo</label><input class="campo" id="g-nome" placeholder="${esc(GRUPO_EX)}" value="${S.grupos.length ? "" : esc(Motor.valor(S.R, "M2.P06") && Motor.valor(S.R, "M2.P06") !== Motor.NS ? Motor.valor(S.R, "M2.P06") : "")}">
@@ -651,7 +658,7 @@
             ${ide ? `<p class="contexto" id="contexto">Seu negócio: <b>${esc(ide.v)}</b> <span class="veio">Veio do Módulo ${ide.n}</span></p>` : ""}
             <h2 class="q">${esc(enunciado(q))}</h2>
             ${veio ? `<p class="herdado" id="herdado"><span class="veio">Veio do Módulo ${esc(veio)}</span> Confira e ajuste se quiser.</p>` : ""}
-            ${vazio(q.ajuda) ? "" : dica(L(exTipo(cod + ".ajuda", q.ajuda)))}
+            ${textoDica(q) ? dica(L(textoDica(q)) + roteiroSe(textoDica(q))) : ""}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div id="ajuda-ns"></div>
@@ -684,6 +691,8 @@
     /* "Não sei" marcado: a caixa "Como descobrir" aparece na hora (a resposta só é gravada no Continuar, como antes) */
     const boxNS = p.querySelector("#ajuda-ns");
     const ajudaAoVivo = (on) => { boxNS.innerHTML = on ? caixaComo(q) : ""; ligarCopiar(boxNS); };
+    /* resposta antiga "Não sei" (antes do lote 16/11) virou "sem resposta": a pergunta reabre com a caixa à vista */
+    const pendente = !resp && (S.pendentes || []).includes(cod);
     if (multi) {
       ent.classList.add("opcoes", "multi");
       const desenhar = () => {
@@ -693,6 +702,7 @@
       };
       q.opcoesLista.forEach((op) => {
         const b = el(opcaoHtml(op, false, ` data-op="${esc(op)}" aria-pressed="false"`));
+        const ex = exOpcao(q, op);
         b.onclick = () => {
           if (marcadas.includes(op)) marcadas = marcadas.filter((x) => x !== op);
           else marcadas = sozinha(op) ? [op] : marcadas.filter((x) => !sozinha(x)).concat(op);
@@ -701,6 +711,7 @@
           if (op === Motor.OUTRA && marcadas.includes(op)) { const t = ent.querySelector(".outra textarea"); if (t) t.focus(); }
         };
         ent.appendChild(b);
+        if (ex) ent.appendChild(el(ex));
         if (op === Motor.OUTRA) {
           const box = el(`<div class="outra" hidden><label class="mini-info" for="outra-txt">Qual outra característica?</label><textarea class="campo" id="outra-txt" rows="2">${esc(detalhe)}</textarea></div>`);
           box.querySelector("textarea").oninput = (e) => { detalhe = e.target.value; };
@@ -708,15 +719,17 @@
         }
       });
       desenhar();
-      ajudaAoVivo(marcadas.includes(Motor.NS));
+      ajudaAoVivo(marcadas.includes(Motor.NS) || pendente);
     } else if (tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
         const b = el(opcaoHtml(op, escolhida === op));
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); ajudaAoVivo(op === Motor.NS); };
+        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); p.querySelector("#erro").hidden = true; ajudaAoVivo(op === Motor.NS); };
         ent.appendChild(b);
+        const ex = exOpcao(q, op);
+        if (ex) ent.appendChild(el(ex));
       });
-      ajudaAoVivo(escolhida === Motor.NS);
+      ajudaAoVivo(escolhida === Motor.NS || pendente);
     } else {
       const v = r0 && r0.estado === "valor" ? r0.valor : "";
       /* exemplo dentro do campo (versão leve) */
@@ -726,13 +739,16 @@
         ? `<div class="linha"><input class="campo" inputmode="numeric" value="${esc(v)}"${phA}></div>`
         : `<textarea class="campo" rows="${Math.min(6, Math.max(3, Math.ceil(Math.max(String(v).length, ph.length) / 30)))}"${phA}>${esc(v)}</textarea>`));
     }
+    /* "Não sei" (botão): mostra a caixa "Como descobrir" e não grava nada; o Continuar só anda com uma resposta */
     const ns = p.querySelector("#ns");
-    if (ns) ns.onclick = () => responder({ estado: "naosei" });
+    if (ns) ns.onclick = () => { p.querySelector("#erro").hidden = true; ajudaAoVivo(true); boxNS.scrollIntoView({ block: "nearest" }); };
+    if (tipo !== "escolha" && !multi && pendente) ajudaAoVivo(true);
 
     p.querySelector("#ok").onclick = () => {
       if (multi) {
         const ord = q.opcoesLista.filter((o) => marcadas.includes(o));
         if (!ord.length) return erro("Marque pelo menos uma opção para continuar.");
+        if (ord.includes(Motor.NS)) { ajudaAoVivo(true); return erro(MSG_NS_ESCOLHA); }
         if (ord.includes(Motor.OUTRA) && !detalhe.trim()) return erro("Escreva qual é a outra característica.");
         const r = { estado: "opcao", opcao: ord[0], opcoes: ord };
         if (ord.includes(Motor.OUTRA)) r.detalhe = detalhe.trim();
@@ -740,10 +756,11 @@
       }
       if (tipo === "escolha") {
         if (!escolhida) return erro("Escolha uma opção para continuar.");
+        if (escolhida === Motor.NS) { ajudaAoVivo(true); return erro(MSG_NS_ESCOLHA); }
         return responder({ estado: "opcao", opcao: escolhida });
       }
       const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(Motor.temNaoSei(q) ? "Responda ou toque em \"Não sei\"." : "Responda para continuar.");
+      if (!v) return erro(boxNS.innerHTML ? MSG_NS_ESCREVA : Motor.temNaoSei(q) ? "Escreva a sua resposta. Se não souber, toque em “Não sei” para ver como descobrir." : "Responda para continuar.");
       if (tipo === "numero") {
         /* a única pergunta de número conta pessoas ouvidas: só inteiro, sem negativo */
         if (!/^\d+$/.test(v.replace(/\./g, ""))) return erro(/^-/.test(v) ? "O número não pode ser negativo." : "Digite só números, sem letras. Ex.: 8");
@@ -763,6 +780,7 @@
       const origem = her ? her.resp : resp && resp.veio ? resp : null;
       if (veio && igual(nova, origem)) nova.veio = veio;
       S.R[cod] = nova;
+      if (S.pendentes) { S.pendentes = S.pendentes.filter((c) => c !== cod); if (!S.pendentes.length) delete S.pendentes; }
       /* respostas de perguntas que deixaram de aparecer são descartadas */
       limparInvisiveis();
       salvar();
@@ -780,6 +798,7 @@
         ${B.alerta ? `<div class="bloco b-alerta"><b>Atenção</b>${B.alerta}</div>` : ""}
         ${B.proximo ? `<div class="bloco b-proximo"><b>Próximo passo</b>${B.proximo}</div>` : ""}
         ${quadroCitado(regras, q, B)}
+        ${roteiroSe(...B.vistos)}
       </div>`;
       ligarCopiar(box);
       const aq = box.querySelector("#abrir-quadro");
@@ -804,6 +823,20 @@
      - próximo passo que só manda responder a pergunta seguinte não aparece (o app já vai fazer essa pergunta);
      - o que é regra legal (fonte oficial, Sebrae, contador, contratos) e "quem procurar" vão para a Atenção, num bloco só;
      - "Não sei": em vez do próximo passo, "Como descobrir" (o caminho da regra ou, se não houver, a ajuda da pergunta). */
+  /* lote 16/11 (G): "Atenção" que aparecia para qualquer resposta (ou quase) parecia erro da pessoa. Esses avisos gerais
+     viram parte da dica da pergunta (vista antes de responder). No retorno fica só o alerta que depende da resposta e
+     aponta um risco real (tom de aviso, nunca trava). */
+  const ALERTA_NA_DICA = new Set(["M2.R05", "M2.R15", "M2.R16", "M2.R17", "M2.R19", "M2.R60", "M2.R61", "M2.R62", "M2.R73", "M2.R74", "M2.R75", "M2.R77", "M2.R78", "M2.R82", "M2.R83"]);
+  const alertaVale = (r) => !ALERTA_NA_DICA.has(r.codigo);
+  /* dica = ajuda da pergunta + o alerta geral da pergunta + os alertas das regras que foram para a dica (sem repetir) */
+  function textoDica(q) {
+    const extra = [q.alerta, ...D.regras.filter((r) => String(r.pergunta || "").split(" + ").includes(q.codigo) && ALERTA_NA_DICA.has(r.codigo)).map((r) => r.alerta)]
+      .filter(tem).map((x) => String(x).trim());
+    const base = vazio(q.ajuda) ? "" : exTipo(q.codigo + ".ajuda", q.ajuda);
+    return [...new Set([base, ...extra].filter(Boolean))].join(" ");
+  }
+  const MSG_NS_ESCOLHA = "Use a ajuda acima e escolha uma opção para continuar.";
+  const MSG_NS_ESCREVA = "Use a ajuda acima e escreva a sua resposta para continuar.";
   const SO_NAVEGA = /^(Responda|Informe|Descreva|Siga para)\b[^]*M2\.P\d{2}/;
   const LEGAL = /fonte oficial|Sebrae|contador|nota fiscal|emiss[ãa]o de nota|contrata[çc]/i;
   /* "Responda M2.P08 e anote…" → "Anote…": a parte que só manda para a próxima pergunta sai */
@@ -837,7 +870,7 @@
     const rs = especificas(regras);
     const naoSei = resp && Motor.valor({ x: resp }, "x") === Motor.NS;
     /* a Atenção geral da pergunta não vale para quem respondeu "Não sei" (fala de outra resposta) */
-    const al = [rs.map((r) => r.alerta).find(tem) || (!naoSei && tem(q.alerta) ? q.alerta : null)];
+    const al = [rs.filter(alertaVale).map((r) => r.alerta).find(tem) || null];
     rs.forEach((r) => { if (tem(r.proximo) && LEGAL.test(r.proximo)) al.push(r.proximo); });
     const enc = [...new Set(rs.map((r) => r.encaminhamento).filter(tem))];
     const alerta = al.filter(Boolean).map(L).join(" ") + (enc.length ? `${al.some(Boolean) ? " " : ""}Quem procurar: ${enc.map(L).join("; ")}.` : "");
@@ -845,28 +878,29 @@
     const rp = rs.map((r) => semNavegar(r.proximo));
     const proximo = rp.find(util) || (util(q.proximo) ? q.proximo : null);
     const caminho = rp.find(util);
-    if (naoSei) return { alerta, naosei: L(caminho || (tem(q.ajuda) ? exTipo(q.codigo + ".ajuda", q.ajuda) : "Converse com duas ou três pessoas que comprariam de você e volte a esta pergunta depois.")), proximo: "" };
-    return { alerta, proximo: proximo ? L(proximo) : "" };
+    /* textos originais que aparecem no retorno (para saber se citam o roteiro de entrevista) */
+    const vistos = [...al, ...enc, ...(regras.length ? regras.map((r) => r.texto) : [q.resposta])].filter(Boolean);
+    if (naoSei) return { alerta, vistos: vistos.concat(caminho || []), naosei: L(caminho || (tem(q.ajuda) ? exTipo(q.codigo + ".ajuda", q.ajuda) : "Converse com duas ou três pessoas que comprariam de você e volte a esta pergunta depois.")), proximo: "" };
+    return { alerta, vistos: vistos.concat(proximo || []), proximo: proximo ? L(proximo) : "" };
   }
 
+  /* respostas de perguntas que deixaram de aparecer (a condição ficou falsa) são descartadas.
+     Pergunta sem resposta no meio do caminho (ex.: "Não sei" antigo que virou "sem resposta") não apaga as seguintes;
+     perguntas que saíram do módulo (oculta) também não são tocadas: outros módulos ainda leem essas respostas. */
   function limparInvisiveis() {
-    let cod = Motor.proxima(M, {}, null);
-    const vis = new Set();
-    const R = {};
-    while (cod !== "RESULTADO") {
-      vis.add(cod);
-      if (S.R[cod] === undefined) break;
-      R[cod] = S.R[cod];
-      cod = Motor.proxima(M, R, cod);
+    for (let mudou = true; mudou;) {
+      mudou = false;
+      for (const q of M.perguntas) {
+        if (S.R[q.codigo] !== undefined && Motor.avaliar(M, S.R, q.condicao) === false) { delete S.R[q.codigo]; mudou = true; }
+      }
     }
-    Object.keys(S.R).forEach((k) => { if (!vis.has(k)) delete S.R[k]; });
   }
 
   /* ================= resultado ================= */
   function telaResultado() {
     const regras = Motor.regrasTodas(M, S.R);
     const lac = Motor.lacunas(regras), enc = Motor.encaminhamentos(regras);
-    const ale = Motor.alertas(regras), prox = Motor.proximos(regras).filter((x) => !SO_NAVEGA.test(x));
+    const ale = Motor.alertas(regras.filter(alertaVale)), prox = Motor.proximos(regras).filter((x) => !SO_NAVEGA.test(x));
     const Q = Motor.quadro(S.fichas, I("M2.I04").ex_saida);
     const resp = M.perguntas.filter((q) => S.R[q.codigo] !== undefined);
     const p = el(`
@@ -877,7 +911,7 @@
           ${botaoVoltar()}
           ${concluido()}
           ${entendemos()}
-          <div class="bloco b-proximo b-tarefa" id="tarefa"><b>Sua próxima tarefa</b>${prox.length ? `<ul><li>${L(prox[0])}</li></ul>` : `<p>${esc(TAREFA_PADRAO)}</p>`}</div>
+          <div class="bloco b-proximo b-tarefa" id="tarefa"><b>Sua próxima tarefa</b>${prox.length ? `<ul><li>${L(prox[0])}</li></ul>` : `<p>${esc(TAREFA_PADRAO)}</p>`}${roteiroSe(prox.length ? prox[0] : TAREFA_PADRAO)}</div>
           ${blocoFalta(lac)}
           <div class="acoes">
             <button class="btn btn-primario" id="inst">Abrir os instrumentos</button>
@@ -891,9 +925,10 @@
             <div class="val">${Q.total ? `${Q.contagem.forte} de ${Q.total}` : "—"}</div>
             <div class="sub">${Q.total ? esc(Q.frase) : "Registre as conversas na ficha de perfil, em “Abrir os instrumentos”, para ver a contagem."}</div>
           </div>
-          ${regras.length ? `<div class="secao-titulo">O que suas respostas indicam</div>${regras.map((r) => `<div class="regra"><p class="r-texto">${L(r.texto)}</p></div>`).join("")}` : ""}
-          ${ale.length ? `<div class="secao-titulo">Alertas</div>${ale.map((a) => `<div class="bloco b-alerta">${L(a)}</div>`).join("")}` : ""}
-          ${prox.length > 1 ? `<div class="bloco b-proximo"><b>Outros próximos passos</b><ul>${prox.slice(1).map((l) => `<li>${L(l)}</li>`).join("")}</ul></div>` : ""}
+          ${Q.total ? `<p class="calc" id="calc-res">${esc(comoEvid(Q))}</p>` : ""}
+          ${regras.length ? `<div class="secao-titulo">O que suas respostas indicam</div>${regras.map((r) => `<div class="regra"><p class="r-texto">${L(r.texto)}</p></div>`).join("")}${roteiroSe(...regras.map((r) => r.texto))}` : ""}
+          ${ale.length ? `<div class="secao-titulo">Alertas</div>${ale.map((a) => `<div class="bloco b-alerta">${L(a)}</div>`).join("")}${roteiroSe(...ale)}` : ""}
+          ${prox.length > 1 ? `<div class="bloco b-proximo"><b>Outros próximos passos</b><ul>${prox.slice(1).map((l) => `<li>${L(l)}</li>`).join("")}</ul>${roteiroSe(...prox.slice(1))}</div>` : ""}
           ${enc.length ? `<div class="bloco b-enc"><b>Quem procurar</b>${enc.map(L).join(" · ")}</div>` : ""}
           ${blocoConceitos(D.base)}
           <div class="aviso">${resumo(esc(D.mapa.mensagem_limite))}</div>
@@ -912,11 +947,13 @@
     p.querySelector("#imp").onclick = () => { p.querySelectorAll("#suas-respostas, #mais-detalhes, details.ver-mais, details.como-mini").forEach((d) => { d.open = true; }); window.print(); };
     p.querySelector("#rev").onclick = () => { S.hist = []; salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); };
     p.querySelector("#novo").onclick = () => { if (confirm("Começar uma nova análise? As respostas atuais serão apagadas.")) { S = novo(); salvar(); ir(telaPergunta, Motor.proxima(M, {}, null)); } };
+    /* lote 16/11 (I): no resultado, todas as partes recolhíveis já abrem; nas perguntas, "Ver dica" continua fechada. */
+    p.querySelectorAll("details").forEach((d) => { d.open = true; });
     return p;
   }
 
   /* tarefa quando nenhuma regra trouxe um próximo passo */
-  const TAREFA_PADRAO = "Converse com 3 possíveis clientes nesta semana, usando o roteiro de entrevista (em “Abrir os instrumentos”).";
+  const TAREFA_PADRAO = "Converse com 3 possíveis clientes nesta semana, usando o roteiro de entrevista.";
   /* o que falta descobrir: as lacunas das regras + cada "Não sei", com o "Como descobrir" da pergunta (fechado) */
   const FALTA_VISIVEL = 3;
   function blocoFalta(lac) {
@@ -927,7 +964,7 @@
     return `<div class="bloco b-lacuna" id="falta"><b>O que ainda falta descobrir</b><ul>
       ${ns.map((q) => `<li class="ns-item">Você marcou “Não sei” em: ${esc(enunciado(q))}${q.comoDescobrir ? `<details class="como-mini"><summary>Como descobrir</summary>${caixaComo(q)}</details>` : ""}</li>`).join("")}
       ${vis.map((l) => `<li>${L(l)}</li>`).join("")}
-    </ul>${resto.length ? `<details class="ver-mais"><summary>Ver mais ${resto.length} ${resto.length === 1 ? "ponto" : "pontos"}</summary><ul>${resto.map((l) => `<li>${L(l)}</li>`).join("")}</ul></details>` : ""}</div>`;
+    </ul>${resto.length ? `<details class="ver-mais"><summary>Ver mais ${resto.length} ${resto.length === 1 ? "ponto" : "pontos"}</summary><ul>${resto.map((l) => `<li>${L(l)}</li>`).join("")}</ul></details>` : ""}${roteiroSe(...lac)}</div>`;
   }
 
   /* ================= "O que entendemos até aqui": frases montadas por regra, sem IA ================= */
@@ -961,12 +998,9 @@
     if (car.length === 1) g += `${g ? "; o" : "O"} que mais muda entre um cliente e outro é: ${car[0]}`;
     else if (car.length > 1) g += `${g ? "; a" : "A"}s características que mais mudam entre um cliente e outro são: ${juntar(car)}`;
     if (g) f.push(g + ".");
-    const p17 = v("M2.P17"), p16 = v("M2.P16");
-    if (p17 || p16) {
-      const freq = p17 ? `Cada cliente compraria ${p17 === "Uma vez" ? "uma vez só" : minus(p17)}` : "";
-      const onde = { "Sim": "você já sabe onde encontrar essas pessoas", "Em parte": "você sabe em parte onde encontrar essas pessoas", "Ainda não": "você ainda não sabe onde encontrar essas pessoas" }[p16];
-      if (freq || onde) f.push(`${freq}${freq && onde ? (p16 === "Ainda não" ? ", mas " : ", e ") : ""}${onde ? (freq ? onde : onde.charAt(0).toUpperCase() + onde.slice(1)) : ""}.`);
-    }
+    /* lote 16/11: "onde encontrar essas pessoas" (P16) saiu; o Módulo 3 pergunta por onde o cliente encontra e compra */
+    const p17 = v("M2.P17");
+    if (p17) f.push(`Cada cliente compraria ${p17 === "Uma vez" ? "uma vez só" : minus(p17)}.`);
     const c2 = f.length;   // 2º: grupos e como compram; 3º: conversas com clientes
     const p04 = v("M2.P04");
     if (p04 === "Não") f.push("Você ainda não conversou com possíveis clientes: esse é o passo mais importante agora.");
@@ -1000,5 +1034,6 @@
     </footer>`;
   }
 
+  if (RT) RT.extras = perguntasDasRespostas;
   ir(telaCapa);
 })();

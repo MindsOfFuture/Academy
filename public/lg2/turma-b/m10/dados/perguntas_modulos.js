@@ -1,4 +1,4 @@
-/* O que fazer para completar cada pergunta dos Módulos 1 a 9 (gerado a partir dos dados de cada módulo).
+/* O que fazer para completar cada pergunta dos Módulos 1 a 9 (mantido à mão junto com os dados de cada módulo).
    Serve para a lista de pontos em aberto do Módulo 10 dizer qual pergunta ficou com "Não sei". */
 window.PERGUNTAS_LG2 = {
  "M1.P01": "Dizer em que fase a sua ideia está",

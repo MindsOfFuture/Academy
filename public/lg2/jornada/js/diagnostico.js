@@ -10,8 +10,15 @@
 
   /* Perguntas que o app criou fora da planilha (não estão em dados/moduloN.js): texto e lugar na ordem. */
   var EXTRAS = {
-    5: [{ codigo: 'M5.PG', pergunta: 'Quais formas de pagamento você aceita?', antes: 'M5.P24' }],
-    6: [{ codigo: 'Negócio', pergunta: 'O que você oferece: produto, mercadoria ou serviço?', antes: 'M6.P01' }]
+    5: [{ codigo: 'M5.PT', pergunta: 'Quanto tempo você leva para fazer uma unidade?', antes: 'M5.P24' },
+      { codigo: 'M5.ENT', pergunta: 'Você entrega para o cliente?', antes: 'M5.P24' },
+      { codigo: 'M5.PG', pergunta: 'Quais formas de pagamento você aceita?', antes: 'M5.P24' },
+      { codigo: 'M5.PH', pergunta: 'Quantas horas por mês você trabalha no negócio?', antes: 'M5.P34' },
+      { codigo: 'M5.SZ', pergunta: 'Suas vendas mudam conforme a época do ano?' }],
+    6: [{ codigo: 'Negócio', pergunta: 'O que você oferece: produto, mercadoria ou serviço?', antes: 'M6.P01' },
+      { codigo: 'M6.P03A', pergunta: 'Entrada e parcelas das compras', antes: 'M6.P04' },
+      { codigo: 'M6.PF', pergunta: 'Taxa, prazo e parte das vendas em cada forma de pagamento', antes: 'M6.P05' },
+      { codigo: 'M6.SZ', pergunta: 'Suas vendas mudam conforme a época do ano?', antes: 'M6.P06' }]
   };
   /* Telas que só confirmam o resultado ("Este é o retrato... Está certo?") e respostas repetidas de outro módulo. */
   var FORA = { 'M5.P00': 1, 'M7-13': 1, 'M9-14': 1, 'M10-12': 1 };
@@ -123,6 +130,18 @@
         if (r.campos && campos(r.campos)) t += ' (' + campos(r.campos) + ')';
         if (num(r.horas) > 0) t += ', cerca de ' + horas(r.horas, 0) + ' por semana';
         if (cod === 'M7-01' && Array.isArray(est.mapa) && est.mapa.length) t += '. Etapas: ' + juntar(est.mapa.map(limpo));
+        if (/\.SZ$/.test(cod) && (Array.isArray(r.fortes) || Array.isArray(r.fracos))) {
+          var MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+          var ms = function (l) { return (l || []).map(function (m) { return MES[m - 1]; }).filter(Boolean).join(', '); };
+          var sz = [];
+          if ((r.fortes || []).length) sz.push('meses fortes: ' + ms(r.fortes) + (num(r.maisPct) ? ' (+' + nf(num(r.maisPct)) + '%)' : ''));
+          if ((r.fracos || []).length) sz.push('meses fracos: ' + ms(r.fracos) + (num(r.menosPct) ? ' (−' + nf(num(r.menosPct)) + '%)' : ''));
+          if (sz.length) t += ' (' + sz.join('; ') + ')';
+        }
+        if (/\.ENT$/.test(cod)) {
+          if (num(r.custo) !== null) t += ' (cada entrega custa ' + (r.tipoCusto === 'pct' ? nf(num(r.custo)) + '% do pedido' : brl(num(r.custo))) + (num(r.aCada10) !== null ? '; ' + nf(num(r.aCada10)) + ' de cada 10 vendas têm entrega' : '') + ')';
+          else if (num(r.cobra) !== null) t += ' (cobra ' + brl(num(r.cobra)) + ' pela entrega)';
+        }
         return t;
       }
       case 'opcoes': case 'multi':
@@ -214,9 +233,10 @@
     var blocos = modulos.map(function (m) {
       var est = ler(m.n) || {}, R = est.R || {};
       var itens = [];
-      perguntasDe(m.n, dados(m.n)).forEach(function (p) {
+      var lista = []; try { lista = perguntasDe(m.n, dados(m.n)); } catch (e) { lista = []; }
+      lista.forEach(function (p) {
         if (FORA[p.codigo] || !(p.codigo in R)) return;
-        var resp = formatar(R[p.codigo], p, est);
+        var resp; try { resp = formatar(R[p.codigo], p, est); } catch (e) { resp = null; }
         if (!resp) return;
         var q = textoPergunta(p, ctx);
         itens.push({ codigo: p.codigo, pergunta: q, resposta: resp });
@@ -229,15 +249,18 @@
 
   /* carrega dados/moduloN.js de cada módulo (uma vez); chama pronto() mesmo se algum falhar */
   var carregados = {};
+  var ESPERA_DADOS = 8000;
   function carregarDados(modulos, pronto) {
     var falta = modulos.filter(function (m) { return m.caminho && !raiz['MODULO' + m.n] && !carregados[m.n]; });
-    var resta = falta.length;
-    if (!resta) { pronto(); return; }
+    var resta = falta.length, feito = false;
+    function fim() { if (!feito) { feito = true; pronto(); } }
+    if (!resta) { fim(); return; }
+    setTimeout(fim, ESPERA_DADOS);   // rede lenta: monta com o que já chegou em vez de deixar a tela vazia
     falta.forEach(function (m) {
       carregados[m.n] = true;
       var s = raiz.document.createElement('script');
       s.src = m.caminho.replace(/index\.html$/, '') + 'dados/modulo' + m.n + '.js';
-      s.onload = s.onerror = function () { if (--resta === 0) pronto(); };
+      s.onload = s.onerror = function () { if (--resta === 0) fim(); };
       raiz.document.head.appendChild(s);
     });
   }
