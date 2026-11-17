@@ -64,6 +64,16 @@ window.LG2_FONTES = {
       "http": 200
     },
     {
+      "titulo": "Perguntas frequentes: MEI não pode ter sócio",
+      "orgao": "gov.br — Empresas & Negócios",
+      "link": "https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/itens-inativo/perguntas-frequentes",
+      "consulta": "16/11/2026",
+      "conceitos": [
+        "M10-C07"
+      ],
+      "http": 200
+    },
+    {
       "titulo": "Admitir empregado no eSocial para MEI",
       "orgao": "gov.br – eSocial",
       "link": "https://www.gov.br/pt-br/servicos/admitir-empregado-no-esocial-simplificado-pessoa-juridica-mei",

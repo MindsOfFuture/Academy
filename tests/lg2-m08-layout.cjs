@@ -65,7 +65,9 @@ const K = 'lg2-turma-b-m08';
   await btn('Começar').click();
 
   /* perguntas até o resultado */
-  const resp = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Não sei', 'M8.P10': null };
+  const resp = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Sim', 'M8.P10': null };
+  /* lote 16/11 (item D): linha simples com exemplo à vista + exemplo embaixo das opções difíceis; limite subiu de 60 para 85 */
+  const LIMITE_PALAVRAS = 85;
   const vistas = [], contagem = {};
   for (let i = 0; i < 20; i++) {
     const cod = await atual();
@@ -75,9 +77,10 @@ const K = 'lg2-turma-b-m08';
     const q = P[cod];
     await layoutPergunta(cod);
     const np = await palavras();
-    assert.ok(np <= 60, `${cod}: até 60 palavras visíveis (${np})`);
+    assert.ok(np <= LIMITE_PALAVRAS, `${cod}: até ${LIMITE_PALAVRAS} palavras visíveis (${np})`);
     contagem[cod] = np;
-    assert.equal(await page.locator('.herdou').count(), 0, `${cod}: sem dados de outros módulos, nada pré-preenchido`);
+    assert.equal(await page.locator('.herdou').count() + await page.locator('#veio').count(), 0, `${cod}: sem dados de outros módulos, nada pré-preenchido`);
+    if (q.explica) assert.ok(nrm(await page.textContent('#explica')).startsWith(nrm(q.explica)), `${cod}: linha simples à vista`);
     assert.equal(await page.locator('.cartao-q .q').count(), 1, `${cod}: cartão da pergunta`);
     assert.equal(nrm(await page.textContent('.cartao-q .q')), nrm(q.pergunta), `${cod}: pergunta literal`);
     /* ajuda dos dados dentro de "Ver dica", fechada, entre a pergunta e as respostas (versão leve) */
@@ -94,8 +97,9 @@ const K = 'lg2-turma-b-m08';
     assert.equal(nrm(await page.textContent('#v')), 'Voltar', `${cod}: nome Voltar`);
     assert.equal(await page.locator('.heroi .barra-fill').count(), 1, `${cod}: barra de progresso na faixa`);
     assert.equal(await page.locator('.etapas').count(), 0, `${cod}: sem stepper (módulo sem seções)`);
-    const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
+    const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
     if (ops.length) {
+      if (q.exOpcoes) assert.deepEqual(await page.$$eval('#ent .opcao', (x) => x.map((e) => (e.querySelector('.op-ex') || {}).textContent || null)), ops.map((o) => q.exOpcoes[o] || null), `${cod}: exemplo embaixo das opções difíceis`);
       assert.deepEqual(ops, q.opcoes.split(';').map((s) => s.trim()).filter(Boolean), `${cod}: opções literais`);
       const v = resp[cod] || ops[0];
       await page.getByRole('button', { name: v, exact: true }).click();
@@ -131,7 +135,9 @@ const K = 'lg2-turma-b-m08';
   await layout('resultado');
   /* resultado leve: entendemos, próximo passo e o resto recolhido */
   assert.ok(nrm(await page.textContent('#tarefa')).startsWith('Seu próximo passo'), 'resultado: próximo passo');
-  for (const d of ['details.respostas', 'details#ocupacoes', 'details#mais-detalhes']) assert.equal(await page.$eval(d, (x) => x.open), false, `${d} fechado`);
+  /* item I (16/11): o relatório do módulo vem aberto */
+  for (const d of ['details.respostas', 'details#ocupacoes', 'details#mais-detalhes']) assert.equal(await page.$eval(d, (x) => x.open), true, `${d} aberto`);
+  assert.ok(await page.$$eval('#tela details', (ds) => ds.every((x) => x.open)), 'resultado: todas as seções abertas');
   console.log('palavras por pergunta: ' + JSON.stringify(contagem) + ' · resultado: ' + await palavras());
   assert.equal(nrm(await page.textContent('.heroi-tit')), 'Resumo da sua formalização');
   assert.equal(nrm(await page.textContent('.concluido h2')), 'Você concluiu o Módulo 8');
@@ -146,7 +152,7 @@ const K = 'lg2-turma-b-m08';
   assert.ok(nrm(fr0.join(' ')).includes('Faço bolos por encomenda') && nrm(fr0.join(' ')).includes('R$ 5.000 por mês'), 'entendemos usa as respostas deste módulo');
   assert.ok(await page.evaluate(() => document.querySelector('#entendemos').compareDocumentPosition(document.querySelector('details.respostas')) & 4), 'caixa acima da lista');
   assert.equal(nrm(await page.textContent('details.respostas summary')), 'Ver suas respostas');
-  assert.equal(await page.evaluate(() => document.querySelector('details.respostas').open), false, 'respostas recolhidas');
+  assert.equal(await page.evaluate(() => document.querySelector('details.respostas').open), true, 'respostas abertas');
   assert.ok(!/M8\.P|P0\d/.test(nrm(await page.innerText('#tela'))), 'sem código de pergunta na tela');
   const txt = nrm(await page.textContent('#tela'));
   for (const c of vistas) assert.ok(txt.includes(nrm(P[c].pergunta)), `resultado lista ${c}`);
@@ -171,23 +177,30 @@ const K = 'lg2-turma-b-m08';
   });
   await page.reload();
   await btn('Começar').click();
-  const esperado = { 'M8.P01': ['Lava-jato em domicílio', 1], 'M8.P02': ['Serviço', 1], 'M8.P03': ['Atendimento externo', 9], 'M8.P04': ['2000', 5] };
+  /* item F (16/11): as 4 respostas que já vieram de outros módulos não têm tela; a 1ª tela é a P05, com o cartão "Veio do Módulo N · Trocar" */
+  const esperado = { 'M8.P01': ['Lava-jato em domicílio', 1], 'M8.P02': ['Serviço', 1], 'M8.P03': ['Atendimento externo', 9], 'M8.P04': ['2.000', 5] };
+  assert.equal(await atual(), 'M8.P05', 'P01 a P04 já respondidas em outros módulos: a 1ª tela é a P05');
+  assert.equal(await page.locator('#veio .veio-linha').count(), 4, 'cartão com as 4 respostas reaproveitadas');
   for (const [cod, [val, mod]] of Object.entries(esperado)) {
-    assert.equal(await atual(), cod);
-    assert.equal(nrm(await page.textContent('#herdou .veio')), `Veio do Módulo ${mod}`, `${cod}: selo`);
-    assert.match(nrm(await page.textContent('#herdou')), /Confira e ajuste se quiser/, `${cod}: convite a conferir`);
-    const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
-    if (ops.length) assert.equal(nrm(await page.textContent('#ent .opcao.sel')), val, `${cod}: opção herdada marcada`);
-    else assert.equal(await page.inputValue('#ent input, #ent textarea'), val, `${cod}: campo herdado preenchido`);
-    if (cod === 'M8.P04') assert.equal(nrm(await page.textContent('#herdou .conta')), 'R$ 50 por venda × 40 vendas por mês = R$ 2.000 por mês', 'P04 mostra a conta');
-    await btn('Continuar').click();                       // só confere e continua
-    await page.locator('#acoes .btn-primario').first().click();
+    const linha = nrm(await page.textContent(`#veio .veio-linha[data-cod="${cod}"]`));
+    assert.ok(linha.includes(cod === 'M8.P04' ? 'R$ 2.000 por mês' : val) && linha.includes(`Veio do Módulo ${mod}`), `${cod}: no cartão (${linha})`);
+    assert.equal(await page.locator(`#veio [data-trocar="${cod}"]`).count(), 1, `${cod}: Trocar`);
     const r = (await st()).R[cod];
-    assert.equal(r.opcao || r.valor, val, `${cod}: resposta herdada gravada`);
+    assert.equal(r.opcao || r.valor, val, `${cod}: resposta reaproveitada gravada no formato do Módulo 8`);
     assert.equal(r.de, mod, `${cod}: origem guardada`);
+    assert.equal(r.reuso, true, `${cod}: marcada como reaproveitada`);
   }
+  /* conta feita à mão: 50 × 40 = 2.000 por mês; 2.000 × 12 = 24.000 por ano */
+  const lp4 = nrm(await page.textContent('#veio .veio-linha[data-cod="M8.P04"]'));
+  assert.ok(lp4.includes('Como calculamos: R$ 50 (preço de uma venda) × 40 (vendas por mês) = R$ 2.000 por mês.'), 'P04: conta do Módulo 5 ' + lp4);
+  assert.ok(lp4.includes('Como calculamos: R$ 2.000 por mês × 12 meses = R$ 24.000 por ano.'), 'P04: conta do ano ' + lp4);
+  assert.equal((await st()).hist.filter((c) => /M8\.P0[1-4]/.test(c)).length, 0, 'telas puladas fora da trilha');
+  await btn('Voltar').click();
+  assert.equal(await page.locator('.heroi-grande').count(), 1, 'Voltar na 1ª tela mostrada volta à capa');
+  await btn('Começar').click();
+  assert.equal(await atual(), 'M8.P05', 'Começar de novo: as respostas reaproveitadas continuam puladas');
   for (let i = 0; i < 10 && (await atual()) !== 'RESULTADO'; i++) {   // resto do caminho
-    const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.textContent.trim()));
+    const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => (e.querySelector('.op-txt > b') || e).textContent.trim()));
     if (ops.length) await page.getByRole('button', { name: ops.includes('Não') ? 'Não' : ops[0], exact: true }).click();
     else await page.fill('#ent input, #ent textarea', 'Não lembro');
     await btn('Continuar').click(); await page.locator('#acoes .btn-primario').first().click();
@@ -198,12 +211,21 @@ const K = 'lg2-turma-b-m08';
                    'R$ 2.000 por mês', 'dentro do limite do MEI']) assert.ok(fr.includes(t), `entendemos: "${t}" em: ${fr}`);
   assert.equal(await page.locator('details.respostas .veio').count(), 4, 'selo das 4 respostas herdadas no resumo');
   assert.ok(nrm(await page.textContent('details.respostas')).includes('R$ 2.000 por mês'));
-  /* trocar a resposta herdada tira o selo */
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.hist = ['M8.P01']; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
-  await page.reload(); await btn('Continuar de onde parei').click();
-  assert.equal(nrm(await page.textContent('#herdou .veio')), 'Veio do Módulo 1', 'ao voltar, o selo continua');
+  /* resumo: cartão com as respostas reaproveitadas + "Como calculamos" do ano (2.000 × 12 = 24.000) */
+  assert.equal(await page.locator('#veio-res .veio-linha').count(), 4, 'resumo: cartão das 4 respostas reaproveitadas');
+  assert.equal(nrm(await page.textContent('#calc-ano')), 'Como calculamos: R$ 2.000 por mês × 12 meses = R$ 24.000 por ano.', 'resumo: conta do ano');
+  /* "Trocar" no resumo abre a tela pulada; trocar a resposta tira o selo e volta ao resumo */
+  await page.click('#veio-res [data-trocar="M8.P01"]');
+  assert.equal(await atual(), 'M8.P01', 'Trocar abre a pergunta pulada');
+  assert.equal(nrm(await page.textContent('#herdou .veio')), 'Veio do Módulo 1', 'na troca, o selo continua');
+  assert.equal(await page.inputValue('#ent textarea'), 'Lava-jato em domicílio', 'na troca, a resposta que veio já está no campo');
   await page.fill('#ent textarea', 'Lavo carros na garagem do cliente'); await btn('Continuar').click();
   assert.equal((await st()).R['M8.P01'].de, undefined, 'resposta alterada perde o selo');
+  assert.equal((await st()).R['M8.P01'].reuso, undefined, 'resposta alterada deixa de ser reaproveitada');
+  assert.equal(nrm(await page.textContent('#acoes .btn-primario')), 'Ver meu resumo', 'depois de trocar, volta ao resumo');
+  await page.locator('#acoes .btn-primario').click();
+  assert.equal(await atual(), 'RESULTADO');
+  assert.equal(await page.locator('#veio-res .veio-linha').count(), 3, 'resumo: 3 respostas ainda reaproveitadas');
 
   /* "Não sei" herdado não conta; Mercadoria chega como Mercadoria; sem preço x quantidade nada é preenchido */
   await semear({
@@ -214,9 +236,9 @@ const K = 'lg2-turma-b-m08';
   assert.equal(await page.locator('#herdou').count(), 0, 'P01: "Não sei" do Módulo 1 não é herdado');
   assert.equal(await page.inputValue('#ent textarea'), '');
   await page.fill('#ent textarea', 'Revendo cosméticos'); await btn('Continuar').click(); await page.locator('#acoes .btn-primario').first().click();
-  assert.equal(nrm(await page.textContent('#ent .opcao.sel')), 'Mercadoria', 'P02: Mercadoria do Módulo 5 chega como Mercadoria');
-  assert.equal(nrm(await page.textContent('#herdou .veio')), 'Veio do Módulo 5');
-  await btn('Continuar').click(); await page.locator('#acoes .btn-primario').first().click();
+  assert.equal(await atual(), 'M8.P03', 'P02 veio do Módulo 5: sem tela');
+  assert.equal((await st()).R['M8.P02'].opcao, 'Mercadoria', 'P02: Mercadoria do Módulo 5 chega como Mercadoria');
+  assert.ok(nrm(await page.textContent('#veio')).includes('O que você vende: Mercadoria') && nrm(await page.textContent('#veio .veio')) === 'Veio do Módulo 5', 'P03: cartão com o tipo que veio do Módulo 5');
   assert.equal(await page.locator('#herdou').count(), 0, 'P03: sem Módulo 9, sem herança');
   await page.getByRole('button', { name: 'Online', exact: true }).click(); await btn('Continuar').click(); await page.locator('#acoes .btn-primario').first().click();
   assert.equal(await atual(), 'M8.P04');

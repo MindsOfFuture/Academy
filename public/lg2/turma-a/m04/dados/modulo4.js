@@ -13,7 +13,9 @@
    M4.P16 sem o texto sobre o app e correções de escrita.
    Versão leve (13/11/2026, pedido da coordenação): enunciados curtos, exemplo dentro do campo (placeholder),
    legenda curta da M4.P02 (destaque_visivel), texto da capa (leve) e ajuda do "Não sei" em todas as perguntas
-   que têm "Não sei" (comoDescobrir: 2 passos; promptIA: pedido pronto para a IA; por tipo em por_tipo). */
+   que têm "Não sei" (comoDescobrir: 2 passos; promptIA: pedido pronto para a IA; por tipo em por_tipo).
+   Lote 16/11/2026: "Não sei" só onde a resposta é um fato a descobrir (e bloqueia); exemplos
+   embaixo das opções (opcoes_ex); enunciado da M4.P12 em palavras simples. */
 window.MODULO4 = {
  "origem": "M04.xlsx",
  "modulo": {
@@ -414,7 +416,7 @@ window.MODULO4 = {
    "ajuda": "Pense nas formas viáveis de levar o produto até o seu cliente. Marque todas as que você pretende usar.",
    "tipo": "Múltipla escolha",
    "condicao": "M4.P02 = Produto físico ou M4.P03 = Produto + Serviço ",
-   "opcoes": "De porta a porta pessoalmente; Plataformas (iFood); Entregador parceiro; Loja própria ou parceira; Retirada presencial pelo cliente; Não sei",
+   "opcoes": "De porta a porta pessoalmente; Plataformas (iFood); Entregador parceiro; Loja própria ou parceira; Retirada presencial pelo cliente",
    "resposta": "",
    "resposta_naosei": "Reflita melhor sobre as opções. Cada opção tem um custo específico, que é importante definir para saber a viabilidade do seu negócio. Sem sabermos isso, poderemos encontrar problemas em outros módulos.",
    "condicao_app": "M4.P02 = Produto ou M4.P02 = Produto+ Serviço ou M4.P02 = Mercadoria+Produto",
@@ -422,7 +424,14 @@ window.MODULO4 = {
     "Pergunte a 3 possíveis clientes como preferem receber: buscar, receber em casa ou pedir por aplicativo.",
     "Veja como vendedores parecidos do seu bairro entregam e quanto cobram pela entrega."
    ],
-   "promptIA": "Vou vender [seu produto] em [seu bairro ou cidade], para [seu cliente]. Compare para mim, em linguagem simples, estas formas de entrega: eu mesmo levo, aplicativo de entrega, entregador parceiro, loja parceira e o cliente buscar. Para cada uma, diga o custo aproximado, o trabalho e quando vale a pena."
+   "promptIA": "Vou vender [seu produto] em [seu bairro ou cidade], para [seu cliente]. Compare para mim, em linguagem simples, estas formas de entrega: eu mesmo levo, aplicativo de entrega, entregador parceiro, loja parceira e o cliente buscar. Para cada uma, diga o custo aproximado, o trabalho e quando vale a pena.",
+   "opcoes_ex": {
+    "De porta a porta pessoalmente": "Ex.: você mesmo leva na casa do cliente",
+    "Plataformas (iFood)": "Ex.: aplicativo de pedidos de comida",
+    "Entregador parceiro": "Ex.: motoboy ou vizinho que faz entregas",
+    "Loja própria ou parceira": "Ex.: deixar para vender numa loja do bairro",
+    "Retirada presencial pelo cliente": "Ex.: o cliente busca na sua casa"
+   }
   },
   {
    "codigo": "M4.P05",
@@ -431,7 +440,7 @@ window.MODULO4 = {
    "ajuda": "Conte só o que entra no primeiro teste, não o cardápio ou pacote completo do futuro. Ex.: 3 sabores.\n\nVamos considerar este número como a variedade mínima do seu primeiro teste.",
    "tipo": "Texto",
    "condicao": "M4.P02 = Produto ou M4.P02 = Produto + Serviço",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "resposta": "",
    "proximo": "Se o número for maior que 3 ou você não souber, a próxima pergunta ajuda a separar o essencial do que pode esperar.",
    "fonte": "M4.BT10 (fonte a substituir); o limite de 3 é sugestão do grupo, a validar com a tutora",
@@ -472,10 +481,10 @@ window.MODULO4 = {
    "codigo": "M4.P07",
    "modulo": "M4",
    "pergunta": "Do que você pensou, o que é essencial e o que pode esperar?",
-   "ajuda": "Vamos considerar só o essencial na sua oferta mínima. Essencial é o que o cliente precisa receber para sentir que o problema foi resolvido. O restante é secundário. Ex.: essencial: bolo comestível e no prazo combinado; secundário: papel personalizado, cartão, fita.",
+   "ajuda": "Vamos considerar só o essencial na primeira versão do que você vai oferecer. Essencial é o que o cliente precisa receber para sentir que o problema foi resolvido. O restante é secundário. Ex.: essencial: bolo comestível e no prazo combinado; secundário: papel personalizado, cartão, fita.",
    "tipo": "Texto",
    "condicao": "M4.P05 > 3 ou M4.P05 = Não sei",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "resposta": "",
    "proximo": "Mantenha na oferta mínima poucas opções essenciais; o restante fica na lista de ideias futuras.",
    "fonte": "M4.BT10 (fonte a substituir; ver aba Revisão e sugestões, item 12)",
@@ -487,7 +496,8 @@ window.MODULO4 = {
     "Para cada item, pergunte: sem isso, o cliente ainda ficaria satisfeito? Se sim, ele pode esperar.",
     "Pergunte a 2 ou 3 possíveis clientes o que não pode faltar de jeito nenhum."
    ],
-   "promptIA": "Vou oferecer [seu produto ou serviço] para [seu cliente]. As opções e detalhes que pensei são: [liste tudo]. Separe para mim o que é essencial para o cliente ficar satisfeito no primeiro teste e o que pode esperar. Explique em linguagem simples."
+   "promptIA": "Vou oferecer [seu produto ou serviço] para [seu cliente]. As opções e detalhes que pensei são: [liste tudo]. Separe para mim o que é essencial para o cliente ficar satisfeito no primeiro teste e o que pode esperar. Explique em linguagem simples.",
+   "condicao_app": "M4.P05 > 3"
   },
   {
    "codigo": "M4.P08",
@@ -591,7 +601,34 @@ window.MODULO4 = {
     "Veja o que o cliente faz hoje: compra de quem, por quanto, e do que reclama.",
     "Escolha o motivo que você consegue cumprir sempre: se não dá para ser o mais barato, talvez seja o mais perto ou o mais rápido."
    ],
-   "promptIA": "Vou oferecer [seu produto ou serviço] para [seu cliente] em [seu bairro ou cidade]. Hoje esse cliente resolve isso com [o que ele usa hoje]. Me ajude a descobrir que motivo faria ele me escolher: preço, rapidez, atendimento, qualidade ou conveniência. Explique os prós e contras de cada um para um negócio pequeno."
+   "promptIA": "Vou oferecer [seu produto ou serviço] para [seu cliente] em [seu bairro ou cidade]. Hoje esse cliente resolve isso com [o que ele usa hoje]. Me ajude a descobrir que motivo faria ele me escolher: preço, rapidez, atendimento, qualidade ou conveniência. Explique os prós e contras de cada um para um negócio pequeno.",
+   "opcoes_ex": {
+    "Preço": "Ex.: mais barato que na padaria do bairro",
+    "Prazo/rapidez": "Ex.: entrega no mesmo dia",
+    "Atendimento": "Ex.: responde rápido no WhatsApp",
+    "Qualidade/especialização": "Ex.: receita caseira, ingrediente melhor",
+    "Conveniência": "Ex.: entrega em casa ou perto do cliente"
+   },
+   "por_tipo": {
+    "Serviço": {
+     "opcoes_ex": {
+      "Preço": "Ex.: mais barato que o salão do bairro",
+      "Prazo/rapidez": "Ex.: horário no mesmo dia",
+      "Atendimento": "Ex.: responde rápido no WhatsApp",
+      "Qualidade/especialização": "Ex.: curso na área, acabamento caprichado",
+      "Conveniência": "Ex.: atende na casa do cliente"
+     }
+    },
+    "Mercadoria": {
+     "opcoes_ex": {
+      "Preço": "Ex.: mais barato que a loja do centro",
+      "Prazo/rapidez": "Ex.: entrega no mesmo dia",
+      "Atendimento": "Ex.: responde rápido no WhatsApp",
+      "Qualidade/especialização": "Ex.: peças escolhidas, marca boa",
+      "Conveniência": "Ex.: entrega em casa, aceita Pix e cartão"
+     }
+    }
+   }
   },
   {
    "codigo": "M4.PV1",
@@ -663,7 +700,7 @@ window.MODULO4 = {
   {
    "codigo": "M4.P12",
    "modulo": "M4",
-   "pergunta": "Escreva a sua proposta de valor em uma ou duas frases.",
+   "pergunta": "Junte as três respostas em uma ou duas frases: por que comprar de você?",
    "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [produto ou serviço], que [benefício], proporcionando [meu diferencial].\" Escreva com as suas palavras.",
    "tipo": "Texto",
    "condicao": "sempre",
@@ -719,12 +756,11 @@ window.MODULO4 = {
    "ajuda": "Escolha o caminho que cabe no seu tempo e no dinheiro que você tem hoje. Toque em uma opção para ver o que ela quer dizer.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Mostrar uma amostra sem cobrar; Vender pouca quantidade, já com preço; Aceitar encomenda ou reserva antes de fazer; Não sei",
+   "opcoes": "Mostrar uma amostra sem cobrar; Vender pouca quantidade, já com preço; Aceitar encomenda ou reserva antes de fazer",
    "opcoes_explica": {
     "Mostrar uma amostra sem cobrar": "Isto é um protótipo: você faz um pouco e deixa algumas pessoas provarem ou verem, sem cobrar. Ajuda a ouvir opiniões, mas não mostra se elas pagariam.",
     "Vender pouca quantidade, já com preço": "Isto é uma oferta mínima: você faz pouco e vende de verdade. Mostra se as pessoas pagam o preço que você pensou.",
     "Aceitar encomenda ou reserva antes de fazer": "Isto é uma pré-venda: você anuncia e só faz depois que o cliente pede ou reserva. Assim você gasta menos antes de saber se vende.",
-    "Não sei": "Tudo bem. Leia o que quer dizer cada jeito de testar, logo acima, e escolha o que cabe no seu tempo e no seu dinheiro hoje. Você pode voltar e mudar depois.",
     "Atender poucos clientes, já cobrando": "Isto é uma oferta mínima: você faz o serviço para poucas pessoas e cobra o preço que pensou. Mostra se pagam de verdade.",
     "Aceitar agendamento ou reserva antes de atender": "Isto é uma pré-venda: você divulga e marca horários antes de começar. Se a agenda encher, é sinal de que há procura."
    },
@@ -778,7 +814,10 @@ window.MODULO4 = {
     "Ligue ou vá à Vigilância Sanitária ou à prefeitura da sua cidade e pergunte se o que você vai vender precisa de licença.",
     "Procure o Sebrae da sua região: o atendimento é gratuito e eles explicam as regras da sua atividade."
    ],
-   "promptIA": "Quero vender [seu produto ou serviço] em [sua cidade e estado], em pequena quantidade, para testar. Que regras de vigilância sanitária, licença ou segurança costumam valer para isso? Diga em quais órgãos eu devo confirmar e que perguntas fazer. Se não tiver certeza de alguma regra, diga."
+   "promptIA": "Quero vender [seu produto ou serviço] em [sua cidade e estado], em pequena quantidade, para testar. Que regras de vigilância sanitária, licença ou segurança costumam valer para isso? Diga em quais órgãos eu devo confirmar e que perguntas fazer. Se não tiver certeza de alguma regra, diga.",
+   "opcoes_ex": {
+    "Sim": "Ex.: comida, cosmético, brinquedo, cuidar de criança"
+   }
   },
   {
    "codigo": "M4.P16",
@@ -787,7 +826,7 @@ window.MODULO4 = {
    "ajuda": "Nome, telefone e e-mail já são dados pessoais protegidos por lei. Se sim, anote só o que for necessário e explique ao cliente para que vai usar.",
    "tipo": "Sim/Não",
    "condicao": "sempre",
-   "opcoes": "Sim; Não; Não sei",
+   "opcoes": "Sim; Não",
    "resposta": "",
    "proximo": "Defina antes quais dados são realmente necessários (ex.: só o telefone para confirmar o pedido) e confirme a regra em fonte oficial.",
    "fonte": "M4.BT12 (sem fonte ainda; ver aba Revisão e sugestões, item 11)",
@@ -807,7 +846,7 @@ window.MODULO4 = {
    "ajuda": "Prefira algo que você consiga contar e que mostre uma atitude do cliente, não só uma opinião. Ex.: quantas pessoas pediram, reservaram ou pagaram.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Pedidos/reservas; Pedidos de preço/informações; Aceitaram experimentar; Outra; Não sei",
+   "opcoes": "Pedidos/reservas; Pedidos de preço/informações; Aceitaram experimentar; Outra",
    "proximo": "Defina como e onde vai registrar essa contagem (ex.: uma lista simples com data).",
    "fonte": "M4.BT06; M4.BT07 (NaPrática; Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
    "status": "Rascunho",
@@ -816,7 +855,21 @@ window.MODULO4 = {
     "Pense numa atitude que você consegue contar: pedido, reserva ou pagamento valem mais que elogio ou curtida.",
     "Escolha uma só e prepare uma folha para anotar cada uma, com a data."
    ],
-   "promptIA": "Vou testar [seu produto ou serviço] com [seu cliente] por [quantos] dias. Me ajude a escolher uma atitude do cliente que eu possa contar para saber se a ideia funciona (por exemplo, pedidos, reservas ou pagamentos) e explique por que elogios não bastam."
+   "promptIA": "Vou testar [seu produto ou serviço] com [seu cliente] por [quantos] dias. Me ajude a escolher uma atitude do cliente que eu possa contar para saber se a ideia funciona (por exemplo, pedidos, reservas ou pagamentos) e explique por que elogios não bastam.",
+   "opcoes_ex": {
+    "Pedidos/reservas": "Ex.: 5 pessoas encomendaram",
+    "Pedidos de preço/informações": "Ex.: perguntaram o preço no WhatsApp",
+    "Aceitaram experimentar": "Ex.: provaram a amostra"
+   },
+   "por_tipo": {
+    "Serviço": {
+     "opcoes_ex": {
+      "Pedidos/reservas": "Ex.: 5 pessoas marcaram horário",
+      "Pedidos de preço/informações": "Ex.: perguntaram o preço no WhatsApp",
+      "Aceitaram experimentar": "Ex.: aceitaram um atendimento de teste"
+     }
+    }
+   }
   },
   {
    "codigo": "M4.P18",
@@ -835,7 +888,7 @@ window.MODULO4 = {
    "ajuda": "Defina o número ANTES de ver o resultado. Ex.: 5 (cinco reservas nos 7 dias do teste). Escolha um número que faça sentido para o tamanho do seu teste.",
    "tipo": "Número",
    "condicao": "sempre",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "resposta": "Este é o seu critério de decisão. Ele fica registrado antes do teste para não ser ajustado depois.",
    "alerta": "Definir o critério depois de ver o resultado tende a justificar a ideia original em vez de testá-la. Um número muito baixo também pode dar falsa segurança. Busque ser bem realista.",
    "proximo": "Decida agora o que você vai rever se o resultado ficar abaixo do critério (ex.: preço, público ou oferta).",
@@ -863,7 +916,7 @@ window.MODULO4 = {
    "ajuda": "Um prazo curto e definido evita que o teste se arraste sem decisão. Ex.: 7 dias.",
    "tipo": "Número",
    "condicao": "sempre",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "alerta": "Sem prazo, é difícil saber quando avaliar o resultado, e o critério perde o sentido.",
    "proximo": "Marque no calendário a data em que você vai comparar o resultado com o critério.",
    "fonte": "Pendente: incluir conceito na aba 2 (ver aba Revisão e sugestões, seção B)",
@@ -882,7 +935,7 @@ window.MODULO4 = {
    "ajuda": "Defina antes do teste. Pense em um valor que você possa investir sem comprometer despesas essenciais (moradia, alimentação, contas, reserva de emergência). Se puder testar sem gastar, responda 0.",
    "tipo": "Número",
    "condicao": "sempre",
-   "opcoes": "Não sei",
+   "opcoes": "",
    "resposta": "Este é o seu limite de gasto. O app não indica um valor: a escolha é sua, de acordo com o que cabe no seu orçamento.",
    "alerta": "Usar dinheiro de despesas essenciais ou recorrer a dívidas aumenta o risco do teste. Compras difíceis de desfazer também aumentam o risco. É preciso ter cautela e um bom planejamento financeiro para não criar problemas.",
    "proximo": "Compare este limite com o custo estimado no módulo de custos e prefira formas de teste que possam ser interrompidas sem perda grande.",

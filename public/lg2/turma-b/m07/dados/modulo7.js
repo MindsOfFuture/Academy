@@ -3,6 +3,9 @@
    à vista), abertura.frase/minutos e, por pergunta, a ajuda do "Não sei" (comoDescobrir = passos; promptIA = pedido
    pronto para copiar; em M7-06 a 2ª parte usa comoDescobrir2). Ajuda do "Não sei" no ponto de partida: partida_ajuda.
    Os textos das opções e dos caminhos não mudam: outros módulos e o diagnóstico leem os valores salvos.
+   Lote 16/11: "Não sei" saiu das perguntas sobre a própria pessoa (M7-01, M7-04, M7-06 parte 1, M7-07, M7-08, M7-09,
+   M7-10, M7-11 e, no ponto de partida, horas, material e estoque) e bloqueia nas demais; "exemplos" = linha curta de
+   exemplo embaixo de opções difíceis (por tipo: fab/serv/rev); textos de M7-01 (vazio), M7-02 (apoio) e M7-03 (Não sei).
    Ao regenerar pelo extrator, reaplique esses campos (leve_dados_m07.py). */
 window.MODULO7 = {
  "origem": "Laboratório de Gestão II · FACC/UFJF",
@@ -73,12 +76,7 @@ window.MODULO7 = {
     {
      "opcao": "Retirou todas as etapas (vazio)",
      "retorno": "Dica",
-     "texto": "Pense no que acontece desde que o cliente pede até receber. Se ainda não sabe, use o botão 'Não sei'."
-    },
-    {
-     "opcao": "Não sei",
-     "retorno": "Dica",
-     "texto": "Na próxima vez que [fizer] [oferta em foco], anote cada passo que você dá, do pedido à entrega. Você pode voltar aqui depois."
+     "texto": "Pense no que acontece desde que o cliente pede até receber e escreva pelo menos uma etapa."
     },
     {
      "opcao": "Qualquer resposta, com estágio = ideia",
@@ -87,12 +85,7 @@ window.MODULO7 = {
     }
    ],
    "apoio": "Montamos com o que você já contou: [etapas do Módulo 4], [forma de entrega] e [reposição do Módulo 6]. Mude a ordem, renomeie, inclua ou retire etapas. [Se ideia]: descreva como você imagina.",
-   "tipo": "Lista editável de etapas (pré-montada)",
-   "comoDescobrir": [
-    "Na próxima encomenda, anote num papel cada coisa que você faz, do pedido do cliente até receber o pagamento.",
-    "Se ainda não vende, lembre a última vez que fez para alguém ou pergunte a quem faz algo parecido quais são os passos."
-   ],
-   "promptIA": "Vendo [o que você vende] e quero organizar o caminho do pedido até o cliente. Faça no máximo 3 perguntas por vez sobre como eu trabalho e espere minha resposta. No final, liste de 5 a 8 etapas em ordem, do pedido ao recebimento do pagamento. Não invente tempos nem custos."
+   "tipo": "Lista editável de etapas (pré-montada)"
   },
   {
    "codigo": "M7-02",
@@ -128,7 +121,7 @@ window.MODULO7 = {
      "texto": "Na próxima vez, cronometre do começo ao fim. Uma medição real já ajuda muito."
     }
    ],
-   "apoio": "Conte só o tempo de trabalho nas etapas de preparo e produção. Se faz várias de uma vez, informe o tempo do lote e quantas unidades saem.",
+   "apoio": "Conte só o tempo de trabalho nas etapas de preparo e produção. Se faz várias de uma vez, informe o tempo da rodada inteira e quantas unidades saem. Ex.: 20 salgados em 1 hora.",
    "tipo": "Número (h e min) + unidades por vez",
    "comoDescobrir": [
     "Na próxima vez que trabalhar num pedido, marque a hora em que começou e a hora em que terminou. O cronômetro do celular ajuda.",
@@ -167,7 +160,7 @@ window.MODULO7 = {
     {
      "opcao": "Não sei",
      "retorno": "Dica",
-     "texto": "Durante uma semana, anote o tempo gasto com mensagens, compras e entregas. Por enquanto, usamos uma estimativa que você pode corrigir."
+     "texto": "Durante uma semana, anote o tempo gasto com mensagens, compras e entregas."
     }
    ],
    "apoio": "Essas tarefas também usam as [horas do Módulo 1] que você tem por semana. Muitas vezes elas tomam mais tempo do que parece.",
@@ -205,20 +198,10 @@ window.MODULO7 = {
      "opcao": "Horas inválidas (negativo ou texto)",
      "retorno": "Dica",
      "texto": "Informe as horas por semana com um número igual ou maior que zero."
-    },
-    {
-     "opcao": "Não sei",
-     "retorno": "Dica",
-     "texto": "Por enquanto, calculamos só com o seu tempo. Se alguém ajudar, você pode corrigir depois."
     }
    ],
    "apoio": "Família, parceiro, amigo ou alguém que você paga. Conte só a ajuda nas etapas de preparo e produção.",
-   "tipo": "Seleção única + horas por semana",
-   "comoDescobrir": [
-    "Lembre a última semana: alguém da família, um amigo ou parceiro fez alguma parte, como embalar, entregar ou atender?",
-    "Pergunte a essa pessoa quantas horas por semana ela consegue ajudar e se espera receber algo por isso."
-   ],
-   "promptIA": "Tenho um pequeno negócio de [o que você vende] e às vezes [quem ajuda] me ajuda. Monte uma tabela simples para eu anotar, durante uma semana, quais tarefas essa pessoa faz e quanto tempo leva cada uma."
+   "tipo": "Seleção única + horas por semana"
   },
   {
    "codigo": "M7-05",
@@ -260,7 +243,24 @@ window.MODULO7 = {
     "Na próxima semana, repare onde os pedidos ficam parados esperando: no seu tempo, num equipamento, numa etapa ou na falta de material.",
     "Pergunte-se: se amanhã chegasse o dobro de pedidos, o que acabaria primeiro?"
    ],
-   "promptIA": "Faço [o que você vende] seguindo estas etapas: [liste as etapas]. Me ajude a descobrir o que mais limita quantos consigo fazer por semana: meu tempo, um equipamento, uma etapa lenta ou a falta de material. Faça perguntas simples, uma de cada vez."
+   "promptIA": "Faço [o que você vende] seguindo estas etapas: [liste as etapas]. Me ajude a descobrir o que mais limita quantos consigo fazer por semana: meu tempo, um equipamento, uma etapa lenta ou a falta de material. Faça perguntas simples, uma de cada vez.",
+   "exemplos": {
+    "Um equipamento ou o espaço": {
+     "fab": "Ex.: o forno só assa 4 por vez",
+     "serv": "Ex.: só tenho uma cadeira de atendimento",
+     "rev": "Ex.: o depósito lota ou o carro é pequeno"
+    },
+    "Uma etapa que demora ou acumula": {
+     "fab": "Ex.: decorar ou embalar leva muito tempo",
+     "serv": "Ex.: a limpeza entre um cliente e outro",
+     "rev": "Ex.: separar e conferir os pedidos"
+    },
+    "Falta ou atraso de material": {
+     "fab": "Ex.: o material acaba e demora a chegar",
+     "serv": "Ex.: o produto acaba e demora a chegar",
+     "rev": "Ex.: a mercadoria acaba e demora a chegar"
+    }
+   }
   },
   {
    "codigo": "M7-05a",
@@ -318,11 +318,6 @@ window.MODULO7 = {
      "texto": "Antes de comprar, peça orçamento a pelo menos dois lugares e pergunte: pedido mínimo, prazo de entrega e se aceitam troca."
     },
     {
-     "opcao": "Parte 1: Não sei",
-     "retorno": "Dica",
-     "texto": "Pesquise quem mais vende esse item na sua região ou pela internet. Anote nome, prazo e condições."
-    },
-    {
      "opcao": "Parte 2: No mesmo dia ou compro na hora",
      "retorno": "Resposta",
      "texto": "Com reposição rápida, pode bastar pouco estoque parado."
@@ -345,10 +340,6 @@ window.MODULO7 = {
    ],
    "apoio": "Pense em [item principal do Módulo 4], o que mais pesa ou que, se faltar, para tudo. Quando pagar já foi visto no Módulo 6; aqui é o tempo até o item chegar.",
    "tipo": "Seleção única (duas partes)",
-   "comoDescobrir": [
-    "Pergunte em 2 ou 3 lojas, atacados ou distribuidores da sua região se vendem esse item. Vale procurar também na internet.",
-    "Anote de cada um: preço, pedido mínimo, prazo de entrega e se aceitam troca."
-   ],
    "comoDescobrir2": [
     "Pergunte ao fornecedor: “Se eu pedir hoje, quando chega?”. Peça a resposta por mensagem para guardar.",
     "Na próxima compra, anote o dia do pedido e o dia em que chegou."
@@ -381,21 +372,16 @@ window.MODULO7 = {
      "opcao": "Nota fiscal e origem comprovada",
      "retorno": "Dica",
      "texto": "Comprar com nota ajuda a comprovar a origem do que você vende. Para saber o que vale no seu caso, busque orientação de um contador."
-    },
-    {
-     "opcao": "Não sei",
-     "retorno": "Dica",
-     "texto": "Deixamos três critérios sugeridos no quadro. Você pode trocar depois."
     }
    ],
    "apoio": "Escolha até 3. O mais barato pode sair caro se atrasar, variar a qualidade ou exigir compra grande.",
    "tipo": "Seleção múltipla (até 3)",
    "instrucao": "Escolha até 3.",
-   "comoDescobrir": [
-    "Lembre a última compra que deu problema: atrasou, veio diferente ou exigiu comprar muito? Isso mostra o que pesa para você.",
-    "Pergunte a quem compra do mesmo fornecedor o que ele cuida além do preço."
-   ],
-   "promptIA": "Compro [item principal] para fazer [o que você vende]. Além do preço, quais pontos um pequeno negócio deve comparar entre fornecedores? Explique em linguagem simples e me ajude a escolher os 3 mais importantes para o meu caso. Não cite nomes de empresas."
+   "exemplos": {
+    "Qualidade que não varia": "Ex.: vem sempre igual",
+    "Pedido mínimo": "Ex.: só vende a partir de 10 unidades",
+    "Nota fiscal e origem comprovada": "Ex.: dá nota que mostra de onde veio"
+   }
   },
   {
    "codigo": "M7-08",
@@ -419,20 +405,10 @@ window.MODULO7 = {
      "opcao": "Não",
      "retorno": "Resposta",
      "texto": "Então o cuidado maior é com espaço e com dinheiro parado em estoque."
-    },
-    {
-     "opcao": "Não sei",
-     "retorno": "Dica",
-     "texto": "Confira a validade nas embalagens dos itens que você mais usa."
     }
    ],
    "apoio": "Pense em validade, em itens que mofam ou murcham e em produtos que saem de moda.",
-   "tipo": "Seleção única",
-   "comoDescobrir": [
-    "Olhe a embalagem dos itens que você mais usa ou vende: veja a data de validade e se pede geladeira ou lugar seco.",
-    "Lembre se já jogou algo fora porque estragou, venceu ou saiu de moda, e depois de quanto tempo."
-   ],
-   "promptIA": "Vendo [o que você vende] e uso [principais materiais]. Quanto tempo esses itens costumam durar guardados e como devo guardar para não perder? Responda em linguagem simples e lembre que a validade certa está na embalagem."
+   "tipo": "Seleção única"
   },
   {
    "codigo": "M7-09",
@@ -463,11 +439,6 @@ window.MODULO7 = {
      "texto": "Comece por um ponto só, o que mais importa para o seu cliente, e confira em toda entrega."
     },
     {
-     "opcao": "Não sei",
-     "retorno": "Dica",
-     "texto": "Pense na última vez que algo saiu errado. O que você poderia ter conferido antes?"
-    },
-    {
      "opcao": "Qualquer resposta, com atividade regulada em M4-11",
      "retorno": "Atenção",
      "texto": "Atividades com alimentos, saúde ou crianças têm regras próprias de higiene e segurança. O app não diz quais valem para o seu caso: confira com o órgão responsável no seu município."
@@ -475,11 +446,13 @@ window.MODULO7 = {
    ],
    "apoio": "Pense no que faz o cliente voltar: sabor, acabamento, prazo, limpeza, cuidado no atendimento.",
    "tipo": "Seleção única",
-   "comoDescobrir": [
-    "Pense na última vez que algo saiu errado ou que um cliente reclamou: o que daria para conferir antes de entregar?",
-    "Pergunte a 2 ou 3 clientes o que faz eles voltarem a comprar. Isso vira o seu ponto de conferência."
-   ],
-   "promptIA": "Faço [o que você vende] assim: [conte as etapas]. Sugira até 5 pontos simples que eu posso conferir antes de entregar ao cliente. Não cite leis, normas ou regras oficiais."
+   "exemplos": {
+    "Sigo um padrão ou receita anotada": {
+     "fab": "Ex.: uma lista do que conferir antes de entregar",
+     "serv": "Ex.: uma lista do que conferir antes de entregar",
+     "rev": "Ex.: confiro itens, quantidade e validade"
+    }
+   }
   },
   {
    "codigo": "M7-10",
@@ -528,21 +501,11 @@ window.MODULO7 = {
      "opcao": "Mais de 3 opções",
      "retorno": "Dica",
      "texto": "Escolha os 3 que mais preocupam. Os outros você pode incluir depois no checklist."
-    },
-    {
-     "opcao": "Não sei",
-     "retorno": "Dica",
-     "texto": "Olhe o seu mapa: em qual etapa algo poderia dar errado?"
     }
    ],
    "apoio": "Os riscos de mercado você já viu no Módulo 3 ([riscos do Módulo 3]). Aqui são os do dia a dia. Escolha até 3.",
    "tipo": "Seleção múltipla (até 3)",
-   "instrucao": "Escolha até 3.",
-   "comoDescobrir": [
-    "Olhe as etapas do seu caminho, uma por uma, e pergunte: o que poderia dar errado aqui?",
-    "Lembre as últimas entregas: alguma atrasou, chegou errada ou danificada? Esse é o risco mais provável."
-   ],
-   "promptIA": "Vendo [o que você vende] e entrego por [como você entrega]. Liste os 3 problemas mais comuns que podem atrapalhar a entrega ao cliente e, para cada um, uma ação simples para evitar e outra para resolver se acontecer."
+   "instrucao": "Escolha até 3."
   },
   {
    "codigo": "M7-11",
@@ -566,21 +529,14 @@ window.MODULO7 = {
      "opcao": "Mais de 3 números",
      "retorno": "Dica",
      "texto": "Com poucos números fica mais fácil manter o hábito. Escolha até 3."
-    },
-    {
-     "opcao": "Não sei",
-     "retorno": "Dica",
-     "texto": "Deixamos marcados os números ligados ao seu gargalo e aos seus riscos. Você pode trocar depois."
     }
    ],
    "apoio": "Escolha 2 ou 3. Já marcamos sugestões ligadas ao que você respondeu: [sugestões].",
    "tipo": "Seleção múltipla (até 3)",
    "instrucao": "Escolha 2 ou 3. Já marcamos sugestões.",
-   "comoDescobrir": [
-    "Pense no que mais preocupa você no dia a dia (atraso, falta de material, reclamação) e escolha o número que mostra isso.",
-    "Comece com 2 números fáceis de contar e anote toda sexta-feira, num caderno ou no celular."
-   ],
-   "promptIA": "Tenho um pequeno negócio de [o que você vende]. Sugira 3 números simples para eu anotar toda semana e ver se o trabalho está melhorando, como pedidos entregues no prazo ou reclamações. Explique como contar cada um em menos de 5 minutos."
+   "exemplos": {
+    "Reclamações ou refações": "Ex.: vezes que teve de refazer ou trocar"
+   }
   },
   {
    "codigo": "M7-12",
@@ -882,24 +838,6 @@ window.MODULO7 = {
   }
  ],
  "partida_ajuda": {
-  "horas": {
-   "comoDescobrir": [
-    "Durante uma semana, anote quantas horas por dia você dedicou ao negócio.",
-    "Olhe a sua rotina: quantas horas sobram depois do outro trabalho, da casa e da família?"
-   ]
-  },
-  "material": {
-   "comoDescobrir": [
-    "Pense num atendimento do começo ao fim: você usa algum produto ou material que precisa comprar de novo?",
-    "Se usa só ferramentas que já tem, marque Não. Se gasta algo a cada atendimento, marque Sim."
-   ]
-  },
-  "estoque": {
-   "comoDescobrir": [
-    "Veja como você vende hoje: o cliente leva na hora ou espera você buscar a mercadoria?",
-    "Pense quanto dinheiro ficaria parado se guardasse mercadoria para um mês."
-   ]
-  },
   "reposicao": {
    "comoDescobrir": [
     "Olhe as notas ou mensagens das últimas compras desse item e veja quantos dias passaram entre uma e outra.",

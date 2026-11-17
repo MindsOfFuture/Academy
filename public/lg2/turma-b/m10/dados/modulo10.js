@@ -30,15 +30,15 @@ window.MODULO10 = {
   },
   {
    "codigo": "M10-C02",
-   "conceito": "Canais físicos",
-   "definicao": "Lugares onde o cliente encontra o negócio ou conversa com ele: WhatsApp, Instagram, loja, indicação, site, entre outros.",
+   "conceito": "Canais (por onde o cliente fala com você)",
+   "definicao": "Lugares onde o cliente encontra o negócio ou conversa com você: WhatsApp, Instagram, loja, indicação, feira, aplicativos de entrega ou site.",
    "porque": "Estar em todos os canais cansa e dispersa. Escolher poucos que você consegue manter ativos costuma ser mais viável, sempre com o mesmo preço, prazo e jeito de falar."
   },
   {
    "codigo": "M10-C03",
    "conceito": "Atendimento",
    "definicao": "Como você recebe, responde e resolve as demandas do cliente antes, durante e depois da compra.",
-   "porque": "É onde muitos pequenos negócios ganham ou perdem clientes: resposta lenta ou confusa afasta, resposta clara aproxima."
+   "porque": "Uma resposta clara e combinada ajuda a manter a conversa com o cliente."
   },
   {
    "codigo": "M10-C04",
@@ -74,7 +74,7 @@ window.MODULO10 = {
    "codigo": "M10-C09",
    "conceito": "Contratação",
    "definicao": "Decidir se vale colocar alguém para trabalhar no negócio, analisando demanda, carga de trabalho, capacidade de pagar e alternativas.",
-   "porque": "Contratar cria um compromisso contínuo, além do salário. Analisar antes reduz o risco de assumir um custo que o negócio não sustenta. Regras trabalhistas devem ser confirmadas em fonte oficial."
+   "porque": "Contratar cria um compromisso contínuo, além do salário. Regras trabalhistas devem ser confirmadas em fonte oficial."
   },
   {
    "codigo": "M10-C10",
@@ -92,14 +92,14 @@ window.MODULO10 = {
   "pergunta": "Você tem ou pretende ter sócio?",
   "opcoes": [
    "Sim",
-   "Não",
-   "Não sei"
+   "Não"
   ],
   "comoDescobrir": [
    "Liste as tarefas do negócio que você não consegue ou não gosta de fazer. Se forem uma ou duas, uma parceria ou ajuda avulsa pode resolver sem sócio.",
-   "Se pensa em alguém, converse: essa pessoa entraria com dinheiro, com trabalho ou com os dois? Como vocês dividiriam o resultado?"
+   "Se pensa em alguém, conversem e anotem quem faz cada tarefa, quanto cada um coloca de dinheiro, tempo e equipamento, como dividem lucro e retiradas, o que ocorre se alguém sair e como decidem se discordarem."
   ],
-  "promptIA": "Tenho um pequeno negócio de [o que você vende] e penso em ter um sócio que entraria com [dinheiro, trabalho ou os dois]. Me explique em linguagem simples as vantagens e os riscos de ter sócio e me dê 5 perguntas para conversar com essa pessoa antes de decidir."
+  "dicaSociedade": "Antes de começar, escrevam quem faz cada tarefa; quanto cada um coloca de dinheiro, tempo e equipamento; como dividem o lucro e as retiradas; o que acontece se alguém quiser sair; e como decidem quando discordarem. Um acordo simples por escrito, assinado pelos dois, já ajuda — esse combinado é um acordo de sócios. MEI é individual e não pode ter sócio; se quiserem empreender juntos, avaliem outro tipo de empresa e confirmem o caminho com um contador ou o Sebrae. Ex.: Ana produz e Bia vende; cada uma coloca R$ 300; dividem o lucro meio a meio; se uma sair, recebe o que colocou, conforme o combinado.",
+  "promptIA": "Tenho um pequeno negócio de [o que você vende] e penso em empreender com [nome da pessoa]. Ajude a rascunhar um acordo simples, em linguagem clara, para revisarmos com um contador ou o Sebrae. Inclua: quem faz cada tarefa; quanto cada pessoa coloca de dinheiro, tempo e equipamento; como dividimos lucro e retiradas; como tomamos decisões e resolvemos discordâncias; e o que acontece se alguém quiser sair. Faça perguntas quando faltar informação e não invente regras legais."
  },
  "perguntas": [
   {
@@ -156,7 +156,7 @@ window.MODULO10 = {
     },
     {
      "opcao": "Mais de 2 dias",
-     "retorno": "Atenção",
+     "retorno": "Dica",
      "texto": "Quem espera muito pode comprar de outra pessoa. Uma mensagem automática dizendo quando você responde pode ajudar."
     },
     {
@@ -165,7 +165,7 @@ window.MODULO10 = {
      "texto": "Quando começar, anote a hora da mensagem e a hora da sua resposta em alguns contatos."
     }
    ],
-   "apoio": "Pense na última semana. Se ainda não vende, pense no que consegue fazer.",
+   "apoio": "Pense na última semana. Se ainda não vende, pense no que consegue fazer. Combine um horário para responder; quem espera muito pode comprar de outra pessoa. Uma mensagem automática pode avisar quando você responde.",
    "tipo": "Seleção única",
    "comoDescobrir": [
     "Nos próximos 3 dias, quando chegar uma mensagem de cliente, anote a hora em que ela chegou e a hora em que você respondeu.",
@@ -257,7 +257,7 @@ window.MODULO10 = {
     },
     {
      "opcao": "Anúncio pago",
-     "retorno": "Atenção",
+     "retorno": "Dica",
      "texto": "Anúncio pago é um gasto. Confira se ele entrou nos seus gastos do Módulo 5 e defina um limite antes de começar."
     },
     {
@@ -266,7 +266,7 @@ window.MODULO10 = {
      "texto": "Comece pelo que não custa: avisar quem já comprou e pedir indicação."
     }
    ],
-   "apoio": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3].",
+   "apoio": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3]. Anúncio pago é um gasto: confira se entrou nos gastos do Módulo 5 e defina um limite antes de começar.",
    "tipo": "Seleção única",
    "instrucao": "Escolha a principal.",
    "comoDescobrir": [
@@ -290,7 +290,7 @@ window.MODULO10 = {
     },
     {
      "opcao": "Só combinamos de boca / Ainda não",
-     "retorno": "Atenção",
+     "retorno": "Dica",
      "texto": "Um acordo escrito evita desentendimentos sobre trabalho, dinheiro e saída de um sócio. Para a forma do documento, procure um contador ou advogado."
     },
     {
@@ -299,7 +299,7 @@ window.MODULO10 = {
      "texto": "Converse com o sócio sobre os itens do checklist de acordo."
     }
    ],
-   "apoio": "Você disse no Módulo 8 que terá sócio. Combinar antes evita desentendimentos depois.",
+   "apoio": "Você disse no Módulo 8 que terá sócio. Combinar antes evita desentendimentos depois. Um acordo escrito ajuda a evitar dúvidas sobre trabalho, dinheiro e saída de um sócio; converse com um contador ou advogado sobre o documento.",
    "tipo": "Seleção única",
    "comoDescobrir": [
     "Pergunte ao seu sócio se vocês já anotaram em algum lugar (papel, mensagem ou contrato) quem faz o quê e como dividem o dinheiro.",
@@ -345,7 +345,7 @@ window.MODULO10 = {
     },
     {
      "opcao": "Sim, para produzir ou atender / para vender ou divulgar / para tarefas administrativas",
-     "retorno": "Atenção",
+     "retorno": "Dica",
      "texto": "Contratar tem custo todo mês e regras próprias. Antes de decidir, veja as alternativas e converse com um contador sobre a forma de contratar."
     },
     {
@@ -354,7 +354,7 @@ window.MODULO10 = {
      "texto": "Pense no que você deixa de fazer por falta de tempo. É isso que alguém faria."
     }
    ],
-   "apoio": "[Se capacidade curta no Módulo 7]: Com o tempo informado, cabem cerca de [N] por mês, e você pretende [volume].",
+   "apoio": "[Se capacidade curta no Módulo 7]: Com o tempo informado, cabem cerca de [N] por mês, e você pretende [volume]. Contratar tem custo todo mês e regras próprias. Antes de decidir, veja as alternativas e converse com um contador sobre a forma de contratar.",
    "tipo": "Seleção única",
    "comoDescobrir": [
     "Durante uma semana, anote os pedidos que você recusou ou atrasou por falta de tempo e as tarefas que ficaram para depois.",
@@ -376,7 +376,7 @@ window.MODULO10 = {
      "texto": "Anotado. O plano pode começar testando uma alternativa antes de contratar."
     }
    ],
-   "apoio": "Marque as que você já pensou. Contratar tem custo fixo e regras próprias.",
+   "apoio": "Marque as que você já pensou. Contratar tem custo fixo e regras próprias. Você também pode experimentar uma alternativa antes de assumir esse compromisso.",
    "tipo": "Seleção múltipla",
    "instrucao": "Pode marcar mais de uma."
   },

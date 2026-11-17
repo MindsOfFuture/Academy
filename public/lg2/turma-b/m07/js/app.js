@@ -10,24 +10,48 @@
   const Mo = window.Motor7;
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-b-m07";
-  const VERSAO = 1;
+  const VERSAO = 2;
   const NS = "Não sei";
+  /* "Não sei" não é resposta (lote 16/11): mostra a ajuda, não grava e o Continuar pede uma resposta de verdade */
+  const MSG_ESCOLHA = "Use a ajuda acima e escolha uma opção para continuar.";
+  const MSG_ESCREVA = "Use a ajuda acima e escreva a sua resposta para continuar.";
   const Q = Object.fromEntries(D.perguntas.map((q) => [q.codigo, q]));
   const TERMO = D.termos;
 
   /* ---------- estado ---------- */
   function novo() { return { v: VERSAO, ini: null, R: {}, mapa: null, hist: [], inst: { forn: [], plano: {}, padrao: [], painel: [], folga: "" }, voltarResumo: false }; }
-  function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && s.v === VERSAO && s.R ? Object.assign(novo(), s) : novo(); } catch (e) { return novo(); } }
+  function carregar() { try { const s = JSON.parse(localStorage.getItem(CHAVE)); return s && (s.v === VERSAO || s.v === 1) && s.R ? migrar(Object.assign(novo(), s)) : novo(); } catch (e) { return novo(); } }
+  /* versão 1 → 2: respostas "Não sei" viram "sem resposta" (a pessoa responde quando passar por lá); as outras ficam.
+     M7-06 com uma parte "Não sei": a outra parte fica guardada em S.pre e volta marcada na tela. */
+  function migrar(s) {
+    if (s.v === VERSAO) return s;
+    let mudou = false;
+    Object.keys(s.R).forEach((k) => {
+      const r = s.R[k];
+      if (r && r.estado === "naosei") { delete s.R[k]; mudou = true; }
+      else if (r && r.estado === "partes" && (r.p1 === NS || r.p2 === NS)) {
+        s.pre = Object.assign({}, s.pre, { [k]: { p1: r.p1 === NS ? null : r.p1, p2: r.p2 === NS ? null : r.p2, dias: r.dias || "" } });
+        delete s.R[k]; mudou = true;
+      }
+    });
+    if (s.ini) ["horas", "material", "estoque", "reposicao", "regulada"].forEach((c) => { if (s.ini[c] === NS) { delete s.ini[c]; if (s.ini.de) delete s.ini.de[c]; mudou = true; } });
+    /* o retrato mudou: pede a confirmação de novo */
+    if (mudou) delete s.R["M7-13"];
+    s.v = VERSAO;
+    return s;
+  }
   let S = carregar();
   let aviso = "";
   function salvar() {
     try { localStorage.setItem(CHAVE, JSON.stringify(S)); aviso = ""; }
     catch (e) { aviso = "Não foi possível salvar neste navegador. Mantenha a página aberta e imprima o resultado para guardar suas respostas."; }
   }
+  /* estado da versão 1 já migrado: grava a versão nova (quem lê de outro módulo vê o mesmo formato, sem "Não sei") */
+  try { const bruto = JSON.parse(localStorage.getItem(CHAVE)); if (bruto && bruto.v === 1 && bruto.R) salvar(); } catch (e) {}
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { if (f === telaResultado) retratoAberto = false; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  function ir(f, a) { if (f === telaResultado) retratoAberto = true; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
   /* redesenha sem voltar ao topo (instrumentos que mudam a cada toque) */
   function redesenhar(f, a) { const y = window.scrollY; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, y); }
 
@@ -51,6 +75,13 @@
     if (e.target && e.target.matches && e.target.matches(CAMPO)) setTimeout(centralizar, ESPERA_TECLADO);
   });
   if (window.visualViewport) window.visualViewport.addEventListener("resize", centralizar);
+  /* item I: no relatório, seções recolhíveis que chegam depois (ex.: "Fontes consultadas" do rodapé padrão) também vêm abertas;
+     a que a pessoa fechou fica fechada */
+  document.addEventListener("toggle", (e) => { const d = e.target; if (d && d.tagName === "DETAILS" && !d.open) d.dataset.fechou = "1"; }, true);
+  new MutationObserver(() => {
+    if (!tela.querySelector("#retrato")) return;
+    tela.querySelectorAll("details:not([open]):not([data-fechou])").forEach((d) => { if (d.id !== "retrato") d.open = true; });
+  }).observe(tela, { childList: true, subtree: true });
   /* ao imprimir, abre as caixas fechadas para o conteúdo sair no papel */
   window.addEventListener("beforeprint", () => document.querySelectorAll("details").forEach((d) => { d.open = true; }));
 
@@ -76,8 +107,10 @@
   const nTexto = (c, campo) => c.modo === "max" ? Mo.fmt(c.hi[campo]) : c.modo === "min" ? `${Mo.fmt(c.lo[campo])} ou mais` : c.lo[campo] === c.hi[campo] ? Mo.fmt(c.hi[campo]) : `${Mo.fmt(c.lo[campo])} a ${Mo.fmt(c.hi[campo])}`;
   const TIPOS = ["Produto: eu faço o que vendo", "Mercadoria: compro pronto para revender", "Serviço: atendo o cliente"];
   const ESTAGIOS = ["Ainda é uma ideia", "Já fiz testes ou amostras", "Já vendo"];
-  const HORAS = ["Até 10 h", "De 11 a 20 h", "Mais de 20 h", NS];
+  /* sobre a própria pessoa (horas, material, estoque): sem "Não sei". Fato a descobrir (reposição, regras): "Não sei" bloqueia */
+  const HORAS = ["Até 10 h", "De 11 a 20 h", "Mais de 20 h"];
   const REPOSICAO = ["Toda semana", "A cada 15 dias", "Todo mês", NS];
+  const SN = ["Sim", "Não"];
   const SNN = ["Sim", "Não", NS];
   /* o Módulo 1 pergunta o tempo POR DIA; a conta daqui usa horas POR SEMANA (7 dias).
      Cada resposta do Módulo 1 vai para a faixa mais próxima desta tela; a pessoa confere e ajusta. */
@@ -88,7 +121,7 @@
     "Só nos fins de semana": ["Até 10 h", "só os dois dias do fim de semana"],
   };
   /* revenda: estoque guardado ou compra sob encomenda (o Módulo 6 pergunta isso com Sim/Não) */
-  const ESTOQUE = ["Sim, mantenho mercadoria guardada", "Não, compro quando o cliente pede", NS];
+  const ESTOQUE = ["Sim, mantenho mercadoria guardada", "Não, compro quando o cliente pede"];
   const NAO_APLICA = "Não se aplica ao meu negócio";
 
   /* tela de partida: o que dá para trazer dos módulos anteriores */
@@ -103,8 +136,8 @@
     const t1 = textoDe(m1["M1.P03A"]), t5 = textoDe(m5["M5.P01"]), t4 = textoDe(m4["M4.P02"]);
     const tipo = (t) => { const w = (t || "").split(/[:+]/)[0].trim(); return TIPOS.find((x) => x.startsWith(w + ":")) || null; };
     pega("tipo", tipo(t1), 1); pega("tipo", tipo(t5), 5); pega("tipo", tipo(t4), 4);
-    const s18 = textoDe(m5["M5.P18"]); pega("material", SNN.includes(s18) ? s18 : null, 5);
-    const s12 = textoDe(m6["M6.P12"]); pega("material", SNN.includes(s12) ? s12 : null, 6);
+    const s18 = textoDe(m5["M5.P18"]); pega("material", SN.includes(s18) ? s18 : null, 5);
+    const s12 = textoDe(m6["M6.P12"]); pega("material", SN.includes(s12) ? s12 : null, 6);
     /* horas: Módulo 1 (por dia) convertido para a faixa por semana mais próxima */
     const p05 = textoDe(m1["M1.P05"]), h1 = HORAS_M1[p05];
     if (h1) { pega("horas", h1[0], 1); ini.horasM1 = p05; ini.horasConv = h1[1]; }
@@ -114,7 +147,7 @@
     pega("estagio", est, 1);
     const vol = Mo.num(numDe(textoDe(m5["M5.P37"]))); pega("volume", vol > 0 ? numDe(textoDe(m5["M5.P37"])) : null, 5);
     const t23 = valor(m5["M5.P23"]);
-    if (t23 && typeof t23 === "object") { const m = (Mo.num(t23.h) || 0) * 60 + (Mo.num(t23.m) || 0); if (m > 0) pega("minUn", m, 5); }
+    if (t23 && typeof t23 === "object") { const m = (Mo.num(t23.h) || 0) * 60 + (Mo.num(t23.m) || 0); if (m > 0) { pega("minUn", m, 5); ini.minUnHM = { h: Mo.num(t23.h) || 0, m: Mo.num(t23.m) || 0 }; } }
     /* materiais do Módulo 5: produto = P03/P06 (receita) ÷ P07 (unidades que rende); serviço = P19/P22 (por atendimento) */
     const prod = t5 ? t5.startsWith("Produto") : Array.isArray(valor(m5["M5.P03"]));
     /* revenda: o item principal é a própria mercadoria do Módulo 5 (não há lista de materiais) */
@@ -126,14 +159,17 @@
     ini.usoPor = {};
     if (Array.isArray(itens) && Array.isArray(usos) && rende > 0) itens.forEach((nome, i) => {
       const u = usos[i], q = u && Mo.num(u.q);
-      if (nome && q > 0) ini.usoPor[String(nome).trim()] = { q: String(Math.round((q / rende) * 100) / 100).replace(".", ","), u: UNID[u.u] || "" };
+      /* orig/rende: para mostrar a conta ("1 kg ÷ 10 que a receita rende = 0,1 kg") */
+      if (nome && q > 0) ini.usoPor[String(nome).trim()] = { q: String(Math.round((q / rende) * 100) / 100).replace(".", ","), u: UNID[u.u] || "", orig: q, rende };
     });
     pega("item", Array.isArray(itens) && itens[0] ? String(itens[0]) : null, 5);
     const u0 = ini.item && ini.usoPor[ini.item];
     if (u0) { pega("uso", u0.q, 5); ini.usoUn = u0.u; }
     /* unidades que saem de uma vez (M7-02): o que a receita do Módulo 5 rende */
     if (prod && rende > 0) { ini.unLote = String(rende); ini.de.unLote = 5; }
-    const reg = textoDe(m4["M4.P15"]); pega("regulada", SNN.includes(reg) ? reg : null, 4);
+    const reg = textoDe(m4["M4.P15"]); pega("regulada", SN.includes(reg) ? reg : null, 4);
+    /* Módulo 5 "Você costuma perder…?" = Não: a perda daqui já vem 0 (sem perguntar de novo) */
+    if (textoDe(m5["M5.P26"]) === "Não") pega("perda", "0", 5);
     if (rev && !ini.uso) ini.uso = "1";
     /* o Módulo 4 guarda texto livre ("60 pedidos"): fica só o número */
     pega("testeN", numDe(textoDe(m4["M4.P19"])), 4);
@@ -183,6 +219,9 @@
     "Vezes que faltou material": "Vezes que faltou mercadoria",
   };
   const rot = (op) => (rev() && ROT_REV[op]) || op;
+  /* linha curta de exemplo embaixo de opção difícil (dados: perguntas[].exemplos; pode variar por tipo de negócio) */
+  const exemploDe = (cod, op) => { const e = Q[cod] && Q[cod].exemplos && Q[cod].exemplos[op]; return !e ? "" : typeof e === "string" ? e : e[tipoChave() || "fab"] || ""; };
+  const opHtml = (cod, op) => { const ex = exemploDe(cod, op); return `<span class="op-txt"><b>${esc(rot(op))}</b>${ex ? `<small class="op-ex">${esc(ex)}</small>` : ""}</span>`; };
   const perg = (cod) => preencher((rev() && REV[cod] && REV[cod].pergunta) || Q[cod].pergunta);
   const apoioDe = (cod) => preencher((rev() && REV[cod] && REV[cod].apoio) || Q[cod].apoio);
   /* "Ver dica" fechada entre a pergunta e as respostas: o texto de apoio + os termos da pergunta (+ extra) */
@@ -294,7 +333,7 @@
 
   /* M7-07: a planilha só traz "Só o preço", "Nota fiscal…" e "Não sei"; os demais critérios vêm
      do próprio módulo (sugeridos em "Não sei" e na lista de perguntas ao fornecedor) */
-  const CRITERIOS = ["Qualidade que não varia", "Prazo de entrega", "Pedido mínimo", "Forma e prazo de pagamento", "Frete", "Troca ou devolução", "Nota fiscal e origem comprovada", "Só o preço", NS];
+  const CRITERIOS = ["Qualidade que não varia", "Prazo de entrega", "Pedido mínimo", "Forma e prazo de pagamento", "Frete", "Troca ou devolução", "Nota fiscal e origem comprovada", "Só o preço"];
   const SUGERIDOS_FORN = ["Qualidade que não varia", "Prazo de entrega", "Pedido mínimo"];
   /* M7-11: a planilha não lista os números; estes saem dos exemplos do próprio módulo */
   const INDICADORES = ["Pedidos entregues no prazo", "Quantidade feita ou atendida na semana", "Horas trabalhadas no negócio", "Reclamações ou refações", "Vezes que faltou material", "Itens perdidos ou jogados fora"];
@@ -428,11 +467,29 @@
     }
     const f = Object.assign({}, base);
     const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio do Módulo ${base.de[campo]}</span>` : "";
-    /* "Não sei" no ponto de partida também ajuda: passos para descobrir (dados: partida_ajuda) */
-    const ajudaNS = (campo) => (f[campo] === NS && D.partida_ajuda && D.partida_ajuda[campo] ? caixaComo(D.partida_ajuda[campo].comoDescobrir, D.partida_ajuda[campo].promptIA) : "");
-    const sel = (campo, ops, rot) => `<fieldset class="grupo" data-campo="${campo}"><legend>${esc(rot)} ${veio(campo)}</legend>
-      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div><div class="ns-ajuda" aria-live="polite">${ajudaNS(campo)}</div></fieldset>`;
-    const txt = (campo, rot, attrs) => `<label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${attrs || ""}><p class="erro-campo" id="e-${campo}" hidden></p>`;
+    /* resposta que já veio de outro módulo: cartão pequeno (rótulo curto, valor, selo e "Trocar"); o campo só abre no "Trocar" */
+    const CURTO = { oferta: "O que você vende", tipo: "Tipo", estagio: "Momento", horas: "Horas por semana", volume: "Vendas por mês", minUn: "Tempo por unidade", testeN: "Teste da ideia", testeDias: "Prazo para o teste", item: "Item principal", uso: "Em cada unidade", estoque: "Estoque", reposicao: "Compra", perda: "Perda", regulada: "Regras próprias", material: "Usa material" };
+    const mostra = (c) => { const v = f[c]; return c === "minUn" ? fmtMin(Mo.num(v)) : c === "uso" ? `${v}${f.usoUn ? " " + f.usoUn : ""}` : c === "perda" ? `${v}%` : c === "testeN" ? `${v} pedidos` : c === "testeDias" ? `${v} dias` : String(v); };
+    const aberto = new Set();
+    const herdado = (c) => !!(base.de && base.de[c] && f[c] != null && f[c] !== "" && String(f[c]) === String(base[c] ?? "") && !aberto.has(c));
+    const cartao = (c) => `<div class="herdado" data-herdado="${c}" ${herdado(c) ? "" : "hidden"}><span class="h-txt"><span class="h-rot">${esc(CURTO[c] || c)}:</span> <b>${esc(mostra(c))}</b> ${veio(c)}</span><button type="button" class="trocar" data-trocar="${c}" aria-label="Trocar ${esc((CURTO[c] || c).toLowerCase())}">Trocar</button></div>`;
+    /* "Não sei" (só onde a resposta é um fato a descobrir: reposição e regras): mostra como descobrir e não marca nada */
+    const nsTocado = new Set();
+    const ajudaNS = (campo) => (nsTocado.has(campo) && D.partida_ajuda && D.partida_ajuda[campo] ? caixaComo(D.partida_ajuda[campo].comoDescobrir, D.partida_ajuda[campo].promptIA) + `<p class="nota-ns">Depois de descobrir, escolha uma opção acima.</p>` : "");
+    const sel = (campo, ops, rot) => `<div class="campo-h" data-c="${campo}">${cartao(campo)}<fieldset class="grupo" data-campo="${campo}" ${herdado(campo) ? "hidden" : ""}><legend>${esc(rot)} ${veio(campo)}</legend>
+      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div><div class="ns-ajuda" aria-live="polite">${ajudaNS(campo)}</div><p class="erro-campo" id="e-${campo}" hidden></p></fieldset></div>`;
+    const txt = (campo, rot, attrs, depois) => `<div class="campo-h" data-c="${campo}">${cartao(campo)}<div class="campo-abre" ${herdado(campo) ? "hidden" : ""}><label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${attrs || ""}></div><p class="erro-campo" id="e-${campo}" hidden></p>${depois || ""}</div>`;
+    /* abre o campo herdado (Trocar, ou quando há aviso nele) */
+    function abrirCampo(c) {
+      aberto.add(c);
+      const w = p.querySelector(`.campo-h[data-c="${c}"]`); if (!w) return;
+      w.querySelector(".herdado").hidden = true;
+      const alvo = w.querySelector("fieldset, .campo-abre"); if (alvo) alvo.hidden = false;
+    }
+    /* "Como calculamos" dos valores herdados que vêm de uma conta */
+    const comoUso = () => { const u = (base.usoPor || {})[String(f.item || "").trim()]; return u && u.rende > 1 && base.de && base.de.uso === 5 ? comoCalc(`${fmt1(u.orig)} ${u.u} ÷ ${fmt1(u.rende)} unidades que a receita rende = ${u.q} ${u.u} em cada unidade.`, "como-uso") : ""; };
+    const comoMinUn = () => base.minUnHM && base.de && base.de.minUn === 5 ? comoCalc(`${fmt1(base.minUnHM.h)} h × 60 + ${fmt1(base.minUnHM.m)} min = ${Mo.fmt(base.minUn)} min por unidade.`, "como-minun") : "";
+
     const rotUso = () => `Quanto desse item vai em cada unidade ou atendimento? (em ${f.usoUn || "unidades do item"})`;
     const p = el(`<div class="pag">
       ${topo("Antes de começar")}
@@ -441,15 +498,15 @@
         <div class="cartao-q partida">
           ${botaoVoltar()}
           <h3 class="secao-titulo">Sua oferta</h3>
-          ${txt("oferta", "O que você vende (a oferta em foco)", 'placeholder="Ex.: bolo de pote"')}
-          ${sel("tipo", TIPOS, "Tipo de oferta")}
+          ${txt("oferta", "O que você vende (o produto ou serviço principal)", 'placeholder="Ex.: bolo de pote"')}
+          ${sel("tipo", TIPOS, "O que você vende é")}
           <div id="mat"></div>
           ${sel("estagio", ESTAGIOS, "Em que momento você está?")}
           <h3 class="secao-titulo">Seu tempo e suas vendas</h3>
           ${sel("horas", HORAS, "Quantas horas por semana você tem para o negócio?")}
           ${base.de && base.de.horas === 1 && base.horasM1 ? `<p class="nota-veio" id="nota-horas">No Módulo 1 você respondeu “${esc(base.horasM1)}” (${esc(base.horasConv)}). Marcamos a faixa mais próxima. Confira e ajuste.</p>` : ""}
           ${txt("volume", "Quantas unidades ou atendimentos você pretende vender por mês?", 'inputmode="decimal" placeholder="Ex.: 40"')}
-          ${base.minUn > 0 ? txt("minUn", "Tempo por unidade ou atendimento (minutos)", 'inputmode="decimal" placeholder="Ex.: 30"') : ""}
+          ${base.minUn > 0 ? txt("minUn", "Tempo por unidade ou atendimento (minutos)", 'inputmode="decimal" placeholder="Ex.: 30"', comoMinUn()) : ""}
           ${txt("testeN", "No teste da ideia: qual número mínimo de pedidos você combinou?", 'inputmode="decimal" placeholder="Ex.: 10"')}
           ${txt("testeDias", "E em quantos dias?", 'inputmode="decimal" placeholder="Ex.: 7"')}
           <div id="f3"></div>
@@ -464,7 +521,7 @@
     let avisou = null;
     function desenharCond() {
       const serv = (f.tipo || "").startsWith("Serviço");
-      p.querySelector("#mat").innerHTML = serv ? sel("material", SNN, "Você usa algum produto ou material para atender?") : "";
+      p.querySelector("#mat").innerHTML = serv ? sel("material", SN, "Você usa algum produto ou material para atender?") : "";
       const fase3 = (f.tipo || "").startsWith("Produto") || (f.tipo || "").startsWith("Mercadoria") || (serv && f.material === "Sim");
       const ehRev = (f.tipo || "").startsWith("Mercadoria");
       p.querySelector("#f3").innerHTML = !fase3 ? "" : ehRev ? `<h3 class="secao-titulo">Mercadoria principal e estoque</h3>
@@ -476,7 +533,7 @@
         ${txt("perda", "Quanto dela você costuma perder (vencida, quebrada ou amassada), em %? (deixe em branco se não sabe)", 'inputmode="decimal" placeholder="Ex.: 5"')}`
         : `<h3 class="secao-titulo">Material principal</h3>
         ${txt("item", "Qual é o item que, se faltar, para tudo?", 'placeholder="Ex.: farinha"')}
-        ${txt("uso", rotUso(), 'inputmode="decimal" placeholder="Ex.: 0,5"')}
+        ${txt("uso", rotUso(), 'inputmode="decimal" placeholder="Ex.: 0,5"', `<div id="como-uso-w">${comoUso()}</div>`)}
         ${sel("reposicao", REPOSICAO, "De quanto em quanto tempo você compra esse item?")}
         ${txt("perda", "Quanto você costuma perder dele, em %? (deixe em branco se não sabe)", 'inputmode="decimal" placeholder="Ex.: 5"')}`;
       ligarCampos();
@@ -487,21 +544,29 @@
         if (!u || !us) return;
         const antes = Object.values(base.usoPor).some((x) => x.q === us.value.trim());
         if (us.value.trim() && !antes) return;
-        us.value = u.q; f.usoUn = u.u;
+        us.value = u.q; f.usoUn = u.u; f.item = it.value.trim();
         p.querySelector('label[for="f-uso"]').firstChild.textContent = rotUso() + " ";
+        const cw = p.querySelector("#como-uso-w"); if (cw) cw.innerHTML = comoUso();
       };
+      /* a conta do valor herdado só vale enquanto o valor é o da conta */
+      const us = p.querySelector("#f-uso");
+      if (us) us.oninput = () => { const cw = p.querySelector("#como-uso-w"), u = (base.usoPor || {})[String((p.querySelector("#f-item") || {}).value || "").trim()]; if (cw) cw.hidden = !u || us.value.trim() !== u.q; };
     }
     function ligarCampos() {
       p.querySelectorAll("fieldset[data-campo]").forEach((fs) => {
         fs.querySelectorAll(".opcao").forEach((b) => {
           b.onclick = () => {
-            f[fs.dataset.campo] = b.dataset.v;
-            fs.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", x === b));
-            fs.querySelector(".ns-ajuda").innerHTML = ajudaNS(fs.dataset.campo);
-            if (fs.dataset.campo === "tipo" || fs.dataset.campo === "material") { lerTextos(); desenharCond(); }
+            const c = fs.dataset.campo, v = b.dataset.v;
+            /* "Não sei" não marca nem grava: mostra como descobrir */
+            if (v === NS) { f[c] = null; nsTocado.add(c); } else { f[c] = v; nsTocado.delete(c); }
+            fs.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", v !== NS && x === b));
+            fs.querySelector(".ns-ajuda").innerHTML = ajudaNS(c);
+            fs.querySelector(".erro-campo").hidden = true;
+            if (c === "tipo" || c === "material") { lerTextos(); desenharCond(); }
           };
         });
       });
+      p.querySelectorAll("[data-trocar]").forEach((b) => { b.onclick = () => { abrirCampo(b.dataset.trocar); const x = p.querySelector(`.campo-h[data-c="${b.dataset.trocar}"] input, .campo-h[data-c="${b.dataset.trocar}"] .opcao`); if (x) x.focus({ preventScroll: true }); }; });
     }
     function lerTextos() { p.querySelectorAll("input[data-campo]").forEach((i) => { f[i.dataset.campo] = i.value.trim(); }); }
     desenharCond();
@@ -514,6 +579,14 @@
       p.querySelectorAll(".erro-campo").forEach((x) => { x.hidden = true; x.classList.remove("aviso-campo"); });
       p.querySelectorAll("input[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
       if (!f.tipo) { e.textContent = "Escolha o tipo de oferta para continuar."; e.hidden = false; return; }
+      /* tocou em "Não sei" e não escolheu: pede a resposta (nada é gravado) */
+      const semResp = [...nsTocado].find((c) => !f[c] && p.querySelector(`fieldset[data-campo="${c}"]`));
+      if (semResp) {
+        const ec = p.querySelector(`#e-${semResp}`); ec.textContent = MSG_ESCOLHA; ec.hidden = false;
+        e.textContent = "Confira o campo marcado acima."; e.hidden = false;
+        p.querySelector(`fieldset[data-campo="${semResp}"]`).scrollIntoView({ block: "center" });
+        return;
+      }
       /* campos de número são opcionais: em branco = "não sei" e fica fora das contas */
       let primeiro = null;
       for (const c of ["volume", "minUn", "testeN", "testeDias", "uso", "perda"]) {
@@ -523,7 +596,7 @@
         if (n !== null && (isNaN(n) || n < 0 || (c === "perda" && n >= 100))) {
           const ec = p.querySelector(`#e-${c}`);
           ec.textContent = c === "perda" ? "Use um número de 0 a 99, ou deixe em branco." : "Use só números iguais ou maiores que zero, ou deixe em branco.";
-          ec.hidden = false; inp.setAttribute("aria-invalid", "true");
+          ec.hidden = false; inp.setAttribute("aria-invalid", "true"); abrirCampo(c);
           primeiro = primeiro || inp;
         } else if (n === null) f[c] = "";
         else { const limpo = String(f[c]).replace(/%$/, "").trim(); f[c] = isNaN(Mo.num(limpo)) ? String(n).replace(".", ",") : limpo; }
@@ -533,11 +606,11 @@
       const avisos = [];
       const mu = numCampo(f.minUn), vo = numCampo(f.volume);
       if (p.querySelector("#f-minUn") && mu > Mo.LIMITE.minUnAlto) avisos.push(["minUn", `${fmtMin(mu)} para cada unidade ou atendimento parece muito tempo. Com esse tempo, quase nada cabe na sua semana. Confira se não são minutos.`]);
-      if (vo > Mo.LIMITE.volumeAlto) avisos.push(["volume", `${Mo.fmt(vo)} por mês é cerca de ${Mo.fmt(Mo.vendasDia(vo))} por dia. Esse número parece alto para um negócio pequeno; confira.`]);
+      if (vo > Mo.LIMITE.volumeAlto) avisos.push(["volume", `${Mo.fmt(vo)} por mês é cerca de ${Mo.fmt(Mo.vendasDia(vo))} por dia. Esse número parece alto para um negócio pequeno; confira. Como calculamos: ${Mo.fmt(vo)} por mês ÷ ${Mo.DIAS_MES} dias = cerca de ${Mo.fmt(Mo.vendasDia(vo))} por dia.`]);
       const chave = JSON.stringify([f.minUn, f.volume]);
       if (avisos.length && avisou !== chave) {
         avisou = chave;
-        avisos.forEach(([c, t]) => { const ec = p.querySelector(`#e-${c}`); ec.textContent = t; ec.hidden = false; ec.classList.add("aviso-campo"); });
+        avisos.forEach(([c, t]) => { const ec = p.querySelector(`#e-${c}`); ec.textContent = t; ec.hidden = false; ec.classList.add("aviso-campo"); abrirCampo(c); });
         e.textContent = "Confira o aviso acima. Se estiver certo, toque em “Continuar mesmo assim”.";
         e.hidden = false; e.classList.add("aviso-valor");
         p.querySelector("#ok").textContent = "Continuar mesmo assim";
@@ -573,7 +646,12 @@
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const resp = S.R[cod];
     /* revenda: a dica de armazenamento vai junto da dica da pergunta da validade */
-    const extraDica = cod === "M7-08" && rev() ? `<p class="ajuda" id="dica-estoque">Guarde as mercadorias em lugar limpo, seco e arejado, longe do chão e do sol, e siga o que a embalagem pede (por exemplo, geladeira). Venda primeiro o que vence primeiro.</p>` : "";
+    let extraDica = cod === "M7-08" && rev() ? `<p class="ajuda" id="dica-estoque">Guarde as mercadorias em lugar limpo, seco e arejado, longe do chão e do sol, e siga o que a embalagem pede (por exemplo, geladeira). Venda primeiro o que vence primeiro.</p>` : "";
+    /* orientação que valeria para qualquer resposta (estágio de ideia no mapa; atividade com regras na qualidade) vai para a
+       dica, antes de responder, e não num balão depois (lote 16/11, item G) */
+    const dicaGeral = (op) => { const t = preencher((caminho(cod, op) || {}).texto || ""); return t ? `<p class="ajuda dica-geral">${esc(t)}</p>` : ""; };
+    if (cod === "M7-01" && ideia()) extraDica += dicaGeral("Qualquer resposta, com estágio = ideia");
+    if (cod === "M7-09" && I().regulada === "Sim") extraDica += dicaGeral("Qualquer resposta, com atividade regulada em M4-11");
     const p = el(`<div class="pag">
       ${heroi({ compacta: true, n, total: seq.length, pct: Math.round(n / seq.length * 100) })}
       <main class="corpo">
@@ -593,8 +671,10 @@
     </div>`);
     const ent = p.querySelector("#ent"), box = p.querySelector("#retorno"), err = p.querySelector("#erro");
     const mostrar = (html) => { box.innerHTML = html || ""; err.hidden = true; };
-    /* "Não sei" marcado: a caixa "Como descobrir" vem antes do retorno da planilha */
-    const comAjudaNS = (op, html) => (op === NS ? comoDe(cod) : "") + (html || "");
+    /* "Não sei": a caixa "Como descobrir" + a dica do grupo para quem não sabe; não grava nada e pede a resposta */
+    let nsTocado = false;
+    const notaNS = (escrever) => `<p class="nota-ns" id="nota-ns">${escrever ? "Depois de descobrir, escreva a sua resposta acima. O Continuar segue com a resposta." : "Depois de descobrir, escolha uma opção acima. O Continuar segue com a resposta."}</p>`;
+    const ajudaNS = (escrever, parte) => { nsTocado = true; return comoDe(cod, parte) + caixa(caminho(cod, parte === 2 ? "Parte 2: Não sei" : NS)) + notaNS(escrever); };
     const erro = (t) => { err.classList.remove("aviso-valor"); err.textContent = t; err.hidden = false; };
     const junto = (html) => { p.querySelector("#junto").innerHTML = html || ""; };
     /* aviso que não trava: o próximo Continuar com o mesmo valor segue */
@@ -609,11 +689,12 @@
     let coletar = null;
 
     /* botões de escolha única */
+    /* aoTocar devolve false quando a opção não vale como resposta ("Não sei"): nada fica marcado */
     function unica(ops, atual, aoTocar) {
       const wrap = el(`<div class="opcoes"></div>`);
       ops.forEach((op) => {
-        const b = el(`<button class="opcao ${atual === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(rot(op))}</b></span></button>`);
-        b.onclick = () => { wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", x === b)); aoTocar(op); };
+        const b = el(`<button class="opcao ${atual === op ? "sel" : ""}" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opHtml(cod, op)}</button>`);
+        b.onclick = () => { const r = aoTocar(op); wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", r !== false && x === b)); };
         wrap.appendChild(b);
       });
       return wrap;
@@ -623,7 +704,7 @@
       const wrap = el(`<div class="opcoes multi"></div>`);
       const pintar = () => wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", marcadas.includes(x.dataset.v)));
       ops.forEach((op) => {
-        const b = el(`<button class="opcao" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(rot(op))}</b></span></button>`);
+        const b = el(`<button class="opcao" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opHtml(cod, op)}</button>`);
         b.onclick = () => {
           let aviso3 = false;
           if (marcadas.includes(op)) marcadas.splice(marcadas.indexOf(op), 1);
@@ -647,6 +728,7 @@
 
     function avancar(r0) {
       S.R[cod] = r0;
+      if (S.pre) delete S.pre[cod];
       limparInvisiveis();
       salvar();
       if (S.voltarResumo) { S.voltarResumo = false; return ir(telaResultado); }
@@ -697,15 +779,6 @@
       };
       desenhar();
       ent.appendChild(wrap);
-      ent.appendChild(btnNaoSei(() => {
-        S.mapa = modelo(); S.tipoMapa = tipoChave();
-        mostrar(comoDe(cod) + caixa(caminho(cod, NS)));
-        p.querySelector("#acoes").innerHTML = "";
-        const b = el(`<button class="btn btn-primario seta" id="ok">Continuar</button>`);
-        b.onclick = () => avancar({ estado: "naosei" });
-        p.querySelector("#acoes").appendChild(b);
-      }));
-      if (ideia()) junto(caixa(caminho(cod, "Qualquer resposta, com estágio = ideia")));
       coletar = () => {
         const limpa = lista.map((x) => x.trim()).filter(Boolean);
         if (!limpa.length) { mostrar(caixa(caminho(cod, "Retirou todas as etapas (vazio)"))); return null; }
@@ -713,7 +786,7 @@
         S.mapa = limpa; S.tipoMapa = tipoChave();
         const r0 = { estado: "opcao", opcao: op };
         /* mostra o retorno da opção antes de seguir */
-        mostrar(caixa(caminho(cod, op)) + (limpa.length > 8 ? caixa(caminho(cod, "Mais de 8 etapas")) : ""));
+        mostrar(caixa(caminho(cod, op)) + (limpa.length > 8 ? caixa(caminho(cod, "Mais de 8 etapas")) : "") + diagramaProcesso("diagrama-m701", limpa));
         trocarParaSeguir(r0);
         return null;
       };
@@ -723,7 +796,7 @@
       ent.appendChild(el(`<div><label class="rot-campo">Tempo</label>${tempoCampos("t", v)}
         <label class="rot-campo" for="un">${rev() ? "Pedidos separados de uma vez" : "Unidades que saem de uma vez"} ${herdaUn ? `<span class="veio">Veio do Módulo 5</span>` : ""}</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : herdaUn ? I().unLote : "1")}">
         ${herdaUn ? `<p class="ajuda">É o que rende a sua receita. Confira ou ajuste.</p>` : ""}</div>`));
-      ent.appendChild(btnNaoSei(() => { mostrar(comoDe(cod) + caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
+      ent.appendChild(btnNaoSei(() => mostrar(ajudaNS(true))));
       /* revenda em que o cliente retira e não há separação: a pergunta pode não servir */
       if (rev()) {
         const na = el(`<button class="btn-alt" id="na">${NAO_APLICA}</button>`);
@@ -733,6 +806,7 @@
       let confirmouAlto = false;
       coletar = () => {
         const t = lerTempo("t"), un = Mo.num(p.querySelector("#un").value || "1");
+        if (t.vazio && nsTocado) { erro(MSG_ESCREVA); return null; }
         if (t.vazio || isNaN(t.min) || t.min <= 0 || isNaN(un) || !(un > 0)) { mostrar(caixa(caminho(cod, "Tempo zero, negativo ou texto"))); return null; }
         const porUn = t.min / un;
         if (porUn > 12 * 60 && !confirmouAlto) { confirmouAlto = true; mostrar(caixa(caminho(cod, "Tempo muito alto (acima de 12 h por unidade; limiar a validar)"))); return null; }
@@ -740,14 +814,13 @@
       };
     } else if (cod === "M7-04") {
       let avisouAjuda = null;
-      let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
+      let op = resp && resp.estado === "opcao" ? resp.opcao : null;
       const horas = el(`<div id="hw" ${op && op.startsWith("Sim") ? "" : "hidden"}><label class="rot-campo" for="hajuda">Horas de ajuda por semana</label><input class="campo" id="hajuda" inputmode="decimal" placeholder="Ex.: 4" value="${esc(resp && resp.horas != null ? resp.horas : "")}"></div>`);
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; horas.hidden = !o.startsWith("Sim"); mostrar(comAjudaNS(o, caixa(caminho(cod, o)))); }));
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; horas.hidden = !o.startsWith("Sim"); mostrar(caixa(caminho(cod, o))); }));
       ent.appendChild(horas);
-      if (op) mostrar(comAjudaNS(op, caixa(caminho(cod, op))));
+      if (op) mostrar(caixa(caminho(cod, op)));
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
-        if (op === NS) return { estado: "naosei" };
         if (!op.startsWith("Sim")) return { estado: "opcao", opcao: op, horas: 0 };
         const h = Mo.num(p.querySelector("#hajuda").value);
         if (h === null || isNaN(h) || h < 0) { mostrar(caixa(caminho(cod, "Horas inválidas (negativo ou texto)"))); return null; }
@@ -756,16 +829,19 @@
         return { estado: "opcao", opcao: op, horas: h };
       };
     } else if (cod === "M7-05") {
-      let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
+      let op = resp && resp.estado === "opcao" ? resp.opcao : null;
       const et = el(`<div id="et" ${op === "Uma etapa que demora ou acumula" ? "" : "hidden"}><p class="rot-campo">Qual etapa?</p></div>`);
       let etapa = resp && resp.etapa;
       et.appendChild(unica(etapas(), etapa, (x) => { etapa = x; }));
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; et.hidden = o !== "Uma etapa que demora ou acumula"; mostrar(comAjudaNS(o, caixa(caminho(cod, o)))); }));
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => {
+        et.hidden = o !== "Uma etapa que demora ou acumula";
+        if (o === NS) { op = null; mostrar(ajudaNS(false)); return false; }
+        op = o; mostrar(caixa(caminho(cod, o)));
+      }));
       ent.appendChild(et);
-      if (op) mostrar(comAjudaNS(op, caixa(caminho(cod, op))));
+      if (op) mostrar(caixa(caminho(cod, op)));
       coletar = () => {
-        if (!op) { erro("Escolha uma opção para continuar."); return null; }
-        if (op === NS) return { estado: "naosei" };
+        if (!op) { erro(nsTocado ? MSG_ESCOLHA : "Escolha uma opção para continuar."); return null; }
         if (op === "Uma etapa que demora ou acumula" && !etapa) { erro("Escolha a etapa que demora ou acumula."); return null; }
         return Object.assign({ estado: "opcao", opcao: op }, op === "Uma etapa que demora ou acumula" ? { etapa } : {});
       };
@@ -773,10 +849,11 @@
       const v = resp && resp.estado === "valor" ? resp : null;
       ent.appendChild(el(`<div><label class="rot-campo" for="uv">Unidades por vez</label><input class="campo" id="uv" inputmode="numeric" placeholder="Ex.: 4" value="${esc(v ? v.un : "")}">
         <label class="rot-campo">Tempo de cada vez</label>${tempoCampos("tv", v)}</div>`));
-      ent.appendChild(btnNaoSei(() => { mostrar(comoDe(cod) + caixa(caminho(cod, NS))); trocarParaSeguir({ estado: "naosei" }); }));
+      ent.appendChild(btnNaoSei(() => mostrar(ajudaNS(true))));
       if (v) mostrar(caixaEquip(v));
       coletar = () => {
         const un = Mo.num(p.querySelector("#uv").value), t = lerTempo("tv");
+        if (nsTocado && un === null && t.vazio) { erro(MSG_ESCREVA); return null; }
         if (un === null || isNaN(un) || un <= 0 || t.vazio || isNaN(t.min) || t.min <= 0) { mostrar(caixa(caminho(cod, "Valor inválido (zero, negativo ou texto)"))); return null; }
         return { estado: "valor", un: String(un), h: t.h, m: t.m, minVez: t.min };
       };
@@ -790,39 +867,45 @@
         return r0;
       };
     } else if (cod === "M7-06") {
-      const v = resp || {};
-      let p1 = v.p1 || null, p2 = v.p2 || null;
+      /* resposta guardada, ou a parte que sobrou da migração (a outra era "Não sei") */
+      const v = resp || (S.pre && S.pre[cod]) || {};
+      let p1 = v.p1 || null, p2 = v.p2 || null, ns2 = false;
       const parte = (pref) => Q[cod].caminhos.filter((c) => c.opcao.startsWith(pref)).flatMap((c) => c.opcao.slice(pref.length).split(" / ").map((o) => ({ o: o.trim(), c })));
       const P1 = parte("Parte 1: "), P2 = parte("Parte 2: ");
       const dias = el(`<div id="dw" ${p2 === "Mais de 7 dias" ? "" : "hidden"}><label class="rot-campo" for="dias">Quantos dias? (opcional)</label><input class="campo" id="dias" inputmode="numeric" placeholder="Ex.: 10" value="${esc(v.dias || "")}"></div>`);
       const b1 = el(`<div id="b1"></div>`), b2 = el(`<div id="b2"></div>`);
       const pinta = () => {
-        b1.innerHTML = p1 ? (p1 === NS ? comoDe(cod, 1) : "") + caixa(P1.find((x) => x.o === p1).c) : "";
-        b2.innerHTML = p2 ? (p2 === NS ? comoDe(cod, 2) : "") + caixa(P2.find((x) => x.o === p2).c) : "";
+        b1.innerHTML = p1 ? caixa(P1.find((x) => x.o === p1).c) : "";
+        b2.innerHTML = p2 ? caixa(P2.find((x) => x.o === p2).c) : ns2 ? ajudaNS(false, 2) : "";
       };
       ent.appendChild(el(`<p class="rot-campo">Quantos fornecedores?</p>`));
       ent.appendChild(unica(P1.map((x) => x.o), p1, (o) => { p1 = o; pinta(); }));
       ent.appendChild(b1);
       ent.appendChild(el(`<p class="rot-campo">Em quantos dias chega depois do pedido?</p>`));
-      ent.appendChild(unica(P2.map((x) => x.o), p2, (o) => { p2 = o; dias.hidden = o !== "Mais de 7 dias"; pinta(); }));
+      ent.appendChild(unica(P2.map((x) => x.o), p2, (o) => {
+        dias.hidden = o !== "Mais de 7 dias";
+        if (o === NS) { p2 = null; ns2 = true; pinta(); return false; }
+        p2 = o; ns2 = false; pinta();
+      }));
       ent.appendChild(dias);
       ent.appendChild(b2);
       pinta();
       coletar = () => {
+        if (!p2 && ns2) { erro(MSG_ESCOLHA); return null; }
         if (!p1 || !p2) { erro("Responda as duas partes para continuar."); return null; }
         const d = p.querySelector("#dias").value.trim();
         if (p2 === "Mais de 7 dias" && d && !(Mo.num(d) > 0)) { erro("Informe os dias com um número maior que zero, ou deixe em branco."); return null; }
         return { estado: "partes", p1, p2, dias: p2 === "Mais de 7 dias" ? d : "" };
       };
     } else if (cod === "M7-07" || cod === "M7-10" || cod === "M7-11") {
-      const ops = cod === "M7-07" ? CRITERIOS : cod === "M7-11" ? INDICADORES.concat([NS]) : opcoesDe(cod);
-      const exclusivas = cod === "M7-07" ? [NS, "Só o preço"] : [NS];
-      const marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : resp && resp.estado === "naosei" ? [NS] : cod === "M7-11" ? sugestoes() : [];
+      /* sem "Não sei": a pergunta é sobre o que a pessoa escolhe */
+      const ops = cod === "M7-07" ? CRITERIOS : cod === "M7-11" ? INDICADORES : opcoesDe(cod);
+      const exclusivas = cod === "M7-07" ? ["Só o preço"] : [];
+      const marcadas = resp && resp.estado === "multi" ? resp.opcoes.slice() : cod === "M7-11" ? sugestoes() : [];
       const mais = { "M7-07": "Mais de 3 critérios", "M7-10": "Mais de 3 opções", "M7-11": "Mais de 3 números" }[cod];
       const outro = el(`<div id="ow" ${marcadas.includes("Outro") ? "" : "hidden"}><label class="rot-campo" for="outro">O que mais poderia atrapalhar?</label><input class="campo" id="outro" data-falar placeholder="Ex.: chuva no dia da entrega" value="${esc(resp && resp.outro || "")}"></div>`);
       const retornoMulti = (ultimo, aviso3) => {
         if (aviso3) return mostrar(caixa(caminho(cod, mais)));
-        if (marcadas.includes(NS)) return mostrar(comoDe(cod) + caixa(caminho(cod, NS)));
         if (cod === "M7-11") return mostrar(marcadas.length ? caixa(caminho(cod, marcadas.length === 1 ? "1 número" : "2 ou 3 números")) : "");
         if (cod === "M7-07") {
           if (marcadas.includes("Só o preço")) return mostrar(caixa(caminho(cod, "Só o preço")));
@@ -837,8 +920,7 @@
       ent.appendChild(outro);
       if (marcadas.length) retornoMulti(marcadas[marcadas.length - 1], false);
       coletar = () => {
-        if (!marcadas.length) { erro(cod === "M7-11" ? "Escolha pelo menos um número para acompanhar, ou toque em “Não sei”." : "Escolha pelo menos uma opção, ou toque em “Não sei”."); return null; }
-        if (marcadas.includes(NS)) return cod === "M7-11" ? { estado: "naosei", sugeridos: sugestoes() } : { estado: "naosei" };
+        if (!marcadas.length) { erro(cod === "M7-11" ? "Escolha pelo menos um número para acompanhar." : "Escolha pelo menos uma opção para continuar."); return null; }
         if (marcadas.includes("Outro") && !p.querySelector("#outro").value.trim()) { mostrar(caixa(caminho(cod, "Outro"))); return null; }
         return Object.assign({ estado: "multi", opcoes: marcadas.slice() }, marcadas.includes("Outro") ? { outro: p.querySelector("#outro").value.trim() } : {});
       };
@@ -851,23 +933,26 @@
         return t ? { estado: "valor", texto: t } : { estado: "vazio" };
       };
     } else {
-      /* escolha única com retorno ao tocar: M7-03, M7-08, M7-09 */
-      let op = resp ? (resp.estado === "naosei" ? NS : resp.opcao) : null;
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { op = o; mostrar(comAjudaNS(o, caixa(caminho(cod, o)))); }));
-      if (op) mostrar(comAjudaNS(op, caixa(caminho(cod, op))));
-      if (cod === "M7-09" && I().regulada === "Sim") junto(caixa(caminho(cod, "Qualquer resposta, com atividade regulada em M4-11")));
+      /* escolha única com retorno ao tocar: M7-03, M7-08 (com "Não sei" que pede a resposta), M7-09 (sem "Não sei") */
+      let op = resp && resp.estado === "opcao" ? resp.opcao : null;
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => {
+        if (o === NS) { op = null; mostrar(ajudaNS(false)); return false; }
+        op = o; mostrar(caixa(caminho(cod, o)));
+      }));
+      if (op) mostrar(caixa(caminho(cod, op)));
       coletar = () => {
-        if (!op) { erro("Escolha uma opção para continuar."); return null; }
-        return op === NS ? { estado: "naosei" } : { estado: "opcao", opcao: op };
+        if (!op) { erro(nsTocado ? MSG_ESCOLHA : "Escolha uma opção para continuar."); return null; }
+        return { estado: "opcao", opcao: op };
       };
     }
     function caixaEquip(v) {
       const c = calc({ equipOnly: { un: Mo.num(v.un), minVez: v.minVez } });
       if (c.estado !== "ok") return "";
       const X = nTexto(c, "semana");
-      return caixa(caminho(cod, "Unidades por vez e tempo por vez"), { "[N]": v.un, "[tempo]": fmtTempo(v.minVez), "[X]": X });
+      return caixa(caminho(cod, "Unidades por vez e tempo por vez"), { "[N]": v.un, "[tempo]": fmtTempo(v.minVez), "[X]": X })
+        + comoCapacidade(c, { equip: { un: v.un, minVez: v.minVez }, id: "como-equip" });
     }
-    /* "Não sei" grava na hora e troca o botão para seguir */
+    /* mostra o retorno e troca o botão: o próximo Continuar grava e segue */
     function trocarParaSeguir(r0) {
       const acoes = p.querySelector("#acoes");
       acoes.innerHTML = "";
@@ -882,7 +967,8 @@
         /* mostra "Anotado: cerca de…" antes de seguir */
         p.dataset.mostrou = "1";
         const c = r0.un !== "1" ? caminho(cod, "Tempo do lote e unidades por lote") : caminho(cod, "Tempo por unidade");
-        mostrar(caixa(c, { "[N]": r0.un, "[tempo]": fmtTempo(r0.min), "[x]": Mo.fmt(r0.minUn, r0.minUn % 1 ? 1 : 0) }));
+        mostrar(caixa(c, { "[N]": r0.un, "[tempo]": fmtTempo(r0.min), "[x]": Mo.fmt(r0.minUn, r0.minUn % 1 ? 1 : 0) })
+          + (r0.un !== "1" ? comoCalc(`${fmtTempo(r0.min)} (${Mo.fmt(r0.min)} min) ÷ ${Mo.fmt(Mo.num(r0.un))} unidades = ${Mo.fmt(r0.minUn, r0.minUn % 1 ? 1 : 0)} min por unidade.`, "como-lote") : ""));
         return trocarParaSeguir(r0);
       }
       avancar(r0);
@@ -999,7 +1085,7 @@
   /* ================= resumo (tela M7-13) ================= */
   const INST = Object.fromEntries(D.instrumentos.map((x) => [x.nome, x]));
   const avisoInst = (nome, i) => `<p class="aviso-inst">${esc(preencher(INST[nome].avisos[i || 0]))}</p>`;
-  const termoBox = (nomes) => { const ts = TERMO.filter((t) => nomes.includes(t.termo)); return !ts.length ? "" : `<details class="saiba"><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.termo)}</b><p>${esc(t.explicacao)}</p><p class="ex">${esc(t.exemplo)}</p>${window.LG2Padrao ? window.LG2Padrao.linkFonte(t.termo) : ""}</div>`).join("")}</details>`; };
+  const termoBox = (nomes) => { const ts = TERMO.filter((t) => nomes.includes(t.termo)); return !ts.length ? "" : `<details class="saiba" open><summary><span>Entenda os termos</span></summary>${ts.map((t) => `<div class="conceito"><b>${esc(t.termo)}</b><p>${esc(t.explicacao)}</p><p class="ex">${esc(t.exemplo)}</p>${window.LG2Padrao ? window.LG2Padrao.linkFonte(t.termo) : ""}</div>`).join("")}</details>`; };
   /* "O que entendemos até aqui": frases montadas por regra com este módulo + os anteriores */
   /* texto corrido: as frases de cada assunto viram um parágrafo (1 a 3 parágrafos curtos, sem lista) */
   const emParagrafos = (fr, ...cortes) => [0, ...cortes].map((c, i, a) => fr.slice(c, i + 1 < a.length ? a[i + 1] : fr.length).join(" ")).filter(Boolean);
@@ -1032,29 +1118,75 @@
   /* "Como calculamos: …": a conta de cada número do resultado em linguagem simples, com os valores da pessoa */
   const comoCalc = (t, id) => `<p class="como-calc"${id ? ` id="${id}"` : ""}>Como calculamos: ${esc(t)}</p>`;
   const fmt1 = (n) => Mo.fmt(n, n % 1 ? 1 : 0);
-  function comoCapacidade(c) {
+  /* o = { equip: {un, minVez} (conta só do equipamento), semAjuda, id } */
+  function comoCapacidade(c, o) {
+    o = o || {};
     if (!c || c.estado !== "ok") return "";
     const f = Mo.HORAS[I().horas];
     const ap = S.R["M7-03"], apoioOp = ap ? (ap.estado === "naosei" ? NS : ap.opcao) : null;
     const apoio = Mo.APOIO[apoioOp] ?? 0;
-    const r4 = S.R["M7-04"], ajuda = r4 && r4.estado === "opcao" && r4.horas > 0 && r4.horas <= Mo.LIMITE.ajudaMax ? r4.horas : 0;
+    const r4 = S.R["M7-04"], ajuda = !o.semAjuda && r4 && r4.estado === "opcao" && r4.horas > 0 && r4.horas <= Mo.LIMITE.ajudaMax ? r4.horas : 0;
     const mu = minUnAtual(), r5a = S.R["M7-05a"];
+    const eq = o.equip || (r5a && r5a.estado === "valor" ? r5a : null);
     const umaConta = (h, b) => {
       let t = `${fmt1(h)} h por semana`;
       if (apoio) t += ` − ${fmt1(apoio)} h de tarefas de apoio${apoioOp === NS ? " (estimativa)" : ""}`;
       if (ajuda) t += ` + ${fmt1(ajuda)} h de ajuda`;
       t += ` = ${Mo.fmt(b.minProd)} min para ${verbo()}`;
-      if (b.limite === "equipamento" && r5a && r5a.estado === "valor") {
-        const vezes = Math.floor(b.minProd / r5a.minVez + 1e-9);
-        return `${t}; ${Mo.fmt(b.minProd)} min ÷ ${fmtMin(r5a.minVez)} por vez = ${Mo.fmt(vezes)} vezes × ${r5a.un} por vez = ${Mo.fmt(b.semana)} por semana. No mês (${Mo.fmt(Mo.SEMANAS_MES, 2)} semanas) = ${Mo.fmt(b.mes)}.`;
+      if (b.limite === "equipamento" && eq) {
+        const vezes = Mo.piso(b.minProd / eq.minVez), vezesMes = Mo.piso((b.minProd * Mo.SEMANAS_MES) / eq.minVez);
+        return `${t}; ${Mo.fmt(b.minProd)} min ÷ ${fmtMin(eq.minVez)} por vez = ${Mo.fmt(vezes)} vezes × ${eq.un} por vez = ${Mo.fmt(b.semana)} por semana. No mês: ${Mo.fmt(b.minProd)} min × ${Mo.fmt(Mo.SEMANAS_MES, 2)} semanas ÷ ${fmtMin(eq.minVez)} = ${Mo.fmt(vezesMes)} vezes × ${eq.un} = ${Mo.fmt(b.mes)} (sempre arredondado para baixo).`;
       }
       return `${t} ÷ ${fmtMin(mu)} cada um = ${Mo.fmt(b.semana)} por semana. No mês: ${Mo.fmt(b.minProd)} min × ${Mo.fmt(Mo.SEMANAS_MES, 2)} semanas ÷ ${fmtMin(mu)} = ${Mo.fmt(b.mes)} (sempre arredondado para baixo).`;
     };
-    if (c.modo === "faixa" && c.lo !== c.hi) return comoCalc(`com ${fmt1(f.lo)} h: ${umaConta(f.lo, c.lo)} Com ${fmt1(f.hi)} h: ${umaConta(f.hi, c.hi)}`, "como-capacidade");
+    const pre = o.semAjuda ? "sem a ajuda, " : "";
+    const id = o.id || "como-capacidade";
+    if (c.modo === "faixa" && c.lo !== c.hi) return comoCalc(`${pre}com ${fmt1(f.lo)} h: ${umaConta(f.lo, c.lo)} Com ${fmt1(f.hi)} h: ${umaConta(f.hi, c.hi)}`, id);
     const b = c.modo === "min" ? c.lo : c.hi;
-    return comoCalc(umaConta(c.modo === "min" ? f.lo : f.hi, b), "como-capacidade");
+    return comoCalc(pre + umaConta(c.modo === "min" ? f.lo : f.hi, b), id);
   }
-  let retratoAberto = false;
+  /* conta curta do \"por mês\" (para a frase de \"O que entendemos\") */
+  function comoMes(c, sem) {
+    if (!c || c.estado !== "ok") return "";
+    const um = (cc, rot) => { const b = cc.modo === "min" ? cc.lo : cc.hi, r5a = S.R["M7-05a"];
+      const div = b.limite === "equipamento" && r5a && r5a.estado === "valor" ? `${fmtMin(r5a.minVez)} por vez = ${Mo.fmt(Mo.piso((b.minProd * Mo.SEMANAS_MES) / r5a.minVez))} vezes × ${r5a.un}` : fmtMin(minUnAtual());
+      return `${rot}${Mo.fmt(b.minProd)} min por semana × ${Mo.fmt(Mo.SEMANAS_MES, 2)} semanas ÷ ${div} = ${Mo.fmt(b.mes)} por mês`; };
+    const faixa = c.modo === "faixa" && c.lo.mes !== c.hi.mes ? ` (com o máximo de horas da sua faixa; com o mínimo, ${Mo.fmt(c.lo.mes)})` : "";
+    return comoCalc(`${sem ? um(sem, "sem ajuda, ") + "; " + um(c, "com ajuda, ") : um(c, "")}${faixa}. Detalhes em “Sua capacidade”.`, "como-entendemos").replace("<p ", "<div ").replace(/<\/p>$/, "</div>");
+  }
+  /* sazonalidade do Módulo 5 (só leitura): no mês forte o volume sobe; cabe na semana? Sem resposta ou "Não": nada aparece */
+  const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const fator = (pct) => { const x = Math.round((1 + pct / 100) * 100) / 100; return Mo.fmt(x, x % 1 === 0 ? 0 : Math.round(x * 10) === x * 10 ? 1 : 2); };
+  const juntarE = (xs) => xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs[xs.length - 1];
+  function sazonalHtml(c) {
+    const sz = M5()["M5.SZ"], vol = volume();
+    if (!sz || sz.estado !== "opcao" || !/^Sim/.test(sz.opcao || "") || !vol || c.estado !== "ok") return "";
+    const mais = Mo.num(sz.maisPct), r = Mo.mesForte(vol, mais, c);
+    if (!r) return "";
+    const ms = (Array.isArray(sz.fortes) ? sz.fortes : []).map((n) => MESES[Number(n) - 1]).filter(Boolean);
+    const quando = ms.length ? ` (${juntarE(ms)})` : "";
+    const cabe = c.modo === "min" ? `pelo menos ${Mo.fmt(r.cabeLo)}` : r.cabeLo === r.cabeHi ? Mo.fmt(r.cabeHi) : `de ${Mo.fmt(r.cabeLo)} a ${Mo.fmt(r.cabeHi)}`;
+    const frase = `Nos meses fortes${quando} você precisaria fazer ${Mo.fmt(r.semana)} por semana; hoje cabem ${cabe}.`;
+    const conta = comoCalc(`${Mo.fmt(vol)} por mês × ${fator(mais)} (${Mo.fmt(mais)}% a mais) = ${Mo.fmt(r.mes)} no mês forte; ${Mo.fmt(r.mes)} ÷ ${Mo.fmt(Mo.SEMANAS_MES, 2)} semanas = ${Mo.fmt(r.semana)} por semana (arredondado para cima).`, "como-sazonal");
+    if (r.estado === "falta") return `<div class="bloco b-alerta" id="sazonal"><b>Atenção</b><p>${esc(frase)} Para esses meses, vale aceitar encomendas com antecedência, preparar parte antes ou combinar uma ajuda extra.</p></div>${conta}`;
+    return `<p class="diag-r" id="sazonal">${esc(frase)}${r.estado === "talvez" ? " Pode ficar apertado: confira perto desses meses." : ""}</p>${conta}`;
+  }
+  /* quem faz (M7-04): só sabemos se há ajuda e de que tipo, não quem faz cada etapa */
+  function quemFaz() {
+    const r = S.R["M7-04"]; if (!r || r.estado !== "opcao") return "";
+    if (!r.opcao.startsWith("Sim")) return "Quem faz: você, sozinho(a).";
+    const h = r.horas > 0 ? `, ${fmt1(r.horas)} h por semana` : "";
+    return r.opcao.startsWith("Sim, pago") ? `Quem faz: você, com uma pessoa paga${h}.` : `Quem faz: você, com ajuda de família ou amigos${h}.`;
+  }
+  function diagramaProcesso(id, lista) {
+    const r5 = S.R["M7-05"], garg = r5 && r5.etapa;
+    const passos = (lista || etapas()).map((e) => ({ titulo: e, marca: e === garg ? { texto: "Gargalo", tipo: "gargalo" } : null }));
+    return window.LG2Diagrama ? window.LG2Diagrama.html(passos, { id, rotulo: "Caminho do pedido até o cliente, etapa por etapa", legenda: quemFaz() }) : "";
+  }
+  /* relatório aberto por padrão (lote 16/11, item I); a pessoa pode fechar e o painel fica como ela deixou ao redesenhar */
+  let retratoAberto = true;
+  let repoAoVivo = null;
+  const precoBR = (t) => { const s = String(t ?? "").trim(); if (!s) return ""; const n = Mo.num(s.replace(/^R\$\s*/i, "")); return n != null && !isNaN(n) && n >= 0 ? Mo.fmt(n, 2) : s; };
   function telaResultado() {
     if (S.hist[S.hist.length - 1] !== "RESULTADO") { S.hist.push("RESULTADO"); salvar(); }
     const c = calc();
@@ -1063,7 +1195,8 @@
     /* processo */
     const r5 = S.R["M7-05"];
     const garg = r5 && r5.etapa;
-    const mapaHtml = `<ol class="mapa">${etapas().map((e) => `<li class="${e === garg ? "gargalo" : ""}"><span>${esc(e)}</span>${e === garg ? `<em>Gargalo</em>` : ""}</li>`).join("")}</ol>
+    /* processo em diagrama de fluxo (caixas numeradas ligadas por setas), com o gargalo marcado e quem faz na legenda */
+    const mapaHtml = `${diagramaProcesso("diagrama-processo")}
       <p class="aviso-inst">Tempo de cada etapa: a medir.</p>
       ${r5 && !garg ? `<p class="diag-q">Gargalo</p><p class="diag-r">${esc(r5.estado === "naosei" ? "Ainda não definido" : rot(r5.opcao))}</p>` : ""}
       ${avisoInst("Mapa do processo")}${ideia() ? avisoInst("Mapa do processo", 1) : ""}`;
@@ -1073,17 +1206,19 @@
       const cmp = Mo.comparar(c, volume());
       const sem = semAjuda(c);
       const mu = minUnAtual();
-      const n4 = Mo.num(I().testeN), d4 = Mo.num(I().testeDias);
+      const n4 = Mo.num(I().testeN), d4 = Mo.num(I().testeDias), tst = Mo.teste(c, n4, d4);
       capHtml = `<div class="res-dupla">
           <div class="res-num"><div class="lbl">Por semana</div><div class="val">${esc(Mo.texto(c, "semana"))}</div></div>
           <div class="res-num"><div class="lbl">Por mês</div><div class="val">${esc(Mo.texto(c, "mes"))}</div>${sem ? `<div class="sub">com a ajuda que você contou</div>` : ""}</div>
         </div>
         ${comoCapacidade(c)}
         <p class="diag-r">Limite usado na conta: ${c.limite === "equipamento" ? "o equipamento ou espaço" : "o tempo de trabalho"}.</p>
-        ${sem ? `<p class="diag-r" id="sem-com">Por mês, sem ajuda: ${esc(Mo.texto(sem, "mes"))}; com ajuda: ${esc(Mo.texto(c, "mes"))}.</p>` : ""}
+        ${sem ? `<p class="diag-r" id="sem-com">Por mês, sem ajuda: ${esc(Mo.texto(sem, "mes"))}; com ajuda: ${esc(Mo.texto(c, "mes"))}.</p>${comoCapacidade(sem, { semAjuda: true, id: "como-sem-ajuda" })}` : ""}
         ${mu > Mo.LIMITE.minUnAlto ? `<div class="bloco b-alerta" id="aviso-tempo"><b>Atenção</b><p>Você informou ${esc(fmtMin(mu))} para ${esc(verbo())} cada unidade. Esse tempo parece muito alto e deixa quase nada caber na semana. Confira em “Seu ponto de partida” ou na pergunta do tempo.</p></div>` : ""}
-        ${volume() ? `<p class="diag-r">Você pretende ${esc(Mo.fmt(volume()))} por mês. ${cmp.tipo === "falta" ? (c.modo === "faixa" ? `Passa do máximo em pelo menos ${esc(Mo.fmt(cmp.n))}.` : `Faltam cerca de ${esc(Mo.fmt(cmp.n))} por mês.`) : cmp.tipo === "folga" ? `Cabe, com folga de ${esc(Mo.fmt(cmp.n))} por mês.` : "Fica dentro da faixa estimada."}</p>` : ""}
-        ${n4 > 0 && d4 > 0 ? `<p class="diag-r">Teste da ideia: ${esc(Mo.fmt(n4))} em ${esc(Mo.fmt(d4))} dias.</p>` : ""}
+        ${volume() ? `<p class="diag-r">Você pretende ${esc(Mo.fmt(volume()))} por mês. ${cmp.tipo === "falta" ? (c.modo === "faixa" ? `Passa do máximo em pelo menos ${esc(Mo.fmt(cmp.n))}.` : `Faltam cerca de ${esc(Mo.fmt(cmp.n))} por mês.`) : cmp.tipo === "folga" ? `Cabe, com folga de ${esc(Mo.fmt(cmp.n))} por mês.` : "Fica dentro da faixa estimada."}</p>
+          ${comoCalc(cmp.tipo === "falta" ? `${Mo.fmt(volume())} que você pretende − ${Mo.fmt(c.hi.mes)} que cabem no máximo = ${Mo.fmt(cmp.n)}.` : cmp.tipo === "folga" ? `${Mo.fmt(c.lo.mes)} que cabem − ${Mo.fmt(volume())} que você pretende = ${Mo.fmt(cmp.n)} de folga.` : `${Mo.fmt(volume())} fica entre ${Mo.fmt(c.lo.mes)} e ${Mo.fmt(c.hi.mes)}, o que cabe por mês.`, "como-volume")}` : ""}
+        ${sazonalHtml(c)}
+        ${n4 > 0 && d4 > 0 ? `<p class="diag-r">Teste da ideia: ${esc(Mo.fmt(n4))} em ${esc(Mo.fmt(d4))} dias.${tst ? (tst.passa ? " É mais do que cabe nesse prazo." : " Cabe nesse prazo.") : ""}</p>${tst && c.modo !== "min" ? comoCalc(`${Mo.fmt(c.hi.semana)} por semana ÷ 7 dias × ${Mo.fmt(d4)} dias = ${fmt1(Math.round((c.hi.semana * d4 / 7) * 10) / 10)} que cabem no prazo do teste.`, "como-teste") : ""}` : ""}
         ${avisoInst("Calculadora de capacidade")}`;
     } else {
       const motivo = c.estado === "sem-producao" ? preencher(D.resumo.cruzamentos.find((x) => x.quando.startsWith("Apoio maior")).mensagem) : "";
@@ -1098,23 +1233,28 @@
       const forn = S.inst.forn.length ? S.inst.forn : [{ nome: "", v: {} }, { nome: "", v: {} }, { nome: "", v: {} }];
       S.inst.forn = forn;
       const prazo = prazoDias(), vol = volume(), uso = Mo.num(I().uso), perda = Mo.num(I().perda);
-      const folga = Mo.num(S.inst.folga) > 0 ? Mo.num(S.inst.folga) : 0;
-      const ponto = prazo != null ? Mo.pontoDePedido(vol, uso, prazo, folga) : null;
       const compra = vol && uso > 0 ? Mo.compraComPerda(vol * uso, perda) : null;
       const OPS = ["atende", "não atende", "não sei"];
       const un = I().usoUn || "", nomeItem = I().item || "O item principal";
       const fmt1 = (n) => Mo.fmt(n, n % 1 ? 1 : 0);
-      fornHtml = `<section class="cartao bloco-res"><h3>Fornecedores e estoque</h3>
-        ${r6 && r6.estado === "partes" ? `<p class="diag-q">Fornecedores ${rev() ? "da mercadoria principal" : "do item principal"}</p><p class="diag-r">${esc(r6.p1)} · chega: ${esc(r6.p2.toLowerCase())}${r6.dias ? ` (${esc(r6.dias)} dias)` : ""}</p>` : ""}
-        <h4>Lembrete de reposição${I().item ? ` · ${esc(I().item)}` : ""}</h4>
-        ${ponto != null ? `<div class="res-num"><div class="lbl">Peça de novo quando restarem</div><div class="val">${esc(Mo.fmt(ponto))}${un ? ` ${esc(un)}` : ""}</div><div class="sub">${esc(nomeItem)} que você usa durante ${esc(Mo.fmt(prazo))} dias de prazo${folga ? `, mais a folga de ${esc(Mo.fmt(folga))}` : ""}</div></div>
+      /* lembrete de reposição: redesenhado ao vivo enquanto a pessoa digita a folga */
+      const repoHtml = (folgaTxt) => {
+        const folga = Mo.num(folgaTxt) > 0 ? Mo.num(folgaTxt) : 0;
+        const ponto = prazo != null ? Mo.pontoDePedido(vol, uso, prazo, folga) : null;
+        return ponto != null ? `<div class="res-num"><div class="lbl">Peça de novo quando restarem</div><div class="val">${esc(Mo.fmt(ponto))}${un ? ` ${esc(un)}` : ""}</div><div class="sub">${esc(nomeItem)} que você usa durante ${esc(Mo.fmt(prazo))} dias de prazo${folga ? `, mais a folga de ${esc(Mo.fmt(folga))}` : ""}</div></div>
           <ul class="reposicao-conta" id="conta-reposicao">
             <li>Vendas por dia: ${esc(Mo.fmt(vol))} por mês ÷ ${Mo.DIAS_MES} dias = cerca de ${esc(fmt1(Mo.vendasDia(vol)))} por dia.</li>
             ${uso !== 1 || un ? `<li>Uso de ${esc(nomeItem.toLowerCase())} por dia: ${esc(fmt1(Mo.vendasDia(vol)))} × ${esc(fmt1(uso))}${un ? ` ${esc(un)}` : ""} em cada unidade = ${esc(fmt1(Mo.consumoDia(vol, uso)))}${un ? ` ${esc(un)}` : ""} por dia.</li>` : ""}
             <li>No prazo de ${esc(Mo.fmt(prazo))} dias: ${esc(fmt1(Mo.consumoDia(vol, uso)))} × ${esc(Mo.fmt(prazo))} = ${esc(Mo.fmt(ponto - folga))}${un ? ` ${esc(un)}` : ""}${folga ? ` + folga de ${esc(Mo.fmt(folga))}` : ""}.</li>
           </ul>
           ${comoCalc(`${fmt1(Mo.consumoDia(vol, uso))}${un ? ` ${un}` : ""} por dia × ${Mo.fmt(prazo)} dias de prazo do fornecedor = ${Mo.fmt(ponto - folga)}${un ? ` ${un}` : ""}${folga ? ` + ${Mo.fmt(folga)} de folga = ${Mo.fmt(ponto)}` : ""} (arredondado para cima).`, "como-reposicao")}`
-          : `<p class="diag-r">Para calcular, faltam ${[!vol && "o volume por mês", !(uso > 0) && "a quantidade do item por unidade", prazo == null && "o prazo de entrega"].filter(Boolean).join(", ")}. Complete em “Seu ponto de partida”.</p>`}
+          : `<p class="diag-r">Para calcular, faltam ${[!vol && "o volume por mês", !(uso > 0) && "a quantidade do item por unidade", prazo == null && "o prazo de entrega"].filter(Boolean).join(", ")}. Complete em “Seu ponto de partida”.</p>`;
+      };
+      repoAoVivo = repoHtml;
+      fornHtml = `<section class="cartao bloco-res"><h3>Fornecedores e estoque</h3>
+        ${r6 && r6.estado === "partes" ? `<p class="diag-q">Fornecedores ${rev() ? "da mercadoria principal" : "do item principal"}</p><p class="diag-r">${esc(r6.p1)} · chega: ${esc(r6.p2.toLowerCase())}${r6.dias ? ` (${esc(r6.dias)} dias)` : ""}</p>` : ""}
+        <h4>Lembrete de reposição${I().item ? ` · ${esc(I().item)}` : ""}</h4>
+        <div id="repo">${repoHtml(S.inst.folga)}</div>
         <label class="rot-campo" for="folga">Folga que você quer manter (unidades a mais)</label><input class="campo" id="folga" inputmode="numeric" value="${esc(S.inst.folga)}">
         ${compra ? `<p class="diag-r">Compra do mês${perda > 0 ? `, já contando a perda de ${esc(Mo.fmt(perda, perda % 1 ? 1 : 0))}%` : ""}: ${esc(Mo.fmt(compra))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}.</p>${comoCalc(`${Mo.fmt(vol)} por mês × ${fmt1(uso)}${un ? ` ${un}` : ""} em cada um = ${fmt1(vol * uso)}${un ? ` ${un}` : ""}${perda > 0 ? `; com a perda de ${fmt1(perda)}%, dividimos por ${Mo.fmt(100 - perda, perda % 1 ? 1 : 0)}% (o que sobra depois da perda) = ${Mo.fmt(compra)}` : ""} (arredondado para cima).`, "como-compra")}` : ""}
         ${avisoInst("Lembrete de reposição")}
@@ -1124,9 +1264,9 @@
           const crits = colunas.slice(1), conta = crits.filter((k) => f.v[k] === "atende").length, marcou = crits.some((k) => f.v[k]);
           const contaHtml = !crits.length ? `<p class="conta-forn vazia">Nenhum critério escolhido.</p>`
             : !marcou ? `<p class="conta-forn vazia">Marque se este fornecedor atende ${crits.length === 1 ? "o critério" : "cada critério"}.</p>`
-            : `<p class="conta-forn">Atende ${conta} de ${crits.length} ${crits.length === 1 ? "critério" : "critérios"}</p>`;
+            : `<p class="conta-forn">Atende ${conta} de ${crits.length} ${crits.length === 1 ? "critério" : "critérios"}</p>${comoCalc(`contamos os critérios marcados “atende” (${conta}) entre os ${crits.length} que você escolheu.`)}`;
           return `<div class="forn" data-i="${i}"><label class="rot-campo" for="fn${i}">Fornecedor ${i + 1}</label><input class="campo" id="fn${i}" data-f="nome" value="${esc(f.nome)}" placeholder="Nome que você pesquisou">
-            <div class="linha"><span class="lbl">Preço</span><input class="campo" data-f="preco" value="${esc(f.preco || "")}" inputmode="decimal" aria-label="Preço do fornecedor ${i + 1}"></div>
+            <div class="linha"><span class="lbl">Preço</span><span class="pre">R$</span><input class="campo" data-f="preco" value="${esc(precoBR(f.preco))}" inputmode="decimal" placeholder="Ex.: 12,50" aria-label="Preço do fornecedor ${i + 1}"></div>
             ${colunas.slice(1).map((k) => `<div class="linha crit"><span class="lbl">${esc(k)}</span><select class="campo" data-k="${esc(k)}" aria-label="${esc(k)} – fornecedor ${i + 1}"><option value=""></option>${OPS.map((o) => `<option ${f.v[k] === o ? "selected" : ""}>${o}</option>`).join("")}</select></div>`).join("")}
             <label class="rot-campo" for="fd${i}">Data da pesquisa</label><input class="campo" id="fd${i}" data-f="data" value="${esc(f.data || "")}">
             ${contaHtml}</div>`;
@@ -1159,7 +1299,7 @@
       <main class="corpo">
         ${botaoVoltar()}
         ${barraFases(null, true)}
-        <section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>${entendemos(c).map((x) => `<p>${esc(x)}</p>`).join("")}</section>
+        <section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3>${entendemos(c).map((x) => `<p>${esc(x)}</p>`).join("")}${comoMes(c, semAjuda(c))}</section>
         ${passos.length ? `<section class="cartao proximos" id="proximos"><h3>Próximos passos</h3><ol class="lista-capa">${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></section>` : ""}
         <section class="concluido">
           <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao retrato da sua operação</h2><p>${esc(preencher(q13.apoio))}</p></div></div>
@@ -1219,10 +1359,18 @@
       S.voltarResumo = true; salvar();
       b.dataset.c === "PARTIDA" ? ir(telaPartida, { volta: true }) : ir(telaPergunta, b.dataset.c);
     }));
-    const f = p.querySelector("#folga"); if (f) f.onchange = () => { S.inst.folga = f.value.trim(); re(); };
+    const f = p.querySelector("#folga");
+    if (f) {
+      f.oninput = () => { const r = p.querySelector("#repo"); if (r && repoAoVivo) r.innerHTML = repoAoVivo(f.value.trim()); };
+      f.onchange = () => { S.inst.folga = f.value.trim(); re(); };
+    }
     p.querySelectorAll(".forn").forEach((d) => {
       const i = +d.dataset.i;
-      d.querySelectorAll("[data-f]").forEach((x) => (x.onchange = () => { S.inst.forn[i][x.dataset.f] = x.value; salvar(); }));
+      d.querySelectorAll("[data-f]").forEach((x) => (x.onchange = () => {
+        /* dinheiro no padrão brasileiro também dentro do campo ("1425.06" vira "1.425,06") */
+        if (x.dataset.f === "preco") x.value = precoBR(x.value);
+        S.inst.forn[i][x.dataset.f] = x.value; salvar();
+      }));
       d.querySelectorAll("[data-k]").forEach((x) => (x.onchange = () => { S.inst.forn[i].v[x.dataset.k] = x.value; re(); }));
     });
     p.querySelectorAll(".pq").forEach((x) => (x.onchange = () => { S.inst.padrao[+x.dataset.i] = x.value; salvar(); }));
@@ -1231,6 +1379,8 @@
     p.querySelectorAll(".pn").forEach((x) => (x.onchange = () => { S.inst.painel[+x.dataset.i][x.dataset.k] = x.value; re(); }));
     const sm = p.querySelector("#semana"); if (sm) sm.onclick = () => { S.inst.painel.push({}); re(); };
     ligar(p);
+    /* item I: toda seção recolhível do relatório vem aberta (menos o retrato, se a pessoa o fechou) */
+    p.querySelectorAll("details").forEach((d) => { if (d.id !== "retrato") d.open = true; });
     if (aviso) p.querySelector(".corpo").insertBefore(el(`<p class="erro">${esc(aviso)}</p>`), p.querySelector(".corpo").firstChild);
     return p;
   }

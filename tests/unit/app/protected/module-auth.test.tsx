@@ -158,7 +158,7 @@ describe("painel /protected", () => {
                 screen.getByRole("link", { name: /Educação Financeira/ }),
             ).toHaveAttribute("href", "/protected/modulos/educacao-financeira");
             expect(
-                screen.getByRole("link", { name: /Laboratório de Gestão/ }),
+                screen.getByRole("link", { name: /Empreenda\+/ }),
             ).toHaveAttribute("href", "/protected/modulos/laboratorio-de-gestao");
         },
     );

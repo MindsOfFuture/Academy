@@ -175,7 +175,8 @@ let forcarTravar = null; // null = serve o arquivo como está
           if (prox && !prox.closest('[hidden]') && prox.getClientRects().length) return 'fim';
           // Resultado com o botão do próximo módulo ainda escondido (M7): avisa uma vez para o teste conferir.
           if (prox && !arg.viuEscondido) return 'escondido';
-          const vis = (e) => e && e.offsetParent !== null && !e.disabled;
+          /* conteúdo de <details> fechado conta como invisível (o Chromium novo devolve offsetParent mesmo assim) */
+          const vis = (e) => e && e.offsetParent !== null && !e.disabled && !(e.closest('details:not([open])') && !e.closest('summary'));
           // campos vazios: texto/número neutro
           for (const i of document.querySelectorAll('input:not([type=checkbox]):not([type=radio]), textarea')) {
             if (vis(i) && !i.value) {

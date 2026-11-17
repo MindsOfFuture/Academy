@@ -16,9 +16,9 @@ describe("ModulesSection — seção Módulos do painel", () => {
         expect(link).toHaveAttribute("href", "/protected/modulos/educacao-financeira");
     });
 
-    it("mostra o card de Laboratório de Gestão apontando para a rota canônica", () => {
+    it("mostra o card do Empreenda+ apontando para a rota canônica", () => {
         render(<ModulesSection />);
-        const link = screen.getByRole("link", { name: /Laboratório de Gestão/i });
+        const link = screen.getByRole("link", { name: /Empreenda\+/i });
         expect(link).toHaveAttribute("href", "/protected/modulos/laboratorio-de-gestao");
     });
 

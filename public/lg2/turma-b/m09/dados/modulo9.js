@@ -673,6 +673,7 @@ window.MODULO9 = {
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-03."
     }
    ],
+   "dica": "Comida, bebida, cosmético, remédio, procedimento no corpo e cuidado com pessoas ou animais passam pela Vigilância Sanitária, mesmo no MEI. Se for o seu caso, confirme a licença antes de começar a funcionar.",
    "comoDescobrir": [
     "Pense no que o cliente faz com o que você vende: come, bebe, passa no corpo, usa como remédio ou recebe um cuidado (cabelo, unha, massagem, animal)?",
     "Se for algum desses, pergunte à Vigilância Sanitária da prefeitura se a sua atividade precisa de licença sanitária. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
@@ -768,6 +769,7 @@ window.MODULO9 = {
      "regra": "Mostrar o aviso com o botão 'Já verifiquei'. Se seguir sem responder, pular o bloco do local (itens 'a confirmar') e seguir para M9-04."
     }
    ],
+   "dica": "Vender na rua, em feira ou em veículo costuma pedir licença da prefeitura. Com alimentos ou gás, a Vigilância Sanitária e os Bombeiros também podem fazer vistoria.",
    "comoDescobrir": [
     "Pense em como você encontra os clientes e entrega o produto ou o serviço: pelo celular e pela internet, na casa ou na empresa deles, ou na rua, em feira ou evento.",
     "Se for trabalhar na rua ou em feira, pergunte na prefeitura qual licença é pedida para quem vende sem ponto fixo. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
@@ -854,11 +856,12 @@ window.MODULO9 = {
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-05 ou próxima etapa aplicável."
     }
    ],
-   "dica": "Essa verificação se chama consulta de viabilidade. Ela diz se a atividade pode funcionar no endereço.",
+   "dica": "Essa verificação se chama consulta de viabilidade: a prefeitura diz se a atividade pode funcionar naquele endereço. O ideal é fazer antes de alugar, reformar ou assinar contrato.",
    "comoDescobrir": [
     "Pergunte a quem cuidou do registro do negócio (você, o contador ou a Sala do Empreendedor) se a consulta de viabilidade foi feita e peça o comprovante.",
-    "Se ninguém fez, faça no portal da Redesim ou da Junta Comercial do seu estado, ou peça ajuda na prefeitura. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
+    "Se ninguém fez, faça pela internet, no site da Junta Comercial do seu estado, ou peça ajuda na prefeitura. Em Juiz de Fora, a Sala do Empreendedor da prefeitura ajuda."
    ],
+   "comoTec": "O nome técnico é consulta prévia de viabilidade. Em muitos estados ela é feita pela Redesim (Rede Nacional para a Simplificação do Registro e da Legalização de Empresas e Negócios), no portal da Junta Comercial.",
    "promptIA": "Explique em linguagem simples o que é a consulta prévia de viabilidade para abrir um negócio em [sua cidade e estado], como saber se ela já foi feita e qual é o passo a passo para fazer no portal do meu estado."
   },
   {
@@ -935,6 +938,7 @@ window.MODULO9 = {
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-07."
     }
    ],
+   "dica": "Receber clientes ou outras pessoas no local pode mudar as exigências dos Bombeiros e as condições para trabalhar em casa.",
    "comoDescobrir": [
     "Imagine a hora de maior movimento: quantas pessoas (clientes, alunos, acompanhantes) estariam no local ao mesmo tempo?",
     "Se ainda não sabe, anote quantos clientes atende por dia e quanto tempo cada um fica. Isso mostra o pico."
@@ -989,6 +993,7 @@ window.MODULO9 = {
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-07c."
     }
    ],
+   "dica": "Gás instalado ou guardado fora das regras pode causar vazamento, incêndio ou explosão. Por isso, confira as regras antes de instalar ou guardar.",
    "comoDescobrir": [
     "Liste os equipamentos que vai usar (fogão, forno, chapa, fritadeira, churrasqueira, aquecedor) e veja quais funcionam a gás.",
     "Se houver gás, veja se é botijão ou gás encanado da rua (com medidor e conta da distribuidora). Antes de instalar, confira as regras do Corpo de Bombeiros do seu estado."
@@ -1045,7 +1050,7 @@ window.MODULO9 = {
     }
    ],
    "curta": "Quantos botijões ou cilindros de gás vão ficar no local?",
-   "dica": "Conte todos: os cheios, os em uso e os de reserva.",
+   "dica": "Conte todos: os cheios, os em uso e os de reserva. A quantidade de gás muda o que os Bombeiros pedem, então confirme antes de comprar ou instalar.",
    "comoDescobrir": [
     "Conte os botijões ou cilindros que vão ficar no local: o que está em uso, os cheios e os de reserva.",
     "Veja o peso no rótulo ou na nota de compra (13, 20 ou 45 kg). Se ainda vai comprar, pergunte ao revendedor quanto gás você gastaria por mês."
@@ -1092,6 +1097,7 @@ window.MODULO9 = {
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-07c."
     }
    ],
+   "dica": "Em lugar fechado, um vazamento acumula gás e pode causar explosão. Se tiver dúvida sobre o lugar, confirme com os Bombeiros.",
    "comoDescobrir": [
     "Veja o lugar onde o botijão vai ficar: é aberto, com ar circulando, longe de ralos, tomadas e de produtos que pegam fogo?",
     "Se não tiver certeza, pergunte ao Corpo de Bombeiros do seu estado ou a um instalador de gás habilitado."
@@ -1139,7 +1145,7 @@ window.MODULO9 = {
     }
    ],
    "curta": "Vai guardar produtos que pegam fogo, como álcool, tintas ou combustíveis?",
-   "dica": "Também contam solventes, vernizes, thinner, gasolina e óleo diesel.",
+   "dica": "Também contam solventes, vernizes, thinner, gasolina e óleo diesel. Guardados perto de calor ou do gás, esses produtos aumentam o risco de incêndio.",
    "comoDescobrir": [
     "Abra armários e depósito e anote o que vai ficar guardado: álcool, tintas, vernizes, solventes, thinner, gasolina ou óleo.",
     "Calcule mais ou menos a quantidade de cada um. Se for muito ou para vender, confira as regras do Corpo de Bombeiros do seu estado."
@@ -1179,7 +1185,7 @@ window.MODULO9 = {
     }
    ],
    "curta": "O condomínio permite a sua atividade no apartamento?",
-   "dica": "Vale o que diz a convenção do condomínio ou uma autorização por escrito, por exemplo em ata.",
+   "dica": "Vale o que diz a convenção do condomínio ou uma autorização por escrito, por exemplo em ata. Sem essa permissão, o condomínio pode multar ou impedir a atividade, mesmo com o CNPJ aberto.",
    "comoDescobrir": [
     "Peça ao síndico ou à administradora uma cópia da convenção do condomínio e procure a parte sobre o uso dos apartamentos.",
     "Se não estiver claro, pergunte ao síndico se a sua atividade já foi aprovada em assembleia ou se pode entrar na pauta da próxima."
@@ -1265,7 +1271,7 @@ window.MODULO9 = {
     }
    ],
    "curta": "Sua atividade só pode ser feita por profissional registrado em conselho?",
-   "dica": "Exemplos de conselho: nutrição, farmácia, veterinária, engenharia, contabilidade e educação física.",
+   "dica": "Exemplos de conselho: nutrição, farmácia, veterinária, engenharia, contabilidade e educação física. Funcionar sem o registro exigido pode gerar multa e atrasar outras licenças.",
    "comoDescobrir": [
     "Pesquise o nome da sua profissão junto com as palavras “conselho regional”, por exemplo “conselho regional de nutrição”.",
     "Se existir um conselho, entre no site ou ligue e pergunte se a empresa precisa de registro ou de um responsável técnico."
@@ -1305,6 +1311,7 @@ window.MODULO9 = {
     }
    ],
    "curta": "Seu trabalho produz fumaça, barulho alto, água suja, pó ou restos químicos?",
+   "dica": "Fumaça, barulho ou resíduos podem exigir licença ambiental, e jogar resíduos fora do jeito errado pode gerar multa.",
    "comoDescobrir": [
     "Repasse cada etapa do seu trabalho e anote se alguma usa fogo ou produto químico, solta fumaça ou pó, faz barulho alto ou gera água suja ou restos para jogar fora.",
     "Se houver algum desses, pergunte na prefeitura ou no órgão ambiental do estado se precisa de licença ambiental."
@@ -1344,6 +1351,7 @@ window.MODULO9 = {
      "regra": "Mostrar o aviso com o botão 'Já verifiquei' (volta à pergunta). Se seguir sem responder, o item fica 'a confirmar' e entra nos alertas do resumo. Seguir para M9-13."
     }
    ],
+   "dica": "Obra que muda a estrutura, a área ou o uso do local costuma precisar de projeto e autorização da prefeitura. Confirme antes de começar.",
    "comoDescobrir": [
     "Liste o que precisa mudar no local: paredes, área, fachada, parte elétrica ou hidráulica, ou só pintura e pequenos reparos.",
     "Peça a opinião de um profissional habilitado. Se mexer em estrutura, área ou uso, confirme na prefeitura antes de começar."

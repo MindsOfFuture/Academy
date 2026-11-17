@@ -9,6 +9,14 @@
   /* Faixas da porcentagem de lucro sobre o custo de uma unidade (correção do grupo). */
   const LUCRO_BAIXO = 20;    // abaixo disso: lucro baixo
   const LUCRO_ALTO = 100;    // acima disso: lucro alto
+  /* Reserva para imprevistos (pedido do dono, 16/11): sugestão de guardar por mês esta % do faturamento do mês */
+  const RESERVA_PCT = 5;
+  /* Dicas para quem hoje não tem esses gastos (pedido do dono, 16/11): ficar de olho e reservar um valor */
+  const DICA_SEM_GASTO = {
+    "M5.P28": "Hoje você não paga aluguel? Fique de olho: se precisar mudar para um ponto, sala ou cozinha alugada, esse gasto entra todo mês e o preço precisa cobrir. Mesmo sem aluguel agora, reserve todo mês um valor para isso e para imprevistos (conserto, equipamento, mudança).",
+    "M5.P30": "Não paga água ou luz do negócio hoje? Fique de olho: se o negócio crescer ou mudar de lugar, essas contas aparecem e o preço precisa cobrir. Guarde um pouco todo mês para isso.",
+    "M5.P32": "Sem outros gastos todo mês hoje? Fique de olho em internet, telefone, contador ou sistema: quando aparecerem, entram no preço. Guarde um pouco todo mês para imprevistos.",
+  };
 
   /* Valores fora do comum (relatório dos testadores, 05/11): avisos que não travam. */
   const LIMITE_ACRESCIMO = 500;        // acréscimo sobre o custo acima disso (%) = preço mais de 6 vezes o custo
@@ -32,6 +40,31 @@
      - formas de pagamento antes das taxas, com taxa e prazo separados por forma. */
   const P_INICIAL = "M5.P00";      // pergunta 1 do Módulo 1, repetida aqui
   const P_FORMAS = "M5.PG";        // formas de pagamento (antes das taxas)
+  /* Mão de obra (pedido do dono, 16/11): tempo para fazer uma unidade do produto (o serviço já tem a P23) e, quando o
+     Módulo 1 não diz quantas horas por mês, as horas de trabalho no mês. Com o valor que a pessoa separa para ela (P35),
+     dá o valor da hora e quanto do preço paga o tempo dela em cada unidade. Formato salvo igual ao da P23 ({h, m}). */
+  const P_TEMPO = "M5.PT";
+  /* Sazonalidade (pedido do dono, 16/11). CONTRATO lido pelos Módulos 6 e 7 (não mudar):
+     R["M5.SZ"] = { estado: "opcao", opcao: SZ_SIM, fortes: [3, 4], fracos: [6, 7], maisPct: 50, menosPct: 30 }  (meses 1–12)
+              ou { estado: "opcao", opcao: SZ_NAO }. Pergunta logo depois da P37 (quantidade de vendas). */
+  const P_SAZONAL = "M5.SZ";
+  /* Entrega (pedido do dono, 16/11). CONTRATO lido pelos Módulos 6 e 10 (não mudar):
+     R["M5.ENT"] = { estado: "opcao", opcao: <um dos 3 textos>, custo: número|null, tipoCusto: "reais"|"pct"|null,
+                     aCada10: inteiro 0–10|null, cobra: número|null }.
+     Só "já está no meu preço" vira custo: por venda = custo × aCada10/10 (em R$) ou % do preço × aCada10/10. */
+  const P_ENTREGA = "M5.ENT";
+  const ENT_NAO = "Não, o cliente busca ou vem até mim";
+  const ENT_COBRA = "Sim, e o cliente paga a entrega à parte";
+  const ENT_PRECO = "Sim, e a entrega já está no meu preço";
+  const ENT_EXEMPLO = "Ex.: motoboy, aplicativo de entrega, Uber, ônibus ou a pé.";
+  const SZ_NAO = "Não, é parecido o ano todo";
+  const SZ_SIM = "Sim, tem meses mais fortes e mais fracos";
+  const SZ_TEXTO_IDEIA = "Você espera que as vendas mudem conforme a época do ano?";
+  const SZ_EXEMPLO = "Ex.: ovos de Páscoa vendem mais em março e abril; sorvete, no verão; material escolar, em janeiro e fevereiro.";
+  const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const P_HORAS = "M5.PH";
+  /* horas por mês para dar valor à hora, pela resposta da pergunta 5 do Módulo 1 (estimativa: 1 h e 2 h por dia, 30 dias) */
+  const HORAS_VALOR_M1 = { "Até 1 hora por dia": 30, "De 1 a 3 horas por dia": 60 };
   const OPCOES_M1 = ["Ainda está só na minha cabeça", "Já fiz um pouco para testar ou dar de amostra",
     "Já vendi algumas vezes", "Já vendo sempre", "Não sei dizer"];   // texto literal do Módulo 1
   const SIMULACAO_M1 = OPCOES_M1.slice(0, 2);                           // ainda não vende: resultado é simulação
@@ -40,9 +73,21 @@
     { codigo: P_INICIAL, secao: "Pergunta Separatória", pergunta: "Como está a sua ideia hoje?",
       ajuda: "Escolha a frase que mais parece com você. Não tem resposta errada.", tipo: "Escolha única",
       opcoes: OPCOES_M1.join(" / "), proximo: "P01", alerta: "—", fonte: "", video: "", observacao: null, antes: "M5.P01" },
+    { codigo: P_ENTREGA, secao: "Parte comum", pergunta: "Você entrega para o cliente?",
+      ajuda: "Conte qualquer entrega: motoboy, aplicativo, Uber, ônibus ou você mesmo levando.", tipo: "Escolha única",
+      opcoes: [ENT_NAO, ENT_COBRA, ENT_PRECO].join(" / "), proximo: "PG", alerta: "—", fonte: "", video: "", observacao: null, antes: "M5.P24" },
     { codigo: P_FORMAS, secao: "Parte comum", pergunta: "Quais formas de pagamento você aceita?",
       ajuda: "Marque todas as que você usa: Pix, dinheiro, cartão de débito, cartão de crédito ou outra forma.", tipo: "Múltipla escolha",
       opcoes: FORMAS.join(" / "), proximo: "P24", alerta: "—", fonte: "M5.BT05", video: "", observacao: null, antes: "M5.P24" },
+    { codigo: P_TEMPO, secao: "Perguntas Produto", pergunta: "Quanto tempo você leva para fazer uma unidade?",
+      ajuda: "Conte do começo ao fim: preparar, fazer e embalar. Se faz várias de uma vez, divida o tempo total pelas unidades. Ex.: 2 horas para 20 brigadeiros = 6 minutos cada.",
+      tipo: "Horas + minutos", opcoes: "—", proximo: "P08", alerta: "—", fonte: "M5.BT07", video: "", observacao: null, antes: "M5.P08" },
+    { codigo: P_SAZONAL, secao: "Parte comum", pergunta: "Suas vendas mudam conforme a época do ano?",
+      ajuda: "Pense nos meses em que você vende mais e nos meses em que vende menos.", tipo: "Escolha única",
+      opcoes: SZ_NAO + " / " + SZ_SIM, proximo: "P36", alerta: "—", fonte: "", video: "", observacao: null, antes: "M5.P37" },
+    { codigo: P_HORAS, secao: "Parte comum", pergunta: "Quantas horas por mês você trabalha no negócio?",
+      ajuda: "Some as horas de um mês normal. Ex.: 3 horas por dia, 5 dias por semana = cerca de 60 horas por mês.",
+      tipo: "Número", opcoes: "—", proximo: "P37", alerta: "Informe um número maior que zero.", fonte: "M5.BT07", video: "", observacao: null, antes: "M5.P36" },
   ];
 
   /* Textos novos tirados do documento de correções (15/10 e 22/10). */
@@ -98,6 +143,48 @@
   };
 
   const MSG_RESPONDA = "Responda para continuar. Se não souber, toque em “Não sei” para ver uma explicação.";
+  /* Lote 16/11: "Não sei" BLOQUEIA (mostra "Como descobrir" e não grava). Ele fica só onde a resposta é um fato
+     a descobrir (preço, quantidade, conta, taxa); sai das perguntas sobre a própria pessoa (ela sempre sabe). */
+  const SEM_NAO_SEI = [P_INICIAL, "M5.P01", "M5.P02", "M5.P10", "M5.P17", P_FORMAS, "M5.P08", "M5.P13", "M5.P15", "M5.P18",
+    "M5.P26", "M5.P28", "M5.P30", "M5.P32", "M5.P34", "M5.P35", "M5.PH", "M5.SZ", "M5.ENT"];
+  /* "Ainda não defini" (P36) é o mesmo que "Não sei": sai das opções (fica um "Não sei" só, que bloqueia). */
+  const IGUAL_NAO_SEI = /^(ainda n[ãa]o defini|ainda n[ãa]o pensei( nisso)?|ainda n[ãa]o sei)$/i;
+  const MSG_RESPONDA_SEM_NS = "Responda para continuar.";
+  const MSG_ESCOLHA_SEM_NS = "Escolha uma opção para continuar.";
+  const MSG_ESCREVA = "Use a ajuda acima e escreva a sua resposta para continuar.";
+  const MSG_ESCOLHA = "Use a ajuda acima e escolha uma opção para continuar.";
+  /* mensagem de "falta responder" conforme a pergunta tem o botão "Não sei" e se a ajuda já foi aberta */
+  function msgFalta(q, abriuAjuda) {
+    const escolha = campo(q) === "escolha" || campo(q) === "multipla";
+    if (!q.botaoNaoSei) return escolha ? MSG_ESCOLHA_SEM_NS : MSG_RESPONDA_SEM_NS;
+    if (abriuAjuda) return escolha ? MSG_ESCOLHA : MSG_ESCREVA;
+    return MSG_RESPONDA;
+  }
+  /* resposta que é só "não sei" (formato antigo): não vale como resposta */
+  function naoResposta(r) {
+    if (!r) return false;
+    if (r.estado === "naosei") return true;
+    return r.estado === "opcao" && typeof r.opcao === "string" && (/^n[ãa]o sei/i.test(r.opcao.trim()) || IGUAL_NAO_SEI.test(r.opcao.trim()));
+  }
+  /* Estado salvo antigo: respostas "Não sei"/"Ainda não defini" viram "sem resposta" (as outras ficam). O histórico
+     para na 1ª pergunta que perdeu a resposta, para a pessoa responder quando passar por lá. Devolve os códigos tirados. */
+  function migrar(S) {
+    const tirou = [];
+    if (!S || !S.R) return tirou;
+    Object.keys(S.R).forEach((c) => { if (naoResposta(S.R[c])) { delete S.R[c]; tirou.push(c); } });
+    if (tirou.length && Array.isArray(S.hist)) {
+      const i = S.hist.findIndex((c) => tirou.includes(c));
+      if (i >= 0) S.hist = S.hist.slice(0, i + 1);
+    }
+    if (S.ajusteOrig) migrar({ R: S.ajusteOrig });
+    return tirou;
+  }
+  /* Dinheiro em centavos: toda conta usa os mesmos valores arredondados que aparecem na tela, para a conta
+     "de mão" com os números mostrados dar o mesmo resultado (relatório de revisão, 16/11). */
+  const cent = (n) => (n === null || n === undefined || !isFinite(n) ? n : Math.round((n + (n >= 0 ? 1e-9 : -1e-9)) * 100) / 100);
+  const centCima = (n) => Math.ceil(n * 100 - 1e-6) / 100;
+  /* vendas para cobrir os gastos: divisão em centavos inteiros, sempre para cima */
+  const vendasParaCobrir = (mensal, sobra) => (sobra > 0 ? Math.ceil(Math.round(mensal * 100) / Math.round(sobra * 100) - 1e-9) : null);
 
   const MSG_PRECO = {
     sugerido: {
@@ -118,11 +205,12 @@
     let secao = "";
     const incluir = (q) => {
       q.fixo = AJUDA_NAO_SEI.includes(q.codigo);   // gastos fixos (correção de 15/10)
-      q.ajudaNaoSei = true;                         // "Não sei" = ajuda em todas as perguntas (22/10)
+      q.ajudaNaoSei = true;                         // "Não sei" nunca é resposta (22/10)
+      q.botaoNaoSei = !SEM_NAO_SEI.includes(q.codigo);   // botão "Não sei" (bloqueia) só nas perguntas de fato a descobrir (16/11)
       /* versão leve: enunciado curto, exemplo no campo e "Como descobrir" (passos + pedido para a IA) vêm dos dados */
       const leve = D.leve && D.leve.perguntas && D.leve.perguntas[q.codigo];
       if (leve) ["curta", "curtaPorTipo", "placeholder", "comoDescobrir", "promptIA"].forEach((k) => { if (leve[k] !== undefined) q[k] = leve[k]; });
-      q.opcoesLista = opcoes(q).filter((o) => !NAO_SEI.test(o));
+      q.opcoesLista = opcoes(q).filter((o) => !NAO_SEI.test(o) && !IGUAL_NAO_SEI.test(o));
       if (q.codigo === "M5.P03" || q.codigo === "M5.P19") {
         q.notaConsumo = q.codigo === "M5.P03" ? Object.assign({}, NOTA_CONSUMO, { exemplo: NOTA_CONSUMO.exemploProduto }) : NOTA_CONSUMO;
         q.notaLuzAgua = NOTA_LUZ_AGUA;
@@ -187,7 +275,7 @@
   /* Escolhe a regra da aba 4 que corresponde à resposta */
   function regra(M, q, resp) {
     const rs = M.regrasDe[q.codigo] || [];
-    if (!resp) return null;
+    if (!resp || naoResposta(resp)) return null;
     if (resp.estado === "opcao") {
       const alvo = rotulo(resp.opcao).toLowerCase();
       return rs.find((r) => valorCond(r).toLowerCase() === alvo)
@@ -205,10 +293,15 @@
   function proxima(M, q, resp, r) {
     if (q.codigo === P_INICIAL) return "M5.P01";      // pergunta do Módulo 1 -> tipo de oferta
     if (q.codigo === P_FORMAS) return "M5.P24";       // formas de pagamento -> taxas
-    if (q.codigo === "M5.P37") return "M5.P36";       // quantidade antes do preço
+    if (q.codigo === P_ENTREGA) return P_FORMAS;      // entrega -> formas de pagamento
+    if (q.codigo === "M5.P07") return P_TEMPO;        // produto: depois do rendimento, o tempo de uma unidade
+    if (q.codigo === P_TEMPO) return "M5.P08";
+    if (q.codigo === P_HORAS) return "M5.P37";
+    if (q.codigo === "M5.P37") return P_SAZONAL;      // quantidade -> época do ano -> preço
+    if (q.codigo === P_SAZONAL) return "M5.P36";
     if (q.codigo === "M5.P36") return PRECO;          // depois do preço, a análise do preço
     const p = proximaPlanilha(M, q, resp, r);
-    if (p === "M5.P24") return P_FORMAS;              // quem ia para as taxas passa antes pelas formas de pagamento
+    if (p === "M5.P24") return P_ENTREGA;             // quem ia para as taxas passa antes pela entrega e pelas formas de pagamento
     return p === "M5.P36" ? "M5.P37" : p;             // quem ia para o preço vai antes para a quantidade
   }
 
@@ -265,7 +358,8 @@
     const c = campo(q);
     /* campo vazio nunca vale R$ 0: pede a resposta. O texto do Alerta só é usado quando é uma mensagem de validação. */
     const ehValidacao = /preencha|maior que zero|negativ|compat|entre 0%/i.test(msg);
-    const falha = !q.fixo && ehValidacao ? msg : MSG_RESPONDA;
+    /* campo vazio: pede a resposta (o Alerta só vale como erro de valor inválido; "preencha" é pedido de resposta) */
+    const falha = !q.fixo && ehValidacao && /preencha/i.test(msg) ? msg : MSG_RESPONDA;
     if (numerosDe(c, valor).some(naoNumero)) return MSG_NUMERO;     // texto em campo de número: não grava
     if (c === "multipla") return (valor || []).length ? null : falha;
     if (c === "taxas-formas") {
@@ -409,7 +503,7 @@
   }
 
   /* ---------------- conta do resultado ---------------- */
-  function calcular(M, R, precoAlt) {
+  function calcular(M, R, precoAlt, extra) {
     const v = (c) => (R["M5." + c] && R["M5." + c].estado === "valor" ? R["M5." + c].valor : null);
     const op = (c) => (R["M5." + c] && R["M5." + c].estado === "opcao" ? rotulo(R["M5." + c].opcao) : null);
     const tipo = op("P01");
@@ -425,13 +519,15 @@
         const p = num(precos[i]), c = comp[i] && num(comp[i].q), u = usa[i] && num(usa[i].q);
         if (p === null || !c || u === null || !compativel(comp[i].u, usa[i].u)) { faltas.push(nome); return; }
         const usado = base(u, usa[i].u).v / base(c, comp[i].u).v;
-        linhas.push({ nome, valor: (p * usado) / divisor });
+        /* conta da linha (para "Como calculamos"): preço × usado ÷ comprado (na mesma unidade do usado) ÷ unidades feitas */
+        const compNoUso = base(c, comp[i].u).v / base(1, usa[i].u).v;
+        linhas.push({ nome, valor: cent((p * usado) / divisor), exato: (p * usado) / divisor, conta: "material", preco: p, usado: u, unUsado: usa[i].u, comprado: compNoUso, divisor });
       });
     }
     function pacote(cond, pPac) {
       if (op(cond) !== "Sim") return;
       const pk = v(pPac);
-      if (pk && num(pk.qtd) > 0) linhas.push({ nome: "Embalagem", valor: num(pk.preco) / num(pk.qtd) });
+      if (pk && num(pk.qtd) > 0) linhas.push({ nome: "Embalagem", valor: cent(num(pk.preco) / num(pk.qtd)), conta: "divide", total: num(pk.preco), qtd: num(pk.qtd), un: "no pacote" });
       else faltas.push("Embalagem");
     }
 
@@ -446,8 +542,8 @@
       const compra = num(v("P11")), qtd = num(v("P12"));
       const frete = op("P13") === "Sim" ? num(v("P14")) : 0;
       if (compra !== null && qtd > 0) {
-        linhas.push({ nome: "Compra da mercadoria", valor: compra / qtd });
-        if (frete) linhas.push({ nome: "Frete", valor: frete / qtd });
+        linhas.push({ nome: "Compra da mercadoria", valor: cent(compra / qtd), conta: "divide", total: compra, qtd, un: "unidades" });
+        if (frete) linhas.push({ nome: "Frete", valor: cent(frete / qtd), conta: "divide", total: frete, qtd, un: "unidades" });
         else if (op("P13") === "Sim") faltas.push("Frete");
       } else faltas.push("Compra da mercadoria");
       pacote("P15", "P16");
@@ -455,7 +551,7 @@
       nome = v("P17");
       if (op("P18") === "Sim") materiais("P19", "P20", "P21", "P22", 1);
     }
-    const custoUnidade = linhas.reduce((s, l) => s + l.valor, 0);
+    const custoUnidade = cent(linhas.reduce((s, l) => s + l.valor, 0));   // soma dos valores já arredondados de cada linha
 
     const precoInformado = num(v("P36"));
     /* sem preço informado, o resultado usa o preço possível do passo do preço (quando houver) */
@@ -463,20 +559,25 @@
     const formas = (R["M5.PG"] && R["M5.PG"].valor) || [];
     const taxasFormas = op("P24") === "Sim" && Array.isArray(v("P25")) ? v("P25") : [];
     const taxaPct = op("P24") === "Sim" ? taxaMedia(v("P25")) : 0;
-    const taxa = preco !== null && taxaPct ? (preco * taxaPct) / 100 : 0;
-    const mc = preco !== null ? preco - custoUnidade - taxa : null;
+    const taxa = preco !== null && taxaPct ? cent((preco * taxaPct) / 100) : 0;
+    const ent = entregaParams(R);
+    const entrega = entregaPorVenda(ent, preco);                            // entrega paga por você, por venda (média)
+    const custoTaxa = cent(custoUnidade + taxa + entrega);                  // custo + taxas + entrega de cada venda (o que sai a cada venda)
+    const mc = preco !== null ? cent(preco - custoTaxa) : null;
     const mcPct = mc !== null && preco > 0 ? (mc / preco) * 100 : null;
 
-    const outros = (v("P33") || []).reduce((s, x) => s + (num(x.v) || 0), 0);
-    const fixos = (num(v("P29")) || 0) + (num(v("P31")) || 0) + outros;
-    const perdas = num(v("P27")) || 0;
-    const trabalho = num(v("P35")) || 0;
-    const mensal = fixos + perdas + trabalho;
+    const outros = cent((v("P33") || []).reduce((s, x) => s + (num(x.v) || 0), 0));
+    const aluguel = cent(num(v("P29")) || 0), aguaLuz = cent(num(v("P31")) || 0);
+    const fixos = cent(aluguel + aguaLuz + outros);
+    const perdas = cent(num(v("P27")) || 0);
+    const trabalho = cent(num(v("P35")) || 0);
+    const mensal = cent(fixos + perdas + trabalho);
 
     const qtd = num(v("P37"));
-    const fat = preco !== null && qtd !== null ? preco * qtd : null;
-    const resultado = fat !== null ? fat - (custoUnidade + taxa) * qtd - mensal : null;
-    const pe = mc !== null && mc > 0 ? Math.ceil(mensal / mc) : null;      // sempre arredondado para cima
+    const fat = preco !== null && qtd !== null ? cent(preco * qtd) : null;
+    const custoVendas = fat !== null ? cent(custoTaxa * qtd) : null;      // custo e taxas das vendas do mês
+    const resultado = fat !== null ? cent(fat - custoVendas - mensal) : null;
+    const pe = mc !== null && mc > 0 ? vendasParaCobrir(mensal, mc) : null;      // sempre arredondado para cima
     /* sem ponto de equilíbrio: uma frase com o que falta para a conta */
     let peFalta = null;
     if (pe === null || !(mensal > 0)) {
@@ -488,17 +589,123 @@
     }
     const fatAlto = fat !== null && fat > LIMITE_FATURAMENTO;
     const semSobra = mc !== null && mc <= 0 && mensal > 0;
-    const parcelaMensal = qtd > 0 ? mensal / qtd : null;                 // parte dos gastos do mês em cada venda
+    const parcelaMensal = qtd > 0 ? cent(mensal / qtd) : null;                 // parte dos gastos do mês em cada venda
 
     let tempo = null;
     const t = v("P23");
     if (t) tempo = (num(t.h) || 0) * 60 + (num(t.m) || 0);
 
+    /* mão de obra: valor da hora = o que a pessoa separa para ela ÷ horas no mês; × tempo de uma unidade */
+    const tPT = v("PT");
+    const tempoUnidade = tipo === "Serviço" ? tempo : tipo === "Produto" && tPT ? (num(tPT.h) || 0) * 60 + (num(tPT.m) || 0) : null;
+    const horasMes = horasNoMes(R, extra && extra.horasM1);
+    const pagaSe = op("P34") === "Sim" && trabalho > 0;
+    const valorHora = pagaSe && horasMes > 0 ? cent(trabalho / horasMes) : null;
+    const maoDeObraUnidade = valorHora !== null && tempoUnidade > 0 ? cent((valorHora * tempoUnidade) / 60) : null;
+
     const r00 = R[P_INICIAL];
     const simulacao = (r00 && r00.estado === "opcao" && SIMULACAO_M1.includes(r00.opcao)) || op("P37") === "Ainda não comecei a vender";
-    return { tipo, nome, linhas, faltas, custoUnidade, preco, precoInformado, taxaPct, taxa, mc, mcPct,
-      fixos, outros, perdas, trabalho, mensal, qtd, fat, fatAlto, resultado, pe, peFalta, semSobra, parcelaMensal, tempo,
-      formas, taxasFormas, simulacao };
+    return { tipo, nome, linhas, faltas, custoUnidade, preco, precoInformado, taxaPct, taxa, entrega, entregaInfo: ent, custoTaxa, mc, mcPct,
+      fixos, aluguel, aguaLuz, outros, perdas, trabalho, mensal, qtd, fat, custoVendas, fatAlto, resultado, pe, peFalta, semSobra, parcelaMensal, tempo,
+      formas, taxasFormas, simulacao, tempoUnidade, horasMes, valorHora, maoDeObraUnidade, pagaSe };
+  }
+  /* entrega por venda: { fixo (R$ por venda), pct (% do preço por venda), custo, tipoCusto, aCada10, opcao } */
+  function entregaParams(R) {
+    const r = R[P_ENTREGA];
+    if (!r || r.estado !== "opcao") return { opcao: null, fixo: 0, pct: 0 };
+    const base = { opcao: r.opcao, custo: r.custo, tipoCusto: r.tipoCusto, aCada10: r.aCada10, cobra: r.cobra, fixo: 0, pct: 0 };
+    if (r.opcao !== ENT_PRECO || !(r.custo >= 0) || !(r.aCada10 >= 0)) return base;
+    if (r.tipoCusto === "pct") base.pct = (r.custo * r.aCada10) / 10;
+    else base.fixo = cent((r.custo * r.aCada10) / 10);
+    return base;
+  }
+  function entregaPorVenda(ent, preco) {
+    if (!ent) return 0;
+    return cent(ent.fixo + (ent.pct && preco !== null && preco !== undefined ? (preco * ent.pct) / 100 : 0));
+  }
+  function validarEntrega(r) {
+    if (!r || r.estado !== "opcao" || ![ENT_NAO, ENT_COBRA, ENT_PRECO].includes(r.opcao)) return MSG_ESCOLHA_SEM_NS;
+    if (r.opcao === ENT_COBRA && r.cobra !== null && !(r.cobra >= 0)) return MSG_NUMERO;
+    if (r.opcao === ENT_PRECO) {
+      if (r.custo === null || r.custo === undefined) return "Informe quanto custa cada entrega para você.";
+      if (!(r.custo >= 0) || (r.tipoCusto === "pct" && r.custo > 100)) return MSG_NUMERO;
+      if (!Number.isInteger(r.aCada10) || r.aCada10 < 0 || r.aCada10 > 10) return "De cada 10 vendas, quantas têm entrega? Use um número de 0 a 10.";
+    }
+    return null;
+  }
+  function horasNoMes(R, opcaoM1) {
+    const r = R[P_HORAS];
+    if (r && r.estado === "valor" && num(r.valor) > 0) return num(r.valor);
+    return HORAS_VALOR_M1[opcaoM1] || null;
+  }
+  /* pergunta das horas no mês: só quando a pessoa separa dinheiro para ela e o Módulo 1 não dá um número */
+  function precisaHoras(M, R, opcaoM1) {
+    const r34 = R["M5.P34"];
+    return !!(r34 && r34.estado === "opcao" && rotulo(r34.opcao) === "Sim") && !HORAS_VALOR_M1[opcaoM1];
+  }
+  /* Sazonalidade: valida a resposta (meses e porcentagens inteiras); devolve a mensagem ou null */
+  function validarSazonal(r) {
+    if (!r || r.estado !== "opcao" || ![SZ_NAO, SZ_SIM].includes(r.opcao)) return MSG_ESCOLHA_SEM_NS;
+    if (r.opcao === SZ_NAO) return null;
+    const ok = (l) => Array.isArray(l) && l.every((m) => Number.isInteger(m) && m >= 1 && m <= 12);
+    if (!ok(r.fortes) || !ok(r.fracos)) return "Escolha os meses.";
+    if (!r.fortes.length && !r.fracos.length) return "Marque pelo menos um mês forte ou fraco.";
+    if (r.fortes.some((m) => r.fracos.includes(m))) return "Um mês não pode ser forte e fraco ao mesmo tempo.";
+    const inteiro = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
+    if (r.fortes.length && !inteiro(r.maisPct, 300)) return "Num mês forte, quanto vende a mais? Use um número inteiro de 0 a 300.";
+    if (r.fracos.length && !inteiro(r.menosPct, 100)) return "Num mês fraco, quanto vende a menos? Use um número inteiro de 0 a 100.";
+    return null;
+  }
+  /* Mês normal, forte e fraco: vendas, faturamento e resultado (as mesmas contas do resultado, em centavos) */
+  function sazonal(c, R) {
+    const r = R[P_SAZONAL];
+    if (!r || r.estado !== "opcao" || r.opcao !== SZ_SIM || !(c.qtd > 0) || c.preco === null) return null;
+    const mes = (qtd) => { const fat = cent(c.preco * qtd), custo = cent(c.custoTaxa * qtd); return { qtd, fat, custo, resultado: cent(fat - custo - c.mensal) }; };
+    const forte = r.fortes.length ? Math.round(c.qtd * (1 + r.maisPct / 100)) : null;
+    const fraco = r.fracos.length ? Math.round(c.qtd * (1 - r.menosPct / 100)) : null;
+    const s = { normal: mes(c.qtd), forte: forte !== null ? mes(forte) : null, fraco: fraco !== null ? mes(fraco) : null,
+      fortes: r.fortes, fracos: r.fracos, maisPct: r.maisPct, menosPct: r.menosPct, pe: c.pe };
+    s.fracoAbaixo = !!(s.fraco && c.pe !== null && c.mensal > 0 && s.fraco.qtd < c.pe);
+    return s;
+  }
+  /* "O que entrou na conta": cada parte do custo, considerada (com valor) ou não (com o porquê). Não trava nada. */
+  /* reserva sugerida: RESERVA_PCT do faturamento do mês; e quantas vendas cobririam o mês com ela */
+  function reserva(c) {
+    if (c.fat === null || c.fat === undefined || !(c.fat > 0)) return null;
+    const valor = cent((c.fat * RESERVA_PCT) / 100);
+    return { pct: RESERVA_PCT, valor, mensalCom: cent(c.mensal + valor), peCom: c.mc > 0 ? vendasParaCobrir(cent(c.mensal + valor), c.mc) : null };
+  }
+  /* vendas para cobrir o mês se aparecer um gasto novo por mês (ex.: aluguel) */
+  function peComGasto(c, extra) {
+    const x = num(extra);
+    if (x === null || x < 0 || !(c.mc > 0)) return null;
+    return { extra: cent(x), mensal: cent(c.mensal + x), pe: vendasParaCobrir(cent(c.mensal + x), c.mc) };
+  }
+  function componentes(c, R) {
+    const op = (k) => (R["M5." + k] && R["M5." + k].estado === "opcao" ? rotulo(R["M5." + k].opcao) : null);
+    const L = [];
+    const add = (chave, nome, ok, valor, porque) => L.push({ chave, nome, considerado: ok, valor: ok ? valor : null, porque: ok ? null : porque });
+    const linha = (n) => c.linhas.find((l) => l.nome === n);
+    const mat = c.linhas.filter((l) => l.conta === "material");
+    if (c.tipo === "Produto" || (c.tipo === "Serviço" && op("P18") === "Sim")) add("materiais", "Materiais", mat.length > 0, cent(mat.reduce((s, l) => s + l.valor, 0)), "faltou informar preço ou quantidade");
+    else if (c.tipo === "Serviço") add("materiais", "Materiais", false, null, "você respondeu que não gasta material");
+    if (c.tipo === "Mercadoria") add("mercadoria", "Compra da mercadoria", !!linha("Compra da mercadoria"), linha("Compra da mercadoria") && linha("Compra da mercadoria").valor, "faltou informar a compra");
+    if (c.tipo === "Mercadoria") add("frete", "Frete", !!linha("Frete"), linha("Frete") && linha("Frete").valor, op("P13") === "Sim" ? "faltou informar o valor" : "você respondeu que não paga frete");
+    if (c.tipo === "Produto" || c.tipo === "Mercadoria") { const s = op(c.tipo === "Produto" ? "P08" : "P15"); add("embalagem", "Embalagem", !!linha("Embalagem"), linha("Embalagem") && linha("Embalagem").valor, s === "Sim" ? "faltou informar o pacote" : "você respondeu que não usa"); }
+    {
+      const e = c.entregaInfo || {};
+      if (e.opcao === ENT_PRECO) add("entrega", "Entrega", c.entrega > 0 || (e.custo === 0), c.entrega, "faltou informar o custo");
+      else if (e.opcao === ENT_COBRA) L.push({ chave: "entrega", nome: "Entrega", considerado: false, naoSeAplica: true, valor: null, porque: "o cliente paga à parte" });
+      else if (e.opcao === ENT_NAO) L.push({ chave: "entrega", nome: "Entrega", considerado: false, naoSeAplica: true, valor: null, porque: "o cliente busca" });
+      else add("entrega", "Entrega", false, null, "não informado");
+    }
+    add("taxas", "Taxas sobre as vendas", c.taxaPct > 0, c.taxa, op("P24") === "Sim" ? "taxa de 0%" : "você respondeu que não paga taxa");
+    add("perdas", "Perdas", c.perdas > 0, c.perdas, op("P26") === "Sim" ? "faltou informar o valor" : "você respondeu que não tem perdas");
+    add("aluguel", "Aluguel", c.aluguel > 0, c.aluguel, op("P28") === "Sim" ? "faltou informar o valor" : "você respondeu que não paga aluguel");
+    add("agua_luz", "Água e luz", c.aguaLuz > 0, c.aguaLuz, op("P30") === "Sim" ? "faltou informar o valor" : "você respondeu que não paga");
+    add("outros", "Outros gastos do mês", c.outros > 0, c.outros, op("P32") === "Sim" ? "faltou informar o valor" : "você respondeu que não tem");
+    add("mao_de_obra", "Mão de obra (seu pagamento)", c.trabalho > 0, c.trabalho, op("P34") === "Sim" ? "faltou informar o valor" : "você respondeu que não separa dinheiro para você");
+    return L;
   }
 
   /* Painel "Não sei" dos gastos fixos: conceito(s) da Base técnica citados pela
@@ -535,7 +742,7 @@
     } else {
       pct = num(lucro);
       if (pct === null || pct < 0) return Object.assign(a, { pendente: true, mensagens: [] });
-      preco = custo * (1 + pct / 100);
+      preco = cent(custo + cent((custo * pct) / 100));   // custo + acréscimo (em centavos), como mostrado na tela
     }
     const nivel = classificar(pct);
     const negativo = pct < 0;
@@ -543,15 +750,18 @@
     if (nivel) mensagens.push(MSG_PRECO[modo][nivel]);
     const abaixo = modo === "reverso" ? abaixoCusto(preco, custo) : null;   // aviso próprio, em destaque (não entra em mensagens)
     /* acréscimo sobre o custo (pct) x margem sobre o preço; sobra depois do custo e das taxas */
-    const taxa = (preco * taxaPct) / 100;
-    const sobra = preco - custo - taxa;
+    const taxa = cent((preco * taxaPct) / 100);
+    const entrega = entregaPorVenda(c.entregaInfo, preco);
+    const sobra = cent(preco - custo - taxa - entrega);
     const margem = preco > 0 ? (sobra / preco) * 100 : null;          // margem sobre o preço (depois das taxas)
     const faixa = faixaMercado(mercado);
     /* preço que cobre o custo, a taxa e a parte dos gastos do mês em cada venda (quando há quantidade de vendas) */
-    const precoMinimo = c.parcelaMensal !== null && c.mensal > 0 && taxaPct < 100 ? (custo + c.parcelaMensal) / (1 - taxaPct / 100) : null;
+    /* arredondado para cima no centavo: "pelo menos" */
+    const ei = c.entregaInfo || { fixo: 0, pct: 0 };
+    const precoMinimo = c.parcelaMensal !== null && c.mensal > 0 && taxaPct + ei.pct < 100 ? centCima((custo + ei.fixo + c.parcelaMensal) / (1 - (taxaPct + ei.pct) / 100)) : null;
     if (faixa && preco > faixa.max) mensagens.push(MSG_ACIMA_MERCADO);
     const muitoAcima = pct > LIMITE_ACRESCIMO ? msgVezes(preco, custo) : null;   // aviso em destaque, separado dos outros
-    return Object.assign(a, { preco, pct, margem, taxa, taxaPct, sobra, faixa, precoMinimo, nivel, negativo, abaixo, mensagens, muitoAcima });
+    return Object.assign(a, { preco, pct, margem, taxa, taxaPct, entrega, entregaFixo: ei.fixo, entregaPct: ei.pct, sobra, faixa, precoMinimo, parcela: c.parcelaMensal, nivel, negativo, abaixo, mensagens, muitoAcima });
   }
 
   /* ---------------- gasto inicial x quanto pode investir (Módulo 1, pergunta 7) ----------------
@@ -567,6 +777,18 @@
     if (tipo === "Mercadoria") return (num(v("P11")) || 0) + (op("P13") === "Sim" ? num(v("P14")) || 0 : 0) + (op("P15") === "Sim" ? pac("P16") : 0);
     if (tipo === "Serviço") return op("P18") === "Sim" ? soma(v("P20")) : 0;
     return 0;
+  }
+  /* as compras que entram no gasto inicial, com nome e valor (para "Como calculamos") */
+  function gastoInicialPartes(M, R) {
+    const v = (c) => (R["M5." + c] && R["M5." + c].estado === "valor" ? R["M5." + c].valor : null);
+    const op = (c) => (R["M5." + c] && R["M5." + c].estado === "opcao" ? rotulo(R["M5." + c].opcao) : null);
+    const lista = (pl, pp) => ((v(pl) || []).map((nome, i) => ({ nome, valor: num((v(pp) || [])[i]) || 0 })));
+    const pac = (c) => ({ nome: "Pacote de embalagens", valor: num(v(c) && v(c).preco) || 0 });
+    const tipo = op("P01"), out = [];
+    if (tipo === "Produto") { out.push(...lista("P03", "P04")); if (op("P08") === "Sim") out.push(pac("P09")); }
+    if (tipo === "Mercadoria") { out.push({ nome: "Compra da mercadoria", valor: num(v("P11")) || 0 }); if (op("P13") === "Sim") out.push({ nome: "Frete", valor: num(v("P14")) || 0 }); if (op("P15") === "Sim") out.push(pac("P16")); }
+    if (tipo === "Serviço" && op("P18") === "Sim") out.push(...lista("P19", "P20"));
+    return out.filter((x) => x.valor > 0);
   }
   const O_QUE_COMPRA = { Produto: "comprar os materiais e as embalagens", Mercadoria: "comprar a mercadoria (com frete e embalagens)", "Serviço": "comprar os materiais" };
   function avisoInvestimento(M, R, r07) {
@@ -639,8 +861,20 @@
     const c = calcular(M, R);
     const p = num(preco), q = num(qtd);
     if (p === null || p < 0 || q === null || q < 0) return null;
-    const sobra = p - c.custoUnidade - (p * c.taxaPct) / 100;
-    return { sobra, resultado: sobra * q - c.mensal, pe: sobra > 0 ? Math.ceil(c.mensal / sobra) : null, semSobra: sobra <= 0 && c.mensal > 0, abaixo: abaixoCusto(p, c.custoUnidade) };
+    const taxa = cent((p * c.taxaPct) / 100);
+    const entrega = entregaPorVenda(c.entregaInfo, p);
+    const custoTaxa = cent(c.custoUnidade + taxa + entrega);
+    const sobra = cent(p - custoTaxa);
+    const fat = cent(p * q), custoVendas = cent(custoTaxa * q);
+    return { preco: p, qtd: q, custo: c.custoUnidade, taxa, taxaPct: c.taxaPct, entrega, custoTaxa, mensal: c.mensal, fat, custoVendas, sobra,
+      resultado: cent(fat - custoVendas - c.mensal), pe: vendasParaCobrir(c.mensal, sobra), semSobra: sobra <= 0 && c.mensal > 0, abaixo: abaixoCusto(p, c.custoUnidade) };
+  }
+  /* Preço possível (caixa "Não sei" do preço): custo de uma unidade + a porcentagem que a pessoa quer acrescentar. */
+  function precoPossivel(M, R, lucro) {
+    const c = calcular(M, R), pct = num(lucro);
+    if (!(c.custoUnidade > 0) || pct === null || pct < 0) return { custo: c.custoUnidade, pct, preco: null };
+    const acrescimo = cent((c.custoUnidade * pct) / 100);
+    return { custo: c.custoUnidade, pct, acrescimo, preco: cent(c.custoUnidade + acrescimo) };
   }
   /* Serviço: horas que a quantidade de atendimentos exige x horas disponíveis (Módulo 1). */
   function tempoExcede(c, opcaoM1) {
@@ -656,7 +890,12 @@
     MARGEM_X_ACRESCIMO, MSG_SEM_SOBRA, MSG_SIMULACAO, MSG_ACIMA_MERCADO, MSG_TEMPO, MSG_DESCONTADOS, HORAS_MES_M1, simular, tempoExcede,
     herdarEstagio, herdarTipo, entendemos,
     LIMITE_ACRESCIMO, LIMITE_FATURAMENTO, TETO_M1, MSG_NUMERO, MSG_FAT_ALTO, avisoValor, msgVezes, msgAbaixoCusto, abaixoCusto, gastoInicial, avisoInvestimento,
-    exemploConceito, EXEMPLO_TIPO };
+    exemploConceito, EXEMPLO_TIPO,
+    SEM_NAO_SEI, IGUAL_NAO_SEI, MSG_RESPONDA_SEM_NS, MSG_ESCOLHA_SEM_NS, MSG_ESCREVA, MSG_ESCOLHA, msgFalta, naoResposta, migrar, cent, vendasParaCobrir, precoPossivel, gastoInicialPartes,
+    P_TEMPO, P_HORAS, HORAS_VALOR_M1, precisaHoras, componentes,
+    RESERVA_PCT, DICA_SEM_GASTO, reserva, peComGasto,
+    P_ENTREGA, ENT_NAO, ENT_COBRA, ENT_PRECO, ENT_EXEMPLO, entregaParams, entregaPorVenda, validarEntrega,
+    P_SAZONAL, SZ_NAO, SZ_SIM, SZ_TEXTO_IDEIA, SZ_EXEMPLO, MESES, validarSazonal, sazonal };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else raiz.Motor = API;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -340,6 +340,8 @@ const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
+  /* sabotagem (M10_SABOTAGEM=1): o "Não sei" volta a valer como resposta; o teste tem de falhar */
+  if (process.env.M10_SABOTAGEM && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (o === NS) { op = null; pediuNS = true; return ajudaNS(); }', 'if (o === NS) { op = "Ainda não sei"; ajudaNS(); return; }'));
   fs.createReadStream(f).pipe(res);
 });
 let falhas = 0;
@@ -359,9 +361,10 @@ check('dados: 13 perguntas na ordem e textos leves', JSON.stringify(D.perguntas.
   check('dados: toda pergunta com Não sei tem 2 passos e prompt sem marca', ajudaCodigos.every(c => { const q = c === 'SOCIO' ? D.socio : D.perguntas.find(x=>x.codigo===c); return q.comoDescobrir?.length === 2 && q.promptIA && !/chatgpt|gemini/i.test(q.promptIA); }), ajudaCodigos);
   check('dados: instruções curtas disponíveis', D.perguntas.filter(q=>q.instrucao).length >= 5);
 const cams = D.perguntas.flatMap((q) => q.caminhos.map((c) => [q.codigo, c.opcao, c.retorno, c.texto]));
-check('dados: 38 caminhos literais (opção, tipo de retorno, mensagem)', JSON.stringify(cams) === JSON.stringify(ESPERADO.caminhos), cams.length);
+const camsEsperados = ESPERADO.caminhos.map((x) => { const y=x.slice(); if (['M10-02','M10-05','M10-06','M10-08'].includes(y[0]) && y[2] === 'Atenção') y[2]='Dica'; return y; });
+check('dados: caminhos; orientação geral não aparece como alerta', JSON.stringify(cams) === JSON.stringify(camsEsperados), cams.length);
 check('dados: capa literal do PDF v2910 (objetivo, para quem é, o que ter em mãos, o que recebe)', D.modulo.nome === CAPA_PDF.nome && ['objetivo', 'para_quem', 'ter_em_maos', 'entrega'].every((k) => D.capa[k] === CAPA_PDF[k]), D.capa);
-check('dados: texto de apoio literal', D.perguntas.every((q) => q.apoio === ESPERADO.apoio[q.codigo]));
+check('dados: textos de apoio literal ou orientação geral movida à dica', D.perguntas.every((q) => { const a=ESPERADO.apoio[q.codigo]; return q.apoio === a || (['M10-02','M10-05','M10-06','M10-08','M10-08a'].includes(q.codigo) && q.apoio.startsWith(a)); }));
 check('dados: nenhuma ordem ao implementador nos dados públicos', !/rafael/i.test(src));
 check('dados: sem códigos de pergunta nas mensagens da tela final', !/M\d+-\d+/.test(JSON.stringify(D.resumo.proximos)));
 
@@ -548,8 +551,9 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     }, [estado, heranca || HERANCA, CHAVE]);
     await page.reload();
   };
+  const temBotao = (t) => page.evaluate((t) => [...document.querySelectorAll('button')].some((x) => x.textContent.replace(/\s+/g, ' ').trim() === t || ((x.querySelector('.op-txt b') || {}).textContent || '').trim() === t), t);
   const clicar = async (t) => {
-    const ok = await page.evaluate((t) => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.replace(/\s+/g, ' ').trim() === t); if (b) { b.click(); return true; } return false; }, t);
+    const ok = await page.evaluate((t) => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.replace(/\s+/g, ' ').trim() === t || ((x.querySelector('.op-txt b') || {}).textContent || '').trim() === t); if (b) { b.click(); return true; } return false; }, t);
     if (!ok) throw new Error('botão não encontrado: ' + t);
     await page.waitForTimeout(60);
   };
@@ -573,31 +577,30 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   /* M10-01 */
   await abrir('M10-01');
   check('M10-01: [canais de venda] vem do Módulo 3', (await titulo()) === 'Além de redes sociais (Instagram, Facebook, WhatsApp), por onde falam os clientes?', await titulo());
-  const ops01 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()));
-  check('M10-01: as opções não repetem os canais de venda da pergunta (redes sociais = sem WhatsApp e Instagram)', JSON.stringify(ops01) === JSON.stringify(['Pessoalmente (atendimento direto)', 'Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)', 'Telefone', 'E-mail', 'Site ou loja virtual próprios', 'Marketplace (Mercado Livre, Shopee e outros)', 'Ainda não falo com clientes', 'Não sei']), ops01);
+  const ops01 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
+  check('M10-01: as opções não repetem os canais de venda da pergunta (redes sociais = sem WhatsApp e Instagram)', JSON.stringify(ops01) === JSON.stringify(['Pessoalmente (atendimento direto)', 'Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)', 'Telefone', 'E-mail', 'Site ou loja virtual próprios', 'Marketplace (Mercado Livre, Shopee e outros)', 'Ainda não falo com clientes']), ops01);
   await clicar('Telefone'); await confere('', 'M10-01', ESPERADO.caminhos[0][1]); conta();
   await clicar('Aplicativo de entrega (iFood e outros)'); await confere('', 'M10-01', ESPERADO.caminhos[0][1]);
   await clicar('Ainda não falo com clientes'); await confere('', 'M10-01', 'Ainda não falo com clientes'); conta();
   check('M10-01: [onde procuram] vem do Módulo 2', (await blocos()).join(' ').includes('(meu bairro)'));
-  await page.evaluate((k) => { window.__nsAntes=JSON.parse(localStorage.getItem(k)||'null'); }, CHAVE); await clicar('Não sei'); await confere('', 'M10-01', 'Não sei'); check('Ajuda Não sei M10-01: passos, prompt, valor salvo igual', await page.locator('.como-descobrir ol > li').count()===2 && await page.locator('.como-descobrir [data-prompt]').count()===1 && JSON.stringify(await page.evaluate((k)=>JSON.parse(localStorage.getItem(k)||'null'),CHAVE))===JSON.stringify(await page.evaluate(()=>window.__nsAntes))); conta();
+  /* 16/11: pergunta sobre a própria pessoa = sem "Não sei" */
+  check('Não sei saiu (M10-01): o botão não existe', !(await temBotao('Não sei')));
   /* sem canais de venda (Módulo 3 não feito): pergunta sem "Além de" e com todas as opções */
   { const h0 = JSON.parse(JSON.stringify(HERANCA)); delete h0['lg2-turma-a-m03'];
     await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { canais: '' }) }), h0); await clicar('Continuar de onde parei');
-    const o0 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()));
+    const o0 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
     check('M10-01: sem canais de venda, a pergunta é "Por onde falam os clientes?" com todas as opções', (await titulo()) === 'Por onde falam os clientes?' && JSON.stringify(o0.slice(0, 5)) === JSON.stringify(['WhatsApp Business ou WhatsApp', 'Catálogo no Instagram ou outra rede social', 'Pessoalmente (atendimento direto)', 'Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)']), [await titulo(), o0]);
     check('Canais (M10-01): do dia a dia primeiro; site e marketplace depois', o0.indexOf('Site ou loja virtual próprios') > o0.indexOf('Aplicativo de entrega (iFood e outros)') && o0.indexOf('Marketplace (Mercado Livre, Shopee e outros)') > o0.indexOf('Site ou loja virtual próprios'), o0); }
   /* loja física + redes sociais herdadas do Módulo 3: lista com "e", selo e sem "Pessoalmente" */
   { const h1 = JSON.parse(JSON.stringify(HERANCA)); h1['lg2-turma-a-m03'].R['M3.P13'] = { estado: 'opcoes', opcoes: ['Loja física', 'Redes sociais (Instagram, Facebook, WhatsApp)', 'Outro'], detalhe: 'Feira do bairro' };
     await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { canais: '' }) }), h1); await clicar('Continuar de onde parei');
-    const o1 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()));
-    check('M10-01: canais reais do Módulo 3 por nome (com "Outro" escrito) e opções sem repetição', (await titulo()) === 'Além de loja física, redes sociais (Instagram, Facebook, WhatsApp) e feira do bairro, por onde falam os clientes?' && JSON.stringify(o1) === JSON.stringify(['Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)', 'Telefone', 'E-mail', 'Site ou loja virtual próprios', 'Marketplace (Mercado Livre, Shopee e outros)', 'Ainda não falo com clientes', 'Não sei']), [await titulo(), o1]);
+    const o1 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
+    check('M10-01: canais reais do Módulo 3 por nome (com "Outro" escrito) e opções sem repetição', (await titulo()) === 'Além de loja física, redes sociais (Instagram, Facebook, WhatsApp) e feira do bairro, por onde falam os clientes?' && JSON.stringify(o1) === JSON.stringify(['Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)', 'Telefone', 'E-mail', 'Site ou loja virtual próprios', 'Marketplace (Mercado Livre, Shopee e outros)', 'Ainda não falo com clientes']), [await titulo(), o1]);
     check('M10-01: selo "Veio do Módulo 3" + "Confira e ajuste se quiser"', nrm(await page.evaluate(() => (document.querySelector('.herdado') || {}).innerText)).startsWith('Veio do Módulo 3') && (await page.evaluate(() => document.querySelector('.herdado').innerText)).includes('Veio do Módulo 3')); }
   /* SOCIO (pergunta extra): ajuda útil, resposta local ainda inalterada até Continuar */
   await abrir('SOCIO');
   check('Menos texto: tela da pergunta de sócio ≤ 60 palavras', (await palavrasVisiveis()) <= 60, await palavrasVisiveis());
-  const socioAntes = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), CHAVE);
-  await clicar('Não sei');
-  check('Ajuda Não sei Sócio: dois passos, prompt e resposta ainda não alterada', await page.locator('.como-descobrir ol > li').count() === 2 && await page.locator('.como-descobrir [data-prompt]').count() === 1 && JSON.stringify(await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), CHAVE)) === JSON.stringify(socioAntes));
+  check('Não sei saiu (Sócio): o botão não existe; só Sim e Não', !(await temBotao('Não sei')) && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()))) === '["Sim","Não"]');
   /* escolhas únicas: cada opção da linha mostra a mensagem da linha */
   const UNICAS = {
     'M10-02': ['Em até 1 hora / No mesmo dia', 'Em 1 ou 2 dias', 'Mais de 2 dias', 'Ainda não vendo / Não sei'],
@@ -610,34 +613,53 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   /* M10-05: opções do app (canais do dia a dia primeiro) e a linha da planilha que responde a cada uma */
   const APP05 = {
     [UNICAS['M10-05'][0]]: ['Indicação', 'WhatsApp', 'Redes sociais', 'Grupos do bairro', 'Atendimento direto', 'Atendimento em domicílio', 'Aplicativo de entrega', 'Cartaz ou panfleto', 'Parceria', 'Site próprio', 'Marketplace'],
+    'Ainda não sei': ['Não sei'], /* 16/11: "Ainda não sei" = "Não sei" (uma opção só) */
   };
+  /* 16/11: perguntas sobre a própria pessoa ficaram sem "Não sei"; nas outras ele só abre a ajuda */
+  const SEM_NS = ['M10-01', 'M10-02', 'M10-03', 'M10-04', 'SOCIO', 'M10-06', 'M10-08'];
+  const SAIRAM = [['M10-01', 'Não sei'], ['M10-03', 'Não sei'], ['M10-06', 'Não sei'], ['M10-08', 'Não sei'], ['M10-09', 'Não sei']];
+  /* "Não sei" que bloqueia: ajuda com passos, pedido e Copiar + a dica da planilha; nada marcado, nada gravado; Continuar não anda */
+  async function confereBloqueio(cod, textoDica) {
+    const a = await page.evaluate((k) => ({
+      box: !!document.querySelector('.como-descobrir'), passos: document.querySelectorAll('.como-descobrir ol > li').length,
+      prompt: !!document.querySelector('.como-descobrir [data-prompt]'), copiar: [...document.querySelectorAll('.como-descobrir button')].some((b) => b.textContent.trim() === 'Copiar'),
+      txt: (document.querySelector('.como-descobrir') || {}).innerText || '', sel: [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.innerText),
+      antes: window.__nsAntes, agora: JSON.parse(localStorage.getItem(k) || 'null'), q: document.querySelector('.q').innerText }), CHAVE);
+    const dicaOk = !textoDica || fragmentos(textoDica).every((f) => nrm(a.txt).includes(f));
+    if (cod === 'M10-05') {
+      await page.click('.como-descobrir [data-copiar]');
+      let estadoCopiar = '';
+      for (let k = 0; k < 20; k++) { estadoCopiar = await page.locator('.como-descobrir [data-copiar]').innerText(); if (estadoCopiar !== 'Copiar') break; await page.waitForTimeout(100); }
+      check('Copiar pedido de ajuda: confirma cópia ou seleciona texto como alternativa', ['Copiado!', 'Toque e segure o texto para copiar'].includes(estadoCopiar), estadoCopiar);
+    }
+    check(`Não sei bloqueia ${cod}: ajuda (2 passos, pedido, Copiar${textoDica ? ', dica da planilha' : ''}), nada marcado e estado salvo igual`, a.box && a.passos === 2 && a.prompt && a.copiar && dicaOk && JSON.stringify(a.agora) === JSON.stringify(a.antes) && (cod === 'M10-09' || cod === 'M10-10' || a.sel.length === 0), a);
+    await clicar('Continuar');
+    const d = await page.evaluate((k) => ({ q: document.querySelector('.q') && document.querySelector('.q').innerText, erro: !document.querySelector('#erro').hidden && document.querySelector('#erro').innerText, agora: JSON.parse(localStorage.getItem(k) || 'null') }), CHAVE);
+    check(`Não sei bloqueia ${cod}: Continuar não avança nem grava, e pede a resposta`, d.q === a.q && !!d.erro && JSON.stringify(d.agora.R[cod]) === JSON.stringify((a.antes && a.antes.R[cod]) || undefined), d);
+    return a;
+  }
   await abrir('M10-05');
-  { const o5 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()));
-    check('Canais (M10-05): WhatsApp Business, catálogo, indicação, atendimento direto/domicílio e iFood antes de site e marketplace', JSON.stringify(o5) === JSON.stringify(APP05[UNICAS['M10-05'][0]].concat(['Anúncio pago', 'Ainda não sei'])), o5); }
+  { const o5 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
+    check('Canais (M10-05): WhatsApp Business, catálogo, indicação, atendimento direto/domicílio e iFood antes de site e marketplace', JSON.stringify(o5) === JSON.stringify(APP05[UNICAS['M10-05'][0]].concat(['Anúncio pago', 'Não sei'])), o5); }
   for (const [cod, linhas] of Object.entries(UNICAS)) {
     await abrir(cod);
     for (const linha of linhas) {
       const ops = APP05[linha] || linha.split(' / ').map((x) => (/^para /.test(x) ? 'Sim, ' + x : x));
+      let alcancou = false;
       for (const op of ops) {
-        if (/não sei/i.test(op)) await page.evaluate((k) => { window.__nsAntes=JSON.parse(localStorage.getItem(k)||'null'); }, CHAVE);
-        await clicar(op);
-        if (/não sei/i.test(op)) {
-          const ajuda = await page.evaluate((k) => ({
-            box: !!document.querySelector('.como-descobrir'), passos: document.querySelectorAll('.como-descobrir ol > li').length,
-            prompt: !!document.querySelector('.como-descobrir [data-prompt]'), copiar: [...document.querySelectorAll('.como-descobrir button')].some(b => b.textContent.trim()==='Copiar'),
-            antes: window.__nsAntes, agora: JSON.parse(localStorage.getItem(k) || 'null')
-          }), CHAVE);
-          check(`Ajuda Não sei ${cod}: dois passos, prompt e resposta ainda não alterada`, ajuda.box && ajuda.passos===2 && ajuda.prompt && ajuda.copiar && JSON.stringify(ajuda.agora)===JSON.stringify(ajuda.antes), ajuda);
-          if (cod === 'M10-03') {
-            await page.click('.como-descobrir [data-copiar]'); await page.waitForTimeout(80);
-            const estadoCopiar = await page.locator('.como-descobrir [data-copiar]').innerText();
-            check('Copiar pedido de ajuda: confirma cópia ou seleciona texto como alternativa', ['Copiado!', 'Toque e segure o texto para copiar'].includes(estadoCopiar), estadoCopiar);
-          }
+        if (op === 'Não sei' && SEM_NS.includes(cod)) { check(`Não sei saiu (${cod}): o botão não existe`, !(await temBotao('Não sei'))); continue; }
+        if (op === 'Não sei') {
+          await page.evaluate((k) => { window.__nsAntes = JSON.parse(localStorage.getItem(k) || 'null'); }, CHAVE);
+          await clicar(op);
+          await confereBloqueio(cod, caminhoTexto(cod, linha));
+          alcancou = true; continue;
         }
+        alcancou = true;
+        await clicar(op);
         /* contratar com folga no Módulo 7: a observação do cruzamento vem junto (2 caixas) */
         await confere(op, cod, linha, cod === 'M10-08' && op.startsWith('Sim') ? 2 : 1);
       }
-      conta();
+      if (alcancou) conta();
     }
   }
   /* opção visivelmente curta mantém o valor salvo de antes da redução */
@@ -647,7 +669,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   await semear(estadoAte('FIM', { 'M10-05': { estado: 'opcao', opcao: 'Catálogo no Instagram ou outra rede social' } }));
   await clicar('Continuar de onde parei'); await clicar('Quero corrigir algo');
   await page.evaluate(() => [...document.querySelectorAll('.editar')].find((b) => b.dataset.c === 'M10-05').click()); await page.waitForTimeout(60);
-  check('M10-05: resposta antiga volta marcada com o rótulo curto', await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.innerText.trim()).join()) === 'Redes sociais');
+  check('M10-05: resposta antiga volta marcada com o rótulo curto', await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()).join()) === 'Redes sociais');
   /* M10-02 "Em 1 ou 2 dias" com tempo de apoio alto no Módulo 7: a parte condicional aparece */
   const h7 = JSON.parse(JSON.stringify(HERANCA)); h7['lg2-turma-b-m07'].R['M7-03'] = { estado: 'opcao', opcao: 'De 6 a 10 h' };
   await abrir('M10-02', {}, h7); await clicar('Em 1 ou 2 dias');
@@ -666,15 +688,21 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   check('M10-04: [Se compra recorrente no Módulo 2] com [frequência]', (await page.evaluate(() => { const d=document.querySelector('.dica-toggle'); d.open=true; return d.innerText; })) .includes('Você disse que o cliente compra toda semana. Voltar a falar pode trazer a próxima venda.'));
   /* M10-05: [oferta em foco] e [diferencial do Módulo 3] */
   await abrir('M10-05');
-  check('M10-05: sem resposta, vem marcado "Redes sociais próprias" (canais do Módulo 3) com selo', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.innerText.trim()).join())) === 'Redes sociais' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio do Módulo 3') && (await blocos()).length === 0);
+  check('M10-05: sem resposta, vem marcado "Redes sociais próprias" (canais do Módulo 3) com selo', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()).join())) === 'Redes sociais' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio do Módulo 3') && (await blocos()).length === 0);
   { const ha = JSON.parse(JSON.stringify(HERANCA)); ha['lg2-turma-a-m05'].R['M5.P33'] = { estado: 'valor', valor: [{ nome: 'Anúncio no Instagram', v: '50' }] };
     await abrir('M10-05', {}, ha);
-    check('M10-05: anúncio nos gastos do Módulo 5 = "Anúncio pago" marcado, selo do Módulo 5', (await page.evaluate(() => document.querySelector('#ent .opcao.sel').innerText.trim())) === 'Anúncio pago' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio do Módulo 5')); }
+    check('M10-05: anúncio nos gastos do Módulo 5 = "Anúncio pago" marcado, selo do Módulo 5', (await page.evaluate(() => document.querySelector('#ent .opcao.sel .op-txt b').innerText.trim())) === 'Anúncio pago' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio do Módulo 5')); }
   await abrir('M10-05');
   check('M10-05: pergunta e apoio preenchidos', (await titulo()).includes('saber que Bolo de pote existe') && (await page.evaluate(() => { const d=document.querySelector('.dica-toggle'); d.open=true; return d.innerText; })).includes('diferencial: Bolo fresco entregue no mesmo dia.'));
+  /* M10-06: acordo entre sócios só aparece para quem respondeu que tem/pretende ter sócio. */
+  await abrir('M10-06', { SOCIO: { estado: 'opcao', opcao: 'Sim' } });
+  const socTip = await page.evaluate(() => { const d=document.querySelector('.dica-toggle'), t=d?.querySelector('.dica-sociedade'), closedBefore=d ? !d.open : false; if(d) d.open=true; return { closedBefore, text:t?.innerText || '', prompt:t?.querySelector('[data-prompt]')?.innerText || '', passos:t?.querySelectorAll('.como-descobrir ol li').length || 0 }; });
+  check('M10-06: dica de sociedade antes da resposta, inclui combinado, exemplo, MEI e fontes', !!socTip.text && socTip.closedBefore && ['quem faz cada tarefa','dinheiro, tempo e equipamento','lucro e as retiradas','sair','discordarem','assinado pelos dois','MEI é individual e não pode ter sócio','Ana produz e Bia vende','R$ 300','Sebrae/PR','gov.br'].every((x) => nrm(socTip.text).includes(nrm(x))) && socTip.passos === 2 && socTip.prompt.includes('rascunhar um acordo simples'), socTip);
+  check('M10-06: Não sei saiu em pergunta Sim/Não sobre situação própria', !(await temBotao('Não sei')));
+  if (process.env.SHOTS) { await page.waitForTimeout(200); await page.screenshot({ path: path.join(process.env.SHOTS, 'm10_dica_sociedade.png') }); }
   /* M10-07 */
   await abrir('M10-07');
-  check('M10-07: as etapas vêm do mapa do Módulo 7', (await page.evaluate(() => [...document.querySelectorAll('#ent p.rot-campo')].map((x) => x.innerText))).join('|') === 'Receber o pedido|Fazer|Entregar');
+  check('M10-07: as etapas vêm do mapa do Módulo 7', (await page.evaluate(() => [...document.querySelectorAll('#ent .responsaveis-diagrama .lg2-diag-tit')].map((x) => x.innerText))).join('|') === 'Receber o pedido|Fazer|Entregar');
   const porEtapa = async (idx) => page.evaluate((idx) => { [...document.querySelectorAll('#ent .opcoes')].forEach((g, i) => g.querySelectorAll('.opcao')[idx[i]].click()); }, idx);
   await porEtapa([0, 0, 0]); await page.waitForTimeout(60); await confere('', 'M10-07', ESPERADO.caminhos.find((c) => c[0] === 'M10-07')[1]); conta();
   await porEtapa([0, 0, 3]); await page.waitForTimeout(60); await confere('', 'M10-07', "'Ninguém ainda' em alguma etapa"); conta();
@@ -698,20 +726,34 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   h9['lg2-turma-a-m05'].R['M5.P36'] = { estado: 'naosei' };
   h9['lg2-turma-a-m03'].R['M3.P20'] = { estado: 'naosei' };
   h9['lg2-turma-b-m08'] = { R: { 'M8.P06': { estado: 'naosei' }, 'M8.P05': { estado: 'opcao', opcao: 'MEI' } } };
-  await abrir('M10-09', { 'M10-02': { estado: 'opcao', opcao: 'Mais de 2 dias' }, 'M10-05': { estado: 'opcao', opcao: 'Ainda não sei' }, 'M10-06': { estado: 'opcao', opcao: 'Ainda não' } }, h9);
-  const lista = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()));
-  check('M10-09: lista do percurso por gravidade, sem códigos; cada "Não sei" diz qual era a pergunta', JSON.stringify(lista) === JSON.stringify(['Definir o preço de venda', 'Acordo entre sócios', 'Fazer a consulta de viabilidade na prefeitura', 'Medir o tempo de produção', 'Tempo de resposta aos clientes', 'Definir a divulgação', 'Descobrir quanto os concorrentes cobram (Módulo 3)', 'Descobrir o CNAE, o código da sua atividade (Módulo 8)']) && !/M\d/.test(lista.join()) && !/Completar a resposta/.test(lista.join()), lista);
+  await abrir('M10-09', { 'M10-02': { estado: 'opcao', opcao: 'Mais de 2 dias' }, 'M10-05': { estado: 'opcao', opcao: 'Anúncio pago' }, 'M10-06': { estado: 'opcao', opcao: 'Ainda não' } }, h9);
+  const lista = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
+  check('M10-09: lista do percurso por gravidade, sem códigos; cada "Não sei" diz qual era a pergunta', JSON.stringify(lista) === JSON.stringify(['Definir o preço de venda', 'Acordo entre sócios', 'Fazer a consulta de viabilidade na prefeitura', 'Medir o tempo de produção', 'Tempo de resposta aos clientes', 'Descobrir quanto os concorrentes cobram (Módulo 3)', 'Descobrir o CNAE, o código da sua atividade (Módulo 8)']) && !/M\d/.test(lista.join()) && !/Completar a resposta/.test(lista.join()), lista);
   await clicar(lista[0]); await confere('', 'M10-09', 'Até 3 itens da lista'); conta();
   await clicar(lista[1]); await clicar(lista[2]); await clicar(lista[3]);
   check('M10-09: a 4ª escolha não entra', (await page.evaluate(() => document.querySelectorAll('#ent .opcao.sel').length)) === 3);
   await confere('', 'M10-09', 'Mais de 3'); conta();
-  await clicar('Não sei'); await confere('', 'M10-09', 'Não sei'); check('Ajuda Não sei M10-09: passos e prompt', await page.locator('.como-descobrir ol > li').count()===2 && await page.locator('.como-descobrir [data-prompt]').count()===1); conta();
-  check('M10-09: "Não sei" marca as 3 primeiras', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.innerText.trim()))) === JSON.stringify(lista.slice(0, 3)));
+  { const selAntes = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].length);
+    await page.evaluate((k) => { window.__nsAntes = JSON.parse(localStorage.getItem(k) || 'null'); }, CHAVE);
+    await clicar('Não sei');
+    const a9 = await page.evaluate(() => document.querySelector('.como-descobrir').innerText);
+    check('M10-09 Não sei: sugere as 3 que mais pesam (texto), sem marcar nem desmarcar nada', a9.includes('as que mais pesam são: ' + lista.slice(0, 3).join('; ')) && (await page.evaluate(() => document.querySelectorAll('#ent .opcao.sel').length)) === selAntes, a9);
+    const a = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), CHAVE);
+    check('M10-09 Não sei: estado salvo igual', JSON.stringify(a) === JSON.stringify(await page.evaluate(() => window.__nsAntes)));
+    /* lista vazia + Não sei: Continuar não anda */
+    await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].forEach((b) => b.click())); await clicar('Não sei');
+    await confereBloqueio('M10-09');
+    await clicar(lista[0]); await clicar(lista[1]); await clicar(lista[2]); }
   await clicar(lista[2]); await page.fill('#outro', 'Organizar a agenda'); await clicar('Continuar');
   await confere('', 'M10-09', 'Outro (texto)'); conta();
   await clicar('Continuar');
   /* M10-10 com as três escolhidas */
   check('M10-10: uma escala por prioridade', (await page.evaluate(() => [...document.querySelectorAll('#ent p.rot-campo')].map((x) => x.innerText))).join('|') === [lista[0], lista[1], 'Organizar a agenda'].join('|'));
+  { await page.evaluate((k) => { window.__nsAntes = JSON.parse(localStorage.getItem(k) || 'null'); }, CHAVE);
+    await page.evaluate(() => { const gs = [...document.querySelectorAll('#ent .opcoes')]; gs[1].querySelectorAll('.opcao')[0].click(); gs[0].querySelectorAll('.opcao')[3].click(); });
+    await page.waitForTimeout(60);
+    check('M10-10 Não sei numa linha: a linha fica sem resposta (nada marcado nela)', (await page.evaluate(() => document.querySelectorAll('#ent .opcoes')[0].querySelectorAll('.opcao.sel').length)) === 0);
+    await confereBloqueio('M10-10'); }
   await page.evaluate(() => { const gs = [...document.querySelectorAll('#ent .opcoes')]; gs[0].querySelectorAll('.opcao')[2].click(); gs[1].querySelectorAll('.opcao')[0].click(); gs[2].querySelectorAll('.opcao')[0].click(); });
   await page.waitForTimeout(60);
   check('Caminho M10-10 · A mais urgente: piora muito, empate pela ordem da lista', (await blocos()).join() === 'A mais urgente parece ser: Acordo entre sócios.', await blocos()); conta();
@@ -735,7 +777,8 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   const frase = `Divulgar no grupo do bairro até ${dias(14).split('-').reverse().join('/')}; vai funcionar se vierem 5 pedidos`;
   check('Caminho M10-11 · completo: "Seu plano: [frase]."', (await blocos()).join() === `Seu plano: ${frase}. Combine com você mesmo de olhar o resultado nessa data.`, await blocos()); conta();
   await abrir('M10-11', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda' } });
-  await clicar('Não sei'); await confere('', 'M10-11', 'Não sei'); conta();
+  await page.evaluate((k) => { window.__nsAntes = JSON.parse(localStorage.getItem(k) || 'null'); }, CHAVE);
+  await clicar('Não sei'); await confereBloqueio('M10-11', caminhoTexto('M10-11', 'Não sei')); conta();
   /* M10-12 (tela final) */
   await semear(estadoAte('FIM'));
   await clicar('Continuar de onde parei');
@@ -743,7 +786,8 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   check('M10-12: sem "[Se houver ofertas guardadas]" (o Módulo 1 não guarda outras ofertas)', !(await blocos('#ret12')).join().includes('próxima oferta'));
   await clicar('Quero corrigir algo'); await confere('', 'M10-12', 'Quero corrigir algo', 1, '#ret12'); conta();
   check('M10-12: lista "Corrigir minha resposta"', (await page.evaluate(() => document.querySelectorAll('#corr .editar').length)) === ORDEM.length - 1 + 1);
-  check(`Caminhos alcançados: ${alcancadas} de ${ESPERADO.caminhos.length}`, alcancadas === ESPERADO.caminhos.length, alcancadas);
+  /* 16/11: as linhas "Não sei" das perguntas sem "Não sei" (e a de M10-09, que marcava as 3 sozinha) não aparecem mais */
+  check(`Caminhos alcançados: ${alcancadas} de ${ESPERADO.caminhos.length - SAIRAM.length} (${SAIRAM.length} linhas "Não sei" saíram)`, alcancadas === ESPERADO.caminhos.length - SAIRAM.length, alcancadas);
 
   /* ---------- 4. cruzamentos e encaminhamento no resumo ---------- */
   const resumo = async (r, h) => { await semear(estadoAte('FIM', r), h); await clicar('Continuar de onde parei'); await page.evaluate(() => document.querySelectorAll('.resultado-mais').forEach((d) => { d.open = true; })); return page.evaluate(() => document.querySelector('.corpo').innerText.replace(/\s+/g, ' ')); };
@@ -753,7 +797,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   t = await resumo({ 'M10-05': { estado: 'opcao', opcao: 'Anúncio pago' } }, hg);
   check('Anúncio pago com gasto de anúncio no Módulo 5 = sem pergunta', !t.includes('O anúncio não aparece'));
   t = await resumo({ 'M10-06': { estado: 'opcao', opcao: 'Ainda não' } });
-  const enc = await page.evaluate(() => [...document.querySelectorAll('.b-enc')].map((x) => x.innerText.trim()));
+  const enc = await page.evaluate(() => [...document.querySelectorAll('.b-enc')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
   check('Caso: sócio sem acordo = observação + um encaminhamento só no resumo', t.includes('Combinar por escrito antes de investir juntos evita desentendimentos.') && enc.length === 1 && enc[0] === 'Para a forma do documento, procure um contador ou advogado.', enc);
   check('Resumo: checklist de acordo entre sócios com os 5 itens', (await page.evaluate(() => document.querySelectorAll('.chk input').length)) === 5);
   t = await resumo({ 'M10-01': { estado: 'opcao', opcao: 'Ainda não falo com clientes' }, 'M10-04': { estado: 'opcao', opcao: 'Não, só se o cliente me procura' }, 'M10-02': { estado: 'opcao', opcao: 'Mais de 2 dias' } });
@@ -809,7 +853,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     check('Por onde começar (Gaby): depois o limite do Módulo 1 e a consulta na prefeitura, com texto de quem está começando', ag[1].o === 'conferir' && ag[1].t.includes('(até R$ 100)') && ag[1].t.includes('5 vendas-teste') && ag[2].o === 'lacuna' && ag[2].t.includes('consulta de viabilidade'), ag);
     check('Por onde começar: sem códigos nem nomes de pergunta', !ag.some((x) => /M\d+[.-]|P\d\d|Grupo \d/.test(x.t + x.p)));
     check('Pontos para conferir: preço abaixo do custo (Módulo 5)', (await sec('Pontos para conferir')).includes('Seu preço de venda é R$ 8, mas fazer uma unidade custa R$ 10.'), await sec('Pontos para conferir'));
-    const nums = await page.evaluate(() => [...document.querySelectorAll('#comecar .num-c')].map((x) => x.innerText.trim()).join());
+    const nums = await page.evaluate(() => [...document.querySelectorAll('#comecar .num-c')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()).join());
     check('Por onde começar: números 1, 2 e 3 à vista', nums === '1,2,3', nums);
     if (process.env.SHOTS) { await page.waitForTimeout(400); await (await page.$('#comecar')).screenshot({ path: path.join(process.env.SHOTS, 'l3_m10_comecar_gaby.png') }); }
     /* mesma prioridade, quem já vende: organizar e melhorar */
@@ -829,7 +873,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   /* ---------- 4b. correções dos testes da turma (05/11) ---------- */
   /* sócio \"Não\": \"Sócio\" não é oferecido nas etapas; se já estava escolhido, aviso que não trava */
   await abrir('M10-07', { SOCIO: { estado: 'opcao', opcao: 'Não' } });
-  { const ops7 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcoes')].map((g) => [...g.querySelectorAll('.opcao')].map((x) => x.innerText.trim())));
+  { const ops7 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcoes')].map((g) => [...g.querySelectorAll('.opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim())));
     check('Sócio \"Não\": as etapas não oferecem \"Sócio\"', ops7.length === 3 && ops7.every((o) => !o.includes('Sócio') && o.includes('Eu')), ops7); }
   { const rS = { SOCIO: { estado: 'opcao', opcao: 'Não' }, 'M10-07': { estado: 'etapas', quem: { 'Receber o pedido': 'Sócio', Fazer: 'Sócio', Entregar: 'Sócio' } } };
     const est = estadoAte('FIM', rS); delete est.R['M10-06'];
@@ -963,6 +1007,72 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     await semear(est); await clicar('Continuar de onde parei'); await page.evaluate(() => document.querySelector('.resultado-mais').open=true);
     check('Mensagem de apresentação: a gravada vazia antes é montada de novo', (await page.inputValue('#msg')).startsWith('Olá! Trabalho com bolo de pote')); }
 
+  /* ---------- 4c. lote 16/11: \"Não sei\" antigo, contas \"Como calculamos\", exemplos ---------- */
+  { /* estado v2 com \"Não sei\" salvo: vira sem resposta; o resto fica */
+    const v2 = estadoAte('FIM', {
+      'M10-02': { estado: 'naosei' },
+      'M10-05': { estado: 'opcao', opcao: 'Ainda não sei' },
+      'M10-07': { estado: 'etapas', quem: { 'Preparar pedidos': 'Eu', 'Produzir encomendas': 'Ajudante', 'Falar com clientes': 'Eu' } },
+      'M10-10': { estado: 'escala', u: { 'Organizar a agenda': 'piora muito', 'Rever embalagem': 'não sei' } },
+      'M10-11': { estado: 'plano', acao: 'Montar calendário de pedidos', data: '2099-03-10', sinal: 'Pedidos recebidos', numero: '4', unidade: 'pedidos', frase: 'Montar calendário até 10/03/2099; vai funcionar se vierem 4 pedidos.' },
+    });
+    v2.prioridade = 'Organizar a agenda';
+    await semear(v2);
+    const st = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m10')); return s; });
+    await clicar('Continuar de onde parei');
+    const st2 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
+    check('Migração (formato real): só "Não sei" perde resposta; sócio, etapas, escala e plano ficam', st2.v === 3 && !st2.R['M10-02'] && !st2.R['M10-05'] && st2.R.SOCIO.opcao === 'Sim' && JSON.stringify(st2.R['M10-07'].quem) === JSON.stringify(v2.R['M10-07'].quem) && JSON.stringify(st2.R['M10-10'].u) === JSON.stringify({ 'Organizar a agenda': 'piora muito' }) && ['acao','data','sinal','numero','unidade'].every((k) => st2.R['M10-11'][k] === v2.R['M10-11'][k]) && st2.ini.oferta === 'Bolo de pote', { version: st2.v, soc: st2.R.SOCIO.opcao, etapas: st2.R['M10-07'], escala: st2.R['M10-10'], plano: Object.fromEntries(['acao','data','sinal','numero','unidade'].map((k) => [k,st2.R['M10-11'][k]])) });
+    check('Migração: "Continuar de onde parei" abre a 1ª pergunta que ficou sem resposta (M10-02)', (await titulo()).startsWith('Em quanto tempo'), await titulo());
+  }
+  { /* v2 no-lacunas com os formatos reais da coordenadora, mas com conteúdo inventado; carregar deve mostrar o resultado sem perder campos. */
+    const v2Completo = estadoAte('FIM'); v2Completo.prioridade = 'Organizar a agenda';
+    v2Completo.R['M10-07'] = { estado: 'etapas', quem: { 'Preparar pedidos': 'Eu', 'Separar embalagens': 'Ajudante', 'Responder clientes': 'Eu' } };
+    v2Completo.R['M10-10'] = { estado: 'escala', u: { 'Organizar a agenda': 'piora muito' } };
+    v2Completo.R['M10-11'] = { estado: 'plano', acao: 'Montar calendário de pedidos', data: '2099-03-10', sinal: 'Pedidos recebidos', numero: '4', unidade: 'pedidos', frase: 'Montar calendário até 10/03/2099; vai funcionar se vierem 4 pedidos.' };
+    v2Completo.v = 2;
+    await semear(v2Completo); await clicar('Continuar de onde parei');
+    const migrado = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
+    const rep = await page.evaluate(() => document.querySelector('.corpo').innerText.replace(/\\s+/g, ' '));
+    check('Migração formato real (inventado): SOCIO, etapas M10-07, escala M10-10 e plano M10-11 aparecem no resultado', migrado.v === 3 && migrado.R.SOCIO.opcao === 'Sim' && migrado.R['M10-07'].quem['Separar embalagens'] === 'Ajudante' && migrado.R['M10-10'].u['Organizar a agenda'] === 'piora muito' && migrado.R['M10-11'].acao === 'Montar calendário de pedidos' && rep.includes('Separar embalagens') && rep.includes('Responsável: Ajudante') && rep.includes('Organizar a agenda: Piora muito') && rep.includes('Montar calendário de pedidos'), { state: migrado.v, resultado: rep.includes('Separar embalagens') && rep.includes('Organizar a agenda: Piora muito') && rep.includes('Montar calendário de pedidos') });
+  }
+  { /* contas do resumo conferidas à mão: preço 60 (preço 60, custo 7, taxa 3, gastos 50 + 1.000; M6 800 − 500; M7 até 10 h, apoio 2 h, 30 min) */
+    const hl = JSON.parse(JSON.stringify(HERANCA)); hl['lg2-turma-a-m05'] = LAVA[5]; hl['lg2-turma-b-m06'] = LAVA[6];
+    const e = estadoAte('FIM'); e.ini = Object.assign({}, INI, { preco: '60' });
+    await semear(e, hl); await clicar('Continuar de onde parei');
+    const contas = await page.evaluate(() => [...document.querySelectorAll('#entendemos .como-calc')].map((x) => x.innerText.replace(/\s+/g, ' ').trim()));
+    const ESP_CONTAS = [
+      'Como calculamos: R$ 60 (preço) − R$ 7 (custo de uma unidade) − R$ 3 (taxas) = R$ 50 de sobra em cada venda.',
+      'Como calculamos: R$ 50 + R$ 1.000 = R$ 1.050 (gastos do mês informados no Módulo 5).',
+      'Como calculamos: R$ 1.050 (gastos do mês) ÷ R$ 50 (sobra por venda) = 21 vendas por mês.',
+      'Como calculamos: R$ 800 (para começar) − R$ 500 (o que você tem) = R$ 300 que faltam.',
+      'Como calculamos: (10 h por semana − 2 h de apoio) × 60 = 480 min por semana; × 4,33 semanas = 2.078 min por mês; ÷ 30 min por unidade = 69 por mês (arredondado para baixo).',
+    ];
+    check('Como calculamos (resumo): 5 contas com os valores da pessoa, conferidas à mão', JSON.stringify(contas) === JSON.stringify(ESP_CONTAS), contas);
+    const par = nrm(await page.evaluate(() => document.querySelector('#entendemos .resumo-negocio').innerText));
+    check('Como calculamos: os números da conta são os mesmos do texto (sobram R$ 50; 21 vendas; faltam R$ 300; no máximo 69)', par.includes('sobram R$ 50') && par.includes('21 vendas') && par.includes('faltam R$ 300') && par.includes('no máximo 69'), par);
+    await page.evaluate(() => document.querySelector('.resultado-mais').open = true);
+    const r7 = await page.evaluate(() => document.querySelectorAll('.retrato')[6].innerText.replace(/\s+/g, ' '));
+    check('Como calculamos (retrato do Módulo 7): a capacidade vem com a conta', r7.includes('Cabem no máximo 69 por mês') && r7.includes('÷ 30 min por unidade = 69 por mês'), r7);
+    /* M10-08: contratar com folga = 69 − 55 = 14 */
+    await abrir('M10-08'); await clicar('Sim, para vender ou divulgar');
+    const cf = (await blocos()).join(' ');
+    check('Como calculamos (folga do M10-08): 69 (o que cabe por mês) − 55 (o que você pretende fazer) = 14', cf.includes('Como calculamos: 69 (o que cabe por mês) − 55 (o que você pretende fazer) = 14 por mês.'), cf);
+    /* preço abaixo do custo com taxa: 7 + 5% de 8 (0,40) = 7,40 */
+    const hb = JSON.parse(JSON.stringify(hl)); const eb = estadoAte('FIM'); eb.ini = Object.assign({}, INI, { preco: '6' });
+    await semear(eb, hb); await clicar('Continuar de onde parei');
+    const pcb = await page.evaluate(() => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === 'Pontos para conferir'); return s ? s.innerText.replace(/\s+/g, ' ') : ''; });
+    check('Como calculamos (preço abaixo do custo): R$ 7 + R$ 0,30 (taxas, 5% do preço) = R$ 7,30', pcb.includes('Como calculamos: R$ 7 (custo de uma unidade) + R$ 0,30 (taxas, 5% do preço) = R$ 7,30.'), pcb);
+  }
+  { /* exemplos embaixo das opções difíceis (o texto da opção não muda) */
+    await abrir('M10-05');
+    const ex = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#ent .opcao')].map((x) => [x.querySelector('.op-txt b').innerText.trim(), (x.querySelector('.op-ex') || {}).innerText || ''])));
+    check('Exemplos (M10-05): Parceria, Marketplace, Grupos do bairro e Anúncio pago têm linha \"Ex.:\"', ['Parceria', 'Marketplace', 'Grupos do bairro', 'Anúncio pago', 'Redes sociais'].every((k) => (ex[k] || '').startsWith('Ex.:')), ex);
+    await semear(null); await clicar('Começar');
+    const ph = await page.evaluate(() => document.querySelector('#f-canais').placeholder);
+    check('Exemplos (partida): onde o cliente encontra você = \"Ex.: Instagram, WhatsApp, indicação de amigos, feira do bairro\"', ph === 'Ex.: Instagram, WhatsApp, indicação de amigos, feira do bairro', ph);
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm10_partida_exemplos.png') }); }
+  }
+
   /* ---------- 5. percurso inteiro, com dados herdados ---------- */
   await semear(null);
   if (process.env.SHOTS) fs.mkdirSync(process.env.SHOTS, { recursive: true });
@@ -979,6 +1089,10 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const hp = JSON.parse(JSON.stringify(HERANCA)); hp['lg2-turma-a-m05'] = { versao: 3, lucro: '50', R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P11': { estado: 'valor', valor: '100' }, 'M5.P12': { estado: 'valor', valor: '10' }, 'M5.P36': { estado: 'opcao', opcao: 'Ainda não defini' } } };
     await semear(null, hp); await clicar('Começar');
     check('Partida: sem preço digitado no Módulo 5, vem o preço sugerido lá (R$ 15) com selo', (await page.inputValue('#f-preco')) === '15' && (await page.evaluate(() => document.querySelector('label[for=f-preco]').innerText)).includes('Veio do Módulo 5'));
+    const cp = await page.evaluate(() => (document.querySelector('#como-preco') || {}).innerText || '');
+    check('Como calculamos (preço sugerido): R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido no Módulo 5) = R$ 15', nrm(cp) === 'Como calculamos: R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido no Módulo 5) = R$ 15.', cp);
+    await page.fill('#f-preco', '18');
+    check('Como calculamos (preço sugerido): some quando a pessoa troca o preço', await page.evaluate(() => document.querySelector('#como-preco').hidden));
     /* ponto de partida já salvo com o preço vazio (Módulo 5 feito depois): completa sem apagar o resto */
     await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { preco: '', oferta: 'Bolo no pote', de: {} }) }));
     const ini2 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE);
@@ -1005,12 +1119,20 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   }
   check('Percurso: sócio "Não" pula o acordo; contratar "Não" pula as alternativas', passos.length === 11 && !passos.some((x) => /combinaram|outras formas/.test(x)), passos);
   await foto('m10_resultado');
-  check('Resultado leve: respostas e detalhes começam fechados', await page.evaluate(() => [...document.querySelectorAll('.resultado-mais')].length === 1 && !document.querySelector('.resultado-mais').open));
+  check('Resultado leve: todas as seções recolhíveis começam abertas', await page.evaluate(() => [...document.querySelectorAll('.resultado-mais')].length === 1 && [...document.querySelectorAll('.corpo details')].length > 0 && [...document.querySelectorAll('.corpo details')].every((d) => d.open)));
   await page.evaluate(() => document.querySelectorAll('.resultado-mais').forEach((d) => { d.open = true; }));
   const r1 = await page.evaluate(() => document.querySelector('.corpo').innerText.replace(/\s+/g, ' '));
   check('Resultado: plano com a frase e prioridades', r1.includes('Fazer a consulta de viabilidade até') && r1.includes('sinal de que funcionou: resposta da prefeitura (meta: 1 resposta).'), r1.slice(0, 900));
   check('Resultado: roteiro "base" com pós-venda', r1.includes('Roteiro de venda (base)') && r1.includes('Depois da entrega: pedir a opinião do cliente'));
-  check('Resultado: etapa sem responsável vira prioridade na lista seguinte', r1.includes('Entregar: Ninguém ainda'));
+  check('Resultado: etapa sem responsável vira prioridade na lista seguinte', r1.includes('Entregar') && r1.includes('Responsável: Ninguém ainda'));
+  check('Resultado sem sócio: dica de sociedade não aparece', !(await page.$('.dica-sociedade')));
+  const estadoSemSocio = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
+  const estadoComSocio = JSON.parse(JSON.stringify(estadoSemSocio));
+  estadoComSocio.R.SOCIO = { estado: 'opcao', opcao: 'Sim' };
+  estadoComSocio.R['M10-06'] = { estado: 'opcao', opcao: 'Só combinamos de boca' };
+  await semear(estadoComSocio, HERANCA); await clicar('Continuar de onde parei');
+  check('Resultado com sócio: inclui a dica completa e deixa os detalhes abertos', await page.evaluate(() => !!document.querySelector('.dica-sociedade') && [...document.querySelectorAll('.corpo details')].every((d) => d.open) && document.querySelector('.dica-sociedade').innerText.includes('Ana produz e Bia vende')));
+  await semear(estadoSemSocio, HERANCA); await clicar('Continuar de onde parei');
   await page.reload();
   check('Recarregar: retoma no resultado', (await page.evaluate(() => document.querySelector('#ir').innerText)) === 'Continuar de onde parei');
   await clicar('Continuar de onde parei'); await page.evaluate(() => document.querySelector('.resultado-mais').open=true);
@@ -1059,8 +1181,10 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     await pj.close(); srvJ.close();
   }
 
-  const maiores = Object.fromEntries(contagensVisiveis.filter(([,n]) => n > 60));
-  check('Menos texto: telas de pergunta com até 60 palavras antes de responder', Object.keys(maiores).length === 0, { maiores, amostras: contagensVisiveis });
+  /* 16/11: +10 palavras só nas telas com linhas "Ex.:" embaixo de opções difíceis (M10-05 divulgação, M10-09 prioridades) */
+  const LIMITE_PAL = { 'M10-05': 70, 'M10-09': 70 };
+  const maiores = Object.fromEntries(contagensVisiveis.filter(([c, n]) => n > (LIMITE_PAL[c] || 60)));
+  check('Menos texto: telas de pergunta com até 60 palavras antes de responder (70 nas telas com exemplos)', Object.keys(maiores).length === 0, { maiores, amostras: contagensVisiveis });
   check('Sem erros de JavaScript', erros.length === 0, erros);
   await browser.close();
   servidor.close();

@@ -258,3 +258,29 @@ details.mais[open] summary{display:none}
 #falta > ul > li{margin:8px 0}
 #tarefa p{margin:4px 0 0}
 @media print{.dica-toggle,.como-descobrir{break-inside:avoid}}
+
+/* lote 16/11: linha simples com exemplo, exemplo embaixo da opção, "Como calculamos" e cartão das respostas reaproveitadas */
+.explica{font-size:14.5px;color:#3d2f5c;background:var(--m-lavender);border-radius:10px;padding:8px 12px;margin:-4px 0 12px}
+.op-ex{display:block;font-size:13.5px;color:var(--m-gray);margin-top:2px;font-weight:400}
+.opcao.sel .op-ex{color:#3d2f5c}
+.como-calc{display:block;font-size:13.5px;color:#3d2f5c;margin-top:6px;font-style:italic}
+.alerta-forte .como-calc{color:#2b2340}
+.veio-card{border:1.5px solid var(--m-lavender-mid);border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14.5px;color:#2b2340;background:#fff}
+.veio-tit{display:block;font-size:13px;color:var(--m-purple);margin-bottom:4px}
+.veio-linha{padding:6px 0;border-top:1px solid var(--m-lavender)}
+.veio-linha:first-of-type{border-top:none}
+.veio-rot{color:var(--m-gray)}
+.veio-acoes{display:flex;align-items:center;gap:8px;margin-top:2px}
+.veio-acoes .veio{margin-left:0}
+.alterar{background:none;border:none;font:inherit;font-size:14px;font-weight:700;color:var(--m-purple);text-decoration:underline;cursor:pointer;padding:6px 4px}
+@media print{.alterar{display:none}}
+.dica-toggle .dica-extra{font-size:14.5px;color:#3d2f5c;margin-top:6px}
+/* anotações da pesquisa e retorno do CNAE (lote 16/11) */
+.notas{margin:14px 0 4px;border:1.5px solid var(--m-lavender-mid);border-radius:12px;padding:10px 12px;background:#fff;color:#2b2340}
+.notas summary{cursor:pointer;font-weight:700;color:var(--m-purple)}
+.notas .nota-rot{display:block;font-size:14px;font-weight:700;color:#3d2f5c;margin:10px 0 4px}
+.notas .campo{width:100%}
+#cnae-feedback .bloco{margin-top:10px}
+.pesquisou .nota-item{padding:8px 0;border-top:1px solid var(--m-lavender)}
+.pesquisou .nota-item:first-of-type{border-top:none}
+.pesquisou .nota-q{font-weight:700;color:var(--m-purple);font-size:14.5px}

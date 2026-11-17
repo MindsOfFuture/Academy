@@ -88,6 +88,16 @@
     });
   }
 
+  /* número em reais escrito pela pessoa: "2.500,50", "2.500", "2500.50" e "R$ 2500" valem (igual ao app) */
+  function num(v) {
+    let s = String(v ?? "").replace(/[R$\s\u00a0]/g, "");
+    if (!s) return null;
+    if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+    const n = parseFloat(s);
+    return isFinite(n) ? n : null;
+  }
+
   /* ---- condições escritas pelo grupo ---- */
   function atomo(M, R, txt) {
     txt = txt.trim();
@@ -99,8 +109,8 @@
     if (v === undefined) return undefined;
     if (op === "=") return v === alvo.trim();
     if (op === "≠") return v !== alvo.trim() && v !== "";
-    const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
-    if (v === NS || isNaN(n)) return false;
+    const n = num(v);
+    if (v === NS || n == null) return false;
     const a = parseFloat(alvo);
     return op === "<=" || op === "≤" ? n <= a : op === ">=" || op === "≥" ? n >= a : op === "<" ? n < a : n > a;
   }
@@ -141,7 +151,7 @@
   const encaminhamentos = (rs) => semVazio(rs, "encaminhamento", "Nenhum");
   const alertas = (rs) => semVazio(rs, "alerta", "Nenhum");
 
-  const API = { montar, valor, campo, temNaoSei, buscarAnexo, sugerirAnexo, cnaes, avaliar, proxima, regrasAgora, regrasTodas,
+  const API = { montar, valor, campo, temNaoSei, num, buscarAnexo, sugerirAnexo, cnaes, avaliar, proxima, regrasAgora, regrasTodas,
                 respondidas, lacunas, encaminhamentos, alertas, NS };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

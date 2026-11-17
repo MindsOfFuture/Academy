@@ -32,8 +32,13 @@ const ctx = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(DIR, 'dados/modulo3.js'), 'utf8'), ctx);
 const D = JSON.parse(JSON.stringify(ctx.window.MODULO3));
 const Q = Object.fromEntries(D.perguntas.map((q) => [q.codigo, q]));
-const COD = (n) => 'M3.P' + String(n).padStart(2, '0');
+const COD = (n) => 'M3.P' + String(n).padStart(String(n).length > 2 ? 3 : 2, '0');
+const NUM = (n) => parseInt(String(n), 10);
+const PBY = (c) => Q['M3.P' + String(c).replace(/^0/, '').padStart(2, '0')];
+/* enunciado como aparece na tela sem o Módulo 1 (o colchete some) */
+const SEMCOL = (t) => String(t).replace(/\[|\]/g, '');
 const P = (n) => Q[COD(n)];
+const PC = (n) => Q['M3.P' + String(n)];
 const Motor = require(path.join(DIR, 'js/motor.js'));
 const MM = Motor.montar(D);
 
@@ -41,57 +46,83 @@ const MM = Motor.montar(D);
 const DICAS = {
   1: 'Diga com suas palavras o que você vende e para quem. Se não souber como explicar, pense em como você responderia a um vizinho na rua. Exemplo: "Faço bolos caseiros para festas no meu bairro".',
   2: 'Marque Sim se você está ativamente tentando aumentar as vendas ou criar algo novo no momento. Marque Não se quer apenas manter o ritmo atual da sua loja ou serviço.',
-  3: 'Pense em quem "rouba" o seu cliente quando ele não compra com você. Se você vende marmitas, a alternativa pode ser a padaria da esquina, o salgado ou o mercado.',
+  3: 'Pense em tudo o que a pessoa pode fazer em vez de comprar de você: comprar de outro negócio, levar outra coisa, fazer sozinha ou deixar para depois.',
   4: 'Preste atenção ao seu redor! Mudou algo no bairro? Tem um evento novo, uma obra por perto ou mais pessoas pedindo entrega pelo WhatsApp? Isso é uma oportunidade.',
   5: 'Explique o motivo de achar essa ideia boa. Exemplo: "Acho que vai dar certo porque meus clientes sempre pedem isso e não tem ninguém vendendo perto daqui".',
   6: 'Faça duas listas rápidas: uma com o que já está na sua mão (como um celular ou fogão) e outra com o que precisa conseguir (dinheiro, embalagens ou ajuda).',
   7: 'Pense no que pode dar errado no dia a dia. Pode ser o preço dos ingredientes subindo, a chuva forte que esvazia a rua ou um concorrente novo que abriu do lado.',
   8: 'Pense no futuro do seu negócio. As pessoas vão comprar mais pela internet? Usar mais Pix? Exigir entregas mais rápidas? Anote o que você acha que vai mudar.',
-  9: 'Escolha o tamanho do seu alcance hoje: apenas no seu bairro/cidade, na região vizinha, no Brasil todo ou até para fora do país.',
+  9: 'Escolha o tamanho do seu alcance hoje: apenas no seu bairro/cidade, na região vizinha, no Brasil todo ou até para fora do país. Quanto mais longe você vende, mais precisa pensar em frete, prazo de entrega e venda pela internet.',
   10: 'Pense no seu cliente principal. Se for Pessoa, pense na idade, onde mora e no que ela precisa. Se for Empresa, pense no ramo e tamanho do negócio dela.',
   11: 'Qual "alívio" ou "alegria" você entrega? Exemplos: economizar o tempo do cliente de cozinhar, deixar a pessoa bonita para uma festa ou consertar algo rápido.',
-  12: 'Pense no que impede qualquer pessoa de te copiar amanhã. É o valor das máquinas? Uma autorização difícil de conseguir? Ou o fato de seu nome já ser muito famoso?',
-  13: 'Marque os lugares onde você fecha negócio: na sua loja física, na conversa do WhatsApp, no perfil do Instagram, em feiras ou em sites/aplicativos.',
-  14: 'Seja sincero: escreva o seu "superpoder" (ex.: atendimento rápido e simpático) e o seu ponto fraco (ex.: demora para organizar as contas).',
+  12: 'Pense se qualquer pessoa conseguiria começar a vender o mesmo que você amanhã, com pouco dinheiro e sem licença.',
+  '12B': 'Pense no que impede qualquer pessoa de te copiar amanhã. É o valor das máquinas? Uma autorização difícil de conseguir? Ou o fato de seu nome já ser muito famoso?',
+  '13A': 'Pense em como alguém ouviu falar de você pela primeira vez: alguém indicou, viu no Instagram, achou no Google ou passou na frente. Para quem está começando, a indicação de clientes satisfeitos costuma ser o caminho mais forte.',
+  13: 'Marque onde o cliente faz o pedido e paga: na conversa do WhatsApp, no Instagram, na sua loja ou feira, na casa dele ou em sites e aplicativos. O WhatsApp Business é gratuito e tem catálogo e respostas prontas.',
+  14: 'Seja sincero: escreva o seu "superpoder". Ex.: atendimento rápido e simpático, receita da família, entrega no mesmo dia.',
+  '14B': 'Todo negócio tem pontos a melhorar. Ex.: demora para organizar as contas, pouca divulgação, falta de embalagem boa.',
   15: 'Liste o nome das lojas, pessoas ou perfis do Instagram da sua região que vendem produtos ou serviços praticamente iguais aos seus.',
   16: 'Pense no que faz o seu cliente sumir e ir comprar no vizinho. É o preço mais baixo? O prazo de entrega mais rápido? A variedade de produtos?',
   17: 'Procure no Google Maps como se fosse um cliente (ex.: "salão de beleza perto de mim") ou busque hashtags da sua cidade no Instagram para ver quem aparece.',
-  18: 'Descubra detalhes dos vizinhos: qual o horário de funcionamento deles, quanto cobram pelo frete e como respondem no WhatsApp.',
+  18: 'Para cada um, anote o horário, se entrega (e quanto cobra de frete) e como responde no WhatsApp.',
   19: 'Compare lado a lado o seu negócio com os outros em 4 pontos: Preço, Qualidade, Atendimento e Prazo de Entrega. Avalie se você é melhor, igual ou pior.',
-  20: 'Descubra o valor cobrado por 3 concorrentes. Anote o valor mais baixo, o mais alto e o valor médio cobrado por eles. Exemplo: "De R$ 30 a R$ 50".',
+  20: 'Veja o preço de algo parecido com o que você vende no perfil, no cardápio ou pedindo um orçamento. Se viu mais de um preço, anote o menor e o maior.',
   21: 'Diga o seu grande atrativo! Pode ser um brinde exclusivo, atendimento personalizado, entregar no mesmo dia ou garantia facilitada.',
-  22: 'Leia as avaliações no Google Maps ou comentários no Instagram dos concorrentes. Veja o que os clientes elogiam e do que mais reclamam (ex.: atraso na entrega).',
+  22: 'Leia as avaliações no Google Maps ou os comentários no Instagram e veja o que os clientes elogiam.',
+  '22B': 'Leia as avaliações no Google Maps ou os comentários no Instagram e veja do que os clientes mais reclamam (ex.: atraso na entrega).',
 };
 const AVISO_IA = 'Peça perguntas, não conclusões sobre o mercado. A IA pode ajudar a entender melhor seu negócio e público, mas não conhece o seu cliente real nem tem dados atualizados de mercado. Use-a para organizar o roteiro de entrevista e busque as respostas de verdade conversando com pessoas.';
 const CONFERIR_IA = 'Confira sempre se as respostas oferecidas pela IA combinam com o que você realmente faz, descarte qualquer número ou estatística que ela mencionar sem indicar uma fonte confiável.';
 const MSG_ESCREVA = 'Escreva a sua resposta no campo acima para continuar. Se não souber, toque em “Não sei” para ver uma sugestão.';
-const ESCONDIDAS = [6, 11, 16, 17, 21];
+const MSG_AJUDA = 'Use a ajuda acima e escreva a sua resposta para continuar.';
+const MSG_AJUDA_MARQUE = 'Use a ajuda acima e marque pelo menos uma opção para continuar.';
+const NOTA_NS_T = 'Use a sugestão e escreva a sua resposta no campo da pergunta. Você segue depois de responder.';
+const NOTA_NS_MARQUE_T = 'Use a sugestão e marque acima o que as pessoas escolhem no lugar. Você segue depois de responder.';
+const NOTA_NS_CONC_T = 'Use a sugestão e responda acima, em cada concorrente. Você segue depois de responder.';
+const NOTA_NS_PERFIL_T = 'Use a sugestão para imaginar o seu cliente ideal e marque acima quem você imagina que compraria de você.';
+const ESCONDIDAS = [6, 11, 16, 17];
 /* telas na ordem nova (P02 = Sim): faixa de preço e pontos fortes/fracos dos outros antes da comparação */
-const TELAS_SIM = [1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 18, 20, 22, 19];
-const TELAS_NAO = [1, 2, 9, 10, 12, 13, 14, 15, 18, 20, 22, 19];
-const PROX = (n) => { const i = TELAS_SIM.indexOf(n); return i >= 0 && i + 1 < TELAS_SIM.length ? TELAS_SIM[i + 1] : null; };
-const LUGARES = ['No meu bairro ou arredores (local)', 'Em vários bairros da minha cidade', 'Em outras cidades da região', 'Em todo o Brasil (vendas online/entrega)', 'Não sei dizer'];
+/* lote 16/11: perguntas duplas viraram duas telas (12/12B, 13A/13, 14/14B, 22/22B) e a 21 voltou a aparecer */
+const TELAS_SIM = ['1', '2', '3', '4', '5', '7', '8', '9', '10', '12', '12B', '13A', '13', '14', '14B', '15', '18', '20', '22', '22B', '19', '21'];
+const TELAS_NAO = ['1', '2', '9', '10', '12', '12B', '13A', '13', '14', '14B', '15', '18', '20', '22', '22B', '19', '21'];
+const PROX = (n) => { n = String(n); const i = TELAS_SIM.indexOf(n); return i >= 0 && i + 1 < TELAS_SIM.length ? TELAS_SIM[i + 1] : null; };
+const LUGARES = ['No meu bairro ou arredores (local)', 'Em vários bairros da minha cidade', 'Em outras cidades da região', 'Em todo o Brasil (vendas online/entrega)'];
 const DORES = ['Economizar dinheiro / Buscar o menor preço', 'Economizar tempo / Praticidade no dia a dia', 'Resolver uma emergência ou problema imediato',
-  'Buscar qualidade, status ou experiência diferenciada', 'Estilo de vida, lazer ou bem-estar', 'Outro', 'Não sei dizer'];
+  'Buscar qualidade, status ou experiência diferenciada', 'Estilo de vida, lazer ou bem-estar', 'Outro'];
+const NOMES1 = { 'M3.P15': { estado: 'valor', valor: 'Doces da Ana', nomes: ['Doces da Ana'] } };
+const NOMES2 = { 'M3.P15': { estado: 'valor', valor: 'Doces da Ana, Padaria Central', nomes: ['Doces da Ana', 'Padaria Central'] } };
 const DOR = 'O que precisa resolver (a dor)', PESSOAS = 'Pessoas comuns (consumidor final)';
 const TEXTO_OK = 'Resposta de teste com bastante detalhe';
 
 /* ============ 0. dados ============ */
-check(D.perguntas.length === 22 && Object.keys(Q).length === 22, 'dados: os 22 códigos continuam existindo');
-for (let n = 1; n <= 22; n++) check(P(n).dica === DICAS[n], `dados: dica nova literal na pergunta ${n}`);
+check(D.perguntas.length === 26 && Object.keys(Q).length === 26 && ['M3.P12B', 'M3.P13A', 'M3.P14B', 'M3.P22B'].every((c) => Q[c]), 'dados: os 22 códigos continuam e entram 12B, 13A, 14B e 22B');
+for (const n of Object.keys(DICAS)) check(P(n).dica === DICAS[n], `dados: dica literal na pergunta ${n}`);
 check(JSON.stringify(D.perguntas.filter((q) => q.oculta).map((q) => +q.codigo.slice(4))) === JSON.stringify(ESCONDIDAS), 'dados: escondidas = já tem/falta, problema do cliente, concorrente de verdade, como descobrir, o que o cliente ganha');
-check(P(6).pergunta.startsWith('O que você já tem e o que ainda falta') && P(11).pergunta.startsWith('Que problema ou vontade do seu cliente') && P(21).pergunta.startsWith('O que o seu cliente ganha'), 'dados: as escondidas são as da lista de exclusão');
-check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } }, {}).map((t) => +t[0].slice(4))) === JSON.stringify(TELAS_SIM), 'motor: 17 telas na ordem nova, uma pergunta por tela');
-check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Não' } }, {}).map((t) => +t[0].slice(4))) === JSON.stringify(TELAS_NAO), 'motor: P02 Não pula 3 a 8 (12 telas)');
+check(P(6).pergunta.startsWith('O que você já tem e o que ainda falta') && P(11).pergunta.startsWith('Que problema ou vontade do seu cliente') && !P(21).oculta, 'dados: as escondidas são as da lista de exclusão; a 21 voltou (o Módulo 2 tirou a parecida)');
+check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } }, {}).map((t) => t[0].slice(4).replace(/^0/, ''))) === JSON.stringify(TELAS_SIM), 'motor: 22 telas, uma pergunta por tela');
+check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Não' } }, {}).map((t) => t[0].slice(4).replace(/^0/, ''))) === JSON.stringify(TELAS_NAO), 'motor: P02 Não pula 3 a 8 (17 telas)');
+check(Motor.telas(MM, { 'M3.P12': { estado: 'opcao', opcao: 'Não, seria fácil' } }, {}).every((t) => t[0] !== 'M3.P12B'), 'motor: "copiar seria fácil" pula "o que dificultaria"');
+const HM = { p01: 'bolo (produto)', m2: { tipo: 'Pessoas' } };
+check(!Motor.telas(MM, {}, HM).some((t) => t[0] === 'M3.P01' || t[0] === 'M3.P10') && Motor.telas(MM, {}, HM).length === 20, 'motor: o que veio dos Módulos 1 e 2 não vira tela de novo');
+check(Motor.telas(MM, { 'M3.P10': { estado: 'opcao', opcao: PESSOAS } }, HM).some((t) => t[0] === 'M3.P10'), 'motor: depois de trocar, a pergunta volta a ser da pessoa');
 check(!/rafael/i.test(JSON.stringify(D)), 'dados: sem "Rafael"');
 const promptsVis = D.perguntas.filter((q) => !q.oculta).flatMap((q) => q.caminhos.filter((c) => c.tipo === 'Prompt de IA').map((c) => [q.codigo, Motor.partesPrompt(c.texto).prompt]));
 check(promptsVis.length >= 9 && promptsVis.every(([, p]) => /Me faça 5 perguntas simples/.test(p)), `prompts: todos no mesmo gabarito, pedindo perguntas (${promptsVis.filter(([, p]) => !/Me faça 5 perguntas/.test(p)).map((x) => x[0])})`);
-check(['M3.P01', 'M3.P04', 'M3.P08', 'M3.P12', 'M3.P13'].every((c) => promptsVis.some(([k, p]) => k === c && /^Eu /.test(p))), 'prompts 1, 4, 8, 12 e 13: começam pelo contexto da pessoa');
-check(Q['M3.P03'].caminhos.find((c) => c.opcao === 'Não sei').texto === 'Tudo bem. Pense em onde o cliente compraria se você não existisse.', 'P03: dica do Não sei sem "você pode voltar e preencher depois"');
+check(['M3.P01', 'M3.P04', 'M3.P08', 'M3.P12B', 'M3.P13', 'M3.P13A'].every((c) => promptsVis.some(([k, p]) => k === c && /^Eu /.test(p))), 'prompts 1, 4, 8, 12B, 13 e 13A: começam pelo contexto da pessoa');
+check(Q['M3.P03'].caminhos.find((c) => c.opcao === 'Não sei').texto === 'Tudo bem. Pense no que as pessoas fazem quando querem isso e não compram de você.' && !/o cliente/.test(P(3).pergunta), 'P03: não supõe que a pessoa já tem clientes');
+check(JSON.stringify(P(3).alternativas.map((a) => a.valor)) === JSON.stringify(['Compra de outro negócio que vende o mesmo', 'Compra outra coisa que resolve a mesma necessidade', 'Faz em casa ou faz sozinho', 'Deixa para depois ou fica sem'])
+  && P(3).alternativas.every((a) => ['Produto', 'Serviço', 'Mercadoria', ''].every((t) => /^Ex\.: /.test(a.ex[t]))), 'P03: 4 tipos de alternativa, cada um com exemplo por tipo de negócio');
+/* A: "Não sei" só onde a resposta é um fato a descobrir */
+check(['1', '5', '12', '14', '14B', '21', '19', '9', '2'].every((n) => !P(n).naosei), 'Não sei: saiu das perguntas sobre a própria pessoa');
+check(!P(12).nao && P(4).nao, 'botão "Não": só onde responde a pergunta (novidade)');
+/* G: balões que abriam para qualquer resposta foram para a dica */
+check(P(9).caminhos.filter((c) => c.tipo !== 'Nenhum').map((c) => c.opcao).join() === 'Também fora do Brasil' && P(13).caminhos.filter((c) => c.tipo === 'Dica').map((c) => c.opcao).join() === 'Aplicativos de entrega (iFood e outros)'
+  && !P('13A').caminhos.some((c) => c.tipo === 'Dica'), 'G: retornos que abriam sempre viraram dica; ficam só fora do Brasil e taxa do aplicativo');
 check(P(7).pergunta === 'Existe alguma coisa que pode atrapalhar suas vendas?' && !/\(Ex\./.test(P(7).variantes.ideia.pergunta), 'P07: enunciado sem o "(Ex.: …)"');
 check(JSON.stringify(P(7).opcoes) === JSON.stringify(['Concorrente novo', 'Preço dos insumos subindo', 'Queda nas vendas em certa época', 'Mudança de regra', 'Outro', 'Não sei']), 'P07: opções das figuras + Outro + Não sei por último');
-check(P(10).rotulo_naosei === 'Ainda não tenho clientes' && P(13).rotulo_naosei === 'Ainda não defini' && P(13).opcoes[P(13).opcoes.length - 1] === 'Não sei', 'P10/P13: "Não sei" com o texto novo e por último');
-check(P(10).marcadores.Idade[0] === 'Até 10 anos (infantil)' && JSON.stringify(P(10).marcadores['Onde mora']) === JSON.stringify(LUGARES) && JSON.stringify(P(10).marcadores[DOR]) === JSON.stringify(DORES), 'P10: faixa infantil, onde vivem e problema com as opções do relatório');
+check(P(10).rotulo_naosei === 'Ainda não tenho clientes' && !P(13).rotulo_naosei && P(13).opcoes[P(13).opcoes.length - 1] === 'Não sei' && !P(13).opcoes.includes('Indicação (boca a boca)'), 'P10/P13: "Ainda não defini" = "Não sei" (uma opção só); indicação foi para "como fica sabendo"');
+check(P(10).marcadores.Idade[0] === 'Até 10 anos (infantil)' && JSON.stringify(P(10).marcadores['Onde mora']) === JSON.stringify(LUGARES) && JSON.stringify(P(10).marcadores[DOR]) === JSON.stringify(DORES)
+  && Object.values(P(10).marcadores).every((xs) => !xs.some((x) => /^Não sei/.test(x))), 'P10: opções do relatório, sem "Não sei" nos marcadores');
 check(P(10).caminhos.find((c) => c.opcao === 'Campos complementares incompletos').texto === 'Preencha o que você já sabe.', 'P10: dica sem "o que ficar de fora dá para completar depois"');
 check(!P(12).exemplos && !P(7).exemplos, 'P12/P07: sem as opções que apareciam no Não sei');
 check(P(15).pergunta === 'Quem já vende o mesmo que você, ou algo bem parecido?' && P(15).campos_min === 3, 'P15: enunciado curto e pelo menos 3 campos');
@@ -105,7 +136,7 @@ const COM_NS = VISIVEIS.filter((q) => q.naosei);
 const iaTexto = (q) => q.promptIA ? `Prompt: "${q.promptIA}"` : (q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto || '';
 const adaptarSemM1 = (t) => t;   // sem o Módulo 1 no aparelho, o texto do pedido aparece como está nos dados
 const iaDe = (q) => q.promptIA || ((q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto ? Motor.partesPrompt(q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA').texto).prompt : '');
-check(COM_NS.length === 14 && COM_NS.every((q) => Array.isArray(q.comoDescobrir) && q.comoDescobrir.length === 2 && q.comoDescobrir.every((s) => s.trim().length > 20) && iaDe(q)), `leve: todo "Não sei" à vista tem 2 passos e um pedido para a IA (${COM_NS.filter((q) => !(q.comoDescobrir && iaDe(q))).map((q) => q.codigo)})`);
+check(COM_NS.length === 13 && COM_NS.every((q) => Array.isArray(q.comoDescobrir) && q.comoDescobrir.length === 2 && q.comoDescobrir.every((s) => s.trim().length > 20) && iaDe(q)), `leve: todo "Não sei" à vista tem 2 passos e um pedido para a IA (${COM_NS.filter((q) => !(q.comoDescobrir && iaDe(q))).map((q) => q.codigo)})`);
 check(COM_NS.filter((q) => q.promptIA).every((q) => /^Eu vendo \[produto ou serviço\]/.test(q.promptIA) && /Me faça 5 perguntas simples/.test(q.promptIA)), 'leve: pedidos novos no mesmo gabarito (Eu vendo [..], 5 perguntas)');
 check(!/chatgpt|gemini|copilot|claude/i.test(JSON.stringify(D)), 'leve: nenhuma marca de IA nos textos');
 check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 && D.inicio.minutos > 0, 'leve: capa com uma frase e o tempo');
@@ -153,7 +184,8 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   async function shot(nome) { if (!SHOTS) return; await espera(400); fs.mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: path.join(SHOTS, nome + '.png'), fullPage: false }); }
 
   /* abre a pergunta n com respostas anteriores (P02 = Sim quando a pergunta é de 3 a 8) */
-  async function abrir(n, R = {}, outros = {}, txt = null, v = 7) {
+  const abreCod = async (cod, txt) => { await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera(); await clicar('#ir', 'Começar'); await espera(); while (norm(await titulo()) !== norm(txt)) { const t=await titulo(); if (t.includes('escolhem no lugar') || t.includes('escolher no lugar')) { if(cod==='M3.P03') break; const op=page.locator('#ent .opcao').first(); await op.click(); await page.locator('#ok').click(); } else if (t.includes('Em que ramo')) { await page.locator('#ent textarea').fill('Meu negócio de teste'); await page.locator('#ok').click(); } else if (t.includes('buscando vender')) { await page.locator('#ent .opcao').filter({hasText:'Sim'}).first().click(); await page.locator('#ok').click(); } else { throw new Error('unexpected navigation '+t); } await espera(); } };
+  async function abrir(n, R = {}, outros = {}, txt = null, v = 8) {
     const base = n >= 3 && n <= 8 ? { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } } : {};
     await page.goto(URL);
     await page.evaluate(([k, s, o]) => { localStorage.clear(); localStorage.setItem(k, s); Object.entries(o).forEach(([c, x]) => localStorage.setItem(c, JSON.stringify(x))); },
@@ -185,7 +217,8 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   await shot('l4_m03_capa');
 
   /* ============ 2. dica junto da pergunta (sem tocar em nada) ============ */
-  for (const n of TELAS_SIM) {
+  for (const n of TELAS_SIM.filter((n) => Number(n) !== 3)) {
+    if (Number(n) === 3) continue;
     await abrir(n);
     const pal = await palavrasTela();
     check(pal <= 60, `pergunta ${n}: tela com até 60 palavras antes de tocar (${pal})`);
@@ -203,75 +236,193 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
     await semCodigos(`pergunta ${n}`);
   }
 
-  /* ============ 3. "Não sei": sugestão sem segundo campo; só segue depois de escrever no campo da pergunta ============ */
-  const ABERTAS = [1, 3, 4, 5, 8, 12, 14, 15, 18, 20, 22];
-  for (const n of ABERTAS) {
-    await abrir(n);
-    const nsBtn = await page.locator('#ns').count();
-    check(nsBtn === 1, `pergunta ${n}: botão Não sei`);
+  /* ============ 3. P03: alternativas estruturadas, exemplos por tipo, compatibilidade texto antigo ============ */
+  await abreCod('M3.P03', 'Quando alguém precisa de Meu negócio de teste, o que pode escolher no lugar?');
+  await shot('m03_depois_p03');
+  check(await page.locator('#ent .opcao').count() === 4, 'P03: quatro tipos de alternativa');
+  await page.locator('#ent .opcao').nth(1).click(); await espera();
+  const p3 = await page.evaluate(() => ({ label: document.querySelector('#ent .opcao.sel .op-ex')?.textContent, hidden: document.querySelector('.alt-quais')?.hidden, text: document.querySelector('.q')?.textContent }));
+  check(p3.label && /Ex\.:/.test(p3.label) && p3.hidden === false, 'P03: exemplo concreto e campo "Quais?"');
+  await page.locator('.alt-quais input').fill('sorvete do mercado'); await clicar('#ok','Continuar'); await espera();
+  check((await RR())['M3.P03']?.tipos?.length === 1 && (await RR())['M3.P03']?.quais, 'P03: grava tipos e quais em estrutura');
+
+  /* H: revisão dos yes/no existentes: P02 é situação própria; P12 é avaliação da própria pessoa, sem "Não sei". */
+  check(!['M3.P02','M3.P12'].some((c) => Q[c].naosei) && JSON.stringify(Q['M3.P02'].opcoes) === JSON.stringify(['Sim','Não']), 'H: yes/no próprios só Sim/Não');
+
+  /* lote 16/11 focused smoke: question numbering follows the expanded order */
+  const ordem = Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } }, {}).flat();
+  check(ordem[2] === 'M3.P03' && ordem.indexOf('M3.P12B') === ordem.indexOf('M3.P12') + 1 && ordem.indexOf('M3.P13A') < ordem.indexOf('M3.P13') && ordem.includes('M3.P22B'), 'numeração: continua ordenada após as novas perguntas');
+  /* G/H/I */
+  check(Q['M3.P09'].caminhos.some(c => c.opcao === 'Também fora do Brasil' && c.tipo === 'Dica') && Q['M3.P09'].dica.includes('frete'), 'G: orientação de alcance/frete está na dica');
+  check(Q['M3.P13'].caminhos.filter(c => c.tipo === 'Dica').length === 1 && Q['M3.P13A'].caminhos.every(c => c.tipo !== 'Dica'), 'G: informação geral das opções comerciais foi para as dicas');
+  check(!Q['M3.P02'].naosei && !Q['M3.P12'].naosei && ['Sim','Não'].every(x => Q['M3.P02'].opcoes.includes(x)), 'H: sim/não sobre situação própria só Sim/Não');
+  /* J: estado legado sem versão, mesma forma v/R/hist do backup; dados inventados, sem texto real. */
+  await page.evaluate(() => { localStorage.setItem('lg2-turma-a-m03', JSON.stringify({ R: {
+    'M3.P01': { estado:'valor', valor:'Produto inventado' }, 'M3.P02': { estado:'opcao', opcao:'Sim' },
+    'M3.P03': { estado:'valor', valor:'Alternativa antiga inventada' }, 'M3.P10': { estado:'opcao', opcao:'Pessoas comuns (consumidor final)', opcoes:['Pessoas comuns (consumidor final)'], campos:{'Idade':'Adulto inventado'} },
+    'M3.P12': { estado:'valor', valor:'Barreira inventada' }, 'M3.P14': { estado:'campos', campos:{'O que você faz de melhor':'Ponto forte inventado','O que precisa melhorar':'Ponto a melhorar inventado'} },
+    'M3.P15': { estado:'valor', valor:'Loja inventada', nomes:['Loja inventada'] }, 'M3.P22': { estado:'campos', campos:{'O que os outros fazem bem':'Força inventada','Onde os outros deixam a desejar':'Falha inventada'} }
+  }, hist:['M3.P03'] })); }); await page.reload(); await espera();
+  const mig=await RR();
+  check(mig['M3.P03']?.valor==='Alternativa antiga inventada' && mig['M3.P12']?.opcao==='Sim, seria difícil' && mig['M3.P12B']?.valor==='Barreira inventada' && mig['M3.P14']?.valor==='Ponto forte inventado' && mig['M3.P14B']?.valor==='Ponto a melhorar inventado' && mig['M3.P15']?.nomes?.[0]==='Loja inventada' && mig['M3.P22']?.valor==='Força inventada' && mig['M3.P22B']?.valor==='Falha inventada', 'J: resposta antiga e campos preservados sem versão');
+  await clicar('#ir','Continuar de onde parei'); await espera();
+  check((await page.locator('.antigo').textContent()).includes('Você tinha escrito: Alternativa antiga inventada'), 'J: resposta antiga da P03 aparece no novo campo');
+  /* Dois concorrentes recebem campos independentes, sem perder o valor-compatibilidade. */
+  await page.evaluate(() => localStorage.setItem('lg2-turma-a-m03', JSON.stringify({v:8,R:{'M3.P02':{estado:'opcao',opcao:'Sim'},'M3.P15':{estado:'valor',valor:'Padaria X, Mercado Y',nomes:['Padaria X','Mercado Y']}},hist:['M3.P18']})));
+  await page.reload(); await espera(); await clicar('#ir','Continuar de onde parei'); await espera();
+  check(await page.locator('.conc-bloco').count()===2, 'concorrentes: dois blocos por nome');
+  const cs=page.locator('.conc-bloco textarea'); await cs.nth(0).fill('Abre cedo, entrega no bairro'); await cs.nth(1).fill('Abre tarde, vende no balcão');
+  await clicar('#ok','Continuar'); await espera(); const cr=(await RR())['M3.P18'];
+  check(cr?.porNome?.['Padaria X']==='Abre cedo, entrega no bairro' && cr?.porNome?.['Mercado Y']==='Abre tarde, vende no balcão' && /Padaria X:/.test(cr.valor) && /Mercado Y:/.test(cr.valor), 'concorrentes: campos separados e valor legível');
+  await page.evaluate(() => { const s=JSON.parse(localStorage.getItem('lg2-turma-a-m03')||'{"v":8,"R":{},"hist":[]}'); s.v=8; s.hist=['RESULTADO']; localStorage.setItem('lg2-turma-a-m03',JSON.stringify(s)); }); await page.reload(); await espera(); await clicar('#ir','Continuar de onde parei'); await espera();
+  check(await page.locator('details').count() > 0 && await page.locator('details:not([open])').count() === 0, `I: todas as seções recolhíveis do resultado abrem por padrão (${await page.locator('details').count()} total, ${await page.locator('details:not([open])').count()} fechadas: ${await page.locator('details:not([open])').evaluateAll(xs=>xs.map(x=>x.className+':'+x.textContent.trim()).join('|'))}, ${await titulo()})`);
+
+
+  /* ================================================================================================
+     Cobertura restaurada (lote 16/11): os cenários do teste antigo de 17 telas, adaptados ao fluxo novo
+     (22 telas, perguntas duplas separadas, concorrentes um a um, herança que pula a tela, "Não sei" que bloqueia).
+     ================================================================================================ */
+  const hist = async () => (await estado()).hist;
+  const atual = async () => { const h = await hist(); return h[h.length - 1]; };
+  const kicker = () => page.evaluate(() => (document.querySelector('.passo') || {}).textContent || '');
+  const marcaC = (nome, c, i) => page.evaluate(([n, c, i]) => { const b = [...document.querySelectorAll('.conc-bloco')].find((x) => x.dataset.nome === n);
+    [...b.querySelectorAll('.t-linha')].find((x) => x.dataset.crit === c).querySelectorAll('.t-op')[i].click(); }, [nome, c, i]);
+  const concTxt = (nome, v) => page.locator(`.conc-bloco[data-nome="${nome}"] textarea`).fill(v);
+  const concPreco = async (nome, a, b) => { await page.locator(`.conc-bloco[data-nome="${nome}"] input[data-c="min"]`).fill(a); await page.locator(`.conc-bloco[data-nome="${nome}"] input[data-c="max"]`).fill(b); };
+  const caixasR = (sel) => page.evaluate((sel) => [...document.querySelectorAll(sel)].map((b) => ({ tipo: b.dataset.tipo, tit: b.querySelector('b').textContent,
+    aviso: (b.querySelector('.ia-aviso') || {}).textContent || '', conferir: (b.querySelector('.conferir') || {}).textContent || '', prompt: (b.querySelector('.prompt-txt') || {}).textContent || '',
+    copiar: (b.querySelector('.btn-copiar') || {}).textContent || '', nota: (b.querySelector('.como-nota') || {}).textContent || '', roteiro: (b.querySelector('.btn-roteiro') || {}).textContent || '' })), sel);
+  const T3 = SEMCOL(P(3).pergunta);
+  const textoNS = (q) => q.promptIA ? `Prompt: "${q.promptIA}"` : (q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto || '';
+
+  /* ============ R1. "Não sei" BLOQUEIA (perguntas com botão): ajuda, nada gravado, Continuar não anda; depois responde ============ */
+  const NS_CASOS = [['3', {}, 'alt'], ['4', {}, 'texto'], ['8', {}, 'texto'], ['12B', {}, 'texto'], ['15', {}, 'lista'],
+    ['18', NOMES1, 'conc'], ['20', NOMES1, 'preco'], ['22', NOMES1, 'conc'], ['22B', NOMES1, 'conc']];
+  const NOTA_POR = { alt: NOTA_NS_MARQUE_T, texto: NOTA_NS_T, lista: NOTA_NS_T, conc: NOTA_NS_CONC_T, preco: NOTA_NS_CONC_T };
+  for (const [n, R0, tipo] of NS_CASOS) {
+    await abrir(n, R0, {}, n === '3' ? T3 : null);
+    check(await page.locator('#ns').count() === 1 && norm(await page.locator('#ns').textContent()) === 'Não sei', `pergunta ${n}: botão Não sei`);
+    const antes = JSON.stringify(await estado());
     await clicar('#ns', 'Não sei'); await espera();
-    const cx = await caixas('#ajudans .caminho');
-    check(JSON.stringify(cx.map((c) => c.tipo)) === '["Prompt de IA"]', `pergunta ${n} Não sei: mostra um pedido pronto para a IA (${cx.map((c) => c.tipo)})`);
+    const cx = await caixasR('#ajudans .caminho');
+    check(cx.length === 1 && cx[0].tipo === 'Prompt de IA', `pergunta ${n} Não sei: um pedido pronto para a IA (${cx.map((c) => c.tipo)})`);
     const como = await page.evaluate(() => { const s = document.querySelector('#ajudans .como-descobrir'); return s && { t: s.querySelector('.como-tit').textContent, li: [...s.querySelectorAll('li')].map((x) => x.textContent.trim()),
-      copiar: (document.querySelector('#ajudans .btn-copiar') || {}).textContent, nota: (document.querySelector('#ajudans .b-ia .como-nota') || {}).textContent, prim: document.querySelector('#ajudans').firstElementChild === s }; });
-    check(como && como.t === 'Como descobrir' && como.prim && como.li.length === 2 && como.li.every((x) => x.length > 20) && JSON.stringify(como.li) === JSON.stringify(P(n).comoDescobrir), `pergunta ${n} Não sei: "Como descobrir" com os 2 passos dos dados`);
-    check(como && como.copiar === 'Copiar' && como.nota === 'Copie, cole numa IA de sua preferência e troque o que está entre colchetes.' && cx[0].prompt === Motor.partesPrompt(adaptarSemM1(iaTexto(P(n)))).prompt, `pergunta ${n} Não sei: pedido para a IA com Copiar e a nota sem marca`);
-    check(!(await RR())[COD(n)], `pergunta ${n} Não sei: nada é gravado ao tocar`);
-    const campos = await page.evaluate(() => ({ fora: document.querySelectorAll('#ajudans textarea, #ajudans input, #msg textarea, #msg input').length, frase: !!document.querySelector('.frase'), nota: (document.querySelector('#nota-ns') || {}).textContent || '' }));
-    check(campos.fora === 0 && !campos.frase, `pergunta ${n} Não sei: nenhum segundo campo de resposta`);
-    check(/escreva a sua resposta no campo da pergunta/i.test(campos.nota), `pergunta ${n} Não sei: diz para responder no campo da pergunta`);
-    for (const c of cx.filter((c) => c.tipo === 'Prompt de IA')) {
-      check(c.tit === 'USE A IA COM CUIDADO' && norm(c.aviso) === AVISO_IA && norm(c.conferir) === CONFERIR_IA && /Me faça 5 perguntas/.test(c.prompt), `pergunta ${n}: aviso de IA antes do prompt e frase de conferir depois`);
-    }
+      intro: (s.querySelector('.como-ns-intro') || {}).textContent || '', prim: document.querySelector('#ajudans').firstElementChild === s }; });
+    check(como && como.t === 'Como descobrir' && como.prim && JSON.stringify(como.li) === JSON.stringify(P(n).comoDescobrir), `pergunta ${n} Não sei: "Como descobrir" com os 2 passos dos dados`);
+    if (n === '3') check(como && como.intro === P(3).caminhos.find((c) => c.opcao === 'Não sei').texto, 'pergunta 3 Não sei: a dica do grupo abre a caixa');
+    check(cx[0] && cx[0].copiar === 'Copiar' && cx[0].nota === 'Copie, cole numa IA de sua preferência e troque o que está entre colchetes.' && cx[0].prompt === Motor.partesPrompt(textoNS(P(n))).prompt,
+      `pergunta ${n} Não sei: pedido para a IA com Copiar e a nota sem marca`);
+    check(cx[0] && cx[0].tit === 'USE A IA COM CUIDADO' && norm(cx[0].aviso) === AVISO_IA && norm(cx[0].conferir) === CONFERIR_IA, `pergunta ${n}: aviso de IA antes do prompt e frase de conferir depois`);
+    check(cx[0] && cx[0].roteiro === 'Ver o roteiro de entrevista', `pergunta ${n}: botão do roteiro dentro do aviso de IA`);
+    check(JSON.stringify(await estado()) === antes, `pergunta ${n} Não sei: nada é gravado ao tocar`);
+    const campos = await page.evaluate(() => ({ fora: document.querySelectorAll('#ajudans textarea, #ajudans input').length, nota: (document.querySelector('#nota-ns') || {}).textContent || '' }));
+    check(campos.fora === 0 && campos.nota === NOTA_POR[tipo], `pergunta ${n} Não sei: sem segundo campo; nota manda responder na pergunta (${campos.nota})`);
     await clicar('#ok', 'Continuar'); await espera();
     const e = await erroTxt();
-    check(await naTela(n) && e && !(await RR())[COD(n)], `pergunta ${n} Não sei + Continuar vazio: não avança nem grava (${e})`);
-    if (n === 3 || n === 4) check(e === MSG_ESCREVA, `pergunta ${n}: mensagem pede a resposta no campo`);
-    if (n === 4) { await page.evaluate(() => document.querySelector('.b-ia').scrollIntoView({ block: 'center' })); await shot('l4_m03_nao_sei_ia'); await fonte16('pergunta com prompt'); }
-    /* responde no campo original e segue */
-    if (n === 20) { await digitar('40', 0); await digitar('60', 1); }
-    else if (n === 14 || n === 22) { await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); }
-    else if (n === 15) { await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana'); }
+    const esperado = tipo === 'alt' ? MSG_AJUDA_MARQUE : tipo === 'lista' ? 'Escreva pelo menos um nome para continuar. Se não souber, toque em “Não sei” para ver como descobrir.' : MSG_AJUDA;
+    check(e === esperado && JSON.stringify(await estado()) === antes, `pergunta ${n} Não sei + Continuar: não avança nem grava (${e})`);
+    check(norm(await titulo()) === norm(n === '3' ? T3 : P(n).pergunta), `pergunta ${n} Não sei + Continuar: continua na mesma tela`);
+    if (n === '4') { await page.evaluate(() => document.querySelector('.b-ia').scrollIntoView({ block: 'center' })); await shot('l5_m03_nao_sei_ia'); await fonte16('pergunta com a ajuda do Não sei'); }
+    /* responde de verdade e segue */
+    if (tipo === 'alt') await page.locator('#ent .opcao').nth(2).click();
+    else if (tipo === 'lista') await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana');
+    else if (tipo === 'conc') await concTxt('Doces da Ana', TEXTO_OK);
+    else if (tipo === 'preco') await concPreco('Doces da Ana', '40', '60');
     else await digitar(TEXTO_OK);
-    check(await page.evaluate(() => document.querySelectorAll('#ajudans .caminho').length > 0), `pergunta ${n}: a sugestão continua à vista enquanto escreve`);
+    check(await page.evaluate(() => document.querySelectorAll('#ajudans .caminho').length > 0), `pergunta ${n}: a sugestão continua à vista enquanto responde`);
     await clicar('#ok', 'Continuar'); await espera();
     const r = (await RR())[COD(n)];
-    check(r && r.estado === 'valor', `pergunta ${n}: grava a resposta escrita (não "Não sei")`);
-    if (PROX(n)) check(await naTela(PROX(n)), `pergunta ${n}: segue para a pergunta ${PROX(n)}`);
+    check(r && r.estado === 'valor', `pergunta ${n}: grava a resposta de verdade (não "Não sei")`);
+    check(await naTela(PROX(n)), `pergunta ${n}: segue para a pergunta ${PROX(n)}`);
+  }
+  /* pergunta de escrever sem tocar em "Não sei": a mensagem aponta o botão; sem o botão, só pede a resposta */
+  await abrir('4'); await clicar('#ok', 'Continuar'); await espera();
+  check(await erroTxt() === MSG_ESCREVA && await naTela('4') && !(await RR())['M3.P04'], 'pergunta 4 vazia: mensagem pede a resposta e aponta o Não sei');
+  await abrir('5'); await clicar('#ok', 'Continuar'); await espera();
+  check(await erroTxt() === 'Escreva a sua resposta no campo acima para continuar.' && await naTela('5'), 'pergunta 5 vazia (sem Não sei): só pede a resposta');
+  /* perguntas sobre a própria pessoa: o botão "Não sei" não existe */
+  for (const [n, R0] of [['1', {}], ['2', {}], ['5', {}], ['9', {}], ['12', {}], ['14', {}], ['14B', {}], ['21', {}], ['19', NOMES1]]) {
+    await abrir(n, R0);
+    check(await page.locator('#ns').count() === 0 && !(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].some((b) => /^Não sei/.test(b.dataset.op)))), `pergunta ${n}: sem "Não sei"`);
   }
   /* prompt copiável com [colchetes] */
-  await abrir(4); await clicar('#ns', 'Não sei'); await espera();
-  await page.locator('.btn-copiar').first().click(); await espera(300);
+  await abrir('4'); await clicar('#ns', 'Não sei'); await espera();
+  await page.locator('#ajudans .btn-copiar').first().click();
+  let rotCop = '';
+  for (let k = 0; k < 20 && rotCop !== 'Copiado'; k++) { await espera(100); rotCop = norm(await page.locator('#ajudans .btn-copiar').first().textContent()); }
   const copiado = await page.evaluate(() => navigator.clipboard.readText());
   check(copiado === Motor.partesPrompt(P(4).caminhos.find((c) => c.opcao === 'Não sei').texto).prompt && /\[cidade ou bairro\]/.test(copiado), 'prompt copiado inteiro, com [colchetes]');
-  check(norm(await page.locator('.btn-copiar').first().textContent()) === 'Copiado', 'botão mostra Copiado');
-  /* resposta antiga "Não sei" (antes deste lote): reabre com a sugestão e espera a resposta */
-  await abrir(3, { 'M3.P03': { estado: 'naosei' } });
-  check((await caixas('#ajudans .caminho')).length === 1 && await page.locator('#ajudans .como-descobrir li').count() === 2 && await page.inputValue('#ent textarea') === '', 'Não sei antigo: reabre com os passos, a sugestão e o campo vazio');
-  check(JSON.stringify((await RR())['M3.P03']) === '{"estado":"naosei"}', 'Não sei antigo: o valor salvo não muda (o diagnóstico continua lendo)');
+  check(rotCop === 'Copiado', 'botão mostra Copiado');
 
-  /* ============ 4. botão "Não" ao lado do "Não sei" ============ */
-  for (const n of [4, 12]) {
-    await abrir(n);
-    const alt = await page.evaluate(() => [...document.querySelectorAll('#alt button')].map((b) => b.textContent));
-    check(JSON.stringify(alt) === '["Não","Não sei"]', `pergunta ${n}: "Não" ao lado do "Não sei"`);
-    await clicar('#nao', 'Não'); await espera();
-    check(await page.inputValue('#ent textarea') === 'Não' && await page.evaluate(() => document.querySelector('#nao').getAttribute('aria-pressed') === 'true'), `pergunta ${n}: "Não" responde sem digitar`);
-    await clicar('#ok', 'Continuar'); await espera();
-    check(JSON.stringify((await RR())[COD(n)]) === '{"estado":"valor","valor":"Não"}' && await naTela(PROX(n)), `pergunta ${n}: "Não" grava e segue sem dica de resposta curta`);
-  }
-
-  /* ============ 5. riscos (P07): resposta fechada + Outro; Não sei não responde ============ */
-  await abrir(7);
-  const ops7 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent.trim()));
-  check(JSON.stringify(ops7) === JSON.stringify(P(7).opcoes), 'P07: opções fechadas na tela');
-  await clicar('.opcao', 'Não sei'); await espera();
-  const cx7 = await caixas('#msg .caminho');
-  check(cx7.length === 1 && cx7[0].tit === 'USE A IA COM CUIDADO' && norm(cx7[0].conferir) === CONFERIR_IA, 'P07 Não sei: sugestão da IA com o aviso');
-  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#msg .como-descobrir li')].map((x) => x.textContent))) === JSON.stringify(P(7).comoDescobrir), 'P07 Não sei: "Como descobrir" com os passos');
-  await shot('l_m03_p07_naosei');
+  /* ============ R2. roteiro de entrevista por cima da tela: fechar mantém tela, respostas e rolagem ============ */
+  await abrir('4');
+  await digitar('Rascunho que não pode sumir');
+  await clicar('#ns', 'Não sei'); await espera();
+  const antesRot = JSON.stringify(await estado());
+  await page.evaluate(() => document.activeElement.blur()); await espera(400);   // o centrar do teclado (300 ms) já rodou
+  await page.evaluate(() => document.querySelector('#ajudans .btn-roteiro').scrollIntoView({ block: 'center' }));
+  const yRot = await page.evaluate(() => Math.round(window.scrollY));
+  await page.locator('#ajudans .btn-roteiro').click(); await espera(200);
+  const yFixo = await page.evaluate(() => -parseInt(document.body.style.top || '0', 10));
+  check(yRot > 0 && yFixo === yRot, `roteiro: a tela de baixo fica parada no mesmo ponto (${yRot} / ${yFixo})`);
+  const rot = await page.evaluate(() => { const f = document.querySelector('.lg2-rot-fundo'); const d = f && f.querySelector('[role=dialog]');
+    return f && { vis: f.getBoundingClientRect().height > 0, modal: d && d.getAttribute('aria-modal'), tit: (f.querySelector('#lg2-rot-tit') || {}).textContent, uso: /Como usar este roteiro/.test(f.textContent),
+      inerte: document.querySelector('#tela').closest('[inert]') !== null || document.querySelector('#tela').inert }; });
+  check(rot && rot.vis && rot.modal === 'true' && rot.tit === 'Roteiro de entrevista' && rot.uso, `roteiro: abre o painel por cima da pergunta (${JSON.stringify(rot)})`);
+  check(rot && rot.inerte, 'roteiro: a tela de baixo fica inerte enquanto o painel está aberto');
+  await shot('l5_m03_roteiro');
+  await page.locator('.lg2-rot-fechar').click(); await espera(150);
+  const depoisRot = await page.evaluate(() => ({ aberto: !!document.querySelector('.lg2-rot-fundo'), y: Math.round(document.scrollingElement.scrollTop), txt: document.querySelector('#ent textarea').value,
+    ajuda: document.querySelectorAll('#ajudans .caminho').length, body: document.body.getAttribute('style') }));
+  check(!depoisRot.aberto && await naTela('4') && depoisRot.txt === 'Rascunho que não pode sumir' && depoisRot.ajuda === 1, `roteiro: Fechar volta à mesma pergunta com o texto e a ajuda (${JSON.stringify(depoisRot)})`);
+  check(Math.abs(depoisRot.y - yRot) <= 1 && !/position:\s*fixed/.test(depoisRot.body || ''), `roteiro: Fechar devolve a rolagem (${yRot} → ${depoisRot.y})`);
+  check(JSON.stringify(await estado()) === antesRot, 'roteiro: abrir e fechar não grava nem apaga respostas');
+  await page.locator('#ajudans .btn-roteiro').click(); await espera(150);
+  await page.keyboard.press('Escape'); await espera(150);
+  check(!(await page.locator('.lg2-rot-fundo').count()) && await naTela('4') && await page.inputValue('#ent textarea') === 'Rascunho que não pode sumir', 'roteiro: Esc também fecha e mantém a tela');
   await clicar('#ok', 'Continuar'); await espera();
-  check(await naTela(7) && (await caixas('#msg .caminho')).some((c) => c.tipo === 'Alerta' && c.txt === 'Marque pelo menos uma opção para continuar.') && !(await RR())['M3.P07'], 'P07: só "Não sei" não deixa seguir');
+  check((await RR())['M3.P04'].valor === 'Rascunho que não pode sumir' && await naTela('5'), 'roteiro: depois de fechar, a resposta segue normalmente');
+  /* também na pergunta de marcar (caixa do "Não sei" no retorno) */
+  await abrir('7'); await page.locator('#ent .opcao[data-op="Não sei"]').click(); await espera();
+  await page.locator('#msg .btn-roteiro').click(); await espera(150);
+  check(await page.locator('.lg2-rot-fundo').count() === 1, 'roteiro: abre também na pergunta de marcar');
+  await page.locator('.lg2-rot-fechar').click(); await espera(150);
+  check(!(await page.locator('.lg2-rot-fundo').count()) && await naTela('7') && await page.evaluate(() => document.querySelector('#ent .opcao[data-op="Não sei"]').classList.contains('sel')), 'roteiro: fechar mantém a marcação da pergunta de marcar');
+
+  /* ============ R3. botão "Não" (só na novidade) e escolha da pergunta 12 com o desvio para 12B ============ */
+  await abrir('4');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#alt button')].map((b) => b.textContent))) === '["Não","Não sei"]', 'pergunta 4: "Não" ao lado do "Não sei"');
+  await clicar('#nao', 'Não'); await espera();
+  check(await page.inputValue('#ent textarea') === 'Não' && await page.evaluate(() => document.querySelector('#nao').getAttribute('aria-pressed') === 'true'), 'pergunta 4: "Não" responde sem digitar');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P04']) === '{"estado":"valor","valor":"Não"}' && await naTela('5'), 'pergunta 4: "Não" grava e segue sem dica de resposta curta');
+  await abrir('12');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.dataset.op))) === JSON.stringify(P(12).opcoes) && await page.locator('#nao').count() === 0, 'pergunta 12: escolha fechada, sem botão "Não"');
+  await clicar('.opcao', 'Não, seria fácil'); await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('13A') && JSON.stringify((await RR())['M3.P12']) === '{"estado":"opcao","opcao":"Não, seria fácil"}', 'pergunta 12 "seria fácil": pula "o que dificultaria" e vai para "como ficam sabendo"');
+  await clicar('#v', 'Voltar'); await espera();
+  check(await naTela('12') && await page.evaluate(() => document.querySelector('#ent .opcao.sel').dataset.op) === 'Não, seria fácil', 'Voltar: volta à 12 com a escolha marcada');
+  await clicar('.opcao', 'Sim, seria difícil'); await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('12B'), 'pergunta 12 "seria difícil": abre "o que dificultaria"');
+  await page.goto(URL);
+  await page.evaluate((k) => { localStorage.setItem(k, JSON.stringify({ v: 8, R: { 'M3.P12': { estado: 'opcao', opcao: 'Sim, seria difícil' }, 'M3.P12B': { estado: 'valor', valor: 'Receita da família' } }, hist: ['M3.P12'] })); }, CHAVE);
+  await page.reload(); await clicar('#ir', 'Continuar de onde parei'); await espera();
+  await clicar('.opcao', 'Não, seria fácil'); await clicar('#ok', 'Continuar'); await espera();
+  check(!(await RR())['M3.P12B'], 'pergunta 12 trocada para "seria fácil": a resposta de 12B (que sumiu do caminho) é descartada');
+
+  /* ============ R4. riscos (P07): marcar várias; "Não sei" sozinho não responde; Outro pede texto ============ */
+  await abrir('7');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent.trim()))) === JSON.stringify(P(7).opcoes), 'P07: opções fechadas na tela');
+  check(await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'group' && /Marque quantas quiser/.test(document.querySelector('.pergunta').textContent)), 'P07: de marcar várias');
+  const antes7 = JSON.stringify(await estado());
+  await page.locator('#ent .opcao[data-op="Não sei"]').click(); await espera();
+  const cx7 = await caixasR('#msg .caminho');
+  check(cx7.length === 1 && cx7[0].tit === 'USE A IA COM CUIDADO' && norm(cx7[0].conferir) === CONFERIR_IA && cx7[0].roteiro === 'Ver o roteiro de entrevista', 'P07 Não sei: sugestão da IA com o aviso');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#msg .como-descobrir li')].map((x) => x.textContent))) === JSON.stringify(P(7).comoDescobrir), 'P07 Não sei: "Como descobrir" com os passos');
+  check(JSON.stringify(await estado()) === antes7, 'P07 Não sei: nada é gravado ao tocar');
+  await shot('l5_m03_p07_naosei');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('7') && (await caixasR('#msg .caminho')).some((c) => c.tipo === 'Alerta') && await page.evaluate(() => /Marque pelo menos uma opção para continuar\./.test(document.querySelector('#msg').textContent)) && JSON.stringify(await estado()) === antes7, 'P07: só "Não sei" não deixa seguir');
   check(await page.locator('#msg .como-descobrir').count() === 1, 'P07: os passos continuam à vista depois do aviso');
   await clicar('.opcao', 'Preço dos insumos subindo'); await clicar('.opcao', 'Outro'); await espera();
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op))) === '["Preço dos insumos subindo","Outro"]', 'P07: marcar uma opção tira o "Não sei"');
@@ -279,237 +430,374 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(await erroTxt() === 'Escreva o que é “Outro” ou desmarque essa opção.', 'P07: Outro vazio pede o texto');
   await page.locator('.extra textarea').fill('Chuva forte esvazia a feira');
   await clicar('#ok', 'Continuar'); await espera();
-  check(JSON.stringify((await RR())['M3.P07']) === JSON.stringify({ estado: 'opcoes', opcoes: ['Preço dos insumos subindo', 'Outro'], detalhe: 'Chuva forte esvazia a feira' }) && await naTela(8), 'P07: grava opções + Outro e segue');
-  await abrir(7, { 'M3.P07': { estado: 'valor', valor: 'Concorrente abriu do lado' } });
+  check(JSON.stringify((await RR())['M3.P07']) === JSON.stringify({ estado: 'opcoes', opcoes: ['Preço dos insumos subindo', 'Outro'], detalhe: 'Chuva forte esvazia a feira' }) && await naTela('8'), 'P07: grava opções + Outro e segue');
+  await abrir('7', { 'M3.P07': { estado: 'valor', valor: 'Concorrente abriu do lado' } });
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op))) === '["Outro"]' && await page.inputValue('.extra textarea') === 'Concorrente abriu do lado', 'P07: resposta antiga em texto reabre como "Outro" com o texto');
 
-  /* ============ 6. perfil do cliente (P10) ============ */
-  await abrir(10);
+  /* ============ R5. perfil do cliente (P10) ============ */
+  await abrir('10');
   check(await page.evaluate(() => document.querySelector('#ns').textContent) === 'Ainda não tenho clientes', 'P10: "Não sei" virou "Ainda não tenho clientes"');
+  const antes10 = JSON.stringify(await estado());
   await clicar('#ns', 'Ainda não tenho clientes'); await espera();
-  const cx10 = await caixas('#ajudans .caminho');
+  const cx10 = await caixasR('#ajudans .caminho');
   check(cx10.length === 1 && cx10[0].tit === 'USE A IA COM CUIDADO' && /ainda não tenho clientes/.test(cx10[0].prompt) && /cliente ideal/.test(cx10[0].prompt), 'P10: sugestão de cliente ideal com o aviso de IA');
-  check(await page.locator('#ajudans .como-descobrir li').count() === 2, 'P10: "Como descobrir" com 2 passos');
-  check(/marque acima quem você imagina/.test(await page.evaluate(() => document.querySelector('#nota-ns').textContent)) && !/lista de “Não sei”/.test(await tela()), 'P10: pede para marcar quem compraria (sem seguir com "Não sei")');
+  check(await page.locator('#ajudans .como-descobrir li').count() === 2 && JSON.stringify(await estado()) === antes10, 'P10: "Como descobrir" com 2 passos e nada gravado');
+  check(await page.evaluate(() => document.querySelector('#nota-ns').textContent) === NOTA_NS_PERFIL_T, 'P10: pede para marcar quem compraria');
   await clicar('#ok', 'Continuar'); await espera();
-  check(await naTela(10) && /Escolha uma opção acima/.test(await erroTxt()) && !(await RR())['M3.P10'], 'P10: quem mais compra é obrigatório');
+  check(await naTela('10') && /Escolha uma opção acima/.test(await erroTxt()) && !(await RR())['M3.P10'], 'P10: quem mais compra é obrigatório');
   await clicar('.opcao', PESSOAS); await espera();
   const rot10 = await page.evaluate(() => [...document.querySelectorAll('.campos .item > span')].map((s) => s.textContent));
   check(JSON.stringify(rot10) === JSON.stringify(['Idade', 'Renda', 'Ocupação', 'Onde vivem os seus clientes?', 'Qual principal problema ou necessidade eles buscam resolver?']), `P10: perguntas do perfil (${rot10.join(' | ')})`);
   check(await page.evaluate(() => document.querySelectorAll('.campos .item-marcar').length === 5 && document.querySelectorAll('.campos .campo-outro').length === 1), 'P10: todos os itens com opções; "Outro" com campo');
-  check(await page.evaluate(() => [...document.querySelectorAll('.item-marcar[data-c="Idade"] .chip')].some((c) => c.textContent === 'Até 10 anos (infantil)')), 'P10: faixa etária infantil');
+  check(!(await page.evaluate(() => [...document.querySelectorAll('.campos .chip')].some((c) => /^Não sei/.test(c.textContent)))), 'P10: nenhum "Não sei" nas marcas do perfil');
   check(await page.evaluate(() => document.querySelector('.campo-outro').offsetParent === null), 'P10: campo do Outro fechado até marcar');
   await clicar('.item-marcar[data-c="Onde mora"] .chip', 'Em vários bairros da minha cidade');
-  await clicar('.item-marcar[data-c="Onde mora"] .chip', 'Não sei dizer');
-  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.item-marcar[data-c="Onde mora"] .chip.sel')].map((c) => c.textContent))) === '["Não sei dizer"]', 'P10: "Não sei dizer" é exclusivo');
   await clicar('.item-marcar[data-c="Onde mora"] .chip', 'No meu bairro ou arredores (local)');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.item-marcar[data-c="Onde mora"] .chip.sel')].map((c) => c.textContent))) === JSON.stringify([LUGARES[0], LUGARES[1]]), 'P10: marcas de várias opções no mesmo item');
+  await clicar('.item-marcar[data-c="Onde mora"] .chip', 'Em vários bairros da minha cidade');
   await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]);
   await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', 'Outro'); await espera();
   await page.locator('.campo-outro').fill('Festa de aniversário');
   await clicar('.chip', 'Até 10 anos (infantil)');
-  await shot('l4_m03_perfil');
   await clicar('#ok', 'Continuar'); await espera();
   check(await clicar('#ok', 'Continuar mesmo assim'), 'P10: perfil incompleto não trava (Continuar mesmo assim)');
   await espera();
-  let R = await RR();
-  check(R['M3.P10'].opcao === PESSOAS && R['M3.P10'].campos['Onde mora'] === 'No meu bairro ou arredores (local)' && R['M3.P10'].campos[DOR] === `${DORES[1]}; Outro: Festa de aniversário` && R['M3.P10'].campos.Idade === 'Até 10 anos (infantil)',
-    `P10: marcas guardadas como texto, no formato que os outros módulos leem (${JSON.stringify(R['M3.P10'].campos)})`);
-  check(R['M3.P11'] && R['M3.P11'].valor === `${DORES[1]}; Festa de aniversário` && R['M3.P11'].doPerfil, 'P10: o problema marcado vai para a pergunta escondida da dor');
-  check(await naTela(12), 'P10: segue para a 12 (a pergunta da dor está escondida)');
-  /* herança do Módulo 2: tipo de cliente e marcas */
-  const M2 = { v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Os dois' }, 'M2.P11': { estado: 'opcao', opcao: 'Meu bairro' }, 'M2.P13': { estado: 'opcao', opcao: 'Qualidade' }, 'M2.P09': { estado: 'opcao', opcao: 'Idosos/aposentados' } } };
-  await abrir(10, {}, { 'lg2-turma-b-m02': M2 });
-  const h2 = await page.evaluate(() => ({ sel: [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op), selo: (document.querySelector('.selo-m') || {}).textContent,
-    chips: [...document.querySelectorAll('.campos .chip.sel')].map((c) => c.textContent), nota: (document.querySelector('.nota-perfil') || {}).textContent }));
-  check(JSON.stringify(h2.sel) === `["${PESSOAS}","Empresas"]` && h2.selo === 'Veio do Módulo 2. Confira e troque se quiser.', `P10: tipo de cliente do Módulo 2 já marcado, com selo (${JSON.stringify(h2)})`);
-  check(['60 anos ou mais', 'Aposentados', 'No meu bairro ou arredores (local)', DORES[3]].every((x) => h2.chips.includes(x)) && /já respondeu antes/.test(h2.nota || ''), 'P10: marcas do perfil vindas do Módulo 2');
-  await shot('l4_m03_perfil_modulo2');
-  await clicar('.opcao', 'Empresas'); await clicar('#ok', 'Continuar'); await espera();
-  if (await page.locator('#ok').textContent() === 'Continuar mesmo assim') await clicar('#ok', 'Continuar mesmo assim');
-  await espera();
-  R = await RR();
-  check(JSON.stringify(R['M3.P10'].opcoes) === `["${PESSOAS}"]` && R['M3.P10'].campos.Idade === '60 anos ou mais', 'P10: dá para trocar o que veio do Módulo 2');
-  check(await page.evaluate(() => localStorage.getItem('lg2-turma-b-m02')) === JSON.stringify(M2), 'Módulo 2 nunca é alterado');
+  let R5 = await RR();
+  check(R5['M3.P10'].opcao === PESSOAS && R5['M3.P10'].campos['Onde mora'] === LUGARES[0] && R5['M3.P10'].campos[DOR] === `${DORES[1]}; Outro: Festa de aniversário` && R5['M3.P10'].campos.Idade === 'Até 10 anos (infantil)',
+    `P10: marcas guardadas como texto, no formato que os outros módulos leem (${JSON.stringify(R5['M3.P10'].campos)})`);
+  check(R5['M3.P11'] && R5['M3.P11'].valor === `${DORES[1]}; Festa de aniversário` && R5['M3.P11'].doPerfil, 'P10: o problema marcado vai para a pergunta escondida da dor');
+  check(await naTela('12'), 'P10: segue para a 12 (a pergunta da dor está escondida)');
   /* sem o Módulo 2: onde vivem já vem marcado pelo que a pessoa disse sobre até onde vende */
-  await abrir(10, { 'M3.P09': { estado: 'opcao', opcao: 'Na minha região (estado e cidades próximas)' } });
+  await abrir('10', { 'M3.P09': { estado: 'opcao', opcao: 'Na minha região (estado e cidades próximas)' } });
   await clicar('.opcao', PESSOAS); await espera();
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.item-marcar[data-c="Onde mora"] .chip.sel')].map((c) => c.textContent))) === '["Em outras cidades da região"]', 'P10: onde vivem pré-marcado pela resposta de até onde vende (sem repetir)');
-  /* empresas: local também com opções */
   await clicar('.opcao', PESSOAS); await clicar('.opcao', 'Empresas'); await espera();
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.campos .item > span')].map((s) => s.textContent))) === '["Ramo","Tamanho","Equipe","Onde ficam essas empresas?"]', 'P10 Empresas: 4 itens com opções');
 
-  /* ============ 7. canais (P13) ============ */
-  await abrir(13);
-  const ops13 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent.trim()));
-  check(ops13[ops13.length - 1] === 'Ainda não defini' && ops13.length === 10, 'P13: "Ainda não defini" por último');
-  check(ops13[1] === 'WhatsApp' && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.dataset.op))) === JSON.stringify(P(13).opcoes), 'P13: rótulos curtos na tela, valores de sempre por trás');
-  await clicar('.opcao', 'Ainda não defini'); await espera();
-  const cx13 = await caixas('#msg .caminho');
-  check(cx13.length === 1 && /ainda não defini como vou vender/.test(cx13[0].prompt) && cx13[0].tit === 'USE A IA COM CUIDADO', 'P13: prompt para quem ainda não definiu, com o aviso');
-  check(await page.locator('#msg .como-descobrir li').count() === 2, 'P13: "Como descobrir" com 2 passos');
-  await clicar('#ok', 'Continuar'); await espera();
-  check(await naTela(13) && (await caixas('#msg .caminho')).some((c) => c.txt === 'Marque pelo menos um canal para continuar.'), 'P13: precisa marcar um canal');
-  await clicar('.opcao', 'WhatsApp'); await clicar('.opcao', 'Outro'); await page.locator('.extra textarea').fill('Feira de domingo');
-  await clicar('#ok', 'Continuar'); await espera();
-  check(JSON.stringify((await RR())['M3.P13']) === JSON.stringify({ estado: 'opcoes', opcoes: ['WhatsApp (WhatsApp Business)', 'Outro'], detalhe: 'Feira de domingo' }), 'P13: canais + Outro no formato que o Módulo 10 lê');
+  /* ============ R6. herança do Módulo 2: a tela do perfil é pulada e vira cartão "Veio do Módulo 2 · Trocar" ============ */
+  const M2 = { v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Os dois' }, 'M2.P11': { estado: 'opcao', opcao: 'Meu bairro' }, 'M2.P13': { estado: 'opcao', opcao: 'Qualidade' }, 'M2.P09': { estado: 'opcao', opcao: 'Idosos/aposentados' } } };
+  await abrir('12', { 'M3.P09': { estado: 'opcao', opcao: 'No meu bairro e na minha cidade' } }, { 'lg2-turma-b-m02': M2 });
+  let R6 = await RR();
+  check(R6['M3.P10'] && R6['M3.P10'].herdado === 'M2' && JSON.stringify(R6['M3.P10'].opcoes) === `["${PESSOAS}","Empresas"]` && R6['M3.P10'].campos.Idade === '60 anos ou mais' && R6['M3.P10'].campos['Ocupação'] === 'Aposentados'
+    && R6['M3.P10'].campos['Onde mora'] === LUGARES[0] && R6['M3.P10'].campos[DOR] === DORES[3], `Módulo 2: quem compra entra pronto, com as marcas do perfil (${JSON.stringify(R6['M3.P10'])})`);
+  check(!Motor.telas(MM, R6, { m2: { tipo: 'Os dois' } }).some((t) => t[0] === 'M3.P10'), 'Módulo 2: a tela do perfil não aparece de novo');
+  const card2 = await page.evaluate(() => { const c = document.querySelector('.herdado-mini[data-cod="M3.P10"]'); return c && { selo: c.querySelector('.selo-m').textContent, txt: c.querySelector('.herdado-txt').textContent, b: c.querySelector('.trocar-h').textContent,
+    antes: !!(c.compareDocumentPosition(document.querySelector('h2.q')) & Node.DOCUMENT_POSITION_FOLLOWING) }; });
+  check(card2 && card2.selo === 'Veio do Módulo 2' && card2.txt === 'Quem compra de você: Pessoas comuns e Empresas' && card2.b === 'Trocar' && card2.antes, `Módulo 2: cartão na tela seguinte, acima da pergunta (${JSON.stringify(card2)})`);
+  await shot('l5_m03_cartao_modulo2');
+  await clicar('.trocar-h', 'Trocar'); await espera();
+  const h2 = await page.evaluate(() => ({ sel: [...document.querySelectorAll('#ent .opcao.sel')].map((b) => b.dataset.op), selo: (document.querySelector('.selo-m') || {}).textContent,
+    chips: [...document.querySelectorAll('.campos .chip.sel')].map((c) => c.textContent) }));
+  check(await naTela('10') && JSON.stringify(h2.sel) === `["${PESSOAS}","Empresas"]` && h2.selo === 'Veio do Módulo 2. Confira e troque se quiser.', `Módulo 2: "Trocar" abre o perfil já marcado, com selo (${JSON.stringify(h2)})`);
+  check(['60 anos ou mais', 'Aposentados', LUGARES[0], DORES[3]].every((x) => h2.chips.includes(x)), 'Módulo 2: marcas do perfil vindas do Módulo 2');
+  await clicar('.opcao', 'Empresas'); await clicar('#ok', 'Continuar'); await espera();
+  if (await page.locator('#ok').textContent() === 'Continuar mesmo assim') await clicar('#ok', 'Continuar mesmo assim');
+  await espera();
+  R6 = await RR();
+  check(JSON.stringify(R6['M3.P10'].opcoes) === `["${PESSOAS}"]` && !R6['M3.P10'].herdado && R6['M3.P10'].campos.Idade === '60 anos ou mais' && await naTela('12'), 'Módulo 2: a troca fica guardada neste módulo e volta para a 12');
+  check(await page.locator('.herdado-mini[data-cod="M3.P10"]').count() === 0 && Motor.telas(MM, R6, { m2: { tipo: 'Os dois' } }).some((t) => t[0] === 'M3.P10'), 'Módulo 2: depois de trocar, a pergunta passa a ser da pessoa (sem cartão)');
+  check(await page.evaluate(() => localStorage.getItem('lg2-turma-b-m02')) === JSON.stringify(M2), 'Módulo 2 nunca é alterado');
 
-  /* ============ 8. concorrentes: um nome por campo; cada pergunta na sua tela ============ */
-  await abrir(15);
+  /* ============ R7. canais: como fica sabendo (P13A) e por onde compra (P13) ============ */
+  await abrir('13A');
+  await page.locator('#ent .opcao[data-op="Não sei"]').click(); await espera();
+  check((await caixasR('#msg .caminho')).length === 1 && await page.locator('#msg .como-descobrir li').count() === 2, 'P13A Não sei: passos e pedido para a IA');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('13A') && !(await RR())['M3.P13A'], 'P13A: só "Não sei" não deixa seguir');
+  await clicar('.opcao', 'Indicação (boca a boca)'); await clicar('.opcao', 'Google ou Google Maps'); await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P13A']) === JSON.stringify({ estado: 'opcoes', opcoes: ['Indicação (boca a boca)', 'Google ou Google Maps'] }) && await naTela('13'), 'P13A: grava as marcas e segue para "por onde compra"');
+  await abrir('13');
+  const ops13 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.textContent.trim()));
+  check(ops13[ops13.length - 1] === 'Não sei' && ops13.length === 9, 'P13: "Não sei" por último');
+  check(ops13[0] === 'WhatsApp' && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.dataset.op))) === JSON.stringify(P(13).opcoes), 'P13: rótulos curtos na tela, valores de sempre por trás');
+  await page.locator('#ent .opcao[data-op="Não sei"]').click(); await espera();
+  const cx13 = await caixasR('#msg .caminho');
+  check(cx13.length === 1 && /ainda não defini como vou vender/.test(cx13[0].prompt) && cx13[0].tit === 'USE A IA COM CUIDADO', 'P13: prompt para quem ainda não definiu, com o aviso');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('13') && await page.evaluate(() => /Marque pelo menos um canal para continuar\./.test(document.querySelector('#msg').textContent)), 'P13: precisa marcar um canal');
+  await clicar('.opcao', 'Aplicativo de entrega'); await espera();
+  check((await caixasR('#msg .caminho')).some((c) => c.tipo === 'Dica'), 'P13: aplicativo de entrega mostra a dica da taxa ao tocar');
+  await clicar('.opcao', 'Aplicativo de entrega'); await clicar('.opcao', 'WhatsApp'); await clicar('.opcao', 'Outro'); await page.locator('.extra textarea').fill('Feira de domingo');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P13']) === JSON.stringify({ estado: 'opcoes', opcoes: ['WhatsApp (WhatsApp Business)', 'Outro'], detalhe: 'Feira de domingo' }) && await naTela('14'), 'P13: canais + Outro no formato que o Módulo 10 lê');
+
+  /* ============ R8. concorrentes: um nome por campo ============ */
+  await abrir('15');
   check(JSON.stringify(await titulos()) === JSON.stringify([norm(P(15).pergunta)]), 'P15: sozinha na tela');
   check(await page.locator('#ent input[data-nome]').count() === 3, 'P15: 3 campos de nome');
   await clicar('#mais-nome', '+ Adicionar outro nome'); await espera();
   check(await page.locator('#ent input[data-nome]').count() === 4, 'P15: "Adicionar outro nome" abre mais um campo');
   await clicar('#ok', 'Continuar'); await espera();
-  check(/pelo menos um nome/.test(await erroTxt()) && await naTela(15), 'P15: sem nenhum nome não segue');
+  check(/pelo menos um nome/.test(await erroTxt()) && await naTela('15'), 'P15: sem nenhum nome não segue');
   await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana');
   await page.locator('#ent input[data-nome]').nth(1).fill('Padaria Central');
-  await shot('l4_m03_concorrentes_nomes');
   await clicar('#ok', 'Continuar'); await espera();
-  check(JSON.stringify((await RR())['M3.P15']) === JSON.stringify({ estado: 'valor', valor: 'Doces da Ana, Padaria Central', nomes: ['Doces da Ana', 'Padaria Central'] }) && await naTela(18), 'P15: grava os nomes (e o texto que o Módulo 10 lê) e segue para "onde ficam"');
-  check(JSON.stringify(await titulos()) === JSON.stringify([norm(P(18).pergunta)]), 'P18: sozinha na tela');
-  await abrir(15, { 'M3.P15': { estado: 'valor', valor: 'Lava-jato do Zé e o posto da avenida' } });
+  check(JSON.stringify((await RR())['M3.P15']) === JSON.stringify(NOMES2['M3.P15']) && await naTela('18'), 'P15: grava os nomes (e o texto que o Módulo 10 lê) e segue para "como cada um trabalha"');
+  check(await page.locator('.conc-bloco').count() === 2 && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.conc-nome')].map((x) => x.textContent))) === '["Doces da Ana","Padaria Central"]', 'P18: um bloco por nome citado, com o nome como título');
+  await abrir('15', { 'M3.P15': { estado: 'valor', valor: 'Lava-jato do Zé e o posto da avenida' } });
   check(await page.inputValue('#ent input[data-nome="1"]') === 'Lava-jato do Zé' && await page.inputValue('#ent input[data-nome="2"]') === 'O posto da avenida', 'P15: resposta antiga em texto abre separada, um nome por campo');
+  /* concorrente incluído numa pergunta de concorrentes entra também na lista de nomes */
+  await abrir('22', NOMES1);
+  await clicar('#mais-conc', '+ Adicionar outro concorrente'); await page.locator('#novo-nome').fill('mercado do Zé'); await clicar('#incluir', 'Incluir'); await espera();
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.conc-nome')].map((x) => x.textContent))) === '["Doces da Ana","Mercado do Zé"]', 'concorrentes: "Adicionar outro concorrente" abre mais um bloco');
+  await concTxt('Doces da Ana', 'Entregam rápido'); await concTxt('Mercado do Zé', 'Preço baixo');
+  await clicar('#ok', 'Continuar'); await espera();
+  const r22 = await RR();
+  check(JSON.stringify(r22['M3.P15'].nomes) === '["Doces da Ana","Mercado do Zé"]' && r22['M3.P22'].porNome['Mercado do Zé'] === 'Preço baixo' && await naTela('22B'), 'concorrentes: o nome novo entra na lista de quem vende o mesmo');
+  /* um concorrente sem resposta: aviso que não trava, e só o respondido é gravado */
+  await abrir('18', NOMES2);
+  await concTxt('Doces da Ana', 'Abre cedo, entrega no bairro');
+  await clicar('#ok', 'Continuar'); await espera();
+  check(/Você não respondeu para Padaria Central/.test(await erroTxt()) && await naTela('18') && !(await RR())['M3.P18'], 'concorrentes: um sem resposta avisa sem gravar');
+  await clicar('#ok', 'Continuar mesmo assim'); await espera();
+  check(JSON.stringify((await RR())['M3.P18'].porNome) === JSON.stringify({ 'Doces da Ana': 'Abre cedo, entrega no bairro' }) && await naTela('20'), 'concorrentes: "Continuar mesmo assim" grava só o respondido');
 
-  /* ============ 9. faixa de preço (P20): sem a "Resposta" extra; números com erro e aviso ============ */
-  await abrir(20);
-  check(await page.evaluate(() => [...document.querySelectorAll('#ent input')].every((i) => i.inputMode === 'decimal')), 'P20: teclado de números');
-  for (const [txt, msg] of [['Bolos caseiros de pote', 'Digite só números. Ex.: 12,50'], ['-5', 'O preço não pode ser negativo. Digite só números. Ex.: 12,50'], ['', 'Digite o menor preço que você viu ou toque em “Não sei”.']]) {
-    await digitar(txt, 0); await clicar('#ok', 'Continuar'); await espera();
-    check(await erroTxt() === msg && !(await RR())['M3.P20'] && await naTela(20), `P20 "${txt}": erro simples, não grava`);
+  /* ============ R9. preço de cada concorrente (P20): menor e maior, erros e aviso ============ */
+  await abrir('20', NOMES1);
+  check(await page.evaluate(() => [...document.querySelectorAll('.conc-bloco input')].every((i) => i.inputMode === 'decimal')) && await page.locator('#ent input[data-c="min"]').count() === 1 && await page.locator('#ent input[data-c="max"]').count() === 1, 'P20: menor e maior preço com teclado de números');
+  for (const [txt, msg] of [['Bolos caseiros de pote', 'Doces da Ana: Digite só números. Ex.: 12,50'], ['-5', 'Doces da Ana: O preço não pode ser negativo. Digite só números. Ex.: 12,50'],
+    ['', 'Digite o preço de pelo menos um concorrente para continuar. Se não souber, toque em “Não sei” para ver como descobrir.']]) {
+    await page.locator('#ent input[data-c="min"]').fill(txt); await clicar('#ok', 'Continuar'); await espera();
+    check(await erroTxt() === msg && !(await RR())['M3.P20'] && await naTela('20'), `P20 "${txt}": erro simples, não grava (${await erroTxt()})`);
   }
-  await digitar('1.500', 0); await clicar('#ok', 'Continuar'); await espera();
-  check(/parece alto/.test(await erroTxt()) && await clicar('#ok', 'Continuar mesmo assim'), 'P20 R$ 1.500: aviso que não trava');
+  await page.locator('#ent input[data-c="min"]').fill('1.500'); await clicar('#ok', 'Continuar'); await espera();
+  check(/parece alto/.test(await erroTxt()) && !(await RR())['M3.P20'] && await clicar('#ok', 'Continuar mesmo assim'), 'P20 R$ 1.500: aviso que não trava');
   await espera();
-  check((await RR())['M3.P20'].min === 1500 && await naTela(22), 'P20: segundo toque grava e segue para a 22');
-  await abrir(20);
-  await digitar('40', 0); await digitar('60', 1); await clicar('#ok', 'Continuar'); await espera();
-  check(await naTela(22) && JSON.stringify((await RR())['M3.P20']) === JSON.stringify({ estado: 'valor', valor: 'de R$ 40,00 a R$ 60,00', min: 40, max: 60 }), 'P20: segue direto, sem a caixa "Os outros costumam cobrar…", formato lido pelo Módulo 5');
+  check((await RR())['M3.P20'].min === 1500 && (await RR())['M3.P20'].valor === 'R$ 1.500,00' && await naTela('22'), 'P20: segundo toque grava e segue para a 22');
+  await abrir('20', Object.assign({}, NOMES1, { 'M3.P20': { estado: 'valor', valor: 'R$ 1.500,00', min: 1500, max: 1500, porNome: { 'Doces da Ana': { min: 1500, max: 1500, valor: 'R$ 1.500,00' } } } }));
+  check(await page.inputValue('#ent input[data-c="min"]') === '1.500,00' && await page.inputValue('#ent input[data-c="max"]') === '', 'P20: valor salvo reabre em padrão brasileiro (1.500,00)');
+  await abrir('20', NOMES1);
+  await concPreco('Doces da Ana', '40', '60'); await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('22') && JSON.stringify((await RR())['M3.P20']) === JSON.stringify({ estado: 'valor', valor: 'de R$ 40,00 a R$ 60,00', min: 40, max: 60, porNome: { 'Doces da Ana': { min: 40, max: 60, valor: 'de R$ 40,00 a R$ 60,00' } } }),
+    'P20: segue direto; faixa geral no "valor" (lido pelo Módulo 5) e a de cada concorrente em porNome');
 
-  /* ============ 10. comparação (P19) fechada ============ */
-  await abrir(19);
+  /* ============ R10. comparação (P19) fechada, por concorrente ============ */
+  await abrir('19', NOMES1);
   check(await page.locator('#ns').count() === 0, 'P19: sem "Não sei"');
-  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.t-linha')].map((x) => x.dataset.crit))) === JSON.stringify(P(19).criterios), 'P19: tabela com os 4 pontos');
-  const marca = (c, i) => page.evaluate(([c, i]) => [...document.querySelectorAll('.t-linha')].find((x) => x.dataset.crit === c).querySelectorAll('.t-op')[i].click(), [c, i]);
-  await marca('Preço', 2); await marca('Qualidade', 2);
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.conc-bloco .t-linha')].map((x) => x.dataset.crit))) === JSON.stringify(P(19).criterios), 'P19: tabela com os 4 pontos no bloco do concorrente');
   await clicar('#ok', 'Continuar'); await espera();
-  check(await erroTxt() === 'Marque Melhor, Igual ou Pior em cada item para continuar.' && await naTela(19), 'P19: falta marcar = não segue');
-  await marca('Atendimento', 2); await espera();
-  check((await caixas('#msg .caminho')).some((c) => c.tipo === 'Resposta'), 'P19: 3 "Pior" mostra a mensagem do grupo');
-  await marca('Atendimento', 0); await marca('Prazo (tempo para entregar)', 1); await espera();
-  check(!(await caixas('#msg .caminho')).some((c) => c.tipo === 'Resposta'), 'P19: trocar volta a 2 "Pior"');
-  await clicar('#outro-t', 'Outro ponto'); await espera();
+  check(await erroTxt() === 'Marque Melhor, Igual ou Pior em cada item de pelo menos um concorrente para continuar.' && await naTela('19'), 'P19: nada marcado = não segue');
+  await marcaC('Doces da Ana', 'Preço', 2); await marcaC('Doces da Ana', 'Qualidade', 2);
   await clicar('#ok', 'Continuar'); await espera();
-  check(/outro ponto/.test(await erroTxt()), 'P19: Outro ponto vazio pede o texto');
-  await page.locator('.extra textarea').fill('Variedade de sabores: melhor');
-  await page.evaluate(() => document.querySelector('.tabela').scrollIntoView({ block: 'start' }));
-  await shot('l4_m03_comparacao');
+  check(await erroTxt() === 'Marque Melhor, Igual ou Pior em cada item de Doces da Ana, ou deixe Doces da Ana todo em branco.' && await naTela('19'), 'P19: falta marcar = não segue');
+  await marcaC('Doces da Ana', 'Atendimento', 2); await espera();
+  check((await caixasR('#msg .caminho')).some((c) => c.tipo === 'Resposta'), 'P19: 3 "Pior" mostra a mensagem do grupo');
+  await marcaC('Doces da Ana', 'Atendimento', 0); await marcaC('Doces da Ana', 'Prazo (tempo para entregar)', 1); await espera();
+  check(!(await caixasR('#msg .caminho')).some((c) => c.tipo === 'Resposta'), 'P19: trocar volta a 2 "Pior"');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.conc-bloco .t-linha[data-crit="Preço"] .t-op.sel')].map((b) => b.dataset.v))) === '["Pior"]', 'P19: escolha única em cada ponto');
+  await page.evaluate(() => document.querySelector('.conc-bloco').scrollIntoView({ block: 'start' }));
+  await shot('l5_m03_comparacao');
   await clicar('#ok', 'Continuar'); await espera();
-  R = await RR();
-  check(R['M3.P19'] && R['M3.P19'].valor === 'Preço: Pior; Qualidade: Pior; Atendimento: Melhor; Prazo (tempo para entregar): Igual; Outro ponto: Variedade de sabores: melhor' && R['M3.P19'].outro === 'Variedade de sabores: melhor', `P19: grava a tabela em texto (${R['M3.P19'] && R['M3.P19'].valor})`);
-  check(await page.evaluate(() => !!document.querySelector('#entendemos')), 'P19 é a última: vai ao resultado');
+  const r19 = (await RR())['M3.P19'];
+  check(r19 && r19.valor === 'Doces da Ana: Preço Pior, Qualidade Pior, Atendimento Melhor, Prazo (tempo para entregar) Igual' && JSON.stringify(r19.porNome['Doces da Ana'].tabela) === JSON.stringify({ 'Preço': 'Pior', Qualidade: 'Pior', Atendimento: 'Melhor', 'Prazo (tempo para entregar)': 'Igual' }),
+    `P19: grava a tabela de cada concorrente e o texto (${r19 && r19.valor})`);
+  check(await naTela('21'), 'P19: segue para "o que o cliente ganha com você" (a 21 voltou)');
 
-  /* ============ 11. o que vende veio do Módulo 1: bloco fixo para confirmar ============ */
+  /* ============ R11. o que vende veio do Módulo 1: tela pulada, cartão "Veio do Módulo 1 · Trocar" ============ */
   const SO_CABECA = { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' };
   const M1 = (p01, extra = {}) => ({ v: 3, R: Object.assign({ 'M1.P01': p01, 'M1.P03': { estado: 'valor', valor: 'lavagem de carro em casa' },
     'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } }, extra) });
   await page.goto(URL);
   await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA)));
   await page.reload(); await clicar('button', 'Começar'); await espera();
-  const b1 = await page.evaluate(() => ({ kick: document.querySelector('.passo').textContent, bloco: (document.querySelector('.herdado-txt') || {}).textContent, campo: document.querySelector('#ent').offsetParent !== null,
-    selo: (document.querySelector('.selo-m') || {}).textContent, ns: !!document.querySelector('#ns') && document.querySelector('#ns').offsetParent !== null }));
-  check(b1.kick === 'Pergunta 1 de 17' && b1.bloco === 'lavagem de carro em casa (serviço)' && !b1.campo && !b1.ns && /^Veio do Módulo 1/.test(b1.selo), `P01: resposta do Módulo 1 em bloco fixo para confirmar (${JSON.stringify(b1)})`);
-  await shot('l4_m03_p01_modulo1');
-  await clicar('#ok', 'Continuar'); await espera();
-  check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'lavagem de carro em casa (serviço)', doM1: true }) && norm(await titulo()) === norm(P(2).variantes.ideia.pergunta), 'P01: confirmar grava com o selo e segue');
-  await clicar('#v', 'Voltar'); await espera();
-  await clicar('#trocar', 'Trocar'); await espera();
-  check(await page.evaluate(() => document.querySelector('#ent textarea').offsetParent !== null) && await page.inputValue('#ent textarea') === 'lavagem de carro em casa (serviço)', 'P01: "Trocar" abre o campo com o que veio do Módulo 1');
+  const b1 = await page.evaluate(() => { const c = document.querySelector('.herdado-mini[data-cod="M3.P01"]'); return { kick: document.querySelector('.passo').textContent, txt: c && c.querySelector('.herdado-txt').textContent,
+    selo: c && c.querySelector('.selo-m').textContent, trocar: c && c.querySelector('.trocar-h').textContent }; });
+  check(await atual() === 'M3.P02' && norm(await titulo()) === norm(P(2).variantes.ideia.pergunta) && b1.kick === 'Pergunta 1 de 21', `Módulo 1: a pergunta "o que vende" não aparece; começa na 2 (${b1.kick})`);
+  check(b1.txt === 'O que você vende: lavagem de carro em casa (serviço)' && b1.selo === 'Veio do Módulo 1' && b1.trocar === 'Trocar', `Módulo 1: cartão com o que veio e "Trocar" (${JSON.stringify(b1)})`);
+  check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'lavagem de carro em casa (serviço)', doM1: true }), 'Módulo 1: a resposta fica gravada com a marca de herança (outros módulos leem)');
+  await shot('l5_m03_cartao_modulo1');
+  await clicar('.trocar-h', 'Trocar'); await espera();
+  check(await page.inputValue('#ent textarea') === 'lavagem de carro em casa (serviço)' && await page.evaluate(() => (document.querySelector('.selo-m') || {}).textContent) === 'Veio do Módulo 1. Confira e ajuste se quiser.', 'Módulo 1: "Trocar" abre o campo com o que veio, com o selo');
   await digitar('Lava-jato que vai até a casa do cliente'); await clicar('#ok', 'Continuar'); await espera();
-  check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'Lava-jato que vai até a casa do cliente' }), 'P01: a troca fica guardada neste módulo');
+  check(JSON.stringify((await RR())['M3.P01']) === JSON.stringify({ estado: 'valor', valor: 'Lava-jato que vai até a casa do cliente' }) && await atual() === 'M3.P02', 'Módulo 1: a troca fica guardada neste módulo e volta para a 2');
+  check(await page.locator('.herdado-mini').count() === 0 && await kicker() === 'Pergunta 2 de 22', 'Módulo 1: depois de trocar, a pergunta volta a contar como da pessoa (sem cartão)');
   check(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m01')) === JSON.stringify(M1(SO_CABECA)), 'Módulo 1 nunca é alterado');
   await page.goto(URL);
   await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA, { 'M1.P03': { estado: 'naosei' } })));
   await page.reload(); await clicar('button', 'Começar'); await espera();
-  check(!(await page.locator('.herdado').count()) && await page.inputValue('#ent textarea') === '', 'P01: "Não sei" no Módulo 1 não conta como herança');
+  check(!(await page.locator('.herdado-mini').count()) && await atual() === 'M3.P01' && await page.inputValue('#ent textarea') === '', 'Módulo 1: "Não sei" no Módulo 1 não conta como herança (a pergunta aparece vazia)');
 
-  /* ============ 12. caminhos completos até o resultado ============ */
+  /* ============ R12. Voltar, teclado e visibilidade ============ */
+  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
+  await clicar('button', 'Começar'); await espera();
+  await digitar('Bolos caseiros para festas no bairro'); await clicar('#ok', 'Continuar'); await espera();
+  await clicar('.opcao', 'Sim'); await clicar('#ok', 'Continuar'); await espera();
+  check(norm(await titulo()) === norm('Quando alguém precisa de Bolos caseiros para festas no bairro, o que pode escolher no lugar?'), 'pergunta 3: lembra o que a pessoa vende no enunciado');
+  await clicar('#v', 'Voltar'); await espera();
+  check(await naTela('2') && await page.evaluate(() => document.querySelector('#ent .opcao.sel').dataset.op) === 'Sim', 'Voltar: volta à pergunta anterior com a resposta marcada');
+  await clicar('#v', 'Voltar'); await espera();
+  check(await naTela('1') && await page.inputValue('#ent textarea') === 'Bolos caseiros para festas no bairro', 'Voltar: volta à 1 com o texto');
+  await clicar('#v', 'Voltar'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#ir')) && (await RR())['M3.P01'].valor === 'Bolos caseiros para festas no bairro' && (await RR())['M3.P02'].opcao === 'Sim', 'Voltar na 1ª pergunta abre a capa, sem perder as respostas');
+  await clicar('#ir', 'Começar'); await espera();
+  check(await naTela('1') && await page.inputValue('#ent textarea') === 'Bolos caseiros para festas no bairro', 'capa → Começar: reabre a 1 com o texto');
+  await page.reload(); await espera();
+  check(await page.evaluate(() => document.querySelector('#ir').textContent === 'Continuar de onde parei' && document.querySelector('#zerar') && document.querySelector('#zerar').textContent === 'Recomeçar do zero'), 'capa: oferece continuar e recomeçar quando já começou');
+  await clicar('#zerar', 'Recomeçar do zero'); await espera();
+  check(JSON.stringify(await estado()) === JSON.stringify({ v: 8, R: {}, hist: [] }) && await page.evaluate(() => document.querySelector('#ir').textContent === 'Começar'), 'Recomeçar do zero: apaga as respostas deste módulo');
+  check(await page.evaluate(() => /interactive-widget=resizes-content/.test(document.querySelector('meta[name=viewport]').content)), 'viewport com interactive-widget=resizes-content');
+  for (const [n, R0, sel] of [['4', {}, '#ent textarea'], ['20', NOMES1, '#ent input[data-c="min"]'], ['20', NOMES1, '#ent input[data-c="max"]'], ['15', {}, '#ent input[data-nome="3"]'], ['18', NOMES2, '.conc-bloco[data-nome="Padaria Central"] textarea']]) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await abrir(n, R0);
+    await page.locator(sel).first().focus();
+    await page.setViewportSize({ width: 390, height: 450 });
+    await espera(700);
+    const bx = await page.evaluate((sel) => { const r = (e) => { const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.bottom)]; }; return { f: r(document.querySelector(sel)), ok: r(document.querySelector('#ok')), h: innerHeight }; }, sel);
+    check(bx.f[0] >= 0 && bx.f[1] <= bx.h && bx.ok[0] >= 0 && bx.ok[1] <= bx.h, `teclado aberto (pergunta ${n}, ${sel}): campo e Continuar visíveis (${JSON.stringify(bx)})`);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await abrir('2');
+  check(await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'radiogroup'), 'Sim/Não: escolha única');
+  for (const o of ['Sim', 'Não', 'Sim']) await page.locator(`#ent .opcao[data-op="${o}"]`).click();
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op))) === '["Sim"]', 'Sim/Não: só a última fica marcada');
+  check(await page.evaluate(() => getComputedStyle(document.querySelector('#ent .opcao')).webkitTapHighlightColor === 'rgba(0, 0, 0, 0)'), 'Sim/Não: sem realce azul do toque');
+  for (const [n, R0] of [['2', {}], ['10', {}], ['15', {}], ['20', NOMES1], ['19', NOMES1], ['22B', NOMES1]]) {
+    await abrir(n, R0);
+    const v = await page.evaluate(() => { const b = document.querySelector('#v'), q = document.querySelector('.cartao-q h2.q'); return { n: document.querySelectorAll('#v').length, acima: b.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1, txt: b.textContent.trim() }; });
+    check(v.n === 1 && v.acima && v.txt === 'Voltar', `Voltar no topo do cartão (tela ${n})`);
+  }
+  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
+  await clicar('#limites', 'O que este módulo não faz'); await espera();
+  check(/Limites do módulo/.test(await tela()) && !/Quando procurar um profissional/.test(await tela()), 'limites: abre sem o quadro de profissional');
+  await clicar('#v', 'Voltar'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#ir')), 'limites: Voltar abre a capa');
+
+  /* ============ R13. textos por tipo de negócio e versão "o que você imagina" ============ */
+  const SERV = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'naosei' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
+  await abrir('3', {}, { 'lg2-turma-a-m01': SERV }, 'O que as pessoas escolhem no lugar do seu serviço?');
+  const alt3 = await page.evaluate(() => { const b = document.querySelector('#ent .opcao'); return { rot: b.querySelector('b').textContent, ex: b.querySelector('.op-ex').textContent }; });
+  check(alt3.rot === 'Contrata outra pessoa ou empresa que faz o mesmo' && alt3.ex === 'Ex.: o salão do bairro, outra manicure', `serviço: alternativa e exemplo de serviço na pergunta 3 (${JSON.stringify(alt3)})`);
+  await abrir('19', NOMES1, { 'lg2-turma-a-m01': SERV });
+  check(/Prazo \(tempo para atender\)/.test(await tela()), 'serviço: critério de prazo com texto de serviço');
+  const EX_SERV = [['Vendo marmitas para trabalhadores do bairro', 'Faço unhas em domicílio para mulheres do bairro'], ['Quero vender marmitas para trabalhadores do bairro', 'Quero fazer unhas em domicílio para mulheres do bairro'],
+    ['quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote', 'quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha'], ['quem vende bolo caseiro perde cliente para a padaria', 'quem faz unhas em casa perde cliente para o salão'],
+    ['preço dos insumos subindo', 'preço do material de trabalho subindo'], ['vende o mesmo produto', 'faz o mesmo serviço'], ['(ex.: "bolos perto de mim")', '(ex.: "manicure perto de mim")'],
+    ['entrega no mesmo dia, bolo sob medida, atendimento pelo WhatsApp', 'atendimento em casa, horário à noite, lembrete pelo WhatsApp'], ['entrega atrasada', 'atrasam o horário marcado'],
+    ['(Horário, entrega, forma de atender)', '(Horário, se atendem em casa, forma de atender)'], ['Prazo (tempo para entregar)', 'Prazo (tempo para atender)']];
+  const comoServ = (t) => EX_SERV.reduce((x, [de, para]) => x.split(de).join(para), String(t).replace(/\[do que você (?:quer vender|vende)\]/g, 'do seu serviço'));
+  const TESTANDO = { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' };
+  for (const q of D.perguntas.filter((q) => !q.oculta && q.variantes && q.variantes.ideia && q.codigo !== 'M3.P01')) {
+    const n = q.codigo.slice(4).replace(/^0/, '');
+    const txt = q.codigo === 'M3.P03' ? 'Quando alguém precisa de lavagem de carro em casa, o que pode escolher no lugar?' : comoServ(Motor.variante(q, 'comecando').pergunta);
+    await abrir(n, {}, { 'lg2-turma-a-m01': M1(TESTANDO) }, txt);
+  }
+  await abrir('13', {}, { 'lg2-turma-a-m01': M1(SO_CABECA) }, P(13).variantes.ideia.pergunta);
+  await page.locator('#ent .opcao[data-op="Não sei"]').click(); await espera();
+  check((await caixasR('#msg .caminho'))[0].prompt.startsWith('Eu quero vender lavagem de carro em casa em [cidade ou bairro]'), 'prompt: "Eu quero vender" + o que vende do Módulo 1');
+
+  /* ============ R14. caminhos completos até o resultado (persistência, contagem, "O que entendemos", entregas) ============ */
   async function responderAtual(p02) {
-    const t = norm(await titulo());
-    const n = D.perguntas.findIndex((q) => norm(q.pergunta) === t || (q.variantes && Object.values(q.variantes).some((v) => norm(v.pergunta) === t))) + 1;
-    const q = D.perguntas[n - 1], num = +q.codigo.slice(4);
-    if (num === 2) { await clicar('.opcao', p02); }
-    else if (num === 9) await clicar('.opcao', 'No meu bairro e na minha cidade');
-    else if (num === 10) { await clicar('.opcao', PESSOAS); await espera(); await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]); }
-    else if (num === 7) await clicar('.opcao', 'Concorrente novo');
-    else if (num === 13) await clicar('.opcao', 'WhatsApp');
-    else if (num === 14) { await digitar(TEXTO_OK, 0); await digitar(TEXTO_OK, 1); }
-    else if (num === 22) { await digitar('Entregam rápido', 0); await digitar('Demoram para responder', 1); }
-    else if (num === 15) { await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana'); await page.locator('#ent input[data-nome]').nth(1).fill('Padaria Central'); }
-    else if (num === 20) { await digitar('40', 0); await digitar('60', 1); }
-    else if (num === 19) { for (const [c, i] of [['Preço', 0], ['Qualidade', 1], ['Atendimento', 2], ['Prazo (tempo para entregar)', 2]]) await marca(c, i); }
-    else if (num === 4) await digitar('Mais gente pedindo pelo WhatsApp');
-    else if (num === 3) await digitar('Padaria da esquina');
-    else await digitar(`Resposta da pergunta ${num} com detalhe`);
+    const cod = await atual();
+    const n = cod.slice(4).replace(/^0/, '');
+    const igual = p02 === 'Não';
+    if (n === '1') await digitar('Resposta da pergunta 1 com detalhe');
+    else if (n === '2') await clicar('.opcao', p02);
+    else if (n === '3') { await page.locator('#ent .opcao').nth(1).click(); await page.locator('.alt-quais input').fill('lanche da padaria'); await page.locator('#ent .opcao').nth(2).click(); }
+    else if (n === '4') await digitar('Mais gente pedindo pelo WhatsApp');
+    else if (n === '7') await clicar('.opcao', 'Concorrente novo');
+    else if (n === '9') await clicar('.opcao', 'No meu bairro e na minha cidade');
+    else if (n === '10') { await clicar('.opcao', PESSOAS); await espera(); await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]); }
+    else if (n === '12') await clicar('.opcao', 'Sim, seria difícil');
+    else if (n === '13A') await clicar('.opcao', 'Indicação (boca a boca)');
+    else if (n === '13') await clicar('.opcao', 'WhatsApp');
+    else if (n === '15') { await page.locator('#ent input[data-nome]').nth(0).fill('Doces da Ana'); await page.locator('#ent input[data-nome]').nth(1).fill('Padaria Central'); }
+    else if (n === '18') { await concTxt('Doces da Ana', 'Abre cedo, entrega no bairro'); await concTxt('Padaria Central', 'Só balcão, abre à tarde'); }
+    else if (n === '20') { await concPreco('Doces da Ana', '40', '60'); await concPreco('Padaria Central', '30', '50'); }
+    else if (n === '22') { await concTxt('Doces da Ana', 'Entregam rápido'); await concTxt('Padaria Central', 'Preço baixo'); }
+    else if (n === '22B') { await concTxt('Doces da Ana', 'Demoram para responder'); await concTxt('Padaria Central', 'Fila grande'); }
+    else if (n === '19') {
+      for (const [c, i] of [['Preço', 0], ['Qualidade', 1], ['Atendimento', 2], ['Prazo (tempo para entregar)', 2]]) await marcaC('Doces da Ana', c, igual ? 1 : i);
+      for (const [c, i] of [['Preço', 2], ['Qualidade', 0], ['Atendimento', 1], ['Prazo (tempo para entregar)', 1]]) await marcaC('Padaria Central', c, igual ? 1 : i);
+    }
+    else if (n === '21') await digitar('Entrego no mesmo dia e faço sob medida');
+    else await digitar(`Resposta da pergunta ${n} com detalhe`);
     await clicar('#ok', 'Continuar'); await espera();
     for (let k = 0; k < 2; k++) { const b = await page.$('#ok'); if (b && /Seguir|mesmo/.test(await b.textContent())) { await b.click(); await espera(); } }
-    return num;
+    return n;
   }
   async function caminho(p02) {
     await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload();
     await clicar('button', 'Começar'); await espera();
-    const vistos = [];
+    const vistos = [], kicks = [];
     for (let i = 0; i < 30; i++) {
       if (await page.evaluate(() => !!document.querySelector('#entendemos'))) break;
+      kicks.push(await kicker());
       vistos.push(await responderAtual(p02));
       if (i === 3) {
-        const antes = norm(await titulo());
+        const antes = norm(await titulo()), antesE = JSON.stringify(await estado());
         await page.reload(); await espera();
         check(await clicar('button', 'Continuar de onde parei'), 'persistência: capa oferece continuar');
         await espera();
-        check(norm(await titulo()) === antes, 'persistência: volta na mesma pergunta após recarregar');
+        check(norm(await titulo()) === antes && JSON.stringify(await estado()) === antesE, 'persistência: volta na mesma pergunta, com as respostas, após recarregar');
       }
     }
-    return vistos;
+    return { vistos, kicks };
   }
-  const vSim = await caminho('Sim');
-  check(JSON.stringify(vSim) === JSON.stringify(TELAS_SIM), `P02 Sim: 17 telas na ordem nova (${vSim.join(',')})`);
+  const cSim = await caminho('Sim');
+  check(JSON.stringify(cSim.vistos) === JSON.stringify(TELAS_SIM), `P02 Sim: 22 telas na ordem nova (${cSim.vistos.join(',')})`);
+  check(cSim.kicks[0] === 'Pergunta 1 de 22' && cSim.kicks[21] === 'Pergunta 22 de 22', `P02 Sim: "Pergunta N de M" acompanha o caminho (${cSim.kicks[0]} … ${cSim.kicks[21]})`);
   await semCodigos('resultado'); await fonte16('resultado');
+  const RS = await RR();
+  check(JSON.stringify(RS['M3.P18'].porNome) === JSON.stringify({ 'Doces da Ana': 'Abre cedo, entrega no bairro', 'Padaria Central': 'Só balcão, abre à tarde' })
+    && JSON.stringify(RS['M3.P22'].porNome) === JSON.stringify({ 'Doces da Ana': 'Entregam rápido', 'Padaria Central': 'Preço baixo' })
+    && JSON.stringify(RS['M3.P22B'].porNome) === JSON.stringify({ 'Doces da Ana': 'Demoram para responder', 'Padaria Central': 'Fila grande' }), 'dois concorrentes: respostas de texto guardadas separadas');
+  check(RS['M3.P20'].min === 30 && RS['M3.P20'].max === 60 && RS['M3.P20'].valor === 'de R$ 30,00 a R$ 60,00' && RS['M3.P20'].porNome['Doces da Ana'].valor === 'de R$ 40,00 a R$ 60,00' && RS['M3.P20'].porNome['Padaria Central'].valor === 'de R$ 30,00 a R$ 50,00',
+    `dois concorrentes: preço de cada um separado e faixa geral (${JSON.stringify(RS['M3.P20'])})`);
+  check(RS['M3.P19'].porNome['Doces da Ana'].tabela['Preço'] === 'Melhor' && RS['M3.P19'].porNome['Padaria Central'].tabela['Preço'] === 'Pior' && RS['M3.P19'].porNome['Padaria Central'].tabela.Qualidade === 'Melhor', 'dois concorrentes: comparação de cada um separada');
+  check(JSON.stringify(RS['M3.P03']) === JSON.stringify({ estado: 'valor', valor: 'Compra outra coisa que resolve a mesma necessidade: lanche da padaria; Faz em casa ou faz sozinho', tipos: ['Compra outra coisa que resolve a mesma necessidade', 'Faz em casa ou faz sozinho'], quais: { 'Compra outra coisa que resolve a mesma necessidade': 'lanche da padaria' } }),
+    `P03: várias alternativas + "quais" (${JSON.stringify(RS['M3.P03'])})`);
   const res = await page.evaluate(() => ({
     cont: document.querySelector('.res-num .val').textContent.trim(), sub: document.querySelector('.res-num .sub').textContent.trim(),
-    blocos: [...document.querySelectorAll('.bloco-titulo')].map((x) => x.textContent),
-    etapas: [...document.querySelectorAll('.etapa')].map((e) => e.dataset.cod),
-    ent: [...document.querySelectorAll('#entendemos p')].map((x) => x.textContent), li: document.querySelectorAll('#entendemos li').length,
+    etapas: [...document.querySelectorAll('.etapa')].map((e) => e.dataset.cod), semResp: document.querySelectorAll('.etapa.e-nao').length,
+    ent: [...document.querySelectorAll('#entendemos > p:not(.como-calc)')].map((x) => x.textContent), li: document.querySelectorAll('#entendemos li').length, calc: (document.querySelector('#entendemos .como-calc') || {}).textContent,
     conc: [...document.querySelectorAll('#tabela-conc .conc')].map((c) => [c.dataset.nome, ...[...c.querySelectorAll('dd')].map((x) => x.textContent)]),
-    quadro: Object.fromEntries([...document.querySelectorAll('#quadro-conc .q-cel')].map((c) => [c.dataset.q, [c.querySelector('h3').textContent, ...[...c.querySelectorAll('li')].map((x) => x.textContent), (c.querySelector('p') || {}).textContent || '']])),
-    prox: !!document.querySelector('.acoes.lg2-proximo a'), pend: document.querySelectorAll('.pend').length,
+    quadro: Object.fromEntries([...document.querySelectorAll('#quadro-conc .q-cel')].map((c) => [c.dataset.q, [c.querySelector('h3').textContent, ...[...c.querySelectorAll('li')].map((x) => x.textContent)]])),
+    prox: (document.querySelector('.acoes.lg2-proximo a') || {}).textContent, pend: document.querySelectorAll('.pend').length,
   }));
-  check(res.cont === '17 de 17' && res.sub === 'nenhuma com “Não sei”' && res.pend === 0, `resultado: contagem igual à do topo (${res.cont}; ${res.sub})`);
-  check(!res.etapas.some((c) => ESCONDIDAS.map(COD).includes(c)) && res.etapas.length === 17, 'resultado: perguntas escondidas não aparecem');
-  check(res.ent.length >= 1 && res.ent.length <= 3 && res.li === 0 && res.ent.join(' ').includes('eles cobram em torno de R$ 50,00') && res.ent.join(' ').includes('Economizar tempo / Praticidade no dia a dia'), `resultado: "O que entendemos" em texto corrido (${res.ent.join(' / ')})`);
-  check(JSON.stringify(res.conc.map((c) => c[0])) === '["Doces da Ana","Padaria Central","Padaria da esquina"]' && res.conc[0][3] === 'Entregam rápido' && res.conc[0][2] === 'de R$ 40,00 a R$ 60,00', `resultado: tabela com um cartão por nome citado (${res.conc.map((c) => c[0])})`);
-  check(res.quadro.fortes && res.quadro.fortes[0] === 'Pontos fortes dos concorrentes' && res.quadro.fortes[1] === 'Entregam rápido', 'quadro: pontos fortes = o que os outros fazem bem');
-  check(res.quadro.fracos && res.quadro.fracos[1] === 'Demoram para responder', 'quadro: pontos fracos = onde os outros deixam a desejar');
-  check(res.quadro.oportunidades && res.quadro.oportunidades.includes('Novidade que pode ajudar: “Mais gente pedindo pelo WhatsApp”') && res.quadro.oportunidades.includes('Você se sai melhor em preço'), `quadro: oportunidades montadas com as respostas (${res.quadro.oportunidades})`);
-  check(res.quadro.ameacas && res.quadro.ameacas.includes('O que pode atrapalhar: concorrente novo') && res.quadro.ameacas.includes('O cliente pode comprar no lugar: “Padaria da esquina”') && res.quadro.ameacas.includes('Os outros se saem melhor em atendimento e prazo (tempo para entregar)'), `quadro: ameaças montadas com as respostas (${res.quadro.ameacas})`);
-  check(res.prox, 'resultado: botão do próximo módulo');
+  check(res.cont === '22 de 22' && res.sub === 'nenhuma com “Não sei”' && res.pend === 0, `resultado: contagem igual à do topo (${res.cont}; ${res.sub})`);
+  check(!res.etapas.some((c) => ESCONDIDAS.map((n) => COD(n)).includes(c)) && res.etapas.length === 22 && res.semResp === 0, `resultado: as 22 perguntas respondidas, sem as escondidas (${res.etapas.length})`);
+  const entJ = res.ent.join(' ');
+  check(res.ent.length >= 1 && res.ent.length <= 3 && res.li === 0, `resultado: "O que entendemos" em 1 a 3 parágrafos, sem lista (${res.ent.length})`);
+  check(entJ.includes('Você vende “Resposta da pergunta 1 com detalhe”') && entJ.includes('Você vende no seu bairro e na sua cidade, e os clientes que você mais atende são pessoas comuns')
+    && entJ.includes(`O que o cliente quer resolver com você: “${DORES[1]}”`), `"O que entendemos": negócio, alcance, cliente e dor (${res.ent[0]})`);
+  check(entJ.includes('As pessoas ficam sabendo de você por indicação (boca a boca) e compram por WhatsApp.') && entJ.includes('Quem vende algo parecido: “Doces da Ana, Padaria Central”; eles cobram em torno de R$ 45,00.')
+    && entJ.includes('O que faz o cliente preferir você: “Entrego no mesmo dia e faço sob medida”.'), `"O que entendemos": canais, concorrentes, preço médio e diferencial (${res.ent.slice(1).join(' / ')})`);
+  check(res.calc === 'Como calculamos: (R$ 40,00 + R$ 60,00 + R$ 30,00 + R$ 50,00) ÷ 4 = R$ 45,00, a média dos preços que você viu.', `"Como calculamos" do preço médio, conferido à mão (${res.calc})`);
+  check(JSON.stringify(res.conc.map((c) => c[0])) === '["Doces da Ana","Padaria Central","Lanche da padaria; Fazer em casa ou sozinho"]', `tabela: um cartão por concorrente + o que escolhem no lugar (${res.conc.map((c) => c[0])})`);
+  check(JSON.stringify(res.conc[0].slice(2, 6)) === JSON.stringify(['de R$ 40,00 a R$ 60,00', 'Entregam rápido', 'Demoram para responder', 'Abre cedo, entrega no bairro'])
+    && JSON.stringify(res.conc[1].slice(2, 6)) === JSON.stringify(['de R$ 30,00 a R$ 50,00', 'Preço baixo', 'Fila grande', 'Só balcão, abre à tarde']), 'tabela: cada concorrente com as próprias respostas (preço, bem, mal, como trabalha)');
+  check(JSON.stringify(res.quadro.fortes) === JSON.stringify(['Pontos fortes dos concorrentes', 'Doces da Ana: Entregam rápido', 'Padaria Central: Preço baixo']), `quadro: pontos fortes por concorrente (${res.quadro.fortes})`);
+  check(JSON.stringify(res.quadro.fracos) === JSON.stringify(['Pontos fracos dos concorrentes', 'Doces da Ana: Demoram para responder', 'Padaria Central: Fila grande']), `quadro: pontos fracos por concorrente (${res.quadro.fracos})`);
+  check(res.quadro.oportunidades.includes('Novidade que pode ajudar: “Mais gente pedindo pelo WhatsApp”') && res.quadro.oportunidades.includes('O que pode mudar no jeito de comprar: “Resposta da pergunta 8 com detalhe”')
+    && res.quadro.oportunidades.includes('Você se sai melhor que Doces da Ana em preço') && res.quadro.oportunidades.includes('Você se sai melhor que Padaria Central em qualidade'), `quadro: oportunidades montadas com as respostas (${res.quadro.oportunidades})`);
+  check(res.quadro.ameacas.includes('O que pode atrapalhar: concorrente novo') && res.quadro.ameacas.includes('As pessoas podem escolher no lugar: lanche da padaria e fazer em casa ou sozinho')
+    && res.quadro.ameacas.includes('Doces da Ana se sai melhor que você em atendimento e prazo (tempo para entregar)') && res.quadro.ameacas.includes('Padaria Central se sai melhor que você em preço'), `quadro: ameaças montadas com as respostas (${res.quadro.ameacas})`);
+  check(res.prox === 'Ir para o Módulo 4', 'resultado: botão do próximo módulo');
   const leve = await page.evaluate(() => { const t = document.querySelector('#tarefa'), e = document.querySelector('#entendemos');
     return { tarefa: t && t.querySelector('b').textContent, txt: t && t.querySelector('p').textContent, ordem: !!(t && (e.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)),
-      fechados: [...document.querySelectorAll('.resultado-mais, #respostas')].every((d) => !d.open), n: document.querySelectorAll('.resultado-mais').length,
+      abertos: [...document.querySelectorAll('.resultado-mais, #respostas')].every((d) => d.open), n: document.querySelectorAll('.resultado-mais').length,
       dentro: ['#roteiro', '#tabela-conc', '#quadro-conc'].every((s) => document.querySelector(s).closest('details.resultado-mais')) }; });
-  check(leve.tarefa === 'Sua tarefa para fazer já' && /^Procure pelo menos 3 concorrentes/.test(leve.txt) && leve.ordem && leve.fechados && leve.n === 4 && leve.dentro, `resultado leve: "O que entendemos" + tarefa no alto, detalhes recolhidos (${JSON.stringify(leve)})`);
+  check(leve.tarefa === 'Sua tarefa para fazer já' && /^Procure pelo menos 3 concorrentes/.test(leve.txt) && leve.ordem && leve.abertos && leve.n === 4 && leve.dentro, `resultado: "O que entendemos" + tarefa no alto, seções abertas (${JSON.stringify(leve)})`);
   await page.evaluate(() => document.querySelector('#quadro-conc').scrollIntoView({ block: 'start' }));
-  await shot('l4_m03_quadro');
-  const vNao = await caminho('Não');
-  check(JSON.stringify(vNao) === JSON.stringify(TELAS_NAO), `P02 Não: 12 telas (${vNao.join(',')})`);
-  const qNao = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#quadro-conc .q-cel')].map((c) => [c.dataset.q, (c.querySelector('p') || {}).textContent || ''])));
-  check(qNao.oportunidades === '' && /a anotar/.test(await page.evaluate(() => document.querySelector('#quadro-conc').textContent)), 'quadro: só com o que foi respondido; sem invenção');
+  await shot('l5_m03_quadro');
+  /* Ajustar no resultado: abre a pergunta e volta ao resultado */
+  await page.goto(URL); await clicar('#ir', 'Continuar de onde parei'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#entendemos')), 'persistência: resultado reabre depois de recarregar');
+  await clicar('#rev', 'Revisar respostas'); await espera();
+  check(await naTela('1') && await page.inputValue('#ent textarea') === 'Resposta da pergunta 1 com detalhe', 'Revisar respostas: volta à 1ª pergunta com a resposta');
+  const cNao = await caminho('Não');
+  check(JSON.stringify(cNao.vistos) === JSON.stringify(TELAS_NAO), `P02 Não: 17 telas (${cNao.vistos.join(',')})`);
+  check(cNao.kicks[2] === 'Pergunta 3 de 17', `P02 Não: contagem do topo encolhe para 17 (${cNao.kicks[2]})`);
+  const qNao = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#quadro-conc .q-cel')].map((c) => [c.dataset.q, { li: c.querySelectorAll('li').length, txt: c.textContent }])));
+  check(qNao.oportunidades.li === 0 && /a anotar/.test(qNao.oportunidades.txt) && !/O que pode atrapalhar/.test(qNao.ameacas.txt), 'quadro: só com o que foi respondido; sem invenção');
+  check(await page.evaluate(() => document.querySelector('.res-num .val').textContent.trim()) === '17 de 17', 'P02 Não: resultado conta 17 de 17');
   /* trocar Sim por Não descarta as respostas puladas, mas não as escondidas */
-  await abrir(2, { 'M3.P03': { estado: 'valor', valor: 'Padaria do bairro' }, 'M3.P21': { estado: 'valor', valor: 'Entrego no mesmo dia' }, 'M3.P16': { estado: 'valor', valor: 'Mesmo bairro' } });
+  await abrir('2', { 'M3.P03': { estado: 'valor', valor: 'Padaria do bairro' }, 'M3.P21': { estado: 'valor', valor: 'Entrego no mesmo dia' }, 'M3.P16': { estado: 'valor', valor: 'Mesmo bairro' } });
   await clicar('.opcao', 'Não'); await clicar('#ok', 'Continuar'); await espera();
-  R = await RR();
-  check(!R['M3.P03'] && R['M3.P21'] && R['M3.P16'], 'P02 Não: descarta 3 a 8; respostas das perguntas escondidas continuam salvas');
+  const RN = await RR();
+  check(!RN['M3.P03'] && RN['M3.P21'] && RN['M3.P16'] && await naTela('9'), 'P02 Não: descarta 3 a 8; outras respostas e as das escondidas continuam salvas');
 
-  /* ============ 13. migração do estado salvo (versão 6 → 7) ============ */
+  /* ============ R15. migração do estado salvo (versões 6, 7 e 4 → 8) ============ */
   await page.goto(URL);
   await page.evaluate(([k, P, Dr]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 6, R: {
     'M3.P02': { estado: 'opcao', opcao: 'Sim' },
@@ -519,78 +807,63 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
     'M3.P10': { estado: 'opcao', opcao: P, opcoes: [P], campos: { Idade: 'Até 17 anos; 18 a 29 anos', 'Onde mora': 'Centro', [Dr]: 'Falta de tempo' } },
     'M3.P06': { estado: 'valor', valor: 'Tenho fogão' } }, hist: ['RESULTADO'] })); }, [CHAVE, PESSOAS, DOR]);
   await page.reload(); await espera();
-  let S7 = await estado();
-  check(S7.v === 7, 'migração: estado da versão 6 vira 7 na abertura');
-  check(JSON.stringify(S7.R['M3.P07']) === '{"estado":"opcoes","opcoes":["Concorrente novo","Mudança de regra"]}', 'migração: exemplos marcados nos riscos viram resposta fechada');
-  check(JSON.stringify(S7.R['M3.P12']) === '{"estado":"valor","valor":"clientes fiéis"}', 'migração: exemplos marcados nas barreiras viram resposta');
-  check(S7.R['M3.P19'].estado === 'valor' && S7.R['M3.P19'].valor === 'Preço: Pior; Qualidade: Melhor', 'migração: tabela da comparação vira resposta');
-  check(S7.R['M3.P10'].campos.Idade === 'Até 10 anos (infantil); 11 a 17 anos; 18 a 29 anos' && S7.R['M3.P10'].campos['Onde mora'] === 'Centro', 'migração: "Até 17 anos" vira as duas faixas novas; texto antigo fica');
-  check(S7.R['M3.P06'] && S7.R['M3.P06'].valor === 'Tenho fogão', 'migração: resposta de pergunta escondida não é apagada');
+  const S8 = await estado();
+  check(S8.v === 8, 'migração: estado da versão 6 vira 8 na abertura');
+  check(JSON.stringify(S8.R['M3.P07']) === '{"estado":"opcoes","opcoes":["Concorrente novo","Mudança de regra"]}', 'migração: exemplos marcados nos riscos viram resposta fechada');
+  check(JSON.stringify(S8.R['M3.P12']) === '{"estado":"opcao","opcao":"Sim, seria difícil"}' && JSON.stringify(S8.R['M3.P12B']) === '{"estado":"valor","valor":"clientes fiéis"}', 'migração: barreiras marcadas viram "seria difícil" + o que dificulta');
+  check(S8.R['M3.P19'].estado === 'valor' && S8.R['M3.P19'].valor === 'Preço: Pior; Qualidade: Melhor', 'migração: tabela da comparação vira resposta');
+  check(S8.R['M3.P10'].campos.Idade === 'Até 10 anos (infantil); 11 a 17 anos; 18 a 29 anos' && S8.R['M3.P10'].campos['Onde mora'] === 'Centro', 'migração: "Até 17 anos" vira as duas faixas novas; texto antigo fica');
+  check(S8.R['M3.P06'] && S8.R['M3.P06'].valor === 'Tenho fogão', 'migração: resposta de pergunta escondida não é apagada');
   await clicar('button', 'Continuar de onde parei'); await espera();
-  check(await page.evaluate(() => !!document.querySelector('#entendemos')), 'migração: o resultado abre com o estado migrado');
-  await abrir(10, { 'M3.P10': { estado: 'opcao', opcao: PESSOAS, opcoes: [PESSOAS], campos: { 'Onde mora': 'Centro', [DOR]: 'Falta de tempo' } } });
+  const res6 = await page.evaluate(() => ({ ok: !!document.querySelector('#entendemos'), r19: (document.querySelector('.etapa[data-cod="M3.P19"] .etapa-r') || {}).textContent,
+    op: [...document.querySelectorAll('#quadro-conc .q-oportunidades li')].map((x) => x.textContent), am: [...document.querySelectorAll('#quadro-conc .q-ameacas li')].map((x) => x.textContent) }));
+  check(res6.ok && res6.r19 === 'Preço: Pior; Qualidade: Melhor' && res6.op.includes('Você se sai melhor em qualidade') && res6.am.includes('Os outros se saem melhor em preço'), `migração: o resultado abre e usa a comparação antiga (${JSON.stringify(res6)})`);
+  await abrir('10', { 'M3.P10': { estado: 'opcao', opcao: PESSOAS, opcoes: [PESSOAS], campos: { 'Onde mora': 'Centro', [DOR]: 'Falta de tempo' } } });
   const antigo10 = await page.evaluate(() => [...document.querySelectorAll('.item-marcar .mini-info')].map((x) => x.textContent));
   check(antigo10.includes('Você tinha escrito: Centro') && antigo10.includes('Você tinha escrito: Falta de tempo'), 'perfil antigo: o texto escrito antes aparece e não se perde');
   await clicar('.item-marcar[data-c="Onde mora"] .chip', LUGARES[1]);
   await clicar('#ok', 'Continuar'); await espera();
   if (await page.locator('#ok').textContent() === 'Continuar mesmo assim') await clicar('#ok', 'Continuar mesmo assim');
   check((await RR())['M3.P10'].campos['Onde mora'] === `${LUGARES[1]}; Centro`, 'perfil antigo: marcar uma opção mantém o texto antigo junto');
-  /* versões antigas: canais da versão 4 e estado de 15 perguntas */
+  /* versão 7 (antes deste lote): "Não sei" vira sem resposta; o resto fica e aparece no resultado */
+  await page.goto(URL);
+  await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 7, R: {
+    'M3.P01': { estado: 'valor', valor: 'Negócio inventado de teste' }, 'M3.P02': { estado: 'opcao', opcao: 'Sim' }, 'M3.P03': { estado: 'naosei' },
+    'M3.P04': { estado: 'valor', valor: 'Novidade inventada' }, 'M3.P08': { estado: 'naosei' },
+    'M3.P13': { estado: 'opcoes', opcoes: ['Indicação (boca a boca)', 'WhatsApp (WhatsApp Business)', 'Não sei'] },
+    'M3.P14': { estado: 'valor', campos: { 'O que você faz de melhor': 'Força inventada', 'O que precisa melhorar': 'Fraqueza inventada' } },
+    'M3.P20': { estado: 'valor', valor: 'de R$ 10,00 a R$ 20,00', min: 10, max: 20 } }, hist: ['RESULTADO'] })); }, CHAVE);
+  await page.reload(); await espera();
+  const S7 = await estado();
+  check(S7.v === 8 && !S7.R['M3.P03'] && !S7.R['M3.P08'] && S7.R['M3.P04'].valor === 'Novidade inventada' && S7.R['M3.P01'].valor === 'Negócio inventado de teste', 'migração v7: "Não sei" vira sem resposta; as outras respostas ficam');
+  check(JSON.stringify(S7.R['M3.P13']) === '{"estado":"opcoes","opcoes":["WhatsApp (WhatsApp Business)"]}' && JSON.stringify(S7.R['M3.P13A']) === '{"estado":"opcoes","opcoes":["Indicação (boca a boca)"]}', 'migração v7: indicação vai para "como fica sabendo"; "Não sei" sai da lista');
+  check(S7.R['M3.P14'].valor === 'Força inventada' && S7.R['M3.P14B'].valor === 'Fraqueza inventada' && S7.R['M3.P20'].min === 10, 'migração v7: pontos forte e fraco viram duas respostas; preço antigo fica');
+  await clicar('button', 'Continuar de onde parei'); await espera();
+  const res7 = await page.evaluate(() => ({ r04: (document.querySelector('.etapa[data-cod="M3.P04"] .etapa-r') || {}).textContent, r14b: (document.querySelector('.etapa[data-cod="M3.P14B"] .etapa-r') || {}).textContent,
+    r20: (document.querySelector('.etapa[data-cod="M3.P20"] .etapa-r') || {}).textContent, sem: [...document.querySelectorAll('#pendentes .pend')].map((x) => x.dataset.cod), naoE3: !!document.querySelector('.etapa.e-nao[data-cod="M3.P03"]') }));
+  check(res7.r04 === 'Novidade inventada' && res7.r14b === 'Fraqueza inventada' && res7.r20 === 'de R$ 10,00 a R$ 20,00', `migração v7: respostas mantidas aparecem no resultado (${JSON.stringify(res7)})`);
+  check(res7.sem.includes('M3.P03') && res7.sem.includes('M3.P08') && res7.naoE3, 'migração v7: o antigo "Não sei" aparece em "Perguntas sem resposta"');
+  await clicar('.preencher[data-cod="M3.P03"]', 'Responder agora'); await espera();
+  check(norm(await titulo()) === norm('Quando alguém precisa de Negócio inventado de teste, o que pode escolher no lugar?') && await page.locator('#ent .opcao.sel').count() === 0 && await page.locator('#ajudans .caminho').count() === 0, 'migração v7: "Responder agora" abre a pergunta vazia');
+  await page.locator('#ent .opcao').nth(3).click(); await clicar('#ok', 'Continuar'); await espera();
+  check(await page.evaluate(() => !!document.querySelector('#entendemos')) && (await RR())['M3.P03'].tipos[0] === 'Deixa para depois ou fica sem', 'migração v7: depois de responder, volta ao resultado');
+  /* versão 4: canais antigos */
   await page.goto(URL);
   await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 4, R: { 'M3.P13': { estado: 'opcoes', opcoes: ['Loja física', 'Redes sociais (Instagram, Facebook, WhatsApp)', 'Outro'], detalhe: 'Feira' } }, hist: ['M3.P13'] })); }, CHAVE);
   await page.reload(); await clicar('button', 'Continuar de onde parei'); await espera();
-  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => x.dataset.op))) === JSON.stringify(['WhatsApp (WhatsApp Business)', 'Instagram e outras redes sociais (catálogo)', 'Atendimento direto ou presencial (loja, feira, ponto)', 'Outro']) && (await estado()).v === 7, 'versão 4: canais antigos migrados até a versão 7');
-  const antigo = JSON.stringify({ v: 2, R: { 'M3.P01': { estado: 'valor', valor: 'bolo' } }, hist: ['M3.P01'] });
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.opcao.sel')].map((x) => x.dataset.op))) === JSON.stringify(['WhatsApp (WhatsApp Business)', 'Instagram e outras redes sociais (catálogo)', 'Atendimento direto ou presencial (loja, feira, ponto)', 'Outro'])
+    && await page.inputValue('.extra textarea') === 'Feira' && (await estado()).v === 8, 'versão 4: canais antigos migrados até a versão 8');
+  const antigoV2 = JSON.stringify({ v: 2, R: { 'M3.P01': { estado: 'valor', valor: 'bolo' } }, hist: ['M3.P01'] });
   for (const [nome, chave] of [['mesma chave', CHAVE], ['chave antiga da turma B', 'lg2-turma-b-m03']]) {
     await page.goto(URL);
-    await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, s); }, [chave, antigo]);
+    await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, s); }, [chave, antigoV2]);
     await page.reload(); await espera();
     check(await page.evaluate(() => [...document.querySelectorAll('button')].some((b) => b.textContent === 'Começar')), `estado antigo (${nome}): começa do zero`);
   }
-
-  /* ============ 14. receita A: teclado aberto ============ */
-  check(await page.evaluate(() => /interactive-widget=resizes-content/.test(document.querySelector('meta[name=viewport]').content)), 'viewport com interactive-widget=resizes-content');
-  for (const [n, sel] of [[4, '#ent textarea'], [20, '#ent input[data-c="min"]'], [20, '#ent input[data-c="max"]'], [15, '#ent input[data-nome="3"]']]) {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await abrir(n);
-    await page.locator(sel).first().focus();
-    await page.setViewportSize({ width: 390, height: 450 });
-    await espera(700);
-    const bx = await page.evaluate((sel) => { const r = (e) => { const b = e.getBoundingClientRect(); return [b.top, b.bottom]; }; return { f: r(document.querySelector(sel)), ok: r(document.querySelector('#ok')), h: innerHeight }; }, sel);
-    check(bx.f[0] >= 0 && bx.f[1] <= bx.h && bx.ok[0] >= 0 && bx.ok[1] <= bx.h, `teclado aberto (pergunta ${n}, ${sel}): campo e Continuar visíveis (${JSON.stringify(bx)})`);
-  }
-  await page.setViewportSize({ width: 390, height: 844 });
-
-  /* ============ 15. escolha única, Voltar no topo, versões "o que você imagina", exemplos por tipo ============ */
-  await abrir(2);
-  check(await page.evaluate(() => document.querySelector('#ent').getAttribute('role') === 'radiogroup'), 'Sim/Não: escolha única');
-  for (const o of ['Sim', 'Não', 'Sim']) await page.locator(`#ent .opcao[data-op="${o}"]`).click();
-  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.dataset.op))) === '["Sim"]', 'Sim/Não: só a última fica marcada');
-  check(await page.evaluate(() => getComputedStyle(document.querySelector('#ent .opcao')).webkitTapHighlightColor === 'rgba(0, 0, 0, 0)'), 'Sim/Não: sem realce azul do toque');
-  for (const n of [2, 10, 15, 19]) {
-    await abrir(n);
-    const v = await page.evaluate(() => { const b = document.querySelector('#v'), q = document.querySelector('.cartao-q h2.q'); return { n: document.querySelectorAll('#v').length, acima: b.getBoundingClientRect().bottom <= q.getBoundingClientRect().top + 1, txt: b.textContent.trim() }; });
-    check(v.n === 1 && v.acima && v.txt === 'Voltar', `Voltar no topo do cartão (tela ${n})`);
-  }
-  await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();
-  await clicar('button', 'Começar'); await espera(); await clicar('#v', 'Voltar'); await espera();
-  check(await page.evaluate(() => !!document.querySelector('#ir')), 'Voltar na 1ª pergunta abre a capa');
-  await clicar('#limites', 'O que este módulo não faz'); await espera();
-  check(!/Quando procurar um profissional/.test(await tela()), 'limites: sem o quadro de profissional');
-  const SERV = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'naosei' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
-  await abrir(1, {}, { 'lg2-turma-a-m01': SERV }, P(1).pergunta.replace('Vendo marmitas para trabalhadores do bairro', 'Faço unhas em domicílio para mulheres do bairro'));
-  await abrir(3, {}, { 'lg2-turma-a-m01': SERV }, P(3).pergunta.replace('quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote', 'quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha'));
-  await abrir(19, {}, { 'lg2-turma-a-m01': SERV });
-  check(/Prazo \(tempo para atender\)/.test(await tela()), 'serviço: critério de prazo com texto de serviço');
-  const TESTANDO = { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' };
-  for (const q of D.perguntas.filter((q) => !q.oculta && q.variantes && q.variantes.ideia && q.codigo !== 'M3.P01')) {
-    const n = +q.codigo.slice(4);
-    const txt = Motor.variante(q, 'comecando').pergunta.split('quem vende bolo caseiro perde cliente para a padaria ou para o bolo de pote').join('quem faz unhas em casa perde cliente para o salão ou para a cliente que faz sozinha');
-    await abrir(n, {}, { 'lg2-turma-a-m01': M1(TESTANDO) }, txt);
-  }
-  await abrir(13, {}, { 'lg2-turma-a-m01': M1(SO_CABECA) }, P(13).variantes.ideia.pergunta);
-  await clicar('.opcao', 'Ainda não defini'); await espera();
-  check((await caixas('#msg .caminho'))[0].prompt.startsWith('Eu quero vender lavagem de carro em casa em [cidade ou bairro]'), 'prompt: "Eu quero vender" + o que vende do Módulo 1');
+  await page.goto(URL);
+  await page.evaluate((s) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m03', s); }, JSON.stringify({ v: 8, R: { 'M3.P01': { estado: 'valor', valor: 'Bolo da turma B' } }, hist: ['M3.P01'] }));
+  await page.reload(); await espera();
+  check((await RR())['M3.P01'].valor === 'Bolo da turma B' && await page.evaluate(() => document.querySelector('#ir').textContent === 'Continuar de onde parei'), 'chave antiga da turma B (versão atual): as respostas vêm para a turma A');
 
   check(erros.length === 0, 'sem erros de JavaScript: ' + erros.join(' | '));
   await browser.close(); servidor.close();

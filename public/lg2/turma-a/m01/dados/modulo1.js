@@ -1,7 +1,7 @@
 /* Dados do Módulo 1. Mapa, Base técnica e conexões vêm da planilha do grupo.
    Versão leve (proposta, nov/2026): enunciados curtos, exemplos dentro do campo ("Ex.: ..."),
-   explicações em "Ver dica" (fechada) e, em cada "Não sei", a caixa "Como descobrir"
-   (comoDescobrir = passos; promptIA = pedido pronto para copiar). Os textos das opções não mudam:
+   explicações em "Ver dica" (fechada) e, em cada "Não sei", a caixa "Como descobrir" (o "Não sei" só mostra a ajuda: não grava nada)
+   (comoDescobrir = passos; promptIA = pedido pronto para copiar). "exemplo" nas opções = linha pequena de exemplo. Os textos das opções não mudam:
    outros módulos comparam esses valores salvos. "por_tipo" troca enunciado, opções ou dica
    conforme a resposta da Pergunta 3A. */
 window.MODULO1 = {
@@ -210,17 +210,11 @@ window.MODULO1 = {
    "opcoes": [
     {
      "texto": "Ainda está só na minha cabeça",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Antes de gastar dinheiro, teste sua ideia com pouca coisa. A gente te ajuda nas próximas perguntas."
-     }
+     "mensagem": null
     },
     {
      "texto": "Já fiz um pouco para testar ou dar de amostra",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Ótimo começo! Pergunte a quem provou se compraria e por quanto."
-     }
+     "mensagem": null
     },
     {
      "texto": "Já vendi algumas vezes",
@@ -230,7 +224,10 @@ window.MODULO1 = {
      "texto": "Já vendo sempre",
      "mensagem": null
     }
-   ]
+   ],
+   "ajuda": {
+    "texto": "Antes de gastar dinheiro, teste sua ideia com pouca coisa. Se alguém já provou, pergunte se compraria e por quanto."
+   }
   },
   {
    "codigo": "M1.P02",
@@ -242,17 +239,11 @@ window.MODULO1 = {
    "opcoes": [
     {
      "texto": "Preciso de dinheiro logo para pagar as contas",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco."
-     }
+     "mensagem": null
     },
     {
      "texto": "Vi que as pessoas precisam de algo que eu posso vender",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Antes de gastar, pergunte a algumas pessoas se elas comprariam."
-     }
+     "mensagem": null
     },
     {
      "texto": "Quero ganhar um dinheiro a mais",
@@ -262,7 +253,10 @@ window.MODULO1 = {
      "texto": "Quero trabalhar por conta própria",
      "mensagem": null
     }
-   ]
+   ],
+   "ajuda": {
+    "texto": "Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco. Antes de gastar, pergunte a algumas pessoas se elas comprariam."
+   }
   },
   {
    "codigo": "M1.P03",
@@ -297,15 +291,18 @@ window.MODULO1 = {
    "opcoes": [
     {
      "texto": "Produto: eu compro materiais e faço o que vendo",
-     "mensagem": null
+     "mensagem": null,
+     "exemplo": "Ex.: bolo de pote, sabonete, crochê"
     },
     {
      "texto": "Mercadoria: compro pronto para revender",
-     "mensagem": null
+     "mensagem": null,
+     "exemplo": "Ex.: roupa ou perfume comprado para revender"
     },
     {
      "texto": "Serviço: meu cliente paga pelo trabalho que realizo",
-     "mensagem": null
+     "mensagem": null,
+     "exemplo": "Ex.: manicure, conserto, faxina, aula"
     }
    ],
    "ajuda": {
@@ -330,27 +327,21 @@ window.MODULO1 = {
     },
     {
      "texto": "Sei um pouco, ainda estou aprendendo",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Pratique com amigos e família antes de vender. Assim você ganha confiança."
-     }
+     "mensagem": null
     },
     {
      "texto": "Ainda não sei fazer",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Tudo bem começar do zero. Procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."
-     }
+     "mensagem": null
     }
    ],
    "ajuda": {
-    "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho.",
+    "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Se vai começar do zero, procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar.",
     "exemplo": "Ex.: Maria foi costureira por 5 anos e hoje faz consertos de roupa em casa."
    },
    "por_tipo": {
     "Produto": {
      "ajuda": {
-      "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho.",
+      "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Se vai começar do zero, procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar.",
       "exemplo": "Ex.: Joana faz bolo para a família há anos e hoje vende bolo de pote para os vizinhos."
      }
     },
@@ -368,21 +359,15 @@ window.MODULO1 = {
       },
       {
        "texto": "Conheço um pouco, ainda estou pesquisando",
-       "mensagem": {
-        "titulo": "Dica",
-        "texto": "Compare preço e qualidade em mais de um fornecedor antes de comprar muito."
-       }
+       "mensagem": null
       },
       {
        "texto": "Ainda não conheço",
-       "mensagem": {
-        "titulo": "Dica",
-        "texto": "Tudo bem começar do zero. Compre pouco no começo e pesquise pelo menos 2 fornecedores."
-       }
+       "mensagem": null
       }
      ],
      "ajuda": {
-      "texto": "Pense na qualidade, no preço e em onde comprar.",
+      "texto": "Pense na qualidade, no preço e em onde comprar. Compre pouco no começo e compare pelo menos 2 fornecedores antes de comprar muito.",
       "exemplo": "Ex.: Ana comprava roupas numa fábrica para ela e hoje revende para as vizinhas."
      }
     }
@@ -397,10 +382,7 @@ window.MODULO1 = {
    "opcoes": [
     {
      "texto": "Até 1 hora por dia",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Pouco tempo também dá certo. Comece com poucos clientes e faça sob encomenda."
-     }
+     "mensagem": null
     },
     {
      "texto": "De 1 a 3 horas por dia",
@@ -412,26 +394,23 @@ window.MODULO1 = {
     },
     {
      "texto": "Só nos fins de semana",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Venda em feiras, eventos ou por encomenda para entregar no fim de semana."
-     }
+     "mensagem": null
     }
    ],
    "ajuda": {
-    "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar.",
+    "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana.",
     "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso fazer meus doces no sábado.”"
    },
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar.",
+      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana.",
       "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.”"
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá para começar.",
+      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana.",
       "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.”"
      }
     }
@@ -450,21 +429,12 @@ window.MODULO1 = {
     },
     {
      "texto": "Não, meus horários não podem mudar",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Tudo bem. Seu negócio pode crescer devagar, no seu ritmo."
-     }
-    },
-    {
-     "texto": "Não sei dizer",
      "mensagem": null
     }
    ],
-   "comoDescobrir": [
-    "Anote por uma semana o que você faz em cada parte do dia e marque onde sobra um tempinho.",
-    "Converse com quem mora com você: alguém pode ajudar com a casa ou com os filhos em alguns horários?"
-   ],
-   "promptIA": "Eu trabalho [seus dias e horários] e cuido de [casa, filhos ou outra tarefa]. Quero começar a vender [o que você vende]. Me ajude a montar uma rotina simples da semana mostrando onde eu poderia achar de 2 a 5 horas a mais para o negócio, sem prejudicar minha família."
+   "ajuda": {
+    "texto": "Pense na sua semana: onde sobra um tempinho? Alguém em casa pode ajudar com a casa ou com os filhos em alguns horários? Se não der, tudo bem: o negócio pode crescer devagar, no seu ritmo."
+   }
   },
   {
    "codigo": "M1.P06",
@@ -479,33 +449,27 @@ window.MODULO1 = {
     },
     {
      "texto": "Tenho só uma parte",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar."
-     }
+     "mensagem": null
     },
     {
      "texto": "Não tenho nada ainda",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Comece com o mínimo. Dá para pegar emprestado ou alugar no começo."
-     }
+     "mensagem": null
     }
    ],
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "Ex.: ferramentas, materiais de trabalho ou um espaço para atender."
+      "texto": "Ex.: ferramentas, materiais de trabalho ou um espaço para atender. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar."
+      "texto": "Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
      }
     }
    },
    "ajuda": {
-    "texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa."
+    "texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
    }
   },
   {
@@ -517,17 +481,11 @@ window.MODULO1 = {
    "opcoes": [
     {
      "texto": "Nada por enquanto",
-     "mensagem": {
-      "titulo": "Tudo bem",
-      "texto": "Dá para começar sem dinheiro. Na próxima pergunta vamos ver como."
-     }
+     "mensagem": null
     },
     {
      "texto": "Até R$ 100",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Comece pequeno e use esse dinheiro aos poucos."
-     }
+     "mensagem": null
     },
     {
      "texto": "Entre R$ 100 e R$ 500",
@@ -539,14 +497,11 @@ window.MODULO1 = {
     },
     {
      "texto": "Mais de R$ 1.000",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Mesmo podendo usar mais, teste antes com pouco. Não pegue empréstimo no banco para começar."
-     }
+     "mensagem": null
     }
    ],
    "ajuda": {
-    "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas.",
+    "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro.",
     "exemplo": "Ex.: “Tenho R$ 500 guardados para ingredientes. Se eu não vender nada, não falta comida em casa.”"
    },
    "video": {
@@ -557,13 +512,13 @@ window.MODULO1 = {
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas.",
+      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro.",
       "exemplo": "Ex.: “Tenho R$ 300 guardados para esmaltes e alicates. Se eu não tiver clientes, não falta comida em casa.”"
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas.",
+      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro.",
       "exemplo": "Ex.: “Tenho R$ 500 guardados para as primeiras peças. Se eu não vender nada, não falta comida em casa.”"
      }
     }
@@ -578,25 +533,20 @@ window.MODULO1 = {
    "opcoes": [
     {
      "texto": "Pegando emprestado com amigos ou família",
-     "mensagem": {
-      "titulo": "Dica",
-      "texto": "Combine por escrito quanto e quando você vai devolver."
-     }
+     "mensagem": null
     },
     {
      "texto": "Pagando alguém para fazer uma parte do trabalho",
-     "mensagem": null
+     "mensagem": null,
+     "exemplo": "Ex.: pagar alguém para costurar, entregar ou cozinhar uma parte"
     },
     {
      "texto": "Vendendo por encomenda, com o cliente pagando uma parte antes",
-     "mensagem": null
+     "mensagem": null,
+     "exemplo": "Ex.: o cliente paga metade no pedido e o resto na entrega"
     },
     {
      "texto": "Juntando dinheiro primeiro",
-     "mensagem": null
-    },
-    {
-     "texto": "Não sei dizer",
      "mensagem": null
     }
    ],
@@ -604,7 +554,11 @@ window.MODULO1 = {
     "Pergunte a 3 pessoas se comprariam por encomenda e se pagariam metade adiantado. Esse dinheiro compra o material.",
     "Liste o que dá para pegar emprestado com família, vizinhos ou amigos: forno, ferramenta, espaço."
    ],
-   "promptIA": "Quero começar a vender [o que você vende], mas tenho pouco ou nenhum dinheiro e pouco material. Me dê 5 jeitos simples de começar gastando pouco ou nada, como vender por encomenda com pagamento adiantado ou pegar material emprestado. Explique cada um em linguagem simples."
+   "promptIA": "Quero começar a vender [o que você vende], mas tenho pouco ou nenhum dinheiro e pouco material. Me dê 5 jeitos simples de começar gastando pouco ou nada, como vender por encomenda com pagamento adiantado ou pegar material emprestado. Explique cada um em linguagem simples.",
+   "botao_ajuda": "Não sei",
+   "ajuda": {
+    "texto": "Se for pegar emprestado, combine por escrito quanto e quando vai devolver."
+   }
   },
   {
    "codigo": "M1.P08",
@@ -642,7 +596,8 @@ window.MODULO1 = {
      "opcoes": [
       {
        "texto": "Ainda não conheço bem o produto ou os fornecedores",
-       "mensagem": null
+       "mensagem": null,
+       "exemplo": "Fornecedor é quem vende para você. Ex.: fábrica, loja de atacado"
       },
       {
        "texto": "Me falta lugar ou equipamento",
