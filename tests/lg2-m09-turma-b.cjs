@@ -14,7 +14,14 @@
    própria pessoa (Mo.SEM_NS); respostas antigas "Não sei" viram "sem resposta" (estado v3); exemplos curtos nas opções;
    "Como calculamos" das pendências; pergunta já respondida no Módulo 4/8 não reaparece (cartão "Veio do Módulo N · Trocar").
    Sabotagem: SABOTAR=1 (M9-08 também em casa), SABOTAR=2 (4 alertas), SABOTAR=3 (sem a caixa "Como descobrir"),
-   SABOTAR=4 ("Não sei" volta a gravar "naosei") e SABOTAR=5 (pergunta do Módulo 8 volta a aparecer) devem fazer o teste falhar. */
+   SABOTAR=4 ("Não sei" volta a gravar "naosei") e SABOTAR=5 (pergunta do Módulo 8 volta a aparecer) devem fazer o teste falhar.
+   Lote 17/11 ("tira a fricção"): B1 "[link do estado]" vira link de verdade na caixa ao vivo e nenhuma tela mostra "[palavra]"
+   (fora do pedido para a IA, que pede para trocar o que está entre colchetes); A um toque por pergunta, sem "Seguir" nem
+   "Corrigir minha resposta"; B Continuar nunca desabilitado, aviso com role=alert acima dele; C Continuar inteiro na tela em
+   360x640, 390x844 com letra 130% e 740x360; D aria-pressed nas opções e foco no enunciado; E "Etapa" (nunca "Módulo") no texto
+   visível; F alvos de toque >= 44 px; G barra de progresso que nunca volta e tempo da capa = caminho típico x 35 s.
+   SABOTAR=6 (Continuar volta a pedir um 2º toque, "Seguir"), SABOTAR=7 (caixa ao vivo sem trocar o link), SABOTAR=8 (sem
+   position: sticky) e SABOTAR=9 (sem aria-pressed) também devem fazer o teste falhar. */
 const http = require('node:http'), fsp = require('node:fs/promises'), fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict'), vm = require('node:vm');
 const { chromium } = require(process.env.PW || 'playwright');
 const root = path.join(__dirname, '..', 'public');
@@ -420,7 +427,7 @@ const ESPERADO = {
 "cruzamentos": [
 [
 "M4-11 indicou atividade regulada e M9-02 = Não",
-"No Módulo 4 você indicou uma atividade com regras específicas. Quer rever esta resposta?",
+"Na Etapa 4 você indicou uma atividade com regras específicas. Quer rever esta resposta?",
 "Pergunta gentil"
 ],
 [
@@ -460,7 +467,7 @@ const ESPERADO = {
 ],
 [
 "M7-05 lista equipamento a gás e M9-07 = Não",
-"No Módulo 7 você indicou um equipamento a gás. Quer rever esta resposta?",
+"Na Etapa 7 você indicou um equipamento a gás. Quer rever esta resposta?",
 "Pergunta gentil"
 ]
 ],
@@ -511,7 +518,18 @@ const SAB_APP = {
   3: ['if (ehNS(cod, op)) return mostrar(caixaComo(cod, "", caixaNS(c.texto)) || caixaNS(c.texto));', 'if (ehNS(cod, op)) return mostrar(caixa(c.texto));'],
   4: ['if (ehNS(cod, op)) { erro(NS_ESCOLHA); return null; }', 'if (ehNS(cod, op)) return { estado: "naosei" };'],
   5: ['if (cod === "M9-03" && LIMPO_LOCAL8[X.m8Local]) return { op: LIMPO_LOCAL8[X.m8Local], m: 8 };', ''],
+  6: ['ok.onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };', 'let seg = false; ok.onclick = () => { const r0 = coletar(); if (!r0) return; if (!seg) { seg = true; ok.textContent = "Seguir"; return; } avancar(r0); };'],
+  7: ['return h.split(MARCA_LINK).join(linkEstadoHtml());', 'return h.split(MARCA_LINK).join("[link do estado]");'],
+  9: ['x.setAttribute("aria-pressed", String(x.dataset.v === op));', ''],
 };
+/* sabotagem do CSS: tira o Continuar preso ao pé da tela */
+const SAB_CSS = { 8: ['.pe-fixo{position:sticky;', '.pe-fixo{position:static;'] };
+function cssTexto() {
+  let t = fs.readFileSync(path.join(DIR, 'css/estilo.css'), 'utf8');
+  const s = SAB_CSS[process.env.SABOTAR];
+  if (s) { assert.ok(t.includes(s[0]), 'trecho da sabotagem não encontrado'); t = t.replace(s[0], s[1]); }
+  return t;
+}
 function appTexto() {
   let t = fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8');
   const s = SAB_APP[process.env.SABOTAR];
@@ -675,7 +693,7 @@ const TIPOS = { '.svg': 'image/svg+xml', '.js': 'text/javascript', '.css': 'text
 const server = http.createServer(async (req, res) => {
   const f = path.resolve(root, '.' + decodeURIComponent(new URL(req.url, 'http://x').pathname));
   try {
-    const b = f.endsWith(path.join('m09', 'js', 'motor.js')) ? motorTexto() : f.endsWith(path.join('m09', 'js', 'app.js')) ? appTexto() : await fsp.readFile(f);
+    const b = f.endsWith(path.join('m09', 'js', 'motor.js')) ? motorTexto() : f.endsWith(path.join('m09', 'js', 'app.js')) ? appTexto() : f.endsWith(path.join('m09', 'css', 'estilo.css')) ? cssTexto() : await fsp.readFile(f);
     res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' }); res.end(b);
   } catch { res.writeHead(404).end(); }
 });
@@ -723,6 +741,34 @@ const server = http.createServer(async (req, res) => {
     await page.evaluate(([k, e, o]) => { localStorage.clear(); if (e) localStorage.setItem(k, JSON.stringify(e)); Object.entries(o || {}).forEach(([kk, v]) => localStorage.setItem(kk, JSON.stringify(v))); }, [K, estado, outros]);
     await page.reload();
   }
+  /* B1 + E (lote 17/11): nenhum "[palavra]" nem "Módulo" no texto da tela (inclusive dentro de painéis fechados). O pedido
+     para a IA ([data-prompt]) fica de fora dos colchetes: ele pede para a pessoa trocar o que está entre colchetes. */
+  let telasLimpas = 0;
+  async function telaLimpa(onde) {
+    const r = await page.evaluate(() => {
+      const c = document.querySelector('#tela').cloneNode(true);
+      const tudo = c.textContent + ' ' + document.title;
+      c.querySelectorAll('[data-prompt]').forEach((e) => e.remove());
+      return { colchete: (c.textContent.match(/\[[A-Za-zÀ-ÿ][^\]]*\]/g) || []), modulo: (tudo.match(/.{0,30}M[óo]dulo.{0,20}/gi) || []), grupo: /Grupo \d/.test(tudo) };
+    });
+    assert.deepEqual(r.colchete, [], onde + ': colchete sem troca na tela');
+    assert.deepEqual(r.modulo, [], onde + ': "Módulo" na tela (use "Etapa")');
+    assert.equal(r.grupo, false, onde + ': "Grupo N" na tela');
+    telasLimpas++;
+  }
+  /* A (lote 17/11): nenhum passo extra nem botão "Corrigir minha resposta" */
+  async function semPassoExtra(onde) {
+    const n = await page.evaluate(() => [...document.querySelectorAll('button, a')].filter((b) => /^(Seguir|Corrigir minha resposta)$/.test(b.textContent.replace(/\s+/g, ' ').trim())).length);
+    assert.equal(n, 0, onde + ': botão "Seguir" ou "Corrigir minha resposta"');
+  }
+  /* F (lote 17/11): todo alvo de toque visível do módulo com 44 px de altura ou mais (links no meio do texto ficam de fora) */
+  async function alvos44(onde) {
+    const baixos = await page.evaluate(() => [...document.querySelectorAll('#tela button, #tela summary, #tela a.btn, #tela a.link-estado, #tela label.chk, #tela select, #tela input:not([type=checkbox]), #tela textarea')]
+      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !e.closest('details:not([open]) > :not(summary)'); })
+      .map((e) => [e.textContent.replace(/\s+/g, ' ').trim().slice(0, 30) || e.id || e.tagName, Math.round(e.getBoundingClientRect().height)])
+      .filter(([, h]) => h < 44));
+    assert.deepEqual(baixos, [], onde + ': alvos com menos de 44 px');
+  }
 
   /* ---------- 3. capa, estado antigo descartado ---------- */
   await abrir({ R: { 'M9.P01': { estado: 'opcao', opcao: 'Sim' } }, hist: ['M9.P01'] });
@@ -732,7 +778,13 @@ const server = http.createServer(async (req, res) => {
   assert.ok(norm(await page.textContent('.corpo')).includes(norm(ESPERADO.mensagem_limite)), 'mensagem de limite na capa');
   /* versão leve: título + uma frase + tempo + Começar; o resto em "Como funciona" fechado */
   assert.equal(norm(await page.textContent('.heroi p')), norm(D.capa.frase));
-  assert.equal(norm(await page.textContent('.tempo')), `Este módulo leva uns ${D.capa.minutos} minutos`);
+  assert.equal(norm(await page.textContent('.tempo')), `Esta etapa leva cerca de ${D.capa.minutos} minutos`);
+  /* G: o tempo da capa = caminho mais comum (trabalho em casa, com alimento e botijão) x 35 s, arredondado para múltiplo de 5 min */
+  { const TIPICO = { 'M9-02': 'Sim, alimentos ou bebidas', 'M9-03': O.casa, 'M9-07': O.botijao };
+    const n = esperadoSeq(TIPICO).length; assert.equal(n, 15);
+    assert.equal(D.capa.minutos, Math.max(5, Math.round(n * 35 / 60 / 5) * 5), 'tempo da capa = caminho típico'); }
+  await telaLimpa('capa'); await alvos44('capa');
+  await page.click('details.como-funciona summary'); await alvos44('capa, Como funciona aberto'); await page.click('details.como-funciona summary');
   assert.equal(await page.$eval('details.como-funciona', (d) => d.open), false, '"Como funciona" fechado');
   assert.ok(norm(await page.textContent('details.como-funciona')).includes(norm(D.mapa.nao_faz)), 'o que o módulo não faz dentro de "Como funciona"');
   const pCapa = await palavrasTela();
@@ -813,9 +865,14 @@ const server = http.createServer(async (req, res) => {
       if (cod === 'M9-05' && opcoesDaLinha(linha).includes(NS)) { await page.click('#nsb'); assert.equal(norm(await retorno()), norm(txt)); await confereComo(cod, '#retorno'); comoVistos.add(cod);
         await page.click('#ok'); assert.equal(await codAtual(), 'M9-05', 'M9-05: "Não sei" não avança'); assert.equal(norm(await page.textContent('#erro')), 'Use a ajuda acima e escreva a área para continuar.'); assert.equal((await st()).R['M9-05'], undefined, 'M9-05: "Não sei" não grava');
         await page.fill('#area', '30'); assert.equal(await page.locator('#retorno .como-descobrir').count(), 0, 'M9-05: digitar a área tira a ajuda'); marca(cod, i); continue; }
-      if (cod === 'M9-05' && linha.startsWith('Área informada')) { await page.fill('#area', '30'); assert.equal(norm(await retorno()), norm(txt)); marca(cod, i); continue; }
+      if (cod === 'M9-05' && linha.startsWith('Área informada')) {
+        /* A: retorno do campo ao vivo, ~700 ms depois da última tecla ou ao sair do campo, antes de tocar Continuar */
+        await page.fill('#area', '30'); assert.equal(norm(await retorno()), '', 'M9-05: sem retorno no meio da digitação');
+        await page.waitForTimeout(900); assert.equal(norm(await retorno()), norm(txt), 'M9-05: retorno 700 ms depois da última tecla');
+        await page.fill('#area', ''); await page.fill('#area', '30'); await page.$eval('#area', (e) => e.blur());
+        assert.equal(norm(await retorno()), norm(txt), 'M9-05: retorno ao sair do campo'); marca(cod, i); continue; }
       if (cod === 'M9-05' && linha === 'Valor inválido') {
-        for (const v of ['0', '-5', 'abc']) { await page.fill('#area', v); assert.equal(norm(await retorno()), norm(txt), v); }
+        for (const v of ['0', '-5', 'abc']) { await page.fill('#area', v); await page.$eval('#area', (e) => e.blur()); assert.equal(norm(await retorno()), norm(txt), v); }
         await page.click('#ok'); assert.equal(await codAtual(), 'M9-05', 'valor inválido não avança'); marca(cod, i); continue;
       }
       if (cod === 'M9-13') { await page.fill('#ideias', linha === 'Texto preenchido' ? 'Vender também em feiras' : ''); assert.equal(norm(await retorno()), norm(txt)); marca(cod, i); continue; }
@@ -823,7 +880,16 @@ const server = http.createServer(async (req, res) => {
         await tocar(o);
         const ehNS = o === NS;
         /* "Não sei": só a parte "Verifique…" dentro da ajuda; o cuidado geral está na dica (item G) */
-        assert.equal(norm(await retorno()), ehNS ? norm(txt.split('⚠ Atenção:')[0]) : esperadoVisivel(txt), `${cod} · ${o}`);
+        /* B1: "[link do estado]" vira o link do portal do estado escolhido (Minas Gerais na cena), ao vivo, antes de Continuar */
+        assert.equal(norm(await retorno()), ehNS ? norm(txt.split('⚠ Atenção:')[0]) : esperadoVisivel(txt.replace('[link do estado]', 'abrir o site de Minas Gerais')), `${cod} · ${o}`);
+        if (txt.includes('[link do estado]')) {
+          const lk = await page.$$eval('#retorno a.link-estado', (as) => as.map((a) => [a.getAttribute('href'), a.target, a.rel, a.textContent]));
+          assert.deepEqual(lk, [[D.viabilidade.estados.find((e) => e.estado === 'Minas Gerais').link, '_blank', 'noopener', 'abrir o site de Minas Gerais']], cod + ': link do estado na caixa ao vivo');
+          if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm09_link_do_estado.png') }); }
+        }
+        await telaLimpa(`${cod} · ${o}`);
+        /* D: a opção tocada diz que está marcada; as outras, que não */
+        assert.deepEqual(await page.$$eval('#ent .opcao', (bs) => bs.map((b) => [b.querySelector('.op-txt b').textContent.trim(), b.getAttribute('aria-pressed')])).then((l) => l.filter(([x, a]) => (x === o) !== (a === 'true'))), [], `${cod} · ${o}: aria-pressed`);
         if (!ehNS && await page.locator('#retorno .b-alerta').count()) alertasVistos.add(cod + ' · ' + o);
         if (ehNS) {
           await confereComo(cod, '#retorno'); comoVistos.add(cod);
@@ -854,6 +920,9 @@ const server = http.createServer(async (req, res) => {
     await page.evaluate((o) => [...document.querySelectorAll('#op14 .opcao')].find((x) => x.textContent.trim() === o).click(), o);
     assert.equal(norm(await retorno('#ret14')), norm(txt));
     assert.equal(await page.locator('#corr').isVisible(), o === 'Quero corrigir algo');
+    /* D: a escolha do resumo também diz se está marcada */
+    assert.deepEqual(await page.$$eval('#op14 .opcao', (bs) => bs.map((b) => [b.textContent.trim(), b.getAttribute('aria-pressed')])).then((l) => l.filter(([x, a]) => (x === o) !== (a === 'true'))), [], 'M9-14 · ' + o + ': aria-pressed');
+    await semPassoExtra('resultado · ' + o);
     marca('M9-14', i);
   }
   assert.equal(alcancadas.size, TOTAL, `linhas alcançadas ${alcancadas.size} de ${TOTAL}`);
@@ -883,9 +952,17 @@ const server = http.createServer(async (req, res) => {
     await abrir(null, outros);
     await page.click('#ir');
     const vistos = [];
+    let pctAntes = -1;
     for (let i = 0; i < 30; i++) {
       if (await page.locator('#q14').count()) break;
       const cod = await codAtual(); vistos.push(cod);
+      /* D: depois de Continuar o foco está no enunciado da pergunta nova */
+      if (i > 0) assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.id), 'pergunta', cod + ': foco no enunciado');
+      /* B: Continuar nunca desabilitado; G: a barra só anda para a frente */
+      assert.equal(await page.$eval('#ok', (b) => b.disabled), false, cod + ': Continuar ativo');
+      const pct = Number(await page.getAttribute('.heroi-compacta [role=progressbar]', 'aria-valuenow'));
+      assert.ok(pct > pctAntes, `${cod}: barra voltou (${pctAntes} -> ${pct})`); pctAntes = pct;
+      await semPassoExtra(cod);
       const v = A[cod];
       /* toda pergunta com "Não sei": tocar nele mostra a ajuda, não grava e o Continuar não avança */
       const temNS = cod === 'M9-05' ? true : await page.evaluate((ns) => [...document.querySelectorAll('#ent .opcao .op-txt b')].some((b) => b.textContent.trim() === ns), NS);
@@ -903,8 +980,14 @@ const server = http.createServer(async (req, res) => {
       else if (cod === 'M9-05') await page.fill('#area', v);
       else if (cod === 'M9-13') await page.fill('#ideias', v || '');
       else await tocar(v);
+      if (cod === 'M9-05') await page.$eval('#area', (e) => e.blur());
+      /* A: o retorno da resposta já está na tela antes de tocar Continuar (escolha, lista de estados e campo) */
+      if (cod !== 'M9-13') assert.ok(norm(await page.textContent('#retorno')).length > 0, cod + ': retorno ao vivo antes de Continuar');
+      /* A: UM toque em Continuar grava e abre a próxima (o laço confere a sequência inteira) */
       await page.click('#ok');
+      assert.notEqual(await page.locator('#q14').count() ? 'M9-14' : await codAtual(), cod, cod + ': um toque em Continuar não avançou');
     }
+    await semPassoExtra('resultado'); await telaLimpa('resultado');
     return vistos;
   }
   const ROTEIROS = [
@@ -952,6 +1035,13 @@ const server = http.createServer(async (req, res) => {
   /* ---------- 6. "Não sei" bloqueia: ajuda à vista, nada gravado, Continuar pede uma resposta ---------- */
   await abrir({ v: 2, R: R_({ 'M9-01': 'Acre' }), feitos: {} });
   await page.click('#ir');
+  /* B (lote 17/11): sem resposta, Continuar (ativo) mostra a mensagem com role=alert logo acima dele, dentro do pé fixo */
+  await page.click('#ok');
+  assert.equal(await codAtual(), 'M9-02');
+  assert.deepEqual(await page.evaluate(() => { const e = document.querySelector('#erro'), b = document.querySelector('#ok'); return [e.textContent, e.getAttribute('role'), !e.hidden, e.getBoundingClientRect().bottom <= b.getBoundingClientRect().top, !!e.closest('.pe-fixo')]; }),
+    ['Escolha uma opção para continuar.', 'alert', true, true, true], 'mensagem sem resposta');
+  await alvos44('pergunta M9-02');
+  await page.click('.dica-toggle summary'); await alvos44('M9-02, Ver dica aberta'); await page.click('.dica-toggle summary');
   await tocar(NS);
   assert.equal(await page.locator('#verifiquei').count(), 0, 'sem "Já verifiquei"');
   assert.equal(norm(await page.textContent('#ok')), 'Continuar');
@@ -1019,6 +1109,8 @@ const server = http.createServer(async (req, res) => {
   assert.equal(await page.locator('#encaminhamento .bloco').count(), 1);
   assert.ok(norm(await page.textContent('#linha-resumo')).includes('(fato)') || norm(await page.textContent('#linha-resumo')).includes('(hipótese)'));
   await page.evaluate(() => [...document.querySelectorAll('#op14 .opcao')].find((x) => x.textContent.trim() === 'Quero corrigir algo').click());
+  await semPassoExtra('resultado, quero corrigir');
+  assert.equal(norm(await page.textContent('[data-c="M9-04"]')), 'Mudar esta resposta');
   await page.click('[data-c="M9-04"]');
   assert.equal(await codAtual(), 'M9-04');
   await tocar('Sim, foi aprovada'); await page.click('#ok');
@@ -1039,6 +1131,7 @@ const server = http.createServer(async (req, res) => {
   const pRes = await palavrasTela();
   console.log(`resultado: ${pRes} palavras na 1ª leitura (painéis abertos)`);
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm09_resultado_leve.png') }); }
+  await alvos44('resultado'); await telaLimpa('resultado com alertas');
   await page.check('[data-feito="gas"]');
   assert.equal(await page.$eval('#mais-checklist', (d) => d.open), true, 'checklist continua aberto ao marcar');
   assert.equal(await page.$eval('[data-item="gas"] .sit', (e) => e.textContent.trim()), 'feito');
@@ -1089,7 +1182,7 @@ const server = http.createServer(async (req, res) => {
     assert.deepEqual(R9['M9-03'], herdOk(l9, 8), 'M9-03 gravada como herdada: ' + l8);
     if (f9) assert.deepEqual(R9['M9-03a'], herdOk(f9, 8)); else assert.equal(R9['M9-03a'], undefined);
     const card = norm(await page.textContent('#herdadas'));
-    assert.ok(card.includes('Veio do Módulo 8') && card.includes(l9) && (!f9 || card.includes(f9)), card);
+    assert.ok(card.includes('Veio da Etapa 8') && card.includes(l9) && (!f9 || card.includes(f9)), card);
     assert.equal(await page.locator('#herdadas [data-trocar="M9-03"]').count(), 1, 'botão Trocar');
     assert.equal(norm(await page.textContent('#herdadas [data-trocar="M9-03"]')), 'Trocar');
   }
@@ -1098,7 +1191,7 @@ const server = http.createServer(async (req, res) => {
   await page.click('#ir');
   assert.equal(await codAtual(), 'M9-03');
   assert.equal(await selAtual(), O.casa);
-  assert.equal(await veioAtual(), 'Veio do Módulo 8 Confira e ajuste se quiser.');
+  assert.equal(await veioAtual(), 'Veio da Etapa 8 Confira e ajuste se quiser.');
   await page.click('#ok'); assert.equal(await codAtual(), 'M9-04');
   assert.deepEqual((await st()).R['M9-03'], opc(O.casa), 'pré-marcada e confirmada: sem "herdado"');
   /* Trocar: abre a pergunta com a resposta herdada marcada; a nova resposta vale e volta para onde parou */
@@ -1110,7 +1203,7 @@ const server = http.createServer(async (req, res) => {
   await tocar('Não'); await page.click('#ok'); assert.equal(await codAtual(), 'M9-04');
   await page.click('#herdadas [data-trocar="M9-03"]');
   assert.equal(await codAtual(), 'M9-03'); assert.equal(await selAtual(), O.sem);
-  assert.equal(norm(await page.textContent('#ent .veio')), 'Veio do Módulo 8');
+  assert.equal(norm(await page.textContent('#ent .veio')), 'Veio da Etapa 8');
   await tocar(O.loja); await page.click('#ok');
   assert.equal(await codAtual(), 'M9-04', 'depois de trocar, volta para a pergunta que faltava');
   { const R9 = (await st()).R; assert.deepEqual(R9['M9-03'], opc(O.loja)); assert.equal(R9['M9-03a'], undefined, 'trocar refaz o caminho'); }
@@ -1132,7 +1225,7 @@ const server = http.createServer(async (req, res) => {
     await page.click('#ir');
     assert.equal(await codAtual(), 'M9-11', 'M9-10 não reaparece (já respondida no Módulo 8)');
     assert.deepEqual((await st()).R['M9-10'], herdOk(v, 8));
-    assert.ok(norm(await page.textContent('#herdadas')).includes('Veio do Módulo 8 Profissional formado e registrado em conselho: ' + v));
+    assert.ok(norm(await page.textContent('#herdadas')).includes('Veio da Etapa 8 Profissional formado e registrado em conselho: ' + v));
     if (SHOTS && v === 'Sim') { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm09_heranca_m9-10.png') }); }
   }
   await abrir({ v: 2, R: R_(ATE10), feitos: {} }, m8({ 'M8.P08': { estado: 'naosei' } }));
@@ -1142,7 +1235,7 @@ const server = http.createServer(async (req, res) => {
   await page.click('#ir');
   assert.equal(await codAtual(), 'M9-03', 'M9-02 não reaparece: Módulo 4 = Sim + o que vende mostra o tipo');
   assert.deepEqual((await st()).R['M9-02'], herdOk('Sim, alimentos ou bebidas', 4));
-  assert.ok(norm(await page.textContent('#herdadas')).includes('Veio do Módulo 4'));
+  assert.ok(norm(await page.textContent('#herdadas')).includes('Veio da Etapa 4'));
   await abrir({ v: 2, R: R_({ 'M9-01': 'Acre' }), feitos: {} }, { 'lg2-turma-a-m04': { R: { 'M4.P15': opc('Sim') } }, 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Lavagem de carros' } } } });
   await page.click('#ir');
   assert.equal(await page.locator('#ent .opcao.sel').count(), 0, 'sem pista do tipo, nada pré-marcado');
@@ -1275,6 +1368,43 @@ const server = http.createServer(async (req, res) => {
   }
   await page.setViewportSize({ width: 390, height: 844 });
 
+  /* ---------- 8f2. C (lote 17/11): Continuar inteiro na tela, sem rolar, em celular pequeno, letra grande e celular deitado ---------- */
+  {
+    const VIS = [['360x640', { width: 360, height: 640 }, false], ['390x844 letra 130%', { width: 390, height: 844 }, true], ['740x360 deitado', { width: 740, height: 360 }, false]];
+    const ROTA = [Object.assign({}, CENA, { 'M9-13': 'Anotação' }), Object.assign({}, RUA, { 'M9-13': '' })];
+    const dentro = () => page.evaluate(() => { const r = document.querySelector('#ok').getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0; });
+    let n = 0;
+    for (const [nome, vp, z] of VIS) {
+      await page.setViewportSize(vp);
+      for (const A of ROTA) {
+        await abrir(null);
+        if (z) await page.evaluate(() => { document.documentElement.style.fontSize = '130%'; });
+        await page.click('#ir');
+        for (let i = 0; i < 30 && !(await page.locator('#q14').count()); i++) {
+          const cod = await codAtual(), v = A[cod];
+          assert.equal(await page.evaluate(() => window.scrollY), 0, `${nome} ${cod}: a pergunta abre no topo`);
+          assert.ok(await dentro(), `${nome} ${cod}: Continuar fora da tela ao abrir`);
+          if (cod === 'M9-01') await page.selectOption('#uf', v);
+          else if (cod === 'M9-05') { await page.fill('#area', v); await page.$eval('#area', (e) => e.blur()); }
+          else if (cod === 'M9-13') await page.fill('#ideias', v || '');
+          else await tocar(v);
+          /* depois de responder (retorno ao vivo aberto) o Continuar continua inteiro na tela */
+          assert.ok(await dentro(), `${nome} ${cod}: Continuar fora da tela depois de responder`);
+          if (SHOTS && cod === 'M9-04') { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, `m09_C_${vp.width}x${vp.height}${z ? '_z130' : ''}_M9-04.png`) }); }
+          await page.click('#ok'); n++;
+        }
+        assert.equal(norm(await page.textContent('.passo')), 'Resultado', nome + ': chegou ao resultado');
+      }
+    }
+    /* o último campo não fica coberto pelo pé fixo quando a página termina */
+    await page.setViewportSize({ width: 740, height: 360 });
+    await abrir({ v: 3, R: R_(ATE13), feitos: {} }); await page.click('#ir');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await page.waitForTimeout(100);
+    assert.ok(await page.evaluate(() => document.querySelector('#ideias').getBoundingClientRect().bottom <= document.querySelector('#pe').getBoundingClientRect().top + 1), 'campo coberto pelo Continuar');
+    await page.setViewportSize({ width: 390, height: 844 });
+    console.log(`C: Continuar inteiro na tela em ${n} perguntas (360x640, 390x844 letra 130%, 740x360)`);
+  }
+
   /* ---------- 8g. lote 3: Voltar no topo, "Outra atividade" com campo, domicílio, "Ver mais", termos embaixo do Continuar ---------- */
   await abrir({ v: 2, R: R_({ 'M9-01': 'Minas Gerais' }), feitos: {} }, { 'lg2-turma-a-m03': { R: { 'M3-08': { estado: 'valor', valor: 'Juiz de Fora - MG' } } } });
   await page.click('#ir'); assert.equal(await codAtual(), 'M9-02');
@@ -1332,10 +1462,12 @@ const server = http.createServer(async (req, res) => {
   const app = fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8');
   const blocos = app.match(/<div class="acoes lg2-proximo">.*?<\/div>/g) || [];
   assert.equal(blocos.length, 1);
-  assert.ok(blocos[0].includes('href="/lg2/turma-b/m10/index.html">Ir para o Módulo 10<'));
+  assert.ok(blocos[0].includes('href="/lg2/turma-b/m10/index.html">Ir para a Etapa 10<'));
   assert.equal((app.match(/addEventListener\("focusin"/g) || []).length, 1, 'um único listener de foco');
   assert.ok(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8').includes('content="width=device-width, initial-scale=1, interactive-widget=resizes-content"'));
 
+  assert.ok(telasLimpas >= 60, 'telas conferidas sem colchete/"Módulo": ' + telasLimpas);
+  console.log(`B1/E: ${telasLimpas} telas sem "[palavra]" nem "Módulo"`);
   assert.deepEqual(errs, []);
   await b.close(); server.close();
   console.log('lg2-m09-turma-b ok');

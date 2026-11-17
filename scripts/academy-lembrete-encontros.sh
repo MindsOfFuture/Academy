@@ -1,8 +1,9 @@
 #!/bin/sh
-# Lembretes por e-mail da gestão. Roda de hora em hora pelo
+# Lembretes por e-mail. Roda de hora em hora pelo
 # academy-lembrete-encontros.timer (RUNBOOK §8.6):
 #   - encontro nas próximas 24 h (spec 016), uma vez por alocação;
-#   - meta atrasada, uma vez por responsável e prazo.
+#   - meta atrasada, uma vez por responsável e prazo;
+#   - etapas que faltam no Empreenda+ (spec 027), no máximo 3 por período parado.
 #
 # O banco escolhe quem recebe e monta o e-mail (gestao.lembretes_pendentes,
 # gestao.lembretes_meta_pendentes); aqui só se envia pelo Resend e se marca como
@@ -66,5 +67,23 @@ else
 select gestao.marcar_lembrete_meta_enviado(:'meta', :'pessoa', :'prazo');
 SQL
     echo "lembrete de meta enviado"
+  done
+fi
+
+# --- Empreenda+: etapas que faltam -----------------------------------------
+lg2=$(consultar <<'SQL'
+select user_id, email from public.lg2_lembretes_pendentes(:'de', :'url', :'redir');
+SQL
+)
+
+if [ -z "$lg2" ]; then
+  echo "nenhum lembrete do Empreenda+ pendente"
+else
+  printf '%s\n' "$lg2" | while IFS="$tab" read -r pessoa corpo; do
+    enviar "$corpo"
+    psql "$GESTAO_LEMBRETE_DB_URL" -X -q -v ON_ERROR_STOP=1 -v pessoa="$pessoa" >/dev/null <<'SQL'
+select public.lg2_marcar_lembrete_enviado(:'pessoa');
+SQL
+    echo "lembrete do Empreenda+ enviado"
   done
 fi

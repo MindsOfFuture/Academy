@@ -15,7 +15,13 @@ const server = http.createServer(async (req, res) => {
   const st = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), K);
   const hist = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k + '-historico') || '[]'), K);
   const cl = (sel, t) => page.evaluate(([s, t]) => { const e = [...document.querySelectorAll(s)].find((e) => e.textContent.replace(/\s+/g, ' ').trim() === t && e.offsetParent); if (e) e.click(); return !!e; }, [sel, t]);
-  const cont = async () => { await page.click('#ok'); assert.ok(await cl('#acoes button', 'Seguir') || await cl('#acoes button', 'Ver o resultado')); };
+  /* 17/11 (A): um toque em Continuar grava e já abre a tela seguinte; não existe "Seguir" nem "Corrigir minha resposta" */
+  const cont = async () => {
+    const antes = (await st()).hist.at(-1);
+    await page.click('#ok');
+    assert.equal(await page.locator('button').filter({ hasText: /^(Seguir|Corrigir minha resposta)$/ }).count(), 0, 'sem passo extra depois de Continuar');
+    assert.notEqual((await st()).hist.at(-1), antes, `um toque em Continuar avança (${antes})`);
+  };
   const esc = async (t) => { assert.ok(await cl('#ent .opcao b', t), t); await cont(); };
   const fill = async (v) => { const ins = await page.locator('#ent input').all(); for (let i = 0; i < v.length; i++) await ins[i].fill(String(v[i])); await cont(); };
   const etapaAtual = () => page.evaluate(() => [...document.querySelectorAll('.etapas li')].findIndex((l) => l.classList.contains('atual')) + 1);
@@ -65,6 +71,6 @@ const server = http.createServer(async (req, res) => {
   await page.click('[data-apagar]');
   assert.equal((await hist()).length, 0); assert.equal(await page.locator('.vazio-lista').count(), 1);
   assert.deepEqual(errs, []);
-  console.log('PASS: etapas, Alterar, Minhas análises (salvar, não duplicar, abrir, apagar)');
+  console.log('PASS: etapas, Alterar, Minhas análises (salvar, não duplicar, abrir, apagar), um toque por pergunta');
   await b.close(); server.close();
 })().catch((e) => { console.error(e); process.exit(1); });

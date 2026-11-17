@@ -73,6 +73,22 @@
   var topoKicker = document.getElementById('topo-kicker');
   var topoTitulo = document.getElementById('topo-titulo');
   var vista = null; // 'trilha' | 'modulo' | 'concluida' | 'fim'
+  // Barra fixa embaixo do módulo quando ele chega ao fim: o resultado abre todo expandido e o botão do
+  // próximo passo fica muitas telas abaixo; esta barra leva à próxima etapa sem precisar rolar.
+  var feitaBarra = document.getElementById('feita-barra');
+  var feitaTxt = document.getElementById('feita-txt');
+  var feitaIr = document.getElementById('feita-ir');
+  var feitaN = null;
+  function mostrarBarraFeita(n) {
+    if (vista !== 'modulo' || !feitaBarra.hidden) return;
+    feitaN = n;
+    // Mesma escolha do celebrar(): a próxima pronta; se já feita, a primeira que falta.
+    var prox = proximoPronto(n);
+    if (!prox || feito(prox.n)) { var p = primeiroPendente(); prox = p ? modulo(p) : null; }
+    feitaTxt.textContent = 'Etapa ' + n + ' concluída!';
+    feitaIr.textContent = prox ? 'Ir para a Etapa ' + prox.n : 'Ver o fim da jornada';
+    feitaBarra.hidden = false;
+  }
 
   // Respostas que o módulo guardou: serve para saber se a pessoa já começou a etapa.
   function lerModulo(n) {
@@ -206,6 +222,7 @@
   var vigia = null;
   function esconderTudo(manterModulo) {
     telaTrilha.hidden = true; telaConcluida.hidden = true; fim.hidden = true; telaCapa.hidden = true;
+    feitaBarra.hidden = true;
     document.body.classList.remove('na-capa');
     if (!manterModulo) {
       clearInterval(vigia);
@@ -307,6 +324,7 @@
   });
 
   voltaTrilha.addEventListener('click', mostrarTrilha);
+  feitaIr.addEventListener('click', function () { if (feitaN) { concluir(feitaN); celebrar(feitaN); } });
   document.getElementById('conc-trilha').addEventListener('click', mostrarTrilha);
   document.getElementById('fim-trilha').addEventListener('click', mostrarTrilha);
 
@@ -350,8 +368,8 @@
     } else {
       var v = document.createElement('p'); v.className = 'vazio';
       v.textContent = algum
-        ? 'Ainda não dá para montar o resumo. Continue respondendo os módulos e ele vai aparecer aqui.'
-        : 'Você ainda não respondeu nenhuma pergunta. Comece pelo Módulo 1 e o resumo do seu negócio vai aparecer aqui.';
+        ? 'Ainda não dá para montar o resumo. Continue respondendo as etapas e ele vai aparecer aqui.'
+        : 'Você ainda não respondeu nenhuma pergunta. Comece pela Etapa 1 e o resumo do seu negócio vai aparecer aqui.';
       alvo.appendChild(v);
     }
     document.getElementById('painel-nota').hidden = !pars.length;
@@ -362,7 +380,7 @@
       var li = document.createElement('li');
       li.setAttribute('data-modulo', m.n);
       var nome = document.createElement('span'); nome.className = 'mod-nome';
-      var b = document.createElement('b'); b.textContent = 'Módulo ' + m.n;
+      var b = document.createElement('b'); b.textContent = 'Etapa ' + m.n;
       nome.appendChild(b); nome.appendChild(document.createTextNode(' · ' + m.nome));
       li.appendChild(nome);
       var chip = document.createElement('span'); chip.className = 'estado ' + st;
@@ -372,13 +390,13 @@
         var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'revisar';
         var rever = st !== 'nada';
         bt.textContent = rever ? 'Abrir para revisar' : 'Abrir';
-        bt.setAttribute('aria-label', 'Abrir o Módulo ' + m.n + (rever ? ' para revisar' : ''));
+        bt.setAttribute('aria-label', 'Abrir a Etapa ' + m.n + (rever ? ' para revisar' : ''));
         bt.addEventListener('click', function () { fecharPainel(); abrir(m.n); });
         li.appendChild(bt);
       } else if (m.caminho) {
         var ant = anteriorPronto(m.n);
         var t = document.createElement('span'); t.className = 'trava';
-        t.textContent = 'Abre depois do Módulo ' + ant.n;
+        t.textContent = 'Abre depois da Etapa ' + ant.n;
         li.appendChild(t);
       }
       lista.appendChild(li);
@@ -418,20 +436,20 @@
       try { var RN = window.ResumoNegocio; pars = RN ? (RN.paragrafos ? RN.paragrafos() : [RN.frases().join(' ')]) : []; } catch (e) { pars = []; }
       pars = pars.filter(Boolean);
       if (pars.length) pars.forEach(function (t) { s1.appendChild(el('p', '', t)); });
-      else s1.appendChild(el('p', 'diag-vazio', 'Ainda não dá para montar o resumo. Continue respondendo os módulos e ele vai aparecer aqui.'));
+      else s1.appendChild(el('p', 'diag-vazio', 'Ainda não dá para montar o resumo. Continue respondendo as etapas e ele vai aparecer aqui.'));
       s1.appendChild(el('div', 'diag-rodape-nota', 'Este retrato organiza o que você informou; não verifica os dados nem garante resultados. Confirme informações fiscais, jurídicas e de licenças com fontes oficiais ou profissionais da área.'));
       corpo.appendChild(s1);
       // Pontos em aberto
       var s2 = el('section', 'diag-secao diag-abertos');
       s2.appendChild(el('h2', '', 'Pontos em aberto'));
-      s2.appendChild(el('p', 'diag-nota', 'Aqui aparecem as perguntas que você marcou “Não sei”. Volte ao módulo para usar a ajuda “Como descobrir” e atualizar a resposta.'));
+      s2.appendChild(el('p', 'diag-nota', 'Aqui aparecem as perguntas que você marcou “Não sei”. Volte à etapa para usar a ajuda “Como descobrir” e atualizar a resposta.'));
       if (r.abertos.length) {
         var ul = el('ul', 'diag-lista-abertos');
         r.abertos.forEach(function (a) {
           var li = el('li');
           li.appendChild(el('span', 'diag-q', a.pergunta));
-          li.appendChild(el('span', 'diag-mod', 'Módulo ' + a.modulo));
-          var rever = el('button', 'diag-rever', 'Rever Módulo ' + a.modulo);
+          li.appendChild(el('span', 'diag-mod', 'Etapa ' + a.modulo));
+          var rever = el('button', 'diag-rever', 'Rever Etapa ' + a.modulo);
           rever.type = 'button';
           rever.addEventListener('click', function () { fecharDiagnostico(); abrir(a.modulo); });
           li.appendChild(rever);
@@ -444,12 +462,12 @@
       var s3 = el('section', 'diag-secao diag-proximo');
       s3.appendChild(el('h2', '', 'Seu próximo passo'));
       if (r.abertos.length) {
-        s3.appendChild(el('p', '', 'Comece por um ponto em aberto acima. Toque em “Rever Módulo”, use a ajuda “Como descobrir” e atualize a resposta quando confirmar. Depois, salve seu progresso.'));
+        s3.appendChild(el('p', '', 'Comece por um ponto em aberto acima. Toque em “Rever Etapa”, use a ajuda “Como descobrir” e atualize a resposta quando confirmar. Depois, salve seu progresso.'));
       } else {
         var pendente = mods.find(function (m) { return m.situacao === 'andamento'; }) || mods.find(function (m) { return m.situacao === 'nada'; });
         if (pendente) {
-          s3.appendChild(el('p', '', 'Continue pelo primeiro módulo que está em andamento ou ainda não começou. Ao concluir, volte ao retrato para revisar as respostas.'));
-          var continuar = el('button', 'diag-rever', 'Continuar Módulo ' + pendente.n);
+          s3.appendChild(el('p', '', 'Continue pela primeira etapa que está em andamento ou ainda não começou. Ao concluir, volte ao retrato para revisar as respostas.'));
+          var continuar = el('button', 'diag-rever', 'Continuar Etapa ' + pendente.n);
           continuar.type = 'button';
           continuar.addEventListener('click', function () { fecharDiagnostico(); abrir(pendente.n); });
           s3.appendChild(continuar);
@@ -460,13 +478,13 @@
       corpo.appendChild(s3);
       // Um bloco por módulo
       var s4 = el('section', 'diag-secao diag-respostas');
-      s4.appendChild(el('h2', '', 'Suas respostas, módulo por módulo'));
+      s4.appendChild(el('h2', '', 'Suas respostas, etapa por etapa'));
       r.blocos.forEach(function (b) {
         var art = el('article', 'diag-modulo');
         art.setAttribute('data-modulo', b.n);
         var cab = el('div', 'diag-mod-topo');
         var h = el('h3');
-        h.appendChild(el('b', '', 'Módulo ' + b.n));
+        h.appendChild(el('b', '', 'Etapa ' + b.n));
         h.appendChild(document.createTextNode(' · ' + b.nome));
         cab.appendChild(h);
         cab.appendChild(el('span', 'diag-estado ' + b.situacao, { feito: 'concluído', andamento: 'em andamento', nada: 'não começou' }[b.situacao]));
@@ -512,6 +530,7 @@
   // Plano de negócio (js/plano.js): documento próprio para imprimir ou salvar em PDF, com as contas separadas.
   function baixarPlano(ev) {
     if (!window.PlanoNegocio) return;
+    if (!painel.hidden) painel.hidden = true; // o painel não pode ficar por cima na impressão
     window.PlanoNegocio.imprimir({
       botao: ev.currentTarget,
       modulos: prontos.map(function (m) { return { n: m.n, nome: m.nome, caminho: m.caminho, situacao: situacaoDiag(m) }; }),
@@ -520,6 +539,8 @@
   }
   document.getElementById('baixa-plano-diag').addEventListener('click', baixarPlano);
   document.getElementById('baixa-plano-fim').addEventListener('click', baixarPlano);
+  document.getElementById('baixa-plano-painel').addEventListener('click', baixarPlano);
+  document.getElementById('baixa-plano-trilha').addEventListener('click', baixarPlano);
 
   function abrirPainel() {
     montarPainel();
@@ -565,7 +586,7 @@
     // próximo módulo quando a pessoa responde "Sim, pode seguir".
     var olhar = function () {
       var c = doc.querySelector('.lg2-proximo');
-      if (c && !c.closest('[hidden]') && c.getClientRects().length > 0) concluir(m.n);
+      if (c && !c.closest('[hidden]') && c.getClientRects().length > 0) { concluir(m.n); mostrarBarraFeita(m.n); }
     };
     olhar();
     vigia = setInterval(olhar, 600);

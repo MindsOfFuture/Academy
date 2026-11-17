@@ -21,9 +21,9 @@ window.MODULO9 = {
  "mapa": {
   "objetivo": "Ajudar quem vai abrir ou mudar um pequeno negócio, em qualquer município do Brasil, a descobrir quais verificações de endereço e quais licenças a atividade provavelmente exige e em que ordem procurar a prefeitura, a Vigilância Sanitária, os Bombeiros, o órgão ambiental e o conselho profissional, antes de alugar, reformar ou começar a vender.",
   "usuario": "Qualquer pessoa que vai formalizar ou já formalizou um pequeno negócio (MEI, ME ou EPP), de qualquer segmento, e não sabe se o CNPJ basta para funcionar, se pode trabalhar em casa ou quais órgãos procurar. Dúvidas típicas: \"Já sou MEI, então posso funcionar?\", \"Posso trabalhar em casa ou no apartamento?\", \"Preciso de alvará?\" e \"Aluguei o ponto; e agora?\".",
-  "ter_em_maos": "Nada do que já foi respondido é perguntado de novo: a descrição da atividade, o CNPJ e o código CNAE vêm do Módulo 8, a cidade vem do Módulo 3 e a oferta vem do Módulo 1. O usuário precisa saber o tipo de local onde vai trabalhar (sem informar o endereço), ou como vai trabalhar se não tiver local fixo, a área aproximada do imóvel e se haverá público no local, gás (tipo, quantos botijões ou cilindros e onde vão ficar) ou outros produtos inflamáveis guardados, atividade ligada à saúde, profissional com registro em conselho, resíduos ou obra.",
+  "ter_em_maos": "Nada do que já foi respondido é perguntado de novo: a descrição da atividade, o CNPJ e o código CNAE vêm da Etapa 8, a cidade vem da Etapa 3 e a oferta vem da Etapa 1. O usuário precisa saber o tipo de local onde vai trabalhar (sem informar o endereço), ou como vai trabalhar se não tiver local fixo, a área aproximada do imóvel e se haverá público no local, gás (tipo, quantos botijões ou cilindros e onde vão ficar) ou outros produtos inflamáveis guardados, atividade ligada à saúde, profissional com registro em conselho, resíduos ou obra.",
   "entrega": "Um checklist de endereço e licenças, com o nível de risco provável, os órgãos a procurar com os links oficiais (inclusive o portal da consulta de viabilidade do seu estado), a situação de cada item (feito, a fazer, não se aplica ou a confirmar) e um próximo passo. O resumo mostra no máximo 3 alertas, 3 próximos passos e 1 encaminhamento.",
-  "nao_faz": "Não afirma que a atividade está liberada ou dispensada: indica o nível de risco provável e manda confirmar. Não emite consulta de viabilidade, alvará ou licença, não faz o enquadramento definitivo de CNAE, risco ou tributação (Módulo 8) e não substitui prefeitura, Vigilância Sanitária, Bombeiros, órgão ambiental, conselho ou profissional habilitado. Também não pede endereço completo, CPF ou documentos.",
+  "nao_faz": "Não afirma que a atividade está liberada ou dispensada: indica o nível de risco provável e manda confirmar. Não emite consulta de viabilidade, alvará ou licença, não faz o enquadramento definitivo de CNAE, risco ou tributação (Etapa 8) e não substitui prefeitura, Vigilância Sanitária, Bombeiros, órgão ambiental, conselho ou profissional habilitado. Também não pede endereço completo, CPF ou documentos.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados."
  },
  "sem_local": {
@@ -66,7 +66,7 @@ window.MODULO9 = {
   "cruzamentos": [
    {
     "quando": "M4-11 indicou atividade regulada e M9-02 = Não",
-    "mensagem": "No Módulo 4 você indicou uma atividade com regras específicas. Quer rever esta resposta?",
+    "mensagem": "Na Etapa 4 você indicou uma atividade com regras específicas. Quer rever esta resposta?",
     "forma": "Pergunta gentil"
    },
    {
@@ -106,7 +106,7 @@ window.MODULO9 = {
    },
    {
     "quando": "M7-05 lista equipamento a gás e M9-07 = Não",
-    "mensagem": "No Módulo 7 você indicou um equipamento a gás. Quer rever esta resposta?",
+    "mensagem": "Na Etapa 7 você indicou um equipamento a gás. Quer rever esta resposta?",
     "forma": "Pergunta gentil"
    }
   ],

@@ -20,7 +20,7 @@
   var CHAVES = { 1: 'lg2-turma-a-m01', 2: 'lg2-turma-b-m02', 3: 'lg2-turma-a-m03', 4: 'lg2-turma-a-m04', 5: 'lg2-turma-a-m05',
     6: 'lg2-turma-b-m06', 7: 'lg2-turma-b-m07', 8: 'lg2-turma-b-m08', 9: 'lg2-turma-b-m09', 10: 'lg2-turma-b-m10' };
   var AVISO = 'Este plano organiza o que você informou; não verifica os dados nem garante resultados. Confirme informações fiscais, jurídicas e de licenças com fontes oficiais ou profissionais.';
-  var FALTA = function (n) { return 'não informado (Módulo ' + n + ')'; };
+  var FALTA = function (n) { return 'não informado (Etapa ' + n + ')'; };
   var SZ_SIM = 'Sim, tem meses mais fortes e mais fracos';
   var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   var INVEST_NOMES = { 'M6.P02': 'Compras para começar', 'M6.P11': 'Equipamentos e materiais para o serviço',
@@ -150,7 +150,7 @@
       cvOk = !(c.faltas || []).length && (c.taxaPct > 0 ? c.preco !== null : true);
       bd.linhas.push({ rotulo: cvOk ? 'Total por venda' : 'Total por venda (só o que foi informado)', valor: cv, tipo: 'brl', total: true });
       bd.como.push('Como calculamos: ' + (partesCv.length ? soma(partesCv) + ' = ' + brl(cv) + ' por venda.' : 'nenhum custo por venda informado, então o total é R$ 0,00.'));
-      bd.como.push('As perdas entram por mês, junto dos custos fixos (como no Módulo 5).');
+      bd.como.push('As perdas entram por mês, junto dos custos fixos (como na Etapa 5).');
       if (!cvOk) bd.faltas.push('Parte do custo de cada venda está ' + FALTA(5) + ': o custo pode estar menor do que o real.');
     }
 
@@ -161,7 +161,7 @@
     if (preco === null) { be.linhas.push({ rotulo: 'Preço de venda', valor: null, tipo: 'brl', falta: FALTA(5) }); be.faltas.push('Preço ' + FALTA(5) + ': sem ele não dá para calcular a margem, o ponto de equilíbrio, o lucro e o retorno.'); }
     else {
       be.linhas.push({ rotulo: 'Preço de venda', valor: preco, tipo: 'brl' });
-      if (cv === null) { be.linhas.push({ rotulo: 'Margem de contribuição', valor: null, tipo: 'brl', falta: 'falta o custo de cada venda (Módulo 5)' }); }
+      if (cv === null) { be.linhas.push({ rotulo: 'Margem de contribuição', valor: null, tipo: 'brl', falta: 'falta o custo de cada venda (Etapa 5)' }); }
       else {
         mc = cent(preco - cv); mcPct = mc / preco * 100;
         be.linhas.push({ rotulo: 'Custo variável de cada venda', valor: cv, tipo: 'brl' });
@@ -176,7 +176,7 @@
     /* ----- (f) ponto de equilíbrio ----- */
     var bf = bloco('f', 'Ponto de equilíbrio', 'Quantas vendas por mês pagam todos os custos, sem lucro nem prejuízo.');
     var pe = null;
-    if (mc === null) { bf.linhas.push({ rotulo: 'Vendas por mês para empatar', valor: null, tipo: 'un', falta: 'não calculado: falta ' + (preco === null ? 'o preço' : 'o custo de cada venda') + ' (Módulo 5)' }); }
+    if (mc === null) { bf.linhas.push({ rotulo: 'Vendas por mês para empatar', valor: null, tipo: 'un', falta: 'não calculado: falta ' + (preco === null ? 'o preço' : 'o custo de cada venda') + ' (Etapa 5)' }); }
     else if (mc <= 0) { bf.linhas.push({ rotulo: 'Vendas por mês para empatar', valor: null, tipo: 'un', falta: 'não calculado: cada venda não deixa sobra' }); }
     else if (!tem5 || (!fixosOk && fixos <= 0)) { bf.linhas.push({ rotulo: 'Vendas por mês para empatar', valor: null, tipo: 'un', falta: 'não calculado: custos do mês ' + FALTA(5) }); }
     else if (fixos <= 0) { bf.linhas.push({ rotulo: 'Vendas por mês para empatar', valor: null, tipo: 'texto', nota: 'não se aplica: sem custos fixos, qualquer venda já deixa lucro' }); }
@@ -192,17 +192,17 @@
 
     /* ----- (g) receita e lucro do mês ----- */
     var bg = bloco('g', 'Receita e lucro do mês (estimativa)', 'Quanto entra e quanto sobra num mês, com as vendas que você espera fazer.');
-    var qtd = num(val5('P37')), origemQtd = 'Módulo 5';
+    var qtd = num(val5('P37')), origemQtd = 'Etapa 5';
     if (!(qtd > 0)) qtd = null;
     var p05 = M6 ? (function () { try { var v = M6.valor(R6, 'M6.P05'); return v === M6.NS ? null : num(v); } catch (err) { return null; } })() : null;
-    if (qtd === null && p05 > 0 && preco !== null) { qtd = p05 / preco; origemQtd = 'Módulo 6'; }
+    if (qtd === null && p05 > 0 && preco !== null) { qtd = p05 / preco; origemQtd = 'Etapa 6'; }
     var lucro = null, cen = null;
     function mes(q) { var rec = cent(preco * q), cvm = cent(cv * q); return { qtd: q, receita: rec, variavel: cvm, fixos: fixos, lucro: cent(rec - cvm - fixos) }; }
-    if (preco === null || cv === null) bg.linhas.push({ rotulo: 'Lucro do mês', valor: null, tipo: 'brl', falta: 'não calculado: falta ' + (preco === null ? 'o preço' : 'o custo de cada venda') + ' (Módulo 5)' });
-    else if (qtd === null) { bg.linhas.push({ rotulo: 'Vendas por mês', valor: null, tipo: 'un', falta: FALTA(5) }); bg.linhas.push({ rotulo: 'Lucro do mês', valor: null, tipo: 'brl', falta: 'não calculado: falta quantas vendas você espera por mês (Módulo 5)' }); bg.faltas.push('Quantidade de vendas por mês ' + FALTA(5) + '.'); }
+    if (preco === null || cv === null) bg.linhas.push({ rotulo: 'Lucro do mês', valor: null, tipo: 'brl', falta: 'não calculado: falta ' + (preco === null ? 'o preço' : 'o custo de cada venda') + ' (Etapa 5)' });
+    else if (qtd === null) { bg.linhas.push({ rotulo: 'Vendas por mês', valor: null, tipo: 'un', falta: FALTA(5) }); bg.linhas.push({ rotulo: 'Lucro do mês', valor: null, tipo: 'brl', falta: 'não calculado: falta quantas vendas você espera por mês (Etapa 5)' }); bg.faltas.push('Quantidade de vendas por mês ' + FALTA(5) + '.'); }
     else {
       var normal = mes(qtd); lucro = normal.lucro;
-      bg.linhas.push({ rotulo: 'Vendas por mês' + (origemQtd === 'Módulo 6' ? ' (pelas vendas em reais do Módulo 6)' : ''), valor: qtd, tipo: 'un' });
+      bg.linhas.push({ rotulo: 'Vendas por mês' + (origemQtd === 'Etapa 6' ? ' (pelas vendas em reais da Etapa 6)' : ''), valor: qtd, tipo: 'un' });
       bg.linhas.push({ rotulo: 'Receita (faturamento) do mês', valor: normal.receita, tipo: 'brl' });
       bg.linhas.push({ rotulo: 'Custo variável das vendas do mês', valor: normal.variavel, tipo: 'brl' });
       bg.linhas.push({ rotulo: 'Custos fixos do mês', valor: fixos, tipo: 'brl' });
@@ -249,7 +249,7 @@
     }
 
     /* ----- (b) capital de giro ----- */
-    var bb = bloco('b', 'Capital de giro (reserva para o caixa)', 'Dinheiro guardado para pagar as contas enquanto as vendas ainda não cobrem tudo. Vem da projeção de 13 semanas do Módulo 6.');
+    var bb = bloco('b', 'Capital de giro (reserva para o caixa)', 'Dinheiro guardado para pagar as contas enquanto as vendas ainda não cobrem tudo. Vem da projeção de 13 semanas da Etapa 6.');
     var giro = null;
     if (!tem6 || !M6) { bb.linhas.push({ rotulo: 'Capital de giro necessário', valor: null, tipo: 'brl', falta: FALTA(6) }); bb.faltas.push('Fluxo de caixa ' + FALTA(6) + '.'); }
     else {
@@ -263,7 +263,7 @@
       if (!giro) { bb.linhas.push({ rotulo: 'Capital de giro necessário', valor: null, tipo: 'brl', falta: FALTA(6) }); }
       else if (!temCaixa && !(giro.vendasMes > 0)) { giro = null; bb.linhas.push({ rotulo: 'Capital de giro necessário', valor: null, tipo: 'brl', falta: 'não calculado: dinheiro em caixa e vendas do mês ' + FALTA(6) }); bb.faltas.push('Dinheiro em caixa e vendas por mês ' + FALTA(6) + '.'); }
       else {
-        bb.linhas.push({ rotulo: 'Dinheiro que você tem hoje para o negócio', valor: giro.saldoInicial, tipo: 'brl', falta: temCaixa ? null : undefined, nota: temCaixa ? null : 'não informado no Módulo 6: contamos R$ 0,00' });
+        bb.linhas.push({ rotulo: 'Dinheiro que você tem hoje para o negócio', valor: giro.saldoInicial, tipo: 'brl', falta: temCaixa ? null : undefined, nota: temCaixa ? null : 'não informado na Etapa 6: contamos R$ 0,00' });
         bb.linhas.push({ rotulo: 'Saldo mais baixo previsto (semana ' + giro.semana + ')', valor: giro.menor, tipo: 'brl' });
         bb.linhas.push({ rotulo: 'Saldo no fim das 13 semanas', valor: giro.final, tipo: 'brl' });
         bb.linhas.push({ rotulo: 'Capital de giro que falta (reserva a conseguir)', valor: giro.capital, tipo: 'brl', total: true });
@@ -352,7 +352,7 @@
       return '<div class="pl-qa-item' + (it.resposta === 'Não sei' ? ' pl-ns' : '') + '"><dt>' + esc(it.pergunta) + '</dt><dd>' + esc(it.resposta === 'Não sei' ? 'Ainda em aberto' : it.resposta) + '</dd></div>';
     }).join('') + '</dl>';
   }
-  function vazioHTML(n) { return '<p class="pl-vazio">Você ainda não respondeu o Módulo ' + n + '. Abra essa etapa na sua trilha para completar esta parte do plano.</p>'; }
+  function vazioHTML(n) { return '<p class="pl-vazio">Você ainda não respondeu a Etapa ' + n + '. Abra essa etapa na sua trilha para completar esta parte do plano.</p>'; }
   function capitulo(num, titulo, corpo, extraCls) {
     return '<section class="pl-cap' + (extraCls ? ' ' + extraCls : '') + '" data-cap="' + num + '"><header class="pl-cab"><span class="pl-cab-num">' + num + '</span><h2>' + esc(titulo) + '</h2></header>' + corpo + '</section>';
   }
@@ -446,7 +446,7 @@
       ['Retorno em um ano (ROI)', ind.retorno.roi !== null ? pct(ind.retorno.roi) : 'não calculado'],
       ['Tempo para recuperar o investimento', ind.retorno.payback !== null ? meses(ind.retorno.payback) : 'não calculado']
     ];
-    var c1 = (pars.length ? pars.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') : '<p class="pl-vazio">Ainda não dá para montar o resumo: continue respondendo os módulos.</p>') +
+    var c1 = (pars.length ? pars.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') : '<p class="pl-vazio">Ainda não dá para montar o resumo: continue respondendo as etapas.</p>') +
       '<div class="pl-destaques">' + destaques.map(function (d) { return '<div class="pl-dest"><span class="pl-dest-rot">' + esc(d[0]) + '</span><span class="pl-dest-val">' + esc(d[1]) + '</span></div>'; }).join('') + '</div>' +
       '<p class="pl-nota">Os números acima são explicados, conta por conta, no capítulo 12.</p>';
     h += capitulo(1, TITULOS[0], c1);
@@ -497,22 +497,22 @@
       (acao ? '<p class="pl-destaque-txt"><b>Primeira ação do plano:</b> ' + esc(acao) + '</p>' : '') + (bloco(10).itens.length ? itensHTML(itensSem(10, acao ? ['M10-11'] : [])) : vazioHTML(10)));
 
     /* 12 indicadores financeiros, em blocos separados */
-    h += capitulo(12, TITULOS[11], '<p class="pl-intro">As contas do negócio, separadas por assunto. Cada bloco mostra de onde vem cada número. Quando falta um dado, o bloco diz qual módulo completar.</p>' +
+    h += capitulo(12, TITULOS[11], '<p class="pl-intro">As contas do negócio, separadas por assunto. Cada bloco mostra de onde vem cada número. Quando falta um dado, o bloco diz qual etapa completar.</p>' +
       '<div class="pl-inds">' + ind.blocos.map(blocoHTML).join('') + '</div>', 'pl-cap-ind');
 
     /* 13 pontos em aberto e próximos passos */
-    var abertos = diag.abertos.map(function (a) { return a.pergunta + ' (Módulo ' + a.modulo + ')'; });
-    var naoComecou = (ctx.modulos || []).filter(function (m) { return !bloco(m.n).itens.length; }).map(function (m) { return 'Módulo ' + m.n + ' · ' + m.nome; });
+    var abertos = diag.abertos.map(function (a) { return a.pergunta + ' (Etapa ' + a.modulo + ')'; });
+    var naoComecou = (ctx.modulos || []).filter(function (m) { return !bloco(m.n).itens.length; }).map(function (m) { return 'Etapa ' + m.n + ' · ' + m.nome; });
     var passosProx = [];
     if (acao) passosProx.push('Fazer a primeira ação do plano: ' + acao.replace(/[.]+$/, '') + '.');
-    if (naoComecou.length) passosProx.push('Responder ' + (naoComecou.length === 1 ? 'o módulo que falta' : 'os módulos que faltam') + ' para completar o plano.');
+    if (naoComecou.length) passosProx.push('Responder ' + (naoComecou.length === 1 ? 'a etapa que falta' : 'as etapas que faltam') + ' para completar o plano.');
     if (abertos.length) passosProx.push('Usar a ajuda “Como descobrir” de cada ponto em aberto e atualizar a resposta.');
     if (ind.faltas.length) passosProx.push('Completar os dados que faltam nas contas (capítulo 12) para ter o ponto de equilíbrio, o lucro e o retorno completos.');
     passosProx.push('Confirmar com fontes oficiais ou um profissional as regras de registro, impostos e licenças antes de decidir.');
     passosProx.push('Voltar ao plano a cada mês, comparar com o que aconteceu e ajustar preço, custos e metas.');
     var c13 = '<h3 class="pl-sub">Perguntas que ficaram em aberto</h3>' + (abertos.length ? '<ul class="pl-lista">' + abertos.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '<p class="pl-vazio">Nenhuma pergunta ficou em aberto.</p>') +
       (ind.faltas.length ? '<h3 class="pl-sub">Dados que faltam para as contas</h3><ul class="pl-lista">' + ind.faltas.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '') +
-      (naoComecou.length ? '<h3 class="pl-sub">Módulos ainda sem resposta</h3><ul class="pl-lista">' + naoComecou.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '') +
+      (naoComecou.length ? '<h3 class="pl-sub">Etapas ainda sem resposta</h3><ul class="pl-lista">' + naoComecou.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '') +
       '<h3 class="pl-sub">Próximos passos</h3><ol class="pl-lista pl-passos">' + passosProx.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>';
     h += capitulo(13, TITULOS[12], c13);
 
@@ -520,7 +520,7 @@
     var fontes = ctx.fontes || [];
     var cF = '<div class="pl-limites"><h3>Limites deste plano</h3><p>' + esc(AVISO) + '</p></div>' + (fontes.length ? '<ul class="pl-fontes">' + fontes.map(function (f) {
       return '<li><b>' + esc(f.titulo) + '</b>' + (f.orgao ? ' · ' + esc(f.orgao) : '') + (f.consulta ? ' · <span class="pl-consulta">consultado em ' + esc(f.consulta) + '</span>' : '') + (f.link ? '<br><span class="pl-link">' + esc(f.link) + '</span>' : '') + '</li>';
-    }).join('') + '</ul>' : '<p class="pl-vazio">As fontes de cada assunto estão dentro dos módulos.</p>') + logosHTML();
+    }).join('') + '</ul>' : '<p class="pl-vazio">As fontes de cada assunto estão dentro das etapas.</p>') + logosHTML();
     h += '<section class="pl-cap pl-cap-fontes" data-cap="fontes"><header class="pl-cab"><span class="pl-cab-num">·</span><h2>' + TITULOS[13] + '</h2></header>' + cF + '</section>';
     return { html: h, indicadores: ind, negocio: negocio };
   }

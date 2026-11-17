@@ -60,6 +60,23 @@ let forcarTravar = null; // null = serve o arquivo como está
       assert.equal(await pg.isVisible('.topo'), false, 'a capa ocupa a tela, sem o topo');
       assert.equal(await pg.$$eval('.capa .logos img', (xs) => xs.map((i) => i.alt).join(',')), 'FACC,UFJF,Governo de Minas Gerais');
       assert.equal(await pg.$eval('.capa-arte img', (i) => i.complete && i.naturalWidth > 0), true, 'ilustração da capa carregada');
+      // Tela baixa (letra grande / celular deitado): a ilustração não encolhe até sumir e o Começar fica à vista.
+      const capaEm = async (w, h, zoom) => {
+        await pg.setViewportSize({ width: w, height: h });
+        return pg.evaluate((z) => {
+          document.documentElement.style.fontSize = z;
+          const arte = document.querySelector('.capa-arte'), c = document.querySelector('#capa-comecar').getBoundingClientRect();
+          const fatos = [...document.querySelectorAll('.capa-fatos b')].every((e) => { const r = e.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !t || t === e || e.contains(t); });
+          const r = { arte: getComputedStyle(arte).display === 'none' ? 'oculta' : Math.round(arte.getBoundingClientRect().height), comecar: c.top >= 0 && c.bottom <= innerHeight, fatos };
+          document.documentElement.style.fontSize = '';
+          return r;
+        }, zoom);
+      };
+      const zoom130 = await capaEm(390, 844, '130%');
+      assert.ok(zoom130.arte > 150 && zoom130.fatos, 'letra 130%: ilustração inteira e cartões sem nada por cima: ' + JSON.stringify(zoom130));
+      const deitado = await capaEm(740, 360, '');
+      assert.ok(deitado.comecar && deitado.fatos, 'celular deitado: Começar à vista e cartões sem nada por cima: ' + JSON.stringify(deitado));
+      await pg.setViewportSize({ width: 390, height: 844 });
       await pg.click('#capa-comecar');
       await pg.waitForSelector('#trilha-tela:not([hidden])');
       assert.equal(await pg.isVisible('#capa'), false);
@@ -257,8 +274,15 @@ let forcarTravar = null; // null = serve o arquivo como está
       assert.equal(await atual(), n, 'o resultado continua na tela depois de concluir');
       assert.equal(await visivel('#concluida'), false);
       const prox = PRONTOS[i + 1];
-      // O botão do próprio módulo ("Ir para o Módulo N" / "Voltar aos módulos") mostra a tela de etapa concluída.
-      await frame().evaluate(() => document.querySelector('.lg2-proximo a').click());
+      // Barra embaixo do módulo: o próximo passo sem rolar o resultado (que abre todo expandido).
+      await page.waitForSelector('#feita-barra:not([hidden])', { timeout: 3000 });
+      assert.equal(await page.textContent('#feita-txt'), `Etapa ${n} concluída!`);
+      assert.equal((await page.textContent('#feita-ir')).trim(), prox ? `Ir para a Etapa ${prox}` : 'Ver o fim da jornada');
+      const barra = await page.$eval('#feita-ir', (b) => { const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+      assert.ok(barra, 'botão da barra inteiro na tela, sem rolar');
+      // O botão do próprio módulo ("Ir para a Etapa N" / "Voltar às etapas") e o da barra mostram a tela de etapa concluída.
+      if (n === 3) await page.click('#feita-ir');
+      else await frame().evaluate(() => document.querySelector('.lg2-proximo a').click());
       if (!prox) break;
       await page.waitForSelector('#concluida:not([hidden])');
       assert.equal(await page.$eval('#modulo', (f) => f.hidden), true, 'não pula direto para o próximo módulo');
@@ -280,14 +304,17 @@ let forcarTravar = null; // null = serve o arquivo como está
         assert.deepEqual(sit.slice(2), Array(8).fill('bloqueado'));
         assert.deepEqual(await sugeridas(), [2]);
         assert.equal(await page.textContent('#trilha-prog-texto'), '1 de 10 etapas');
+        assert.equal(await visivel('#feita-barra'), false, 'a barra de etapa concluída some fora do módulo');
+        assert.ok(await page.isVisible('#baixa-plano-trilha'), 'plano de negócio a qualquer momento, na trilha');
         // Na trilha, o painel mostra o resumo com o que foi respondido no Módulo 1.
         await page.click('#abre-painel');
         assert.ok(await painelAberto(), 'painel abre no meio da jornada');
         info = await painelInfo();
         assert.ok(info.pars.length >= 1, 'pelo menos um parágrafo depois de responder o Módulo 1');
         assert.equal(info.vazio, '');
-        assert.equal(info.nota, 'Montado com o que você respondeu. Se algo não estiver certo, abra o módulo e corrija.');
+        assert.equal(info.nota, 'Montado com o que você respondeu. Se algo não estiver certo, abra a etapa e corrija.');
         assert.equal(info.mods[0].estado, 'Feito');
+        assert.ok(await page.isVisible('#baixa-plano-painel'), 'plano de negócio também no painel');
         assert.deepEqual(info.mods.map((m) => m.revisar), [true, true, ...Array(8).fill(false)]);
         // Legível no celular: o painel cabe na largura e o conteúdo rola dentro dele.
         const caixa = await page.evaluate(() => {

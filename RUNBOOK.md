@@ -658,6 +658,17 @@ migration **antes** e reinstalar o script (passo 3, `sudo install …`); timer e
 unidade não mudam. Sem a migration, o script falha na parte das metas depois de
 enviar os lembretes de encontro, e o `OnFailure` avisa.
 
+**Empreenda+ (spec 027)**: o mesmo script, no fim, manda o lembrete de etapas que
+faltam no Empreenda+ (`public.lg2_lembretes_pendentes()` /
+`public.lg2_marcar_lembrete_enviado()`, migration `20261119_lg2_lembretes.sql`):
+quem parou há 3 dias com menos de 10 etapas, no máximo 3 lembretes por período
+parado, só entre 9h e 19h. Para ativar: aplicar a migration **antes**, fazer o
+deploy do site (página e rota de "não quero mais receber" e os logos em
+`/email/`) e reinstalar o script (passo 3). Timer e unidade não mudam. Conferir
+quem receberia, sem enviar: `select user_id, email->>'subject' from
+public.lg2_lembretes_pendentes('x', 'https://mindsofthefuture.com.br', 'teste@exemplo');`
+como `gestao_lembrete` (a chamada cria o token do link de parar, mais nada).
+
 #### Avisos de alocação (saem do site, não do VPS)
 
 Quem é alocado, removido ou substituído num encontro, e toda a equipe de um

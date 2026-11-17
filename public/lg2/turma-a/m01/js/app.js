@@ -1,4 +1,4 @@
-/* Telas do Módulo 1 (Etapa 1). Todo texto de conteúdo vem de window.MODULO1.
+/* Telas da Etapa 1 (Módulo 1). Todo texto de conteúdo vem de window.MODULO1.
    As respostas ficam no aparelho e uma cópia vai para a conta da pessoa (js/progresso.js).
    Cabeçalho, rodapé, Ouvir e "Salvar e sair" vêm do padrão único (js/padrao.js). */
 (function () {
@@ -78,7 +78,12 @@
     return `<p${cls ? ` class="${cls}"` : ""}>${esc(m[1])}</p><details class="ver-mais"><summary>Ver mais</summary><p>${esc(m[2])}</p></details>`;
   }
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { parar(); fecharVideo(); tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  function ir(f, a) {
+    parar(); fecharVideo(); tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0);
+    /* leitor de tela: a pergunta nova começa pelo enunciado */
+    const q = tela.querySelector(".pergunta .q");
+    if (q) try { q.focus({ preventScroll: true }); } catch {}
+  }
 
   /* ---------- teclado do celular: o campo em foco vai para o meio da parte visível da tela ----------
      Um só listener. Roda ~300 ms depois do foco (tempo de o teclado abrir) e de novo a cada mudança do
@@ -169,16 +174,12 @@
   }
 
   /* ================= pergunta ================= */
-  function passoTexto(cod) {
-    const cam = Motor.caminho(M, S.R);
-    const i = cam.indexOf(cod);
-    return "Pergunta " + (i < 0 ? 1 : i + 1) + " de " + cam.length;
-  }
-  function progresso(cod) {
-    const cam = Motor.caminho(M, S.R);
-    const i = cam.indexOf(cod);
-    return Math.max(4, Math.round(((i < 0 ? 0 : i) / cam.length) * 100));
-  }
+  /* total estável: o caminho mais longo possível (todas as perguntas, com a 5A e a 7A). Assim o
+     "de M" não muda no meio e a barra só anda para a frente. */
+  const TOTAL = M.perguntas.length;
+  function posicao(cod) { const i = Motor.caminho(M, S.R).indexOf(cod); return i < 0 ? 0 : i; }
+  function passoTexto(cod) { return "Pergunta " + (posicao(cod) + 1) + " de " + TOTAL; }
+  function progresso(cod) { return Math.max(4, Math.round((posicao(cod) / TOTAL) * 100)); }
   /* respostas de perguntas que deixaram de aparecer são descartadas */
   function limparInvisiveis() {
     for (let k = 0; k < 5; k++) {
@@ -306,7 +307,7 @@
         <main class="corpo">
           <div class="cartao-q">
             <div class="pergunta" data-cod="${esc(cod)}">
-              <h2 class="q" data-ler>${esc(Motor.textoPergunta(M, S.R, q))}</h2>
+              <h2 class="q" tabindex="-1" data-ler>${esc(Motor.textoPergunta(M, S.R, q))}</h2>
               ${q.apoio ? `<p class="apoio" data-ler>${esc(q.apoio)}</p>` : ""}
               ${q.ajuda ? `<details class="ajuda-box dica-toggle"><summary data-ler>Ver dica</summary>
                 <p data-ler>${esc(q.ajuda.texto)}</p>${vazio(q.ajuda.exemplo) ? "" : `<p class="ex" data-ler>${esc(q.ajuda.exemplo)}</p>`}</details>` : ""}
@@ -315,16 +316,21 @@
             </div>
             <div id="msg"></div>
           </div>
-          <div class="acoes-q"><button class="btn btn-primario seta" id="ok" disabled>Continuar</button></div>
+          <div class="acoes-q"><p class="erro-q" id="erro" role="alert" hidden></p><button class="btn btn-primario seta" id="ok">Continuar</button></div>
         </main>
       </div>`);
-    const ent = p.querySelector("#ent"), msg = p.querySelector("#msg"), ok = p.querySelector("#ok");
+    const ent = p.querySelector("#ent"), msg = p.querySelector("#msg"), ok = p.querySelector("#ok"), erro = p.querySelector("#erro");
+    /* Continuar fica sempre ativo: sem resposta, avisa logo acima do botão o que falta */
+    function faltaTexto() {
+      const r = S.R[cod];
+      if (q.tipo !== "escolha" && q.tipo !== "multipla") return "Escreva a sua resposta para continuar.";
+      if (r && r.estado === "opcao") return "Escreva a sua resposta para continuar.";   // opção com campo ainda vazio
+      return "Escolha uma opção para continuar.";
+    }
 
     function atualizar() {
       const r = S.R[cod];
-      const pronto = Motor.completa(q, r);
-      ok.disabled = !pronto;
-      ok.setAttribute("aria-disabled", String(!pronto));
+      if (Motor.completa(q, r)) { erro.hidden = true; erro.textContent = ""; }
       let m = null;
       if (q.tipo === "multipla") {
         const marc = r && Array.isArray(r.opcoes) ? r.opcoes : [];
@@ -439,7 +445,7 @@
     const cv = p.querySelector("[data-video]");
     if (cv) cv.onclick = () => abrirVideo(q.video, cv);
     ok.onclick = () => {
-      if (!Motor.completa(q, S.R[cod])) return;
+      if (!Motor.completa(q, S.R[cod])) { erro.hidden = false; erro.textContent = faltaTexto(); return; }
       let prox = Motor.proxima(M, S.R, cod);
       if (prox === "RESULTADO" && faltando(S.R)) prox = faltando(S.R);   // ex.: pergunta nova que ficou para trás
       if (prox === "RESULTADO") { S.atual = "RESULTADO"; salvar(); ir(telaResultado); }
@@ -492,7 +498,7 @@
             <div class="cartao" data-ler><h3>Quando procurar um profissional</h3>${resumo(D.mapa.encaminhamentos)}</div>
             <details class="ajuda-box para-onde">
               <summary data-ler>Para onde seguem estas informações</summary>
-              ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao" data-ler><h3>Módulo ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
+              ${D.conexoes.filter((c) => c.nome).map((c) => `<div class="cartao" data-ler><h3>Etapa ${esc(String(c.modulo).replace(/\.0$/, ""))}: ${esc(c.nome)}</h3><p>${esc(c.envia)}</p><p class="mini-info">${esc(c.obs)}</p></div>`).join("")}
             </details>
             <div class="aviso-roxo" data-ler>${resumo(D.mapa.mensagem_limite)}</div>
           </details>
@@ -502,7 +508,7 @@
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
             <button class="btn btn-linha" id="novo">Começar de novo</button>
           </div>
-          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m02/index.html">Ir para o Módulo 2</a></div>
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m02/index.html">Ir para a Etapa 2</a></div>
           ${rodape()}
         </main>
       </div>`);

@@ -227,7 +227,12 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const link = (u, t) => /^https?:/.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : esc(t || u);
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  /* lote 17/11 (D): ao abrir uma pergunta, o leitor de tela começa pelo enunciado */
+  function ir(f, a) {
+    tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0);
+    const q = tela.querySelector("h2.q");
+    if (q) q.focus({ preventScroll: true });
+  }
   /* instrumentos: redesenha sem voltar ao topo (cada toque numa nota ou ficha redesenhava e jogava a pessoa para o início) */
   function refazer(a) { const y = window.scrollY; tela.innerHTML = ""; tela.appendChild(telaInstrumentos(a)); window.scrollTo(0, y); }
 
@@ -321,7 +326,7 @@
   function topo(trilha) {
     return `<div class="barra-topo">
       <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
-      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Etapa ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
     </div>`;
   }
   /* faixa roxa: o.kicker e o.titulo vêm do que a tela já mostrava; o.progresso (0-100) desenha a barra amarela */
@@ -335,7 +340,7 @@
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
-          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Etapa " + D.modulo.numero)}</div>
           <${tag} class="heroi-tit ${o.titClasse || ""}">${esc(o.titulo)}</${tag}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
@@ -360,7 +365,7 @@
   /* exemplo curto embaixo de uma opção difícil (fora do botão: o texto da opção, que outros módulos comparam, não muda) */
   const exOpcao = (q, op) => (q && q.opcoesEx && q.opcoesEx[op] ? `<p class="op-ex">${esc(q.opcoesEx[op])}</p>` : "");
   function concluido() {
-    return `<section class="concluido"><div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Confira abaixo o que entendemos sobre os seus clientes.</p></div></div></section>`;
+    return `<section class="concluido"><div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a Etapa ${esc(D.modulo.numero)}</h2><p>Confira abaixo o que entendemos sobre os seus clientes.</p></div></div></section>`;
   }
   /* liga os botões comuns a todas as telas */
   function ligar(p) { p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); }); }
@@ -383,7 +388,7 @@
             <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
             <h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p>
             <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>${roteiroSe(D.mapa.entrega)}
-            <div class="acoes"><button class="btn btn-linha" id="limites">O que este módulo não faz</button></div>
+            <div class="acoes"><button class="btn btn-linha" id="limites">O que esta etapa não faz</button></div>
           </details>
           ${rodape()}
         </main>
@@ -405,10 +410,10 @@
     const p = el(`
       <div class="pag">
         ${topo("Limites")}
-        ${heroi({ titulo: "Limites do módulo" })}
+        ${heroi({ titulo: "Limites da etapa" })}
         <main class="corpo">
           ${botaoVoltar()}
-          <div class="cartao"><h3>O que o módulo não faz</h3>${resumo(esc(D.mapa.nao_faz))}</div>
+          <div class="cartao"><h3>O que a etapa não faz</h3>${resumo(esc(D.mapa.nao_faz))}</div>
           <div class="cartao"><h3>Que decisões ele apoia</h3>${resumo(esc(D.mapa.decisoes))}</div>
           <div class="cartao"><h3>Quando procurar um profissional</h3>${resumo(esc(D.mapa.encaminhamentos))}</div>
           <div class="aviso">${resumo(esc(D.mapa.mensagem_limite))}</div>
@@ -524,7 +529,7 @@
     const i1 = I("M2.I01"), i2 = I("M2.I02"), i3 = I("M2.I03"), i4 = I("M2.I04"), i5 = I("M2.I05");
     S.grupos = S.grupos || [];
     const SG = Motor.segmentos(S.grupos);
-    const nota = (g, k) => `<div class="opcoes mini">${[1, 2, 3].map((n) => `<button class="opcao ${+g[k] === n ? "sel" : ""}" data-g="${g.i}" data-k="${k}" data-n="${n}">${n}</button>`).join("")}</div>`;
+    const nota = (g, k) => `<div class="opcoes mini">${[1, 2, 3].map((n) => `<button class="opcao ${+g[k] === n ? "sel" : ""}" aria-pressed="${+g[k] === n}" aria-label="${n}" data-g="${g.i}" data-k="${k}" data-n="${n}">${n}</button>`).join("")}</div>`;
     const Q = Motor.quadro(S.fichas, I("M2.I04").ex_saida);
     const passos = passosPlano();
     const p = el(`
@@ -546,7 +551,7 @@
             <label class="mini-info" for="f-freq">Frequência de compra</label><input class="campo" id="f-freq" placeholder="${esc(FICHA_EX.frequencia)}">
             <label class="mini-info" for="f-mot">Motivo de escolha</label><input class="campo" id="f-mot" placeholder="${esc(FICHA_EX.motivo)}">
             <label class="mini-info">Sinal de interesse (forte, fraco ou nenhum)</label>
-            <div class="opcoes" id="f-sinal">${Motor.SINAIS.map((s) => opcaoHtml(s, false, ` data-s="${esc(s)}"`)).join("")}</div>
+            <div class="opcoes" id="f-sinal">${Motor.SINAIS.map((s) => opcaoHtml(s, false, ` data-s="${esc(s)}" aria-pressed="false"`)).join("")}</div>
             <div class="erro" id="f-erro" hidden></div>
             <div class="acoes"><button class="btn btn-primario" id="f-ok">Salvar na ficha</button></div>
           </div>
@@ -594,7 +599,7 @@
     ligar(p);
     let sinal = null;
     p.querySelectorAll("#f-sinal .opcao").forEach((b) => (b.onclick = () => {
-      sinal = b.dataset.s; p.querySelectorAll("#f-sinal .opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel");
+      sinal = b.dataset.s; p.querySelectorAll("#f-sinal .opcao").forEach((x) => { x.classList.remove("sel"); x.setAttribute("aria-pressed", "false"); }); b.classList.add("sel"); b.setAttribute("aria-pressed", "true");
     }));
     let avisoFicha = "";   // aviso que não trava: o segundo toque em "Salvar na ficha", com os mesmos dados, salva
     p.querySelector("#f-ok").onclick = () => {
@@ -630,16 +635,23 @@
   }
 
   /* ================= pergunta ================= */
-  /* posição no caminho DESTA pessoa (as perguntas dos outros ramos não contam) */
+  /* posição no caminho DESTA pessoa (as perguntas dos outros ramos não contam).
+     Lote 17/11 (G): o total mudava no meio (12 → 14) quando uma resposta abria perguntas novas. A tela mostra só
+     "Pergunta N" e a barra; a barra nunca volta para trás ao seguir em frente (guarda o maior valor já mostrado). */
   function posicao(cod) {
     const c = Motor.caminho(M, S.R);
     const i = c.indexOf(cod);
-    return { n: i < 0 ? c.length : i + 1, total: Math.max(c.length, i + 1) };
+    const n = i < 0 ? c.length : i + 1, total = Math.max(c.length, i + 1);
+    S.barra = S.barra || {};
+    const h = S.hist.indexOf(cod), ant = h > 0 ? S.barra[S.hist[h - 1]] : undefined;
+    const pct = Math.max(Math.round(((n - 1) / total) * 100), ant === undefined ? 0 : ant);
+    S.barra[cod] = pct;
+    return { n, total, pct };
   }
 
   function telaPergunta(cod) {
     const q = M.porCodigo[cod];
-    if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
+    if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); }
     const tipo = Motor.campo(q);
     const resp = S.R[cod] || null;
     const her = resp ? null : heranca(cod);
@@ -647,24 +659,27 @@
     const veio = her ? her.n : resp && resp.veio;
     let escolhida = r0 && r0.estado === "opcao" ? r0.opcao : null;
     const pos = posicao(cod);
+    salvar();
     const ide = ideia();
 
+    /* lote 17/11 (A): um toque por pergunta. O retorno (o que a resposta indica, Atenção, Próximo passo) aparece ao vivo,
+       logo abaixo da resposta, enquanto a pessoa responde; o Continuar grava e já abre a próxima pergunta.
+       (B/C): o Continuar fica sempre ativo, preso ao pé da tela, com a mensagem de erro logo acima dele. */
     const p = el(`
       <div class="pag">
-        ${heroi({ compacta: true, titulo: `Pergunta ${pos.n} de ${pos.total}`, titClasse: "passo", progresso: Math.round(((pos.n - 1) / pos.total) * 100) })}
+        ${heroi({ compacta: true, titulo: `Pergunta ${pos.n}`, titClasse: "passo", progresso: pos.pct })}
         <main class="corpo">
           <div class="cartao-q pergunta">
             ${botaoVoltar()}
-            ${ide ? `<p class="contexto" id="contexto">Seu negócio: <b>${esc(ide.v)}</b> <span class="veio">Veio do Módulo ${ide.n}</span></p>` : ""}
-            <h2 class="q">${esc(enunciado(q))}</h2>
-            ${veio ? `<p class="herdado" id="herdado"><span class="veio">Veio do Módulo ${esc(veio)}</span> Confira e ajuste se quiser.</p>` : ""}
+            ${ide ? `<p class="contexto" id="contexto">Seu negócio: <b>${esc(ide.v)}</b> <span class="veio">Veio da Etapa ${ide.n}</span></p>` : ""}
+            <h2 class="q" tabindex="-1">${esc(enunciado(q))}</h2>
+            ${veio ? `<p class="herdado" id="herdado"><span class="veio">Veio da Etapa ${esc(veio)}</span> Confira e ajuste se quiser.</p>` : ""}
             ${textoDica(q) ? dica(L(textoDica(q)) + roteiroSe(textoDica(q))) : ""}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
             <div id="ajuda-ns"></div>
-            <div class="erro" id="erro" hidden></div>
-            <div id="retorno"></div>
-            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            <div id="retorno" aria-live="polite"></div>
+            <div class="acoes acoes-fixas" id="acoes"><div class="erro" id="erro" role="alert" hidden></div><button class="btn btn-primario seta" id="ok">Continuar</button></div>
             ${blocoEducativo(educativoDe(cod))}
             ${blocoVideos(videosDe(cod))}
           </div>
@@ -688,11 +703,16 @@
     let detalhe = multi && r0 && r0.detalhe ? String(r0.detalhe) : "";
     /* "Nenhuma…" e "Não sei" não combinam com as outras: marcar uma delas desmarca o resto */
     const sozinha = (op) => /^Nenhum/i.test(op) || op === Motor.NS;
-    /* "Não sei" marcado: a caixa "Como descobrir" aparece na hora (a resposta só é gravada no Continuar, como antes) */
+    /* "Não sei" marcado: a caixa "Como descobrir" aparece na hora (e nada é gravado) */
     const boxNS = p.querySelector("#ajuda-ns");
     const ajudaAoVivo = (on) => { boxNS.innerHTML = on ? caixaComo(q) : ""; ligarCopiar(boxNS); };
+    const limparErro = () => { p.querySelector("#erro").hidden = true; };
     /* resposta antiga "Não sei" (antes do lote 16/11) virou "sem resposta": a pergunta reabre com a caixa à vista */
     const pendente = !resp && (S.pendentes || []).includes(cod);
+    /* texto: o retorno aparece ao sair do campo ou depois de ~700 ms sem digitar */
+    let tDigita = null;
+    let renderPendente = false;
+    const depoisDeDigitar = () => { clearTimeout(tDigita); tDigita = setTimeout(() => { if (apertando) renderPendente = true; else previa(); }, 700); };
     if (multi) {
       ent.classList.add("opcoes", "multi");
       const desenhar = () => {
@@ -707,14 +727,18 @@
           if (marcadas.includes(op)) marcadas = marcadas.filter((x) => x !== op);
           else marcadas = sozinha(op) ? [op] : marcadas.filter((x) => !sozinha(x)).concat(op);
           desenhar();
+          limparErro();
           ajudaAoVivo(marcadas.includes(Motor.NS));
+          previa();
           if (op === Motor.OUTRA && marcadas.includes(op)) { const t = ent.querySelector(".outra textarea"); if (t) t.focus(); }
         };
         ent.appendChild(b);
         if (ex) ent.appendChild(el(ex));
         if (op === Motor.OUTRA) {
           const box = el(`<div class="outra" hidden><label class="mini-info" for="outra-txt">Qual outra característica?</label><textarea class="campo" id="outra-txt" rows="2">${esc(detalhe)}</textarea></div>`);
-          box.querySelector("textarea").oninput = (e) => { detalhe = e.target.value; };
+          const t = box.querySelector("textarea");
+          t.oninput = (e) => { detalhe = e.target.value; limparErro(); depoisDeDigitar(); };
+          t.onchange = () => { clearTimeout(tDigita); if (!apertando) previa(); };
           ent.appendChild(box);
         }
       });
@@ -723,8 +747,13 @@
     } else if (tipo === "escolha") {
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
-        const b = el(opcaoHtml(op, escolhida === op));
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); p.querySelector("#erro").hidden = true; ajudaAoVivo(op === Motor.NS); };
+        const b = el(opcaoHtml(op, escolhida === op, ` aria-pressed="${escolhida === op}"`));
+        b.onclick = () => {
+          escolhida = op;
+          ent.querySelectorAll(".opcao").forEach((x) => { x.classList.remove("sel"); x.setAttribute("aria-pressed", "false"); });
+          b.classList.add("sel"); b.setAttribute("aria-pressed", "true");
+          limparErro(); ajudaAoVivo(op === Motor.NS); previa();
+        };
         ent.appendChild(b);
         const ex = exOpcao(q, op);
         if (ex) ent.appendChild(el(ex));
@@ -738,60 +767,55 @@
       ent.appendChild(el(tipo === "numero"
         ? `<div class="linha"><input class="campo" inputmode="numeric" value="${esc(v)}"${phA}></div>`
         : `<textarea class="campo" rows="${Math.min(6, Math.max(3, Math.ceil(Math.max(String(v).length, ph.length) / 30)))}"${phA}>${esc(v)}</textarea>`));
+      const c = ent.querySelector("input,textarea");
+      c.addEventListener("input", () => { limparErro(); avisado = null; depoisDeDigitar(); });
+      /* ao sair do campo o retorno aparece; se a pessoa saiu do campo tocando no Continuar, não redesenha
+         (o retorno novo empurraria o botão para baixo do dedo no meio do toque) */
+      c.addEventListener("change", () => { clearTimeout(tDigita); if (!apertando) previa(); });
     }
     /* "Não sei" (botão): mostra a caixa "Como descobrir" e não grava nada; o Continuar só anda com uma resposta */
     const ns = p.querySelector("#ns");
-    if (ns) ns.onclick = () => { p.querySelector("#erro").hidden = true; ajudaAoVivo(true); boxNS.scrollIntoView({ block: "nearest" }); };
+    if (ns) ns.onclick = () => { limparErro(); ajudaAoVivo(true); boxNS.scrollIntoView({ block: "nearest" }); };
     if (tipo !== "escolha" && !multi && pendente) ajudaAoVivo(true);
 
-    p.querySelector("#ok").onclick = () => {
+    /* a resposta como está agora na tela, se já for uma resposta completa (null = ainda não há o que mostrar) */
+    function tentativa() {
       if (multi) {
         const ord = q.opcoesLista.filter((o) => marcadas.includes(o));
-        if (!ord.length) return erro("Marque pelo menos uma opção para continuar.");
-        if (ord.includes(Motor.NS)) { ajudaAoVivo(true); return erro(MSG_NS_ESCOLHA); }
-        if (ord.includes(Motor.OUTRA) && !detalhe.trim()) return erro("Escreva qual é a outra característica.");
+        if (!ord.length || ord.includes(Motor.NS) || (ord.includes(Motor.OUTRA) && !detalhe.trim())) return null;
         const r = { estado: "opcao", opcao: ord[0], opcoes: ord };
         if (ord.includes(Motor.OUTRA)) r.detalhe = detalhe.trim();
-        return responder(r);
+        return r;
       }
-      if (tipo === "escolha") {
-        if (!escolhida) return erro("Escolha uma opção para continuar.");
-        if (escolhida === Motor.NS) { ajudaAoVivo(true); return erro(MSG_NS_ESCOLHA); }
-        return responder({ estado: "opcao", opcao: escolhida });
-      }
+      if (tipo === "escolha") return escolhida && escolhida !== Motor.NS ? { estado: "opcao", opcao: escolhida } : null;
       const v = ent.querySelector("input,textarea").value.trim();
-      if (!v) return erro(boxNS.innerHTML ? MSG_NS_ESCREVA : Motor.temNaoSei(q) ? "Escreva a sua resposta. Se não souber, toque em “Não sei” para ver como descobrir." : "Responda para continuar.");
-      if (tipo === "numero") {
-        /* a única pergunta de número conta pessoas ouvidas: só inteiro, sem negativo */
-        if (!/^\d+$/.test(v.replace(/\./g, ""))) return erro(/^-/.test(v) ? "O número não pode ser negativo." : "Digite só números, sem letras. Ex.: 8");
-        const n = parseInt(v.replace(/\./g, ""), 10);
-        /* número fora do comum: avisa uma vez e deixa seguir com o mesmo valor */
-        if (n > LIMITE_PESSOAS_OUVIDAS && avisado !== v) { avisado = v; return erro(`Esse número parece alto para conversas feitas por uma pessoa (mais de ${LIMITE_PESSOAS_OUVIDAS}); confira. Se estiver certo, toque em Continuar de novo.`, true); }
-      }
-      responder({ estado: "valor", valor: v });
-    };
-    let avisado = null;
-    function erro(t, aviso) { const e = p.querySelector("#erro"); e.textContent = t; e.classList.toggle("aviso-num", !!aviso); e.hidden = false; }
-
-    function responder(nova) {
-      p.querySelector("#erro").hidden = true;
-      boxNS.innerHTML = "";
-      /* guarda de onde veio quando a pessoa só confirmou o que outro módulo já tinha */
-      const origem = her ? her.resp : resp && resp.veio ? resp : null;
-      if (veio && igual(nova, origem)) nova.veio = veio;
-      S.R[cod] = nova;
-      if (S.pendentes) { S.pendentes = S.pendentes.filter((c) => c !== cod); if (!S.pendentes.length) delete S.pendentes; }
-      /* respostas de perguntas que deixaram de aparecer são descartadas */
-      limparInvisiveis();
-      salvar();
-      const regras = Motor.regrasAgora(M, S.R, cod);
-      const prox = Motor.proxima(M, S.R, cod);
-      mostrarRetorno(regras, prox);
+      if (!v) return null;
+      if (tipo === "numero" && !/^\d+$/.test(v.replace(/\./g, ""))) return null;
+      return { estado: "valor", valor: v };
     }
-
-    function mostrarRetorno(regras, prox) {
+    /* respostas como ficariam com esta resposta (sem gravar nada) */
+    function comResposta(nova) {
+      const R = Object.assign({}, S.R, { [cod]: nova });
+      limparInvisiveis(R);
+      return R;
+    }
+    const okBtn = p.querySelector("#ok");
+    let apertando = false;
+    okBtn.addEventListener("pointerdown", () => { apertando = true; setTimeout(() => { apertando = false; if (renderPendente) { renderPendente = false; previa(); } }, 800); });
+    /* na última pergunta o botão diz "Ver meu resumo" (depende da resposta: é recalculado a cada toque) */
+    function rotulo(prox) { okBtn.textContent = prox === "RESULTADO" ? "Ver meu resumo" : "Continuar"; }
+    function previa() {
+      const nova = tentativa();
       const box = p.querySelector("#retorno");
-      const B = blocosRetorno(q, regras, S.R[cod]);
+      if (!nova) {
+        box.innerHTML = "";
+        const R = Object.assign({}, S.R); delete R[cod];
+        return rotulo(Motor.proxima(M, R, cod));
+      }
+      const R = comResposta(nova);
+      const regras = Motor.regrasAgora(M, R, cod);
+      rotulo(Motor.proxima(M, R, cod));
+      const B = blocosRetorno(q, regras, nova);
       box.innerHTML = `<div class="retorno">
         ${regras.length ? regras.map((r) => `<div class="regra"><p class="r-texto">${L(r.texto)}</p></div>`).join("") : `<p class="r-texto r-pergunta">${L(q.resposta)}</p>`}
         ${B.naosei ? (caixaComo(q, "bloco b-naosei") || `<div class="bloco b-naosei"><b>Como descobrir</b>${B.naosei}</div>`) : ""}
@@ -802,20 +826,61 @@
       </div>`;
       ligarCopiar(box);
       const aq = box.querySelector("#abrir-quadro");
-      if (aq) aq.onclick = () => abrirQuadro(aq.dataset.q, () => telaPergunta(cod));
-      const acoes = p.querySelector("#acoes");
-      acoes.innerHTML = "";
-      /* o mesmo nome "Continuar": a resposta já foi gravada e este botão leva para a próxima pergunta */
-      const b = el(`<button class="btn btn-primario seta" id="seguir">${prox === "RESULTADO" ? "Ver meu resumo" : "Continuar"}</button>`);
-      b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
-      acoes.appendChild(b);
-      const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
-      c.onclick = () => ir(telaPergunta, cod);
-      acoes.appendChild(c);
-      /* o retorno fica logo abaixo do campo: a tela desce até ele, nunca volta para cima */
-      if (box.getBoundingClientRect().top > 0) box.scrollIntoView({ behavior: "smooth", block: "start" });
+      /* abrir o quadro grava a resposta antes (o Voltar de lá reabre esta pergunta com ela marcada) */
+      if (aq) aq.onclick = () => { const r = tentativa(); if (r) gravar(r); abrirQuadro(aq.dataset.q, () => telaPergunta(cod)); };
+    }
+    previa();
+
+    okBtn.onclick = () => {
+      if (multi) {
+        const ord = q.opcoesLista.filter((o) => marcadas.includes(o));
+        if (!ord.length) return erro("Marque pelo menos uma opção para continuar.");
+        if (ord.includes(Motor.NS)) { ajudaAoVivo(true); return erro(MSG_NS_ESCOLHA); }
+        if (ord.includes(Motor.OUTRA) && !detalhe.trim()) return erro("Escreva qual é a outra característica.");
+        return responder(tentativa());
+      }
+      if (tipo === "escolha") {
+        if (!escolhida) return erro("Escolha uma opção para continuar.");
+        if (escolhida === Motor.NS) { ajudaAoVivo(true); return erro(MSG_NS_ESCOLHA); }
+        return responder({ estado: "opcao", opcao: escolhida });
+      }
+      const v = ent.querySelector("input,textarea").value.trim();
+      if (!v) return erro(boxNS.innerHTML ? MSG_NS_ESCREVA : "Escreva a sua resposta para continuar.");
+      if (tipo === "numero") {
+        /* a única pergunta de número conta pessoas ouvidas: só inteiro, sem negativo */
+        if (!/^\d+$/.test(v.replace(/\./g, ""))) return erro(/^-/.test(v) ? "O número não pode ser negativo." : "Digite só números, sem letras. Ex.: 8");
+        const n = parseInt(v.replace(/\./g, ""), 10);
+        /* número fora do comum: avisa uma vez e deixa seguir com o mesmo valor (único caso em dois toques) */
+        if (n > LIMITE_PESSOAS_OUVIDAS && avisado !== v) { avisado = v; return erro(`Esse número parece alto para conversas feitas por uma pessoa (mais de ${LIMITE_PESSOAS_OUVIDAS}); confira. Se estiver certo, toque em Continuar de novo.`, true); }
+      }
+      responder({ estado: "valor", valor: v });
+    };
+    let avisado = null;
+    function erro(t, aviso) { const e = p.querySelector("#erro"); e.textContent = t; e.classList.toggle("aviso-num", !!aviso); e.hidden = false; }
+
+    /* grava a resposta (sem sair da tela) */
+    function gravar(nova) {
+      /* guarda de onde veio quando a pessoa só confirmou o que outro módulo já tinha */
+      const origem = her ? her.resp : resp && resp.veio ? resp : null;
+      if (veio && igual(nova, origem)) nova.veio = veio;
+      S.R[cod] = nova;
+      if (S.pendentes) { S.pendentes = S.pendentes.filter((c) => c !== cod); if (!S.pendentes.length) delete S.pendentes; }
+      /* respostas de perguntas que deixaram de aparecer são descartadas */
+      limparInvisiveis(S.R);
+      salvar();
+    }
+    function responder(nova) {
+      clearTimeout(tDigita);
+      gravar(nova);
+      const prox = Motor.proxima(M, S.R, cod);
+      avancar(prox);
     }
     return p;
+  }
+  /* abre a próxima pergunta (ou o resumo) num toque só */
+  function avancar(prox) {
+    if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); }
+    else ir(telaPergunta, prox);
   }
 
   /* ---- retorno de uma resposta: uma Atenção e um Próximo passo por pergunta, sem repetição ----
@@ -855,7 +920,7 @@
     const id = Object.keys(QUADROS).find((k) => QUADROS[k].re.test(visto));
     if (!id) return "";
     const Qd = QUADROS[id];
-    return `<div class="onde-quadro" id="onde-quadro">${/tela de instrumentos/i.test(visto) ? "" : `<p>${Qd.nome.charAt(0).toUpperCase() + Qd.nome.slice(1)} fica na tela de instrumentos deste módulo.</p>`}
+    return `<div class="onde-quadro" id="onde-quadro">${/tela de instrumentos/i.test(visto) ? "" : `<p>${Qd.nome.charAt(0).toUpperCase() + Qd.nome.slice(1)} fica na tela de instrumentos desta etapa.</p>`}
       <button class="btn-alt" type="button" id="abrir-quadro" data-q="${id}">${Qd.botao}</button></div>`;
   }
   /* abre a tela de instrumentos já no quadro; o Voltar de lá volta para a tela de onde a pessoa veio */
@@ -887,11 +952,11 @@
   /* respostas de perguntas que deixaram de aparecer (a condição ficou falsa) são descartadas.
      Pergunta sem resposta no meio do caminho (ex.: "Não sei" antigo que virou "sem resposta") não apaga as seguintes;
      perguntas que saíram do módulo (oculta) também não são tocadas: outros módulos ainda leem essas respostas. */
-  function limparInvisiveis() {
+  function limparInvisiveis(R) {
     for (let mudou = true; mudou;) {
       mudou = false;
       for (const q of M.perguntas) {
-        if (S.R[q.codigo] !== undefined && Motor.avaliar(M, S.R, q.condicao) === false) { delete S.R[q.codigo]; mudou = true; }
+        if (R[q.codigo] !== undefined && Motor.avaliar(M, R, q.condicao) === false) { delete R[q.codigo]; mudou = true; }
       }
     }
   }
@@ -934,9 +999,9 @@
           <div class="aviso">${resumo(esc(D.mapa.mensagem_limite))}</div>
           </details>
           <details class="saiba" id="suas-respostas"><summary>Ver suas respostas (${resp.length})</summary>
-          ${resp.map((q) => `<div class="cartao"><p class="mini-info">${esc(enunciado(q))}</p><p><b>${esc(Motor.valor(S.R, q.codigo))}</b>${S.R[q.codigo].veio ? ` <span class="veio">Veio do Módulo ${esc(S.R[q.codigo].veio)}</span>` : ""}</p></div>`).join("")}
+          ${resp.map((q) => `<div class="cartao"><p class="mini-info">${esc(enunciado(q))}</p><p><b>${esc(Motor.valor(S.R, q.codigo))}</b>${S.R[q.codigo].veio ? ` <span class="veio">Veio da Etapa ${esc(S.R[q.codigo].veio)}</span>` : ""}</p></div>`).join("")}
           </details>
-          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-a/m03/index.html">Ir para o Módulo 3</a></div>
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-a/m03/index.html">Ir para a Etapa 3</a></div>
           ${rodape()}
         </main>
       </div>`);
@@ -1019,7 +1084,7 @@
   function entendemos() {
     const fr = frasesEntendemos();
     return `<section class="entendemos" id="entendemos"><h2>O que entendemos até aqui</h2>${fr.map((x) => `<p>${esc(x)}</p>`).join("")}
-      <p class="mini-info">Juntamos as suas respostas deste módulo com o que você já contou nos outros. Se algo não estiver certo, toque em “Revisar respostas”.</p></section>`;
+      <p class="mini-info">Juntamos as suas respostas desta etapa com o que você já contou nas outras. Se algo não estiver certo, toque em “Revisar respostas”.</p></section>`;
   }
 
   /* nas perguntas (credito = false) só os logos: menos texto na tela */

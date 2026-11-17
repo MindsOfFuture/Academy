@@ -2,7 +2,8 @@
    Execute: PW=<caminho do pacote playwright> node tests/lg2-m06-turma-b.cjs
    Opcional: SHOTS=<pasta> grava os prints de celular (390x844); M06_DIR=<pasta> testa outra cópia;
    M06_SABOTAGEM=1 serve o app sem a caixa "Como descobrir"; M06_SABOTAGEM=2 faz o "Não sei" gravar "naosei"
-   (lote 16/11: o teste tem de falhar nos dois).
+   (lote 16/11: o teste tem de falhar nos dois); M06_SABOTAGEM=3 põe de volta o passo extra "Seguir" depois do Continuar
+   (lote 17/11, um toque por pergunta: o teste tem de falhar).
    Alcança todas as regras da aba 4, roda os casos da aba 8 (divergências são relatadas, não falham),
    confere os instrumentos contra a "saída esperada" da aba 5. Sai com código 1 se algo falhar. */
 const http = require('node:http');
@@ -20,6 +21,9 @@ const servidor = http.createServer((req, res) => {
     return res.end(fs.readFileSync(f, 'utf8').replace('function caixaComo(q, extra) {', 'function caixaComo(q, extra) { return "";'));
   if (process.env.M06_SABOTAGEM === '2' && f.endsWith(path.join('js', 'app.js')))
     return res.end(fs.readFileSync(f, 'utf8').replace('if (ns) ns.onclick = () => ajudaNS(true);', 'if (ns) ns.onclick = () => responder({ estado: "naosei" });'));
+  if (process.env.M06_SABOTAGEM === '3' && f.endsWith(path.join('js', 'app.js')))
+    return res.end(fs.readFileSync(f, 'utf8').replace('sobreAnterior = visto ? null : textoSobre(Motor.regrasAgora(M, S.R, cod), r0);\n      ir(telaPergunta, prox);',
+      'const sg = el(`<button class="btn btn-primario">Seguir</button>`); sg.onclick = () => ir(telaPergunta, prox); const ac = p.querySelector("#acoes"); ac.innerHTML = ""; ac.appendChild(sg);'));
   fs.createReadStream(f).pipe(res);
 });
 
@@ -34,14 +38,16 @@ const CHAVE = 'lg2-turma-b-m06';
 
 /* funções que rodam dentro da página */
 const NA_PAGINA = {
+  /* o contador mostra a posição no caminho (não o número da planilha): a pergunta vem de data-cod */
   atual: () => {
+    const c = document.querySelector('.cartao-q[data-cod]');
+    if (c) return c.dataset.cod;
     const t = document.querySelector('.passo');
-    if (!t) return null;
-    if (/Resultado/.test(t.textContent)) return 'RESULTADO';
-    const n = +t.textContent.match(/Pergunta (\d+)/)[1];
-    return Motor.montar(window.MODULO6).perguntas[n - 1].codigo;
+    return t && /Resultado/.test(t.textContent) ? 'RESULTADO' : null;
   },
   agir: (a) => {
+    /* como a pessoa: o campo avisa que mudou (input + change), o retorno ao vivo aparece */
+    const por = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
     const opc = [...document.querySelectorAll('#ent .opcao')];
     const clicar = (v) => {
       const rot = (x) => (x.querySelector('.op-txt b') || x).textContent.trim();
@@ -51,24 +57,23 @@ const NA_PAGINA = {
     };
     if (a.tipo === 'formas') {   // a.vals = { forma: [taxa, dias, parte] }; o que não vier = 0 / divisão igual já preenchida
       document.querySelectorAll('.forma').forEach((f) => { const v = (a.vals || {})[f.dataset.forma];
-        const put = (sel, x) => { const i = f.querySelector(sel); if (i && x !== undefined) i.value = x; else if (i && !i.value) i.value = '0'; };
-        put('.taxa', v && v[0]); put('.prazo', v && v[1]); if (v && v[2] !== undefined && f.querySelector('.parte')) f.querySelector('.parte').value = v[2]; }); }
+        const put = (sel, x) => { const i = f.querySelector(sel); if (i && x !== undefined) por(i, x); else if (i && !i.value) por(i, '0'); };
+        put('.taxa', v && v[0]); put('.prazo', v && v[1]); if (v && v[2] !== undefined && f.querySelector('.parte')) por(f.querySelector('.parte'), v[2]); }); }
     if (a.tipo === 'saz') { [...document.querySelectorAll('#ent .opcao')].find((x) => x.textContent.trim().startsWith(a.v)).click();
       (a.fortes || []).forEach((m) => document.querySelector(`.fortes [data-m="${m}"]`).click()); (a.fracos || []).forEach((m) => document.querySelector(`.fracos [data-m="${m}"]`).click());
-      if (a.mais !== undefined) document.querySelector('#sz-mais').value = a.mais; if (a.menos !== undefined) document.querySelector('#sz-menos').value = a.menos; }
-    if (a.tipo === 'parcelas') { const e = document.querySelector('#p-entrada'); if (e) e.value = a.entrada; document.querySelector('#p-n').value = a.n; }
+      if (a.mais !== undefined) por(document.querySelector('#sz-mais'), a.mais); if (a.menos !== undefined) por(document.querySelector('#sz-menos'), a.menos); }
+    if (a.tipo === 'parcelas') { const e = document.querySelector('#p-entrada'); if (e) por(e, a.entrada); por(document.querySelector('#p-n'), a.n); }
     if (a.tipo === 'NS') { if (document.querySelector('#ns')) { document.querySelector('#ns').click(); return; } clicar('Não sei'); }
-    else if (a.tipo === 'opcao') { clicar(a.v); if (a.detalhe !== undefined) document.querySelector('#detalhe').value = a.detalhe; }
+    else if (a.tipo === 'opcao') { clicar(a.v); if (a.detalhe !== undefined) por(document.querySelector('#detalhe'), a.detalhe); }
     else if (a.tipo === 'multi') a.vs.forEach(clicar);
-    else if (a.tipo === 'texto') document.querySelector('#ent input, #ent textarea').value = a.v;
-    /* 'manter': só toca Continuar (resposta pré-preenchida pela herança) */
-    document.querySelector('#ok').click();
+    else if (a.tipo === 'texto') por(document.querySelector('#ent input, #ent textarea'), a.v);
+    /* 'manter': só toca Continuar (resposta pré-preenchida pela herança); semOk: só responde, sem tocar Continuar */
+    if (!a.semOk) document.querySelector('#ok').click();
   },
-  seguir: () => {
-    const b = [...document.querySelectorAll('#acoes .btn-primario')].find((x) => /Seguir|Ver meu resumo/.test(x.textContent));
-    if (!b) return false;
-    b.click(); return true;
-  },
+  /* lote 17/11: nenhum passo extra depois do Continuar */
+  passoExtra: () => [...document.querySelectorAll('button, a')].filter((b) => /^(Seguir|Corrigir minha resposta)$/.test(b.textContent.trim())).map((b) => b.textContent.trim()),
+  contador: () => { const k = document.querySelector('.cartao-q[data-cod]') && document.querySelector('.passo'); const m = k && /Pergunta (\d+) de (\d+)/.exec(k.textContent);
+    const b = document.querySelector('.heroi-prog [role="progressbar"]'); return m ? { n: +m[1], de: +m[2], pct: b ? +b.getAttribute('aria-valuenow') : null } : null; },
   retorno: () => (document.querySelector('#retorno') || {}).innerText || '',
 };
 
@@ -90,7 +95,9 @@ const NA_PAGINA = {
   const ordem = await page.evaluate(() => Motor.montar(window.MODULO6).perguntas.map((p) => ({ codigo: p.codigo, campo: Motor.campo(p), opcoes: p.opcoesLista, condicao: p.condicao })));
   const Q = Object.fromEntries(ordem.map((p) => [p.codigo, p]));
   const P = D.perguntas.filter((p) => p.codigo), R = D.regras.filter((r) => r.codigo);
-  const telasComRafael = [], telasComCodigo = [], telasComVariosAlertas = [];
+  const telasComRafael = [], telasComCodigo = [], telasComVariosAlertas = [], telasComModulo = [];
+  const passosExtras = [], doisToques = [], contadorRuim = [], continuarInativo = [];
+  let porTela = null;      // gancho opcional rodado em cada pergunta do caminho (teste do Continuar à vista)
 
   /* ---------- dados ---------- */
   const dadosTxt = fs.readFileSync(path.join(DIR, 'dados/modulo6.js'), 'utf8');
@@ -125,23 +132,41 @@ const NA_PAGINA = {
     if (cod) telasComCodigo.push(`${rotulo}: ${cod[0]}`);
     const nAlerta = await page.evaluate(() => document.querySelectorAll('.b-alerta').length);
     if (nAlerta > 1) telasComVariosAlertas.push(`${rotulo}: ${nAlerta}`);
+    /* BRIEF E: a jornada chama de Etapa; nenhum "Módulo" no texto visível */
+    const mod = corpo.match(/.{0,30}\bm[óo]dulos?\b.{0,20}/i);
+    if (mod) telasComModulo.push(`${rotulo}: ${mod[0]}`);
+    const extra = await page.evaluate(NA_PAGINA.passoExtra);
+    if (extra.length) passosExtras.push(`${rotulo}: ${extra.join(', ')}`);
   }
+  /* BRIEF G: total estável = caminho mais longo possível (lido do app; conferido contra um caminho real mais abaixo) */
+  const TOTAL_ESPERADO = 15;
   /* começa do zero; responde até chegar em `alvo` (ou ao resultado), usando `resp` ou valores neutros */
   async function caminho(resp, alvo, semente) {
     await page.evaluate((s) => { localStorage.clear(); Object.entries(s || {}).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v))); }, semente || null);
     await page.reload();
     await page.click('#ir');
     const vistas = [], textos = [];
+    let pctAntes = -1;
     for (let i = 0; i < 40; i++) {
       const cod = await page.evaluate(NA_PAGINA.atual);
       if (cod === 'RESULTADO' || cod === alvo) return { cod, vistas, textos };
       vistas.push(cod);
-      await page.evaluate(NA_PAGINA.agir, resp[cod] || neutro(cod, alvo));
+      /* BRIEF G: "Pergunta N de M" = posição no caminho, total estável, barra só anda para a frente */
+      const k = await page.evaluate(NA_PAGINA.contador);
+      if (!k || k.n !== vistas.length || k.de !== TOTAL_ESPERADO || k.pct < pctAntes) contadorRuim.push(`${cod}: ${JSON.stringify(k)} (esperado ${vistas.length} de ${TOTAL_ESPERADO}, barra ≥ ${pctAntes})`);
+      pctAntes = k ? k.pct : pctAntes;
+      if (porTela) await porTela(cod);
+      await page.evaluate(NA_PAGINA.agir, { ...(resp[cod] || neutro(cod, alvo)), semOk: true });
+      textos.push(await page.evaluate(NA_PAGINA.retorno));      // retorno ao vivo, antes do Continuar
+      if (await page.evaluate(() => document.querySelector('#ok').disabled)) continuarInativo.push(cod);
+      await page.evaluate(() => document.querySelector('#ok').click());
       /* aviso que não trava (valor alto ou diferente do outro módulo): o 2º Continuar segue */
-      if (await page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden && e.classList.contains('aviso'); })) await page.evaluate(() => document.querySelector('#ok').click());
-      textos.push(await page.evaluate(NA_PAGINA.retorno));
-      await olharRafael(cod);
-      if (!(await page.evaluate(NA_PAGINA.seguir))) return { cod, vistas, textos, bloqueado: true };
+      let toques = 1;
+      if (await page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden && e.classList.contains('aviso'); })) { await page.evaluate(() => document.querySelector('#ok').click()); toques++; }
+      const depois = await page.evaluate(NA_PAGINA.atual);
+      await olharRafael(`${cod} → ${depois}`);
+      /* BRIEF A: um toque por pergunta (o 2º só no aviso de valor) */
+      if (depois === cod) { doisToques.push(`${cod}: não avançou com ${toques} toque(s)`); return { cod, vistas, textos, bloqueado: true }; }
     }
     throw new Error('caminho sem fim');
   }
@@ -183,11 +208,10 @@ const NA_PAGINA = {
       continue;
     }
     const a = acaoDaRegra(r);
-    await page.evaluate(NA_PAGINA.agir, a);
+    /* lote 17/11: o retorno aparece ao vivo, logo abaixo da resposta, ANTES do Continuar */
+    await page.evaluate(NA_PAGINA.agir, { ...a, semOk: true });
     const txt = nrm(await page.evaluate(NA_PAGINA.retorno));
     await olharRafael(r.codigo);
-    const agora = await page.evaluate(NA_PAGINA.atual);
-    const temSeguir = await page.evaluate(() => [...document.querySelectorAll('#acoes .btn-primario')].some((x) => /Seguir|Ver meu resumo/.test(x.textContent)));
     const mostradas = (await page.$$eval('#retorno .regra .r-texto', (x) => x.map((e) => e.textContent))).map(nrm).sort();
     const esperadas = [r.codigo, ...(JUNTAS[r.codigo] || [])].map((c) => nrm(R.find((x) => x.codigo === c).texto)).sort();
     /* BRIEF G: alerta de risco que depende da resposta fica no retorno (tom de aviso); os outros estão na "Ver dica", não no retorno */
@@ -195,7 +219,11 @@ const NA_PAGINA = {
     const risco = await page.evaluate((c) => Motor.ehRisco({ codigo: c }), r.codigo);
     const okAlerta = !r.alerta || r.alerta === 'Nenhum' || (risco ? txt.includes(nrm(r.alerta)) : !txt.includes(nrm(r.alerta)) && dicaTxt.includes(nrm(r.alerta)));
     const qAlerta = nrm(P.find((x) => x.codigo === r.pergunta).alerta);
-    const ok = JSON.stringify(mostradas) === JSON.stringify(esperadas) && txt.includes(nrm(r.texto)) && okAlerta && (!qAlerta || (!txt.includes(qAlerta) && dicaTxt.includes(qAlerta))) && agora === r.pergunta && (a.para ? !temSeguir : temSeguir)
+    /* um toque: Continuar grava e abre a próxima; só a regra "Retornar à" (resposta incompleta) segura na pergunta */
+    await page.evaluate(() => document.querySelector('#ok').click());
+    if (await page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden && e.classList.contains('aviso'); })) await page.evaluate(() => document.querySelector('#ok').click());
+    const agora = await page.evaluate(NA_PAGINA.atual);
+    const ok = JSON.stringify(mostradas) === JSON.stringify(esperadas) && txt.includes(nrm(r.texto)) && okAlerta && (!qAlerta || (!txt.includes(qAlerta) && dicaTxt.includes(qAlerta))) && (a.para ? agora === r.pergunta : agora !== r.pergunta)
       && !(/^Retornar à /.test(r.encaminhamento || '') && txt.includes(nrm(r.encaminhamento)));
     (ok ? alcancadas : faltando).push(ok ? r.codigo : `${r.codigo} (${r.condicao}) -> ${txt.slice(0, 120)}`);
   }
@@ -329,11 +357,11 @@ const NA_PAGINA = {
   { // a faixa na 1ª pergunta da seção e o botão Trocar
     await caminho({}, 'M6.P12', { 'lg2-turma-a-m01': M1({ 'M1.P03A': { estado: 'opcao', opcao: SERV_M1 } }) });
     const fx = nrm(await page.evaluate(() => (document.querySelector('.negocio-atual') || {}).innerText || ''));
-    check('faixa "Seu negócio: Serviço" + selo "Veio do Módulo 1" + Trocar', /Seu negócio: Serviço/.test(fx) && fx.includes('Veio do Módulo 1') && fx.includes('Trocar'), fx);
+    check('faixa "Seu negócio: Serviço" + selo "Veio da Etapa 1" + Trocar', /Seu negócio: Serviço/.test(fx) && fx.includes('Veio da Etapa 1') && fx.includes('Trocar'), fx);
     await page.click('#trocar');
     check('Trocar abre o seletor com Serviço marcado', (await page.evaluate(NA_PAGINA.atual)) === 'Negócio'
       && (await page.$$eval('#ent .opcao.sel b', (b) => b.map((x) => x.textContent))).join() === 'Serviço');
-    await page.evaluate(NA_PAGINA.agir, { tipo: 'opcao', v: 'Mercadoria' }); await page.evaluate(NA_PAGINA.seguir);
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'opcao', v: 'Mercadoria' });
     const est = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R);
     check('depois de trocar: vai para a seção Mercadoria, sem selo de herança e sem respostas do serviço',
       (await page.evaluate(NA_PAGINA.atual)) === 'M6.P16' && est['Negócio'].opcao === 'Mercadoria' && !est['Negócio'].herdado && !est['M6.P12'], est); }
@@ -356,7 +384,7 @@ const NA_PAGINA = {
   const semM5 = { 'lg2-turma-a-m05': M5 };
   const tela = async () => page.evaluate(() => ({ selo: (document.querySelector('.herdado') || {}).innerText || '',
     sel: [...document.querySelectorAll('#ent .opcao.sel b')].map((x) => x.textContent), campo: (document.querySelector('#ent input, #ent textarea') || {}).value }));
-  /* BRIEF F (nenhuma pergunta repetida): com a resposta do Módulo 5, P04/P05/P06 não aparecem; ficam num cartão "Veio do Módulo 5 · Trocar" */
+  /* BRIEF F (nenhuma pergunta repetida): com a resposta do Módulo 5, P04/P05/P06 não aparecem; ficam num cartão "Veio da Etapa 5 · Trocar" */
   { const c = await caminho({}, null, semM5);
     check('F: com o Módulo 5 respondido, formas de pagamento, vendas do mês e gastos fixos não aparecem de novo', !['M6.P04', 'M6.P05', 'M6.P06'].some((x) => c.vistas.includes(x)) && c.vistas.includes('M6.P07'), c.vistas);
     const R6 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R);
@@ -365,11 +393,11 @@ const NA_PAGINA = {
       && R6['M6.P05'].valor === '1.000,00' && R6['M6.P05'].herdado === 5 && R6['M6.P06'].valor === 'Aluguel: R$ 800,00; Água e luz: R$ 150,00; Internet: R$ 100,00' && R6['M6.P06'].herdado === 5, R6);
     await abrirResultado();
     const hr = nrm(await page.evaluate(() => (document.querySelector('#herdadas-res') || {}).innerText || ''));
-    check('F: resultado lista as respostas que vieram de outros módulos, cada uma com "Trocar"', hr.includes('Veio do Módulo 5') && /vender por mês: R\$ 1\.000,00/.test(hr)
+    check('F: resultado lista as respostas que vieram de outros módulos, cada uma com "Trocar"', hr.includes('Veio da Etapa 5') && /vender por mês: R\$ 1\.000,00/.test(hr)
       && (await page.$$('#herdadas-res [data-trocar]')).length === 3, hr); }
   { await caminho({}, 'M6.PF', semM5);
     const c0 = nrm(await page.evaluate(() => (document.querySelector('#herdadas') || {}).textContent || ''));
-    check('F: a tela seguinte mostra o cartão pequeno com a resposta reaproveitada e "Trocar"', c0.startsWith('Já respondido antes') && c0.includes('Veio do Módulo 5') && c0.includes('Como seus clientes vão pagar: Pix, Dinheiro, Cartão de crédito') && c0.includes('Trocar'), c0);
+    check('F: a tela seguinte mostra o cartão pequeno com a resposta reaproveitada e "Trocar"', c0.startsWith('Já respondido antes') && c0.includes('Veio da Etapa 5') && c0.includes('Como seus clientes vão pagar: Pix, Dinheiro, Cartão de crédito') && c0.includes('Trocar'), c0);
     await caminho({}, 'M6.SZ', semM5);
     const card = nrm(await page.evaluate(() => (document.querySelector('#herdadas') || {}).textContent || ''));
     check('F: vendas do mês (Módulo 5) no cartão da tela seguinte', card.includes('Quanto espera vender por mês: R$ 1.000,00'), card);
@@ -381,9 +409,8 @@ const NA_PAGINA = {
     const av = nrm(await page.textContent('#erro'));
     await page.evaluate(() => document.querySelector('#ok').click());
     const r5 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P05']);
-    check('valor diferente do Módulo 5: avisa ("No Módulo 5, esse valor era R$ 1.000,00") e o 2º Continuar grava sem a origem',
-      av.includes('No Módulo 5, esse valor era R$ 1.000,00') && r5 && r5.valor === '1.200,00' && !r5.herdado, { av, r5 });
-    await page.evaluate(NA_PAGINA.seguir);
+    check('valor diferente da Etapa 5: avisa ("Na Etapa 5, esse valor era R$ 1.000,00") e o 2º Continuar grava sem a origem',
+      av.includes('Na Etapa 5, esse valor era R$ 1.000,00') && r5 && r5.valor === '1.200,00' && !r5.herdado, { av, r5 });
     check('depois de trocar, segue para a pergunta seguinte que ainda não foi respondida', (await page.evaluate(NA_PAGINA.atual)) === 'M6.SZ'); }
   { const s2 = { 'lg2-turma-a-m05': { versao: 3, R: { ...M5.R, 'M5.P36': { estado: 'naosei' } } } };
     await caminho({}, 'M6.P05', s2); const x = await tela();
@@ -420,7 +447,7 @@ const NA_PAGINA = {
       && bt.includes('Começando com R$ 500,00 no caixa, o seu dinheiro fica negativo na semana 1'), bt);
     check('BRIEF I: "Ver suas respostas" vem aberto no resultado', await page.evaluate(() => { const d = document.querySelector('details.respostas'); return !!d && d.open && /Ver suas respostas/.test(d.querySelector('summary').textContent); }));
     const resumo = nrm(await page.evaluate(() => document.querySelector('details.respostas').textContent));
-    check('resumo mostra o selo "Veio do Módulo 5" nas respostas herdadas e "Veio do Módulo 1" no tipo', /Veio do Módulo 5 Pix; Dinheiro/.test(resumo) && /Veio do Módulo 1 Serviço/.test(resumo), resumo.slice(0, 500)); }
+    check('resumo mostra o selo "Veio da Etapa 5" nas respostas herdadas e "Veio da Etapa 1" no tipo', /Veio da Etapa 5 Pix; Dinheiro/.test(resumo) && /Veio da Etapa 1 Serviço/.test(resumo), resumo.slice(0, 500)); }
 
   /* ---------- 7. relatório 05/11: próximos passos, encaminhamentos, alertas, Módulo 1, campos numéricos, teclado ---------- */
   { const c = await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P07': { tipo: 'texto', v: '0' },
@@ -442,7 +469,7 @@ const NA_PAGINA = {
     const resp = { 'M6.P01': { tipo: 'texto', v: 'Potes e forno' }, 'M6.P02': { tipo: 'texto', v: '3000' } };
     await caminho(resp, null, m1('Até R$ 100'));
     const av = nrm(await page.evaluate(() => (document.querySelector('#aviso-m1') || {}).innerText || ''));
-    check('investimento R$ 3.000 acima de "Até R$ 100" (Módulo 1): aviso no resultado citando o Módulo 1', av.includes('Veio do Módulo 1') && av.includes('“Até R$ 100”') && av.includes('R$ 3.000,00'), av);
+    check('investimento R$ 3.000 acima de "Até R$ 100" (Módulo 1): aviso no resultado citando o Módulo 1', av.includes('Veio da Etapa 1') && av.includes('“Até R$ 100”') && av.includes('R$ 3.000,00'), av);
     await caminho(resp, null, m1('Mais de R$ 1.000'));
     const a2 = await page.$('#aviso-m1');
     await caminho({ ...resp, 'M6.P02': { tipo: 'texto', v: '800' } }, null, m1('Entre R$ 500 e R$ 1.000'));
@@ -456,8 +483,8 @@ const NA_PAGINA = {
     const aviso1 = nrm(await page.textContent('#erro')), gravou1 = await page.evaluate(() => !!JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P02']);
     await page.evaluate(() => document.querySelector('#ok').click());
     const gravou2 = await page.evaluate(() => !!JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P02']);
-    check('valor alto (R$ 60.000) avisa sem travar: 1º Continuar avisa, 2º com o mesmo valor segue', inp === 'decimal' && /parece alto/.test(aviso1) && !gravou1 && gravou2
-      && (await page.evaluate(NA_PAGINA.seguir)), { inp, aviso1, gravou1, gravou2 }); }
+    check('valor alto (R$ 60.000) avisa sem travar: 1º Continuar avisa, 2º com o mesmo valor grava e segue', inp === 'decimal' && /parece alto/.test(aviso1) && !gravou1 && gravou2
+      && (await page.evaluate(NA_PAGINA.atual)) !== 'M6.P02', { inp, aviso1, gravou1, gravou2 }); }
   { // teclado do celular: campo e Continuar continuam visíveis
     check('viewport com interactive-widget=resizes-content', /interactive-widget=resizes-content/.test(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8')));
     for (const [cod, sel, pre] of [['M6.P01', '#ent textarea', {}], ['M6.P05', '#ent input', {}]]) {
@@ -499,19 +526,19 @@ const NA_PAGINA = {
   /* ---------- 8. novas testadoras: atenção única, prioridade de compras, "Como calculamos" ---------- */
   { // (a) pergunta com regra + alerta da pergunta = um bloco só, sem repetição
     await caminho({}, 'M6.P05');
-    await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '0' });
+    await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '0', semOk: true });
     const blocos = await page.$$eval('.b-alerta', (b) => b.map((x) => x.innerText));
     const itensAt = await page.$$eval('.b-alerta li', (l) => l.map((x) => x.textContent.trim()));
     const r18 = nrm(R.find((x) => x.codigo === 'M6.R18').alerta), r17 = nrm(R.find((x) => x.codigo === 'M6.R17').alerta), qa = nrm(P.find((x) => x.codigo === 'M6.P05').alerta);
     check('G: P05 = 0: um único aviso "Fique de olho" só com o risco da resposta (sem vendas); o alerta geral da pergunta e o de "valor informado" ficam na dica',
       blocos.length === 1 && nrm(blocos[0]).includes(r18) && !nrm(blocos[0]).includes(r17) && !nrm(blocos[0]).includes(qa) && /^Fique de olho/i.test(nrm(blocos[0])), { blocos });
-    await caminho({}, 'M6.P02'); await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '1500' });
+    await caminho({}, 'M6.P02'); await page.evaluate(NA_PAGINA.agir, { tipo: 'texto', v: '1500', semOk: true });
     check('G: resposta comum (P02 = 1.500) não abre balão de atenção', !(await page.$('#retorno .b-alerta')));
     // resultado com M1 acima do teto + semana negativa + alertas das respostas: um bloco só
     await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno' }, 'M6.P02': { tipo: 'texto', v: '3000' }, 'M6.P07': { tipo: 'texto', v: '0' } }, null,
       { 'lg2-turma-a-m01': M1({ 'M1.P07': { estado: 'opcao', opcao: 'Até R$ 100' } }) });
     const nb = await page.$$eval('.b-alerta', (b) => b.length), li = await page.$$eval('#atencao li', (l) => l.map((x) => x.textContent.trim()));
-    check('resultado: Módulo 1, semana no vermelho e alertas das respostas no MESMO bloco "Atenção", sem repetição', nb === 1 && li.some((x) => /Veio do Módulo 1/.test(x)) && li.some((x) => /semana 1/.test(x)) && new Set(li).size === li.length, { nb, li }); }
+    check('resultado: Módulo 1, semana no vermelho e alertas das respostas no MESMO bloco "Atenção", sem repetição', nb === 1 && li.some((x) => /Veio da Etapa 1/.test(x)) && li.some((x) => /semana 1/.test(x)) && new Set(li).size === li.length, { nb, li }); }
   { // (b) "nada, por enquanto." não vira item
     const its = await page.evaluate(() => [Motor.itensDe('nada, por enquanto.'), Motor.itensDe('farinha, chocolate em pó, nada mais'), Motor.itensDe('Nenhum. Ainda não sei'), Motor.semCompras('nada, por enquanto.'), Motor.semCompras('farinha')]);
     check('motor: "nada, por enquanto." = nenhum item (sem compras); "farinha, chocolate em pó, nada mais" = 2 itens', JSON.stringify(its) === JSON.stringify([[], ['farinha', 'chocolate em pó'], [], true, false]), its);
@@ -523,9 +550,8 @@ const NA_PAGINA = {
     await caminho({}, 'M6.P01');
     check('P01 tem o botão "Não tenho compras a fazer agora"', !!(await page.$('#sem-compras-btn')) && nrm(await page.textContent('#sem-compras-btn')) === 'Não tenho compras a fazer agora');
     await page.click('#sem-compras-btn');
-    const ret = nrm(await page.evaluate(NA_PAGINA.retorno));
-    await page.evaluate(NA_PAGINA.seguir);
-    check('o botão grava "sem compras" e pula para as formas de pagamento', ret.includes('sem compras para começar agora') && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04', ret);
+    const ret = nrm(await page.evaluate(() => (document.querySelector('#sobre-anterior') || {}).textContent || ''));
+    check('o botão grava "sem compras" num toque e pula para as formas de pagamento, com "Sobre a sua resposta anterior" no alto', ret.startsWith('Sobre a sua resposta anterior:') && ret.includes('sem compras para começar agora') && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04', ret);
     // tirar um item antes de classificar
     await caminho({ 'M6.P01': { tipo: 'texto', v: 'farinha, chocolate em pó, nada' } }, null);
     const antes = await page.$$eval('#prio .nome', (n) => n.map((x) => x.textContent));
@@ -581,12 +607,12 @@ const NA_PAGINA = {
     await page.click('#ns');
     const pt = nrm(await page.evaluate(() => (document.querySelector('#ajudans #partida-m5') || {}).innerText || ''));
     check('P01 "Não sei" com Módulo 5: a ajuda mostra os materiais de lá como ponto de partida, com selo, e nada é gravado',
-      pt.includes('Veio do Módulo 5') && pt.includes('farinha, leite condensado, pote com tampa') && (await page.evaluate(() => localStorage.getItem('lg2-turma-b-m06'))) === antes, pt);
+      pt.includes('Veio da Etapa 5') && pt.includes('farinha, leite condensado, pote com tampa') && (await page.evaluate(() => localStorage.getItem('lg2-turma-b-m06'))) === antes, pt);
     if (process.env.SHOTS) { await page.evaluate(() => document.querySelector('#ajudans').scrollIntoView()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm06_depois_ajuda_naosei.png') }); }
     await page.click('#usar-m5');
     check('"Usar essa lista como ponto de partida" põe a lista no campo, com o selo do Módulo 5',
-      (await page.inputValue('#ent textarea')) === 'farinha, leite condensado, pote com tampa' && nrm(await page.textContent('.herdado')).includes('Veio do Módulo 5'));
-    await page.click('#ok'); await page.evaluate(NA_PAGINA.seguir);
+      (await page.inputValue('#ent textarea')) === 'farinha, leite condensado, pote com tampa' && nrm(await page.textContent('.herdado')).includes('Veio da Etapa 5'));
+    await page.click('#ok');
     const r1 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P01']);
     check('lista de partida confirmada: grava os itens e segue para o valor das compras', r1.estado === 'valor' && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P02', r1);
     check('M5 nunca é escrito pelo M6', !(await page.evaluate(() => localStorage.getItem('lg2-turma-a-m05'))).includes('M6.')); }
@@ -597,7 +623,7 @@ const NA_PAGINA = {
     const capa = await page.evaluate(() => ({ tempo: (document.querySelector('.tempo') || {}).textContent || '', cf: document.querySelector('details.como-funciona'),
       fechado: !!document.querySelector('details.como-funciona:not([open])'), tit: document.querySelector('h1').textContent }));
     const n = await palavras();
-    check(`capa: título + 1 frase + tempo + Começar; "Como funciona" fechado (${n} palavras ≤ 60)`, n <= 60 && /Este módulo leva uns \d+ minutos/.test(capa.tempo) && capa.fechado
+    check(`capa: título + 1 frase + tempo + Começar; "Como funciona" fechado (${n} palavras ≤ 60)`, n <= 60 && /Esta etapa leva cerca de \d+ minutos/.test(capa.tempo) && capa.fechado
       && (await page.getByRole('button', { name: 'Começar', exact: true }).count()) === 1, { n, capa }); }
   const NEG_DE = { 'M6.P10': 'Serviço', 'M6.P11': 'Serviço', 'M6.P12': 'Serviço', 'M6.P13': 'Produto', 'M6.P14': 'Produto', 'M6.P15': 'Produto', 'M6.P16': 'Mercadoria', 'M6.P17': 'Mercadoria', 'M6.P18': 'Mercadoria' };
   async function abrirDireto(cod) {   // a pergunta como a pessoa a vê ao chegar, sem nada tocado
@@ -668,7 +694,7 @@ const NA_PAGINA = {
       /* com resposta de verdade, anda */
       const r = q.campo === 'numero' ? { tipo: 'texto', v: '100' } : q.campo === 'texto' ? { tipo: 'texto', v: 'Resposta de teste' } : { tipo: 'opcao', v: q.opcoes.find((o) => o !== 'Não sei') };
       await page.evaluate(NA_PAGINA.agir, r);
-      if (!(await page.evaluate(NA_PAGINA.seguir))) depois.push(q.codigo);
+      if ((await page.evaluate(NA_PAGINA.atual)) === q.codigo) depois.push(q.codigo);
     }
     check('"Não sei" mostra "Como descobrir" (passos + pedido para a IA com Copiar) em todas as perguntas que o mantêm', sem.length === 0, sem);
     check('"Não sei" não grava nada (estado salvo igual, ao tocar e ao tocar Continuar)', gravou.length === 0, gravou);
@@ -712,12 +738,12 @@ const NA_PAGINA = {
     /* "Como calculamos" na própria pergunta das parcelas, ao vivo */
     await caminho(resp, 'M6.P03A', sem);
     await page.fill('#p-entrada', '1.000,00'); await page.fill('#p-n', '4');
+    await page.waitForTimeout(900);      // retorno ao vivo: 700 ms depois de parar de digitar
     const cp = nrm(await page.textContent('#como-parcela'));
     check('B: parcela calculada na hora, com a conta ("(R$ 5.000,00 da compra − R$ 1.000,00 de entrada) ÷ 4 parcelas = R$ 1.000,00 por mês")',
       cp === 'Como calculamos: (R$ 5.000,00 da compra − R$ 1.000,00 de entrada) ÷ 4 parcelas = R$ 1.000,00 por mês.', cp);
-    await page.click('#ok');
     const rp = nrm(await page.evaluate(NA_PAGINA.retorno));
-    check('parcelas: o retorno diz em que semanas caem (1, 5 e 10; 2 depois da semana 13)', rp.includes('entrada de R$ 1.000,00 na semana 1; parcelas de R$ 1.000,00 nas semanas 5 e 10; 2 parcelas ficam para depois da semana 13'), rp);
+    check('parcelas: o retorno (ao vivo, antes do Continuar) diz em que semanas caem (1, 5 e 10; 2 depois da semana 13)', rp.includes('entrada de R$ 1.000,00 na semana 1; parcelas de R$ 1.000,00 nas semanas 5 e 10; 2 parcelas ficam para depois da semana 13'), rp);
     const c = await caminho(resp, null, sem);
     check('dono: com o Módulo 5 respondido, as telas de formas de pagamento, taxas/prazos, vendas, época do ano, gastos e caixa não aparecem',
       c.cod === 'RESULTADO' && !['M6.P04', 'M6.PF', 'M6.P05', 'M6.SZ', 'M6.P06', 'M6.P07', 'M6.P08'].some((x) => c.vistas.includes(x)), c.vistas);
@@ -727,7 +753,7 @@ const NA_PAGINA = {
     const L = await page.$$eval('.fluxo tbody tr', (tr) => tr.map((r) => ({ e: r.querySelector('[data-k="entradas"]').value, s: r.querySelector('[data-k="saidas"]').value, sf: r.querySelector('.sf').textContent.replace(/\s+/g, ' ').trim() })));
     const cf = nrm(await page.textContent('#confere-m5')), pr = nrm(await page.textContent('#como-conta'));
     check('aceite 2: gastos do mês Módulo 5 (R$ 1.700,00) = aqui (R$ 1.600,00 + R$ 100,00 de perdas), origem mostrada',
-      cf.includes('No Módulo 5: R$ 1.600,00 fixos + R$ 100,00 de perdas + R$ 0,00 para você = R$ 1.700,00 por mês') && cf.includes('= R$ 1.700,00 por mês. Os dois batem.')
+      cf.includes('Na Etapa 5: R$ 1.600,00 fixos + R$ 100,00 de perdas + R$ 0,00 para você = R$ 1.700,00 por mês') && cf.includes('= R$ 1.700,00 por mês. Os dois batem.')
       && pr.includes('Perdas: R$ 100,00 por mês × 12 ÷ 52 = R$ 23,08 por semana') && (await page.$$('#i04 .lbl .selo')).length >= 3, { cf });
     check('aceite 2: custo de cada venda entra no caixa (R$ 1,00 × 50 vendas = R$ 50,00 por mês = R$ 11,54 por semana; a taxa sai das entradas)',
       pr.includes('Custo de cada venda (a taxa já sai das entradas): R$ 1,00 × 50 vendas no mês (R$ 475,00 ÷ R$ 9,50) = R$ 50,00 por mês × 12 ÷ 52 = R$ 11,54 por semana'), pr);
@@ -763,7 +789,7 @@ const NA_PAGINA = {
     check('simulador de cenários: "1425,06" vira "1.425,06" e o resultado sai em R$ brasileiro', (await page.inputValue('.cen[data-k="ent"]')) === '1.425,06' && /R\$ [\d.]+,\d{2}/.test(await page.textContent('#cen-res')));
     await tipar('#f-perdas', '0');
     check('perdas mudadas: aviso de que os gastos do mês diferem do Módulo 5 e "No Módulo 5: R$ 100,00" ao lado do campo',
-      /diferentes dos do Módulo 5 \(R\$ 1\.700,00\)/.test(nrm(await page.textContent('#atencao'))) && nrm(await page.textContent('#i04')).includes('No Módulo 5: R$ 100,00')); }
+      /diferentes dos da Etapa 5 \(R\$ 1\.700,00\)/.test(nrm(await page.textContent('#atencao'))) && nrm(await page.textContent('#i04')).includes('Na Etapa 5: R$ 100,00')); }
   /* ---------- dono: taxa e prazo por forma de pagamento + época do ano ----------
      Conferido à mão: vendas R$ 1.300,00/mês × 12 ÷ 52 = R$ 300,00 por semana. Pix 40% = R$ 120,00 na mesma semana;
      cartão de crédito 60% com 3,5% de taxa = 300 × 0,6 × 0,965 = R$ 173,70, caindo 30 dias depois = 5 semanas (semana 6 em diante).
@@ -775,7 +801,7 @@ const NA_PAGINA = {
       'M6.P06': { tipo: 'texto', v: 'nada' }, 'M6.P07': { tipo: 'texto', v: '0' } };
     await caminho(resp, 'M6.P04');
     check('dono: sem Módulo 5, P04 pergunta com as MESMAS opções do Módulo 5', JSON.stringify(await page.$$eval('#ent .opcao .op-txt b', (b) => b.map((x) => x.textContent.trim()))) === JSON.stringify(['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito', 'Outra forma']));
-    await page.evaluate(NA_PAGINA.agir, resp['M6.P04']); await page.evaluate(NA_PAGINA.seguir);
+    await page.evaluate(NA_PAGINA.agir, resp['M6.P04']);
     const pf = await page.evaluate(() => [...document.querySelectorAll('.forma')].map((f) => ({ forma: f.dataset.forma, taxa: f.querySelector('.taxa').value, prazo: f.querySelector('.prazo').value, parte: (f.querySelector('.parte') || {}).value })));
     check('dono: taxa, dias e parte por forma; Pix já vem sem taxa e na hora; partes começam divididas igualmente (50/50)',
       JSON.stringify(pf) === JSON.stringify([{ forma: 'Pix', taxa: '0', prazo: '0', parte: '50' }, { forma: 'Cartão de crédito', taxa: '', prazo: '', parte: '50' }]), pf);
@@ -857,7 +883,7 @@ const NA_PAGINA = {
     check('cliente paga a entrega à parte (R$ 5,00): (8 − 5) × 5/10 = R$ 1,50 por venda -> R$ 18,00 por semana', pb.includes('R$ 8,00 por entrega − R$ 5,00 que o cliente paga × 5 de cada 10 vendas = R$ 1,50 por venda') && sb.every((x) => x === '18,00'), { pb, sb });
     await caminho(resp, null, base(null));
     const pc0 = nrm(await page.textContent('#pr-entrega'));
-    check('sem a resposta de entrega no Módulo 5: não pergunta aqui; nota "Custo de entrega não informado (Módulo 5)" com link', pc0.startsWith('Custo de entrega não informado (Módulo 5).')
+    check('sem a resposta de entrega no Módulo 5: não pergunta aqui; nota "Custo de entrega não informado (Módulo 5)" com link', pc0.startsWith('Custo de entrega não informado (Etapa 5).')
       && !!(await page.$('#pr-entrega a[href*="m05"]')) && (await saidas()).every((x) => x === '0,00'), pc0); }
 
   { // motor: parcela fecha o total e semanas pela regra 1 + arredondar(k × 52 ÷ 12)
@@ -866,13 +892,109 @@ const NA_PAGINA = {
     check('motor: parcelas mensais nas semanas 5, 10, 14, 18, 27, 53; R$ 1.000 em 3 = 333,33 + 333,33 + 333,34', JSON.stringify(m) === '[5,10,14,18,27,53]'
       && JSON.stringify([...pl.semanas, ...pl.depois].map((x) => x.valor)) === '[333.33,333.33,333.34]' && pl.aVista === 0, { m, pl }); }
 
+
+  /* ---------- lote 17/11 (tira a fricção): um toque, Continuar igual e à vista, leitor de tela, contador e tempo honestos ---------- */
+  { // A: retorno ao vivo ANTES do Continuar — escolha (no toque) e campo (700 ms sem digitar, sem sair do campo)
+    await caminho({}, 'M6.P03');
+    await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].find((b) => b.textContent.trim() === 'À vista').click());
+    const rEsc = nrm(await page.evaluate(NA_PAGINA.retorno)), r03 = R.find((x) => x.pergunta === 'M6.P03' && x.condicao.trim() === 'À vista');
+    check('A: escolha -> o retorno aparece no toque, logo abaixo da resposta, antes do Continuar', !!r03 && rEsc.includes(nrm(r03.texto)) && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P03'
+      && await page.evaluate(() => { const r = document.querySelector('#retorno'), e = document.querySelector('#ent'); return !!(e.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(r.compareDocumentPosition(document.querySelector('#ok')) & Node.DOCUMENT_POSITION_FOLLOWING); }), rEsc);
+    /* D: escolha única diz qual está marcada */
+    const ap = await page.$$eval('#ent .opcao', (b) => b.map((x) => [x.querySelector('b').textContent.trim(), x.getAttribute('aria-pressed')]));
+    check('D: aria-pressed = "true" só na opção escolhida, "false" nas outras', ap.length > 1 && ap.every(([t, v]) => v === (t === 'À vista' ? 'true' : 'false')), ap);
+    await page.click('#ok');
+    const foco = await page.evaluate(() => ({ cod: document.querySelector('.cartao-q').dataset.cod, ehQ: document.activeElement === document.querySelector('.cartao-q h2.q'), tab: document.activeElement.getAttribute('tabindex') }));
+    check('A + D: UM toque em Continuar grava e abre a próxima; o foco vai para o enunciado novo', foco.cod !== 'M6.P03' && foco.ehQ && foco.tab === '-1'
+      && (await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m06')).R['M6.P03'].opcao)) === 'À vista', foco);
+    /* múltipla escolha também diz o estado */
+    await caminho({}, 'M6.P04');
+    await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].filter((b) => /^(Pix|Dinheiro)$/.test(b.textContent.trim())).forEach((b) => b.click()));
+    const am = await page.$$eval('#ent .opcao', (b) => b.map((x) => [x.textContent.trim(), x.getAttribute('aria-pressed')]));
+    check('D: múltipla escolha com aria-pressed (Pix e Dinheiro = "true", o resto "false")', am.every(([t, v]) => v === (/^(Pix|Dinheiro)$/.test(t) ? 'true' : 'false')), am);
+    /* campo: digitar e parar (sem sair do campo) mostra o retorno em ~700 ms */
+    await caminho({}, 'M6.P05');
+    await page.click('#ent input'); await page.keyboard.type('0');
+    const cedo = nrm(await page.evaluate(NA_PAGINA.retorno));
+    await page.waitForTimeout(900);
+    const tarde = nrm(await page.evaluate(NA_PAGINA.retorno)), r18 = R.find((x) => x.codigo === 'M6.R18');
+    check('A: campo -> o retorno aparece ~700 ms depois de parar de digitar, antes do Continuar', !cedo.includes(nrm(r18.texto)) && tarde.includes(nrm(r18.texto)) && (await page.evaluate(NA_PAGINA.atual)) === 'M6.P05', { cedo, tarde });
+    /* quem toca Continuar sem ter visto o retorno recebe um cartão pequeno no alto da próxima tela (nunca um passo extra) */
+    await caminho({}, 'M6.P05');
+    await page.evaluate(() => { const i = document.querySelector('#ent input'); i.value = '0'; document.querySelector('#ok').click(); });
+    const sobre = nrm(await page.evaluate(() => (document.querySelector('#sobre-anterior') || {}).textContent || ''));
+    check('A: Continuar direto (sem ver o retorno) -> próxima pergunta com "Sobre a sua resposta anterior: …"', (await page.evaluate(NA_PAGINA.atual)) !== 'M6.P05' && sobre.startsWith('Sobre a sua resposta anterior:') && sobre.includes(nrm(r18.texto)), sobre);
+    check('A: nenhum botão "Seguir" nem "Corrigir minha resposta" (em todas as telas vistas até aqui)', passosExtras.length === 0, passosExtras.slice(0, 5)); }
+  { // B: Continuar sempre ativo; sem resposta, mensagem simples logo acima do botão, com role="alert"
+    const vazio = async (cod, msg) => {
+      await caminho({}, cod);
+      const dis = await page.evaluate(() => document.querySelector('#ok').disabled || document.querySelector('#ok').getAttribute('aria-disabled') === 'true');
+      await page.click('#ok');
+      return page.evaluate(([m, d]) => { const e = document.querySelector('#erro'), ok = document.querySelector('#ok');
+        return { d, txt: e.textContent.trim(), vis: !e.hidden, role: e.getAttribute('role'), acima: e.getBoundingClientRect().bottom <= ok.getBoundingClientRect().top + 1, ok: e.textContent.trim() === m }; }, [msg, dis]);
+    };
+    const b1 = await vazio('M6.P03', 'Escolha uma opção para continuar.'), b2 = await vazio('M6.P05', 'Escreva a sua resposta para continuar.');
+    check('B: Continuar ativo sem resposta; escolha -> "Escolha uma opção para continuar." acima do botão, role=alert', !b1.d && b1.vis && b1.ok && b1.role === 'alert' && b1.acima, b1);
+    check('B: campo vazio -> "Escreva a sua resposta para continuar." acima do botão, role=alert', !b2.d && b2.vis && b2.ok && b2.role === 'alert' && b2.acima, b2);
+    check('B: Continuar nunca desativado nas perguntas visitadas', continuarInativo.length === 0, continuarInativo); }
+  { // C: Continuar inteiro dentro da tela, sem rolar, em celular pequeno, letra grande e celular deitado
+    const fora = [];
+    for (const [w, h, fonte] of [[360, 640, ''], [390, 844, '130%'], [740, 360, '']]) {
+      await page.setViewportSize({ width: w, height: h });
+      porTela = async (cod) => {
+        if (fonte) { await page.evaluate((f) => { document.documentElement.style.fontSize = f; }, fonte); await page.waitForTimeout(50); }
+        const r = await page.evaluate(() => { const b = document.querySelector('#ok').getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: innerHeight, y: scrollY }; });
+        if (!(r.top >= 0 && r.bottom <= r.h && r.y === 0)) fora.push(`${w}x${h}${fonte ? ' ' + fonte : ''} ${cod}: ${JSON.stringify(r)}`);
+      };
+      for (const resp of [{ 'M6.P03': { tipo: 'opcao', v: 'Parcelado' }, 'Negócio': { tipo: 'opcao', v: 'Mercadoria' } }, { 'Negócio': { tipo: 'opcao', v: 'Produto' } }, {}]) await caminho(resp, null);
+      porTela = null;
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    check('C: Continuar inteiro na tela sem rolar (360x640, 390x844 com letra 130%, 740x360) em todas as perguntas visitadas', fora.length === 0, fora.slice(0, 6));
+    /* o pé fixo não cobre o último campo nem a última opção */
+    await page.setViewportSize({ width: 360, height: 640 });
+    await caminho({}, 'M6.P04');
+    const cobre = await page.evaluate(() => { const ult = [...document.querySelectorAll('#ent .opcao')].pop(); ult.scrollIntoView({ block: 'end' }); window.scrollBy(0, 400);
+      ult.scrollIntoView({ block: 'nearest' }); const a = ult.getBoundingClientRect(), pe = document.querySelector('#pe').getBoundingClientRect(); return { ult: a.bottom, pe: pe.top, sticky: getComputedStyle(document.querySelector('#pe')).position }; });
+    await page.setViewportSize({ width: 390, height: 844 });
+    check('C: área do Continuar presa ao pé (sticky) sem cobrir a última opção', cobre.sticky === 'sticky' && cobre.ult <= cobre.pe + 1, cobre); }
+  { // G: contador estável e honesto; tempo da capa = caminho comum × 35 s, arredondado para múltiplo de 5 min
+    const longo = await caminho({ 'M6.P03': { tipo: 'opcao', v: 'Parcelado' }, 'Negócio': { tipo: 'opcao', v: 'Mercadoria' } }, null);
+    check(`G: total do contador (${TOTAL_ESPERADO}) = caminho mais longo possível (${longo.vistas.length} perguntas)`, longo.vistas.length === TOTAL_ESPERADO, longo.vistas);
+    const comum = await caminho({}, null);
+    await page.evaluate(() => localStorage.clear()); await page.reload();
+    const min = +((await page.textContent('.tempo')).match(/cerca de (\d+) minutos/) || [])[1];
+    const esp = Math.ceil(comum.vistas.length * 35 / 60 / 5) * 5;
+    check(`G: capa promete ${min} min = ${comum.vistas.length} perguntas do caminho comum × 35 s, arredondado para múltiplo de 5`, min === esp, { min, esp, n: comum.vistas.length });
+    check('G: "Pergunta N de M" sem pular: N = posição no caminho, M fixo, barra nunca volta (todas as perguntas visitadas)', contadorRuim.length === 0, contadorRuim.slice(0, 6)); }
+  { // E: link do fim exatamente "Ir para a Etapa 7", visível
+    await caminho({}, null);
+    const px = await page.evaluate(() => { const a = document.querySelector('.acoes.lg2-proximo a'); return a && { t: a.textContent.trim(), vis: a.getBoundingClientRect().height > 0, h: a.getAttribute('href') }; });
+    check('E: fim com "Ir para a Etapa 7" dentro de <div class="acoes lg2-proximo">, visível', px && px.t === 'Ir para a Etapa 7' && px.vis && /turma-b\/m07/.test(px.h), px);
+    const conc = nrm(await page.textContent('.concluido h2'));
+    check('E: "Você concluiu a Etapa 6"', conc === 'Você concluiu a Etapa 6', conc); }
+  { // F: alvos de toque ≥ 44 px (Ver dica, Ver mais, Trocar, Não sei, Voltar, meses, Tirar da lista…)
+    const peq = [];
+    const medir = async (rot) => peq.push(...(await page.evaluate((rot) => [...document.querySelectorAll('#tela summary, #tela button, #tela .btn')]
+      .filter((x) => { if (!(x.getBoundingClientRect().height > 0)) return false;      // cabeçalho/rodapé do padrao.js (arquivo do pai) ficam de fora
+        for (let e = x; e; e = e.parentElement) if ([...e.classList].some((c) => c.startsWith('p-') && c !== 'p-fontes')) return false; return true; })
+      .filter((x) => x.getBoundingClientRect().height < 44).map((x) => `${rot}: "${x.textContent.trim().slice(0, 30)}" ${Math.round(x.getBoundingClientRect().height)}px`), rot)));
+    await page.evaluate(() => localStorage.clear()); await page.reload(); await medir('capa');
+    await page.evaluate(() => { const d = document.querySelector('.como-funciona'); if (d) d.open = true; }); await medir('capa aberta');
+    await caminho({}, 'M6.P01'); await medir('P01');
+    await caminho({}, 'M6.SZ'); await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].find((b) => /^Sim/.test(b.textContent.trim())).click()); await medir('época do ano');
+    await caminho({}, 'M6.PF', semM5); await page.evaluate(() => { const d = document.querySelector('#herdadas'); if (d) d.open = true; }); await medir('herdadas');
+    await caminho({ 'M6.P01': { tipo: 'texto', v: 'farinha, forno' } }, null); await medir('resultado');
+    check('F: summaries e botões do módulo com ≥ 44 px de altura', peq.length === 0, peq.slice(0, 10)); }
   /* ---------- 4. persistência ---------- */
   await caminho({ 'M6.P01': { tipo: 'texto', v: 'Forno e balcão' } }, 'M6.P04');
   await page.evaluate(NA_PAGINA.agir, { tipo: 'multi', vs: ['Pix', 'Outra forma'] });
   await page.reload();
   check('após recarregar: botão "Continuar de onde parei"', (await page.textContent('#ir')).includes('Continuar'));
   await page.click('#ir');
-  check('após recarregar volta à P04 com Pix e Outra forma marcados', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04'
+  check('após recarregar abre onde parou (taxa/prazo das formas escolhidas)', (await page.evaluate(NA_PAGINA.atual)) === 'M6.PF');
+  await page.click('#v');
+  check('Voltar (do topo) reabre a P04 com Pix e Outra forma marcados', (await page.evaluate(NA_PAGINA.atual)) === 'M6.P04'
     && JSON.stringify(await page.$$eval('#ent .opcao.sel', (b) => b.map((x) => x.textContent.trim()))) === '["Pix","Outra forma"]');
   await page.evaluate(() => { localStorage.setItem('lg2-turma-b-m06', JSON.stringify({ R: { 'M6.P05': { estado: 'opcao', opcao: 'Sim' } }, hist: ['M6.P05'], prio: {} })); });
   await page.reload();
@@ -887,6 +1009,9 @@ const NA_PAGINA = {
   await olharRafael('RESULTADO');
   check('nenhum texto "Rafael" aparece em nenhuma tela', telasComRafael.length === 0, telasComRafael);
   check('nenhum código de pergunta (P02, M6.P17…) aparece em nenhuma tela', telasComCodigo.length === 0, telasComCodigo.slice(0, 8));
+  check('E: nenhum "Módulo" no texto visível (a jornada chama de Etapa)', telasComModulo.length === 0, [...new Set(telasComModulo)].slice(0, 8));
+  check('A: nenhum "Seguir"/"Corrigir minha resposta" em nenhuma tela; cada pergunta anda com UM Continuar', passosExtras.length === 0 && doisToques.length === 0, { passosExtras: passosExtras.slice(0, 5), doisToques: doisToques.slice(0, 5) });
+  check('G: contador estável em todas as perguntas de todos os caminhos', contadorRuim.length === 0, contadorRuim.slice(0, 6));
   check('no máximo um bloco de atenção por tela (todas as regras e resultados vistos)', telasComVariosAlertas.length === 0, telasComVariosAlertas.slice(0, 8));
   check('sem erro de JavaScript na página', errosJS.length === 0, errosJS);
 

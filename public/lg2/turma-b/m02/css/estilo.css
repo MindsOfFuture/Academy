@@ -277,3 +277,19 @@ label.mini-info .escala{font-weight:400;color:var(--m-gray)}
 .btn-roteiro{min-height:44px}
 .como-intro{margin:6px 0 2px;font-size:16px;color:#2b2340}
 @media print{.btn-roteiro{display:none!important}}
+
+/* lote 17/11 (C): nas perguntas, o Continuar (e a mensagem de erro logo acima dele) fica preso ao pé da tela,
+   em celular pequeno, com letra grande e com o celular deitado. Fica no fluxo: não cobre o último campo. */
+.acoes-fixas{position:sticky;bottom:0;z-index:5;background:#fff;margin:16px -16px 0;padding:12px 16px max(12px, env(safe-area-inset-bottom));
+  box-shadow:0 -8px 14px -10px rgba(43,35,64,.35);gap:8px}
+.acoes-fixas .erro{margin-top:0}
+@media print{.acoes-fixas{position:static;box-shadow:none}}
+/* (D) o enunciado recebe o foco ao abrir a pergunta: sem contorno no toque, contorno no teclado */
+h2.q:focus{outline:none}
+h2.q:focus-visible{outline:3px solid var(--m-purple);outline-offset:4px;border-radius:6px}
+/* (F) alvos de toque de pelo menos 44 px: dicas, "Como funciona", "Ver mais", caixas, botões pequenos */
+.dica-toggle summary,.como-funciona summary,.ver-mais summary,details.caixa summary,.saiba summary,.como-mini summary,.dica-dobra summary{min-height:44px;box-sizing:border-box;padding-top:10px;padding-bottom:10px}
+.btn-alt,.btn-copiar,.btn-roteiro,.trilha-link,.voltar-topo{min-height:44px;box-sizing:border-box}
+.trilha-link,.voltar-topo{display:inline-flex;align-items:center}
+.etapa-topo .x{min-height:44px;min-width:44px;padding:8px 8px;box-sizing:border-box}
+#grupos .opcoes.mini .opcao{min-height:44px}

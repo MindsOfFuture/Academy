@@ -44,9 +44,9 @@
       ["Comece pelo passado", `<p>Peça para a pessoa lembrar da última vez que comprou algo parecido. Por exemplo:</p><p class="ex">${esc(T.exemplo)}</p>`],
       ["Faça as perguntas, uma de cada vez", `<p>Deixe a pessoa falar e não corrija. Pergunte sobre:</p>
         <ul>${T.perguntas.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-        ${extras.length ? `<p${id("roteiro-extras-tit")}>Pelas suas respostas neste módulo, vale perguntar também:</p><ul${id("roteiro-extras")}>${extras.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`],
+        ${extras.length ? `<p${id("roteiro-extras-tit")}>Pelas suas respostas nesta etapa, vale perguntar também:</p><ul${id("roteiro-extras")}>${extras.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}`],
       ["Feche a conversa", `<p>${esc(T.fechar)}</p>`],
-      ["Anote no mesmo dia", o.ficha ? `<p>${esc(T.anotar)}, logo abaixo. <a href="#form">Ir para a ficha</a></p>` : `<p>${esc(T.anotar)}, na tela de instrumentos do Módulo 2.</p>`],
+      ["Anote no mesmo dia", o.ficha ? `<p>${esc(T.anotar)}, logo abaixo. <a href="#form">Ir para a ficha</a></p>` : `<p>${esc(T.anotar)}, na tela de instrumentos da Etapa 2.</p>`],
     ];
     return `<div class="cartao roteiro-uso"${id("roteiro-uso")}><h3>Como usar este roteiro</h3>
       <dl>${T.uso.map(([t, d]) => `<dt>${esc(t)}</dt><dd>${esc(d)}</dd>`).join("")}</dl></div>
@@ -61,7 +61,7 @@
   function blocoNotas() {
     const f = fichas();
     if (!f.length) return `<div class="cartao lg2-rot-notas"><h3>Suas anotações das conversas</h3>
-      <p>Você ainda não registrou nenhuma conversa. As anotações ficam na ficha de perfil de cliente, na tela de instrumentos do Módulo 2.</p></div>`;
+      <p>Você ainda não registrou nenhuma conversa. As anotações ficam na ficha de perfil de cliente, na tela de instrumentos da Etapa 2.</p></div>`;
     const c = { forte: 0, fraco: 0, nenhum: 0 };
     f.forEach((x) => { if (c[x.sinal] !== undefined) c[x.sinal]++; });
     return `<div class="cartao lg2-rot-notas"><h3>Suas anotações das conversas</h3>
@@ -156,9 +156,10 @@ html.lg2-rot-aberto,html.lg2-rot-aberto body{overflow:hidden}
     inertes.forEach((x) => { x.inert = false; });
     if (bodyStyle === null) document.body.removeAttribute("style"); else document.body.setAttribute("style", bodyStyle);
     document.documentElement.classList.remove("lg2-rot-aberto");
-    /* escrita direta no scroll root ignora scroll-behavior:smooth, para o foco e a leitura retomarem no mesmo ponto já neste frame */
-    document.scrollingElement.scrollTop = y;
     if (de && de.isConnected && de.focus) de.focus({ preventScroll: true });
+    /* restaurar depois de devolver o foco evita que o navegador role até o botão acionador */
+    document.scrollingElement.scrollTop = y;
+    requestAnimationFrame(() => { document.scrollingElement.scrollTop = y; });
   }
   /* Esc também fecha quando o foco saiu do painel */
   document.addEventListener("keydown", (e) => { if (aberto && e.key === "Escape" && !aberto.fundo.contains(e.target)) { e.preventDefault(); fechar(); } });

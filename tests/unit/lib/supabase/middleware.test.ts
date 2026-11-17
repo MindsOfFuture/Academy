@@ -77,4 +77,12 @@ describe("isPublicPath", () => {
         expect(isPublicPath("/api/telemetry-events")).toBe(false);
         expect(isPublicPath("/api/analytics-events")).toBe(false);
     });
+
+    it("deixa o link de parar os lembretes do Empreenda+ aberto sem login, só no path exato", () => {
+        expect(isPublicPath("/lembretes/sair")).toBe(true);
+        expect(isPublicPath("/api/lembretes/sair")).toBe(true);
+        expect(isPublicPath("/lembretes")).toBe(false);
+        expect(isPublicPath("/lembretes/sair/outra")).toBe(false);
+        expect(isPublicPath("/api/lembretes")).toBe(false);
+    });
 });

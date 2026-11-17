@@ -20,13 +20,13 @@ window.MODULO2 = {
  },
  "mapa": {
   "objetivo": "Ajudar o empreendedor a identificar quem são seus possíveis clientes, entender suas necessidades e hábitos de compra e reunir evidências reais (não apenas opiniões) de que existem pessoas realmente interessadas em comprar o produto ou serviço.",
-  "usuario": "Pessoa que já tem uma ideia inicial de produto ou serviço (vinda do Módulo 1) e quer descobrir para quem vender e testar se essa ideia resolve um problema real, antes de investir tempo e dinheiro.",
+  "usuario": "Pessoa que já tem uma ideia inicial de produto ou serviço (vinda da Etapa 1) e quer descobrir para quem vender e testar se essa ideia resolve um problema real, antes de investir tempo e dinheiro.",
   "decisoes": "Para quem o produto é mais indicado (grupo de clientes prioritário); quais perguntas fazer a possíveis clientes; quais sinais realmente indicam interesse de compra; quando ainda faltam evidências para seguir adiante.",
   "nao_faz": "Não define sozinho o cliente ideal do usuário; não garante que as pessoas ouvidas vão comprar de fato; não substitui uma pesquisa de mercado profissional nem dados estatísticos oficiais do setor.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
-  "ter_em_maos": "Uma descrição breve do produto ou serviço (vinda do Módulo 1); disposição para conversar com pelo menos 5 a 10 possíveis clientes; um caderno ou o celular para anotar as respostas.",
+  "ter_em_maos": "Uma descrição breve do produto ou serviço (vinda da Etapa 1); disposição para conversar com pelo menos 5 a 10 possíveis clientes; um caderno ou o celular para anotar as respostas.",
   "entrega": "Um retrato dos possíveis públicos considerados e dos grupos (segmentos) em que podem ser divididos, um roteiro de entrevista pronto para usar, um quadro para comparar os grupos de clientes, um quadro de evidências (o que foi ouvido) e uma indicação de quantos sinais fortes de interesse já apareceram.",
-  "encaminhamentos": "Nenhum encaminhamento obrigatório neste módulo; se o usuário quiser dados formais de mercado (censo, sindicato, associação de classe), o app pode sugerir consultar essas fontes, sem produzir o levantamento no lugar do usuário.",
+  "encaminhamentos": "Nenhum encaminhamento obrigatório nesta etapa; se o usuário quiser dados formais de mercado (censo, sindicato, associação de classe), o app pode sugerir consultar essas fontes, sem produzir o levantamento no lugar do usuário.",
   "caso_real": "Nos atendimentos do grupo apareceram dúvidas recorrentes sobre como abordar possíveis clientes sem parecer estar vendendo algo, e sobre como diferenciar um elogio educado de uma intenção real de compra (sem citar nomes ou dados do empreendedor atendido).",
   "riscos": "Risco de o app parecer confirmar que \"existe mercado\" com base em poucas respostas: o texto sempre informa quantas pessoas foram ouvidas e pede mais evidências antes de qualquer conclusão. Risco de sugerir perguntas fechadas demais: o roteiro prioriza perguntas abertas sobre comportamento passado, não opiniões sobre o futuro."
  },
@@ -435,7 +435,7 @@ window.MODULO2 = {
    "opcoes": "Mais fácil de alcançar; Maior necessidade; Pode pagar mais",
    "resposta": "Ajuda a priorizar um grupo para as primeiras conversas.",
    "alerta": "Tentar atender todos os grupos de uma vez no início pode dispersar tempo e dinheiro.",
-   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
+   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos desta etapa (M2.I05).",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho",
    "comoDescobrir": [
@@ -552,7 +552,7 @@ window.MODULO2 = {
    "tipo": "Escolha",
    "condicao": "M2.P04 = Sim",
    "opcoes": "Contaram um problema de verdade; Só elogiaram a ideia",
-   "resposta": "Essa resposta ajuda a decidir se você já pode testar a sua ideia (Módulo 4) ou se vale conversar com mais gente antes.",
+   "resposta": "Essa resposta ajuda a decidir se você já pode testar a sua ideia (Etapa 4) ou se vale conversar com mais gente antes.",
    "alerta": "Seguir só com elogios pode levar a testar a ideia sem saber se alguém compraria de verdade.",
    "proximo": "Se ainda for só elogio, volte a conversar e peça um passo concreto: perguntar o preço, reservar ou pagar um sinal.",
    "fonte": "Sebrae PR, 25/09/2026",
@@ -716,7 +716,7 @@ window.MODULO2 = {
    "texto": "Sem conversar com possíveis clientes ainda não é possível saber se existe gente realmente interessada em comprar o que você quer vender.",
    "alerta": "Seguir sem nenhuma evidência aumenta o risco de investir em algo que ninguém procura.",
    "lacuna": "Nenhuma conversa realizada ainda",
-   "proximo": "Aplique o roteiro de entrevista (M2.I01) antes de continuar para os próximos módulos.",
+   "proximo": "Aplique o roteiro de entrevista (M2.I01) antes de continuar para as próximas etapas.",
    "encaminhamento": "Nenhum",
    "fonte": "Guia do Desafio, 3.2, set/2026",
    "revisado": "Alicia",
@@ -1282,7 +1282,7 @@ window.MODULO2 = {
    "texto": "Começar pelo grupo mais fácil de alcançar permite testar rápido e aprender com baixo custo.",
    "alerta": "O grupo mais fácil de alcançar nem sempre é o que mais compra; confira com evidências.",
    "lacuna": "Se esse grupo realmente tem a necessidade",
-   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos desta etapa (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1294,7 +1294,7 @@ window.MODULO2 = {
    "texto": "Começar pelo grupo com maior necessidade tende a gerar sinais de interesse mais claros, se for possível alcançá-lo.",
    "alerta": "Uma necessidade grande não ajuda se o grupo for difícil de alcançar.",
    "lacuna": "Se o grupo é fácil de alcançar",
-   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos desta etapa (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1306,7 +1306,7 @@ window.MODULO2 = {
    "texto": "Começar pelo grupo que pode pagar mais pode deixar mais dinheiro em cada venda, mas só ajuda se ele realmente comprar.",
    "alerta": "Supor que um grupo paga mais, sem conferir, é arriscado.",
    "lacuna": "Se esse grupo demonstra interesse real",
-   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos desta etapa (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1318,7 +1318,7 @@ window.MODULO2 = {
    "texto": "Sem um critério de escolha, comparar os grupos lado a lado ajuda a decidir.",
    "alerta": "Nenhum",
    "lacuna": "Qual grupo parece mais promissor",
-   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo, dando uma nota de 1 a 3 em três pontos: facilidade de alcançar, necessidade e capacidade de pagar (M2.I05).",
+   "proximo": "Compare os grupos no quadro para comparar os grupos de clientes, que fica na tela de instrumentos desta etapa, dando uma nota de 1 a 3 em três pontos: facilidade de alcançar, necessidade e capacidade de pagar (M2.I05).",
    "encaminhamento": "Nenhum",
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
@@ -1551,7 +1551,7 @@ window.MODULO2 = {
    "texto": "Você disse que as pessoas contaram um problema que têm de verdade. Antes de seguir, vale conferir se isso veio de atitudes (perguntar o preço, reservar, pagar um sinal, indicar você) e de mais de uma pessoa.",
    "alerta": "Confirmar o problema com poucas pessoas ainda não garante que outras pessoas comprariam.",
    "lacuna": "Se o problema contado veio de atitudes e de quantas pessoas",
-   "proximo": "Se o quadro de evidências (M2.I04) mostrar sinais fortes suficientes, o Módulo 4 (teste da ideia) pode ser o próximo passo.",
+   "proximo": "Se o quadro de evidências (M2.I04) mostrar sinais fortes suficientes, a Etapa 4 (teste da ideia) pode ser o próximo passo.",
    "encaminhamento": "Nenhum",
    "fonte": "Guia do Desafio, 3.2, set/2026",
    "status": "Rascunho"
@@ -1824,7 +1824,7 @@ window.MODULO2 = {
    "respostas": "M2.P01 = Sim; M2.P03 = Experiência própria com esse público; M2.P05 = De dois a três grupos; M2.P08 = Motivo da compra; M2.P12 = Datas especiais/eventos; M2.P15 = Maior necessidade",
    "texto": "Identificar mais de um grupo é um passo para separar os clientes em grupos. Você poderá escolher um deles para testar primeiro. Compras ligadas a datas e eventos costumam ser concentradas e planejadas; a procura pode variar muito ao longo do ano. Começar pelo grupo com maior necessidade tende a gerar sinais de interesse mais claros, se for possível alcançá-lo.",
    "alerta": "Atender vários grupos ao mesmo tempo no início pode dispersar tempo e dinheiro. Vendas concentradas em poucas datas exigem planejamento para os períodos de menor venda.",
-   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos deste módulo (M2.I05).",
+   "proximo": "Anote os seus grupos e dê uma nota de 1 a 3 a cada um no quadro para comparar os grupos de clientes, que fica na tela de instrumentos desta etapa (M2.I05).",
    "encaminhamento": "Nenhum"
   },
   {
@@ -1872,6 +1872,6 @@ window.MODULO2 = {
  ],
  "inicio": {
   "frase": "Descubra quem compraria de você e como encontrar essas pessoas.",
-  "tempo": "Este módulo leva uns 10 minutos."
+  "tempo": "Esta etapa leva cerca de 5 minutos."
  }
 };

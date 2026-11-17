@@ -213,9 +213,26 @@ body.com-video{overflow:hidden}
 .mais-detalhes .para-onde{background:#fff;margin:10px 0}
 .como-funciona{margin-top:0}
 
-/* Continuar logo abaixo da pergunta (padrão único) */
-.acoes-q{padding:16px 0 4px}
+/* Continuar sempre à vista (letra grande, celular pequeno ou deitado): a área de ações fica presa ao pé
+   da tela, em cima do fundo branco. Ela ocupa lugar no fim da página, então não cobre o último campo. */
+.acoes-q{position:sticky;bottom:0;z-index:5;background:var(--m-paper);margin:16px -14px -20px;
+  padding:12px 14px max(12px, env(safe-area-inset-bottom));box-shadow:0 -6px 14px rgba(43,35,64,.08)}
 .acoes-q .btn{width:100%}
+/* aviso de "falta responder" logo acima do Continuar */
+.erro-q{margin:0 0 8px;font-size:16px;font-weight:700;color:#2b2340;border-left:4px solid var(--m-coral);padding:2px 0 2px 10px}
+.pergunta .q:focus{outline:none}
+.pergunta .q:focus-visible{outline:3px solid var(--m-purple);outline-offset:3px;border-radius:4px}
+
+/* alvos de toque de pelo menos 44 px (dicas, "Ver mais", links e botões pequenos) */
+.ajuda-box{padding:0 14px}
+.ajuda-box[open]{padding-bottom:12px}
+.ajuda-box summary,.ver-mais summary,#tela .p-fontes summary{min-height:44px;padding:10px 0;box-sizing:border-box}
+.dica-toggle{padding:0 12px}
+.dica-toggle[open]{padding-bottom:8px}
+.dica-toggle summary{padding:0}
+#tela .p-fontes{padding:0 14px}
+#tela .p-fontes[open]{padding-bottom:10px}
+.link,.btn-alt,.video-fechar{min-height:44px}
 
 /* lote 16/11: exemplo curto embaixo da opção; nota do "Não sei" (só mostra a ajuda, não grava) */
 .op-ex{display:block;font-size:16px;color:var(--m-gray);margin-top:2px;line-height:1.3}

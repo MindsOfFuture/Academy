@@ -20,7 +20,7 @@
     </div>
     <div class="topo-rodape">
       <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
-      <button type="button" class="abre-painel" id="abre-painel" aria-haspopup="dialog" aria-controls="painel">Seu negócio até aqui</button>
+      <button type="button" class="abre-painel" id="abre-painel" aria-haspopup="dialog" aria-controls="painel">Meu resumo e plano</button>
     </div>
   </header>
   <main class="palco">
@@ -57,13 +57,22 @@
         <p class="calma">Faça no seu ritmo: pode parar quando quiser, seu progresso fica salvo.</p>
       </div>
       <ol class="caminho" id="trilha" aria-label="Etapas da jornada"></ol>
+      <div class="trilha-plano">
+        <h2>Seu plano de negócio</h2>
+        <p>Junta o que você respondeu num documento com capítulos e contas, pronto para salvar em PDF. Pode baixar a qualquer momento: o que faltar aparece como “não informado”.</p>
+        <button type="button" class="btn btn-sec" id="baixa-plano-trilha">Baixar meu plano de negócio</button>
+      </div>
       <div class="logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">
         <img src="assets/logo_mg.svg" alt="Governo de Minas Gerais">
       </div>
     </section>
-    <iframe id="modulo" title="Módulo da jornada" allow="microphone" hidden></iframe>
+    <iframe id="modulo" title="Etapa da jornada" allow="microphone" hidden></iframe>
+    <div class="feita-barra" id="feita-barra" hidden>
+      <p class="feita-txt" id="feita-txt" role="status">Etapa concluída!</p>
+      <button type="button" class="btn feita-ir" id="feita-ir">Ir para a próxima etapa</button>
+    </div>
     <section class="concluida" id="concluida" aria-labelledby="conc-titulo" hidden>
       <div class="festa">
         <div class="confete" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -86,7 +95,7 @@
       <div class="resumo" id="resumo-negocio" hidden>
         <h3>Resumo do seu negócio</h3>
         <div id="resumo-texto"></div>
-        <p class="resumo-nota">Montado com o que você respondeu nos módulos. Se algo não estiver certo, abra o módulo e corrija.</p>
+        <p class="resumo-nota">Montado com o que você respondeu nas etapas. Se algo não estiver certo, abra a etapa e corrija.</p>
       </div>
       <p class="acoes-fim"><button type="button" class="btn btn-plano btn-grande" id="baixa-plano-fim">Baixar meu plano de negócio</button></p>
       <p class="plano-nota">Um documento com capa, capítulos e as contas do seu negócio, pronto para salvar em PDF.</p>
@@ -103,15 +112,17 @@
   <div class="painel-fundo" id="painel" hidden>
     <section class="painel" role="dialog" aria-modal="true" aria-labelledby="painel-titulo" tabindex="-1">
       <div class="painel-topo">
-        <h2 id="painel-titulo">Seu negócio até aqui</h2>
+        <h2 id="painel-titulo">Meu resumo e plano</h2>
         <button type="button" class="fechar" id="fecha-painel">Fechar</button>
       </div>
       <div class="painel-corpo">
         <div class="painel-resumo" id="painel-resumo"></div>
-        <p class="painel-nota" id="painel-nota">Montado com o que você respondeu. Se algo não estiver certo, abra o módulo e corrija.</p>
-        <p class="painel-diag"><button type="button" class="btn-diag-painel" id="ver-diag-painel">Ver o diagnóstico final</button>
-          <span>Todas as suas respostas, módulo por módulo, para ler ou salvar em PDF.</span></p>
-        <h3 class="painel-sub">Seus módulos</h3>
+        <p class="painel-nota" id="painel-nota">Montado com o que você respondeu. Se algo não estiver certo, abra a etapa e corrija.</p>
+        <p class="painel-diag painel-plano"><button type="button" class="btn-diag-painel" id="baixa-plano-painel">Baixar meu plano de negócio</button>
+          <span>Um documento com as contas do seu negócio, pronto para salvar em PDF. Já dá para baixar agora: o que você ainda não respondeu aparece como “não informado”.</span></p>
+        <p class="painel-diag"><button type="button" class="btn-diag-painel btn-diag-sec" id="ver-diag-painel">Ver o diagnóstico final</button>
+          <span>Todas as suas respostas, etapa por etapa, para ler ou salvar em PDF.</span></p>
+        <h3 class="painel-sub">Suas etapas</h3>
         <ul class="painel-lista" id="painel-lista"></ul>
       </div>
     </section>
@@ -134,7 +145,7 @@
         </div>
       </header>
       <div class="diag-corpo" id="diag-corpo"></div>
-      <p class="diag-rodape-nota">Montado com o que você respondeu neste aparelho. Se algo não estiver certo, abra o módulo e corrija.</p>
+      <p class="diag-rodape-nota">Montado com o que você respondeu neste aparelho. Se algo não estiver certo, abra a etapa e corrija.</p>
       <div class="logos diag-logos">
         <img src="assets/logo_facc.png" alt="FACC">
         <img src="assets/logo_ufjf.svg" alt="UFJF">

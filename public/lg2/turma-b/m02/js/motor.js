@@ -147,8 +147,8 @@
     "M2.P07": "se os clientes são pessoas ou empresas", "M2.P08": "o que mais muda entre um cliente e outro", "M2.P09": "a fase da vida dos clientes",
     "M2.P10": "como os clientes reagem ao preço", "M2.P11": "onde estão os clientes", "M2.P12": "em que situação os clientes compram",
     "M2.P13": "o que pesa na escolha dos clientes", "M2.P14": "o tipo de empresa que compraria de você", "M2.P15": "por qual grupo começar",
-    "M2.P16": "onde o cliente encontra você (no Módulo 3)", "M2.P17": "a frequência de compra", "M2.P18": "quantas pessoas você já ouviu",
-    "M2.P19": "se alguém já tomou uma ação concreta", "M2.P20": "o motivo para escolherem você (no Módulo 3)", "M2.P21": "se contaram um problema de verdade",
+    "M2.P16": "onde o cliente encontra você (na Etapa 3)", "M2.P17": "a frequência de compra", "M2.P18": "quantas pessoas você já ouviu",
+    "M2.P19": "se alguém já tomou uma ação concreta", "M2.P20": "o motivo para escolherem você (na Etapa 3)", "M2.P21": "se contaram um problema de verdade",
   };
   const CODIGO = /\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}[A-Za-z]?\b/;
   function limpa(t) {

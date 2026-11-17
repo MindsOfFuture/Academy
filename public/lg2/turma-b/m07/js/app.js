@@ -51,7 +51,25 @@
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { if (f === telaResultado) retratoAberto = true; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  function ir(f, a) {
+    if (f === telaResultado) retratoAberto = true;
+    tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0);
+    /* leitor de tela: a pergunta nova é anunciada (o foco vai para o enunciado, sem rolar) */
+    const q = f === telaPergunta && tela.querySelector("#pergunta");
+    if (q) q.focus({ preventScroll: true });
+  }
+  /* retorno ao vivo: campo de texto/número atualiza ao sair do campo ou ~700 ms depois de parar de digitar.
+     O Continuar roda o retorno pendente antes de gravar (nada fica atrasado depois do toque). */
+  const ESPERA_VIVO = 700;
+  let vivoPend = null, vivoFn = null;
+  function aoVivo(fn) { clearTimeout(vivoPend); vivoFn = fn; vivoPend = setTimeout(() => { if (tocandoOk) return; vivoPend = null; fn(); }, ESPERA_VIVO); }
+  function vivoAgora() { if (vivoPend) { clearTimeout(vivoPend); vivoPend = null; if (vivoFn) vivoFn(); } }
+  /* dedo/clique já no Continuar: o retorno não redesenha nada até o toque terminar (senão o botão muda de lugar
+     entre apertar e soltar e o toque se perde); o próprio Continuar roda o retorno pendente */
+  let tocandoOk = false;
+  /* soltou fora do botão (desistiu): o retorno pendente aparece */
+  ["pointerup", "pointercancel"].forEach((ev) => document.addEventListener(ev, () => setTimeout(() => { if (tocandoOk) { tocandoOk = false; vivoAgora(); } }, 0), true));
+  const aoSairDoCampo = (fn) => () => { clearTimeout(vivoPend); vivoPend = null; if (tocandoOk) { vivoFn = fn; vivoPend = -1; return; } fn(); };
   /* redesenha sem voltar ao topo (instrumentos que mudam a cada toque) */
   function redesenhar(f, a) { const y = window.scrollY; tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, y); }
 
@@ -204,7 +222,7 @@
     "M7-03": { pergunta: "Por semana, quantas horas vão para clientes, compras de mercadoria e divulgação?" },
     "M7-04": { apoio: "Família, parceiro, amigo ou alguém que você paga. Conte só a ajuda para separar, embalar e entregar os pedidos." },
     "M7-05a": { pergunta: "Quantos pedidos ou caixas cabem de uma vez nesse espaço ou veículo, e em quanto tempo?", apoio: "Ex.: o carro leva 20 caixas por viagem, e cada viagem de entrega leva 1 h." },
-    "M7-06": { apoio: "Pense em [item principal do Módulo 4], a mercadoria que mais vende ou que, se faltar, para as vendas. Quando pagar já foi visto no Módulo 6; aqui é o tempo até a mercadoria chegar." },
+    "M7-06": { apoio: "Pense em [item principal do Módulo 4], a mercadoria que mais vende ou que, se faltar, para as vendas. Quando pagar já foi visto na Etapa 6; aqui é o tempo até a mercadoria chegar." },
     "M7-08": { pergunta: "Suas mercadorias estragam, vencem ou perdem valor com o tempo?", apoio: "Pense na data de validade, em produtos que precisam de geladeira ou de lugar seco e em itens que saem de moda." },
     "M7-09": { apoio: "Pense no que faz o cliente voltar: pedido certo, validade em dia, embalagem inteira, prazo combinado." },
   };
@@ -321,6 +339,9 @@
     seq.push("M7-09", "M7-10", "M7-11", "M7-12");
     return seq;
   }
+  /* contador estável: posição no caminho mais longo possível (M7-05a sempre conta). Quem não passa pela 05a
+     pula um passo para a frente; o total não muda no meio e a barra nunca volta. */
+  function sequenciaMax() { const s = sequencia(); if (!s.includes("M7-05a")) s.splice(s.indexOf("M7-05") + 1, 0, "M7-05a"); return s; }
   const fases = () => D.fases.filter((f) => f !== "Fornecedores e estoque" || temFase3());
 
   /* caminho (linha da planilha) por texto da opção */
@@ -365,7 +386,7 @@
   function topo(trilha) {
     return `<div class="barra-topo">
       <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
-      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo 7</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Etapa 7</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
     </div>`;
   }
   function heroi(o) {
@@ -376,7 +397,7 @@
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
-          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo 7")}</div>
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Etapa 7")}</div>
           <${o.h1 ? "h1" : "h2"} class="heroi-tit">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
@@ -389,7 +410,7 @@
   /* barra de fases: Seu processo · Sua capacidade · (Fornecedores e estoque) · Qualidade e riscos */
   function barraFases(atual, tudo) {
     const fs = fases(), n = fs.indexOf(atual);
-    return `<ol class="etapas" aria-label="Fases do módulo">${fs.map((f, i) => {
+    return `<ol class="etapas" aria-label="Fases desta etapa">${fs.map((f, i) => {
       const st = tudo || i < n ? "feita" : i === n ? "atual" : "";
       return `<li class="${st}"${i === n && !tudo ? ' aria-current="step"' : ""}><span class="bola" aria-hidden="true"></span><span class="rot">${esc(f)}</span></li>`;
     }).join("")}</ol>`;
@@ -403,7 +424,7 @@
     const z = p.querySelector("#zerar"); if (z) z.onclick = reiniciar;
   }
   function reiniciar() {
-    if (!confirm("Apagar todas as respostas deste módulo e recomeçar? Se quiser guardar, imprima o resultado antes.")) return;
+    if (!confirm("Apagar todas as respostas desta etapa e recomeçar? Se quiser guardar, imprima o resultado antes.")) return;
     try { localStorage.removeItem(CHAVE); } catch (e) {}
     S = novo();
     ir(telaCapa);
@@ -434,7 +455,7 @@
           <h3>${esc(A.nao_faz_titulo)}</h3>${lista(A.nao_faz)}
           <p class="aviso">Não inclua nomes, telefones, documentos ou outros dados pessoais nas respostas. Elas ficam salvas apenas neste navegador.</p>
         </details>
-        <p class="tempo">Este módulo leva uns ${esc(A.minutos)} minutos</p>
+        <p class="tempo">Esta etapa leva cerca de ${esc(A.minutos)} minutos</p>
         <div class="acoes">
           <button class="btn btn-primario seta" id="ir">${comecou ? "Continuar de onde parei" : "Começar"}</button>
           ${comecou ? `<button class="btn btn-linha" id="zerar">Recomeçar do zero</button>` : ""}
@@ -466,7 +487,7 @@
       });
     }
     const f = Object.assign({}, base);
-    const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio do Módulo ${base.de[campo]}</span>` : "";
+    const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio da Etapa ${base.de[campo]}</span>` : "";
     /* resposta que já veio de outro módulo: cartão pequeno (rótulo curto, valor, selo e "Trocar"); o campo só abre no "Trocar" */
     const CURTO = { oferta: "O que você vende", tipo: "Tipo", estagio: "Momento", horas: "Horas por semana", volume: "Vendas por mês", minUn: "Tempo por unidade", testeN: "Teste da ideia", testeDias: "Prazo para o teste", item: "Item principal", uso: "Em cada unidade", estoque: "Estoque", reposicao: "Compra", perda: "Perda", regulada: "Regras próprias", material: "Usa material" };
     const mostra = (c) => { const v = f[c]; return c === "minUn" ? fmtMin(Mo.num(v)) : c === "uso" ? `${v}${f.usoUn ? " " + f.usoUn : ""}` : c === "perda" ? `${v}%` : c === "testeN" ? `${v} pedidos` : c === "testeDias" ? `${v} dias` : String(v); };
@@ -477,7 +498,7 @@
     const nsTocado = new Set();
     const ajudaNS = (campo) => (nsTocado.has(campo) && D.partida_ajuda && D.partida_ajuda[campo] ? caixaComo(D.partida_ajuda[campo].comoDescobrir, D.partida_ajuda[campo].promptIA) + `<p class="nota-ns">Depois de descobrir, escolha uma opção acima.</p>` : "");
     const sel = (campo, ops, rot) => `<div class="campo-h" data-c="${campo}">${cartao(campo)}<fieldset class="grupo" data-campo="${campo}" ${herdado(campo) ? "hidden" : ""}><legend>${esc(rot)} ${veio(campo)}</legend>
-      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div><div class="ns-ajuda" aria-live="polite">${ajudaNS(campo)}</div><p class="erro-campo" id="e-${campo}" hidden></p></fieldset></div>`;
+      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" aria-pressed="${f[campo] === x}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div><div class="ns-ajuda" aria-live="polite">${ajudaNS(campo)}</div><p class="erro-campo" id="e-${campo}" hidden></p></fieldset></div>`;
     const txt = (campo, rot, attrs, depois) => `<div class="campo-h" data-c="${campo}">${cartao(campo)}<div class="campo-abre" ${herdado(campo) ? "hidden" : ""}><label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${attrs || ""}></div><p class="erro-campo" id="e-${campo}" hidden></p>${depois || ""}</div>`;
     /* abre o campo herdado (Trocar, ou quando há aviso nele) */
     function abrirCampo(c) {
@@ -504,7 +525,7 @@
           ${sel("estagio", ESTAGIOS, "Em que momento você está?")}
           <h3 class="secao-titulo">Seu tempo e suas vendas</h3>
           ${sel("horas", HORAS, "Quantas horas por semana você tem para o negócio?")}
-          ${base.de && base.de.horas === 1 && base.horasM1 ? `<p class="nota-veio" id="nota-horas">No Módulo 1 você respondeu “${esc(base.horasM1)}” (${esc(base.horasConv)}). Marcamos a faixa mais próxima. Confira e ajuste.</p>` : ""}
+          ${base.de && base.de.horas === 1 && base.horasM1 ? `<p class="nota-veio" id="nota-horas">Na Etapa 1 você respondeu “${esc(base.horasM1)}” (${esc(base.horasConv)}). Marcamos a faixa mais próxima. Confira e ajuste.</p>` : ""}
           ${txt("volume", "Quantas unidades ou atendimentos você pretende vender por mês?", 'inputmode="decimal" placeholder="Ex.: 40"')}
           ${base.minUn > 0 ? txt("minUn", "Tempo por unidade ou atendimento (minutos)", 'inputmode="decimal" placeholder="Ex.: 30"', comoMinUn()) : ""}
           ${txt("testeN", "No teste da ideia: qual número mínimo de pedidos você combinou?", 'inputmode="decimal" placeholder="Ex.: 10"')}
@@ -512,8 +533,8 @@
           <div id="f3"></div>
           <h3 class="secao-titulo">Regras</h3>
           ${sel("regulada", SNN, "Sua oferta envolve alimentos, saúde, produtos para crianças ou outra atividade com regras próprias?")}
-          <div class="erro" id="erro" hidden></div>
-          <div class="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+          <div class="acoes-fixas"><div class="erro" id="erro" role="alert" hidden></div>
+          <div class="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div></div>
         </div>
         ${rodape()}
       </main>
@@ -559,7 +580,7 @@
             const c = fs.dataset.campo, v = b.dataset.v;
             /* "Não sei" não marca nem grava: mostra como descobrir */
             if (v === NS) { f[c] = null; nsTocado.add(c); } else { f[c] = v; nsTocado.delete(c); }
-            fs.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", v !== NS && x === b));
+            fs.querySelectorAll(".opcao").forEach((x) => { const on = v !== NS && x === b; x.classList.toggle("sel", on); x.setAttribute("aria-pressed", String(on)); });
             fs.querySelector(".ns-ajuda").innerHTML = ajudaNS(c);
             fs.querySelector(".erro-campo").hidden = true;
             if (c === "tipo" || c === "material") { lerTextos(); desenharCond(); }
@@ -641,8 +662,11 @@
   /* ================= pergunta ================= */
   function telaPergunta(cod) {
     const q = Q[cod];
-    const seq = sequencia();
-    const n = Math.max(1, seq.indexOf(cod) + 1);
+    const seq = sequencia(), seqMax = sequenciaMax();
+    const n = Math.max(1, seqMax.indexOf(cod) + 1), total = seqMax.length;
+    const ultima = seq[seq.length - 1] === cod;
+    /* um toque por pergunta (lote 17/11): o Continuar grava e já abre a próxima; o retorno aparece antes, ao vivo */
+    const ROTULO_OK = ultima ? "Ver o resultado" : "Continuar";
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const resp = S.R[cod];
     /* revenda: a dica de armazenamento vai junto da dica da pergunta da validade */
@@ -653,32 +677,37 @@
     if (cod === "M7-01" && ideia()) extraDica += dicaGeral("Qualquer resposta, com estágio = ideia");
     if (cod === "M7-09" && I().regulada === "Sim") extraDica += dicaGeral("Qualquer resposta, com atividade regulada em M4-11");
     const p = el(`<div class="pag">
-      ${heroi({ compacta: true, n, total: seq.length, pct: Math.round(n / seq.length * 100) })}
+      ${heroi({ compacta: true, n, total, pct: Math.round(n / total * 100) })}
       <main class="corpo">
         <div class="cartao-q pergunta">
           ${botaoVoltar()}
-          <h2 class="q" id="pergunta">${esc(perg(cod))}</h2>
+          <h2 class="q" id="pergunta" tabindex="-1">${esc(perg(cod))}</h2>
           ${q.instrucao ? `<p class="instrucao">${esc(q.instrucao)}</p>` : ""}
           ${dicaHtml(apoioDe(cod), cod, extraDica)}
           <div class="entrada" id="ent"></div>
-          <div class="erro" id="erro" hidden></div>
           <div id="retorno" aria-live="polite"></div>
           <div id="junto"></div>
-          <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+          <div class="acoes-fixas"><div class="erro" id="erro" role="alert" hidden></div>
+          <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">${ROTULO_OK}</button></div></div>
         </div>
         ${rodape()}
       </main>
     </div>`);
-    const ent = p.querySelector("#ent"), box = p.querySelector("#retorno"), err = p.querySelector("#erro");
-    const mostrar = (html) => { box.innerHTML = html || ""; err.hidden = true; };
+    const ent = p.querySelector("#ent"), box = p.querySelector("#retorno"), err = p.querySelector("#erro"), okBtn = p.querySelector("#ok");
+    /* a resposta mudou: some o erro/aviso e o botão volta a ser "Continuar" */
+    const limparErro = () => { err.hidden = true; err.classList.remove("aviso-valor"); okBtn.textContent = ROTULO_OK; };
+    const mostrar = (html) => { box.innerHTML = html || ""; limparErro(); };
     /* "Não sei": a caixa "Como descobrir" + a dica do grupo para quem não sabe; não grava nada e pede a resposta */
     let nsTocado = false;
     const notaNS = (escrever) => `<p class="nota-ns" id="nota-ns">${escrever ? "Depois de descobrir, escreva a sua resposta acima. O Continuar segue com a resposta." : "Depois de descobrir, escolha uma opção acima. O Continuar segue com a resposta."}</p>`;
     const ajudaNS = (escrever, parte) => { nsTocado = true; return comoDe(cod, parte) + caixa(caminho(cod, parte === 2 ? "Parte 2: Não sei" : NS)) + notaNS(escrever); };
-    const erro = (t) => { err.classList.remove("aviso-valor"); err.textContent = t; err.hidden = false; };
+    /* mensagem simples logo acima do Continuar (role=alert) */
+    const erro = (t) => { err.classList.remove("aviso-valor"); err.textContent = t; err.hidden = false; okBtn.textContent = ROTULO_OK; };
+    /* texto de retorno usado como mensagem de erro (dica da planilha para valor que não serve) */
+    const erroDe = (op, extra) => erro(preencher((caminho(cod, op) || {}).texto || "", extra));
     const junto = (html) => { p.querySelector("#junto").innerHTML = html || ""; };
-    /* aviso que não trava: o próximo Continuar com o mesmo valor segue */
-    const aviso_ = (t) => { err.textContent = t; err.hidden = false; err.classList.add("aviso-valor"); p.querySelector("#ok").textContent = "Continuar mesmo assim"; };
+    /* aviso de risco que não trava: o próximo Continuar com o mesmo valor segue (único caso de 2 toques, junto com "Não sei") */
+    const aviso_ = (t) => { err.textContent = t; err.hidden = false; err.classList.add("aviso-valor"); okBtn.textContent = "Continuar mesmo assim"; };
     p.querySelector("#v").onclick = () => {
       S.hist.pop();
       const ant = S.hist.pop();
@@ -687,14 +716,16 @@
     };
     ligar(p);
     let coletar = null;
+    /* campos que atualizam o retorno ao vivo: ao sair do campo (change) ou depois de parar de digitar (input) */
+    const vivoEm = (sels, fn) => sels.forEach((s) => { const x = p.querySelector(s); if (!x) return; x.addEventListener("input", () => aoVivo(fn)); x.addEventListener("change", aoSairDoCampo(fn)); });
 
     /* botões de escolha única */
     /* aoTocar devolve false quando a opção não vale como resposta ("Não sei"): nada fica marcado */
     function unica(ops, atual, aoTocar) {
       const wrap = el(`<div class="opcoes"></div>`);
       ops.forEach((op) => {
-        const b = el(`<button class="opcao ${atual === op ? "sel" : ""}" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opHtml(cod, op)}</button>`);
-        b.onclick = () => { const r = aoTocar(op); wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", r !== false && x === b)); };
+        const b = el(`<button type="button" class="opcao ${atual === op ? "sel" : ""}" aria-pressed="${atual === op}" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opHtml(cod, op)}</button>`);
+        b.onclick = () => { const r = aoTocar(op); wrap.querySelectorAll(".opcao").forEach((x) => { const on = r !== false && x === b; x.classList.toggle("sel", on); x.setAttribute("aria-pressed", String(on)); }); };
         wrap.appendChild(b);
       });
       return wrap;
@@ -702,9 +733,9 @@
     /* múltipla escolha até 3; "Não sei"/"Só o preço" são exclusivas */
     function multipla(ops, marcadas, exclusivas, avisoMais, aoMudar) {
       const wrap = el(`<div class="opcoes multi"></div>`);
-      const pintar = () => wrap.querySelectorAll(".opcao").forEach((x) => x.classList.toggle("sel", marcadas.includes(x.dataset.v)));
+      const pintar = () => wrap.querySelectorAll(".opcao").forEach((x) => { const on = marcadas.includes(x.dataset.v); x.classList.toggle("sel", on); x.setAttribute("aria-pressed", String(on)); });
       ops.forEach((op) => {
-        const b = el(`<button class="opcao" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opHtml(cod, op)}</button>`);
+        const b = el(`<button type="button" class="opcao" aria-pressed="false" data-v="${esc(op)}"><span class="radio" aria-hidden="true"></span>${opHtml(cod, op)}</button>`);
         b.onclick = () => {
           let aviso3 = false;
           if (marcadas.includes(op)) marcadas.splice(marcadas.indexOf(op), 1);
@@ -724,7 +755,7 @@
     const tempoCampos = (id, v) => `<div class="linha"><input class="campo" id="${id}h" inputmode="numeric" aria-label="horas" placeholder="Ex.: 1" value="${esc(v && v.h != null ? v.h : "")}"><span class="pre">h</span><input class="campo" id="${id}m" inputmode="numeric" aria-label="minutos" placeholder="Ex.: 30" value="${esc(v && v.m != null ? v.m : "")}"><span class="pre">min</span></div>`;
     const lerTempo = (id) => { const h = p.querySelector(`#${id}h`).value.trim(), m = p.querySelector(`#${id}m`).value.trim(); return { h, m, vazio: !h && !m, min: (Mo.num(h || 0)) * 60 + Mo.num(m || 0) }; };
     const fmtTempo = (min) => { const h = Math.floor(min / 60), m = Math.round(min - h * 60); return h && m ? `${h} h ${m} min` : h ? `${h} h` : `${Mo.fmt(min, min % 1 ? 1 : 0)} min`; };
-    const btnNaoSei = (fn) => { const b = el(`<div class="alt"><button class="btn-alt" id="ns">${NS}</button></div>`); b.querySelector("button").onclick = fn; return b; };
+    const btnNaoSei = (fn) => { const b = el(`<div class="alt"><button type="button" class="btn-alt" id="ns">${NS}</button></div>`); b.querySelector("button").onclick = fn; return b; };
 
     function avancar(r0) {
       S.R[cod] = r0;
@@ -740,10 +771,16 @@
       const lista = (S.mapa ? S.mapa : modelo()).slice();
       const original = modelo().join("|");
       const wrap = el(`<div class="mapa-edit"></div>`);
-      const nota = () => {
-        const htmls = [];
-        if (lista.filter((x) => x.trim()).length > 8) htmls.push(caixa(caminho(cod, "Mais de 8 etapas")));
-        mostrar(htmls.join(""));
+      const limpa = () => lista.map((x) => x.trim()).filter(Boolean);
+      const opAtual = () => (limpa().join("|") === original ? "Sim, está parecido" : "Ajustei as etapas");
+      /* retorno ao vivo: o texto da resposta (parecido / ajustei); depois que a pessoa mexe, também o caminho em
+         diagrama, atualizado a cada mudança (ao abrir, a própria lista já mostra o caminho e a tela fica curta) */
+      let mexeu = false;
+      const nota = (inicio) => {
+        if (inicio !== true) mexeu = true;
+        const l = limpa();
+        if (!l.length) return mostrar("");
+        mostrar(caixa(caminho(cod, opAtual())) + (lista.filter((x) => x.trim()).length > 8 ? caixa(caminho(cod, "Mais de 8 etapas")) : "") + (mexeu ? diagramaProcesso("diagrama-m701", l) : ""));
       };
       /* etapa móvel: ▲/▼ em cada linha (funcionam por toque e por teclado); a etapa recém-incluída
          ganha um lembrete de que pode subir até o lugar certo */
@@ -753,7 +790,9 @@
         lista.forEach((nome, i) => {
           const l = el(`<div class="etapa-ed${i === nova ? " nova" : ""}"><span class="num" aria-hidden="true">${i + 1}</span><input class="campo" id="etapa-${i}" aria-label="Etapa ${i + 1}" value="${esc(nome)}">
             <button type="button" class="mini-b mover" data-a="sobe" aria-label="Subir etapa" aria-describedby="etapa-${i}" title="Subir etapa" ${i === 0 ? "disabled" : ""}>▲</button><button type="button" class="mini-b mover" data-a="desce" aria-label="Descer etapa" aria-describedby="etapa-${i}" title="Descer etapa" ${i === lista.length - 1 ? "disabled" : ""}>▼</button><button type="button" class="mini-b x" data-a="tira" aria-label="Retirar etapa ${i + 1}">×</button></div>`);
-          l.querySelector("input").oninput = (e) => { lista[i] = e.target.value; };
+          const inp = l.querySelector("input");
+          inp.oninput = (e) => { lista[i] = e.target.value; aoVivo(nota); };
+          inp.onchange = aoSairDoCampo(nota);
           l.querySelectorAll("[data-a]").forEach((b) => (b.onclick = () => {
             const a = b.dataset.a;
             let alvo = null;
@@ -779,38 +818,56 @@
       };
       desenhar();
       ent.appendChild(wrap);
+      nota(true);
       coletar = () => {
-        const limpa = lista.map((x) => x.trim()).filter(Boolean);
-        if (!limpa.length) { mostrar(caixa(caminho(cod, "Retirou todas as etapas (vazio)"))); return null; }
-        const op = limpa.join("|") === original ? "Sim, está parecido" : "Ajustei as etapas";
-        S.mapa = limpa; S.tipoMapa = tipoChave();
-        const r0 = { estado: "opcao", opcao: op };
-        /* mostra o retorno da opção antes de seguir */
-        mostrar(caixa(caminho(cod, op)) + (limpa.length > 8 ? caixa(caminho(cod, "Mais de 8 etapas")) : "") + diagramaProcesso("diagrama-m701", limpa));
-        trocarParaSeguir(r0);
-        return null;
+        const l = limpa();
+        if (!l.length) { erroDe("Retirou todas as etapas (vazio)"); return null; }
+        const op = opAtual();
+        S.mapa = l; S.tipoMapa = tipoChave();
+        return { estado: "opcao", opcao: op };
       };
     } else if (cod === "M7-02") {
       const v = resp && resp.estado === "valor" ? resp : null;
       const herdaUn = !v && I().unLote && tipoChave() === "fab";
       ent.appendChild(el(`<div><label class="rot-campo">Tempo</label>${tempoCampos("t", v)}
-        <label class="rot-campo" for="un">${rev() ? "Pedidos separados de uma vez" : "Unidades que saem de uma vez"} ${herdaUn ? `<span class="veio">Veio do Módulo 5</span>` : ""}</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : herdaUn ? I().unLote : "1")}">
+        <label class="rot-campo" for="un">${rev() ? "Pedidos separados de uma vez" : "Unidades que saem de uma vez"} ${herdaUn ? `<span class="veio">Veio da Etapa 5</span>` : ""}</label><input class="campo" id="un" inputmode="numeric" value="${esc(v ? v.un : herdaUn ? I().unLote : "1")}">
         ${herdaUn ? `<p class="ajuda">É o que rende a sua receita. Confira ou ajuste.</p>` : ""}</div>`));
-      ent.appendChild(btnNaoSei(() => mostrar(ajudaNS(true))));
-      /* revenda em que o cliente retira e não há separação: a pergunta pode não servir */
+      /* revenda em que o cliente retira e não há separação: "Não se aplica" é uma resposta (marca e mostra o retorno) */
+      let naoAplica = !!(resp && resp.estado === "naoaplica");
+      const MSG_NA = `<div class="bloco b-ok"><p>Tudo bem. Sem esse tempo, a conta de quanto cabe por semana fica de fora. O resto da etapa continua.</p></div>`;
+      const marcarNA = (on) => { naoAplica = on; const na = p.querySelector("#na"); if (na) na.setAttribute("aria-pressed", String(on)); };
+      ent.appendChild(btnNaoSei(() => { marcarNA(false); mostrar(ajudaNS(true)); }));
       if (rev()) {
-        const na = el(`<button class="btn-alt" id="na">${NAO_APLICA}</button>`);
-        na.onclick = () => { mostrar(`<div class="bloco b-ok"><p>Tudo bem. Sem esse tempo, a conta de quanto cabe por semana fica de fora. O resto do módulo continua.</p></div>`); trocarParaSeguir({ estado: "naoaplica" }); };
+        const na = el(`<button type="button" class="btn-alt" id="na" aria-pressed="${naoAplica}">${NAO_APLICA}</button>`);
+        na.onclick = () => { marcarNA(!naoAplica); mostrar(naoAplica ? MSG_NA : ""); };
         ent.querySelector(".alt").appendChild(na);
       }
-      let confirmouAlto = false;
+      const ler = () => { const t = lerTempo("t"), un = Mo.num(p.querySelector("#un").value || "1"); return { t, un, porUn: t.min / un, ok: !t.vazio && !isNaN(t.min) && t.min > 0 && !isNaN(un) && un > 0 }; };
+      const anotado = (x) => {
+        const c = x.un !== 1 ? caminho(cod, "Tempo do lote e unidades por lote") : caminho(cod, "Tempo por unidade");
+        return caixa(c, { "[N]": Mo.fmt(x.un), "[tempo]": fmtTempo(x.t.min), "[x]": Mo.fmt(x.porUn, x.porUn % 1 ? 1 : 0) })
+          + (x.un !== 1 ? comoCalc(`${fmtTempo(x.t.min)} (${Mo.fmt(x.t.min)} min) ÷ ${Mo.fmt(x.un)} unidades = ${Mo.fmt(x.porUn, x.porUn % 1 ? 1 : 0)} min por unidade.`, "como-lote") : "");
+      };
+      /* retorno ao vivo do tempo: "Anotado: cerca de…" (com a conta), ou a dica do valor que não serve */
+      const vivo = () => {
+        const x = ler();
+        if (x.t.vazio) { if (!nsTocado && !naoAplica) mostrar(""); return; }
+        marcarNA(false);
+        if (!x.ok) return mostrar(caixa(caminho(cod, "Tempo zero, negativo ou texto")));
+        if (x.porUn > Mo.LIMITE.minUnAlto) return mostrar(caixa(caminho(cod, "Tempo muito alto (acima de 12 h por unidade; limiar a validar)")));
+        mostrar(anotado(x));
+      };
+      vivoEm(["#th", "#tm", "#un"], vivo);
+      if (naoAplica) mostrar(MSG_NA); else if (v) vivo();
+      let avisouAlto = null;
       coletar = () => {
-        const t = lerTempo("t"), un = Mo.num(p.querySelector("#un").value || "1");
-        if (t.vazio && nsTocado) { erro(MSG_ESCREVA); return null; }
-        if (t.vazio || isNaN(t.min) || t.min <= 0 || isNaN(un) || !(un > 0)) { mostrar(caixa(caminho(cod, "Tempo zero, negativo ou texto"))); return null; }
-        const porUn = t.min / un;
-        if (porUn > 12 * 60 && !confirmouAlto) { confirmouAlto = true; mostrar(caixa(caminho(cod, "Tempo muito alto (acima de 12 h por unidade; limiar a validar)"))); return null; }
-        return { estado: "valor", h: t.h, m: t.m, un: String(un), min: t.min, minUn: porUn };
+        const x = ler();
+        if (naoAplica && x.t.vazio) return { estado: "naoaplica" };
+        if (x.t.vazio) { erro(nsTocado ? MSG_ESCREVA : "Escreva o tempo para continuar."); return null; }
+        if (!x.ok) { erroDe("Tempo zero, negativo ou texto"); return null; }
+        const chave = x.t.min + "/" + x.un;
+        if (x.porUn > Mo.LIMITE.minUnAlto && avisouAlto !== chave) { avisouAlto = chave; aviso_(preencher(caminho(cod, "Tempo muito alto (acima de 12 h por unidade; limiar a validar)").texto) + " Se estiver certo, toque em “Continuar mesmo assim”."); return null; }
+        return { estado: "valor", h: x.t.h, m: x.t.m, un: String(x.un), min: x.t.min, minUn: x.porUn };
       };
     } else if (cod === "M7-04") {
       let avisouAjuda = null;
@@ -823,7 +880,7 @@
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
         if (!op.startsWith("Sim")) return { estado: "opcao", opcao: op, horas: 0 };
         const h = Mo.num(p.querySelector("#hajuda").value);
-        if (h === null || isNaN(h) || h < 0) { mostrar(caixa(caminho(cod, "Horas inválidas (negativo ou texto)"))); return null; }
+        if (h === null || isNaN(h) || h < 0) { erroDe("Horas inválidas (negativo ou texto)"); return null; }
         if (h > Mo.LIMITE.ajudaMax) { erro(`Uma semana tem ${Mo.LIMITE.ajudaMax} horas. Informe quantas horas por semana essa pessoa ajuda você.`); return null; }
         if (h > Mo.LIMITE.ajudaAviso && avisouAjuda !== h) { avisouAjuda = h; aviso_(`${Mo.fmt(h, h % 1 ? 1 : 0)} horas de ajuda por semana é mais que uma jornada inteira de trabalho. Confira; se estiver certo, toque em “Continuar mesmo assim”.`); return null; }
         return { estado: "opcao", opcao: op, horas: h };
@@ -832,7 +889,7 @@
       let op = resp && resp.estado === "opcao" ? resp.opcao : null;
       const et = el(`<div id="et" ${op === "Uma etapa que demora ou acumula" ? "" : "hidden"}><p class="rot-campo">Qual etapa?</p></div>`);
       let etapa = resp && resp.etapa;
-      et.appendChild(unica(etapas(), etapa, (x) => { etapa = x; }));
+      et.appendChild(unica(etapas(), etapa, (x) => { etapa = x; limparErro(); }));
       ent.appendChild(unica(opcoesDe(cod), op, (o) => {
         et.hidden = o !== "Uma etapa que demora ou acumula";
         if (o === NS) { op = null; mostrar(ajudaNS(false)); return false; }
@@ -850,21 +907,22 @@
       ent.appendChild(el(`<div><label class="rot-campo" for="uv">Unidades por vez</label><input class="campo" id="uv" inputmode="numeric" placeholder="Ex.: 4" value="${esc(v ? v.un : "")}">
         <label class="rot-campo">Tempo de cada vez</label>${tempoCampos("tv", v)}</div>`));
       ent.appendChild(btnNaoSei(() => mostrar(ajudaNS(true))));
+      const ler = () => { const un = Mo.num(p.querySelector("#uv").value), t = lerTempo("tv"); return { un, t, vazio: un === null && t.vazio, ok: !(un === null || isNaN(un) || un <= 0 || t.vazio || isNaN(t.min) || t.min <= 0) }; };
+      /* retorno ao vivo com a conta do equipamento (quanto cabe por semana) */
+      const vivo = () => {
+        const x = ler();
+        if (x.vazio) { if (!nsTocado) mostrar(""); return; }
+        if (x.un === null || x.t.vazio) return;   /* ainda preenchendo a outra parte */
+        if (!x.ok) return mostrar(caixa(caminho(cod, "Valor inválido (zero, negativo ou texto)")));
+        mostrar(caixaEquip({ un: String(x.un), minVez: x.t.min }));
+      };
+      vivoEm(["#uv", "#tvh", "#tvm"], vivo);
       if (v) mostrar(caixaEquip(v));
       coletar = () => {
-        const un = Mo.num(p.querySelector("#uv").value), t = lerTempo("tv");
-        if (nsTocado && un === null && t.vazio) { erro(MSG_ESCREVA); return null; }
-        if (un === null || isNaN(un) || un <= 0 || t.vazio || isNaN(t.min) || t.min <= 0) { mostrar(caixa(caminho(cod, "Valor inválido (zero, negativo ou texto)"))); return null; }
-        return { estado: "valor", un: String(un), h: t.h, m: t.m, minVez: t.min };
-      };
-      /* retorno com a conta (H31) antes de seguir */
-      const conta = coletar;
-      let mostrou = !!v;
-      coletar = () => {
-        const r0 = conta();
-        if (!r0) return null;
-        if (!mostrou) { mostrou = true; const h = caixaEquip(r0); if (h) { mostrar(h); return null; } }
-        return r0;
+        const x = ler();
+        if (x.vazio) { erro(nsTocado ? MSG_ESCREVA : "Escreva as unidades e o tempo para continuar."); return null; }
+        if (!x.ok) { erroDe("Valor inválido (zero, negativo ou texto)"); return null; }
+        return { estado: "valor", un: String(x.un), h: x.t.h, m: x.t.m, minVez: x.t.min };
       };
     } else if (cod === "M7-06") {
       /* resposta guardada, ou a parte que sobrou da migração (a outra era "Não sei") */
@@ -877,6 +935,7 @@
       const pinta = () => {
         b1.innerHTML = p1 ? caixa(P1.find((x) => x.o === p1).c) : "";
         b2.innerHTML = p2 ? caixa(P2.find((x) => x.o === p2).c) : ns2 ? ajudaNS(false, 2) : "";
+        limparErro();
       };
       ent.appendChild(el(`<p class="rot-campo">Quantos fornecedores?</p>`));
       ent.appendChild(unica(P1.map((x) => x.o), p1, (o) => { p1 = o; pinta(); }));
@@ -920,16 +979,18 @@
       ent.appendChild(outro);
       if (marcadas.length) retornoMulti(marcadas[marcadas.length - 1], false);
       coletar = () => {
-        if (!marcadas.length) { erro(cod === "M7-11" ? "Escolha pelo menos um número para acompanhar." : "Escolha pelo menos uma opção para continuar."); return null; }
-        if (marcadas.includes("Outro") && !p.querySelector("#outro").value.trim()) { mostrar(caixa(caminho(cod, "Outro"))); return null; }
+        if (!marcadas.length) { erro(cod === "M7-11" ? "Escolha pelo menos um número para continuar." : "Escolha pelo menos uma opção para continuar."); return null; }
+        if (marcadas.includes("Outro") && !p.querySelector("#outro").value.trim()) { erroDe("Outro"); return null; }
         return Object.assign({ estado: "multi", opcoes: marcadas.slice() }, marcadas.includes("Outro") ? { outro: p.querySelector("#outro").value.trim() } : {});
       };
     } else if (cod === "M7-12") {
       ent.appendChild(el(`<textarea class="campo" rows="3" id="txt" aria-labelledby="pergunta" placeholder="Ex.: ver se preciso de licença da prefeitura">${esc(resp && resp.texto || "")}</textarea>`));
-      let mostrou = false;
+      /* retorno ao vivo: "Guardado!" quando há texto; "Tudo bem" em branco (campo opcional) */
+      const vivo = () => mostrar(caixa(caminho(cod, p.querySelector("#txt").value.trim() ? "Texto preenchido" : "Em branco")));
+      vivoEm(["#txt"], vivo);
+      vivo();
       coletar = () => {
         const t = p.querySelector("#txt").value.trim();
-        if (!mostrou) { mostrou = true; mostrar(caixa(caminho(cod, t ? "Texto preenchido" : "Em branco"))); trocarParaSeguir(t ? { estado: "valor", texto: t } : { estado: "vazio" }); return null; }
         return t ? { estado: "valor", texto: t } : { estado: "vazio" };
       };
     } else {
@@ -952,25 +1013,15 @@
       return caixa(caminho(cod, "Unidades por vez e tempo por vez"), { "[N]": v.un, "[tempo]": fmtTempo(v.minVez), "[X]": X })
         + comoCapacidade(c, { equip: { un: v.un, minVez: v.minVez }, id: "como-equip" });
     }
-    /* mostra o retorno e troca o botão: o próximo Continuar grava e segue */
-    function trocarParaSeguir(r0) {
-      const acoes = p.querySelector("#acoes");
-      acoes.innerHTML = "";
-      const b = el(`<button class="btn btn-primario seta" id="ok">Continuar</button>`);
-      b.onclick = () => avancar(r0);
-      acoes.appendChild(b);
-    }
-    p.querySelector("#ok").onclick = () => {
+    /* um toque: o retorno pendente roda, a resposta é conferida, gravada e a próxima pergunta abre */
+    const segura = () => { tocandoOk = true; };
+    okBtn.addEventListener("pointerdown", segura);
+    okBtn.addEventListener("mousedown", segura);
+    okBtn.onclick = () => {
+      tocandoOk = false;
+      vivoAgora();
       const r0 = coletar();
       if (!r0) return;
-      if (cod === "M7-02" && r0.estado === "valor" && !p.dataset.mostrou) {
-        /* mostra "Anotado: cerca de…" antes de seguir */
-        p.dataset.mostrou = "1";
-        const c = r0.un !== "1" ? caminho(cod, "Tempo do lote e unidades por lote") : caminho(cod, "Tempo por unidade");
-        mostrar(caixa(c, { "[N]": r0.un, "[tempo]": fmtTempo(r0.min), "[x]": Mo.fmt(r0.minUn, r0.minUn % 1 ? 1 : 0) })
-          + (r0.un !== "1" ? comoCalc(`${fmtTempo(r0.min)} (${Mo.fmt(r0.min)} min) ÷ ${Mo.fmt(Mo.num(r0.un))} unidades = ${Mo.fmt(r0.minUn, r0.minUn % 1 ? 1 : 0)} min por unidade.`, "como-lote") : ""));
-        return trocarParaSeguir(r0);
-      }
       avancar(r0);
     };
     return p;
@@ -1339,12 +1390,12 @@
         </details>
         <section class="cartao-q pergunta" id="q13">
           <h2 class="q">${esc(preencher(q13.pergunta))}</h2>
-          <div class="opcoes" id="op13">${opcoesDe("M7-13").map((o) => `<button class="opcao ${r13 && r13.opcao === o ? "sel" : ""}" data-o="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`).join("")}</div>
+          <div class="opcoes" id="op13">${opcoesDe("M7-13").map((o) => `<button type="button" class="opcao ${r13 && r13.opcao === o ? "sel" : ""}" aria-pressed="${!!(r13 && r13.opcao === o)}" data-o="${esc(o)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(o)}</b></span></button>`).join("")}</div>
           <div id="ret13">${r13 ? caixa(caminho("M7-13", r13.opcao)) : ""}</div>
-          <div id="corr" ${r13 && r13.opcao === "Quero corrigir algo" ? "" : "hidden"}>${respostas.map(([t, k]) => `<div class="corr-item"><span>${esc(t)}</span><button class="btn btn-claro editar" data-c="${k || "PARTIDA"}">Corrigir minha resposta</button></div>`).join("")}</div>
+          <div id="corr" ${r13 && r13.opcao === "Quero corrigir algo" ? "" : "hidden"}>${respostas.map(([t, k]) => `<div class="corr-item"><span>${esc(t)}</span><button class="btn btn-claro editar" data-c="${k || "PARTIDA"}" aria-label="Mudar esta resposta: ${esc(t)}">Mudar esta resposta</button></div>`).join("")}</div>
         </section>
         <div class="acoes"><button class="btn btn-primario" id="imprimir">Imprimir resultado</button><button class="btn btn-linha" id="zerar2">Recomeçar do zero</button></div>
-        <div id="seguir" ${r13 && r13.opcao === "Sim, pode seguir" ? "" : "hidden"}><div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m08/index.html">Ir para o Módulo 8</a></div></div>
+        <div id="seguir" ${r13 && r13.opcao === "Sim, pode seguir" ? "" : "hidden"}><div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m08/index.html">Ir para a Etapa 8</a></div></div>
         ${rodape(true)}
       </main>
     </div>`);

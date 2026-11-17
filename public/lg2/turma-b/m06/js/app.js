@@ -18,6 +18,7 @@
   const MSG_ESCREVA = "Use a ajuda acima e escreva a sua resposta para continuar.";
   const MSG_ESCOLHA_NS = "Use a ajuda acima e escolha uma opção para continuar.";
   const MSG_RESPONDA = "Responda para continuar.";
+  const MSG_ESCREVA_SIMPLES = "Escreva a sua resposta para continuar.";
   const MSG_ESCOLHA = "Escolha uma opção para continuar.";
   const MSG_MARQUE = "Marque pelo menos uma opção para continuar.";
   const MSG_NEGATIVO = "O valor não pode ser negativo.";
@@ -30,8 +31,8 @@
   const AINDA_NAO_SEI = "Ainda não sei o que vou precisar comprar";
   const COMO_DESCOBRIR = [
     "Liste tudo o que você usa para fazer uma unidade ou um atendimento, do começo ao fim.",
-    "Olhe a ficha técnica que você montou no Módulo 4.",
-    "Confira os materiais que você informou no Módulo 5.",
+    "Olhe a ficha técnica que você montou na Etapa 4.",
+    "Confira os materiais que você informou na Etapa 5.",
     "Separe o que você já tem do que ainda precisa comprar.",
   ];
   const ehAindaNaoSei = (R) => !!(R["M6.P01"] && R["M6.P01"].aindaNaoSei);
@@ -159,7 +160,7 @@
     } catch (e) { return null; }
   }
   /* perguntas que repetem uma resposta já dada antes na jornada: com a resposta anterior, a tela não aparece
-     (fica um cartão "Veio do Módulo N · Trocar"); sem ela, a pergunta aparece normalmente */
+     (fica um cartão "Veio da Etapa N · Trocar"); sem ela, a pergunta aparece normalmente */
   const AUTO = ["M6.P04", "M6.PF", "M6.P05", "M6.SZ", "M6.P06", "M6.P07", "M6.P15", "M6.P16"];
   const CURTA = { "M6.P04": "Como seus clientes vão pagar", "M6.PF": "Taxa, prazo e parte das vendas de cada forma", "M6.SZ": "Vendas conforme a época do ano", "M6.P05": "Quanto espera vender por mês", "M6.P06": "Gastos de todo mês",
     "M6.P07": "Dinheiro para usar no negócio", "M6.P15": "Materiais para produzir", "M6.P16": "Mercadorias para revender" };
@@ -180,7 +181,7 @@
       return { forma: f, taxa: p24 === "Não" ? "0" : "", prazo: "", parte: "" };
     });
     if (formas.length > 1 && valor.some((x) => !String(x.parte).trim())) completa = false;
-    return { formas: valor, completa, modulo: 5, nota: p24 === "Não" ? "No Módulo 5 você disse que não fica taxa nas vendas." : "Taxas que você informou no Módulo 5." };
+    return { formas: valor, completa, modulo: 5, nota: p24 === "Não" ? "Na Etapa 5 você disse que não fica taxa nas vendas." : "Taxas que você informou na Etapa 5." };
   }
   /* respostas do Módulo 5 que respondem perguntas daqui (pré-preenchidas; a pessoa confere e toca Continuar) */
   const FORMA_M5 = { "Pix": "Pix", "Dinheiro": "Dinheiro", "Cartão de débito": "Cartão de débito", "Cartão de crédito": "Cartão de crédito à vista", "Outra forma": "Outra forma" };
@@ -202,13 +203,13 @@
     if (cod === "M6.P05") {
       const preco = Motor.num(valorTxt(doM5("P36"))), qtd = Motor.num(valorTxt(doM5("P37")));
       if (!(preco > 0 && qtd > 0)) return null;
-      return { valor: numero(preco * qtd), modulo: 5, nota: `Conta feita com o que você disse no Módulo 5: ${brl0(preco)} por venda × ${qtd.toLocaleString("pt-BR")} vendas no mês.` };
+      return { valor: numero(preco * qtd), modulo: 5, nota: `Conta feita com o que você disse na Etapa 5: ${brl0(preco)} por venda × ${qtd.toLocaleString("pt-BR")} vendas no mês.` };
     }
     if (cod === "M6.P07") {
       const t = tetoM1();
       if (!t || !(t.texto in CAIXA_M1)) return null;
       const v = CAIXA_M1[t.texto];
-      return { valor: numero(v), modulo: 1, nota: `No Módulo 1 você disse “${t.texto}”. Usamos ${brl0(v)}${/^Entre|^Mais/.test(t.texto) ? " (o menor valor da faixa)" : ""}. Troque pelo valor exato, se souber.` };
+      return { valor: numero(v), modulo: 1, nota: `Na Etapa 1 você disse “${t.texto}”. Usamos ${brl0(v)}${/^Entre|^Mais/.test(t.texto) ? " (o menor valor da faixa)" : ""}. Troque pelo valor exato, se souber.` };
     }
     if (cod === "M6.P06") {
       const it = [], sim = (c) => opcaoDe(doM5(c)) === "Sim", nao = (c) => opcaoDe(doM5(c)) === "Não";
@@ -222,9 +223,9 @@
       const separadas = [m5.perdas ? `perdas (${brl0(m5.perdas)})` : "", m5.retirada ? `o que você separa para você (${brl0(m5.retirada)})` : "",
         m5.custoVenda ? `o custo de cada venda (${brl0(m5.custoVenda)})` : ""].filter(Boolean);
       const resto = separadas.length ? ` ${separadas.join(", ").replace(/, ([^,]*)$/, " e $1")} ${separadas.length > 1 ? "entram" : "entra"} como linhas próprias no caixa.` : "";
-      if (!it.length) return nao("P28") && nao("P30") && nao("P32") ? { valor: "Nenhum gasto fixo todo mês", modulo: 5, nota: "No Módulo 5 você disse que não paga aluguel, água e luz nem outros gastos todo mês." + resto } : null;
+      if (!it.length) return nao("P28") && nao("P30") && nao("P32") ? { valor: "Nenhum gasto fixo todo mês", modulo: 5, nota: "Na Etapa 5 você disse que não paga aluguel, água e luz nem outros gastos todo mês." + resto } : null;
       const total = it.reduce((a, x) => a + x[1], 0);
-      return { valor: it.map(([n, x]) => `${n}: ${brl0(x)}`).join("; "), modulo: 5, total, nota: `São os gastos fixos de todo mês que você informou no Módulo 5 (${brl0(total)} por mês).${resto}` };
+      return { valor: it.map(([n, x]) => `${n}: ${brl0(x)}`).join("; "), modulo: 5, total, nota: `São os gastos fixos de todo mês que você informou na Etapa 5 (${brl0(total)} por mês).${resto}` };
     }
     const lista = { "M6.P10": "P19", "M6.P15": "P03" }[cod];
     if (lista) {
@@ -236,10 +237,10 @@
     if (cod === "M6.P11") {
       const precos = (doM5("P20") || {}).valor;
       const soma = Array.isArray(precos) ? precos.map((x) => Motor.num(x)).filter((n) => n > 0).reduce((a, n) => a + n, 0) : 0;
-      return soma > 0 ? { valor: numero(soma), modulo: 5, nota: "Soma dos preços de compra dos itens que você informou no Módulo 5." } : null;
+      return soma > 0 ? { valor: numero(soma), modulo: 5, nota: "Soma dos preços de compra dos itens que você informou na Etapa 5." } : null;
     }
     if (cod === "M6.P16") { const t = valorTxt(doM5("P10")); return t ? { valor: t, modulo: 5, nota: "" } : null; }
-    if (cod === "M6.P17") { const n = Motor.num(valorTxt(doM5("P11"))); return n > 0 ? { valor: numero(n), modulo: 5, nota: "É o valor de compra que você informou no Módulo 5." } : null; }
+    if (cod === "M6.P17") { const n = Motor.num(valorTxt(doM5("P11"))); return n > 0 ? { valor: numero(n), modulo: 5, nota: "É o valor de compra que você informou na Etapa 5." } : null; }
     return null;
   }
 
@@ -262,8 +263,8 @@
     return c;
   }
   /* sem gravar nada: a próxima tela seria o resultado? (perguntas repetidas com resposta anterior não contam) */
-  function proxPrevia(cod) {
-    const R = Object.assign({}, S.R);
+  function proxPrevia(cod, R0) {
+    const R = Object.assign({}, R0 || S.R);
     let c = proxima(R, cod);
     while (c !== "RESULTADO" && AUTO.includes(c) && !R[c]) { const h = heranca(c); if (!h || h.completa === false) break; R[c] = respHerdada(h); c = proxima(R, c); }
     return c;
@@ -292,7 +293,12 @@
   const link = (u, t) => /^https?:/.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : esc(t || u);
   const brl = (n) => (n < 0 ? "−" : "") + "R$ " + Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, a) { tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0); }
+  /* nova pergunta: o foco vai para o enunciado (leitor de tela lê a pergunta nova) */
+  function ir(f, a) {
+    tela.innerHTML = ""; tela.appendChild(f(a)); window.scrollTo(0, 0);
+    const h = tela.querySelector(".cartao-q h2.q");
+    if (h) h.focus({ preventScroll: true });
+  }
 
   /* conceitos ligados à pergunta: a página citada na fonte da pergunta (aba 3, coluna K)
      é a mesma do link do conceito (aba 2, coluna H) */
@@ -313,7 +319,7 @@
     const mat = materiaisM5();
     return `<div class="bloco b-proximo como-descobrir" id="como-descobrir"><b>Como descobrir o que comprar</b>
       <ol>${COMO_DESCOBRIR.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
-      ${mat.length ? `<div class="partida" id="partida-m5"><span class="selo">Veio do Módulo 5</span>
+      ${mat.length ? `<div class="partida" id="partida-m5"><span class="selo">Veio da Etapa 5</span>
         <p>Você já listou estes materiais: ${esc(mat.join(", "))}. Eles podem ser o seu ponto de partida.</p>
         ${comBotao ? `<button class="btn-alt" id="usar-m5">Usar essa lista como ponto de partida</button>` : ""}</div>` : ""}
     </div>`;
@@ -398,7 +404,7 @@
   /* P01 "Não sei": os materiais listados no Módulo 5 podem ser o ponto de partida */
   function partidaM5() {
     const mat = materiaisM5();
-    return mat.length ? `<div class="partida" id="partida-m5"><span class="selo">Veio do Módulo 5</span>
+    return mat.length ? `<div class="partida" id="partida-m5"><span class="selo">Veio da Etapa 5</span>
       <p>Você já listou estes materiais: ${esc(mat.join(", "))}. Eles podem ser o seu ponto de partida.</p>
       <button class="btn-alt" type="button" id="usar-m5">Usar essa lista como ponto de partida</button></div>` : "";
   }
@@ -406,11 +412,11 @@
   function divergencia(cod, her, novo) {
     if (cod === "M6.P06") {
       const a = her.total !== undefined ? her.total : Motor.somaValores(her.valor), b = Motor.somaValores(novo);
-      return Math.abs(a - b) >= 0.01 ? `No Módulo ${her.modulo}, seus gastos fixos do mês somavam ${brl(a)}; aqui somam ${brl(b)}. Confira. Se estiver certo, toque em Continuar de novo.` : null;
+      return Math.abs(a - b) >= 0.01 ? `Na Etapa ${her.modulo}, seus gastos fixos do mês somavam ${brl(a)}; aqui somam ${brl(b)}. Confira. Se estiver certo, toque em Continuar de novo.` : null;
     }
     if (Motor.campo(M.porCodigo[cod]) !== "numero") return null;
     const a = Motor.num(her.valor), b = Motor.num(novo);
-    return isFinite(a) && isFinite(b) && Math.abs(a - b) >= 0.01 ? `No Módulo ${her.modulo}, esse valor era ${brl(a)}. Confira. Se ${brl(b)} estiver certo, toque em Continuar de novo.` : null;
+    return isFinite(a) && isFinite(b) && Math.abs(a - b) >= 0.01 ? `Na Etapa ${her.modulo}, esse valor era ${brl(a)}. Confira. Se ${brl(b)} estiver certo, toque em Continuar de novo.` : null;
   }
   /* respostas que vieram de outro módulo, sem tela: cartão pequeno com "Trocar" */
   const pct = (x) => String(Motor.num(x)).replace(".", ",") + "%";
@@ -424,32 +430,40 @@
   function itemHerdado(c) {
     const r = S.R[c];
     const v = M.porCodigo[c] && Motor.campo(M.porCodigo[c]) === "numero" ? brl(Motor.num(r.valor)) : textoResp(r);
-    return `<li><span class="selo">Veio do Módulo ${esc(r.herdado)}</span> <b>${esc(CURTA[c])}:</b> ${esc(v)}
+    return `<li><span class="selo">Veio da Etapa ${esc(r.herdado)}</span> <b>${esc(CURTA[c])}:</b> ${esc(v)}
       <button class="btn-alt trocar-h" type="button" data-trocar="${esc(c)}" aria-label="Trocar: ${esc(CURTA[c])}">Trocar</button></li>`;
   }
   function cartaoPulou() {
     const l = (S.pulou || []).filter((c) => S.R[c] && S.R[c].herdado);
     if (!l.length) return "";
     /* um item: à vista; vários: resumo fechado, para a pergunta não descer */
-    return `<details class="herdadas" id="herdadas"${l.length === 1 ? " open" : ""}><summary>${l.length === 1 ? "Já respondido antes, não perguntamos de novo" : `${l.length} respostas vieram de módulos anteriores · ver ou trocar`}</summary><ul>${l.map(itemHerdado).join("")}</ul></details>`;
+    return `<details class="herdadas" id="herdadas"${l.length === 1 ? " open" : ""}><summary>${l.length === 1 ? "Já respondido antes, não perguntamos de novo" : `${l.length} respostas vieram de etapas anteriores · ver ou trocar`}</summary><ul>${l.map(itemHerdado).join("")}</ul></details>`;
   }
   function ligarTrocar(p) {
     p.querySelectorAll("[data-trocar]").forEach((b) => (b.onclick = () => { S.trocando = b.dataset.trocar; S.pulou = []; salvar(); ir(telaPergunta, b.dataset.trocar); }));
   }
   /* retorno das perguntas criadas pelo app: a conta, com os valores da pessoa */
-  function retornoApp(cod) {
+  function retornoApp(cod, R) {
+    R = R || S.R;
     if (cod === Motor.P_PARCELAS) {
-      const pl = Motor.planoInvestimento(S.R);
+      const pl = Motor.planoInvestimento(R);
       if (!pl.n) return "";
       const sems = pl.semanas.map((x) => x.semana), dep = pl.depois.length;
-      return `<p class="r-texto" id="ret-parcelas">Parcelas registradas. No caixa das 13 semanas: ${pl.entrada ? `entrada de ${brl(pl.entrada)} na semana 1; ` : ""}${sems.length ? `parcelas de ${brl(pl.parcela)} na${sems.length > 1 ? "s semanas " + sems.slice(0, -1).join(", ") + " e " + sems[sems.length - 1] : " semana " + sems[0]}` : "nenhuma parcela vence nas 13 semanas"}${dep ? `; ${dep} ${dep === 1 ? "parcela fica" : "parcelas ficam"} para depois da semana 13` : ""}.</p>
+      return `<p class="r-texto" id="ret-parcelas">No caixa das 13 semanas: ${pl.entrada ? `entrada de ${brl(pl.entrada)} na semana 1; ` : ""}${sems.length ? `parcelas de ${brl(pl.parcela)} na${sems.length > 1 ? "s semanas " + sems.slice(0, -1).join(", ") + " e " + sems[sems.length - 1] : " semana " + sems[0]}` : "nenhuma parcela vence nas 13 semanas"}${dep ? `; ${dep} ${dep === 1 ? "parcela fica" : "parcelas ficam"} para depois da semana 13` : ""}.</p>
         ${como(`uma parcela por mês, a 1ª um mês depois da compra. 1 mês ≈ 4,33 semanas (52 semanas ÷ 12 meses), então as parcelas caem nas semanas ${[...pl.semanas, ...pl.depois].map((x) => x.semana).join(", ")}.`, "como-sem-parcelas")}`;
     }
     if (cod === Motor.P_CARTAO) {
-      const pct = Motor.PARTE_CARTAO[Motor.valor(S.R, Motor.P_CARTAO)];
+      const pct = Motor.PARTE_CARTAO[Motor.valor(R, Motor.P_CARTAO)];
       return pct === undefined ? "" : `<p class="r-texto">Certo: ${pct}% das vendas esperam o prazo do cartão; os outros ${100 - pct}% entram na semana da venda.</p>`;
     }
     return "";
+  }
+  /* o que falta, próximo passo e encaminhamento da regra: em "Ver mais" (no resultado eles aparecem de novo) */
+  function detalhesRegra(r, aberto) {
+    const l = [vazio(r.lacuna) ? "" : `<div class="bloco b-lacuna"><b>O que ainda falta</b>${esc(r.lacuna)}</div>`,
+      vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`,
+      vazio(r.encaminhamento) || Motor.retorna(r) ? "" : `<div class="bloco b-enc"><b>Encaminhamento</b>${esc(r.encaminhamento)}</div>`].join("");
+    return l ? `<details class="ver-mais r-mais"${aberto ? " open" : ""}><summary>Ver mais</summary>${l}</details>` : "";
   }
   /* "Ver dica" fechada, entre a pergunta e as respostas: a ajuda da pergunta + os termos */
   function verDica(q) {
@@ -486,7 +500,7 @@
   function topo(trilha) {
     return `<div class="barra-topo">
       <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
-      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Etapa ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
     </div>`;
   }
   function heroi(o) {
@@ -498,7 +512,7 @@
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
-          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Etapa " + D.modulo.numero)}</div>
           <${o.h1 ? "h1" : "h2"} class="heroi-tit">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
@@ -508,7 +522,7 @@
   }
   function etapas(n, tudo) {
     const nomes = [titulo(D.perguntas.find((p) => !p.codigo && p.secao).secao), nomeNegocio(), "Resultado"];
-    return `<ol class="etapas" aria-label="Etapas do módulo">${nomes.map((nome, i) => {
+    return `<ol class="etapas" aria-label="Partes desta etapa">${nomes.map((nome, i) => {
       const k = i + 1, st = tudo || k < n ? "feita" : k === n ? "atual" : "";
       return `<li class="${st}"${k === n && !tudo ? ' aria-current="step"' : ""}><span class="bola" aria-hidden="true"></span><span class="rot">${esc(nome)}</span></li>`;
     }).join("")}</ol>`;
@@ -531,9 +545,9 @@
     const p = el(`
       <div class="pag">
         ${topo("")}
-        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.capa.frase, img: "hero-inicio.webp" })}
+        ${heroi({ grande: true, h1: true, kicker: "Etapa " + D.modulo.numero, titulo: D.modulo.nome, texto: D.capa.frase, img: "hero-inicio.webp" })}
         <main class="corpo">
-          <p class="tempo">Este módulo leva uns ${esc(D.capa.minutos)} minutos</p>
+          <p class="tempo">Esta etapa leva cerca de ${esc(D.capa.minutos)} minutos</p>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
@@ -542,7 +556,7 @@
             <h3>Para quem é</h3><p>${esc(D.mapa.usuario)}</p>
             <h3>O que ter em mãos</h3><p>${esc(D.mapa.ter_em_maos)}</p>
             <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
-            <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
+            <button class="btn btn-linha" id="limites">O que esta etapa não faz</button>
           </details>
           ${rodape()}
         </main>
@@ -563,10 +577,10 @@
     const p = el(`
       <div class="pag">
         ${topo("Limites")}
-        ${heroi({ titulo: "Limites do módulo" })}
+        ${heroi({ titulo: "Limites da etapa" })}
         <main class="corpo">
           ${botaoVoltar()}
-          <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
+          <div class="cartao"><h3>O que a etapa não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="cartao"><h3>Cuidados</h3><p>${esc(D.mapa.riscos)}</p></div>
@@ -580,6 +594,26 @@
   }
 
   /* ================= pergunta ================= */
+  /* lote 17/11 (um toque por pergunta): o Continuar grava e já abre a próxima. O retorno da resposta aparece
+     ao vivo, logo abaixo dela; se a pessoa tocou Continuar antes de ver, ele vem num cartão pequeno no alto da tela seguinte. */
+  let sobreAnterior = null;
+  function cartaoSobre() {
+    const h = sobreAnterior; sobreAnterior = null;
+    return h ? `<aside class="sobre-anterior" id="sobre-anterior"><b>Sobre a sua resposta anterior:</b> ${h}</aside>` : "";
+  }
+  /* contador estável: posição no caminho de agora; total = o caminho mais longo possível (não muda no meio) */
+  const TOTAL = (() => {
+    const base = M.perguntas.filter((q) => q.codigo !== Motor.NEGOCIO && q.codigo !== "M6.P08" && !REPETE_P01.includes(q.codigo) && etapaDe(q.codigo) === 1).length;
+    const porSecao = {};
+    M.perguntas.forEach((q) => { if (etapaDe(q.codigo) === 2 && q.codigo !== Motor.NEGOCIO && !REPETE_P01.includes(q.codigo)) porSecao[SECAO[q.codigo]] = (porSecao[SECAO[q.codigo]] || 0) + 1; });
+    return base + 1 + Math.max(0, ...Object.values(porSecao));
+  })();
+  function posicao(cod) {
+    let c = proxima(S.R, null), n = 1;
+    for (let i = 0; c !== "RESULTADO" && c !== cod && i < 60; i++) { c = proxima(S.R, c); n++; }
+    return Math.min(c === cod ? n : Math.max(1, S.hist.filter((x) => x !== "RESULTADO").length), TOTAL);
+  }
+
   function telaPergunta(cod) {
     const q = M.porCodigo[cod];
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
@@ -593,26 +627,30 @@
     if (her && her.opcoes) marcadas = her.opcoes.slice();
     const neg = S.R[Motor.NEGOCIO];
     const faixaNeg = etapaDe(cod) === 2 && cod !== Motor.NEGOCIO && neg && neg.estado === "opcao"
-      ? `<div class="negocio-atual"><span>Seu negócio: <b>${esc(neg.opcao)}</b></span>${neg.herdado ? `<span class="selo">Veio do Módulo ${esc(neg.herdado)}</span>` : ""}<button class="btn-alt" id="trocar">Trocar</button></div>` : "";
+      ? `<div class="negocio-atual"><span>Seu negócio: <b>${esc(neg.opcao)}</b></span>${neg.herdado ? `<span class="selo">Veio da Etapa ${esc(neg.herdado)}</span>` : ""}<button class="btn-alt" id="trocar">Trocar</button></div>` : "";
+    const n = posicao(cod);
 
     const p = el(`
       <div class="pag">
-        ${heroi({ compacta: true, kicker: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, kickerClasse: "passo", pct: Math.round(M.perguntas.indexOf(q) / M.perguntas.length * 100) })}
+        ${heroi({ compacta: true, kicker: `Pergunta ${n} de ${TOTAL}`, kickerClasse: "passo", pct: Math.round((n - 1) / TOTAL * 100) })}
         <main class="corpo">
           <div class="cartao-q pergunta" data-cod="${esc(cod)}">
             ${botaoVoltar()}
+            ${cartaoSobre()}
             ${faixaNeg}
             ${cartaoPulou()}
-            <h2 class="q">${esc(q.pergunta)}</h2>
+            <h2 class="q" tabindex="-1">${esc(q.pergunta)}</h2>
             ${verDica(q)}
             ${cod === "M6.P08" && Motor.temCartao(S.R) ? `<p class="mini-info" id="nota-cartao">Se você aceita cartão, responda pensando no cartão. Pix e dinheiro entram na hora.</p>` : ""}
-            ${her ? `<div class="herdado"><span class="selo">Veio do Módulo ${her.modulo}</span><span>Confira e ajuste se quiser.</span>${her.nota ? `<p class="mini-info">${esc(her.nota)}</p>` : ""}</div>` : ""}
+            ${her ? `<div class="herdado"><span class="selo">Veio da Etapa ${her.modulo}</span><span>Confira e ajuste se quiser.</span>${her.nota ? `<p class="mini-info">${esc(her.nota)}</p>` : ""}</div>` : ""}
             <div class="entrada" id="ent"></div>
-            ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" id="sem-compras-btn">${SEM_COMPRAS}</button>` : ""}</div>` : ""}
+            ${Motor.temNaoSei(q) || cod === "M6.P01" ? `<div class="alt">${Motor.temNaoSei(q) ? `<button class="btn-alt" type="button" id="ns">Não sei</button>` : ""}${cod === "M6.P01" ? `<button class="btn-alt" type="button" id="sem-compras-btn">${SEM_COMPRAS}</button>` : ""}</div>` : ""}
+            <div id="retorno" aria-live="polite"></div>
             <div id="ajudans"></div>
-            <div class="erro" id="erro" hidden></div>
-            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
-            <div id="retorno"></div>
+            <div class="pe-acoes" id="pe">
+              <div class="erro" id="erro" role="alert" hidden></div>
+              <div class="acoes" id="acoes"><button class="btn btn-primario seta" type="button" id="ok">Continuar</button></div>
+            </div>
             ${blocoEducativo(educativoDe(cod))}
           </div>
         </main>
@@ -631,23 +669,27 @@
     const tr = p.querySelector("#trocar");
     if (tr) tr.onclick = () => ir(telaPergunta, Motor.NEGOCIO);
     const ent = p.querySelector("#ent");
+    /* escolha única: aria-pressed diz ao leitor de tela qual está marcada */
+    const marcar = (b) => { ent.querySelectorAll(".opcao").forEach((x) => { x.classList.toggle("sel", x === b); x.setAttribute("aria-pressed", String(x === b)); }); };
+    let det = null;
     if (tipo === "escolha" || tipo === "simnao_texto") {
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
         const desc = q.descricoes && q.descricoes[op];
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b>${desc ? `<small class="op-desc">${esc(desc)}</small>` : ""}</span></button>`);
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); ajudaNS(op === Motor.NS); };
+        const b = el(`<button type="button" class="opcao ${escolhida === op ? "sel" : ""}" aria-pressed="${escolhida === op}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b>${desc ? `<small class="op-desc">${esc(desc)}</small>` : ""}</span></button>`);
+        b.onclick = () => { escolhida = op; marcar(b); ajudaNS(op === Motor.NS); aoVivo(); };
         ent.appendChild(b);
       });
       if (tipo === "simnao_texto") ent.appendChild(el(`<textarea class="campo" id="detalhe" rows="3"${q.exemplo ? ` placeholder="${esc(q.exemplo)}"` : ""}>${esc(resp && resp.detalhe || "")}</textarea>`));
     } else if (tipo === "multi") {
       ent.classList.add("opcoes", "multi");
       q.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao ${marcadas.includes(op) ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
+        const b = el(`<button type="button" class="opcao ${marcadas.includes(op) ? "sel" : ""}" aria-pressed="${marcadas.includes(op)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
         b.onclick = () => {
           marcadas = marcadas.includes(op) ? marcadas.filter((x) => x !== op) : q.opcoesLista.filter((x) => x === op || marcadas.includes(x));
-          b.classList.toggle("sel", marcadas.includes(op));
+          b.classList.toggle("sel", marcadas.includes(op)); b.setAttribute("aria-pressed", String(marcadas.includes(op)));
           ajudaNS(marcadas.includes(Motor.NS));
+          aoVivo();
         };
         ent.appendChild(b);
       });
@@ -674,11 +716,11 @@
       const meses = (cls, sel) => `<div class="meses ${cls}">${Motor.MESES.map((n, i) => `<button type="button" class="mes ${sel.includes(i + 1) ? "sel" : ""}" data-m="${i + 1}" aria-pressed="${sel.includes(i + 1)}">${n.slice(0, 3)}</button>`).join("")}</div>`;
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
-        b.onclick = () => { escolhida = op; ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); det.hidden = op !== Motor.SZ_SIM; };
+        const b = el(`<button type="button" class="opcao ${escolhida === op ? "sel" : ""}" aria-pressed="${escolhida === op}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b></span></button>`);
+        b.onclick = () => { escolhida = op; marcar(b); det.hidden = op !== Motor.SZ_SIM; aoVivo(); };
         ent.appendChild(b);
       });
-      const det = el(`<div class="saz-det"${escolhida === Motor.SZ_SIM ? "" : " hidden"}>
+      det = el(`<div class="saz-det"${escolhida === Motor.SZ_SIM ? "" : " hidden"}>
         <p class="lbl-m">Meses mais fortes</p>${meses("fortes", ant && ant.fortes || [])}
         <label class="linha"><span class="lbl">Nesses meses vende</span><input class="campo" id="sz-mais" inputmode="numeric" placeholder="Ex.: 50" value="${ant && ant.maisPct ? ant.maisPct : ""}"><span class="unid">% a mais</span></label>
         <p class="lbl-m">Meses mais fracos</p>${meses("fracos", ant && ant.fracos || [])}
@@ -687,6 +729,7 @@
         const outro = det.querySelector(b.closest(".fortes") ? ".fracos" : ".fortes").querySelector(`[data-m="${b.dataset.m}"]`);
         b.classList.toggle("sel"); b.setAttribute("aria-pressed", b.classList.contains("sel"));
         if (b.classList.contains("sel")) { outro.classList.remove("sel"); outro.setAttribute("aria-pressed", "false"); }   // um mês não é forte e fraco ao mesmo tempo
+        aoVivo();
       }));
       ent.after(det);
     } else if (tipo === "parcelas") {
@@ -702,7 +745,7 @@
         if (!(n > 0) || e < 0 || e >= total) { t.innerHTML = `<b>Como calculamos:</b> ${comEntrada ? "(compra − entrada) ÷ parcelas" : "compra ÷ parcelas"}. Preencha para ver o valor de cada parcela.`; return; }
         t.innerHTML = `<b>Como calculamos:</b> ${comEntrada ? `(${brl(total)} da compra − ${brl(e)} de entrada)` : brl(total)} ÷ ${n} ${n === 1 ? "parcela" : "parcelas"} = ${brl(Motor.cent((total - e) / n))} por mês.`;
       };
-      ent.querySelectorAll("input").forEach((x) => (x.oninput = atualizar));
+      ent.querySelectorAll("input").forEach((x) => x.addEventListener("input", atualizar));
       setTimeout(atualizar);
     } else {
       const v = resp && resp.estado === "valor" ? resp.valor : her ? her.valor : "";
@@ -715,7 +758,7 @@
     function ajudaNS(mostrar) {
       const a = p.querySelector("#ajudans");
       nsTocado = mostrar;
-      if (mostrar) p.querySelector("#erro").hidden = true;
+      if (mostrar) { p.querySelector("#erro").hidden = true; p.querySelector("#retorno").innerHTML = ""; }
       a.innerHTML = mostrar ? caixaComo(q, cod === "M6.P01" ? partidaM5() : "") : "";
       if (!mostrar) return;
       ligarCopiar(a);
@@ -723,8 +766,9 @@
       if (usar) usar.onclick = () => {
         const c = ent.querySelector("textarea"); c.value = materiaisM5().join(", ");
         ajudaNS(false);
-        if (!p.querySelector(".herdado")) ent.before(el(`<div class="herdado"><span class="selo">Veio do Módulo 5</span><span>Apague o que não precisa comprar e acrescente o que faltar.</span></div>`));
+        if (!p.querySelector(".herdado")) ent.before(el(`<div class="herdado"><span class="selo">Veio da Etapa 5</span><span>Apague o que não precisa comprar e acrescente o que faltar.</span></div>`));
         c.focus();
+        aoVivo();
       };
       a.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
@@ -733,95 +777,160 @@
     const ns = p.querySelector("#ns");
     if (ns) ns.onclick = () => ajudaNS(true);
     const sc = p.querySelector("#sem-compras-btn");
-    if (sc) sc.onclick = () => responder({ estado: "valor", valor: SEM_COMPRAS, semCompras: true });
+    if (sc) sc.onclick = () => { vistoKey = null; responder({ estado: "valor", valor: SEM_COMPRAS, semCompras: true }); };
     const her0 = heranca(cod);       // resposta de outro módulo, para avisar quando o valor novo for diferente
 
-    p.querySelector("#ok").onclick = () => {
+    /* lê a resposta da tela, sem gravar: { r } ou { erro } */
+    function ler() {
       if (tipo === "formas") {
         const lista = [...ent.querySelectorAll(".forma")].map((f) => ({ forma: f.dataset.forma, taxa: f.querySelector(".taxa").value.trim(), prazo: f.querySelector(".prazo").value.trim(),
           ...(f.querySelector(".parte") ? { parte: f.querySelector(".parte").value.trim() } : { parte: "100" }) }));
         for (const x of lista) {
-          if (x.taxa === "" || x.prazo === "") return erro(`Preencha a taxa e em quantos dias cai o dinheiro de “${x.forma}”. Não sabe? Veja no aplicativo da maquininha ou do banco (sem taxa: 0).`);
+          if (x.taxa === "" || x.prazo === "") return { erro: `Preencha a taxa e em quantos dias cai o dinheiro de “${x.forma}”. Não sabe? Veja no aplicativo da maquininha ou do banco (sem taxa: 0).` };
           const t = Motor.num(x.taxa), d = Number(x.prazo), pt = Motor.num(x.parte);
-          if (isNaN(t) || t < 0 || t >= 100) return erro(`Taxa de “${x.forma}”: digite um número de 0 a 99. Ex.: 3,5`);
-          if (!/^\d+$/.test(x.prazo) || d > 365) return erro(`Prazo de “${x.forma}”: digite os dias, só números. Ex.: 30 (na hora: 0)`);
-          if (isNaN(pt) || pt < 0) return erro(`Parte das vendas de “${x.forma}”: digite um número. Ex.: 50`);
+          if (isNaN(t) || t < 0 || t >= 100) return { erro: `Taxa de “${x.forma}”: digite um número de 0 a 99. Ex.: 3,5` };
+          if (!/^\d+$/.test(x.prazo) || d > 365) return { erro: `Prazo de “${x.forma}”: digite os dias, só números. Ex.: 30 (na hora: 0)` };
+          if (isNaN(pt) || pt < 0) return { erro: `Parte das vendas de “${x.forma}”: digite um número. Ex.: 50` };
         }
         const soma = lista.reduce((a, x) => a + Motor.num(x.parte), 0);
-        if (Math.abs(soma - 100) > 0.5) return erro(`As partes das vendas somam ${String(Math.round(soma * 10) / 10).replace(".", ",")}%. Ajuste para somar 100%.`);
+        if (Math.abs(soma - 100) > 0.5) return { erro: `As partes das vendas somam ${String(Math.round(soma * 10) / 10).replace(".", ",")}%. Ajuste para somar 100%.` };
         const r = { estado: "valor", valor: lista };
         if (her && her.formas && JSON.stringify(lista) === JSON.stringify(her.formas.map((x) => ({ forma: x.forma, taxa: x.taxa, prazo: x.prazo, parte: String(x.parte || "100") })))) r.herdado = her.modulo;
-        return responder(r);
+        return { r };
       }
       if (tipo === "sazonal") {
-        if (!escolhida) return erro(MSG_ESCOLHA);
+        if (!escolhida) return { erro: MSG_ESCOLHA };
         const r = { estado: "opcao", opcao: escolhida };
         if (escolhida === Motor.SZ_SIM) {
           const sel = (c) => [...p.querySelectorAll(`.saz-det .${c} .mes.sel`)].map((b) => +b.dataset.m);
           const mais = p.querySelector("#sz-mais").value.trim(), menos = p.querySelector("#sz-menos").value.trim();
           Object.assign(r, { fortes: sel("fortes"), fracos: sel("fracos"), maisPct: mais ? Number(mais) : 0, menosPct: menos ? Number(menos) : 0 });
-          if (!r.fortes.length && !r.fracos.length) return erro("Toque nos meses mais fortes ou mais fracos.");
-          if ((mais && !/^\d+$/.test(mais)) || (menos && !/^\d+$/.test(menos)) || r.menosPct > 100) return erro("Digite só números inteiros. Ex.: 50 (a menos: até 100)");
-          if ((r.fortes.length && !r.maisPct) || (r.fracos.length && !r.menosPct)) return erro("Diga quanto a mais ou a menos você vende nesses meses. Ex.: 50");
+          if (!r.fortes.length && !r.fracos.length) return { erro: "Toque nos meses mais fortes ou mais fracos." };
+          if ((mais && !/^\d+$/.test(mais)) || (menos && !/^\d+$/.test(menos)) || r.menosPct > 100) return { erro: "Digite só números inteiros. Ex.: 50 (a menos: até 100)" };
+          if ((r.fortes.length && !r.maisPct) || (r.fracos.length && !r.menosPct)) return { erro: "Diga quanto a mais ou a menos você vende nesses meses. Ex.: 50" };
         }
         if (her && her.sz && JSON.stringify(r) === JSON.stringify(her.sz)) r.herdado = her.modulo;
-        return responder(r);
+        return { r };
       }
       if (tipo === "parcelas") {
         const forma = Motor.valor(S.R, "M6.P03"), comEntrada = forma === "Parte à vista e parte parcelado";
         const total = Motor.num(Motor.valor(S.R, "M6.P02")) || 0;
         const eTxt = comEntrada ? p.querySelector("#p-entrada").value.trim() : "", nTxt = p.querySelector("#p-n").value.trim();
         const e = comEntrada ? Motor.num(eTxt) : 0, n = Number(nTxt);
-        if ((comEntrada && !eTxt) || !nTxt) return erro(MSG_RESPONDA);
-        if (comEntrada && (isNaN(e) || e < 0)) return erro(isNaN(e) ? MSG_NUMERO : MSG_NEGATIVO);
-        if (comEntrada && e >= total) return erro(`A entrada precisa ser menor que o valor da compra (${brl(total)}).`);
-        if (!/^\d+$/.test(nTxt) || n < 1 || n > MAX_PARCELAS) return erro(`Digite o número de parcelas, de 1 a ${MAX_PARCELAS}. Ex.: 4`);
+        if ((comEntrada && !eTxt) || !nTxt) return { erro: MSG_RESPONDA };
+        if (comEntrada && (isNaN(e) || e < 0)) return { erro: isNaN(e) ? MSG_NUMERO : MSG_NEGATIVO };
+        if (comEntrada && e >= total) return { erro: `A entrada precisa ser menor que o valor da compra (${brl(total)}).` };
+        if (!/^\d+$/.test(nTxt) || n < 1 || n > MAX_PARCELAS) return { erro: `Digite o número de parcelas, de 1 a ${MAX_PARCELAS}. Ex.: 4` };
         const parcela = Motor.cent((total - e) / n);
-        return responder({ estado: "valor", entrada: e, parcelas: n,
-          valor: (comEntrada ? `Entrada de ${brl(e)} e ` : "") + `${n} ${n === 1 ? "parcela" : "parcelas"} de ${brl(parcela)} por mês` });
+        return { r: { estado: "valor", entrada: e, parcelas: n,
+          valor: (comEntrada ? `Entrada de ${brl(e)} e ` : "") + `${n} ${n === 1 ? "parcela" : "parcelas"} de ${brl(parcela)} por mês` } };
       }
       if (tipo === "escolha" || tipo === "simnao_texto") {
-        if (!escolhida) return erro(MSG_ESCOLHA);
-        if (escolhida === Motor.NS) return erro(MSG_ESCOLHA_NS);
+        if (!escolhida) return { erro: MSG_ESCOLHA };
+        if (escolhida === Motor.NS) return { erro: MSG_ESCOLHA_NS };
         const r0 = { estado: "opcao", opcao: escolhida };
         if (tipo === "simnao_texto" && escolhida === "Sim") r0.detalhe = p.querySelector("#detalhe").value.trim();
-        return responder(r0);
+        return { r: r0 };
       }
       if (tipo === "multi") {
-        if (!marcadas.length || (marcadas.length === 1 && marcadas[0] === Motor.NS)) return erro(MSG_MARQUE);
+        if (!marcadas.length || (marcadas.length === 1 && marcadas[0] === Motor.NS)) return { erro: MSG_MARQUE };
         const r1 = { estado: "multi", opcoes: marcadas.slice() };
         if (her && her.opcoes && JSON.stringify(her.opcoes) === JSON.stringify(r1.opcoes)) r1.herdado = her.modulo;
-        return responder(r1);
+        return { r: r1 };
       }
       const r2 = Motor.envio(q, ent.querySelector("input,textarea").value);
-      if (r2.estado === "vazia") return erro(nsTocado ? MSG_ESCREVA : MSG_RESPONDA);
-      if (r2.estado === "invalida") return erro(MSG_NUMERO);
-      if (r2.estado === "negativa") return erro(MSG_NEGATIVO);
+      if (r2.estado === "vazia") return { erro: nsTocado ? MSG_ESCREVA : MSG_ESCREVA_SIMPLES };
+      if (r2.estado === "invalida") return { erro: MSG_NUMERO };
+      if (r2.estado === "negativa") return { erro: MSG_NEGATIVO };
       if (her0 && r2.estado === "valor" && r2.valor === String(her0.valor)) r2.herdado = her0.modulo;
-      /* valor diferente do que veio do outro módulo: avisa uma vez (o 2º Continuar com o mesmo valor segue) */
-      const dif = her0 && !r2.herdado && r2.estado === "valor" ? divergencia(cod, her0, r2.valor) : null;
-      if (dif && avisado !== r2.valor) { avisado = r2.valor; return erro(dif, true); }
-      /* valor fora do comum: avisa uma vez; o segundo Continuar com o mesmo valor segue */
       /* "nada, por enquanto." = sem compras agora: não vira item da lista de prioridades */
       if (cod === "M6.P01" && r2.estado === "valor" && Motor.semCompras(r2.valor)) r2.semCompras = true;
-      const av = Motor.avisoValor(cod, r2);
-      if (av && avisado !== r2.valor) { avisado = r2.valor; return erro(av, true); }
-      responder(r2);
+      return { r: r2, campo: true };
+    }
+
+    /* ---- retorno ao vivo: escolha = no toque; campo = ao sair dele ou 700 ms sem digitar ---- */
+    let vistoKey = null, vistoEm = 0, espera = null;
+    const Rcom = (r) => Object.assign({}, S.R, { [cod]: r });
+    function aoVivo() {
+      clearTimeout(espera);
+      const x = ler(), box = p.querySelector("#retorno"), e = p.querySelector("#erro");
+      if (!e.hidden && !e.classList.contains("aviso")) e.hidden = true;
+      if (!x.r) { box.innerHTML = ""; vistoKey = null; nomeBotao(null); return; }
+      const regras = Motor.regrasPara(M, cod, x.r);
+      const parado = !Motor.valido(x.r) || regras.some(Motor.retorna);
+      box.innerHTML = htmlRetorno(regras, x.r, parado);
+      ligarCopiar(box);
+      vistoKey = JSON.stringify(x.r); vistoEm = Date.now();
+      nomeBotao(parado ? null : x.r);
+    }
+    const aoVivoDepois = () => { clearTimeout(espera); espera = setTimeout(aoVivo, 700); };
+    p.addEventListener("input", (ev) => { if (ehCampo(ev.target) && !ev.target.closest(".como-ns")) aoVivoDepois(); });
+    p.addEventListener("change", (ev) => { if (ehCampo(ev.target) && !ev.target.closest(".como-ns")) aoVivo(); });
+    /* na última pergunta do caminho o botão diz para onde vai */
+    function nomeBotao(r) {
+      const ok = p.querySelector("#ok");
+      ok.textContent = proxPrevia(cod, r ? Rcom(r) : S.R) === "RESULTADO" ? "Ver meu resumo" : "Continuar";
+    }
+
+    function htmlRetorno(regras, r, parado) {
+      const atencao = [...new Set(regras.filter(Motor.ehRisco).map((x) => x.alerta).filter((a) => !vazio(a)).map((a) => String(a).trim()))];
+      const extra = !parado && r.semCompras ? SEM_COMPRAS_RET : "";
+      const corpo = `${parado || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
+        ${extra ? `<p class="r-texto r-sem-compras">${esc(extra)}</p>` : ""}
+        ${parado ? "" : retornoApp(cod, Rcom(r))}
+        ${regras.map((x) => `
+          <div class="regra">
+            <p class="r-texto">${esc(x.texto)}</p>
+            ${detalhesRegra(x, parado)}
+          </div>`).join("")}
+        ${atencao.length ? `<div class="bloco b-alerta b-aviso"><b>Fique de olho</b>${atencao.length === 1 ? esc(atencao[0]) : `<ul>${atencao.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`}</div>` : ""}`;
+      return corpo.trim() ? `<div class="retorno${parado ? " parado" : ""}">${corpo}</div>` : "";
+    }
+    /* o que veio só no toque de Continuar (sem tempo de ler) vai para o cartão da próxima tela, curto */
+    function textoSobre(regras, r) {
+      const partes = [];
+      if (r.semCompras) partes.push(esc(SEM_COMPRAS_RET));
+      const app = retornoApp(cod, Rcom(r)).replace(/<p class="como"[\s\S]*$/, "").replace(/<[^>]+>/g, "").trim();
+      if (app) partes.push(esc(app));
+      /* só o que pesa (regra de risco e o aviso dela); o retorno comum já ficou ao vivo na tela anterior */
+      regras.filter(Motor.ehRisco).forEach((x) => { if (!vazio(x.texto)) partes.push(esc(x.texto)); });
+      const at = [...new Set(regras.filter(Motor.ehRisco).map((x) => x.alerta).filter((a) => !vazio(a)).map((a) => String(a).trim()))];
+      if (at.length) partes.push(`<span class="sobre-alerta"><b>Fique de olho:</b> ${at.map(esc).join(" ")}</span>`);
+      return partes.length ? partes.join(" ") : null;
+    }
+
+    p.querySelector("#ok").onclick = () => {
+      clearTimeout(espera);
+      const x = ler();
+      if (x.erro) { p.querySelector("#retorno").innerHTML = ""; return erro(x.erro); }
+      const r = x.r;
+      if (x.campo) {
+        /* valor diferente do que veio do outro módulo, ou fora do comum: avisa uma vez (o 2º Continuar com o mesmo valor segue) */
+        const dif = her0 && !r.herdado && r.estado === "valor" ? divergencia(cod, her0, r.valor) : null;
+        if (dif && avisado !== r.valor) { avisado = r.valor; return erro(dif, true); }
+        const av = Motor.avisoValor(cod, r);
+        if (av && avisado !== r.valor) { avisado = r.valor; return erro(av, true); }
+      }
+      responder(r);
     };
     let avisado = null;
     function erro(t, soAviso) { const e = p.querySelector("#erro"); e.textContent = t; e.className = soAviso ? "aviso aviso-valor" : "erro"; e.hidden = false; }
 
     function responder(r0) {
       p.querySelector("#erro").hidden = true;
+      const regras = Motor.regrasPara(M, cod, r0);
+      /* resposta vazia/inválida, ou regra cujo encaminhamento é "Retornar à Pxx": fica na pergunta, com o motivo à vista */
+      if (!Motor.valido(r0) || regras.some(Motor.retorna)) {
+        if (!regras.length) return erro(r0.estado === "invalida" ? MSG_NUMERO : MSG_RESPONDA);
+        const box = p.querySelector("#retorno");
+        box.innerHTML = htmlRetorno(regras, r0, true);
+        erro("Complete a sua resposta (veja acima) para continuar.");
+        box.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      const visto = vistoKey === JSON.stringify(r0) && Date.now() - vistoEm > 400;
       if (S.trocando === cod) S.trocando = null;
       S.pulou = [];
-      const regras = Motor.regrasPara(M, cod, r0);
-      /* resposta vazia/inválida, ou regra cujo encaminhamento é "Retornar à Pxx": fica na pergunta */
-      if (!Motor.valido(r0) || regras.some(Motor.retorna)) {
-        if (r0.estado === "invalida") erro(MSG_NUMERO);
-        if (!regras.length) return erro(r0.estado === "invalida" ? MSG_NUMERO : "Responda para continuar.");
-        return mostrarRetorno(regras, null, true);
-      }
       /* formas de pagamento mudaram: taxa/prazo/parte de cada forma são perguntados de novo */
       if (cod === "M6.P04" && S.R[Motor.P_FORMAS] && Array.isArray(S.R[Motor.P_FORMAS].valor)
         && S.R[Motor.P_FORMAS].valor.map((x) => x.forma).join("|") !== (r0.opcoes || []).join("|")) delete S.R[Motor.P_FORMAS];
@@ -829,55 +938,13 @@
       S.fluxo = null; S.cen = null;      // a projeção é refeita com as novas respostas
       limparInvisiveis();
       salvar();
-      mostrarRetorno(Motor.regrasAgora(M, S.R, cod), proxPrevia(cod));
+      const prox = proxTela(cod);
+      if (prox === "RESULTADO") { sobreAnterior = null; S.hist.push("RESULTADO"); salvar(); ir(telaResultado); return; }
+      sobreAnterior = visto ? null : textoSobre(Motor.regrasAgora(M, S.R, cod), r0);
+      ir(telaPergunta, prox);
     }
-
-    function mostrarRetorno(regras, prox, parado) {
-      const box = p.querySelector("#retorno");
-      /* "Ainda não sei o que vou precisar comprar": só a orientação curta (sem a calculadora do valor das compras) */
-      const descobrir = !parado && S.R[cod] && S.R[cod].aindaNaoSei;
-      if (descobrir) regras = [];
-      /* um só bloco de atenção na tela: alertas das regras + alerta da pergunta, sem repetição */
-      /* só o aviso que depende da resposta (risco real); o resto já está na dica da pergunta */
-      const atencao = descobrir ? [] : [...new Set(regras.filter(Motor.ehRisco).map((r) => r.alerta).filter((a) => !vazio(a)).map((a) => String(a).trim()))];
-      const extra = !parado && S.R[cod] && S.R[cod].semCompras ? SEM_COMPRAS_RET : "";
-      /* "Não sei": a caixa "Como descobrir" vem primeiro no retorno (uma só na tela) */
-      const ns = !parado && !descobrir && S.R[cod] && S.R[cod].estado === "naosei"
-        || !parado && S.R[cod] && S.R[cod].estado === "multi" && S.R[cod].opcoes.includes(Motor.NS);
-      p.querySelector("#ajudans").innerHTML = "";
-      box.innerHTML = `<div class="retorno${parado ? " parado" : ""}">
-        ${ns ? caixaComo(q) : ""}
-        ${parado || descobrir || vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
-        ${descobrir ? `<p class="r-texto r-descobrir">Tudo bem. Por enquanto, pulamos o valor das compras. No seu resumo, isso fica como algo que falta descobrir.</p>${blocoComoDescobrir(true)}` : ""}
-        ${extra ? `<p class="r-texto r-sem-compras">${esc(extra)}</p>` : ""}
-        ${parado ? "" : retornoApp(cod)}
-        ${regras.map((r) => `
-          <div class="regra">
-            <p class="r-texto">${esc(r.texto)}</p>
-            ${vazio(r.lacuna) ? "" : `<div class="bloco b-lacuna"><b>O que ainda falta</b>${esc(r.lacuna)}</div>`}
-            ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
-            ${vazio(r.encaminhamento) || Motor.retorna(r) ? "" : `<div class="bloco b-enc"><b>Encaminhamento</b>${esc(r.encaminhamento)}</div>`}
-          </div>`).join("")}
-        ${atencao.length ? `<div class="bloco b-alerta b-aviso"><b>Fique de olho</b>${atencao.length === 1 ? esc(atencao[0]) : `<ul>${atencao.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`}</div>` : ""}
-      </div>`;
-      ligarCopiar(box);
-      if (parado) { box.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
-      const usar = box.querySelector("#usar-m5");
-      if (usar) usar.onclick = () => {
-        partidaP01 = { valor: materiaisM5().join(", "), modulo: 5, nota: "São os materiais que você listou no Módulo 5. Apague o que não precisa comprar e acrescente o que faltar." };
-        ir(telaPergunta, cod);
-      };
-      const acoes = p.querySelector("#acoes");
-      acoes.innerHTML = "";
-      box.after(acoes);          // depois de ler o retorno, o Seguir fica logo abaixo dele
-      const b = el(`<button class="btn btn-primario seta">${prox === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
-      b.onclick = () => { prox = proxTela(cod); if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); };
-      acoes.appendChild(b);
-      const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
-      c.onclick = () => ir(telaPergunta, cod);
-      acoes.appendChild(c);
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    /* resposta já dada (ou trazida de outra etapa): o retorno dela já aparece */
+    setTimeout(() => { if (resp || her) aoVivo(); else nomeBotao(null); });
     return p;
   }
 
@@ -933,7 +1000,7 @@
   function avisoM1(valor) {
     const t = tetoM1();
     if (!t || t.teto === null || valor === null || !(valor > t.teto)) return "";
-    return `<li id="aviso-m1"><span class="selo">Veio do Módulo 1</span> No Módulo 1 você disse que pode usar
+    return `<li id="aviso-m1"><span class="selo">Veio da Etapa 1</span> Na Etapa 1 você disse que pode usar
       “${esc(t.texto)}” no negócio sem faltar para as contas da casa. Aqui, o que você precisa para começar soma ${brl(valor)}.
       Confira os valores, veja o que pode ficar para depois ou como juntar a diferença antes de comprar.</li>`;
   }
@@ -954,7 +1021,7 @@
     const m5 = dadosM5();
     if (m5 && m5.mensal > 0) {
       const aqui = Motor.cent((F.gastosMes || 0) + (F.perdasMes || 0) + (F.retiradaMes || 0));
-      if (Math.abs(aqui - m5.mensal) >= 0.005) add(`<li id="atencao-m5"><span class="selo">Veio do Módulo 5</span> Seus gastos do mês aqui (${brl(aqui)}) estão diferentes dos do Módulo 5 (${brl(m5.mensal)}). Confira em “Ver o caixa das 13 semanas”.</li>`, "m5");
+      if (Math.abs(aqui - m5.mensal) >= 0.005) add(`<li id="atencao-m5"><span class="selo">Veio da Etapa 5</span> Seus gastos do mês aqui (${brl(aqui)}) estão diferentes dos da Etapa 5 (${brl(m5.mensal)}). Confira em “Ver o caixa das 13 semanas”.</li>`, "m5");
     }
     Motor.alertas(Motor.regrasTodas(M, S.R)).forEach((a) => add(`<li>${esc(a)}</li>`, a));
     return itens.length ? `<div class="bloco b-alerta b-aviso"><b>Atenção, pelas suas respostas</b><ul>${itens.join("")}</ul></div>` : "";
@@ -978,7 +1045,7 @@
       ${falta}
       <div class="lista" id="prio">${itens.map((it, i) => `
         <div class="item"><div class="item-topo"><b class="nome">${esc(it)}</b><button class="btn-alt tirar" data-i="${i}" aria-label="Tirar ${esc(it)} da lista">Tirar da lista</button></div>
-          <div class="opcoes mini">${cats.map((c) => `<button class="opcao ${S.prio[it] === c ? "sel" : ""}" data-i="${i}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+          <div class="opcoes mini">${cats.map((c) => `<button type="button" class="opcao ${S.prio[it] === c ? "sel" : ""}" aria-pressed="${S.prio[it] === c}" data-i="${i}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>
         </div>`).join("")}</div>
       ${fora}
       ${regraInstr(ins)}${limiteInstr(ins)}`;
@@ -1004,8 +1071,8 @@
     m5.entregaVenda = m5.entrega ? m5.entrega.porVenda : 0;
     if (!m5 || !(m5[m5k] > 0)) return "";
     const F = S.fluxo;
-    return Math.abs((F[k] || 0) - m5[m5k]) < 0.005 ? `<span class="selo">Veio do Módulo 5</span>`
-      : `<span class="mini-info dif-m5">No Módulo 5: ${brl(m5[m5k])}</span>`;
+    return Math.abs((F[k] || 0) - m5[m5k]) < 0.005 ? `<span class="selo">Veio da Etapa 5</span>`
+      : `<span class="mini-info dif-m5">Na Etapa 5: ${brl(m5[m5k])}</span>`;
   }
   const CAMPOS_MES = [
     ["f-ini", "saldoInicial", "Dinheiro em caixa hoje", null],
@@ -1022,8 +1089,8 @@
     if (!m5 || !(m5.mensal > 0)) return "";
     const aqui = Motor.cent((F.gastosMes || 0) + (F.perdasMes || 0) + (F.retiradaMes || 0));
     const igual = Math.abs(aqui - m5.mensal) < 0.005;
-    return `<div class="${igual ? "cartao" : "bloco b-alerta"} confere-m5" id="confere-m5"><b>Gastos do mês: Módulo 5 × aqui</b>
-      <p>No Módulo 5: ${brl(m5.fixos)} fixos + ${brl(m5.perdas)} de perdas + ${brl(m5.retirada)} para você = <b>${brl(m5.mensal)}</b> por mês.</p>
+    return `<div class="${igual ? "cartao" : "bloco b-lacuna"} confere-m5" id="confere-m5"><b>Gastos do mês: Etapa 5 × aqui</b>
+      <p>Na Etapa 5: ${brl(m5.fixos)} fixos + ${brl(m5.perdas)} de perdas + ${brl(m5.retirada)} para você = <b>${brl(m5.mensal)}</b> por mês.</p>
       <p>Aqui: ${brl(F.gastosMes || 0)} + ${brl(F.perdasMes || 0)} + ${brl(F.retiradaMes || 0)} = <b>${brl(aqui)}</b> por mês.${igual ? " Os dois batem." : " Estão diferentes: confira qual está certo."}</p>
       <p class="mini-info">O custo de cada venda fica fora dessa soma, porque muda com o número de vendas.</p></div>`;
   }
@@ -1054,8 +1121,8 @@
     if (F.entregaVenda > 0 && F.precoVenda > 0) {
       const base = en && en.custo && Math.abs(en.porVenda - F.entregaVenda) < 0.005 ? `${en.pct !== null && en.pct !== undefined ? `${pc(en.pct)}% de ${brl(F.precoVenda)} = ` : ""}${brl(en.custo)} por entrega${en.cobra ? ` − ${brl(en.cobra)} que o cliente paga` : ""}${en.a10 !== 10 ? ` × ${en.a10} de cada 10 vendas` : ""} = ` : "";
       li.push(`<li id="pr-entrega">Entregas: ${base}${brl(F.entregaVenda)} por venda × ${numero(nv).replace(/,00$/, "")} vendas no mês = ${brl(F.entregasMes)} por mês × 12 ÷ 52 = ${brl(F.entregasSemana)} por semana.</li>`);
-    } else if (en && /^Não/i.test(en.opcao)) li.push(`<li id="pr-entrega">Entregas: sem custo (no Módulo 5 você disse “${esc(en.opcao)}”).</li>`);
-    else if (!(F.entregaVenda > 0)) li.push(`<li id="pr-entrega">Custo de entrega não informado (Módulo 5). <a href="/lg2/turma-a/m05/index.html">Trocar no Módulo 5</a> ou preencha “Entrega por venda” acima.</li>`);
+    } else if (en && /^Não/i.test(en.opcao)) li.push(`<li id="pr-entrega">Entregas: sem custo (na Etapa 5 você disse “${esc(en.opcao)}”).</li>`);
+    else if (!(F.entregaVenda > 0)) li.push(`<li id="pr-entrega">Custo de entrega não informado (Etapa 5). <a href="/lg2/turma-a/m05/index.html">Trocar na Etapa 5</a> ou preencha “Entrega por venda” acima.</li>`);
     const pl = F.plano || {};
     if (pl.n) {
       li.push(`<li id="pr-invest">Compras para começar: ${brl(pl.total)}. ${pl.entrada ? `Entrada de ${brl(pl.entrada)}` : "Nada de entrada"}${pl.outros ? ` + ${brl(pl.outros)} de outras compras` : ""} na semana 1; ${pl.n} ${pl.n === 1 ? "parcela" : "parcelas"} de ${brl(pl.parcela)} por mês${pl.semanas.length ? `, nas semanas ${pl.semanas.map((x) => x.semana).join(", ")} (1 mês ≈ 4,33 semanas)` : ""}.`
@@ -1086,7 +1153,7 @@
     const x = ind(), pc = (n) => String(n).replace(".", ",");
     if (!(x.investimento > 0)) return `<div class="secao-titulo">Retorno do investimento</div><p class="ajuda" id="ret-inv">Sem investimento inicial informado, não há retorno para calcular.</p>`;
     if (!x.sePaga) return `<div class="secao-titulo">Retorno do investimento</div>
-      <div class="bloco b-alerta b-aviso" id="ret-inv"><b>Retorno</b>Com estes números o investimento não se paga: o mês não deixa sobra (${brl(x.lucroMes)}).</div>
+      <div class="bloco b-lacuna" id="ret-inv"><b>Retorno</b>Com estes números o investimento não se paga: o mês não deixa sobra (${brl(x.lucroMes)}).</div>
       ${como(`para o investimento voltar, cada mês precisa deixar sobra. Aqui: ${brl(x.lucroMes)} por mês.`, "como-retorno")}`;
     return `<div class="secao-titulo">Retorno do investimento</div>
       <div class="mini-cards" id="ret-inv">
@@ -1212,7 +1279,7 @@
       return `<span class="selo">Falta descobrir</span>`;
     if (v === undefined) return `<span class="mini-info">Não apareceu no seu caminho</span>`;
     if (r && r.aindaNaoSei) return `${esc(AINDA_NAO_SEI)} <span class="selo">Falta descobrir</span>`;
-    return (r && r.herdado ? `<span class="selo">Veio do Módulo ${esc(r.herdado)}</span> ` : "") + esc(r && (Array.isArray(r.valor) || r.opcao === Motor.SZ_SIM) ? textoResp(r) : v) + (det ? ` · ${esc(det)}` : "");
+    return (r && r.herdado ? `<span class="selo">Veio da Etapa ${esc(r.herdado)}</span> ` : "") + esc(r && (Array.isArray(r.valor) || r.opcao === Motor.SZ_SIM) ? textoResp(r) : v) + (det ? ` · ${esc(det)}` : "");
   }
 
   /* resultado: cada "Não sei" leva o seu "Como descobrir" (fechado), com o pedido pronto para a IA */
@@ -1227,7 +1294,7 @@
   /* respostas reaproveitadas de outros módulos (sem tela aqui), com "Trocar" */
   function blocoHerdadas() {
     const l = AUTO.filter((c) => autoHerdada(c, S.R));
-    return l.length ? `<details class="resultado-mais herdadas" id="herdadas-res"><summary>Respostas que vieram de outros módulos</summary><ul>${l.map(itemHerdado).join("")}</ul></details>` : "";
+    return l.length ? `<details class="resultado-mais herdadas" id="herdadas-res"><summary>Respostas que vieram de outras etapas</summary><ul>${l.map(itemHerdado).join("")}</ul></details>` : "";
   }
   function telaResultado() {
     const regras = Motor.regrasTodas(M, S.R);
@@ -1241,7 +1308,7 @@
         <main class="corpo">
           ${botaoVoltar()}
           <section class="concluido">
-            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a Etapa ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
           </section>
           <section class="entendemos" id="entendemos">${blocoEntendemos()}</section>
           <div class="secao-titulo">Sua próxima tarefa</div>
@@ -1280,7 +1347,7 @@
             <button class="btn btn-claro" id="rev">Revisar respostas</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
-          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m07/index.html">Ir para o Módulo 7</a></div>
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m07/index.html">Ir para a Etapa 7</a></div>
           ${rodape()}
         </main>
       </div>`);

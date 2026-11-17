@@ -16,10 +16,10 @@ const { chromium } = require(process.env.PW || 'playwright');
 const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m10');
 const CAPA_PDF = {
  "nome": "Comunicação, vendas, pessoas e plano de ação",
- "objetivo": "Ao final do módulo, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
- "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam ao módulo com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. O módulo busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
+ "objetivo": "Ao final da etapa, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
+ "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam à etapa com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. A etapa busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
  "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
- "entrega": "Ao final, o módulo entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado."
+ "entrega": "Ao final, a etapa entrega um diagnóstico sobre a comunicação, rotina e necessidades de equipe, além de um resumo com os 3 problemas mais urgentes e próximos passos para compor um plano de ação direcionado."
 };
 const ESPERADO = {
  "perguntas": [
@@ -100,7 +100,7 @@ const ESPERADO = {
    "M10-01",
    "Ainda não falo com clientes",
    "Dica",
-   "Pense em por onde o seu cliente prefere falar: o Módulo 2 mostrou onde ele procura ([onde procuram])."
+   "Pense em por onde o seu cliente prefere falar: a Etapa 2 mostrou onde ele procura ([onde procuram])."
   ],
   [
    "M10-01",
@@ -136,7 +136,7 @@ const ESPERADO = {
    "M10-03",
    "Sim, sigo passos parecidos",
    "Resposta",
-   "Confira o roteiro. Ele usa o que você já respondeu nos outros módulos."
+   "Confira o roteiro. Ele usa o que você já respondeu nas outras etapas."
   ],
   [
    "M10-03",
@@ -160,7 +160,7 @@ const ESPERADO = {
    "M10-04",
    "Sim, peço opinião / Sim, ofereço de novo",
    "Resposta",
-   "Anote o que os clientes dizem: isso alimenta o seu padrão de qualidade (Módulo 7)."
+   "Anote o que os clientes dizem: isso alimenta o seu padrão de qualidade (Etapa 7)."
   ],
   [
    "M10-04",
@@ -184,7 +184,7 @@ const ESPERADO = {
    "M10-05",
    "Anúncio pago",
    "Atenção",
-   "Anúncio pago é um gasto. Confira se ele entrou nos seus gastos do Módulo 5 e defina um limite antes de começar."
+   "Anúncio pago é um gasto. Confira se ele entrou nos seus gastos da Etapa 5 e defina um limite antes de começar."
   ],
   [
    "M10-05",
@@ -322,17 +322,17 @@ const ESPERADO = {
  "apoio": {
   "M10-01": "Marque todos. Não informe números nem perfis.",
   "M10-02": "Pense na última semana. Se ainda não vende, pense no que consegue fazer.",
-  "M10-03": "Você já ouviu [pessoas ouvidas] pessoas no Módulo 2. Montamos um roteiro com o que você respondeu: [etapas]. Confira.",
+  "M10-03": "Você já ouviu [pessoas ouvidas] pessoas na Etapa 2. Montamos um roteiro com o que você respondeu: [etapas]. Confira.",
   "M10-04": "[Se compra recorrente no Módulo 2]: Você disse que o cliente compra [frequência]. Voltar a falar pode trazer a próxima venda.",
   "M10-05": "Escolha a principal. A mensagem pode partir do seu diferencial: [diferencial do Módulo 3].",
-  "M10-06": "Você disse no Módulo 8 que terá sócio. Combinar antes evita desentendimentos depois.",
-  "M10-07": "Etapas do seu mapa (Módulo 7) que ainda estão sem responsável: [etapas].",
+  "M10-06": "Você disse na Etapa 8 que terá sócio. Combinar antes evita desentendimentos depois.",
+  "M10-07": "Passos do seu mapa do processo (Etapa 7) que ainda estão sem responsável: [etapas].",
   "M10-08": "[Se capacidade curta no Módulo 7]: Com o tempo informado, cabem cerca de [N] por mês, e você pretende [volume].",
   "M10-08a": "Marque as que você já pensou. Contratar tem custo fixo e regras próprias.",
-  "M10-09": "Juntamos o que ficou em aberto nos módulos anteriores. Escolha até 3 ou escreva outro.",
+  "M10-09": "Juntamos o que ficou em aberto nas etapas anteriores. Escolha até 3 ou escreva outro.",
   "M10-10": "Responda para cada prioridade. Isso ajuda a decidir por onde começar.",
   "M10-11": "Ex.: 'Fazer a consulta de viabilidade até sexta; sinal: resposta da prefeitura'. Ou: 'Divulgar no grupo do bairro por 2 semanas; sinal: 5 pedidos'.",
-  "M10-12": "Confira antes de salvar. Você pode corrigir qualquer resposta, de qualquer módulo."
+  "M10-12": "Confira antes de salvar. Você pode corrigir qualquer resposta, de qualquer etapa."
  }
 };
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf', '.webp': 'image/webp' };
@@ -341,6 +341,10 @@ const servidor = http.createServer((req, res) => {
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(f)] || 'application/octet-stream' });
   /* sabotagem (M10_SABOTAGEM=1): o "Não sei" volta a valer como resposta; o teste tem de falhar */
+  /* sabotagem do item A (M10_SABOTAGEM_A=1): volta o passo extra (1º toque só mostra o retorno, 2º avança); o teste tem de falhar */
+  if (process.env.M10_SABOTAGEM_A && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('p.querySelector("#ok").onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };', 'let _sab = false; p.querySelector("#ok").onclick = () => { const r0 = coletar(); if (!r0) return; if (!_sab) { _sab = true; return; } avancar(r0); };'));
+  /* sabotagem do B6 (M10_SABOTAGEM_B6=1): volta o lc() antigo e a oferta inteira no enunciado */
+  if (process.env.M10_SABOTAGEM_B6 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('const lc = (s) => String(s || "").split(/,\\s*(?![^()]*\\))/).map(minusc).join(", ");', 'const lc = (s) => String(s || "").split(/,\\s*(?![^()]*\\))/).map((x) => x.charAt(0).toLowerCase() + x.slice(1)).join(", ");').replace('{ "[oferta em foco]": ofertaNaFrase() }', '{ "[oferta em foco]": oferta() || "o que você vende" }'));
   if (process.env.M10_SABOTAGEM && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (o === NS) { op = null; pediuNS = true; return ajudaNS(); }', 'if (o === NS) { op = "Ainda não sei"; ajudaNS(); return; }'));
   fs.createReadStream(f).pipe(res);
 });
@@ -398,10 +402,10 @@ const Mo = require(path.join(DIR, 'js/motor.js'));
   check('Regra: data passada é bloqueada; acima de 90 dias pede passo intermediário', Mo.avaliarData('2026-10-01', '2026-10-21') === 'passada' && Mo.avaliarData('2027-02-01', '2026-10-21') === 'longe' && Mo.avaliarData('2026-11-04', '2026-10-21') === 'ok');
   check('Regra: "Não sei" em prioridades marca as 3 primeiras da lista', JSON.stringify(Mo.tresPrimeiras([{ tema: 'a' }, { tema: 'b' }, { tema: 'c' }, { tema: 'd' }])) === '["a","b","c"]');
   /* lote 3 (Gaby, Arthur): "Por onde começar" = 3 ações em ordem; prioridades da pessoa primeiro, depois pontos para conferir e lacunas */
-  const LAC = [{ tema: 'Fazer a consulta de viabilidade na prefeitura', gravidade: 'alta', modulo: 9 }, { tema: 'Saber quanto dinheiro você tem para começar', gravidade: 'media', modulo: 6 }, { tema: 'Rever uma resposta “Não sei” do Módulo 3', gravidade: 'baixa', modulo: 3 }];
+  const LAC = [{ tema: 'Fazer a consulta de viabilidade na prefeitura', gravidade: 'alta', modulo: 9 }, { tema: 'Saber quanto dinheiro você tem para começar', gravidade: 'media', modulo: 6 }, { tema: 'Rever uma resposta “Não sei” da Etapa 3', gravidade: 'baixa', modulo: 3 }];
   { /* cenário 1: a pessoa marcou o preço como prioridade (Gaby) */
-    const a = Mo.porOndeComecar({ estagio: 'comeca', prioridades: ['Definição dos preços'], conferir: [{ chave: 'limite', detalhe: 'Os gastos previstos passam do que você disse no Módulo 1 que pode usar (até R$ 100).' }], lacunas: LAC });
-    check('Por onde começar (prioridade preço): 3 ações; a 1ª é o preço, com a ação e o módulo', a.length === 3 && a[0].chave === 'preco' && a[0].origem === 'prioridade' && a[0].modulo === 5 && a[0].texto.startsWith('Refaça a conta do preço no Módulo 5'), a);
+    const a = Mo.porOndeComecar({ estagio: 'comeca', prioridades: ['Definição dos preços'], conferir: [{ chave: 'limite', detalhe: 'Os gastos previstos passam do que você disse na Etapa 1 que pode usar (até R$ 100).' }], lacunas: LAC });
+    check('Por onde começar (prioridade preço): 3 ações; a 1ª é o preço, com a ação e a etapa', a.length === 3 && a[0].chave === 'preco' && a[0].origem === 'prioridade' && a[0].modulo === 5 && a[0].texto.startsWith('Refaça a conta do preço na Etapa 5'), a);
     check('Por onde começar (prioridade preço): depois o ponto para conferir e a lacuna mais grave', a[1].chave === 'limite' && a[1].origem === 'conferir' && a[1].detalhe.includes('até R$ 100') && a[2].chave === 'viabilidade' && a[2].origem === 'lacuna', a);
     const b = Mo.porOndeComecar({ estagio: 'comeca', prioridades: ['Definir o preço de venda'], conferir: [{ chave: 'preco', detalhe: 'Seu preço (R$ 8) está abaixo do custo de uma unidade (R$ 10).' }], lacunas: [] });
     check('Por onde começar: preço marcado + preço abaixo do custo = uma ação só, com o aviso junto', b.filter((x) => x.chave === 'preco').length === 1 && b[0].detalhe.startsWith('Seu preço (R$ 8) está abaixo do custo') && b[0].origem === 'prioridade', b);
@@ -417,8 +421,8 @@ const Mo = require(path.join(DIR, 'js/motor.js'));
     const n = Mo.porOndeComecar({ estagio: 'comeca', prioridades: [], conferir: [], lacunas: [] });
     check('Por onde começar (nada em aberto): 3 ações gerais do estágio', v.length === 3 && n.length === 3 && v.every((x) => x.origem === 'estagio') && v[0].texto.startsWith('Anote as vendas da semana') && n[0].texto.startsWith('Faça 5 vendas-teste'), { v, n });
   }
-  { /* item 3 (Gaby): o estágio do Módulo 1 muda o texto das ações */
-    check('Estágio do Módulo 1: "Já vendo sempre"/"Já vendi algumas vezes" = vende; ideia e amostras = começando', Mo.estagioDe('Já vendo sempre') === 'vende' && Mo.estagioDe('Já vendi algumas vezes') === 'vende' && Mo.estagioDe('Ainda está só na minha cabeça') === 'comeca' && Mo.estagioDe('Já fiz um pouco para testar ou dar de amostra') === 'comeca' && Mo.estagioDe('') === null);
+  { /* item 3 (Gaby): o estágio da Etapa 1 muda o texto das ações */
+    check('Estágio da Etapa 1: "Já vendo sempre"/"Já vendi algumas vezes" = vende; ideia e amostras = começando', Mo.estagioDe('Já vendo sempre') === 'vende' && Mo.estagioDe('Já vendi algumas vezes') === 'vende' && Mo.estagioDe('Ainda está só na minha cabeça') === 'comeca' && Mo.estagioDe('Já fiz um pouco para testar ou dar de amostra') === 'comeca' && Mo.estagioDe('') === null);
     const pv = Mo.porOndeComecar({ estagio: 'vende', prioridades: ['Definição dos preços', 'Definir a divulgação'] });
     const pc = Mo.porOndeComecar({ estagio: 'comeca', prioridades: ['Definição dos preços', 'Definir a divulgação'] });
     check('Estágio: quem já vende recebe ações de organizar e melhorar (anotar as vendas da semana)', pv[0].texto.includes('anote as vendas da semana') && pv[1].texto.includes('cliente desta semana') && pv[2].texto.startsWith('Anote as vendas da semana') && !pv.some((x) => /vendas-teste/.test(x.texto)), pv);
@@ -444,7 +448,7 @@ const JORNADA = path.resolve(__dirname, '../public/lg2/jornada');
     if (!igual && md5(path.join(JORNADA, 'js', f)) === ANTES[f]) { pend.push(f); return true; }
     return igual;
   });
-  check('Resumo: a cópia da jornada é igual à do Módulo 10 (resumo e capacidade)' + (pend.length ? ` [PENDENTE: copiar ${pend.join(', ')} de turma-b/m10/js/ para jornada/js/]` : ''), ok);
+  check('Resumo: a cópia da jornada é igual à da Etapa 10 (resumo e capacidade)' + (pend.length ? ` [PENDENTE: copiar ${pend.join(', ')} de turma-b/m10/js/ para jornada/js/]` : ''), ok);
 }
 const LAVA = {
   1: { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendi algumas vezes' }, 'M1.P03': { estado: 'valor', valor: 'Lavagem de carros na casa do cliente' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } },
@@ -470,20 +474,20 @@ const RESUMO_LAVA = [
 ];
 {
   const fr = RN.frases((n) => LAVA[n] || null);
-  check('Resumo (lava-jato, 10 módulos): 8 frases conferidas à mão, na ordem ideia → cliente → preço → mês → caixa → capacidade → documentos → plano', JSON.stringify(fr) === JSON.stringify(RESUMO_LAVA), fr);
+  check('Resumo (lava-jato, 10 etapas): 8 frases conferidas à mão, na ordem ideia → cliente → preço → mês → caixa → capacidade → documentos → plano', JSON.stringify(fr) === JSON.stringify(RESUMO_LAVA), fr);
   const so1 = RN.frases((n) => (n === 1 ? LAVA[1] : null));
-  check('Resumo: só há frase para o que existe (só o Módulo 1 = 1 frase)', JSON.stringify(so1) === JSON.stringify([RESUMO_LAVA[0]]), so1);
+  check('Resumo: só há frase para o que existe (só a Etapa 1 = 1 frase)', JSON.stringify(so1) === JSON.stringify([RESUMO_LAVA[0]]), so1);
   check('Resumo: nada respondido = nenhuma frase', RN.frases(() => null).length === 0);
   /* texto corrido em até 3 parágrafos, por assunto (pedido da turma: resumo em tópicos confunde) */
   const pg = RN.paragrafos((n) => LAVA[n] || null);
   check('Resumo em parágrafos: 3 parágrafos (negócio e cliente; dinheiro e tempo; documentos e próximo passo), mesmas frases', JSON.stringify(pg) === JSON.stringify([RESUMO_LAVA.slice(0, 2).join(' '), RESUMO_LAVA.slice(2, 6).join(' '), RESUMO_LAVA.slice(6).join(' ')]), pg);
-  check('Resumo em parágrafos: só o Módulo 1 = 1 parágrafo; nada respondido = nenhum', JSON.stringify(RN.paragrafos((n) => (n === 1 ? LAVA[1] : null))) === JSON.stringify([RESUMO_LAVA[0]]) && RN.paragrafos(() => null).length === 0);
+  check('Resumo em parágrafos: só a Etapa 1 = 1 parágrafo; nada respondido = nenhum', JSON.stringify(RN.paragrafos((n) => (n === 1 ? LAVA[1] : null))) === JSON.stringify([RESUMO_LAVA[0]]) && RN.paragrafos(() => null).length === 0);
   const ns = JSON.parse(JSON.stringify(LAVA)); ns[4].R['M4.P08'] = { estado: 'naosei' }; ns[6].R['M6.P07'] = { estado: 'naosei' };
   const frNs = RN.frases((n) => ns[n] || null);
   check('Resumo: "Não sei" não vira dado', frNs[1] === 'Você ajuda o seu cliente com falta de tempo para levar o carro ao lava-jato.' && frNs[4] === 'Para começar, você estima gastar cerca de R$ 800.', frNs);
   /* preço sugerido no Módulo 5 (sem preço digitado): custo 100/10 = 10, + 50% = 15 */
   const c5 = RN.contaM5({ versao: 3, lucro: '50', R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P11': { estado: 'valor', valor: '100' }, 'M5.P12': { estado: 'valor', valor: '10' }, 'M5.P36': { estado: 'opcao', opcao: 'Ainda não defini' } } });
-  check('Resumo: preço sugerido do Módulo 5 = custo × (1 + acréscimo)', c5.preco === 15 && c5.sugerido && c5.sobra === 5, c5);
+  check('Resumo: preço sugerido da Etapa 5 = custo × (1 + acréscimo)', c5.preco === 15 && c5.sugerido && c5.sobra === 5, c5);
   /* concordância e números com ponto de milhar */
   const um = RN.frases((n) => ({ 5: { R: { 'M5.P36': { estado: 'valor', valor: '1.500' }, 'M5.P37': { estado: 'valor', valor: '1' } } } })[n] || null);
   check('Resumo: \"1.500\" é mil e quinhentos e \"1 venda\" no singular', JSON.stringify(um) === JSON.stringify(['Você cobra R$ 1.500 por venda.', 'Com 1 venda por mês, entram cerca de R$ 1.500.']), um);
@@ -576,13 +580,13 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   const conta = () => alcancadas++;
   /* M10-01 */
   await abrir('M10-01');
-  check('M10-01: [canais de venda] vem do Módulo 3', (await titulo()) === 'Além de redes sociais (Instagram, Facebook, WhatsApp), por onde falam os clientes?', await titulo());
+  check('M10-01: [canais de venda] vem da Etapa 3', (await titulo()) === 'Além de redes sociais (Instagram, Facebook, WhatsApp), por onde falam os clientes?', await titulo());
   const ops01 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
   check('M10-01: as opções não repetem os canais de venda da pergunta (redes sociais = sem WhatsApp e Instagram)', JSON.stringify(ops01) === JSON.stringify(['Pessoalmente (atendimento direto)', 'Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)', 'Telefone', 'E-mail', 'Site ou loja virtual próprios', 'Marketplace (Mercado Livre, Shopee e outros)', 'Ainda não falo com clientes']), ops01);
   await clicar('Telefone'); await confere('', 'M10-01', ESPERADO.caminhos[0][1]); conta();
   await clicar('Aplicativo de entrega (iFood e outros)'); await confere('', 'M10-01', ESPERADO.caminhos[0][1]);
   await clicar('Ainda não falo com clientes'); await confere('', 'M10-01', 'Ainda não falo com clientes'); conta();
-  check('M10-01: [onde procuram] vem do Módulo 2', (await blocos()).join(' ').includes('(meu bairro)'));
+  check('M10-01: [onde procuram] vem da Etapa 2', (await blocos()).join(' ').includes('(meu bairro)'));
   /* 16/11: pergunta sobre a própria pessoa = sem "Não sei" */
   check('Não sei saiu (M10-01): o botão não existe', !(await temBotao('Não sei')));
   /* sem canais de venda (Módulo 3 não feito): pergunta sem "Além de" e com todas as opções */
@@ -595,8 +599,8 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   { const h1 = JSON.parse(JSON.stringify(HERANCA)); h1['lg2-turma-a-m03'].R['M3.P13'] = { estado: 'opcoes', opcoes: ['Loja física', 'Redes sociais (Instagram, Facebook, WhatsApp)', 'Outro'], detalhe: 'Feira do bairro' };
     await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { canais: '' }) }), h1); await clicar('Continuar de onde parei');
     const o1 = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
-    check('M10-01: canais reais do Módulo 3 por nome (com "Outro" escrito) e opções sem repetição', (await titulo()) === 'Além de loja física, redes sociais (Instagram, Facebook, WhatsApp) e feira do bairro, por onde falam os clientes?' && JSON.stringify(o1) === JSON.stringify(['Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)', 'Telefone', 'E-mail', 'Site ou loja virtual próprios', 'Marketplace (Mercado Livre, Shopee e outros)', 'Ainda não falo com clientes']), [await titulo(), o1]);
-    check('M10-01: selo "Veio do Módulo 3" + "Confira e ajuste se quiser"', nrm(await page.evaluate(() => (document.querySelector('.herdado') || {}).innerText)).startsWith('Veio do Módulo 3') && (await page.evaluate(() => document.querySelector('.herdado').innerText)).includes('Veio do Módulo 3')); }
+    check('M10-01: canais reais da Etapa 3 por nome (com "Outro" escrito) e opções sem repetição', (await titulo()) === 'Além de loja física, redes sociais (Instagram, Facebook, WhatsApp) e feira do bairro, por onde falam os clientes?' && JSON.stringify(o1) === JSON.stringify(['Na casa do cliente (atendimento em domicílio)', 'Aplicativo de entrega (iFood e outros)', 'Telefone', 'E-mail', 'Site ou loja virtual próprios', 'Marketplace (Mercado Livre, Shopee e outros)', 'Ainda não falo com clientes']), [await titulo(), o1]);
+    check('M10-01: selo "Veio da Etapa 3" + "Confira e ajuste se quiser"', nrm(await page.evaluate(() => (document.querySelector('.herdado') || {}).innerText)).startsWith('Veio da Etapa 3') && (await page.evaluate(() => document.querySelector('.herdado').innerText)).includes('Veio da Etapa 3')); }
   /* SOCIO (pergunta extra): ajuda útil, resposta local ainda inalterada até Continuar */
   await abrir('SOCIO');
   check('Menos texto: tela da pergunta de sócio ≤ 60 palavras', (await palavrasVisiveis()) <= 60, await palavrasVisiveis());
@@ -664,7 +668,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   }
   /* opção visivelmente curta mantém o valor salvo de antes da redução */
   await abrir('M10-05'); await clicar('Redes sociais'); await clicar('Continuar');
-  const salvoM05 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-05'], CHAVE);
+  const salvoM05 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-05'] || {}, CHAVE);
   check('M10-05: rótulo curto preserva o valor salvo antigo', salvoM05.opcao === 'Catálogo no Instagram ou outra rede social', salvoM05);
   await semear(estadoAte('FIM', { 'M10-05': { estado: 'opcao', opcao: 'Catálogo no Instagram ou outra rede social' } }));
   await clicar('Continuar de onde parei'); await clicar('Quero corrigir algo');
@@ -679,7 +683,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   /* M10-03: texto de apoio com pessoas ouvidas e roteiro pré-montado */
   await abrir('M10-03');
   const ap3 = await page.evaluate(() => document.querySelector('.ajuda').textContent.replace(/\s+/g, ' '));
-  check('M10-03: apoio com [pessoas ouvidas] e [etapas] do roteiro', ap3.startsWith('Você já ouviu 6 pessoas no Módulo 2.') && ap3.includes('Preço: R$ 12') && ap3.includes('Receber: pix, dinheiro'), ap3);
+  check('M10-03: apoio com [pessoas ouvidas] e [etapas] do roteiro', ap3.startsWith('Você já ouviu 6 pessoas na Etapa 2.') && ap3.includes('Preço: R$ 12') && ap3.includes('Receber: Pix, dinheiro'), ap3);
   { /* menos texto (receita D): ajuda com mais de 220 caracteres mostra a 1ª frase e o resto em "Ver mais" fechado */
     const vm3 = await page.evaluate(() => { const a = document.querySelector('.dica-toggle'); return { aberto: a ? a.open : null, resumo: a?.querySelector('summary').innerText || '' }; });
     check('Menos texto: dica fechada por padrão entre pergunta e opções', vm3.aberto === false && vm3.resumo === 'Ver dica', vm3); }
@@ -688,12 +692,12 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   check('M10-04: [Se compra recorrente no Módulo 2] com [frequência]', (await page.evaluate(() => { const d=document.querySelector('.dica-toggle'); d.open=true; return d.innerText; })) .includes('Você disse que o cliente compra toda semana. Voltar a falar pode trazer a próxima venda.'));
   /* M10-05: [oferta em foco] e [diferencial do Módulo 3] */
   await abrir('M10-05');
-  check('M10-05: sem resposta, vem marcado "Redes sociais próprias" (canais do Módulo 3) com selo', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()).join())) === 'Redes sociais' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio do Módulo 3') && (await blocos()).length === 0);
+  check('M10-05: sem resposta, vem marcado "Redes sociais próprias" (canais da Etapa 3) com selo', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()).join())) === 'Redes sociais' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio da Etapa 3') && (await blocos()).length === 0);
   { const ha = JSON.parse(JSON.stringify(HERANCA)); ha['lg2-turma-a-m05'].R['M5.P33'] = { estado: 'valor', valor: [{ nome: 'Anúncio no Instagram', v: '50' }] };
     await abrir('M10-05', {}, ha);
-    check('M10-05: anúncio nos gastos do Módulo 5 = "Anúncio pago" marcado, selo do Módulo 5', (await page.evaluate(() => document.querySelector('#ent .opcao.sel .op-txt b').innerText.trim())) === 'Anúncio pago' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio do Módulo 5')); }
+    check('M10-05: anúncio nos gastos da Etapa 5 = "Anúncio pago" marcado, selo da Etapa 5', (await page.evaluate(() => document.querySelector('#ent .opcao.sel .op-txt b').innerText.trim())) === 'Anúncio pago' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio da Etapa 5')); }
   await abrir('M10-05');
-  check('M10-05: pergunta e apoio preenchidos', (await titulo()).includes('saber que Bolo de pote existe') && (await page.evaluate(() => { const d=document.querySelector('.dica-toggle'); d.open=true; return d.innerText; })).includes('diferencial: Bolo fresco entregue no mesmo dia.'));
+  check('M10-05: pergunta e apoio preenchidos', (await titulo()).includes('saber que bolo de pote existe') && (await page.evaluate(() => { const d=document.querySelector('.dica-toggle'); d.open=true; return d.innerText; })).includes('diferencial: Bolo fresco entregue no mesmo dia.'));
   /* M10-06: acordo entre sócios só aparece para quem respondeu que tem/pretende ter sócio. */
   await abrir('M10-06', { SOCIO: { estado: 'opcao', opcao: 'Sim' } });
   const socTip = await page.evaluate(() => { const d=document.querySelector('.dica-toggle'), t=d?.querySelector('.dica-sociedade'), closedBefore=d ? !d.open : false; if(d) d.open=true; return { closedBefore, text:t?.innerText || '', prompt:t?.querySelector('[data-prompt]')?.innerText || '', passos:t?.querySelectorAll('.como-descobrir ol li').length || 0 }; });
@@ -702,7 +706,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   if (process.env.SHOTS) { await page.waitForTimeout(200); await page.screenshot({ path: path.join(process.env.SHOTS, 'm10_dica_sociedade.png') }); }
   /* M10-07 */
   await abrir('M10-07');
-  check('M10-07: as etapas vêm do mapa do Módulo 7', (await page.evaluate(() => [...document.querySelectorAll('#ent .responsaveis-diagrama .lg2-diag-tit')].map((x) => x.innerText))).join('|') === 'Receber o pedido|Fazer|Entregar');
+  check('M10-07: as etapas vêm do mapa da Etapa 7', (await page.evaluate(() => [...document.querySelectorAll('#ent .responsaveis-diagrama .lg2-diag-tit')].map((x) => x.innerText))).join('|') === 'Receber o pedido|Fazer|Entregar');
   const porEtapa = async (idx) => page.evaluate((idx) => { [...document.querySelectorAll('#ent .opcoes')].forEach((g, i) => g.querySelectorAll('.opcao')[idx[i]].click()); }, idx);
   await porEtapa([0, 0, 0]); await page.waitForTimeout(60); await confere('', 'M10-07', ESPERADO.caminhos.find((c) => c[0] === 'M10-07')[1]); conta();
   await porEtapa([0, 0, 3]); await page.waitForTimeout(60); await confere('', 'M10-07', "'Ninguém ainda' em alguma etapa"); conta();
@@ -728,7 +732,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   h9['lg2-turma-b-m08'] = { R: { 'M8.P06': { estado: 'naosei' }, 'M8.P05': { estado: 'opcao', opcao: 'MEI' } } };
   await abrir('M10-09', { 'M10-02': { estado: 'opcao', opcao: 'Mais de 2 dias' }, 'M10-05': { estado: 'opcao', opcao: 'Anúncio pago' }, 'M10-06': { estado: 'opcao', opcao: 'Ainda não' } }, h9);
   const lista = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
-  check('M10-09: lista do percurso por gravidade, sem códigos; cada "Não sei" diz qual era a pergunta', JSON.stringify(lista) === JSON.stringify(['Definir o preço de venda', 'Acordo entre sócios', 'Fazer a consulta de viabilidade na prefeitura', 'Medir o tempo de produção', 'Tempo de resposta aos clientes', 'Descobrir quanto os concorrentes cobram (Módulo 3)', 'Descobrir o CNAE, o código da sua atividade (Módulo 8)']) && !/M\d/.test(lista.join()) && !/Completar a resposta/.test(lista.join()), lista);
+  check('M10-09: lista do percurso por gravidade, sem códigos; cada "Não sei" diz qual era a pergunta', JSON.stringify(lista) === JSON.stringify(['Definir o preço de venda', 'Acordo entre sócios', 'Fazer a consulta de viabilidade na prefeitura', 'Medir o tempo de produção', 'Tempo de resposta aos clientes', 'Descobrir quanto os concorrentes cobram (Etapa 3)', 'Descobrir o CNAE, o código da sua atividade (Etapa 8)']) && !/M\d/.test(lista.join()) && !/Completar a resposta/.test(lista.join()), lista);
   await clicar(lista[0]); await confere('', 'M10-09', 'Até 3 itens da lista'); conta();
   await clicar(lista[1]); await clicar(lista[2]); await clicar(lista[3]);
   check('M10-09: a 4ª escolha não entra', (await page.evaluate(() => document.querySelectorAll('#ent .opcao.sel').length)) === 3);
@@ -744,9 +748,12 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].forEach((b) => b.click())); await clicar('Não sei');
     await confereBloqueio('M10-09');
     await clicar(lista[0]); await clicar(lista[1]); await clicar(lista[2]); }
-  await clicar(lista[2]); await page.fill('#outro', 'Organizar a agenda'); await clicar('Continuar');
-  await confere('', 'M10-09', 'Outro (texto)'); conta();
+  await clicar(lista[2]); await page.fill('#outro', 'Organizar a agenda'); await page.waitForTimeout(800);
+  /* A (17/11): o retorno do "Outro" aparece ao vivo, antes do Continuar; um toque só avança */
+  await confere('', 'M10-09', 'Outro (texto)', 2); conta();
+  check('A: retorno do campo "Outro" aparece antes de tocar Continuar (junto com o das escolhidas)', (await blocos()).length === 2, await blocos());
   await clicar('Continuar');
+  check('A: M10-09 com "Outro" avança com UM toque em Continuar', (await titulo()).startsWith('O que pode acontecer'), await titulo());
   /* M10-10 com as três escolhidas */
   check('M10-10: uma escala por prioridade', (await page.evaluate(() => [...document.querySelectorAll('#ent p.rot-campo')].map((x) => x.innerText))).join('|') === [lista[0], lista[1], 'Organizar a agenda'].join('|'));
   { await page.evaluate((k) => { window.__nsAntes = JSON.parse(localStorage.getItem(k) || 'null'); }, CHAVE);
@@ -763,19 +770,23 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   const hoje = await page.evaluate(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
   const dias = (n) => new Date(Date.parse(hoje) + n * 864e5).toISOString().slice(0, 10);
   check('M10-11: mostra a prioridade mais urgente', (await page.evaluate(() => document.querySelector('#ent .bloco').innerText)).includes('Acordo entre sócios'));
-  const plano = async (a, d, s, n) => { await page.fill('#acao', a); await page.fill('#data', d); await page.fill('#sinal', s); await page.fill('#numero', n); await clicar('Continuar'); };
+  const planoVivo = async (a, d, s, n) => { await page.fill('#acao', a); await page.fill('#data', d); await page.fill('#sinal', s); await page.fill('#numero', n); await page.waitForTimeout(800); };
+  const plano = async (a, d, s, n) => { await planoVivo(a, d, s, n); await clicar('Continuar'); };
   await plano('conversar com o sócio', dias(-3), 'acordo assinado', '1'); await confere('', 'M10-11', 'Data inválida (passada)'); conta();
   check('M10-11: data passada não avança', (await titulo()).startsWith('Para sua prioridade'));
-  await plano('conversar com o sócio', dias(10), 'acordo assinado', ''); await confere('', 'M10-11', 'Sem número', 1);
+  /* A (17/11): sem número e data longe são lembretes ao vivo, junto com a frase do plano; o Continuar grava num toque */
+  await planoVivo('conversar com o sócio', dias(10), 'acordo assinado', ''); await confere('', 'M10-11', 'Sem número', 2);
   const sug = await page.evaluate(() => document.querySelector('#retorno').innerText);
-  check('Caso: plano sem número = pergunta gentil com o critério do teste (Módulo 4), sem bloquear', sug.includes('você combinou: 10') && sug.includes('pedidos entregues no prazo'), sug); conta();
+  check('Caso: plano sem número = pergunta gentil com o critério do teste (Etapa 4), ao vivo e sem bloquear', sug.includes('você combinou: 10') && sug.includes('pedidos entregues no prazo') && (await blocos()).join(' ').startsWith('Seu plano:'), sug); conta();
   await clicar('Continuar');
-  check('M10-11: segue sem número no segundo toque', (await blocos()).join(' ').startsWith('Seu plano:'));
+  check('A: M10-11 sem número segue com UM toque (vai ao resultado)', !!(await page.$('#q12')) && (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-11'].numero, CHAVE)) === '');
   await abrir('M10-11', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda' } });
-  await plano('divulgar no grupo do bairro', dias(120), 'pedidos', '5'); await confere('', 'M10-11', 'Data acima de 90 dias'); conta();
-  await plano('divulgar no grupo do bairro', dias(14), 'pedidos', '5');
+  await planoVivo('divulgar no grupo do bairro', dias(120), 'pedidos', '5'); await confere('', 'M10-11', 'Data acima de 90 dias', 2); conta();
+  await planoVivo('divulgar no grupo do bairro', dias(14), 'pedidos', '5');
   const frase = `Divulgar no grupo do bairro até ${dias(14).split('-').reverse().join('/')}; vai funcionar se vierem 5 pedidos`;
-  check('Caminho M10-11 · completo: "Seu plano: [frase]."', (await blocos()).join() === `Seu plano: ${frase}. Combine com você mesmo de olhar o resultado nessa data.`, await blocos()); conta();
+  check('Caminho M10-11 · completo: "Seu plano: [frase]." ao vivo, antes do Continuar', (await blocos()).join() === `Seu plano: ${frase}. Combine com você mesmo de olhar o resultado nessa data.`, await blocos()); conta();
+  await clicar('Continuar');
+  check('A: M10-11 completo grava a frase e vai ao resultado com UM toque', !!(await page.$('#q12')) && (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-11'].frase, CHAVE)) === frase + '.');
   await abrir('M10-11', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda' } });
   await page.evaluate((k) => { window.__nsAntes = JSON.parse(localStorage.getItem(k) || 'null'); }, CHAVE);
   await clicar('Não sei'); await confereBloqueio('M10-11', caminhoTexto('M10-11', 'Não sei')); conta();
@@ -783,7 +794,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   await semear(estadoAte('FIM'));
   await clicar('Continuar de onde parei');
   await clicar('Sim, salvar'); await confere('', 'M10-12', 'Sim, salvar', 1, '#ret12'); conta();
-  check('M10-12: sem "[Se houver ofertas guardadas]" (o Módulo 1 não guarda outras ofertas)', !(await blocos('#ret12')).join().includes('próxima oferta'));
+  check('M10-12: sem "[Se houver ofertas guardadas]" (a Etapa 1 não guarda outras ofertas)', !(await blocos('#ret12')).join().includes('próxima oferta'));
   await clicar('Quero corrigir algo'); await confere('', 'M10-12', 'Quero corrigir algo', 1, '#ret12'); conta();
   check('M10-12: lista "Corrigir minha resposta"', (await page.evaluate(() => document.querySelectorAll('#corr .editar').length)) === ORDEM.length - 1 + 1);
   /* 16/11: as linhas "Não sei" das perguntas sem "Não sei" (e a de M10-09, que marcava as 3 sozinha) não aparecem mais */
@@ -792,10 +803,10 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   /* ---------- 4. cruzamentos e encaminhamento no resumo ---------- */
   const resumo = async (r, h) => { await semear(estadoAte('FIM', r), h); await clicar('Continuar de onde parei'); await page.evaluate(() => document.querySelectorAll('.resultado-mais').forEach((d) => { d.open = true; })); return page.evaluate(() => document.querySelector('.corpo').innerText.replace(/\s+/g, ' ')); };
   let t = await resumo({ 'M10-05': { estado: 'opcao', opcao: 'Anúncio pago' } });
-  check('Caso: anúncio pago sem gasto no Módulo 5 = pergunta gentil', t.includes('PERGUNTA GENTIL') && t.includes('O anúncio não aparece nos seus gastos. Quer incluir?'));
+  check('Caso: anúncio pago sem gasto na Etapa 5 = pergunta gentil', t.includes('PERGUNTA GENTIL') && t.includes('O anúncio não aparece nos seus gastos. Quer incluir?'));
   const hg = JSON.parse(JSON.stringify(HERANCA)); hg['lg2-turma-a-m05'].R['M5.P33'] = { estado: 'valor', valor: [{ nome: 'Anúncio no Instagram', valor: '50' }] };
   t = await resumo({ 'M10-05': { estado: 'opcao', opcao: 'Anúncio pago' } }, hg);
-  check('Anúncio pago com gasto de anúncio no Módulo 5 = sem pergunta', !t.includes('O anúncio não aparece'));
+  check('Anúncio pago com gasto de anúncio na Etapa 5 = sem pergunta', !t.includes('O anúncio não aparece'));
   t = await resumo({ 'M10-06': { estado: 'opcao', opcao: 'Ainda não' } });
   const enc = await page.evaluate(() => [...document.querySelectorAll('.b-enc')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()));
   check('Caso: sócio sem acordo = observação + um encaminhamento só no resumo', t.includes('Combinar por escrito antes de investir juntos evita desentendimentos.') && enc.length === 1 && enc[0] === 'Para a forma do documento, procure um contador ou advogado.', enc);
@@ -803,18 +814,18 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   t = await resumo({ 'M10-01': { estado: 'opcao', opcao: 'Ainda não falo com clientes' }, 'M10-04': { estado: 'opcao', opcao: 'Não, só se o cliente me procura' }, 'M10-02': { estado: 'opcao', opcao: 'Mais de 2 dias' } });
   check('Cruzamentos: vende sem canal; recorrente sem pós-venda; resposta lenta com concorrente', t.includes('Você já vende, mas não marcou por onde fala com clientes. Quer rever?') && t.includes('Seu cliente compra toda semana.') && t.includes('Quem espera muito pode comprar de Doceria da esquina ou de outra pessoa.'));
   check('Resumo: no máximo 3 alertas', (await page.evaluate(() => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === 'Pontos para conferir'); return s ? s.querySelectorAll('.bloco').length : 0; })) === 3);
-  check('Resumo: retrato com uma linha por módulo (1 a 9)', (await page.evaluate(() => document.querySelectorAll('.retrato').length)) === 9);
+  check('Resumo: retrato com uma linha por etapa (1 a 9)', (await page.evaluate(() => document.querySelectorAll('.retrato').length)) === 9);
   check('Resumo: sem "Turma B", sem versão e sem "salvas apenas neste navegador"', !/Turma B|vers[aã]o \d|apenas neste navegador/i.test(t));
-  check('Resumo: botão de volta aos módulos (.lg2-proximo) visível', await page.isVisible('.lg2-proximo a'));
+  check('Resumo: botão de volta aos etapas (.lg2-proximo) visível', await page.isVisible('.lg2-proximo a'));
   /* "O que entendemos até aqui": resumo do negócio no topo do resultado */
   t = await resumo({});
   const ent = await page.evaluate(() => { const x = document.querySelector('#entendemos'); return x ? { t: x.querySelector('h3').innerText, p: x.querySelector('.resumo-negocio').innerText, antes: !!(x.compareDocumentPosition(document.querySelector('.bloco-res')) & 4) } : null; });
   const ESP_ENT = 'Seu negócio é bolo de pote e você já vende com frequência. Você vende para trabalhadores do bairro. Você cobra R$ 12 por venda. No tempo que você tem, dá para fazer no máximo 69 por mês, o que dá conta dos 55 que você pretende fazer. Na parte de documentos, ainda falta perguntar à prefeitura se a atividade pode funcionar no endereço. Sua prioridade agora é organizar a agenda, e o próximo passo é: A até 01/01/2099; sinal de que funcionou: b (meta: 1).';
-  check('Resultado: caixa "O que entendemos até aqui" no topo, com o resumo do negócio dos 10 módulos', ent && ent.t === 'O que entendemos até aqui' && ent.antes && nrm(ent.p) === ESP_ENT, ent);
+  check('Resultado: caixa "O que entendemos até aqui" no topo, com o resumo do negócio dos 10 etapas', ent && ent.t === 'O que entendemos até aqui' && ent.antes && nrm(ent.p) === ESP_ENT, ent);
   { const fmt = await page.evaluate(() => { const x = document.querySelector('#entendemos'); return { li: x.querySelectorAll('li, ul, ol').length, ps: [...x.querySelectorAll('.resumo-negocio p')].map((p) => p.innerText.trim()) }; });
     check('Resultado: "O que entendemos até aqui" em texto corrido (1 a 3 parágrafos, sem lista com marcadores)', fmt.li === 0 && fmt.ps.length >= 1 && fmt.ps.length <= 3 && fmt.ps.every((t) => t && !/^[•·\-–*]/.test(t)), fmt);
     check('Resultado: parágrafos agrupados por assunto (negócio e cliente / tempo / documentos e próximo passo)', fmt.ps.length === 3 && fmt.ps[0].startsWith('Seu negócio é bolo de pote') && fmt.ps[1].startsWith('Você cobra R$ 12') && fmt.ps[2].startsWith('Na parte de documentos'), fmt.ps); }
-  check('Resultado: canais de venda (Módulo 3) e canais de conversa (Módulo 10) em linhas separadas', t.includes('Onde o cliente encontra você e compra') && t.includes('Por onde mais os clientes falam com você'));
+  check('Resultado: canais de venda (Etapa 3) e canais de conversa (Etapa 10) em linhas separadas', t.includes('Onde o cliente encontra você e compra') && t.includes('Por onde mais os clientes falam com você'));
 
   /* ---------- 4a. lote 3: Voltar no topo e "Por onde começar" ---------- */
   { await semear(null); await clicar('Começar'); await clicar('Continuar');
@@ -849,10 +860,10 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const pos = await page.evaluate(() => { const c = document.querySelector('#comecar'), e = document.querySelector('#entendemos'); return c && e ? { depoisEnt: !!(e.compareDocumentPosition(c) & 4), logoDepois: e.nextElementSibling === c, h: c.querySelector('h3').innerText } : null; });
     check('Por onde começar: logo depois de "O que entendemos até aqui", com o título certo', pos && pos.depoisEnt && pos.logoDepois && pos.h === 'Por onde começar', pos);
     const ag = await acoesC();
-    check('Por onde começar (Gaby): 3 ações numeradas; a 1ª é o preço que ela marcou, com o aviso de preço abaixo do custo e o Módulo 5', ag.length === 3 && ag[0].o === 'prioridade' && ag[0].t.startsWith('Seu preço (R$ 8) está abaixo do custo de uma unidade (R$ 10). Refaça a conta do preço no Módulo 5') && ag[0].p.includes('Você marcou como prioridade') && ag[0].p.includes('Abrir o Módulo 5'), ag);
-    check('Por onde começar (Gaby): depois o limite do Módulo 1 e a consulta na prefeitura, com texto de quem está começando', ag[1].o === 'conferir' && ag[1].t.includes('(até R$ 100)') && ag[1].t.includes('5 vendas-teste') && ag[2].o === 'lacuna' && ag[2].t.includes('consulta de viabilidade'), ag);
+    check('Por onde começar (Gaby): 3 ações numeradas; a 1ª é o preço que ela marcou, com o aviso de preço abaixo do custo e a Etapa 5', ag.length === 3 && ag[0].o === 'prioridade' && ag[0].t.startsWith('Seu preço (R$ 8) está abaixo do custo de uma unidade (R$ 10). Refaça a conta do preço na Etapa 5') && ag[0].p.includes('Você marcou como prioridade') && ag[0].p.includes('Abrir a Etapa 5'), ag);
+    check('Por onde começar (Gaby): depois o limite da Etapa 1 e a consulta na prefeitura, com texto de quem está começando', ag[1].o === 'conferir' && ag[1].t.includes('(até R$ 100)') && ag[1].t.includes('5 vendas-teste') && ag[2].o === 'lacuna' && ag[2].t.includes('consulta de viabilidade'), ag);
     check('Por onde começar: sem códigos nem nomes de pergunta', !ag.some((x) => /M\d+[.-]|P\d\d|Grupo \d/.test(x.t + x.p)));
-    check('Pontos para conferir: preço abaixo do custo (Módulo 5)', (await sec('Pontos para conferir')).includes('Seu preço de venda é R$ 8, mas fazer uma unidade custa R$ 10.'), await sec('Pontos para conferir'));
+    check('Pontos para conferir: preço abaixo do custo (Etapa 5)', (await sec('Pontos para conferir')).includes('Seu preço de venda é R$ 8, mas fazer uma unidade custa R$ 10.'), await sec('Pontos para conferir'));
     const nums = await page.evaluate(() => [...document.querySelectorAll('#comecar .num-c')].map((x) => (x.querySelector('.op-txt b') || x).innerText.trim()).join());
     check('Por onde começar: números 1, 2 e 3 à vista', nums === '1,2,3', nums);
     if (process.env.SHOTS) { await page.waitForTimeout(400); await (await page.$('#comecar')).screenshot({ path: path.join(process.env.SHOTS, 'l3_m10_comecar_gaby.png') }); }
@@ -879,7 +890,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const est = estadoAte('FIM', rS); delete est.R['M10-06'];
     await semear(est); await clicar('Continuar de onde parei');
     const pcS = await page.evaluate(() => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === 'Pontos para conferir'); return s ? s.innerText.replace(/\s+/g, ' ') : ''; });
-    check('Sócio \"Não\" x etapas pelo sócio = ponto para conferir no resultado', pcS.includes('Você respondeu que não tem sócio, mas marcou o sócio como responsável por: receber o pedido, fazer e entregar.') && pcS.includes('Veio dos Módulos 7 e 10'), pcS);
+    check('Sócio \"Não\" x etapas pelo sócio = ponto para conferir no resultado', pcS.includes('Você respondeu que não tem sócio, mas marcou o sócio como responsável por: receber o pedido, fazer e entregar.') && pcS.includes('Veio das Etapas 7 e 10'), pcS);
     await clicar('Quero corrigir algo');
     await page.evaluate(() => [...document.querySelectorAll('.editar')].find((b) => b.dataset.c === 'M10-07').click());
     await page.waitForTimeout(60);
@@ -900,10 +911,12 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   check('M10-11: número com texto = \"digite só números\", não grava', (await erroVis()).includes('digite só números') && (await titulo()).startsWith('Para sua prioridade'));
   await page.fill('#numero', '1.500');
   check('M10-11: número corrigido, o erro some', (await erroVis()) === '');
-  await page.fill('#sinal', 'Juiz de Fora'); await page.selectOption('#unidade', 'vendas'); await clicar('Continuar');
-  check('M10-11: 1.500 = aviso de valor alto, sem travar', (await blocos()).join(' ').includes('1.500 parece muito para um primeiro passo'));
+  await page.fill('#sinal', 'Juiz de Fora'); await page.selectOption('#unidade', 'vendas'); await page.waitForTimeout(800);
+  check('M10-11: a frase certa aparece ao vivo (sem \"vierem 1.500 Juiz de Fora\")', (await blocos()).join(' ').includes('sinal de que funcionou: Juiz de Fora (meta: 1.500 vendas)'), await blocos());
   await clicar('Continuar');
-  check('M10-11: no 2º toque segue com a frase certa (sem \"vierem 1.500 Juiz de Fora\")', (await blocos()).join(' ').includes('sinal de que funcionou: Juiz de Fora (meta: 1.500 vendas)'), await blocos());
+  check('M10-11: 1.500 = aviso de valor alto (risco: único caso de 2 toques), sem travar', (await blocos()).join(' ').includes('1.500 parece muito para um primeiro passo') && (await titulo()).startsWith('Para sua prioridade'));
+  await clicar('Continuar');
+  check('M10-11: no 2º toque segue com a frase certa', !!(await page.$('#q12')) && (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-11'].frase, CHAVE)).includes('sinal de que funcionou: Juiz de Fora (meta: 1.500 vendas)'));
   /* teclado do celular: campo e Continuar visíveis com a tela reduzida */
   for (const [cod, campo, extra] of [['M10-11', '#numero', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda' } }], ['M10-09', '#outro', {}]]) {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -935,17 +948,17 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const tr = await resumo({}, hr);
     const sec = (h) => page.evaluate((h) => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === h); return s ? s.innerText.replace(/\s+/g, ' ') : ''; }, h);
     const pc = await sec('Pontos para conferir');
-    check('Pontos para conferir: limite do Módulo 1 x gasto do Módulo 6', pc.includes('No Módulo 1 você disse que pode usar até R$ 100 no negócio sem faltar para as contas da casa. Mas no Módulo 6, a estimativa para começar é de R$ 1.500.') && pc.includes('Veio dos Módulos 1 e 6'), pc);
-    check('Pontos para conferir: tipo de oferta diferente entre os Módulos 1, 5 e 8', pc.includes('serviço (Módulo 1); produto (Módulo 5); mercadoria (Módulo 8)'), pc);
-    check('Pontos para conferir: alimento x \"Não\" para a Vigilância Sanitária no Módulo 9', pc.includes('Você vende bolo de pote, que parece envolver alimento, mas no Módulo 9 respondeu') && pc.includes('Veio dos Módulos 1 e 9'), pc);
+    check('Pontos para conferir: limite da Etapa 1 x gasto da Etapa 6', pc.includes('No Etapa 1 você disse que pode usar até R$ 100 no negócio sem faltar para as contas da casa. Mas na Etapa 6, a estimativa para começar é de R$ 1.500.') && pc.includes('Veio das Etapas 1 e 6'), pc);
+    check('Pontos para conferir: tipo de oferta diferente entre as Etapas 1, 5 e 8', pc.includes('serviço (Etapa 1); produto (Etapa 5); mercadoria (Etapa 8)'), pc);
+    check('Pontos para conferir: alimento x \"Não\" para a Vigilância Sanitária na Etapa 9', pc.includes('Você vende bolo de pote, que parece envolver alimento, mas na Etapa 9 respondeu') && pc.includes('Veio das Etapas 1 e 9'), pc);
     const ret = await page.evaluate(() => [...document.querySelectorAll('.retrato')].map((x) => x.innerText.replace(/\s+/g, ' ')));
     check('Retrato: não diz mais \"Sem respostas em aberto\"', !tr.includes('Sem respostas em aberto'));
-    check('Retrato: Módulo 1 com o limite "até R$ 100" (sem minúscula no R$)', ret[0].includes('Dinheiro que pode usar: até R$ 100'), ret[0]);
-    check('Retrato: Módulo 2 com clientes, problema que resolve, onde estão e pessoas ouvidas', ret[1].includes('Clientes: Mães que trabalham fora') && ret[1].includes('Problema que você resolve: falta de tempo para fazer sobremesa') && ret[1].includes('Onde estão os clientes: meu bairro') && ret[1].includes('Pessoas ouvidas: 6'), ret[1]);
-    check('Retrato: Módulo 2 conta o \"Não sei\" e diz qual era a pergunta', ret[1].includes('Em aberto: 1 resposta “Não sei”. Falta: entender o que mais pesa na escolha do cliente.'), ret[1]);
-    check('Retrato: Módulo 4 com \"Não sei\" e resposta em branco contados', ret[3].includes('Em aberto: 1 resposta “Não sei” e 1 em branco.'), ret[3]);
-    check('Retrato: módulo sem pendência diz isso em linguagem simples', ret[2].includes('Nenhuma resposta “Não sei” ou em branco.'), ret[2]);
-    check('Retrato: módulos com contradição apontam para \"Pontos para conferir\"', [0, 4, 5, 7, 8].every((i) => ret[i].includes('Há um ponto para conferir')) && !ret[2].includes('Há um ponto para conferir'), ret);
+    check('Retrato: Etapa 1 com o limite "até R$ 100" (sem minúscula no R$)', ret[0].includes('Dinheiro que pode usar: até R$ 100'), ret[0]);
+    check('Retrato: Etapa 2 com clientes, problema que resolve, onde estão e pessoas ouvidas', ret[1].includes('Clientes: Mães que trabalham fora') && ret[1].includes('Problema que você resolve: falta de tempo para fazer sobremesa') && ret[1].includes('Onde estão os clientes: meu bairro') && ret[1].includes('Pessoas ouvidas: 6'), ret[1]);
+    check('Retrato: Etapa 2 conta o \"Não sei\" e diz qual era a pergunta', ret[1].includes('Em aberto: 1 resposta “Não sei”. Falta: entender o que mais pesa na escolha do cliente.'), ret[1]);
+    check('Retrato: Etapa 4 com \"Não sei\" e resposta em branco contados', ret[3].includes('Em aberto: 1 resposta “Não sei” e 1 em branco.'), ret[3]);
+    check('Retrato: etapa sem pendência diz isso em linguagem simples', ret[2].includes('Nenhuma resposta “Não sei” ou em branco.'), ret[2]);
+    check('Retrato: etapas com contradição apontam para \"Pontos para conferir\"', [0, 4, 5, 7, 8].every((i) => ret[i].includes('Há um ponto para conferir')) && !ret[2].includes('Há um ponto para conferir'), ret);
     /* mensagem de apresentação montada por modelo */
     const msg = await page.inputValue('#msg');
     check('Mensagem de apresentação: ideia + cliente + diferencial + local + canais', msg === 'Olá! Trabalho com bolo de pote para trabalhadores do bairro. Bolo fresco entregue no mesmo dia. Atendo na minha casa. Para pedir, fale comigo pelo WhatsApp.', msg);
@@ -969,7 +982,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const msgPV = await page.inputValue('#msg');
     check('Proposta de valor: mensagem usa o motivo da escolha (M4) como diferencial e o benefício (M4)', msgPV === 'Olá! Trabalho com bolo de pote para trabalhadores do bairro. O bolo é feito no dia, com receita de família. O que você ganha: ter sobremesa caseira pronta sem sair de casa. Atendo na minha casa. Para pedir, fale comigo pelo WhatsApp.', msgPV);
     const r4 = await page.evaluate(() => document.querySelectorAll('.retrato')[3].innerText.replace(/\s+/g, ' '));
-    check('Proposta de valor: retrato do Módulo 4 em frase natural (problema, motivo, benefício)', r4.includes('Proposta de valor: ' + FRASE_PV.replace('Sua proposta de valor: ', '')) && !r4.includes('Falta na proposta de valor'), r4);
+    check('Proposta de valor: retrato da Etapa 4 em frase natural (problema, motivo, benefício)', r4.includes('Proposta de valor: ' + FRASE_PV.replace('Sua proposta de valor: ', '')) && !r4.includes('Falta na proposta de valor'), r4);
     const entPV = nrm(await page.evaluate(() => document.querySelector('#entendemos .resumo-negocio').innerText));
     check('Proposta de valor: \"O que entendemos até aqui\" traz a frase logo depois do cliente', entPV.includes('Você vende para trabalhadores do bairro. ' + FRASE_PV + ' Você cobra R$ 12'), entPV);
     /* parcial: \"Não sei\" e em branco ficam de fora da frase e aparecem como falta */
@@ -985,7 +998,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const msg3 = await page.inputValue('#msg');
     const r43 = await page.evaluate(() => document.querySelectorAll('.retrato')[3].innerText.replace(/\s+/g, ' '));
     const ent3 = nrm(await page.evaluate(() => document.querySelector('#entendemos .resumo-negocio').innerText));
-    check('Proposta de valor: Módulo 4 antigo (v3, sem PV) = mensagem, retrato e resumo de antes', msg3 === msgP && r43.includes('Proposta de valor: Sobremesa caseira pronta para levar.') && !r43.includes('Falta na proposta') && !ent3.includes('proposta de valor'), { msg3, r43, ent3 });
+    check('Proposta de valor: Etapa 4 antigo (v3, sem PV) = mensagem, retrato e resumo de antes', msg3 === msgP && r43.includes('Proposta de valor: Sobremesa caseira pronta para levar.') && !r43.includes('Falta na proposta') && !ent3.includes('proposta de valor'), { msg3, r43, ent3 });
     /* a parte \"problema\" que já saiu como dor do cliente (M4.P09) não se repete */
     const dup = RN.frases((n) => (n === 4 ? { v: 4, R: { 'M4.P08': { estado: 'valor', valor: 'Mães' }, 'M4.P09': { estado: 'valor', valor: 'Falta de tempo' }, 'M4.PV1': { estado: 'valor', valor: 'falta de tempo.' }, 'M4.PV3': { estado: 'valor', valor: 'Sobremesa pronta' } } } : null));
     check('Proposta de valor: problema igual à dor do cliente não se repete', JSON.stringify(dup) === JSON.stringify(['Você vende para mães e ajuda com falta de tempo.', 'Sua proposta de valor: o principal benefício para ele é sobremesa pronta.']), dup);
@@ -1001,7 +1014,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const est = estadoAte('FIM'); est.ini = Object.assign({}, INI, { oferta: '' });
     await semear(est, h0); await clicar('Continuar de onde parei'); await page.evaluate(() => document.querySelector('.resultado-mais').open=true);
     const falta = await page.evaluate(() => (document.querySelector('#msg-falta') || {}).innerText || '');
-    check('Mensagem de apresentação: sem a ideia, diz o que falta em vez de ficar vazia', falta.startsWith('Para montar a mensagem, falta: o que você vende (Módulo 1)') && falta.includes('onde você atende'), falta); }
+    check('Mensagem de apresentação: sem a ideia, diz o que falta em vez de ficar vazia', falta.startsWith('Para montar a mensagem, falta: o que você vende (Etapa 1)') && falta.includes('onde você atende'), falta); }
   { /* mensagem antiga gravada vazia: volta a ser montada */
     const est = estadoAte('FIM'); est.inst = { mensagem: '', checklist: {} };
     await semear(est); await clicar('Continuar de onde parei'); await page.evaluate(() => document.querySelector('.resultado-mais').open=true);
@@ -1042,7 +1055,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const contas = await page.evaluate(() => [...document.querySelectorAll('#entendemos .como-calc')].map((x) => x.innerText.replace(/\s+/g, ' ').trim()));
     const ESP_CONTAS = [
       'Como calculamos: R$ 60 (preço) − R$ 7 (custo de uma unidade) − R$ 3 (taxas) = R$ 50 de sobra em cada venda.',
-      'Como calculamos: R$ 50 + R$ 1.000 = R$ 1.050 (gastos do mês informados no Módulo 5).',
+      'Como calculamos: R$ 50 + R$ 1.000 = R$ 1.050 (gastos do mês informados na Etapa 5).',
       'Como calculamos: R$ 1.050 (gastos do mês) ÷ R$ 50 (sobra por venda) = 21 vendas por mês.',
       'Como calculamos: R$ 800 (para começar) − R$ 500 (o que você tem) = R$ 300 que faltam.',
       'Como calculamos: (10 h por semana − 2 h de apoio) × 60 = 480 min por semana; × 4,33 semanas = 2.078 min por mês; ÷ 30 min por unidade = 69 por mês (arredondado para baixo).',
@@ -1052,7 +1065,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     check('Como calculamos: os números da conta são os mesmos do texto (sobram R$ 50; 21 vendas; faltam R$ 300; no máximo 69)', par.includes('sobram R$ 50') && par.includes('21 vendas') && par.includes('faltam R$ 300') && par.includes('no máximo 69'), par);
     await page.evaluate(() => document.querySelector('.resultado-mais').open = true);
     const r7 = await page.evaluate(() => document.querySelectorAll('.retrato')[6].innerText.replace(/\s+/g, ' '));
-    check('Como calculamos (retrato do Módulo 7): a capacidade vem com a conta', r7.includes('Cabem no máximo 69 por mês') && r7.includes('÷ 30 min por unidade = 69 por mês'), r7);
+    check('Como calculamos (retrato da Etapa 7): a capacidade vem com a conta', r7.includes('Cabem no máximo 69 por mês') && r7.includes('÷ 30 min por unidade = 69 por mês'), r7);
     /* M10-08: contratar com folga = 69 − 55 = 14 */
     await abrir('M10-08'); await clicar('Sim, para vender ou divulgar');
     const cf = (await blocos()).join(' ');
@@ -1079,30 +1092,47 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   const foto = async (n) => { if (process.env.SHOTS) { await page.waitForTimeout(350); await page.screenshot({ path: path.join(process.env.SHOTS, n + '.png'), fullPage: n.includes('resultado') }); } };
   await foto('m10_capa');
   { const tc = nrm(await page.evaluate(() => document.body.innerText));
-    check('Capa leve: frase, tempo, começar; detalhes recolhidos', tc.includes('Organize como você vende') && tc.includes('15 minutos') && tc.includes('Começar') && tc.includes('Como funciona') && !tc.includes(nrm(CAPA_PDF['para_quem'])), tc.slice(0, 300)); }
+    check('Capa leve: frase, tempo, começar; detalhes recolhidos', tc.includes('Organize como você vende') && tc.includes('cerca de 10 minutos') && tc.includes('Começar') && tc.includes('Como funciona') && !tc.includes(nrm(CAPA_PDF['para_quem'])), tc.slice(0, 300)); }
   await clicar('Começar');
   const partida = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-campo]')].map((i) => [i.dataset.campo, i.value])));
-  check('Partida: dados herdados dos Módulos 1, 3, 4, 5 e 6', partida.oferta === 'Bolo de pote' && partida.proposta === 'Sobremesa caseira pronta para levar.' && partida.preco === '12' && partida.pagamento === 'Pix, Dinheiro' && partida.canais.startsWith('Redes sociais'), partida);
-  check('Partida: selo "Veio do Módulo N"', (await page.evaluate(() => document.querySelectorAll('.veio').length)) >= 8);
+  check('Partida: dados herdados das Etapas 1, 3, 4, 5 e 6', partida.oferta === 'Bolo de pote' && partida.proposta === 'Sobremesa caseira pronta para levar.' && partida.preco === '12' && partida.pagamento === 'Pix, Dinheiro' && partida.canais.startsWith('Redes sociais'), partida);
+  check('Partida: selo "Veio da Etapa N"', (await page.evaluate(() => document.querySelectorAll('.veio').length)) >= 8);
   await foto('m10_partida');
-  { /* preço sugerido no Módulo 5 quando não há preço digitado lá */
+  { /* preço sugerido na Etapa 5 quando não há preço digitado lá */
     const hp = JSON.parse(JSON.stringify(HERANCA)); hp['lg2-turma-a-m05'] = { versao: 3, lucro: '50', R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P11': { estado: 'valor', valor: '100' }, 'M5.P12': { estado: 'valor', valor: '10' }, 'M5.P36': { estado: 'opcao', opcao: 'Ainda não defini' } } };
     await semear(null, hp); await clicar('Começar');
-    check('Partida: sem preço digitado no Módulo 5, vem o preço sugerido lá (R$ 15) com selo', (await page.inputValue('#f-preco')) === '15' && (await page.evaluate(() => document.querySelector('label[for=f-preco]').innerText)).includes('Veio do Módulo 5'));
+    check('Partida: sem preço digitado na Etapa 5, vem o preço sugerido lá (R$ 15) com selo', (await page.inputValue('#f-preco')) === '15' && (await page.evaluate(() => document.querySelector('label[for=f-preco]').innerText)).includes('Veio da Etapa 5'));
     const cp = await page.evaluate(() => (document.querySelector('#como-preco') || {}).innerText || '');
-    check('Como calculamos (preço sugerido): R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido no Módulo 5) = R$ 15', nrm(cp) === 'Como calculamos: R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido no Módulo 5) = R$ 15.', cp);
+    check('Como calculamos (preço sugerido): R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido na Etapa 5) = R$ 15', nrm(cp) === 'Como calculamos: R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido na Etapa 5) = R$ 15.', cp);
     await page.fill('#f-preco', '18');
     check('Como calculamos (preço sugerido): some quando a pessoa troca o preço', await page.evaluate(() => document.querySelector('#como-preco').hidden));
     /* ponto de partida já salvo com o preço vazio (Módulo 5 feito depois): completa sem apagar o resto */
     await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { preco: '', oferta: 'Bolo no pote', de: {} }) }));
     const ini2 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE);
-    check('Partida: campo vazio recebe o dado que apareceu depois nos outros módulos; o que foi escrito fica', ini2.preco === '12' && ini2.de.preco === 5 && ini2.oferta === 'Bolo no pote', ini2);
+    check('Partida: campo vazio recebe o dado que apareceu depois nas outras etapas; o que foi escrito fica', ini2.preco === '12' && ini2.de.preco === 5 && ini2.oferta === 'Bolo no pote', ini2);
     await semear(null); await clicar('Começar'); }
   await clicar('Continuar');
-  const passos = [];
+  const passos = [], telas = [], vistos = [];
+  /* C: Continuar inteiro dentro da tela, sem rolar, em 360x640, 390x844 com letra 130% e 740x360 (deitado) */
+  const continuarAVista = async (q) => {
+    const out = { q, ok: true, medidas: [] };
+    for (const [w, h, fonte] of [[360, 640, ''], [390, 844, '130%'], [740, 360, '']]) {
+      await page.setViewportSize({ width: w, height: h });
+      const m = await page.evaluate((f) => { document.documentElement.style.fontSize = f; window.scrollTo(0, 0); return new Promise((r) => requestAnimationFrame(() => { const b = document.querySelector('#ok').getBoundingClientRect(); r({ top: Math.round(b.top), bottom: Math.round(b.bottom), h: window.innerHeight, w: window.innerWidth, sy: window.scrollY }); })); }, fonte);
+      m.vp = `${w}x${h}${fonte ? ' ' + fonte : ''}`;
+      out.medidas.push(m);
+      if (!(m.top >= 0 && m.bottom <= m.h && m.sy === 0)) out.ok = false;
+    }
+    await page.evaluate(() => { document.documentElement.style.fontSize = ''; window.scrollTo(0, 0); });
+    await page.setViewportSize({ width: 390, height: 844 });
+    return out;
+  };
   for (let i = 0; i < 20; i++) {
     if (await page.$('#q12')) break;
     const q = await titulo(); passos.push(q);
+    /* 17/11: estado da tela antes de responder (foco, barra, botões extras, "Módulo", Continuar ativo) e o Continuar à vista em 3 telas */
+    telas.push(Object.assign({ q }, await page.evaluate(() => ({ foco: document.activeElement && document.activeElement.id, focoTxt: document.activeElement && document.activeElement.innerText, pct: +document.querySelector('.heroi-prog [role=progressbar]').getAttribute('aria-valuenow'), extra: [...document.querySelectorAll('button')].filter((b) => /^(Seguir|Corrigir minha resposta)$/.test(b.textContent.trim())).length, desab: document.querySelector('#ok').disabled, modulo: /m[óo]dulos?\b/i.test(document.body.innerText) }))));
+    vistos.push(await continuarAVista(q));
     if (/falam os clientes/.test(q)) { await clicar('Telefone'); await foto('m10_pergunta'); }
     else if (/Em quanto tempo/.test(q)) await clicar('No mesmo dia');
     else if (/sequência/.test(q)) { await clicar('Depende do cliente'); await foto('m10_roteiro'); }
@@ -1113,11 +1143,19 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     else if (/contratar alguém/.test(q)) await clicar('Não');
     else if (/mais urgentes/.test(q)) { await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].slice(0, 2).forEach((b) => b.click())); await foto('m10_prioridades'); }
     else if (/após 3 meses/.test(q)) await page.evaluate(() => [...document.querySelectorAll('#ent .opcoes')].forEach((g, i) => g.querySelectorAll('.opcao')[i].click()));
-    else if (/prioridade mais urgente/.test(q)) { await page.selectOption('#unidade', 'respostas'); await plano('fazer a consulta de viabilidade', dias(7), 'resposta da prefeitura', '1'); await foto('m10_plano'); }
+    else if (/prioridade mais urgente/.test(q)) { await page.selectOption('#unidade', 'respostas'); await planoVivo('fazer a consulta de viabilidade', dias(7), 'resposta da prefeitura', '1'); await foto('m10_plano'); }
     await page.waitForTimeout(60);
     await clicar('Continuar');
   }
   check('Percurso: sócio "Não" pula o acordo; contratar "Não" pula as alternativas', passos.length === 11 && !passos.some((x) => /combinaram|outras formas/.test(x)), passos);
+  check('A: percurso inteiro com UM toque em Continuar por pergunta (nenhuma tela repete) e sem "Seguir"/"Corrigir minha resposta"', passos.every((x, i) => i === 0 || x !== passos[i - 1]) && telas.every((t) => t.extra === 0), telas.map((t) => [t.q.slice(0, 30), t.extra]));
+  check('B: Continuar nunca desativado nas perguntas', telas.every((t) => t.desab === false));
+  check('C: Continuar inteiro na tela, sem rolar, em 360x640, 390x844 (letra 130%) e 740x360, em todas as perguntas', vistos.length === 11 && vistos.every((v) => v.ok), vistos.filter((v) => !v.ok));
+  check('D: depois de Continuar, o foco está no enunciado da pergunta nova', telas.every((t) => t.foco === 'pergunta' && nrm(t.focoTxt) === nrm(t.q)), telas.map((t) => [t.foco, t.q.slice(0, 20)]));
+  check('E: nenhuma tela de pergunta diz "Módulo"', telas.every((t) => !t.modulo), telas.filter((t) => t.modulo).map((t) => t.q));
+  check('G: barra de progresso com total estável, sempre para a frente', telas.every((t, i) => i === 0 || t.pct > telas[i - 1].pct), telas.map((t) => t.pct));
+  { const fimTxt = await page.evaluate(() => { document.querySelectorAll('details').forEach((d) => { d.open = true; }); return document.body.innerText; });
+    check('E: resultado sem "Módulo" no texto visível; link final "Voltar às etapas" dentro de .acoes.lg2-proximo', !/m[óo]dulos?\b/i.test(fimTxt) && (await page.evaluate(() => document.querySelector('.acoes.lg2-proximo a').textContent.trim())) === 'Voltar às etapas' && await page.isVisible('.lg2-proximo a'), (fimTxt.match(/.{0,40}m[óo]dulos?\b.{0,20}/gi) || []).slice(0, 5)); }
   await foto('m10_resultado');
   check('Resultado leve: todas as seções recolhíveis começam abertas', await page.evaluate(() => [...document.querySelectorAll('.resultado-mais')].length === 1 && [...document.querySelectorAll('.corpo details')].length > 0 && [...document.querySelectorAll('.corpo details')].every((d) => d.open)));
   await page.evaluate(() => document.querySelectorAll('.resultado-mais').forEach((d) => { d.open = true; }));
@@ -1149,8 +1187,8 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   /* recomeçar */
   await semear(estadoAte('FIM'));
   await clicar('Continuar de onde parei'); await clicar('Recomeçar do zero');
-  check('Recomeçar: apaga só o Módulo 10', (await page.evaluate((k) => localStorage.getItem(k) === null && localStorage.getItem('lg2-turma-b-m07') !== null, CHAVE)));
-  check('Nunca escreve nas chaves dos outros módulos', (await page.evaluate((h) => Object.entries(h).every(([k, v]) => localStorage.getItem(k) === JSON.stringify(v)), HERANCA)));
+  check('Recomeçar: apaga só a Etapa 10', (await page.evaluate((k) => localStorage.getItem(k) === null && localStorage.getItem('lg2-turma-b-m07') !== null, CHAVE)));
+  check('Nunca escreve nas chaves dos outros etapas', (await page.evaluate((h) => Object.entries(h).every(([k, v]) => localStorage.getItem(k) === JSON.stringify(v)), HERANCA)));
 
   /* ---------- 6. jornada concluída: resumo do negócio (lê as mesmas chaves, mesma origem) ---------- */
   {
@@ -1172,7 +1210,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     }, LAVA);
     await pj.reload(); await pj.waitForSelector('#fim:not([hidden])');
     const rj = await pj.evaluate(() => ({ vis: !document.getElementById('resumo-negocio').hidden, h: document.querySelector('#resumo-negocio h3').innerText, p: document.getElementById('resumo-texto').innerText }));
-    check('Jornada concluída: mostra o resumo do negócio (8 frases, mesmo texto do Módulo 10)', rj.vis && rj.h === 'Resumo do seu negócio' && nrm(rj.p) === RESUMO_LAVA.join(' '), rj);
+    check('Jornada concluída: mostra o resumo do negócio (8 frases, mesmo texto da Etapa 10)', rj.vis && rj.h === 'Resumo do seu negócio' && nrm(rj.p) === RESUMO_LAVA.join(' '), rj);
     if (process.env.SHOTS) { await pj.waitForTimeout(400); await pj.screenshot({ path: path.join(process.env.SHOTS, 'm10_jornada_concluida.png'), fullPage: true }); }
     await pj.evaluate(() => { Object.keys(localStorage).filter((k) => k !== 'lg2-jornada').forEach((k) => localStorage.removeItem(k)); });
     await pj.reload(); await pj.waitForSelector('#fim:not([hidden])');
@@ -1181,6 +1219,74 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     await pj.close(); srvJ.close();
   }
 
+
+  /* ---------- 7. lote 17/11 \"tira a fricção\" ---------- */
+  { /* B6: as palavras da própria pessoa não mudam de caixa (marcas e nomes de rede) */
+    await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { canais: 'Instagram e WhatsApp, Indicação' }) })); await clicar('Continuar de onde parei');
+    check('B6: \"Instagram e WhatsApp\" ficam como a pessoa escreveu; \"Indicação\" vira minúscula', (await titulo()) === 'Além de Instagram e WhatsApp e indicação, por onde falam os clientes?', await titulo());
+    await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { canais: 'TikTok, iFood, Feira do bairro, PIX' }) })); await clicar('Continuar de onde parei');
+    check('B6: TikTok, iFood e siglas não mudam; palavra comum capitalizada vira minúscula', (await titulo()) === 'Além de TikTok, iFood, feira do bairro e PIX, por onde falam os clientes?', await titulo());
+    /* roteiro de venda: pagamento e entrega com marca */
+    await semear(Object.assign(estadoAte('M10-03'), { ini: Object.assign({}, INI, { pagamento: 'Pix, Dinheiro', entrega: 'Uber Flash ou retirada' }) })); await clicar('Continuar de onde parei');
+    const rot = await page.evaluate(() => [...document.querySelectorAll('.etapas-edicao input')].map((i) => i.value));
+    check('B6: roteiro com \"Receber: Pix, dinheiro\" e \"Combinar a entrega: Uber Flash ou retirada\"', rot.includes('Receber: Pix, dinheiro') && rot.includes('Combinar a entrega: Uber Flash ou retirada'), rot);
+    /* [oferta em foco]: oferta longa ou com \":\" não quebra a frase */
+    for (const [o, esp] of [['Doces caseiros: brigadeiro gourmet e bolo de pote', 'Como as pessoas vão saber que o seu negócio existe nas próximas semanas?'],
+      ['Conserto de celulares, tablets e notebooks com garantia', 'Como as pessoas vão saber que o seu negócio existe nas próximas semanas?'],
+      ['Marmitas fit', 'Como as pessoas vão saber que marmitas fit existe nas próximas semanas?'],
+      ['', 'Como as pessoas vão saber que o seu negócio existe nas próximas semanas?']]) {
+      await semear(Object.assign(estadoAte('M10-05'), { ini: Object.assign({}, INI, { oferta: o }) }), Object.assign({}, HERANCA, { 'lg2-turma-a-m01': { R: {} } })); await clicar('Continuar de onde parei');
+      check(`B6: [oferta em foco] = \"${o.slice(0, 25)}\" → frase inteira e coerente`, (await titulo()) === esp, await titulo());
+    }
+  }
+  { /* B e D: Continuar sem resposta = aviso simples com role=alert logo acima do botão; aria-pressed nas escolhas */
+    await abrir('M10-02');
+    check('B: Continuar ativo antes de responder', !(await page.evaluate(() => document.querySelector('#ok').disabled)));
+    await clicar('Continuar');
+    const eb = await page.evaluate(() => { const e = document.querySelector('#erro'), ok = document.querySelector('#ok'); return { vis: !e.hidden, t: e.innerText, role: e.getAttribute('role'), acima: e.getBoundingClientRect().bottom <= ok.getBoundingClientRect().top + 1, junto: e.parentElement === ok.parentElement, q: document.querySelector('.q').innerText }; });
+    check('B: sem resposta, \"Escolha uma opção para continuar.\" com role=alert logo acima do Continuar, na mesma pergunta', eb.vis && eb.t === 'Escolha uma opção para continuar.' && eb.role === 'alert' && eb.acima && eb.junto && eb.q.startsWith('Em quanto tempo'), eb);
+    await clicar('Em 1 ou 2 dias');
+    const ap = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => [b.querySelector('.op-txt b').innerText.trim(), b.getAttribute('aria-pressed')]));
+    check('D: escolha única: aria-pressed=\"true\" só na tocada, \"false\" nas outras', ap.filter(([, a]) => a === 'true').map(([t]) => t).join() === 'Em 1 ou 2 dias' && ap.every(([t, a]) => a === (t === 'Em 1 ou 2 dias' ? 'true' : 'false')), ap);
+    check('A: retorno da escolha aparece no toque, antes do Continuar', (await blocos()).length === 1 && (await page.evaluate(() => document.querySelector('#erro').hidden)), await blocos());
+    await abrir('M10-01'); await clicar('Telefone'); await clicar('E-mail'); await clicar('Telefone');
+    const am = await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => [b.querySelector('.op-txt b').innerText.trim(), b.getAttribute('aria-pressed')]));
+    check('D: múltipla escolha: aria-pressed acompanha o que está marcado', am.every(([t, a]) => a === (t === 'E-mail' ? 'true' : 'false')), am);
+    await abrir('M10-01'); await clicar('Continuar');
+    check('B: múltipla sem resposta = \"Marque pelo menos uma opção para continuar.\"', (await page.evaluate(() => document.querySelector('#erro').innerText)) === 'Marque pelo menos uma opção para continuar.');
+    /* Não sei continua bloqueando (2 passos só para Não sei e aviso de risco) */
+    await abrir('M10-05'); await clicar('Não sei');
+    check('D: \"Não sei\" não fica marcado (aria-pressed=false)', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].find((b) => b.querySelector('.op-txt b').innerText.trim() === 'Não sei').getAttribute('aria-pressed'))) === 'false');
+  }
+  { /* F: alvos de toque ≥ 44 px (botões, resumos de \"Ver dica\"/\"Ver mais\", links-botão) */
+    const pequenos = () => page.evaluate(() => [...document.querySelectorAll('.corpo button, .corpo summary, .corpo a.btn, .retrato a, .corpo .chk')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !e.closest('details:not([open]) > :not(summary)'); }).map((e) => { const r = e.getBoundingClientRect(); return { t: (e.getAttribute('aria-label') || e.textContent).trim().slice(0, 30), w: Math.round(r.width), h: Math.round(r.height) }; }).filter((x) => x.h < 44 || x.w < 44));
+    await abrir('M10-03'); await clicar('Sim, sigo passos parecidos');
+    const p3 = await pequenos();
+    const mini = await page.evaluate(() => [...document.querySelectorAll('.mini-b')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+    check('F: botões ↑/↓/× do roteiro de venda com 44 px ou mais', mini.length > 0 && mini.every(([w, h]) => w >= 44 && h >= 44), mini);
+    check('F: tela do roteiro sem alvo de toque menor que 44 px', p3.length === 0, p3);
+    await abrir('M10-05'); await clicar('Não sei');
+    const p5 = await pequenos();
+    check('F: \"Ver dica\", \"Não sei\" e \"Copiar\" com 44 px ou mais', p5.length === 0, p5);
+    await resumo({});
+    await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+    const pr = await pequenos();
+    check('F: resultado sem alvo de toque menor que 44 px (Copiar texto, Abrir a Etapa, checklist, resumos)', pr.length === 0, pr);
+  }
+  { /* E: respostas guardadas com o texto antigo \"(Módulo N)\" passam a \"(Etapa N)\" e continuam marcadas */
+    const h9 = JSON.parse(JSON.stringify(HERANCA)); h9['lg2-turma-a-m03'].R['M3.P20'] = { estado: 'naosei' };
+    const velho = 'Descobrir quanto os concorrentes cobram (Módulo 3)';
+    const est = estadoAte('M10-10', { 'M10-09': { estado: 'multi', opcoes: [velho], outro: '', naosei: false }, 'M10-10': { estado: 'escala', u: { [velho]: 'piora muito' } } });
+    est.prioridade = velho; est.v = 3; est.hist = ['M10-09', 'M10-10', 'M10-11'];
+    await semear(est, h9);
+    await clicar('Continuar de onde parei');
+    await page.click('#v'); await page.waitForTimeout(80); await page.click('#v'); await page.waitForTimeout(80);
+    const mg = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CHAVE);
+    const novoT = 'Descobrir quanto os concorrentes cobram (Etapa 3)';
+    check('E/migração: prioridade guardada \"(Módulo 3)\" vira \"(Etapa 3)\" na lista, na escala e na prioridade principal, sem perder a resposta', JSON.stringify(mg.R['M10-09'].opcoes) === JSON.stringify([novoT]) && mg.R['M10-10'].u[novoT] === 'piora muito' && mg.prioridade === novoT, mg);
+    check('E/migração: a prioridade migrada continua marcada em \"Quais 3 pontos\"', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.querySelector('.op-txt b').innerText.trim()))).join() === novoT, await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText)));
+  }
+  check('G: capa promete \"cerca de 10 minutos\" (11 perguntas do caminho comum + ponto de partida, ~35 s cada)', D.capa.minutos === 10);
   /* 16/11: +10 palavras só nas telas com linhas "Ex.:" embaixo de opções difíceis (M10-05 divulgação, M10-09 prioridades) */
   const LIMITE_PAL = { 'M10-05': 70, 'M10-09': 70 };
   const maiores = Object.fromEntries(contagensVisiveis.filter(([c, n]) => n > (LIMITE_PAL[c] || 60)));

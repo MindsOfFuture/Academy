@@ -17,6 +17,10 @@
    Versão leve (nov/2026): os textos novos do app são a referência (EXP abaixo); capa curta, "Ver dica" fechada,
    exemplos dentro do campo, limite de palavras por tela e caixa "Como descobrir" (passos + pedido para a IA com
    Copiar) no "Não sei", sem mudar o que é salvo.
+   Lote 17/11 ("tira a fricção"): um toque por pergunta (sem "Seguir"/"Corrigir"), Continuar sempre ativo com aviso
+   role=alert quando falta resposta, Continuar preso ao pé da tela (360x640, letra 130%, deitado), aria-pressed nas opções
+   e foco no enunciado da pergunta nova, "Etapa" (nunca "Módulo") no texto visível, alvos de toque >= 44 px, tempo da
+   capa calculado pelo caminho comum e total estável na barra. Sabotagens: M01_SABOTAGEM=seguir|desligado|solto|foco|modulo.
    Inclui teste de sabotagem dos próprios conferidores. Sai com código != 0 se falhar. */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -281,7 +285,18 @@ async function servidor() {
     fs.readFile(f, (e, b) => {
       if (e) return res.writeHead(404).end();
       /* M01_SABOTAGEM=1: o "Não sei" passa a gravar "naosei" (o teste tem de falhar) */
-      if (process.env.M01_SABOTAGEM && f.endsWith(path.join('js', 'app.js')))
+      const SAB = process.env.M01_SABOTAGEM || '';
+      if (SAB === 'seguir' && f.endsWith(path.join('js', 'app.js')))   // volta o passo extra: 1º toque só mostra um retorno
+        b = String(b).replace('ok.onclick = () => {', 'ok.onclick = () => { if (!ok.dataset.viu && Motor.completa(q, S.R[cod])) { ok.dataset.viu = 1; ok.textContent = "Seguir"; return; }');
+      else if (SAB === 'desligado' && f.endsWith(path.join('js', 'app.js')))   // Continuar apagado até responder (regra antiga)
+        b = String(b).replace('if (Motor.completa(q, r)) { erro.hidden', 'ok.disabled = !Motor.completa(q, r); if (Motor.completa(q, r)) { erro.hidden');
+      else if (SAB === 'solto' && f.endsWith(path.join('css', 'estilo.css')))   // Continuar volta a ficar no fim do conteúdo
+        b = String(b) + '\n.acoes-q{position:static!important}';
+      else if (SAB === 'foco' && f.endsWith(path.join('js', 'app.js')))
+        b = String(b).replace('if (q) try { q.focus', 'if (false) try { q.focus');
+      else if (SAB === 'modulo' && f.endsWith(path.join('js', 'app.js')))
+        b = String(b).replace('>Ir para a Etapa 2<', '>Ir para o Módulo 2<');
+      else if (SAB === '1' && f.endsWith(path.join('js', 'app.js')))
         b = String(b).replace('si.onclick = () => {', 'si.onclick = () => { try { const k = "lg2-turma-a-m01", st = JSON.parse(localStorage.getItem(k)); st.R[q.codigo] = { estado: "naosei", texto: q.botao_ajuda }; localStorage.setItem(k, JSON.stringify(st)); } catch {}');
       res.writeHead(200, { 'Content-Type': tipos[path.extname(f)] || 'application/octet-stream' }).end(b);
     });
@@ -320,12 +335,33 @@ async function servidor() {
     const b = [...document.querySelectorAll('.opcao')].find((x) => x.querySelector('.op-txt b').textContent.trim() === t);
     if (!b) return false; b.click(); return true;
   }, t);
-  const continuarDesligado = () => page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); return b ? b.disabled : null; });
+  /* lote 17/11: Continuar SEMPRE ativo. Sem resposta, o toque não anda e mostra o aviso (role=alert) logo acima dele;
+     com resposta, não há aviso e a resposta salva está completa. */
+  const codEm = (pg) => pg.evaluate(() => { const p = document.querySelector('.pergunta'); return p ? p.dataset.cod : (document.querySelector('h2') || {}).textContent === 'Retrato inicial' ? 'RESULTADO' : null; });
+  const ativoEm = (pg) => pg.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); return !!b && !b.disabled && b.getAttribute('aria-disabled') !== 'true'; });
+  const alertaEm = (pg) => pg.evaluate(() => { const a = document.querySelector('.acoes-q [role="alert"]'); return a && !a.hidden && a.getClientRects().length && a.textContent.trim() ? a.textContent.trim() : null; });
+  async function bloqueiaEm(pg, esperado) {
+    if (!(await ativoEm(pg))) return false;
+    const antes = await codEm(pg);
+    await pg.evaluate(() => [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar').click());
+    await pg.waitForTimeout(30);
+    return (await codEm(pg)) === antes && (await alertaEm(pg)) === esperado && await pg.evaluate(() => {
+      const a = document.querySelector('.acoes-q [role="alert"]'), b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar');
+      return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); });
+  }
+  async function prontoEm(pg) {
+    if (!(await ativoEm(pg)) || (await alertaEm(pg))) return false;
+    return pg.evaluate(() => { const R = JSON.parse(localStorage.getItem('lg2-turma-a-m01') || '{}').R || {}; const M = Motor.montar(window.MODULO1); Motor.remapear(M, R);
+      const c = document.querySelector('.pergunta').dataset.cod; return Motor.completa(Motor.efetiva(M, R, M.porCodigo[c]), R[c]); });
+  }
+  const ALERTA_OPCAO = 'Escolha uma opção para continuar.', ALERTA_TEXTO = 'Escreva a sua resposta para continuar.';
+  const bloqueia = (esperado) => bloqueiaEm(page, esperado);
+  const pronto = () => prontoEm(page);
   const continuar = async () => { ok(await clicarTexto('button', 'Continuar'), 'botão Continuar'); await page.waitForTimeout(30); };
   const msgAgora = () => page.evaluate(() => { const m = document.querySelector('#msg .msg'); return m ? m.querySelector('b').textContent + ': ' + m.querySelector('p').textContent : null; });
   const estadoOpcoes = () => page.evaluate(() => [...document.querySelectorAll('.opcao')].map((b) => ({
     t: b.querySelector('b').textContent, sel: b.classList.contains('sel'),
-    check: getComputedStyle(b.querySelector('.check')).display !== 'none' && b.querySelector('.check').textContent === '✓' })));
+    check: getComputedStyle(b.querySelector('.check')).display !== 'none' && b.querySelector('.check').textContent === '✓', pr: b.getAttribute('aria-pressed') })));
 
   /* palavras visíveis do corpo da pergunta (innerText: dicas fechadas ficam de fora), sem opções e botões */
   const palavrasCorpo = () => page.evaluate(() => {
@@ -364,6 +400,12 @@ async function servidor() {
     ok(!/BT\d{2}|M1\.P\d|rafael/i.test(t), `${onde}: código ou nome interno na tela`);
     ok(!/\bGrupo\s*\d|pr[óo]ximos grupos|M[óo]dulo\s*\d+\s+usar[áa]|mapeados por voc[êe]s/i.test(t), `${onde}: texto dirigido aos grupos na tela`);
     ok(!/objetivo de renda/i.test(t), `${onde}: cita "objetivo de renda", que não é perguntado`);
+    ok(!/m[óo]dulo/i.test(t), `${onde}: "Módulo" no texto visível (a jornada chama de Etapa)`);
+    /* alvos de toque (o cabeçalho roxo e a linha de cima vêm do padrão comum) */
+    const pequenos = await page.evaluate(() => [...document.querySelectorAll('#tela button, #tela summary, #tela a.btn, #tela [role="button"]')]
+      .filter((e) => e.getClientRects().length && !e.closest('.p-faixa, .p-linha') && e.getBoundingClientRect().height < 44)
+      .map((e) => e.textContent.trim().slice(0, 25) + ' ' + Math.round(e.getBoundingClientRect().height) + 'px'));
+    ok(pequenos.length === 0, `${onde}: alvo de toque menor que 44 px: ${pequenos.join(' | ')}`);
     const menor = await page.evaluate(() => {
       let m = 99, qual = '';
       document.querySelectorAll('#tela *').forEach((e) => {
@@ -390,13 +432,11 @@ async function servidor() {
     ok(await page.evaluate(() => (document.querySelector('#comoideia .nota-ns') || {}).textContent) === nota, `${c}: nota "${nota}" abaixo da ajuda`);
     ok((await salvoTudo()) === antes, `${c}: "Não sei" não grava nada (estado salvo igual)`);
     ok(await page.evaluate((c) => !(JSON.parse(localStorage.getItem('lg2-turma-a-m01') || '{}').R || {})[c], c), `${c}: sem resposta gravada depois do "Não sei"`);
-    ok((await continuarDesligado()) === true, `${c}: Continuar apagado só com "Não sei"`);
-    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); b.disabled = false; b.click(); });
-    await page.waitForTimeout(30);
-    ok((await cod()) === c, `${c}: Continuar (mesmo forçado) não avança só com "Não sei"`);
+    ok(await page.evaluate(() => { const b = document.querySelector('#comoideia [data-copiar]'); return !!b && b.getBoundingClientRect().height >= 44; }), `${c}: Copiar com 44 px ou mais`);
+    ok(await bloqueia(nota === NOTA_TEXTO ? ALERTA_TEXTO : ALERTA_OPCAO), `${c}: Continuar ativo, mas só com "Não sei" não avança e avisa`);
+    ok((await cod()) === c, `${c}: Continuar não avança só com "Não sei"`);
     await clicarTexto('button', EXP[c].botao_ajuda);
     ok(await page.evaluate(() => document.querySelector('#comoideia').hidden), `${c}: tocar de novo fecha a ajuda`);
-    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); b.disabled = true; });
   }
 
   /* checagens de uma pergunta antes de responder */
@@ -437,7 +477,7 @@ async function servidor() {
     else ok(await page.evaluate(() => !document.querySelector('.op-ex')), `${c}: sem linha de exemplo nas opções`);
     ok(await page.evaluate(() => !document.querySelector('.como-descobrir')), `${c}: "Como descobrir" começa fechado`);
     ok(await page.evaluate(() => !document.querySelector('#ns, .video-card, .video-fundo')), `${c}: sem botão Não sei e sem card de vídeo (vídeo ainda não chegou)`);
-    if (R.__novo) ok(await continuarDesligado() === true, `${c}: Continuar deve começar apagado`);
+    if (R.__novo) ok(await bloqueia(e.opcoes ? ALERTA_OPCAO : ALERTA_TEXTO), `${c}: Continuar ativo sem resposta; o toque não anda e avisa acima do botão`);
     if (e.opcoes) {
       const ops = await estadoOpcoes();
       ok(JSON.stringify(ops.map((o) => o.t)) === JSON.stringify(e.opcoes.map((o) => o[0])), `${c}: opções ${JSON.stringify(ops.map((o) => o.t))}`);
@@ -450,20 +490,20 @@ async function servidor() {
         for (const [op] of e.opcoes) {
           await opcao(op); marcadas.push(op);
           const st = await estadoOpcoes();
-          ok(st.every((x) => marcadas.includes(x.t) === x.sel && x.sel === x.check), `${c} / ${op}: ✓ em todas as marcadas (${marcadas.length})`);
-          ok((await continuarDesligado()) === (op === 'Outra coisa'), `${c} / ${op}: Continuar ${op === 'Outra coisa' ? 'apagado até escrever a outra coisa' : 'aceso'}`);
+          ok(st.every((x) => marcadas.includes(x.t) === x.sel && x.sel === x.check && x.pr === String(x.sel)), `${c} / ${op}: ✓ e aria-pressed em todas as marcadas (${marcadas.length})`);
+          ok(op === 'Outra coisa' ? await bloqueia(ALERTA_TEXTO) : await pronto(), `${c} / ${op}: ${op === 'Outra coisa' ? 'não anda até escrever a outra coisa' : 'pronto para seguir'}`);
         }
         const salvoP8 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R['M1.P08']);
         ok(JSON.stringify(salvoP8.opcoes) === JSON.stringify(e.opcoes.map((o) => o[0])) && salvoP8.opcao === e.opcoes[0][0] && salvoP8.estado === 'opcao', `${c}: grava a lista na ordem e a 1ª em "opcao": ${JSON.stringify(salvoP8)}`);
         for (const [op] of e.opcoes) await opcao(op);
-        ok((await estadoOpcoes()).every((x) => !x.sel) && (await continuarDesligado()) === true, `${c}: tocar de novo desmarca; sem nada marcado, Continuar apagado`);
+        ok((await estadoOpcoes()).every((x) => !x.sel && x.pr === 'false') && await bloqueia(ALERTA_OPCAO), `${c}: tocar de novo desmarca; sem nada marcado, Continuar não anda e avisa`);
         ok(await page.evaluate(() => !JSON.parse(localStorage.getItem('lg2-turma-a-m01')).R['M1.P08']), `${c}: sem nada marcado não guarda resposta`);
       } else if (todasMsgs) for (const [op, m] of e.opcoes) {
         await opcao(op);
         ok((await msgAgora()) === null, `${c} / ${op}: orientação geral não aparece como retorno`);
         const st = await estadoOpcoes();
-        ok(st.every((x) => (x.t === op) === x.sel && x.sel === x.check), `${c} / ${op}: ✓ só na escolhida`);
-        if (c !== 'M1.P08' || op !== 'Outra coisa') ok(await continuarDesligado() === false, `${c} / ${op}: Continuar aceso`);
+        ok(st.every((x) => (x.t === op) === x.sel && x.sel === x.check && x.pr === String(x.sel)), `${c} / ${op}: ✓ e aria-pressed="true" só na escolhida (as outras "false")`);
+        if (c !== 'M1.P08' || op !== 'Outra coisa') ok(await pronto(), `${c} / ${op}: pronto para seguir, sem aviso`);
         ok(await page.evaluate(() => !document.querySelector('.como-descobrir')), `${c} / ${op}: sem "Como descobrir" fora do "Não sei"`);
       }
     }
@@ -477,7 +517,7 @@ async function servidor() {
       await page.waitForSelector('#txt + button.lg2-falar');
       const falar = await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /Falar/.test(b.getAttribute('aria-label') || b.textContent)).map((b) => b.getAttribute('aria-label')));
       ok(falar.length === 1 && falar[0] === 'Falar a resposta', 'P3: um botão "Falar a resposta" ao lado do campo');
-      ok(await continuarDesligado() === true, 'P3: Continuar apagado sem texto');
+      ok(await bloqueia(ALERTA_TEXTO), 'P3: sem texto, Continuar não anda e avisa');
       if (R.__semideia) await naoSeiBloqueia(c, NOTA_TEXTO);
       await page.fill('#txt', v);
       ok((await msgAgora()) === null, 'P3: sem mensagem ao escrever');
@@ -486,7 +526,7 @@ async function servidor() {
       ok((await estadoOpcoes()).filter((o) => o.sel).length === v.length, `${c}: ${v.length} marcadas`);
       if (v.includes('Outra coisa')) {
         ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return o && !o.hidden && !!o.querySelector('textarea'); }), 'P8: "Outra coisa" abre campo de texto');
-        ok(await continuarDesligado() === true, 'P8: Continuar apagado com "Outra coisa" sem texto');
+        ok(await bloqueia(ALERTA_TEXTO), 'P8: "Outra coisa" sem texto não anda e avisa');
         ok(await page.evaluate(() => document.querySelector('.outra textarea').placeholder) === EXP['M1.P08'].outra_placeholder, 'P8: exemplo dentro do campo de "Outra coisa"');
         await page.fill('.outra textarea', R.__outra);
       } else ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return !o || o.hidden; }), 'P8: campo de "Outra coisa" fechado sem essa opção');
@@ -494,13 +534,13 @@ async function servidor() {
       ok(await opcao(v), `${c}: opção "${v}" não encontrada`);
       if (v === 'Outra coisa') {
         ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return o && !o.hidden && !!o.querySelector('textarea'); }), 'P8: "Outra coisa" abre campo de texto');
-        ok(await continuarDesligado() === true, 'P8: Continuar apagado com "Outra coisa" sem texto');
+        ok(await bloqueia(ALERTA_TEXTO), 'P8: "Outra coisa" sem texto não anda e avisa');
         await page.fill('.outra textarea', R.__outra);
       } else if (c === 'M1.P08') {
         ok(await page.evaluate(() => { const o = document.querySelector('.outra'); return !o || o.hidden; }), 'P8: campo de "Outra coisa" fechado nas outras opções');
       }
     }
-    ok(await continuarDesligado() === false, `${c}: Continuar aceso depois de responder`);
+    ok(await pronto(), `${c}: depois de responder, sem aviso e pronto para seguir`);
   }
 
   async function inicio(limpar = true) {
@@ -513,7 +553,7 @@ async function servidor() {
   async function caminho(nome, R, opts = {}) {
     await inicio();
     await clicarTexto('button', 'Começar');
-    const seq = [];
+    const seq = [], barras = [];
     for (let i = 0; i < 16; i++) {
       const c = await cod();
       if (!c || c === 'RESULTADO') break;
@@ -521,8 +561,17 @@ async function servidor() {
       await conferirPergunta(c, Object.assign({ __novo: true }, R), opts.todasMsgs);
       if (opts.shots && opts.shots[c]) await opts.shots[c]();
       await responder(c, R);
+      const barra = await page.evaluate(() => { const b = document.querySelector('.p-barra'); return [b.getAttribute('aria-valuetext'), +b.getAttribute('aria-valuenow')]; });
+      barras.push(barra);
       await continuar();
+      /* um toque só: o Continuar já abre a próxima (sem "Seguir"/"Corrigir"), e o foco vai para o enunciado novo */
+      const depois = await cod();
+      ok(depois !== c, `${nome}: ${c}: um toque em Continuar deve abrir a próxima tela`);
+      if (depois && depois !== 'RESULTADO') ok(await page.evaluate(() => document.activeElement === document.querySelector('.pergunta .q') && document.activeElement.tabIndex === -1), `${nome}: ${depois}: foco no enunciado da pergunta nova`);
     }
+    /* total estável ("de 11", o caminho mais longo) e barra que só anda para a frente */
+    ok(barras.every(([t], i) => t === `Pergunta ${i + 1} de ${ORDEM.length}`), `${nome}: contador estável ${JSON.stringify(barras.map((b) => b[0]))}`);
+    ok(barras.every(([, v], i) => i === 0 || v > barras[i - 1][1]), `${nome}: barra volta para trás ${JSON.stringify(barras.map((b) => b[1]))}`);
     const esp = esperado(R);
     ok(JSON.stringify(seq) === JSON.stringify(esp), `${nome}: caminho ${seq.join(' > ')} != ${esp.join(' > ')}`);
     ok((await cod()) === 'RESULTADO', `${nome}: deve chegar à tela de resultado`);
@@ -539,8 +588,10 @@ async function servidor() {
   await inicio();
   let t = await texto();
   /* versão leve: capa = título, 1 frase, tempo, Começar; o resto fica em "Como funciona" (fechado) */
+  /* tempo honesto: ~35 s por pergunta do caminho mais comum (sem 5A e 7A), arredondado para múltiplo de 5 min */
+  const MIN = Math.max(5, Math.round(esperado(base).length * 35 / 60 / 5) * 5);
   for (const s of ['Etapa 1 de 10', 'Você e a sua ideia', 'Responda perguntas rápidas e receba um resumo da sua ideia com uma tarefa para começar.',
-    'Como funciona', 'Esta etapa leva uns 10 minutos', 'O que esta etapa não faz', 'Salvar e sair'])
+    'Como funciona', `Esta etapa leva cerca de ${MIN} minutos`, 'O que esta etapa não faz', 'Salvar e sair'])
     ok(t.includes(s), `início: falta "${s}"`);
   ok(!t.includes('confirmar o tempo'), 'início: nota "(confirmar o tempo real)" não pode aparecer');
   ok(!t.includes('No final, você vai ter:') && !t.includes('A jornada completa'), 'início: "Como funciona" começa fechado');
@@ -684,6 +735,10 @@ async function servidor() {
   ok(JSON.stringify(await avisosAgora()) === JSON.stringify(['Você disse que já vende, mas também que ainda não sabe fazer o que vende. Se outra pessoa faz para você e você só revende, talvez a resposta sobre o que você oferece seja "Mercadoria". Confira suas respostas.']),
     'aviso: já vende + ainda não sabe fazer ' + JSON.stringify(await avisosAgora()));
   ok(await page.evaluate(() => !!document.querySelector('.lg2-proximo')), 'aviso não trava: o resultado chega ao botão do próximo módulo');
+  /* fim: link exatamente "Ir para a Etapa 2" dentro de <div class="acoes lg2-proximo">, visível */
+  ok(await page.evaluate(() => { const d = document.querySelector('div.acoes.lg2-proximo'); const a = d && d.querySelector('a');
+    if (!a) return false; a.scrollIntoView({ block: 'center' }); const r = a.getBoundingClientRect();
+    return a.textContent === 'Ir para a Etapa 2' && r.height >= 44 && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(d).display !== 'none'; }), 'resultado: "Ir para a Etapa 2" visível no fim, dentro de .acoes.lg2-proximo');
   // ideia vaga na Pergunta 3: entra no que falta descobrir e a tarefa pede para definir a ideia
   await caminho('ideia vaga', com({ 'M1.P03': 'não sei', __vaga: true, __semideia: true, 'M1.P05': 'Até 1 hora por dia', 'M1.P05A': 'Sim, consigo arrumar mais tempo' }));
   ok(JSON.stringify(await faltaAgora()) === JSON.stringify(['Ainda falta saber: o que exatamente você vai vender.']), 'falta descobrir (ideia vaga): ' + JSON.stringify(await faltaAgora()));
@@ -704,10 +759,11 @@ async function servidor() {
     await page.evaluate(() => { document.querySelector('details.mais-detalhes').open = true; document.querySelector('details.para-onde').open = true; });
     const t2 = await texto();
     ok(!/O que você recebe no final/.test(t2), 'resultado: sai o cartão que só descrevia a entrega');
-    for (const s of ['No Módulo 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes.',
-      'No Módulo 4 você vai usar essas informações para montar uma primeira oferta simples e testar a ideia gastando pouco.',
-      'No Módulo 6 você vai usar esse valor para planejar quanto investir no começo sem se arriscar.',
-      'No Módulo 10, o seu tempo e o que limita você vão ajudar a definir o ritmo e as prioridades do seu plano de 90 dias.',
+    for (const s of ['Na Etapa 2 você vai usar essa ideia para descobrir quem são os seus possíveis clientes.',
+      'Na Etapa 4 você vai usar essas informações para montar uma primeira oferta simples e testar a ideia gastando pouco.',
+      'Na Etapa 6 você vai usar esse valor para planejar quanto investir no começo sem se arriscar.',
+      'Na Etapa 10, o seu tempo e o que limita você vão ajudar a definir o ritmo e as prioridades do seu plano de 90 dias.',
+      'Etapa 2: Clientes, necessidades e comportamento de compra',
       'Seu retrato inicial: o tempo que você tem, o que limita você e o que motiva você.'])
       ok(t2.includes(s), `resultado: falta "${s}"`);
   }
@@ -720,7 +776,7 @@ async function servidor() {
   await clicarTexto('button', '‹ Voltar');
   ok(await cod() === 'M1.P01', 'Voltar: P2 -> P1');
   ok((await estadoOpcoes()).find((o) => o.t === 'Já vendo sempre').check, 'Voltar: P1 mantém a escolha com ✓');
-  ok(await continuarDesligado() === false, 'Voltar: Continuar aceso com resposta salva');
+  ok(await pronto(), 'Voltar: resposta salva, pronto para seguir');
   await clicarTexto('button', '‹ Voltar');
   ok(await page.evaluate(() => !!document.querySelector('#ir')), 'Voltar: P1 -> tela inicial');
 
@@ -761,7 +817,6 @@ async function servidor() {
     const card = () => pv.evaluate(() => { const c = document.querySelector('.video-card'); return c ? c.textContent.trim() : null; });
     const aberto = () => pv.evaluate(() => { const d = document.querySelector('.video-fundo[role=dialog]'); return !!d && d.getBoundingClientRect().height > 0; });
     const salvo = (c) => pv.evaluate((c) => (JSON.parse(localStorage.getItem('lg2-turma-a-m01') || '{}').R || {})[c] || null, c);
-    const desligado = () => pv.evaluate(() => [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar').disabled);
     await clica('button', 'Começar');
     const vistos = {};
     for (let i = 0; i < 12; i++) {
@@ -778,7 +833,7 @@ async function servidor() {
         if (c === 'M1.P03') await clica('button', 'Fechar vídeo');
         else await pv.evaluate(() => document.querySelector('.video-fundo video').dispatchEvent(new Event('ended')));
         ok(!(await aberto()), `${c}: ${c === 'M1.P03' ? 'fechar' : 'terminar'} o vídeo fecha a caixa`);
-        ok(await pc() === c && (await salvo(c)) === null && (await desligado()) === true, `${c}: volta para a mesma pergunta, sem resposta`);
+        ok(await pc() === c && (await salvo(c)) === null && await bloqueiaEm(pv, c === 'M1.P03' ? ALERTA_TEXTO : ALERTA_OPCAO), `${c}: volta para a mesma pergunta, sem resposta`);
         await pv.click('.video-card'); await pv.keyboard.press('Escape');
         ok(!(await aberto()) && await pc() === c, `${c}: Esc fecha o vídeo`);
       }
@@ -817,12 +872,12 @@ async function servidor() {
     ok(m4.v === 5 && JSON.stringify(Object.keys(m4.R).sort()) === JSON.stringify(fica.sort()) && fica.every((c) => JSON.stringify(m4.R[c]) === JSON.stringify(v4R[c])),
       'v4: "Não sei dizer" da 5A e da 7A vira sem resposta, as outras ficam iguais: ' + JSON.stringify(m4));
     await clicarTexto('button', 'Começar');
-    ok(await cod() === 'M1.P05A' && (await estadoOpcoes()).every((o) => !o.sel) && (await continuarDesligado()) === true, 'v4 terminado: Começar leva à 5A, sem resposta');
+    ok(await cod() === 'M1.P05A' && (await estadoOpcoes()).every((o) => !o.sel) && await bloqueia(ALERTA_OPCAO), 'v4 terminado: Começar leva à 5A, sem resposta');
     await opcao('Sim, consigo arrumar mais tempo'); await continuar();
     for (let i = 0; i < 3 && (await cod()) !== 'M1.P07A'; i++) {
-      ok((await continuarDesligado()) === false, `v4: ${await cod()} mantém a resposta antiga`); await continuar();
+      ok(await pronto(), `v4: ${await cod()} mantém a resposta antiga`); await continuar();
     }
-    ok(await cod() === 'M1.P07A' && (await continuarDesligado()) === true, 'v4: chega à 7A (que também perdeu o "Não sei"), sem resposta');
+    ok(await cod() === 'M1.P07A' && await bloqueia(ALERTA_OPCAO), 'v4: chega à 7A (que também perdeu o "Não sei"), sem resposta');
     await page.evaluate(() => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 4, atual: 'M1.P04', R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'naosei', texto: 'Ainda não sei' } } })));
     await page.reload(); await page.waitForSelector('#ir');
     ok(JSON.stringify(Object.keys((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))).R)) === '["M1.P01"]', 'v4: resposta "naosei" vira sem resposta');
@@ -886,7 +941,7 @@ async function servidor() {
     ok(JSON.stringify((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))).R['M1.P03A']) === JSON.stringify({ estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }), 'troca de tipo: 3A no mesmo formato');
     await continuar();
     ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já conhece bem roupas e sabe onde comprar?', 'troca de tipo: P4 de revenda');
-    ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Sim, conheço bem o produto e onde comprar"]' && (await continuarDesligado()) === false,
+    ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Sim, conheço bem o produto e onde comprar"]' && await pronto(),
       'troca de tipo: a resposta da P4 passa para a opção equivalente, Continuar aceso');
     ok(!(await texto()).includes('ainda estou aprendendo'), 'troca de tipo: sem opção de "aprender a fazer" na revenda');
     await page.evaluate(() => { document.querySelector('details').open = true; });
@@ -924,16 +979,51 @@ async function servidor() {
     await kb.close();
   }
 
+  /* ---------- Continuar sempre à vista (lote 17/11): 360x640, letra 130% e celular deitado ----------
+     Em todas as perguntas do caminho mais longo (com 5A, 7A e "Outra coisa"), antes e depois de responder, o Continuar
+     está inteiro na tela sem rolar; rolando até o fim, ele não cobre o último campo/opção. */
+  for (const [nome, vp, letra] of [['360x640', { width: 360, height: 640 }], ['390x844 letra 130%', { width: 390, height: 844 }, true], ['740x360 deitado', { width: 740, height: 360 }]]) {
+    const pg = await browser.newPage({ viewport: vp });
+    pg.on('pageerror', (e) => erros.push(`${nome}: ` + e.message));
+    await pg.goto(srv.url); await pg.evaluate(() => localStorage.clear()); await pg.reload(); await pg.waitForSelector('#ir');
+    const fonte = () => letra && pg.evaluate(() => { document.documentElement.style.fontSize = '130%'; document.body.style.fontSize = '130%'; });
+    await fonte();
+    await pg.click('#ir');
+    const R = com({ 'M1.P05': 'Até 1 hora por dia', 'M1.P07': 'Nada por enquanto', 'M1.P08': ['Me falta lugar ou equipamento', 'Outra coisa'], __outra: 'Chuva' });
+    const vistos = [];
+    const aVista = () => pg.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar'); const r = b.getBoundingClientRect();
+      return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; });
+    for (let i = 0; i < 14; i++) {
+      const c = await codEm(pg);
+      if (!c || c === 'RESULTADO') break;
+      vistos.push(c);
+      await fonte();
+      ok(await pg.evaluate(() => scrollY === 0) && await aVista(), `${nome}: ${c}: Continuar inteiro na tela sem rolar`);
+      const v = R[c];
+      if (c === 'M1.P03') await pg.fill('#txt', v);
+      else for (const x of [].concat(v)) await pg.evaluate((t) => [...document.querySelectorAll('.opcao')].find((o) => o.querySelector('.op-txt b').textContent.trim() === t).click(), x);
+      if ([].concat(v).includes('Outra coisa')) await pg.fill('.outra textarea', R.__outra);
+      ok(await aVista(), `${nome}: ${c}: Continuar à vista depois de responder`);
+      ok(await pg.evaluate(() => { scrollTo(0, document.documentElement.scrollHeight); const a = document.querySelector('.acoes-q').getBoundingClientRect();
+        const ult = [...document.querySelectorAll('.pergunta .opcao, .pergunta textarea, .pergunta .video-card, .pergunta #semideia')].filter((e) => e.getClientRects().length).pop();
+        const fim = ult.getBoundingClientRect().bottom; scrollTo(0, 0); return fim <= a.top + 1; }), `${nome}: ${c}: a barra do Continuar não cobre o último campo`);
+      await pg.evaluate(() => [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Continuar').click());
+      await pg.waitForTimeout(40);
+    }
+    ok(vistos.length === ORDEM.length && (await codEm(pg)) === 'RESULTADO', `${nome}: percorre as ${ORDEM.length} perguntas: ${vistos.join(' > ')}`);
+    await pg.close();
+  }
+
   /* ---------- respostas da versão antiga são descartadas ---------- */
   await page.evaluate(() => localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ R: { 'M1.P01': { estado: 'opcao', opcao: '1. Só na cabeça' } }, hist: ['M1.P01', 'M1.P02'] })));
   await page.reload(); await page.waitForSelector('#ir');
   ok(!(await texto()).includes('Apagar respostas'), 'versão antiga: não reconhece respostas antigas');
   await clicarTexto('button', 'Começar');
   ok(await cod() === 'M1.P01' && (await estadoOpcoes()).every((o) => !o.sel), 'versão antiga: começa do zero na P1');
-  ok(await continuarDesligado() === true, 'versão antiga: Continuar apagado');
+  ok(await bloqueia(ALERTA_OPCAO), 'versão antiga: Continuar não anda sem resposta');
 
   ok(erros.length === 0, 'erros na página: ' + erros.join(' | '));
   await browser.close(); srv.close();
   if (falhas.length) { console.log(`FAIL ${falhas.length} de ${checks} checagens`); falhas.forEach((f) => console.log(' - ' + f)); process.exit(1); }
-  console.log(`PASS ${checks} checagens · versão leve: capa curta, "Ver dica" fechada, exemplos no campo, até ${LIMITE_PALAVRAS} palavras por pergunta, "Como descobrir" + Copiar no "Não sei" (P3, 7A; não grava, Continuar não avança) e no resultado · lote 3: Voltar só no topo acima da pergunta, textos longos com "Ver mais", "Para onde seguem" recolhido, sem "Grupo N" · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), nenhuma opção "Não sei" + migração v4→v5, exemplos embaixo das opções (3A, 7A), card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
+  console.log(`PASS ${checks} checagens · versão leve: capa curta, "Ver dica" fechada, exemplos no campo, até ${LIMITE_PALAVRAS} palavras por pergunta, "Como descobrir" + Copiar no "Não sei" (P3, 7A; não grava, Continuar não avança) e no resultado · lote 17/11: um toque por pergunta, Continuar sempre ativo com aviso, preso ao pé (360x640, letra 130%, deitado), aria-pressed + foco no enunciado, "Etapa" no texto, toques >= 44 px, tempo pelo caminho comum, total estável · lote 3: Voltar só no topo acima da pergunta, textos longos com "Ver mais", "Para onde seguem" recolhido, sem "Grupo N" · lote 05/11 (b): teclado, o que falta descobrir + tarefa, P4/P8 de revenda e exemplos por tipo, aviso de combinação, sem texto aos grupos · 3A (Produto/Mercadoria/Serviço), P8 com várias respostas + migração v3, "O que entendemos até aqui" · caminhos: 5A (4 opções da P5), 7A (P6 e 5 opções da P7), nenhuma opção "Não sei" + migração v4→v5, exemplos embaixo das opções (3A, 7A), card de vídeo (escondido; com vídeo de teste nas P3 e P7), ${sabot.length} sabotagens detectadas, P8 e resultado alcançados`);
 })().catch((e) => { console.error('FAIL', e); process.exit(1); });

@@ -16,6 +16,7 @@
   const TOLERANCIA_MEI = 0.2;            // até 20% acima do limite
   const FAT_MES_ALTO = 20000;            // acima disso por mês: aviso "parece alto para um pequeno negócio" (não trava)
   const ESPERA_TECLADO = 300;            // ms até rolar o campo para o centro, depois que o teclado abre
+  const ESPERA_RETORNO = 700;            // ms sem digitar até mostrar o retorno ao vivo (lote 17/11, item A)
   const LIMITE_TEXTO = 220;              // dica com mais que isso: 1ª frase à vista e o resto em "Ver mais"
   const DOMICILIO = "Na casa do cliente (atendimento em domicílio)";   // opção do local (lote 3); o Módulo 10 usa o mesmo texto
   /* fontes oficiais (consultadas em 06/11/2026) */
@@ -84,7 +85,12 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const link = (u, t) => /^https?:/.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : esc(t || u);
   function el(html) { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstElementChild; }
-  function ir(f, ...a) { tela.innerHTML = ""; tela.appendChild(f(...a)); window.scrollTo(0, 0); }
+  /* item D (17/11): a tela nova leva o foco para o enunciado (pergunta) ou o título da conclusão, sem rolar */
+  function ir(f, ...a) {
+    tela.innerHTML = ""; tela.appendChild(f(...a)); window.scrollTo(0, 0);
+    const alvo = tela.querySelector("[data-foco]");
+    if (alvo) alvo.focus({ preventScroll: true });
+  }
 
   /* ================= herança: o que já foi respondido em outros módulos (só leitura) =================
      P01 atividade ← M1.P03 (depois M3.P01, M4.P01) · P02 tipo ← M1.P03A, M5.P01, M4.P02
@@ -165,10 +171,12 @@
     for (const [k, c, n] of fontes) { const o = textoDe(lerR(k)[c]); const t = tipoP02(o); if (t) return { opcao: t, de: n, original: o }; }
     return null;
   }
-  function avisoTipo(escolhida) {
+  /* naPergunta: o aviso aparece ao vivo, logo abaixo das opções (lote 17/11, item A); no resumo, aponta "Revisar respostas" */
+  function avisoTipo(escolhida, naPergunta) {
     const h = tipoHerdado();
     if (!h || !escolhida || escolhida === NS || escolhida === h.opcao) return "";
-    return `<div class="bloco b-alerta" id="aviso-tipo"><b>Confira o tipo de atividade</b>No Módulo ${esc(h.de)} você respondeu “${esc(h.original)}”. Aqui você escolheu “${esc(escolhida)}”. Se mudou de ideia, tudo bem, pode seguir. Se foi engano, toque em “Corrigir minha resposta”. ${selo(h.de)}</div>`;
+    const engano = naPergunta ? "escolha outra opção acima" : "toque em “Revisar respostas”, no fim desta página";
+    return `<div class="bloco b-alerta" id="aviso-tipo"><b>Confira o tipo de atividade</b>Na Etapa ${esc(h.de)} você respondeu “${esc(h.original)}”. Aqui você escolheu “${esc(escolhida)}”. Se mudou de ideia, tudo bem, pode seguir. Se foi engano, ${engano}. ${selo(h.de)}</div>`;
   }
 
   /* faturamento por ano: o informado aqui (por mês × 12) ou, se respondeu "Não sei", preço × vendas por mês do Módulo 5 × 12 */
@@ -214,7 +222,17 @@
       <p>Cerca de <strong>${reais(f.ano)} por ano</strong>: dentro do limite do MEI em 2026, que é de ${reais(LIMITE_MEI_ANO)} por ano.</p>
       <p class="como-calc">${calcAno(f.mes)}</p></div>`;
   }
-  const selo = (de) => `<span class="veio">${de === DE_CNAE ? "Veio da sua escolha do CNAE" : `Veio do Módulo ${esc(de)}`}</span>`;
+  /* B4 (17/11): quem JÁ é MEI e fatura dentro do limite não lê "o MEI pode ser um caminho": vê a folga até o limite */
+  const jaMei = () => sigla(Motor.valor(S.R, "M8.P05")) === "MEI";
+  const calcFolga = (ano) => `Como calculamos: ${reais(LIMITE_MEI_ANO)} (limite do MEI em 2026) − ${reais(ano)} (seu faturamento no ano) = ${reais(LIMITE_MEI_ANO - ano)} de folga por ano.`;
+  function blocoFolga() {
+    const f = faturamentoAno();
+    if (!f || f.ano > LIMITE_MEI_ANO || !jaMei()) return "";
+    return `<div class="bloco b-proximo" id="folga-mei"><b>Você continua dentro do limite do MEI</b>
+      <p>Você fatura cerca de ${reais(f.ano)} por ano. Ainda cabem <strong>${reais(LIMITE_MEI_ANO - f.ano)} por ano</strong> até o limite do MEI em 2026 (${reais(LIMITE_MEI_ANO)}).</p>
+      <p class="como-calc">${calcAno(f.mes)} ${calcFolga(f.ano)}</p></div>`;
+  }
+  const selo = (de) => `<span class="veio">${de === DE_CNAE ? "Veio da sua escolha do CNAE" : `Veio da Etapa ${esc(de)}`}</span>`;
 
   /* conceitos da Base técnica ligados à pergunta: pela fonte citada na pergunta */
   function conceitosDe(q) {
@@ -289,7 +307,7 @@
   function topo(trilha) {
     return `<div class="barra-topo">
       <img class="logo-mini" src="assets/minds.svg" alt="Minds of the Future">
-      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Módulo ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
+      <nav class="trilha" aria-label="Você está em"><button class="trilha-link" data-inicio>Início</button><span>/</span><span>Etapa ${esc(D.modulo.numero)}</span>${trilha ? `<span>/</span><span>${esc(trilha)}</span>` : ""}</nav>
     </div>`;
   }
   function heroi(o) {
@@ -301,7 +319,7 @@
     return `<section class="heroi ${o.grande ? "heroi-grande" : ""}">
       <div class="heroi-topo">
         <div class="heroi-txt">
-          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Módulo " + D.modulo.numero)}</div>
+          <div class="kicker ${o.kickerClasse || ""}">${esc(o.kicker || "Etapa " + D.modulo.numero)}</div>
           <${o.h1 ? "h1" : "h2"} class="heroi-tit ${o.tituloClasse || ""}">${esc(o.titulo)}</${o.h1 ? "h1" : "h2"}>
           ${o.texto ? `<p>${esc(o.texto)}</p>` : ""}
         </div>
@@ -351,15 +369,19 @@
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
   }
 
+  /* item G (17/11): tempo honesto na capa. Caminho mais comum = 10 perguntas (P01–P05, P06 e P07 de quem ainda não
+     tem CNPJ, P09 de quem não é só online, P10; P08 só para serviço). 35 s por pergunta, arredondado para múltiplo de 5 min. */
+  const SEG_POR_PERGUNTA = 35, CAMINHO_COMUM = 10;
+  const minutosCapa = () => Math.max(5, Math.round((CAMINHO_COMUM * SEG_POR_PERGUNTA) / 60 / 5) * 5);
   /* ================= capa ================= */
   function telaCapa() {
     const iniciado = S.hist.length > 0;
     const p = el(`
       <div class="pag">
         ${topo("")}
-        ${heroi({ grande: true, h1: true, kicker: "Módulo " + D.modulo.numero, titulo: D.modulo.nome, texto: D.capa.frase, img: "hero-inicio.webp" })}
+        ${heroi({ grande: true, h1: true, kicker: "Etapa " + D.modulo.numero, titulo: D.modulo.nome, texto: D.capa.frase, img: "hero-inicio.webp" })}
         <main class="corpo">
-          <p class="tempo">Este módulo leva uns ${esc(D.capa.minutos)} minutos</p>
+          <p class="tempo">Esta etapa leva cerca de ${esc(minutosCapa())} minutos</p>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
@@ -370,7 +392,7 @@
             <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
             <div class="acoes">
               <button class="btn btn-linha" id="base">Consultar as ocupações permitidas ao MEI</button>
-              <button class="btn btn-linha" id="limites">O que este módulo não faz</button>
+              <button class="btn btn-linha" id="limites">O que esta etapa não faz</button>
             </div>
           </details>
           ${rodape(true)}
@@ -393,10 +415,10 @@
     const p = el(`
       <div class="pag">
         ${topo("Limites")}
-        ${heroi({ titulo: "Limites do módulo" })}
+        ${heroi({ titulo: "Limites da etapa" })}
         <main class="corpo">
           ${botaoVoltar()}
-          <div class="cartao"><h3>O que o módulo não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
+          <div class="cartao"><h3>O que a etapa não faz</h3><p>${esc(D.mapa.nao_faz)}</p></div>
           <div class="cartao"><h3>Que decisões ele apoia</h3><p>${esc(D.mapa.decisoes)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
@@ -632,9 +654,10 @@
   }
 
   /* ================= pergunta ================= */
-  function progresso() {
-    const vistas = S.hist.filter((c) => c !== "RESULTADO").length;
-    return Math.min(100, Math.round((vistas / M.perguntas.length) * 100));
+  /* item G (17/11): total estável (as 10 perguntas, o caminho mais longo) e barra pela posição da pergunta:
+     "Pergunta N de 10" e a barra andam juntas e nunca voltam ao seguir em frente */
+  function progresso(q) {
+    return Math.min(100, Math.round(((M.perguntas.indexOf(q) + 1) / M.perguntas.length) * 100));
   }
 
   const LIGA_ANEXO = ["M8.P06", "M8.P07"];   // perguntas que citam CNAE / lista de ocupações MEI
@@ -651,22 +674,24 @@
 
     const p = el(`
       <div class="pag">
-        ${heroi({ compacta: true, titulo: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, progresso: progresso() })}
-        <main class="corpo">
+        ${heroi({ compacta: true, titulo: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, progresso: progresso(q) })}
+        <main class="corpo corpo-pergunta">
           <div class="cartao-q pergunta">
             ${botaoVoltar()}
             ${cartaoReuso(opts.pulei || [], "veio", "Já respondido antes")}
-            <h2 class="q">${esc(q.pergunta)}</h2>
+            <h2 class="q" id="enunciado" tabindex="-1" data-foco>${esc(q.pergunta)}</h2>
             ${explica(q) ? `<p class="explica" id="explica">${esc(explica(q))}</p>` : ""}
             ${deOnde ? `<div class="herdou" id="herdou">${selo(deOnde)}<span>${H ? "Confira e ajuste se quiser." : "Se quiser, troque a resposta abaixo."}</span>${nota ? `<p class="conta">Como calculamos: ${esc(nota)}.</p>` : ""}</div>` : ""}
             ${dica(q.ajuda, conceitosDe(q), q.alerta)}
             <div class="entrada" id="ent"></div>
             ${cod === "M8.P06" ? `<div id="cnae-feedback" role="status"></div>` : ""}
+            <div id="retorno" aria-live="polite"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
-            <div class="erro" id="erro" hidden></div>
             <section class="como-descobrir" id="ns-ajuda" role="status" hidden></section>
-            <div id="retorno"></div>
-            <div class="acoes" id="acoes"><button class="btn btn-primario seta" id="ok">Continuar</button></div>
+            <div class="acoes acoes-fixas" id="acoes">
+              <div class="erro" id="erro" role="alert" hidden></div>
+              <button class="btn btn-primario seta" id="ok">Continuar</button>
+            </div>
             ${LIGA_ANEXO.includes(cod) ? `<div class="alt"><button class="btn-alt" id="anexo">Consultar as ocupações permitidas ao MEI</button></div>` : ""}
             ${cod === "M8.P07" ? blocoQuemMei(false) : ""}
             ${NOTAS_EM.includes(cod) ? blocoNotas(cod) : ""}
@@ -691,12 +716,17 @@
       ent.classList.add("opcoes");
       q.opcoesLista.forEach((op) => {
         const ex = q.exOpcoes && q.exOpcoes[op];   // exemplo pequeno embaixo da opção difícil (o texto da opção não muda)
-        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}" aria-label="${esc(op)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b>${ex ? `<span class="op-ex">${esc(ex)}</span>` : ""}</span></button>`);
+        /* item D (17/11): o leitor de tela diz se a opção está marcada (aria-pressed, modelo da Etapa 1) */
+        const b = el(`<button class="opcao ${escolhida === op ? "sel" : ""}" aria-label="${esc(op)}" aria-pressed="${escolhida === op}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(op)}</b>${ex ? `<span class="op-ex">${esc(ex)}</span>` : ""}</span></button>`);
         b.onclick = () => {
-          ent.querySelectorAll(".opcao").forEach((x) => x.classList.remove("sel"));
-          if (op === NS) { escolhida = null; return pedirResposta(); }   // "Não sei": mostra como descobrir, não marca, não grava
+          ent.querySelectorAll(".opcao").forEach((x) => { x.classList.remove("sel"); x.setAttribute("aria-pressed", "false"); });
+          if (op === NS) { escolhida = null; previa(); return pedirResposta(); }   // "Não sei": mostra como descobrir, não marca, não grava
           escondeNs();
-          escolhida = op; b.classList.add("sel");
+          p.querySelector("#erro").hidden = true;
+          escolhida = op; b.classList.add("sel"); b.setAttribute("aria-pressed", "true");
+          previa();   // item A: o retorno aparece no toque, logo abaixo das opções
+          const rb = p.querySelector("#retorno");
+          if (rb.innerHTML.trim() && rb.scrollIntoView) rb.scrollIntoView({ block: "nearest" });   // sobe só o necessário para o retorno aparecer acima do Continuar
         };
         ent.appendChild(b);
       });
@@ -705,6 +735,16 @@
       ent.appendChild(el(tipo === "numero"
         ? `<div class="linha"><input class="campo" inputmode="decimal" placeholder="${esc(q.exemplo || "Ex.: 2.500,00")}" value="${esc(v)}"><span class="pre">R$</span></div>`
         : `<textarea class="campo" rows="3" placeholder="${esc(q.exemplo || "")}">${esc(v)}</textarea>`));
+      /* item A: campo de texto/número mostra o retorno ao sair do campo ou depois de ~700 ms sem digitar */
+      const f = ent.querySelector("input,textarea");
+      let espera = 0;
+      f.addEventListener("input", () => { clearTimeout(espera); espera = setTimeout(previa, ESPERA_RETORNO); });
+      /* ao sair do campo; se saiu tocando no Continuar, a tela já vai trocar (redesenhar agora tiraria o botão de baixo do dedo) */
+      f.addEventListener("blur", (e) => {
+        clearTimeout(espera);
+        if (e.relatedTarget && e.relatedTarget.id === "ok") { espera = setTimeout(previa, 400); return; }   // se a tela não trocar (erro/aviso), o retorno aparece logo depois
+        previa();
+      });
     }
     const ax = p.querySelector("#anexo");
     if (ax) ax.onclick = () => {
@@ -741,6 +781,52 @@
     }
     function escondeNs() { const box = p.querySelector("#ns-ajuda"); if (box) box.hidden = true; }
 
+    /* resposta que está na tela agora (sem gravar), no formato salvo; null se ainda não há resposta válida */
+    function candidata() {
+      if (tipo === "escolha") return escolhida ? { estado: "opcao", opcao: escolhida } : null;
+      const v = ent.querySelector("input,textarea").value.trim();
+      if (!v) return null;
+      if (tipo !== "numero") return { estado: "valor", valor: v };
+      const n = numero(v);
+      if (/^-/.test(v.replace(/^R\$\s*/i, "")) || n == null || n < 0 || !/^(R\$\s*)?\d[\d.\s]*(,\d+)?$|^(R\$\s*)?\d+(\.\d+)?$/i.test(v)) return null;
+      return { estado: "valor", valor: brNum(n) };
+    }
+    /* item A (17/11): o retorno (conta do ano, alerta do MEI, folga, aviso do tipo, ocupação do CNAE, fontes) aparece
+       ao vivo, logo abaixo da resposta, antes do Continuar. Calcula com a resposta da tela sem gravar nada. */
+    function previa() {
+      const box = p.querySelector("#retorno"), r0 = candidata();
+      if (!r0) { box.innerHTML = ""; return; }
+      const antes = S.R[cod];
+      S.R[cod] = r0;
+      try { box.innerHTML = htmlRetorno(); }
+      finally { if (antes === undefined) delete S.R[cod]; else S.R[cod] = antes; }
+    }
+    function htmlRetorno() {
+      const regras = Motor.regrasAgora(M, S.R, cod);
+      const cnaes = cod === "M8.P06" ? Motor.cnaes(M, S.R) : [];
+      const corpo = [
+        vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`,
+        cod === "M8.P02" ? avisoTipo(Motor.valor(S.R, cod), true) : "",
+        cod === "M8.P04" || cod === "M8.P05" ? alertaMei() : "",
+        cod === "M8.P04" ? blocoAno() : "",
+        cod === "M8.P05" ? blocoFolga() : "",
+        cnaes.map(blocoCnae).join(""),
+        regras.map((r) => `
+          <div class="regra">
+            <p class="r-texto">${esc(r.texto)}</p>
+            ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(r.alerta)}</div>`}
+            ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
+            ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${esc(r.encaminhamento)}</div>`}
+          </div>`).join(""),
+        alertaDaResposta(cod),
+        cod === "M8.P10" ? blocoFontes() : "",
+      ].join("");
+      return corpo.trim() ? `<div class="retorno">${corpo}</div>` : "";
+    }
+    previa();   // resposta já guardada (ou que veio de outra etapa): o retorno já aparece ao abrir
+
+    /* item A (17/11): um toque por pergunta. Continuar grava e já abre a próxima pergunta (sem "Seguir" nem "Corrigir").
+       Ficam em 2 passos só: o aviso de valor alto (toque de novo para confirmar) e o "Não sei" (bloqueia, não grava). */
     p.querySelector("#ok").onclick = () => {
       if (tipo === "escolha") {
         if (!escolhida) return erro(q.opcoesLista.includes(NS) ? MSG_ESCOLHA : "Escolha uma opção para continuar.");
@@ -757,20 +843,17 @@
           avisado = v;
           return erro(`Esse valor parece alto para um pequeno negócio: ${reais(n)} por mês dá cerca de ${reais(round2(n) * 12)} por ano (${reais(n)} × 12 meses). Confira se digitou certo. Se estiver certo, toque em Continuar de novo.`, true);
         }
-        ent.querySelector("input").value = brNum(n);   // o campo também passa a mostrar o padrão brasileiro
         return responder({ estado: "valor", valor: brNum(n) });   // guardado no padrão brasileiro (2.500,50)
       }
       responder({ estado: "valor", valor: v });
     };
     let avisado = null;
+    /* item B: Continuar sempre ativo; sem resposta, a mensagem aparece logo acima dele (role="alert"), na barra presa ao pé da tela */
     function erro(t, aviso) {
       const e = p.querySelector("#erro"); e.textContent = t; e.hidden = false; e.classList.toggle("erro-aviso", !!aviso);
-      const ok = p.querySelector("#ok"); if (ok && ok.scrollIntoView) ok.scrollIntoView({ block: "nearest" });   // o Continuar continua à vista
     }
 
     function responder(r0) {
-      p.querySelector("#erro").hidden = true;
-      escondeNs();
       /* guarda de onde veio quando a pessoa manteve o valor herdado (aparece com o selo no resumo) */
       const h = H || (S.R[cod] && S.R[cod].de ? S.R[cod] : null);
       if (h && mesmo(r0, h.r || h)) { r0.de = h.de; if (h.nota) r0.nota = h.nota; if (h.reuso) r0.reuso = true; }
@@ -778,41 +861,8 @@
       /* respostas de perguntas que deixaram de aparecer são descartadas */
       limparInvisiveis();
       salvar();
-      const regras = Motor.regrasAgora(M, S.R, cod);
-      const prox = Motor.proxima(M, S.R, cod);
-      mostrarRetorno(regras, prox);
-    }
-
-    function mostrarRetorno(regras, prox) {
-      const box = p.querySelector("#retorno");
-      const cnaes = cod === "M8.P06" ? Motor.cnaes(M, S.R) : [];
-      box.innerHTML = `<div class="retorno">
-        ${vazio(q.resposta) ? "" : `<p class="r-texto r-pergunta">${esc(q.resposta)}</p>`}
-        ${cod === "M8.P02" ? avisoTipo(Motor.valor(S.R, cod)) : ""}
-        ${cod === "M8.P04" || cod === "M8.P05" ? alertaMei() : ""}
-        ${cod === "M8.P04" ? blocoAno() : ""}
-        ${cnaes.map(blocoCnae).join("")}
-        ${regras.map((r) => `
-          <div class="regra">
-            <p class="r-texto">${esc(r.texto)}</p>
-            ${vazio(r.alerta) ? "" : `<div class="bloco b-alerta"><b>Atenção</b>${esc(r.alerta)}</div>`}
-            ${vazio(r.proximo) ? "" : `<div class="bloco b-proximo"><b>Próximo passo</b>${esc(r.proximo)}</div>`}
-            ${vazio(r.encaminhamento) ? "" : `<div class="bloco b-enc"><b>Quem procurar</b>${esc(r.encaminhamento)}</div>`}
-          </div>`).join("")}
-        ${alertaDaResposta(cod)}
-        ${cod === "M8.P10" ? blocoFontes() : ""}
-      </div>`;
-      const acoes = p.querySelector("#acoes");
-      acoes.innerHTML = "";
-      herdarTudo();
-      const alvo = opts.doResumo ? primeiraSemResposta() : pularReusadas(prox);
-      const b = el(`<button class="btn btn-primario seta">${alvo === "RESULTADO" ? "Ver meu resumo" : "Seguir"}</button>`);
-      b.onclick = () => opts.doResumo ? abrir(alvo) : abrir(prox);
-      acoes.appendChild(b);
-      const c = el(`<button class="btn btn-claro">Corrigir minha resposta</button>`);
-      c.onclick = () => ir(telaPergunta, cod, { doResumo: opts.doResumo });
-      acoes.appendChild(c);
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (opts.doResumo) { herdarTudo(); return abrir(primeiraSemResposta()); }   // veio do resumo: volta a ele (ou à 1ª sem resposta)
+      abrir(Motor.proxima(M, S.R, cod));
     }
     return p;
   }
@@ -866,15 +916,17 @@
         <main class="corpo">
           ${botaoVoltar()}
           <section class="concluido">
-            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu o Módulo ${esc(D.modulo.numero)}</h2></div></div>
+            <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2 tabindex="-1" data-foco>Você concluiu a Etapa ${esc(D.modulo.numero)}</h2></div></div>
           </section>
           <section class="entendemos" id="entendemos">
             <h3>O que entendemos até aqui</h3>
             ${entendemos().map((f) => `<p>${esc(f)}</p>`).join("")}
             ${(() => { const f = numero(Motor.valor(S.R, "M8.P04")); return f > 0 ? `<div class="como-calc" id="calc-ano">${esc(calcAno(f))}</div>` : ""; })()}
+            ${(() => { const f = faturamentoAno(); return f && f.ano <= LIMITE_MEI_ANO && jaMei() && numero(Motor.valor(S.R, "M8.P04")) > 0 ? `<div class="como-calc" id="calc-folga">${esc(calcFolga(f.ano))}</div>` : ""; })()}
           </section>
           ${cartaoReuso(REUSO.concat("M8.P07"), "veio-res", "Respostas reaproveitadas")}
           ${alertaMei()}
+          ${blocoFolga()}
           ${avisoTipo(Motor.valor(S.R, "M8.P02"))}
           <section class="bloco b-proximo" id="tarefa"><b>Seu próximo passo</b><p>${esc(tarefa())}</p></section>
           ${blocoPesquisou()}
@@ -909,7 +961,7 @@
             ${enc.length ? `<div class="bloco b-enc"><b>Quem procurar, pelas suas respostas</b>${enc.map(esc).join(" · ")}</div>` : ""}
             ${S.R["M8.P10"] ? blocoFontes() : ""}
             <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-            <div class="cartao"><h3>O que este módulo entrega</h3><p>${esc(D.mapa.entrega)}</p></div>
+            <div class="cartao"><h3>O que esta etapa entrega</h3><p>${esc(D.mapa.entrega)}</p></div>
             <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
             ${blocoConceitos(D.base)}
           </details>
@@ -920,7 +972,7 @@
             <button class="btn btn-linha" id="base">Consultar as ocupações permitidas ao MEI</button>
             <button class="btn btn-linha" id="novo">Começar outra análise</button>
           </div>
-          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m09/index.html">Ir para o Módulo 9</a></div>
+          <div class="acoes lg2-proximo"><a class="btn btn-primario" style="text-decoration:none;text-align:center;box-sizing:border-box" href="/lg2/turma-b/m09/index.html">Ir para a Etapa 9</a></div>
           ${rodape()}
         </main>
       </div>`);
@@ -945,7 +997,7 @@
     const porDuvida = {
       "Como escolher o CNAE": "Abra “Ocupações do MEI para a sua atividade”, logo abaixo, escolha a que mais descreve o que você faz e confirme o código na Sala do Empreendedor.",
       "Se posso ser MEI": "Confira os 4 pontos de “Quem pode ser MEI”, em “Mais detalhes”, e leve este resumo à Sala do Empreendedor de Juiz de Fora.",
-      "Quais licenças preciso": "Faça o Módulo 9: ele mostra as licenças mais comuns para a sua atividade e o seu local.",
+      "Quais licenças preciso": "Faça a Etapa 9: ela mostra as licenças mais comuns para a sua atividade e o seu local.",
       "Obrigações do CNPJ": "Converse com um contador ou ligue de graça para o Sebrae (" + SEBRAE_TEL + ") sobre os impostos e as obrigações de cada mês.",
     };
     return porDuvida[Motor.valor(S.R, "M8.P10")] || "Leve este resumo à Sala do Empreendedor de Juiz de Fora (ou da sua cidade) para tirar as dúvidas e ver o primeiro passo.";
@@ -988,10 +1040,15 @@
     const c1 = f.length;   // 1º parágrafo: a atividade, o estágio, o cliente e o lugar
     const fat = numero(v("M8.P04"));
     if (fat > 0) {
-      const ano = fat * 12;
-      f.push(`Você estima faturar ${reais(fat)} por mês, cerca de ${reais(round2(fat) * 12)} por ano — ${ano <= LIMITE_MEI_ANO
-        ? "dentro do limite do MEI (R$ 81 mil por ano), então o MEI pode ser um caminho se a sua ocupação for permitida."
-        : sigla(v("M8.P05")) === "MEI"
+      const ano = round2(fat) * 12, tipoCnpj = sigla(v("M8.P05"));
+      /* B4 (17/11): quem já é MEI lê que continua dentro do limite, com a folga (a conta fica logo abaixo, em "Como calculamos") */
+      f.push(`Você estima faturar ${reais(fat)} por mês, cerca de ${reais(ano)} por ano — ${ano <= LIMITE_MEI_ANO
+        ? tipoCnpj === "MEI"
+          ? `dentro do limite do MEI (R$ 81 mil por ano): como você já é MEI, continua dentro do limite, com folga de ${reais(LIMITE_MEI_ANO - ano)} por ano.`
+          : tipoCnpj && tipoCnpj !== "Não"
+            ? "dentro do limite do MEI (R$ 81 mil por ano). Você já tem CNPJ de outro tipo: se pensar em passar para o MEI, confira com um contador se a sua ocupação é permitida."
+            : "dentro do limite do MEI (R$ 81 mil por ano), então o MEI pode ser um caminho se a sua ocupação for permitida."
+        : tipoCnpj === "MEI"
           ? "acima do limite do MEI (R$ 81 mil por ano): com esse faturamento, o seu negócio sai do MEI. Procure um contador ou a Sala do Empreendedor."
           : "acima do limite do MEI (R$ 81 mil por ano); converse com um contador sobre outras formas de abrir o CNPJ."}`);
     }

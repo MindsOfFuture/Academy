@@ -29,7 +29,7 @@ window.MODULO6 = {
   "entrega": "Estimativa dos gastos para começar, lista de prioridades, previsão de entradas e saídas por 13 semanas e avisos sobre períodos em que o dinheiro pode não ser suficiente.",
   "encaminhamentos": "Encaminhamento a contador ou profissional financeiro quando houver necessidade de análise específica das condições financeiras, tributárias ou contábeis do negócio; e a instituições ou profissionais habilitados quando a situação envolver contratação de crédito ou decisão financeira que exija avaliação especializada.",
   "caso_real": "Quando a situação exigir uma análise financeira ou contábil específica, o usuário será orientado a buscar um profissional habilitado.",
-  "riscos": "Apresentar estimativas como valores garantidos, confundir vendas com recebimento de dinheiro ou ignorar os prazos de pagamento. Para evitar esses riscos, o módulo utilizará os dados informados pelo usuário, apresentará projeções como estimativas e considerará os prazos de pagamento e recebimento no fluxo de caixa."
+  "riscos": "Apresentar estimativas como valores garantidos, confundir vendas com recebimento de dinheiro ou ignorar os prazos de pagamento. Para evitar esses riscos, a etapa utilizará os dados informados pelo usuário, apresentará projeções como estimativas e considerará os prazos de pagamento e recebimento no fluxo de caixa."
  },
  "conexoes": [
   {
@@ -477,7 +477,7 @@ window.MODULO6 = {
    "status": "Rascunho",
    "exemplo": "Ex.: farinha, ovos, embalagens, etiquetas",
    "comoDescobrir": [
-    "Escreva a receita ou o passo a passo de uma unidade e marque cada ingrediente ou material. Se fez a ficha técnica no Módulo 4, use a lista de lá.",
+    "Escreva a receita ou o passo a passo de uma unidade e marque cada ingrediente ou material. Se fez a ficha técnica na Etapa 4, use a lista de lá.",
     "Inclua embalagem, etiqueta e o que se perde no preparo."
    ],
    "promptIA": "Produzo [seu produto]. Liste os insumos e materiais para fazer [quantidade] unidades, com a quantidade de cada um."
@@ -1287,7 +1287,7 @@ window.MODULO6 = {
    "ex_saida": "Equipamento: essencial agora; decoração: desejável.",
    "limite": "A classificação é uma organização das informações e não determina que uma compra deva ser realizada.",
    "onde": "Aba 5 – Instrumentos",
-   "fonte": "Material do Módulo 6, 25/09/2026",
+   "fonte": "Material da Etapa 6, 25/09/2026",
    "status": "Rascunho"
   },
   {

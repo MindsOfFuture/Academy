@@ -64,4 +64,19 @@ html.p-na-jornada .p-faixa{margin-top:12px}
 .p-btn{background:var(--p-roxo);color:#fff;border:none;border-radius:999px;padding:13px 18px;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
 .p-btn-sec{background:#fff;color:var(--p-roxo);border:2px solid var(--p-lavanda-media);border-radius:999px;padding:11px 18px;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
 
+/* Alvos de toque de pelo menos 44 px */
+.p-voltar,.p-ouvir,.p-link,.p-salvar{min-height:44px}
+.p-voltar,.p-link{display:inline-flex;align-items:center}
+.p-fontes summary{min-height:44px;display:flex;align-items:center}
+
+/* Dentro da jornada: a barra de cima já diz "Etapa N de 10" e o nome; a faixa do módulo fica baixa
+   para sobrar altura para a pergunta e o Continuar (letra grande, celular pequeno ou deitado). */
+html.p-na-jornada .p-faixa.p-compacta{margin:8px 10px 10px;padding:6px 14px 12px}
+html.p-na-jornada .p-compacta .p-kicker{display:none}
+@media (orientation:landscape) and (max-height:520px){
+  html.p-na-jornada .p-faixa.p-compacta{padding:4px 14px 8px}
+  html.p-na-jornada .p-compacta .p-passo{margin-top:0}
+  html.p-na-jornada .p-compacta .p-barra{margin-top:6px}
+}
+
 @media print{.p-salvar,.p-voltar,.p-ouvir,.p-dialogo-fundo{display:none!important}.p-fontes{background:none}.p-fontes:not([open]) > :not(summary){display:block}}
