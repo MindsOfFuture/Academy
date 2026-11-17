@@ -54,12 +54,14 @@ vi.mock("@/lib/api/gestao/pendencias", () => ({
   ],
 }));
 vi.mock("@/lib/api/gestao/equipe", () => ({ listarEquipe: async () => [] }));
-vi.mock("@/lib/api/gestao/artigos", () => ({ listarArtigos: async () => [], buscarArtigo: async () => null }));
+let artigos: unknown[] = [];
+let producoes: unknown[] = [];
+vi.mock("@/lib/api/gestao/artigos", () => ({ listarArtigos: async () => artigos, buscarArtigo: async () => null }));
 vi.mock("@/app/gestao/pesquisa/artigos/forms", () => ({ FormArtigo: () => <div /> }));
 vi.mock("@/lib/api/gestao/pesquisa", () => ({
   listarReunioes: async () => [],
   buscarReuniao: async () => null,
-  listarProducoes: async () => [],
+  listarProducoes: async () => producoes,
   buscarProducao: async () => null,
 }));
 vi.mock("@/app/gestao/pesquisa/forms", () => ({ FormReuniao: () => <div />, FormProducao: () => <div /> }));
@@ -204,6 +206,34 @@ describe("rota /gestao", () => {
     expect(screen.getByRole("link", { name: "Produções" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Nenhum artigo ainda.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Novo artigo" })).toHaveAttribute("href", "/gestao/pesquisa/artigos?artigo=novo");
+  });
+
+  it("Todos junta produções e artigos do site por data; só a coordenação edita o artigo", async () => {
+    flagLigada = true;
+    artigos = [{
+      id: "a1", titulo: "Robótica na escola", slug: "robotica", resumo: null, status: "published", capaUrl: null,
+      publicadoEm: "2026-11-12T10:00:00Z", criadoEm: "2026-11-01T10:00:00Z",
+      conteudo: ["Texto.", "**Autores:** Ana Lima", "**Publicado em:** Congresso X, 2026"].join("\n\n"),
+    }];
+    producoes = [{ id: "p1", tipo: "substack", titulo: "Post do mês", autores: "Caio", data: "2026-11-05", onde: null, link: null, criadoPor: null }];
+    try {
+      papelMembro = "coordenacao";
+      render(await PesquisaPage({ searchParams: Promise.resolve({ parte: "producoes" }) }));
+      const linhas = screen.getAllByRole("listitem").map((li) => li.textContent);
+      expect(linhas[0]).toMatch(/Artigo.*Robótica na escola.*Ana Lima.*Congresso X, 2026/);
+      expect(linhas[1]).toMatch(/Substack.*Post do mês/);
+      expect(screen.getByRole("link", { name: "Abrir no site" })).toHaveAttribute("href", "/artigos?slug=robotica");
+      expect(screen.getAllByRole("link", { name: "Editar" })[0]).toHaveAttribute("href", "/gestao/pesquisa/artigos?artigo=a1");
+      cleanup();
+
+      papelMembro = "bolsista";
+      render(await PesquisaPage({ searchParams: Promise.resolve({ parte: "producoes" }) }));
+      expect(screen.getByText("Robótica na escola")).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
+    } finally {
+      artigos = [];
+      producoes = [];
+    }
   });
 
   it("bolsista não vê o filtro de artigos nem com o endereço dele", async () => {

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { usuarioDaRequisicao } from "@/lib/supabase/server";
 import { listarArtigos } from "@/lib/api/gestao/artigos";
 import { buscarProducao, buscarReuniao, listarProducoes, listarReunioes } from "@/lib/api/gestao/pesquisa";
-import type { ProducaoPesquisa, ReuniaoPesquisa, TipoProducao } from "@/lib/api/gestao/types";
+import type { ArtigoGestao, ProducaoPesquisa, ReuniaoPesquisa, TipoProducao } from "@/lib/api/gestao/types";
+import { separarMetadados } from "@/lib/utils/artigo-metadados";
 import { TIPO_PRODUCAO } from "@/lib/api/gestao/validacao";
 import { cn } from "@/lib/utils";
 import { exigirMembro } from "../guard";
@@ -80,7 +81,9 @@ export default async function PesquisaPage({ searchParams }: { searchParams: Pro
           {site ? (
             <ListaArtigos artigos={await listarArtigos()} />
           ) : (
-            <ListaProducoes producoes={await listarProducoes(tipoValido)} podeEditar={podeEditar} />
+            <ListaProducoes
+              itens={await itensDeProducoes(tipoValido, coordenacao, podeEditar)}
+            />
           )}
         </div>
       ) : (
@@ -159,41 +162,93 @@ function Filtros({ atual, coordenacao }: { atual: TipoProducao | "site" | undefi
   );
 }
 
-function ListaProducoes({
-  producoes,
-  podeEditar,
-}: {
-  producoes: ProducaoPesquisa[];
-  podeEditar: (p: ProducaoPesquisa) => boolean;
-}) {
+/** Uma linha da lista de Produções: produção da pesquisa ou artigo do site. */
+interface ItemProducao {
+  chave: string;
+  data: string;
+  rotulo: string;
+  titulo: string;
+  autores: string | null;
+  onde: string | null;
+  link: { href: string; externo: boolean } | null;
+  editar: string | null;
+}
+
+function deProducao(p: ProducaoPesquisa, podeEditar: (p: ProducaoPesquisa) => boolean): ItemProducao {
+  return {
+    chave: `p-${p.id}`,
+    data: p.data,
+    rotulo: TIPO_PRODUCAO[p.tipo],
+    titulo: p.titulo,
+    autores: p.autores,
+    onde: p.onde,
+    link: p.link ? { href: p.link, externo: true } : null,
+    editar: podeEditar(p) ? `${LISTA}?parte=producoes&id=${p.id}` : null,
+  };
+}
+
+/** Artigo do site: autores e onde saiu vêm do bloco de metadados do texto. */
+function deArtigo(a: ArtigoGestao, coordenacao: boolean): ItemProducao {
+  const { metadados } = separarMetadados(a.conteudo ?? "");
+  const publicado = a.status === "published";
+  return {
+    chave: `a-${a.id}`,
+    data: (a.publicadoEm ?? a.criadoEm).slice(0, 10),
+    rotulo: publicado ? "Artigo" : "Artigo · rascunho",
+    titulo: a.titulo,
+    autores: metadados.autores ?? null,
+    onde: metadados.publicadoEm ?? null,
+    link: publicado ? { href: `/artigos?slug=${encodeURIComponent(a.slug)}`, externo: false } : null,
+    editar: coordenacao ? `/gestao/pesquisa/artigos?artigo=${a.id}` : null,
+  };
+}
+
+/** "Todos" junta as produções e os artigos do site, do mais recente ao mais antigo. */
+async function itensDeProducoes(
+  tipo: TipoProducao | undefined,
+  coordenacao: boolean,
+  podeEditar: (p: ProducaoPesquisa) => boolean,
+): Promise<ItemProducao[]> {
+  const [producoes, artigos] = await Promise.all([listarProducoes(tipo), tipo ? [] : listarArtigos()]);
+  return [...producoes.map((p) => deProducao(p, podeEditar)), ...artigos.map((a) => deArtigo(a, coordenacao))].sort(
+    (x, y) => y.data.localeCompare(x.data),
+  );
+}
+
+function ListaProducoes({ itens }: { itens: ItemProducao[] }) {
   return (
     <>
-      {producoes.length === 0 ? (
+      {itens.length === 0 ? (
         vazio("Nenhuma produção ainda.")
       ) : (
         <ul className="divide-y rounded-lg border bg-white shadow-sm">
-          {producoes.map((p) => (
-            <li key={p.id} className="space-y-1 p-4">
+          {itens.map((p) => (
+            <li key={p.chave} className="space-y-1 p-4">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="font-medium">
                   <span className="mr-2 text-sm font-normal text-muted-foreground">{dataBr(p.data)}</span>
                   <span className="mr-2 rounded-full bg-[#684A97]/10 px-2 py-0.5 text-xs font-medium text-[#684A97]">
-                    {TIPO_PRODUCAO[p.tipo]}
+                    {p.rotulo}
                   </span>
                   {p.titulo}
                 </p>
-                {podeEditar(p) && <Editar href={`${LISTA}?parte=producoes&id=${p.id}`} />}
+                {p.editar && <Editar href={p.editar} />}
               </div>
-              <p className="text-sm">{p.autores}</p>
+              {p.autores && <p className="text-sm">{p.autores}</p>}
               {(p.onde || p.link) && (
                 <p className="text-sm text-muted-foreground">
                   {p.onde}
                   {p.onde && p.link && " · "}
-                  {p.link && (
-                    <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[#684A97] hover:underline">
-                      Abrir link
-                    </a>
-                  )}
+                  {p.link &&
+                    (p.link.externo ? (
+                      <a href={p.link.href} target="_blank" rel="noopener noreferrer" className="text-[#684A97] hover:underline">
+                        Abrir link
+                      </a>
+                    ) : (
+                      <Link href={p.link.href} className="text-[#684A97] hover:underline">
+                        Abrir no site
+                      </Link>
+                    ))}
                 </p>
               )}
             </li>
