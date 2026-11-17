@@ -254,6 +254,8 @@ const ESTADO = {
 
     // ---------- 3. Sem nenhuma resposta: abre do mesmo jeito e diz que não há respostas ----------
     const vazio = await abrirJornada({});
+    // Quem não começou vê primeiro a capa do Empreenda+.
+    await vazio.page.click('#capa-comecar');
     await vazio.page.click('#abre-painel');
     await vazio.page.click('#ver-diag-painel');
     await esperarDiag(vazio.page);
