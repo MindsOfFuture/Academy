@@ -9,7 +9,7 @@
   const CNAE = /\d{4}-?\d\/?\d{2}/g;
 
   function montar(D) {
-    const perguntas = D.perguntas.filter((p) => p.codigo);
+    const perguntas = D.perguntas.filter((p) => p.codigo && p.codigo !== "M8.P09");
     const porCodigo = {};
     perguntas.forEach((p) => {
       p.opcoesLista = String(p.opcoes || "").split(";").map((s) => s.trim()).filter(Boolean);

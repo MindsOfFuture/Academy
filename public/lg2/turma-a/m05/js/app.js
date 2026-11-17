@@ -328,11 +328,11 @@
   /* ---------- "Não sei": caixa "Como descobrir" (2 passos + pedido pronto para a IA, com Copiar) ----------
      Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA). "Não sei" aqui é só ajuda:
      não grava resposta. Os termos da Base técnica ficam recolhidos em "O que quer dizer". */
-  function caixaComo(q, reserva) {
+  function caixaComo(q, reserva, titulo) {
     const passos = q.comoDescobrir && q.comoDescobrir.length ? q.comoDescobrir : reserva || [];
     if (!passos.length) return "";
     return `<section class="como-descobrir" role="status">
-      <b class="como-tit">Como descobrir</b>
+      <b class="como-tit">${titulo || "Como descobrir"}</b>
       <ol>${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
       ${q.promptIA ? `<div class="pedir-ia">
         <b>Peça ajuda à IA</b>
@@ -391,6 +391,13 @@
       ${extras.map((x) => `<p class="como-nota">${esc(x)}</p>`).join("")}
       ${termos(a)}
       <p class="depois">Depois, responda acima para continuar.</p>
+    </div>`;
+  }
+  /* 17/11: valor que a própria pessoa paga/recebe: "Como estimar" (passos + pedido para a IA). Não grava nada. */
+  function painelEstimar(q) {
+    return `<div class="painel-ajuda" id="painel" hidden>
+      ${caixaComo(q, null, "Como estimar")}
+      <p class="depois">Depois, escreva acima o seu valor aproximado para continuar.</p>
     </div>`;
   }
   /* P36 "Não sei": conta de um preço possível (custo + a porcentagem que a pessoa quiser), ao vivo. Não grava nada:
@@ -521,6 +528,7 @@
     const alt = Motor.botoesAlternativos(M, q);
     const ajudaNS = Motor.ajudaNaoSei(M, q);
     const comBotaoNS = !!(ajudaNS && q.botaoNaoSei);   // 16/11: "Não sei" só onde a resposta é um fato a descobrir
+    const comEstimar = !comBotaoNS && Motor.COMO_ESTIMAR.includes(cod) && !!(q.comoDescobrir && q.comoDescobrir.length);   // 17/11
     const inicial = cod === "M5.P01" || cod === PRIMEIRA;
     const cartoesTipo = cod === "M5.P01";
     /* pergunta 1 da Etapa 1: traz a resposta de lá quando ainda não respondeu aqui */
@@ -581,6 +589,7 @@
             ${cod === Motor.P_ENTREGA ? painelEntrega(resp || entregaM4) : ""}
             ${alt.length ? `<div class="alt" id="alt"></div>` : ""}
             ${comBotaoNS ? `<div class="alt"><button class="btn-ajuda" id="naosei" aria-expanded="false" aria-controls="painel"><span aria-hidden="true">?</span> Não sei</button></div>${painelNaoSei(q, ajudaNS)}` : ""}
+            ${comEstimar ? `<div class="alt"><button class="btn-ajuda" id="estimar" type="button" aria-expanded="false" aria-controls="painel"><span aria-hidden="true">?</span> Como estimar</button></div>${painelEstimar(q)}` : ""}
             <div id="retorno" class="retorno-vivo" aria-live="polite"></div>
             <div class="acoes-fixas" id="acoes-fixas">
               <div class="erro" id="erro" role="alert" hidden></div>
@@ -602,7 +611,7 @@
       if (ant) abrir(ant); else ir(telaCapa);
     };
 
-    const bNS = p.querySelector("#naosei");
+    const bNS = p.querySelector("#naosei") || p.querySelector("#estimar");
     let abriuAjuda = false;         // tocou em "Não sei": a mensagem de campo vazio aponta para a ajuda
     if (bNS) bNS.onclick = () => {
       const painel = p.querySelector("#painel");

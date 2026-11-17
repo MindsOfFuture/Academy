@@ -6,7 +6,7 @@ window.MODULO6 = {
  "origem": "LG2_M06_planilha_do_grupo.xlsx",
  "modulo": {
   "numero": "6",
-  "nome": "Investimento, capital de giro e fluxo de caixa",
+  "nome": "Dinheiro para começar e para os primeiros meses",
   "versao": "v0.1",
   "data": "25/09/2026",
   "turma": "Turma de 18",
@@ -34,34 +34,34 @@ window.MODULO6 = {
  "conexoes": [
   {
    "modulo": "1.0",
-   "nome": "Perfil do empreendedor e definição da ideia",
+   "nome": "Você e a sua ideia de negócio",
    "recebe": "Informações sobre recursos disponíveis, limite de investimento e objetivo do negócio",
    "combinado": "Não"
   },
   {
    "modulo": "4.0",
-   "nome": "Produto, proposta de valor e teste da ideia",
+   "nome": "Produto, por que comprar de você e teste da ideia",
    "recebe": "Informações sobre o produto/serviço e necessidades do teste",
    "envia": "Estimativas de investimento e recursos necessários para testar a ideia",
    "combinado": "Não"
   },
   {
    "modulo": "5.0",
-   "nome": "Custos, despesas, preço e margem",
+   "nome": "Custos, preço e quanto sobra",
    "recebe": "Informações de custos e despesas utilizadas nas projeções",
    "envia": "Informações de necessidade de caixa e recursos financeiros",
    "combinado": "Não"
   },
   {
    "modulo": "7.0",
-   "nome": "Operação, fornecedores, capacidade e qualidade",
+   "nome": "Como você produz, compra e entrega",
    "recebe": "Informações sobre equipamentos, estoque, fornecedores e necessidades operacionai",
    "envia": "Necessidades de investimento e impacto das compras no caixa",
    "combinado": "Não"
   },
   {
    "modulo": "10.0",
-   "nome": "Comunicação, vendas, pessoas e plano de ação",
+   "nome": "Vendas, pessoas e plano de ação",
    "recebe": "Informações relacionadas às ações planejadas e possíveis necessidades de recursos",
    "envia": "Impacto financeiro das ações planejadas no caixa",
    "combinado": "Não"
@@ -205,7 +205,7 @@ window.MODULO6 = {
    "codigo": "M6.P02",
    "modulo": "M6",
    "pergunta": "Quanto você estima gastar com esses itens?",
-   "ajuda": "Some os valores aproximados dos itens que você listou. Se ainda não souber, escolha “Não sei”.",
+   "ajuda": "Some, em reais, o que vai gastar uma vez para começar (não é por mês). Se ainda não souber, escolha “Não sei”.",
    "tipo": "Número",
    "condicao": "M6.P01 ≠ Não sei",
    "opcoes": "Não sei",
@@ -225,7 +225,7 @@ window.MODULO6 = {
    "codigo": "M6.P03",
    "modulo": "M6",
    "pergunta": "Como você pretende pagar essas compras?",
-   "ajuda": "Escolha a forma de pagamento que pretende usar.",
+   "ajuda": "Escolha como pretende pagar essas compras: por exemplo, à vista, em parcelas ou parte de cada jeito.",
    "tipo": "Escolha",
    "condicao": "M6.P02 ≠ Não sei",
    "opcoes": "À vista; Parcelado; Parte à vista e parte parcelado; Não sei",
@@ -341,7 +341,7 @@ window.MODULO6 = {
    "codigo": "M6.P09",
    "modulo": "M6",
    "pergunta": "Algum pagamento ou recebimento tem prazo diferente dos outros?",
-   "ajuda": "Conte se houver alguma conta, compra ou venda com um prazo diferente dos anteriores.",
+   "ajuda": "Diga se alguma conta ou venda tem uma data diferente das outras. Ex.: pagar o aluguel a cada 3 meses, ou receber de um cliente só no fim do mês.",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
@@ -350,7 +350,7 @@ window.MODULO6 = {
    "proximo": "Informe o valor e a data ou o prazo, se souber.",
    "fonte": "CAIXA – Planeje as saídas / Organize as entradas. Consulta em 25/09/2026.",
    "status": "Rascunho",
-   "exemplo": "Ex.: aluguel pago a cada 3 meses",
+   "exemplo": "Ex.: pago o aluguel a cada 3 meses; recebo de um cliente no fim do mês",
    "comoDescobrir": [
     "Pense em contas que não vencem todo mês, como impostos do ano, aluguel por trimestre ou uma compra grande parcelada.",
     "Veja se algum cliente paga só no fim do mês ou em datas diferentes das outras vendas."
@@ -1505,7 +1505,7 @@ window.MODULO6 = {
   }
  ],
  "capa": {
-  "frase": "Veja quanto você precisa para começar e se o dinheiro dá para as primeiras semanas.",
+  "frase": "Capital de giro: dinheiro para pagar contas.",
   "minutos": "10"
  }
 };

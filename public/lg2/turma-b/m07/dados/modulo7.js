@@ -6,10 +6,10 @@ window.MODULO7 = {
  "origem": "Laboratório de Gestão II · FACC/UFJF",
  "modulo": {
   "numero": 7,
-  "nome": "Operação, fornecedores, capacidade e qualidade"
+  "nome": "Como você produz, compra e entrega"
  },
  "abertura": {
-  "kicker": "Etapa 7: Operação, fornecedores, capacidade e qualidade",
+  "kicker": "Etapa 7: Como você produz, compra e entrega",
   "titulo": "Como organizar o trabalho e a entrega",
   "objetivo": "Chegou a hora de organizar o que precisa acontecer para entregar o que você vende. Veja quanto cabe no seu tempo e o que precisa conferir antes de aceitar mais pedidos.",
   "para_voce_titulo": "Isso é para você que",
@@ -381,7 +381,7 @@ window.MODULO7 = {
   {
    "codigo": "M7-08",
    "fase": "Fornecedores e estoque",
-   "pergunta": "[Oferta em foco] ou seus materiais estragam, vencem ou perdem valor com o tempo?",
+   "pergunta": "O que estraga ou vence na sua oferta, e em quanto tempo?",
    "descobre": "Validade e risco de perda",
    "aparece": "Mesma condição de M7-06",
    "guarda": "Validade",
@@ -536,7 +536,7 @@ window.MODULO7 = {
   {
    "codigo": "M7-12",
    "fase": "Fechamento",
-   "pergunta": "Quer anotar alguma ideia sobre regras, documentos ou próximos passos do negócio?",
+   "pergunta": "Quer anotar alguma ideia ou dúvida sobre como você faz, entrega ou compra, para lembrar depois?",
    "descobre": "Ideias para as próximas etapas",
    "aparece": "Sempre (campo opcional)",
    "guarda": "Ideias para depois",

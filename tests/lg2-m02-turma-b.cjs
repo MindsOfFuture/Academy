@@ -21,7 +21,8 @@
    acima; Continuar preso ao pé da tela (360x640, 390x844 com letra a 130%, 740x360); aria-pressed nas opções e foco no
    enunciado depois do Continuar; "Etapa" no lugar de "Módulo"; alvos de toque >= 44 px; "Pergunta N" sem total que pula
    e barra que nunca volta; tempo da capa pelo caminho típico (~35 s por pergunta, múltiplo de 5 min).
-   Sabotagem 3: M02_SABOTAGEM=3 volta o passo extra (Continuar mostra "Seguir" + "Corrigir minha resposta"; o teste tem de falhar). */
+   Sabotagem 3: M02_SABOTAGEM=3 volta o passo extra (Continuar mostra "Seguir" + "Corrigir minha resposta"; o teste tem de falhar).
+   Sabotagem 4: M02_SABOTAGEM=4 volta a P01 para "Não sei" que bloqueia (o teste tem de falhar). */
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
@@ -48,11 +49,16 @@ try { playwright = require('playwright'); } catch { playwright = require(process
 
 /* ---------- estático ---------- */
 const app = fs.readFileSync(path.join(dir, 'js/app.js'), 'utf8');
+/* versão do estado salvo: 5 desde a auditoria 17/11 (P01/P16); as migrações v2→v3→v4 continuam rodando antes dela */
+const VERSAO_ESTADO = 5;
+ok(/const VERSAO = 5;/.test(app), 'app grava o estado na versão 5');
 ok(/const CHAVE = "lg2-turma-b-m02";/.test(app), 'CHAVE deve ser lg2-turma-b-m02');
 ok(D.modulo.turma === 'Turma de 18', 'Capa C7 deve ser Turma de 18');
 const nP = M.perguntas.length, nR = D.regras.length;
+ok(D.modulo.nome === 'Quem são seus clientes e como compram', 'título sem jargão');
+ok(D.educativo.find((e) => e.codigo === 'M2.E02').onde === 'M2.P18', 'Faça conversas aparece depois da resposta P04');
 const persist = ['M2.R05','M2.R15','M2.R16','M2.R17','M2.R19','M2.R60','M2.R61','M2.R62','M2.R73','M2.R74','M2.R75','M2.R77','M2.R78','M2.R82','M2.R83'];
-ok(nP === 19 && nR === 89, `contagens 19 perguntas visíveis / 89 regras (obtido ${nP}/${nR})`);
+ok(nP === 19 && nR === 87, `contagens 19 perguntas visíveis / 87 regras (obtido ${nP}/${nR})`);
 /* Lote 16/11 G: alertas gerais não aparecem no retorno; alertas de risco dependentes da resposta permanecem. */
 const ALERTA_NA_DICA = new Set(['M2.R05','M2.R15','M2.R16','M2.R17','M2.R19','M2.R60','M2.R61','M2.R62','M2.R73','M2.R74','M2.R75','M2.R77','M2.R78','M2.R82','M2.R83']);
 const alertaVale = (r) => !ALERTA_NA_DICA.has(r.codigo);
@@ -61,9 +67,12 @@ const regraMorta = (r) => /=\s*(Não sei|Ainda não pensei nisso)\s*$/.test(Stri
 const VIVAS = D.regras.filter((r) => !regraMorta(r));
 const nVivas = VIVAS.length;
 ok(JSON.stringify(M.regras.map((r) => r.codigo)) === JSON.stringify(D.regras.filter((r) => !/M2\.P(16|20)\b/.test(r.condicao)).map((r) => r.codigo)), 'motor: regras de P16/P20 fora');
-const SEM_NS = ['M2.P03', 'M2.P04', 'M2.P15', 'M2.P18', 'M2.P19', 'M2.P21'];
-for (const c of SEM_NS) ok(!M.porCodigo[c].opcoesLista.includes('Não sei'), `${c}: sem "Não sei" (pergunta sobre a própria pessoa)`);
-ok(JSON.stringify(M.porCodigo['M2.P01'].opcoesLista) === '["Sim","Em parte","Não sei"]', 'P01: "Ainda não pensei nisso" fundida no "Não sei"');
+/* Auditoria 17/11: só P01 e P16 (sobre a própria pessoa) mudam; P05, P07, P10–P14 e P17 são fatos a descobrir e mantêm o "Não sei" que bloqueia. */
+const SEM_NS = ['M2.P03', 'M2.P04', 'M2.P15', 'M2.P16', 'M2.P18', 'M2.P19', 'M2.P21'];
+const COM_NS_FATO = ['M2.P05', 'M2.P07', 'M2.P10', 'M2.P11', 'M2.P12', 'M2.P13', 'M2.P14', 'M2.P17'];
+for (const c of COM_NS_FATO) ok(M.porCodigo[c] && M.porCodigo[c].opcoesLista.includes('Não sei') && M.porCodigo[c].comoDescobrir && M.porCodigo[c].comoDescobrir.length >= 2, `${c}: fato a descobrir mantém "Não sei" com "Como descobrir"`);
+for (const c of SEM_NS) { const q = D.perguntas.find((x) => x.codigo === c); ok(!q || !q.opcoes.split(';').map((x) => x.trim()).includes('Não sei'), `${c}: sem "Não sei" (pergunta sobre a própria pessoa)`); }
+ok(JSON.stringify(M.porCodigo['M2.P01'].opcoesLista) === '["Sim","Em parte","Ainda não sei"]', 'P01: Ainda não sei é resposta real');
 ok(JSON.stringify(M.porCodigo['M2.P21'].opcoesLista) === '["Contaram um problema de verdade","Só elogiaram a ideia"]', 'P21: situação da própria conversa, sem Não sei');
 ok(JSON.stringify(M.porCodigo['M2.P04'].opcoesLista) === '["Sim","Não"]', 'P04: pergunta sim/não sobre situação própria, só Sim/Não');
 ok(!/Ainda não pensei/.test(JSON.stringify(D.perguntas)), 'nenhuma pergunta com "Ainda não pensei"');
@@ -143,7 +152,7 @@ async function servidor() {
     if (!f.startsWith(dir)) return res.writeHead(403).end();
     fs.readFile(f, (e, b) => {
       if (e) return res.writeHead(404).end();
-      if (process.env.M02_SABOTAGEM && f.endsWith(path.join('js', 'app.js'))) {
+      if (process.env.M02_SABOTAGEM && process.env.M02_SABOTAGEM !== '4' && f.endsWith(path.join('js', 'app.js'))) {
         const alvo = 'if (!q || !q.comoDescobrir || !q.comoDescobrir.length) return "";';
         if (!String(b).includes(alvo)) throw new Error('sabotagem: trecho não encontrado');
         b = String(b).replace(alvo, 'return "";');
@@ -157,6 +166,11 @@ async function servidor() {
         const alvo = '      avancar(prox);\n';
         if (!String(b).includes(alvo)) throw new Error('sabotagem 3: trecho não encontrado');
         b = String(b).replace(alvo, '      const a = p.querySelector("#acoes"); a.innerHTML = \'<button class="btn btn-primario" id="seguir">Seguir</button><button class="btn btn-claro">Corrigir minha resposta</button>\'; a.querySelector("#seguir").onclick = () => avancar(prox);\n');
+      }
+      if (process.env.M02_SABOTAGEM === '4' && f.endsWith(path.join('dados', 'modulo2.js'))) {
+        const alvo = '"opcoes": "Sim; Em parte; Ainda não sei"';
+        if (!String(b).includes(alvo)) throw new Error('sabotagem 4: trecho não encontrado');
+        b = String(b).replace(alvo, '"opcoes": "Sim; Em parte; Não sei"');
       }
       res.writeHead(200, { 'Content-Type': tipos[path.extname(f)] || 'application/octet-stream' }).end(b);
     });
@@ -283,15 +297,16 @@ async function servidor() {
 
     /* 3) pergunta que mudou na v0.3 (próximo passo genérico da aba 3) + print */
     await inicio();
-    /* 10d) "Não sei" na P01: mostra "Como descobrir" (passos + texto da regra da planilha), não grava e não avança */
-    await clicarTexto('#ent .opcao', 'Não sei');
-    const nsTxt = norm(await page.locator('#ajuda-ns .como-descobrir').textContent());
-    ok(nsTxt.startsWith('Como descobrir') && M.porCodigo['M2.P01'].comoDescobrir.every((x) => nsTxt.includes(norm(x))) && nsTxt.includes(norm(D.regras.find((r) => r.codigo === 'M2.R04').texto)), `P01 Não sei: "Como descobrir" com os passos e o texto da regra (obtido "${nsTxt}")`);
+    /* Auditoria 17/11: P01 "Ainda não sei" grava e avança num toque. */
+    await clicarTexto('#ent .opcao', 'Ainda não sei');
+    ok((await page.locator('#ajuda-ns .como-descobrir').count()) === 0, 'P01 ainda não sei: resposta real não bloqueia');
+    await page.waitForTimeout(300);
+    const dicaP01 = norm(await page.locator('#retorno .como-descobrir').textContent().catch(() => ''));
+    ok(dicaP01.startsWith('Como descobrir') && M.porCodigo['M2.P01'].comoDescobrir.every((x) => dicaP01.includes(norm(x))) && (await page.locator('#ent .opcao[aria-pressed="true"]').textContent()).trim().startsWith('Ainda não sei'), `P01 ainda não sei: marcado e "Como descobrir" vira dica ao vivo no retorno (obtido "${dicaP01}")`);
     await page.click('#ok');
-    ok((await page.locator('#retorno .retorno').count()) === 0 && /Use a ajuda acima e escolha uma opção para continuar/.test(await page.locator('#erro').textContent()), 'P01 Não sei: Continuar não avança e pede uma opção');
-    ok(!(await page.evaluate(() => (JSON.parse(localStorage.getItem('lg2-turma-b-m02')) || { R: {} }).R['M2.P01'])), 'P01 Não sei: nada gravado');
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await shot('pergunta_v03');
+    const p01novo = JSON.parse(await page.evaluate(() => localStorage.getItem('lg2-turma-b-m02')));
+    ok(p01novo.R['M2.P01'].opcao === 'Ainda não sei' && norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P04'].pergunta, 'P01 ainda não sei grava e avança num toque pelo ramo sem público definido');
+    await inicio();
 
     /* 10) relatório da Júlia: um bloco de cada, linguagem para o usuário, legal como Atenção, Continuar avança */
     const contar = () => page.evaluate(() => ({ a: document.querySelectorAll('#retorno .b-alerta').length, p: document.querySelectorAll('#retorno .b-proximo').length, ns: document.querySelectorAll('#retorno .b-naosei').length, t: document.querySelector('#retorno').innerText }));
@@ -598,7 +613,7 @@ async function servidor() {
     await shot('resultado_entendemos');
     // 9e) formato do estado salvo, lido por outros módulos (Módulo 10): {v, R:{código:{estado, opcao|valor}}}
     const est = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(est.v === 4 && est.R['M2.P17'].estado === 'opcao' && est.R['M2.P17'].opcao === 'Todo mês' && est.R['M2.P18'].estado === 'valor' && est.R['M2.P18'].valor === '4'
+    ok(est.v === VERSAO_ESTADO && est.R['M2.P17'].estado === 'opcao' && est.R['M2.P17'].opcao === 'Todo mês' && est.R['M2.P18'].estado === 'valor' && est.R['M2.P18'].valor === '4'
       && est.R['M2.P21'].opcao === 'Só elogiaram a ideia' && est.R['M2.P02'].estado === 'valor' && !est.R['M2.P20'] && !JSON.stringify(est.R).includes('naosei'), `estado salvo no formato esperado (obtido ${JSON.stringify(est.R).slice(0, 300)})`);
     const outros = await page.evaluate(() => [localStorage.getItem('lg2-turma-a-m01'), localStorage.getItem('lg2-turma-a-m03')]);
     ok(outros[0] === JSON.stringify(M1) && outros[1] === JSON.stringify(M3), 'Módulos 1 e 3 não são alterados (só leitura)');
@@ -636,7 +651,7 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Começar');
     const mig = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(mig.v === 4 && mig.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'resposta antiga "Só elogios" convertida para a opção nova');
+    ok(mig.v === VERSAO_ESTADO && mig.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'resposta antiga "Só elogios" convertida para a opção nova');
 
     /* ===== lote 3 (Duda, Gaby, José Inácio, Nayara, Arthur) ===== */
     const CODIGO = /\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}|\b[PI]\d{2}\b/;
@@ -735,7 +750,7 @@ async function servidor() {
     await page.reload();
     await clicarTexto('button', 'Continuar de onde parei');
     const mig8 = await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-b-m02')));
-    ok(mig8.v === 4 && JSON.stringify(mig8.R['M2.P08'].opcoes) === '["Motivo da compra"]' && mig8.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'P08: resposta única da versão 2 migrada para lista (v3)');
+    ok(mig8.v === VERSAO_ESTADO && JSON.stringify(mig8.R['M2.P08'].opcoes) === '["Motivo da compra"]' && mig8.R['M2.P21'].opcao === 'Só elogiaram a ideia', 'P08: resposta única da versão 2 migrada para lista (v3)');
     ok(JSON.stringify(await marc()) === JSON.stringify(['Motivo da compra']), 'P08 migrada aparece marcada');
 
     // P15 (Nayara): o aviso diz onde fica o quadro e leva até ele
@@ -841,19 +856,27 @@ async function servidor() {
     }
     console.log(`"Não sei" que bloqueia conferido em ${nsConferidas} de ${comNS.length} perguntas; sem "Não sei": ${SEM_NS.join(', ')}`);
 
-    // migração v3 -> v4: "Não sei"/"Ainda não pensei nisso" antigos viram "sem resposta" (com a caixa à vista); o resto fica; P16/P20 intocadas
+    // migração v3 -> v5 (v4 + v5 em sequência): P01 "Ainda não pensei nisso" vira "Ainda não sei" (resposta real); P16 "Não sei" vira "Ainda não";
+    // P05 "Não sei" (fato a descobrir) continua reabrindo sem resposta, com "Como descobrir"; o resto fica; P20 intocada
     await page.goto(srv.url + 'index.html');
-    const velho = { v: 3, R: { 'M2.P01': { estado: 'opcao', opcao: 'Ainda não pensei nisso' }, 'M2.P04': { estado: 'opcao', opcao: 'Sim' }, 'M2.P05': { estado: 'opcao', opcao: 'Não sei' }, 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' }, 'M2.P08': { estado: 'opcao', opcao: 'Motivo da compra', opcoes: ['Motivo da compra', 'Hábitos de compra'] }, 'M2.P16': { estado: 'opcao', opcao: 'Sim' }, 'M2.P18': { estado: 'valor', valor: '3' }, 'M2.P20': { estado: 'naosei' } }, hist: ['M2.P01', 'M2.P04', 'M2.P18', 'M2.P20', 'M2.P05', 'M2.P07', 'M2.P08'], fichas: [{ situacao: 'Vizinha', frequencia: '1 vez por mês', motivo: 'preço', sinal: 'forte' }], plano: { meta: '', prazo: '', feitos: [] }, grupos: [] };
+    const velho = { v: 3, R: { 'M2.P01': { estado: 'opcao', opcao: 'Ainda não pensei nisso' }, 'M2.P04': { estado: 'opcao', opcao: 'Sim' }, 'M2.P05': { estado: 'opcao', opcao: 'Não sei' }, 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' }, 'M2.P08': { estado: 'opcao', opcao: 'Motivo da compra', opcoes: ['Motivo da compra', 'Hábitos de compra'] }, 'M2.P16': { estado: 'opcao', opcao: 'Não sei' }, 'M2.P18': { estado: 'valor', valor: '3' }, 'M2.P20': { estado: 'naosei' } }, hist: ['M2.P01', 'M2.P04', 'M2.P18', 'M2.P20', 'M2.P05', 'M2.P07', 'M2.P08'], fichas: [{ situacao: 'Vizinha', frequencia: '1 vez por mês', motivo: 'preço', sinal: 'forte' }], plano: { meta: '', prazo: '', feitos: [] }, grupos: [] };
     await page.evaluate((e) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', e); }, JSON.stringify(velho));
     await page.reload();
     const mv = JSON.parse(await estadoDe());
-    ok(mv.v === 4 && !mv.R['M2.P01'] && !mv.R['M2.P05'] && JSON.stringify(mv.R['M2.P08'].opcoes) === '["Motivo da compra","Hábitos de compra"]' && mv.R['M2.P04'].opcao === 'Sim' && mv.R['M2.P07'].opcao === 'Pessoas' && mv.R['M2.P18'].valor === '3'
-      && JSON.stringify(mv.R['M2.P16']) === '{"estado":"opcao","opcao":"Sim"}' && JSON.stringify(mv.R['M2.P20']) === '{"estado":"naosei"}' && mv.fichas.length === 1, `migração v4: "Não sei" antigo vira sem resposta, resto intacto (obtido ${JSON.stringify(mv)})`);
+    ok(mv.v === VERSAO_ESTADO && JSON.stringify(mv.R['M2.P01']) === '{"estado":"opcao","opcao":"Ainda não sei"}' && !mv.R['M2.P05'] && JSON.stringify(mv.pendentes) === '["M2.P05"]' && JSON.stringify(mv.R['M2.P08'].opcoes) === '["Motivo da compra","Hábitos de compra"]' && mv.R['M2.P04'].opcao === 'Sim' && mv.R['M2.P07'].opcao === 'Pessoas' && mv.R['M2.P18'].valor === '3'
+      && JSON.stringify(mv.R['M2.P16']) === '{"estado":"opcao","opcao":"Ainda não"}' && JSON.stringify(mv.R['M2.P20']) === '{"estado":"naosei"}' && mv.fichas.length === 1, `migração v3→v5: P01 vira "Ainda não sei", P16 vira "Ainda não", P05 "Não sei" reabre sem resposta, resto intacto (obtido ${JSON.stringify(mv)})`);
     await clicarTexto('button', 'Continuar de onde parei');
-    ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P01'].pergunta && (await page.locator('#ajuda-ns .como-descobrir').count()) === 1, 'migração: reabre a 1ª pergunta que era "Não sei", sem resposta e com "Como descobrir" à vista');
-    await clicarTexto('#ent .opcao', 'Sim'); await page.click('#ok');
+    ok(norm(await page.locator('h2.q').textContent()) === M.porCodigo['M2.P05'].pergunta && (await page.locator('#ajuda-ns .como-descobrir').count()) === 1, 'migração: P01 antiga vira resposta válida e segue; reabre a 1ª pergunta de fato que era "Não sei" (P05), sem resposta e com "Como descobrir" à vista');
+    await clicarTexto('#ent .opcao', 'Um único grupo'); await page.click('#ok');
     const mv2 = JSON.parse(await estadoDe());
-    ok(mv2.R['M2.P01'].opcao === 'Sim' && mv2.R['M2.P04'].opcao === 'Sim' && mv2.R['M2.P18'].valor === '3' && mv2.R['M2.P16'] && mv2.R['M2.P20'], `migração: responder a P01 não apaga as outras respostas nem as de P16/P20 (obtido ${JSON.stringify(mv2.R)})`);
+    ok(mv2.R['M2.P05'].opcao === 'Um único grupo' && mv2.R['M2.P01'].opcao === 'Ainda não sei' && mv2.R['M2.P04'].opcao === 'Sim' && mv2.R['M2.P07'].opcao === 'Pessoas' && mv2.R['M2.P18'].valor === '3' && mv2.R['M2.P16'] && mv2.R['M2.P20'] && !(mv2.pendentes || []).includes('M2.P05'), `migração: responder a P05 não apaga as outras respostas (P01 "Ainda não sei") nem as de P16/P20 (obtido ${JSON.stringify(mv2.R)})`);
+
+    // migração v4 -> v5: quem tinha P01 "Não sei" ficou na v4 sem resposta e com P01 pendente; volta como "Ainda não sei"
+    const v4 = { v: 4, R: { 'M2.P04': { estado: 'opcao', opcao: 'Não' }, 'M2.P16': { estado: 'opcao', opcao: 'Não sei' } }, pendentes: ['M2.P01', 'M2.P07'], hist: ['M2.P01'], fichas: [], plano: { meta: '', prazo: '', feitos: [] }, grupos: [] };
+    await page.evaluate((e) => { localStorage.clear(); localStorage.setItem('lg2-turma-b-m02', e); }, JSON.stringify(v4));
+    await page.reload();
+    const mv4 = JSON.parse(await estadoDe());
+    ok(mv4.v === VERSAO_ESTADO && JSON.stringify(mv4.R['M2.P01']) === '{"estado":"opcao","opcao":"Ainda não sei"}' && JSON.stringify(mv4.pendentes) === '["M2.P07"]' && mv4.R['M2.P04'].opcao === 'Não' && mv4.R['M2.P16'].opcao === 'Ainda não', `migração v4→v5: P01 pendente vira "Ainda não sei", P07 (fato) segue pendente, P16 "Não sei" vira "Ainda não" (obtido ${JSON.stringify(mv4)})`);
 
     // resultado: o principal no topo (entendemos + tarefa + o que falta), o resto fechado
     await percorrer(planejar({ 'M2.P01': 'Em parte', 'M2.P04': 'Não', 'M2.P03': 'Suposição, ainda sem conferir' }));

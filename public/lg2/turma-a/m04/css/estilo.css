@@ -154,6 +154,7 @@ p.ajuda{font-size:15px;color:var(--m-gray);margin-bottom:8px}
 .termos{margin-top:12px}
 .termos-tit{color:var(--m-purple);font-size:16px}
 .lembra{font-size:16px;color:var(--m-purple);margin:4px 0 6px}
+.ref-etapa{font-size:14px;line-height:1.4;color:var(--m-purple);background:var(--m-lavender);border-radius:10px;padding:8px 12px;margin:6px 0 8px}
 .heroi-compacta{padding:12px 0 2px}
 .heroi-compacta .heroi-txt{width:auto;padding:0 18px 8px}
 .heroi-compacta .kicker{font-size:14px}

@@ -32,7 +32,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     const t = (document.querySelector('.passo') || {}).textContent || '';
     if (/Resultado/.test(t)) return 'RESULTADO';
     const m = t.match(/Pergunta (\d+)/);
-    return m ? Motor.montar(window.MODULO8).perguntas[+m[1] - 1].codigo : null;
+    /* o número é a posição entre as telas vistas (reaproveitadas não contam): o código vem da própria tela */
+    return m ? ((document.querySelector('.cartao-q[data-cod]') || {}).dataset || {}).cod || null : null;
   });
   const semear = (dados) => page.evaluate((d) => { localStorage.clear(); for (const [k, v] of Object.entries(d)) localStorage.setItem(k, JSON.stringify(v)); }, dados);
   const SHOTS = process.env.SHOTS;
@@ -127,6 +128,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await page.reload(); await btn('Começar').click();
   /* item F: P01 e P02 já respondidas no Módulo 1 → sem tela; a 1ª tela é a P03, com o cartão "Veio do Módulo 1 · Trocar" */
   check(await atual() === 'M8.P03', 'P01 e P02 do Módulo 1: sem tela, começa na P03');
+  check(nrm(await page.textContent('.passo')) === 'Pergunta 1 de 9', 'com herança, a 1ª tela vista é "Pergunta 1 de 9": ' + nrm(await page.textContent('.passo')));
   { const cv = nrm(await page.textContent('#veio'));
     check(cv.includes('O que você faz: Bolos de pote') && cv.includes('O que você vende: Mercadoria') && await page.locator('#veio .veio').count() === 2 && await page.locator('#veio [data-trocar]').count() === 2, 'cartão: o que veio do Módulo 1, com Trocar: ' + cv); }
   check(JSON.stringify((await st()).R['M8.P02']) === JSON.stringify({ estado: 'opcao', opcao: 'Mercadoria', de: 1, reuso: true }), 'P02 gravada no formato do Módulo 8: ' + JSON.stringify((await st()).R['M8.P02']));
@@ -249,12 +251,14 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
 
   /* ===== Lote 16/11 (item A): "Não sei" BLOQUEIA em toda pergunta que o mantém; saiu de P01, P03 e P10 (sobre a própria pessoa) ===== */
   /* item H: sim/não sobre a própria pessoa (P05 "já tem CNPJ?") sem "Não sei"; regra externa (P07 lista do MEI, P08 responsável técnico, P09 alvará) mantém e bloqueia */
-  const COM_NS = ['M8.P02', 'M8.P04', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P09'];
+  check(await page.evaluate(() => !Motor.montar(window.MODULO8).porCodigo['M8.P09'] && window.MODULO8.perguntas.some((p) => p.codigo === 'M8.P09')), 'P09 fora das telas (o dado continua no arquivo para quem já respondeu)');
+  const COM_NS = ['M8.P02', 'M8.P04', 'M8.P06', 'M8.P07', 'M8.P08'];
   const SEM_NS = ['M8.P01', 'M8.P03', 'M8.P05', 'M8.P10'];
   const RESP = { 'M8.P02': 'Serviço', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Sim' };   // Serviço e Não: passa pela P06, P07 e P08
   const vistosNs = [];
   await semear({});
   await page.reload(); await btn('Começar').click();
+  check(nrm(await page.textContent('.passo')) === 'Pergunta 1 de 9', 'primeira tela começa em Pergunta 1 de 9');
   for (let i = 0; i < 15 && (await atual()) !== 'RESULTADO'; i++) {
     const cod = await atual();
     vistosNs.push(cod);
@@ -289,15 +293,16 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     await seguir();
   }
   check(await atual() === 'RESULTADO', 'chega ao resultado só com respostas de verdade');
-  check(JSON.stringify(vistosNs) === JSON.stringify(['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P09', 'M8.P10']), 'passou pelas 10 perguntas: ' + vistosNs.join(','));
+  check(nrm(await page.textContent('#etapa9-nota')).includes('As licenças e o endereço você confere na Etapa 9'), 'resultado direciona à Etapa 9 para licenças e endereço');
+  check(JSON.stringify(vistosNs) === JSON.stringify(['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P10']), 'passou pelas 9 perguntas (sem P09): ' + vistosNs.join(','));
   check(Object.values((await st()).R).every((r) => r.estado !== 'naosei' && r.opcao !== 'Não sei'), 'nenhum "Não sei" gravado');
   check(nrm(await page.textContent('.res-num .sub')) === 'nenhuma com “Não sei”', 'resultado: nenhuma com "Não sei"');
   check(await page.locator('#falta').count() === 0, 'resultado: sem lista de "Não sei"');
   check(nrm(await page.textContent('#tarefa')).startsWith('Seu próximo passo'), 'resultado: próximo passo');
   /* respostas antigas "Não sei" (opção, botão e pergunta que perdeu o "Não sei"): viram "sem resposta"; as outras ficam */
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P02'] = { estado: 'opcao', opcao: 'Não sei' }; s.R['M8.P06'] = { estado: 'naosei' }; s.R['M8.P10'] = { estado: 'opcao', opcao: 'Não sei' }; s.R['M8.P05'] = { estado: 'opcao', opcao: 'Não sei' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('lg2-turma-b-m08')); s.R['M8.P02'] = { estado: 'opcao', opcao: 'Não sei' }; s.R['M8.P06'] = { estado: 'naosei' }; s.R['M8.P10'] = { estado: 'opcao', opcao: 'Não sei' }; s.R['M8.P05'] = { estado: 'opcao', opcao: 'Não sei' }; s.R['M8.P09'] = { estado: 'opcao', opcao: 'Sim' }; localStorage.setItem('lg2-turma-b-m08', JSON.stringify(s)); });
   await page.reload();
-  { const R = (await st()).R; check(!R['M8.P02'] && !R['M8.P05'] && !R['M8.P06'] && !R['M8.P10'] && R['M8.P01'] && R['M8.P04'] && R['M8.P09'], 'antigos "Não sei" apagados, outras respostas guardadas: ' + Object.keys(R).join(',')); }
+  { const R = (await st()).R; check(!R['M8.P02'] && !R['M8.P05'] && !R['M8.P06'] && !R['M8.P10'] && R['M8.P01'] && R['M8.P04'] && R['M8.P08'] && R['M8.P09'] && R['M8.P09'].opcao === 'Sim', 'antigos "Não sei" apagados, outras respostas guardadas (P09 antiga, fora do fluxo, continua salva): ' + Object.keys(R).join(',')); }
   await btn('Continuar de onde parei').click();
   check(await atual() === 'M8.P02', '"Não sei" antigo: volta à 1ª pergunta que ficou sem resposta');
   check(await page.locator('#ent .opcao.sel').count() === 0, '"Não sei" antigo: nada marcado');
@@ -370,12 +375,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   await escolher('Sim');
   check(nrm(await page.textContent('#retorno #alerta-resposta')) === 'Fique atento Atividades regulamentadas não podem ser exercidas sem habilitação.', 'P08 = Sim: aviso de risco ao vivo, no toque');
   await btn('Continuar').click();
-  check(await atual() === 'M8.P09', 'P08 = Sim: o aviso não trava, um toque segue');
-  await seguir();
-  await escolher('Não');   // P09
-  check(await page.locator('#retorno .b-alerta').count() === 0, 'P09: sem balão de alerta para qualquer resposta');
-  await btn('Continuar').click();
-  await seguir();
+  /* A P09 saiu do fluxo: licenças e endereço são conferidos na Etapa 9. */
+  check(await atual() === 'M8.P10', 'P08 segue direto para P10, sem tela P09');
   /* item 4: fontes depois da dúvida principal */
   check(await atual() === 'M8.P10', 'chega à P10');
   check(await page.locator('#fontes-duvida').count() === 0, 'P10: fontes só depois da resposta');
@@ -446,7 +447,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     await page.fill('#ent input', '3000'); await btn('Continuar').click(); await seguir();
     await escolher('Não'); await btn('Continuar').click(); await seguir();
     assert.equal(await atual(), 'M8.P06');
-    check(nrm(await page.textContent('.passo')) === 'Pergunta 6 de 10', 'P06 é a tela "Pergunta 6"');
+    check(nrm(await page.textContent('.passo')) === 'Pergunta 6 de 9', 'P06 é a tela "Pergunta 6"');
   };
   await ateP06();
   await btn('Consultar as ocupações permitidas ao MEI').click();
@@ -462,7 +463,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
   check(await page.locator('#retorno .cnae').count() >= 1, 'retorno ao vivo: mostra a ocupação da lista do MEI antes do Continuar');
   await btn('Continuar').click();
   await seguir();
-  check(await atual() === 'M8.P08' || await atual() === 'M8.P09', 'P07 (lista do MEI) respondida pela escolha: sem tela; foi para ' + await atual());
+  check(['M8.P08', 'M8.P10'].includes(await atual()), 'P07 (lista do MEI) respondida pela escolha: sem tela (P09 saiu do fluxo); foi para ' + await atual());
   check(JSON.stringify((await st()).R['M8.P07']) === JSON.stringify({ estado: 'opcao', opcao: 'Sim', de: 'CNAE', reuso: true }), 'P07 = Sim, vindo do CNAE: ' + JSON.stringify((await st()).R['M8.P07']));
   { const cv = nrm(await page.textContent('#veio'));
     check(cv.includes('Está na lista do MEI: Sim') && cv.includes('Veio da sua escolha do CNAE') && await page.locator('#veio [data-trocar="M8.P07"]').count() === 1, 'cartão "Veio da sua escolha do CNAE · Trocar": ' + cv); }
@@ -512,8 +513,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     'M8.P03': { estado: 'opcao', opcao: 'Minha casa' } };
   const resultadoMei = async (fat, p05) => {
     const R = Object.assign({}, base4, { 'M8.P04': { estado: 'valor', valor: fat }, 'M8.P05': { estado: 'opcao', opcao: p05 },
-      'M8.P07': { estado: 'opcao', opcao: 'Sim' }, 'M8.P09': { estado: 'opcao', opcao: 'Não' }, 'M8.P10': { estado: 'opcao', opcao: 'Se posso ser MEI' } });
-    await semear({ [K]: { R, hist: ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P07', 'M8.P09', 'M8.P10', 'RESULTADO'] } });
+      'M8.P07': { estado: 'opcao', opcao: 'Sim' }, 'M8.P10': { estado: 'opcao', opcao: 'Se posso ser MEI' } });
+    await semear({ [K]: { R, hist: ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P07', 'M8.P10', 'RESULTADO'] } });
     await page.reload(); await btn('Continuar de onde parei').click();
     assert.equal(await atual(), 'RESULTADO');
     return nrm(await page.textContent('#entendemos'));
@@ -544,7 +545,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
 
   /* itens A, B, C, D, E e G percorrendo todas as perguntas em 3 telas difíceis */
   const TELAS = [['360x640', 360, 640, false], ['390x844 com letra 130%', 390, 844, true], ['740x360 deitado', 740, 360, false]];
-  const RESP_C = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Sim', 'M8.P10': 'Se posso ser MEI' };
+  const RESP_C = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P10': 'Se posso ser MEI' };
   for (const [nome, w, h, z130] of TELAS) {
     await page.setViewportSize({ width: w, height: h });
     await semear({}); await page.reload();
@@ -560,6 +561,7 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
       check(r.top >= 0 && r.bottom <= r.h && r.nome === 'Continuar' && !r.dis, `${nome} ${cod}: Continuar inteiro na tela sem rolar, ativo: ${JSON.stringify(r)}`);
       check(!/M[óo]dulo/.test(await page.innerText('#tela')), `${nome} ${cod}: nenhum "Módulo" visível`);
       const m = nrm(await page.textContent('.passo')).match(/^Pergunta (\d+) de (\d+)$/);
+      check(m && +m[1] === vistos.length, `${nome} ${cod}: contador sobe de 1 em 1 (${m && m[1]} na tela ${vistos.length})`);
       totais.add(m && m[2]); barras.push(+(await page.getAttribute('.heroi-compacta .barra', 'aria-valuenow')));
       /* item B: sem resposta, Continuar mostra a mensagem logo acima dele e não avança */
       if (i === 0) {
@@ -582,8 +584,8 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
       if ((await atual()) !== 'RESULTADO') check(await page.evaluate(() => document.activeElement === document.querySelector('.cartao-q h2.q')), `${nome}: foco no enunciado da pergunta nova`);
     }
     check(await atual() === 'RESULTADO', `${nome}: chega ao resultado`);
-    check(JSON.stringify(vistos) === JSON.stringify(['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P09', 'M8.P10']), `${nome}: 10 perguntas: ${vistos}`);
-    check(totais.size === 1 && totais.has('10'), `${nome}: total de "Pergunta N de M" estável (10)`);
+    check(JSON.stringify(vistos) === JSON.stringify(['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P10']), `${nome}: 9 perguntas (sem P09): ${vistos}`);
+    check(totais.size === 1 && totais.has('9'), `${nome}: total de "Pergunta N de M" estável (9)`);
     check(barras.every((v, k) => k === 0 || v > barras[k - 1]), `${nome}: barra só anda para frente: ${barras}`);
     const txt = await page.innerText('#tela');
     check(!/M[óo]dulo/.test(txt) && /Você concluiu a Etapa 8/.test(txt), `${nome}: resultado diz "Etapa", nunca "Módulo"`);
@@ -597,13 +599,32 @@ const check = (c, m) => { assert.ok(c, m); ok++; };
     for (let i = 0; i < 12 && (await atual()) !== 'RESULTADO'; i++) {
       const cod = await atual();
       bs.push(+(await page.getAttribute('.heroi-compacta .barra', 'aria-valuenow')));
-      check(/ de 10$/.test(nrm(await page.textContent('.passo'))), `caminho com pulo ${cod}: total 10`);
+      check(/ de 9$/.test(nrm(await page.textContent('.passo'))), `caminho com pulo ${cod}: total 9`);
+      check(nrm(await page.textContent('.passo')).startsWith(`Pergunta ${bs.length} `), `caminho com pulo ${cod}: número sem pulo (${bs.length})`);
       const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
       if (ops.length) await escolher(cod === 'M8.P05' ? 'MEI (Microempreendedor Individual)' : ops.includes('Não') ? 'Não' : ops[0]);
       else await page.fill('#ent input, #ent textarea', cod === 'M8.P04' ? '3000' : 'Faço bolos de pote');
       await btn('Continuar').click();
     }
     check(bs.every((v, k) => k === 0 || v > bs[k - 1]), 'caminho com pulo: barra só anda para frente: ' + bs); }
+
+  /* herança das Etapas 1, 5 e 9: as reaproveitadas não têm tela nem número; o contador começa em 1 e sobe de 1 em 1 */
+  await semear({ 'lg2-turma-a-m01': M1, 'lg2-turma-b-m09': { v: 2, R: { 'M9-03': { estado: 'opcao', opcao: 'Em casa' } } } });
+  await page.reload(); await btn('Começar').click();
+  { const nums = [], cods = [];
+    for (let i = 0; i < 12 && (await atual()) !== 'RESULTADO'; i++) {
+      const cod = await atual(); cods.push(cod);
+      const m = nrm(await page.textContent('.passo')).match(/^Pergunta (\d+) de 9$/); nums.push(m ? +m[1] : -1);
+      const ops = await page.$$eval('#ent .opcao', (x) => x.map((e) => e.querySelector('.op-txt > b').textContent.trim()));
+      if (ops.length) await escolher(ops.includes('Não') ? 'Não' : ops[0]);
+      else if (!(await page.inputValue('#ent input, #ent textarea'))) await page.fill('#ent input, #ent textarea', cod === 'M8.P04' ? '3000' : 'fabricação de bolos');
+      await btn('Continuar').click();
+      if (await page.locator('#erro.erro-aviso:visible').count()) await btn('Continuar').click();
+    }
+    check(await atual() === 'RESULTADO', 'herança: chega ao resultado');
+    check(!cods.includes('M8.P01') && !cods.includes('M8.P02') && !cods.includes('M8.P03') && cods[0] === 'M8.P04', 'herança: P01, P02 e P03 sem tela, começa na P04: ' + cods);
+    check(nums.length > 0 && nums.every((n, k) => n === k + 1), 'herança: contador 1, 2, 3… sem pulos: ' + nums + ' em ' + cods);
+    check(!cods.includes('M8.P09'), 'herança: sem tela P09'); }
 
   /* item F: alvos de toque ≥ 44 px (pergunta com dica, anotações, "Quem pode ser MEI", consulta; resumo com Copiar/Escolher/Trocar) */
   const alturas = (sels) => page.evaluate((ss) => ss.flatMap((s) => [...document.querySelectorAll(s)].map((e) => { const r = e.getBoundingClientRect(); return { s, h: Math.round(r.height), w: r.width }; })).filter((x) => x.w > 0), sels);

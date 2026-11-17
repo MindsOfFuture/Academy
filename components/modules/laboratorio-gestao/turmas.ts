@@ -3,16 +3,16 @@
    da planilha do grupo. */
 
 export const MODULOS = [
-  { numero: 1, nome: "Perfil do empreendedor e definição da ideia" },
-  { numero: 2, nome: "Clientes, necessidades e comportamento de compra" },
+  { numero: 1, nome: "Você e a sua ideia de negócio" },
+  { numero: 2, nome: "Quem são seus clientes e como compram" },
   { numero: 3, nome: "Mercado, concorrentes e oportunidades" },
-  { numero: 4, nome: "Produto, proposta de valor e teste da ideia" },
-  { numero: 5, nome: "Custos, despesas, preço e margem" },
-  { numero: 6, nome: "Investimento, capital de giro e fluxo de caixa" },
-  { numero: 7, nome: "Operação, fornecedores, capacidade e qualidade" },
-  { numero: 8, nome: "Formalização, enquadramento e tributação básica" },
-  { numero: 9, nome: "Licenças, endereço e atividades reguladas" },
-  { numero: 10, nome: "Comunicação, vendas, pessoas e plano de ação" },
+  { numero: 4, nome: "Produto, por que comprar de você e teste da ideia" },
+  { numero: 5, nome: "Custos, preço e quanto sobra" },
+  { numero: 6, nome: "Dinheiro para começar e para os primeiros meses" },
+  { numero: 7, nome: "Como você produz, compra e entrega" },
+  { numero: 8, nome: "Abrir o seu negócio: CNPJ, MEI e impostos" },
+  { numero: 9, nome: "Licenças e endereço" },
+  { numero: 10, nome: "Vendas, pessoas e plano de ação" },
 ] as const;
 
 export type TurmaId = "a" | "b";

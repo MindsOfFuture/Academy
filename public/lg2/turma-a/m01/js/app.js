@@ -463,12 +463,14 @@
     const falta = Motor.faltaItens(M, S.R), tarefa = Motor.tarefa(M, S.R), avisos = Motor.avisos(M, S.R);
     const mostra = (x) => x.detalhe ? `${x.valor}: ${x.detalhe}` : x.valor;
     const entendemos = Motor.entendimento(M, S.R);
+    /* a conclusão principal vem primeiro, logo abaixo de "Você concluiu" (passada geral 17/11) */
+    const conclusao = Motor.conclusao(M, S.R);
     const p = el(`
       <div class="pag">
         ${P.topo({ trilha: "Resultado", passo: "Resultado", titulo: "Retrato inicial" })}
         <main class="corpo">
           <section class="concluido">
-            <div class="conc-topo"><span class="conc-check" aria-hidden="true"></span><div><h2 data-ler>Você concluiu a ${esc(PARTE)}</h2></div></div>
+            <div class="conc-topo"><span class="conc-check" aria-hidden="true"></span><div><h2 data-ler>Você concluiu a ${esc(PARTE)}</h2>${conclusao ? `<p class="conclusao" data-ler>${esc(conclusao)}</p>` : ""}</div></div>
           </section>
           ${entendemos.length ? `<section class="entendemos" data-ler>
             <h3>O que entendemos até aqui</h3>

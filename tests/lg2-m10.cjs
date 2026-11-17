@@ -15,7 +15,7 @@ const { chromium } = require(process.env.PW || 'playwright');
 
 const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m10');
 const CAPA_PDF = {
- "nome": "Comunicação, vendas, pessoas e plano de ação",
+ "nome": "Vendas, pessoas e plano de ação",
  "objetivo": "Ao final da etapa, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
  "para_quem": "Destinado para pessoas que desejam estruturar a operação e a comunicação de um pequeno negócio. Geralmente, esses usuários chegam à etapa com dificuldades para explicar o que vendem, lidar com clientes nos diversos canais, organizar o tempo entre a operação e a gestão, e tomar decisões sobre sociedade e contratação. A etapa busca ajudá-los a analisar essas informações e priorizar ações imediatas.",
  "ter_em_maos": "O usuário precisa ter em mente ou anotado como realiza o seu atendimento hoje, os canais que utiliza, as dificuldades que enfrenta na rotina diária e as expectativas sobre parcerias ou contratações.",
@@ -345,6 +345,8 @@ const servidor = http.createServer((req, res) => {
   if (process.env.M10_SABOTAGEM_A && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('p.querySelector("#ok").onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };', 'let _sab = false; p.querySelector("#ok").onclick = () => { const r0 = coletar(); if (!r0) return; if (!_sab) { _sab = true; return; } avancar(r0); };'));
   /* sabotagem do B6 (M10_SABOTAGEM_B6=1): volta o lc() antigo e a oferta inteira no enunciado */
   if (process.env.M10_SABOTAGEM_B6 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('const lc = (s) => String(s || "").split(/,\\s*(?![^()]*\\))/).map(minusc).join(", ");', 'const lc = (s) => String(s || "").split(/,\\s*(?![^()]*\\))/).map((x) => x.charAt(0).toLowerCase() + x.slice(1)).join(", ");').replace('{ "[oferta em foco]": ofertaNaFrase() }', '{ "[oferta em foco]": oferta() || "o que você vende" }'));
+  /* sabotagem do lote 17/11 (M10_SABOTAGEM_1117=1): sem cartão da Etapa 3, sem ajuda da Etapa 7, retorno único da planilha na M10-05 */
+  if (process.env.M10_SABOTAGEM_1117 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('cod === "M10-05" && hoje05() ?', 'false ?').replace('const h05 = cod === "M10-05" ? hoje05() : null;', 'const h05 = null;').split('const a7 = ajuda7();').join('const a7 = null;').replace('const ret1 = (o) => (cod === "M10-05" && caixa05(o)) || caixa(caminho(cod, o));', 'const ret1 = (o) => caixa(caminho(cod, o));'));
   if (process.env.M10_SABOTAGEM && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (o === NS) { op = null; pediuNS = true; return ajudaNS(); }', 'if (o === NS) { op = "Ainda não sei"; ajudaNS(); return; }'));
   fs.createReadStream(f).pipe(res);
 });
@@ -619,6 +621,20 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     [UNICAS['M10-05'][0]]: ['Indicação', 'WhatsApp', 'Redes sociais', 'Grupos do bairro', 'Atendimento direto', 'Atendimento em domicílio', 'Aplicativo de entrega', 'Cartaz ou panfleto', 'Parceria', 'Site próprio', 'Marketplace'],
     'Ainda não sei': ['Não sei'], /* 16/11: "Ainda não sei" = "Não sei" (uma opção só) */
   };
+  /* 17/11: retorno ao vivo de cada opção da M10-05 (o texto da opção não muda) */
+  const RET05 = {
+    'Indicação': 'Boa escolha: não custa nada. Peça a quem já comprou para indicar você a um conhecido.',
+    'WhatsApp': 'Poste no status e mande para a sua lista de contatos uma ou duas vezes por semana, sem exagerar. No resultado há uma mensagem de apresentação pronta para usar.',
+    'Redes sociais': 'Poste com frequência fotos do que você vende, com preço e como pedir. No resultado há uma mensagem de apresentação pronta para usar.',
+    'Grupos do bairro': 'Antes de postar, veja as regras do grupo. No resultado há uma mensagem de apresentação pronta para usar.',
+    'Atendimento direto': 'Deixar provar ou ver de perto convence quem ainda não conhece. Tenha um jeito fácil de a pessoa pedir depois.',
+    'Atendimento em domicílio': 'Ir até a casa do cliente é um jeito de vender. Para mais gente saber de você, aproveite a visita: deixe um cartão e peça indicação de vizinhos.',
+    'Aplicativo de entrega': 'O aplicativo é um lugar de venda que também mostra você para quem procura nele. Ele cobra uma parte de cada venda: confira essa taxa nos gastos da Etapa 5.',
+    'Cartaz ou panfleto': 'Coloque onde o seu cliente passa (padaria, mercado, ponto de ônibus) e ponha um jeito fácil de falar com você.',
+    'Parceria': 'Combine com o outro negócio o que cada um ganha. Ex.: o seu cartão no balcão dele e um desconto para os clientes dele.',
+    'Site próprio': 'Um site só traz clientes se as pessoas chegarem até ele. Divulgue o endereço no WhatsApp e nas redes.',
+    'Marketplace': 'O marketplace mostra você para quem já procura no site, mas cobra uma parte de cada venda: confira essa taxa nos gastos da Etapa 5.',
+  };
   /* 16/11: perguntas sobre a própria pessoa ficaram sem "Não sei"; nas outras ele só abre a ajuda */
   const SEM_NS = ['M10-01', 'M10-02', 'M10-03', 'M10-04', 'SOCIO', 'M10-06', 'M10-08'];
   const SAIRAM = [['M10-01', 'Não sei'], ['M10-03', 'Não sei'], ['M10-06', 'Não sei'], ['M10-08', 'Não sei'], ['M10-09', 'Não sei']];
@@ -660,6 +676,8 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
         }
         alcancou = true;
         await clicar(op);
+        /* 17/11: cada opção da M10-05 tem retorno próprio (a frase única da planilha, "usa o seu diferencial", não servia para Parceria, domicílio, aplicativo…) */
+        if (cod === 'M10-05' && RET05[op]) { const bs = await blocos(); check(`Caminho M10-05 · ${op}: retorno próprio da opção`, bs.length === 1 && nrm(bs[0]).includes(RET05[op]) && !bs[0].includes('usa o seu diferencial'), bs); continue; }
         /* contratar com folga no Módulo 7: a observação do cruzamento vem junto (2 caixas) */
         await confere(op, cod, linha, cod === 'M10-08' && op.startsWith('Sim') ? 2 : 1);
       }
@@ -698,6 +716,68 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     check('M10-05: anúncio nos gastos da Etapa 5 = "Anúncio pago" marcado, selo da Etapa 5', (await page.evaluate(() => document.querySelector('#ent .opcao.sel .op-txt b').innerText.trim())) === 'Anúncio pago' && (await page.evaluate(() => document.querySelector('.herdado').innerText)).startsWith('Veio da Etapa 5')); }
   await abrir('M10-05');
   check('M10-05: pergunta e apoio preenchidos', (await titulo()).includes('saber que bolo de pote existe') && (await page.evaluate(() => { const d=document.querySelector('.dica-toggle'); d.open=true; return d.innerText; })).includes('diferencial: Bolo fresco entregue no mesmo dia.'));
+  /* ---------- 17/11 item 1: M3.P13A (Etapa 3, "Como as pessoas ficam sabendo de você?") ---------- */
+  /* telas com resposta reaproveitada (cartão/nota "Veio da Etapa N"): limite próprio de palavras, +15 sobre a tela de origem */
+  const LIM_HERANCA = 95, LIM_HERANCA_60 = 75;
+  const abrirH = async (cod, rExtra, heranca) => { await semear(estadoAte(cod, rExtra), heranca); await clicar('Continuar de onde parei'); };
+  { /* sem M3.P13A: igual a antes (enunciado da planilha, sem cartão) */
+    await abrirH('M10-05');
+    check('Etapa 3 sem M3.P13A: M10-05 igual a antes (enunciado da planilha, sem cartão)', (await titulo()) === 'Como as pessoas vão saber que bolo de pote existe nas próximas semanas?' && !(await page.evaluate(() => !!document.querySelector('#veio05'))), await titulo());
+    const h3 = JSON.parse(JSON.stringify(HERANCA)); h3['lg2-turma-a-m03'].R['M3.P13A'] = { estado: 'opcoes', opcoes: ['Indicação (boca a boca)', 'Google ou Google Maps'] };
+    await abrirH('M10-05', {}, h3);
+    const lerV = () => page.evaluate(() => ({ q: document.querySelector('.q').innerText, card: (document.querySelector('#veio05') || {}).innerText || '', trocar: !!document.querySelector('#veio05 #trocar05'), aberto: !!document.querySelector('#troca05:not([hidden])'), sel: [...document.querySelectorAll('#ent > .opcoes .opcao.sel')].map((x) => x.querySelector('.op-txt b').innerText.trim()), seloAntigo: !!document.querySelector('#ent > p.herdado'), bs: [...document.querySelectorAll('#retorno .bloco')].length })).then(async (x) => Object.assign(x, { palavras: await palavrasVisiveis() }));
+    let v = await lerV();
+    check('Etapa 3 com M3.P13A: cartão "Veio da Etapa 3 · Trocar" com como as pessoas ficam sabendo hoje', nrm(v.card).startsWith('Veio da Etapa 3') && v.trocar && !v.aberto && nrm(v.card).includes('Hoje as pessoas ficam sabendo de você por: indicação (boca a boca) e Google ou Google Maps.') && v.palavras <= LIM_HERANCA, v);
+    check('Etapa 3 com M3.P13A: enunciado muda para o que é novo (o que reforçar)', v.q === 'Qual caminho de divulgação você vai reforçar nas próximas semanas?', v.q);
+    check('Etapa 3 com M3.P13A: opção equivalente marcada (Indicação), sem o selo antigo e sem retorno antes do toque', v.sel.join() === 'Indicação' && !v.seloAntigo && v.bs === 0, v);
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm10_05_etapa3.png') }); }
+    /* Trocar: a lista da Etapa 3 abre ali; trocar Indicação por Instagram muda o cartão e a marcação sugerida */
+    if (await temBotao('Trocar')) await clicar('Trocar');
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#troca05 .opcao')]; if (!b.length) return; b.find((x) => x.dataset.v === 'Indicação (boca a boca)').click(); b.find((x) => x.dataset.v === 'Instagram ou outras redes sociais').click(); });
+    await page.waitForTimeout(60);
+    v = await lerV();
+    check('Etapa 3 · Trocar: lista aberta na própria tela; cartão e marcação acompanham a troca', v.aberto && nrm(v.card).includes('Hoje as pessoas ficam sabendo de você por: Google ou Google Maps e Instagram ou outras redes sociais.') && v.sel.join() === 'Redes sociais', v);
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm10_05_trocar.png') }); }
+    await clicar('Continuar');
+    const s5 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-05'], CHAVE);
+    check('Etapa 3 · Trocar: Continuar grava a opção e o que veio da Etapa 3 (de: 3, trocado)', s5.opcao === 'Catálogo no Instagram ou outra rede social' && s5.hoje && s5.hoje.de === 3 && s5.hoje.trocado === true && JSON.stringify(s5.hoje.opcoes) === JSON.stringify(['Google ou Google Maps', 'Instagram ou outras redes sociais']), s5);
+    /* M3.P13A sem equivalência clara (só Google): cartão aparece, nada vem marcado */
+    const h3g = JSON.parse(JSON.stringify(HERANCA)); h3g['lg2-turma-a-m03'].R['M3.P13A'] = { estado: 'opcoes', opcoes: ['Google ou Google Maps'] };
+    await abrirH('M10-05', {}, h3g);
+    v = await lerV();
+    check('Etapa 3 com M3.P13A sem equivalente claro (Google): cartão sim, nenhuma opção marcada', nrm(v.card).startsWith('Veio da Etapa 3') && v.sel.length === 0, v);
+    /* resultado: como ficam sabendo hoje aparece em "Como você vende" */
+    await semear(estadoAte('FIM'), h3);
+    await clicar('Continuar de onde parei');
+    const rv = nrm(await page.evaluate(() => document.querySelector('.resultado-mais').innerText));
+    check('Etapa 3 com M3.P13A: resultado mostra como as pessoas ficam sabendo (Etapa 3)', rv.includes('Como as pessoas ficam sabendo de você (Etapa 3) Indicação (boca a boca) e Google ou Google Maps'), rv.slice(0, 400));
+  }
+  /* ---------- 17/11 item 2: M7-04 (Etapa 7, "Alguém ajuda você?") em M10-07, sócio e contratar ---------- */
+  { await abrirH('M10-07');
+    check('Etapa 7 sem M7-04: M10-07 sem nota de ajuda e nada marcado', !(await page.evaluate(() => !!document.querySelector('#ajuda7') || document.querySelectorAll('#ent .opcao.sel').length > 0)));
+    const h7f = JSON.parse(JSON.stringify(HERANCA)); h7f['lg2-turma-b-m07'].R['M7-04'] = { estado: 'opcao', opcao: 'Sim, sem pagamento (família, amigo, parceiro)', horas: 4 };
+    await abrirH('M10-07', {}, h7f);
+    const a = await page.evaluate(() => ({ nota: (document.querySelector('#ajuda7') || {}).innerText || '', ex: [...document.querySelectorAll('#ent > .opcoes')].map((g) => { const o = [...g.querySelectorAll('.opcao')].find((x) => x.querySelector('.op-txt b').innerText.trim() === 'Ajudante'); return o && (o.querySelector('.op-ex') || {}).innerText; }), sel: document.querySelectorAll('#ent .opcao.sel').length }));
+    check('Etapa 7 (ajuda de família): M10-07 traz quem ajuda como sugestão de responsável ("Ajudante")', nrm(a.nota).startsWith('Veio da Etapa 7') && a.nota.includes('família, amigo ou parceiro, 4 h por semana') && a.nota.includes('marque “Ajudante”') && a.sel === 0 && (await palavrasVisiveis()) <= LIM_HERANCA_60, Object.assign(a, { palavras: await palavrasVisiveis() }));
+    if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(process.env.SHOTS, 'm10_07_ajuda7.png') }); }
+    await abrirH('SOCIO', {}, h7f);
+    const ns = await page.evaluate(() => (document.querySelector('#ajuda7') || {}).innerText || '');
+    check('Etapa 7 (ajuda de família): pergunta de sócio parte do que já se sabe (quem só ajuda não é sócio)', nrm(ns).startsWith('Veio da Etapa 7') && ns.includes('Quem só ajuda não é sócio') && (await palavrasVisiveis()) <= 60 && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText.trim()))) === '["Sim","Não"]', ns);
+    const h7p = JSON.parse(JSON.stringify(HERANCA)); h7p['lg2-turma-b-m07'].R['M7-04'] = { estado: 'opcao', opcao: 'Sim, pago alguém', horas: 6 };
+    await abrirH('M10-08', {}, h7p);
+    const n8 = await page.evaluate(() => (document.querySelector('#ajuda7') || {}).innerText || '');
+    check('Etapa 7 (ajuda paga): M10-08 lembra que já paga alguém (6 h por semana)', nrm(n8).includes('Você já paga uma pessoa para ajudar (6 h por semana)') && (await palavrasVisiveis()) <= 60, n8);
+    await abrirH('M10-07', {}, h7p);
+    check('Etapa 7 (ajuda paga): "Ajudante" = uma pessoa que você paga', nrm(await page.evaluate(() => (document.querySelector('#ajuda7') || {}).innerText)).includes('Você tem ajuda de uma pessoa que você paga, 6 h por semana: marque “Ajudante” onde ela ajuda.'));
+    /* sozinho(a) e sem sócio: "Eu" já vem marcado em todas; Continuar grava */
+    const h7s = JSON.parse(JSON.stringify(HERANCA)); h7s['lg2-turma-b-m07'].R['M7-04'] = { estado: 'opcao', opcao: 'Não, faço sozinho(a)', horas: 0 };
+    await abrirH('M10-07', { SOCIO: { estado: 'opcao', opcao: 'Não' } }, h7s);
+    const so = await page.evaluate(() => ({ nota: (document.querySelector('#ajuda7') || {}).innerText || '', sel: [...document.querySelectorAll('#ent > .opcoes')].map((g) => (g.querySelector('.opcao.sel .op-txt b') || {}).innerText) }));
+    check('Etapa 7 (sozinho, sem sócio): M10-07 já vem com "Eu" em todas, com nota', so.sel.join() === 'Eu,Eu,Eu' && nrm(so.nota).startsWith('Veio da Etapa 7') && (await palavrasVisiveis()) <= LIM_HERANCA_60, so);
+    await clicar('Continuar');
+    const q7 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-07'], CHAVE);
+    check('Etapa 7 (sozinho): Continuar grava "Eu" nas 3 etapas', q7 && JSON.stringify(q7.quem) === JSON.stringify({ 'Receber o pedido': 'Eu', Fazer: 'Eu', Entregar: 'Eu' }), q7);
+  }
   /* M10-06: acordo entre sócios só aparece para quem respondeu que tem/pretende ter sócio. */
   await abrir('M10-06', { SOCIO: { estado: 'opcao', opcao: 'Sim' } });
   const socTip = await page.evaluate(() => { const d=document.querySelector('.dica-toggle'), t=d?.querySelector('.dica-sociedade'), closedBefore=d ? !d.open : false; if(d) d.open=true; return { closedBefore, text:t?.innerText || '', prompt:t?.querySelector('[data-prompt]')?.innerText || '', passos:t?.querySelectorAll('.como-descobrir ol li').length || 0 }; });
@@ -948,7 +1028,7 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     const tr = await resumo({}, hr);
     const sec = (h) => page.evaluate((h) => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === h); return s ? s.innerText.replace(/\s+/g, ' ') : ''; }, h);
     const pc = await sec('Pontos para conferir');
-    check('Pontos para conferir: limite da Etapa 1 x gasto da Etapa 6', pc.includes('No Etapa 1 você disse que pode usar até R$ 100 no negócio sem faltar para as contas da casa. Mas na Etapa 6, a estimativa para começar é de R$ 1.500.') && pc.includes('Veio das Etapas 1 e 6'), pc);
+    check('Pontos para conferir: limite da Etapa 1 x gasto da Etapa 6', pc.includes('Na Etapa 1 você disse que pode usar até R$ 100 no negócio sem faltar para as contas da casa. Mas na Etapa 6, a estimativa para começar é de R$ 1.500.') && pc.includes('Veio das Etapas 1 e 6'), pc);
     check('Pontos para conferir: tipo de oferta diferente entre as Etapas 1, 5 e 8', pc.includes('serviço (Etapa 1); produto (Etapa 5); mercadoria (Etapa 8)'), pc);
     check('Pontos para conferir: alimento x \"Não\" para a Vigilância Sanitária na Etapa 9', pc.includes('Você vende bolo de pote, que parece envolver alimento, mas na Etapa 9 respondeu') && pc.includes('Veio das Etapas 1 e 9'), pc);
     const ret = await page.evaluate(() => [...document.querySelectorAll('.retrato')].map((x) => x.innerText.replace(/\s+/g, ' ')));
@@ -1286,9 +1366,15 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     check('E/migração: prioridade guardada \"(Módulo 3)\" vira \"(Etapa 3)\" na lista, na escala e na prioridade principal, sem perder a resposta', JSON.stringify(mg.R['M10-09'].opcoes) === JSON.stringify([novoT]) && mg.R['M10-10'].u[novoT] === 'piora muito' && mg.prioridade === novoT, mg);
     check('E/migração: a prioridade migrada continua marcada em \"Quais 3 pontos\"', (await page.evaluate(() => [...document.querySelectorAll('#ent .opcao.sel')].map((x) => x.querySelector('.op-txt b').innerText.trim()))).join() === novoT, await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((x) => x.innerText)));
   }
+  { /* passada geral 17/11: no resultado, a 1ª coisa é a conclusão (prioridade mais urgente + primeiro passo) */
+    await semear(estadoAte('FIM')); await clicar('Continuar de onde parei');
+    const c = await page.evaluate(() => { const e = document.querySelector('#conc-principal'), en = document.querySelector('#entendemos'); return { t: e ? e.innerText : '', antes: !!(e && en && (e.compareDocumentPosition(en) & Node.DOCUMENT_POSITION_FOLLOWING)) }; });
+    check('Resultado: a conclusão vem primeiro (prioridade mais urgente + primeiro passo)', nrm(c.t).startsWith('Sua prioridade mais urgente: Organizar a agenda.') && c.t.includes('Primeiro passo:') && c.antes, c);
+  }
   check('G: capa promete \"cerca de 10 minutos\" (11 perguntas do caminho comum + ponto de partida, ~35 s cada)', D.capa.minutos === 10);
   /* 16/11: +10 palavras só nas telas com linhas "Ex.:" embaixo de opções difíceis (M10-05 divulgação, M10-09 prioridades) */
-  const LIMITE_PAL = { 'M10-05': 70, 'M10-09': 70 };
+  /* 17/11: M10-05 ganhou linha explicando as opções que são venda, não divulgação (domicílio, aplicativo): +10 */
+  const LIMITE_PAL = { 'M10-05': 80, 'M10-09': 70 };
   const maiores = Object.fromEntries(contagensVisiveis.filter(([c, n]) => n > (LIMITE_PAL[c] || 60)));
   check('Menos texto: telas de pergunta com até 60 palavras antes de responder (70 nas telas com exemplos)', Object.keys(maiores).length === 0, { maiores, amostras: contagensVisiveis });
   check('Sem erros de JavaScript', erros.length === 0, erros);

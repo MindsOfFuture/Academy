@@ -335,3 +335,10 @@ textarea.msg-auto{resize:none;overflow:hidden;min-height:96px}
 .chk{min-height:44px;box-sizing:border-box;align-items:center}
 .chk input{margin-top:0}
 .etapas-edicao{display:grid;gap:6px;margin-top:8px}
+/* 17/11: cartão "Veio da Etapa 3 · Trocar" da M10-05 (como as pessoas ficam sabendo hoje) */
+.veio-card{border:1px solid var(--m-lavender-mid);background:#fff;border-radius:12px;padding:8px 12px;margin:0 0 12px}
+.veio-linha{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.veio-linha .veio{margin-left:0}
+.veio-txt{font-size:14.5px;color:var(--m-gray);margin:6px 0 2px;line-height:1.45}
+.troca05{margin-top:8px}
+.conc-topo p.conc-principal{color:#2b2340;font-size:16px}

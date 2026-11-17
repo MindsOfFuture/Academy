@@ -6,7 +6,7 @@ window.MODULO4 = {
  "origem": "M04.xlsx",
  "modulo": {
   "numero": "4",
-  "nome": "Produto, proposta de valor e teste da ideia",
+  "nome": "Produto, por que comprar de você e teste da ideia",
   "versao": "v0.1",
   "data": "10/09/2026",
   "turma": "Turma de 24",
@@ -20,9 +20,9 @@ window.MODULO4 = {
   ]
  },
  "mapa": {
-  "objetivo": "Ao final desta etapa, você vai conseguir detalhar o que oferece (os materiais de um produto ou as etapas de um serviço), montar a sua proposta de valor com o Canvas de Proposta de Valor e preparar um teste da sua ideia com clientes de verdade, para ver se o que você planejou atende ao que o seu público precisa ou se são necessários ajustes.",
+  "objetivo": "Ao final desta etapa, você vai conseguir detalhar o que oferece (os materiais de um produto ou as etapas de um serviço), montar a frase de por que o cliente compraria de você (a sua proposta de valor) e preparar um teste da sua ideia com clientes de verdade, para ver se o que você planejou atende ao que o seu público precisa ou se são necessários ajustes.",
   "usuario": "Esta etapa é para você que já tem uma ideia na cabeça e precisa amadurecê-la: pensar no que é necessário para colocá-la em prática e no que ela entrega de valor para o seu cliente.",
-  "decisoes": "Como esta etapa ajuda você\n\nEsta etapa guia você a pensar com clareza sobre o seu produto, o valor que ele entrega e se a ideia faz sentido para o seu público. As decisões são sempre suas. Nós orientamos o caminho, e você escolhe o destino.\n\nO que você vai fazer aqui:\n\n - Detalhar seu produto: organize as informações principais sobre o que você oferece.\n - Preencher o Canvas de Proposta de Valor: responda a perguntas simples, bloco por bloco (perfil do cliente, mapa de valor e outros), para entender quem você atende e o que realmente importa para essas pessoas.\n - Preparar o teste da sua ideia: receba um roteiro de perguntas e critérios para conversar com seu público e avaliar as respostas. A aplicação do teste fica por sua conta.\n - Identificar possíveis desencontros: com base no que você mesmo respondeu, mostramos onde o seu plano pode estar diferente do que o público precisa. Apontamos os pontos de atenção, mas não dizemos o que você deve fazer: a solução é sua.",
+  "decisoes": "Como esta etapa ajuda você\n\nEsta etapa guia você a pensar com clareza sobre o seu produto, o valor que ele entrega e se a ideia faz sentido para o seu público. As decisões são sempre suas. Nós orientamos o caminho, e você escolhe o destino.\n\nO que você vai fazer aqui:\n\n - Detalhar seu produto: organize as informações principais sobre o que você oferece.\n - Dizer por que o cliente compraria de você: responda a perguntas simples, bloco por bloco (perfil do cliente, mapa de valor e outros), para entender quem você atende e o que realmente importa para essas pessoas.\n - Preparar o teste da sua ideia: receba um roteiro de perguntas e critérios para conversar com seu público e avaliar as respostas. A aplicação do teste fica por sua conta.\n - Identificar possíveis desencontros: com base no que você mesmo respondeu, mostramos onde o seu plano pode estar diferente do que o público precisa. Apontamos os pontos de atenção, mas não dizemos o que você deve fazer: a solução é sua.",
   "nao_faz": "Não sugere o produto ou serviço, não dá ideia de desenvolvimento, não determina a matéria-prima do produto, não faz o canvas por você e não instrui como fazer o teste da ideia.",
   "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
   "ter_em_maos": "Celular e acesso à internet. É bom ter papel e caneta à mão para anotar o que precisar.",
@@ -34,25 +34,25 @@ window.MODULO4 = {
  "conexoes": [
   {
    "modulo": "1.0",
-   "nome": "Perfil do empreendedor e definição da ideia",
+   "nome": "Você e a sua ideia de negócio",
    "recebe": "Descrição inicial da ideia e do problema que ela resolve",
    "combinado": "Não"
   },
   {
    "modulo": "2.0",
-   "nome": "Clientes, necessidades e comportamento de compra",
+   "nome": "Quem são seus clientes e como compram",
    "recebe": "Perfil do cliente: tarefas, dores e ganhos levantados na pesquisa",
    "combinado": "Não"
   },
   {
    "modulo": "5.0",
-   "nome": "Custos, despesas, preço e margem",
+   "nome": "Custos, preço e quanto sobra",
    "envia": "Ficha técnica do produto com insumos e quantidades, para cálculo de custo por unidade e gastos relacionados ao teste",
    "combinado": "Não"
   },
   {
    "modulo": "7.0",
-   "nome": "Operação, fornecedores, capacidade e qualidade",
+   "nome": "Como você produz, compra e entrega",
    "envia": "Especificação do produto e variedade mínima a produzir.",
    "combinado": "Não"
   }
@@ -508,13 +508,13 @@ window.MODULO4 = {
   {
    "codigo": "M4.P09",
    "modulo": "M4",
-   "pergunta": "Que problema ou necessidade desse cliente o seu produto ou serviço ajuda a resolver?",
+   "pergunta": "Em que momento do dia a dia esse cliente sente falta do que você oferece?",
    "ajuda": "Pense em uma situação real em que o cliente sente falta de algo ou se incomoda hoje. Ex.: \"esqueceu de encomendar o bolo de aniversário\".",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Este problema será tratado como uma suposição sua, que ainda precisa ser confirmada com clientes.",
-   "alerta": "Se o problema veio só da sua opinião, ele ainda é uma hipótese: pessoas próximas costumam elogiar mesmo quando não comprariam.",
+   "alerta": "Se o problema veio só da sua opinião, ele ainda é uma suposição: pessoas próximas costumam elogiar mesmo quando não comprariam.",
    "proximo": "Anote quantas vezes você viu ou ouviu esse problema em pessoas reais; isso será útil ao definir o teste.",
    "fonte": "M4.BT01; M4.BT08 (Sebrae; Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
    "status": "Rascunho",
@@ -538,27 +538,27 @@ window.MODULO4 = {
   {
    "codigo": "M4.P10",
    "modulo": "M4",
-   "pergunta": "O que o cliente ganha na prática ao usar o que você oferece?",
-   "ajuda": "Descreva o resultado para o cliente, não a característica do produto. Ex.: em vez de \"bolo sem glúten\" (característica), \"poder comer doce sem passar mal\" (benefício).",
+   "pergunta": "O que muda na vida do cliente quando ele usa o que você oferece?",
+   "ajuda": "Pense no ganho do dia a dia: tempo, dinheiro, saúde, sabor ou aparência. Fale do resultado, não da característica do produto. Ex.: em vez de \"bolo sem glúten\", \"poder comer doce sem passar mal\".",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "Não sei",
-   "resposta": "Este benefício vai compor a sua proposta de valor.",
-   "alerta": "Descrever só o que o produto é enfraquece a proposta de valor, porque o cliente compra pelo resultado que espera.",
+   "resposta": "Este ganho entra na frase de por que comprar de você, mais à frente.",
+   "alerta": "Descrever só como o produto é convence menos, porque o cliente compra pelo resultado que espera.",
    "proximo": "Confira se o benefício descreve algo que o cliente percebe, e não algo do seu processo de produção.",
    "fonte": "M4.BT02 (fonte de baixa autoridade; ver aba Revisão e sugestões, item 13)",
    "status": "Rascunho",
    "por_tipo": {
     "Serviço": {
-     "ajuda": "Descreva o resultado para o cliente, não a característica do serviço. Ex.: em vez de \"manicure com esmaltes importados\" (característica), \"sair com as unhas prontas sem sair de casa\" (benefício).",
-     "placeholder": "Ex.: sair com as unhas prontas sem sair de casa"
+     "ajuda": "Pense no ganho do dia a dia: tempo, dinheiro, saúde, sabor ou aparência. Fale do resultado, não da característica do serviço. Ex.: em vez de \"manicure com esmalte importado\", \"unhas prontas sem ir ao salão\".",
+     "placeholder": "Ex.: ganha tempo: fica com as unhas prontas sem ir ao salão"
     },
     "Mercadoria": {
-     "ajuda": "Descreva o resultado para o cliente, não a característica da mercadoria. Ex.: em vez de \"roupa 100% algodão\" (característica), \"a criança fica confortável o dia todo\" (benefício).",
-     "placeholder": "Ex.: a criança fica confortável o dia todo"
+     "ajuda": "Pense no ganho do dia a dia: tempo, dinheiro, saúde, sabor ou aparência. Fale do resultado, não da característica da mercadoria. Ex.: em vez de \"roupa 100% algodão\", \"a criança fica confortável o dia todo\".",
+     "placeholder": "Ex.: economiza: a criança fica confortável e a roupa dura mais"
     }
    },
-   "placeholder": "Ex.: poder comer doce sem passar mal",
+   "placeholder": "Ex.: saúde: poder comer doce sem passar mal",
    "comoDescobrir": [
     "Complete a frase: “Com o que eu ofereço, o cliente consegue ___”. Fale do resultado, não do produto.",
     "Pergunte a quem já usou ou provou o que mudou para a pessoa e use as palavras dela."
@@ -573,7 +573,7 @@ window.MODULO4 = {
    "tipo": "Escolha",
    "condicao": "sempre",
    "opcoes": "Preço; Prazo/rapidez; Atendimento; Qualidade/especialização; Conveniência; Outro; Não sei",
-   "resposta": "Este motivo será tratado como o seu diferencial hipotético, a ser conferido no teste.",
+   "resposta": "Este é o seu diferencial por enquanto: no teste, confira se o cliente concorda.",
    "alerta": "Gostar da própria ideia não é o mesmo que ter um motivo de escolha para o cliente. Se ainda não há um motivo claro, essa informação ajuda a ajustar antes de testar. Se você já pesquisou concorrentes e alternativas na etapa de mercado, compare o seu motivo com o que eles oferecem.",
    "proximo": "",
    "fonte": "M4.BT03 (Serasa Experian, consulta em 22/09/2026)",
@@ -625,7 +625,7 @@ window.MODULO4 = {
    "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
    "status": "Rascunho",
    "pergunta": "Qual problema do cliente o seu produto resolve?",
-   "destaque": "Proposta de valor: três respostas curtas que resumem por que o cliente compraria de você. Elas ajudam a escrever a frase da pergunta seguinte.",
+   "destaque": "Por que comprar de você (proposta de valor): três respostas curtas que resumem por que o cliente compraria de você. Elas ajudam a escrever a frase da pergunta seguinte.",
    "ajuda": "Pense em uma dificuldade real que o cliente tem hoje. Ex.: \"os pais não têm tempo de preparar um lanche gostoso para a escola\".",
    "por_tipo": {
     "Serviço": {
@@ -686,12 +686,12 @@ window.MODULO4 = {
   {
    "codigo": "M4.P12",
    "modulo": "M4",
-   "pergunta": "Junte as três respostas em uma ou duas frases: por que comprar de você?",
+   "pergunta": "Por que comprar de você? Ajuste a frase que montamos com as suas respostas.",
    "ajuda": "Modelo: \"Para [cliente] que [problema], ofereço [produto ou serviço], que [benefício], proporcionando [meu diferencial].\" Escreva com as suas palavras.",
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "",
-   "resposta": "Esta frase é a sua hipótese de trabalho: ela será testada e pode mudar depois do teste.",
+   "resposta": "Esta frase é o seu ponto de partida: ela será testada e pode mudar depois do teste.",
    "alerta": "Evite frases vagas como \"o melhor\" ou \"de qualidade\": elas não dizem ao cliente por que escolher você.",
    "proximo": "Leia a frase para alguém do seu público e observe se a pessoa entende o que você oferece.",
    "fonte": "M4.BT01 (Sebrae, consulta em 22/09/2026)",
@@ -719,8 +719,8 @@ window.MODULO4 = {
    "tipo": "Texto",
    "condicao": "sempre",
    "opcoes": "",
-   "resposta": "Esta será a hipótese do seu teste. Se o resultado não a confirmar, isso também traz informação útil.",
-   "alerta": "Anote qual parte da hipótese você tem menos certeza: ela merece ser testada primeiro. Lembre-se: dizer que “as pessoas vão gostar” não ajuda, pois não dá para medir. Uma boa hipótese é clara e pode ser testada.",
+   "resposta": "Esta será a suposição do seu teste. Se o resultado não a confirmar, isso também traz informação útil.",
+   "alerta": "Anote qual parte da hipótese você tem menos certeza: ela merece ser testada primeiro. Lembre-se: dizer que “as pessoas vão gostar” não ajuda, pois não dá para medir. Uma boa suposição é clara e pode ser testada.",
    "fonte": "M4.BT08 (Meu Bolso em Dia/Febraban, consulta em 22/09/2026)",
    "status": "Rascunho",
    "por_tipo": {
@@ -785,7 +785,7 @@ window.MODULO4 = {
    "condicao": "M4.P13 = Oferta mínima com preço ou M4.P13 = Pré-venda/reserva",
    "opcoes": "Sim; Não; Não sei",
    "resposta": "Vender sem conhecer as regras da atividade pode gerar problemas para você e para o cliente, mesmo em um teste.",
-   "alerta": "O app não faz enquadramento jurídico nem sanitário.",
+   "alerta": "O app não confere se a sua atividade segue as regras legais e sanitárias.",
    "fonte": "Pendente: fonte oficial datada sobre atividade regulada (ver etapa de licenças); M4.BT11 sem fonte ainda",
    "status": "Rascunho",
    "retorno_se": {
@@ -864,7 +864,7 @@ window.MODULO4 = {
    "ajuda": "É importante que o comportamento possa ser medido, como o número de pedidos ou a quantidade de pessoas que aceitaram experimentar.",
    "tipo": "Texto",
    "condicao": "M4.P17= Outra",
-   "destaque_alerta": "Verifique se esse outro comportamento realmente indica que a hipótese foi confirmada. Talvez valha a pena usar um dos comportamentos listados antes.",
+   "destaque_alerta": "Verifique se esse outro comportamento realmente indica que a suposição foi confirmada. Talvez valha a pena usar um dos comportamentos listados antes.",
    "placeholder": "Ex.: pessoas que pediram para avisar quando tiver de novo"
   },
   {

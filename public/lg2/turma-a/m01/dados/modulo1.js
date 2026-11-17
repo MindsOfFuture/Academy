@@ -6,7 +6,7 @@ window.MODULO1 = {
  "origem": "LG2_M01_planilha_do_grupo.xlsx",
  "modulo": {
   "numero": "1",
-  "nome": "Perfil do empreendedor e definição da ideia",
+  "nome": "Você e a sua ideia de negócio",
   "versao": "v0.1",
   "data": "10/09/2026",
   "turma": "Turma de 18",
@@ -23,17 +23,17 @@ window.MODULO1 = {
   "usuario": "Pessoas que desejam estruturar um pequeno negócio e que acessarão o aplicativo preferencialmente pelo celular.",
   "decisoes": "Construção de um retrato inicial do empreendedor e da sua situação atual.\nElaboração de uma síntese da ideia de negócio.\nSeparação clara entre o que são fatos comprovados, o que são hipóteses a serem testadas e quais são as lacunas de informação.\nDefinição de um próximo passo prático para orientar o usuário.\n",
   "nao_faz": "Não garantir que a ideia dará certo ou atestar viabilidade definitiva.\nNão afirmar ou prometer que haverá lucro, vendas ou rentabilidade específica.\nNão concluir automaticamente que o usuário deve abrir o negócio, contratar pessoas ou tomar crédito.",
-  "mensagem_limite": "O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
+  "mensagem_limite": "O app ajuda você a pensar e se organizar, mas não substitui um profissional. Os resultados dependem das suas respostas e não são garantidos. Regras de impostos, registro e licenças devem ser confirmadas em sites do governo e com profissionais.",
   "ter_em_maos": "Uma ideia de produto ou serviço a ser vendido. \nNoção do tempo disponível por semana que pode dedicar ao negócio.\nConhecimento dos recursos e habilidades que já possui.\nUma estimativa do valor financeiro máximo que está disposto a arriscar sem comprometer a sobrevivência (limite de investimento). ",
   "entrega": "Retrato inicial: um resumo sobre você, o estágio da sua ideia e o que motiva você.\nSíntese da ideia: uma descrição da ideia, separando o que você já sabe do que ainda precisa testar.\nO que falta descobrir: as informações que ainda faltam.\nPróximo passo: uma tarefa fácil para fazer já.",
-  "encaminhamentos": "Se o limite de investimento sugerir a necessidade de empréstimos fora do padrão familiar, um consultor financeiro pode ser indicado para validar o risco e as taxas de juros.\nSe a ideia esbarrar em produtos alimentícios de alto risco ou procedimentos de saúde, deve haver um encaminhamento para checagem com um responsável técnico sobre viabilidade.",
+  "encaminhamentos": "Se você precisar de um empréstimo maior do que a família pode emprestar, converse com alguém que entende de dinheiro e juros antes de assinar. Se vai vender comida que estraga fácil ou fazer algo ligado à saúde, confirme as regras com um profissional da área antes de começar.",
   "caso_real": "As conversas e o acompanhamento do caso real testarão as opções de resposta e a clareza das perguntas (ex: ver se o tom está amigável ou intimidador).  \nIdentificarão os \"pontos cegos\" habituais dos empreendedores no estágio inicial, fornecendo dúvidas recorrentes para compor as caixas educativas e o roteiro dos vídeos.\nPermitirão a construção dos \"casos de teste\" obrigatórios, ajudando a simular caminhos contraditórios (ex: \"só na cabeça\" vs. \"já é renda\").",
   "riscos": "Risco 1: Transmitir ao usuário, através das perguntas, que ele deve pedir demissão de seu atual emprego ou tomar crédito imediato baseado apenas em sua motivação.\nComo evitar: Criar um ambiente educacional que reforce limites. A interface usará verbos como \"planejar\", \"estimar\" e \"projetar\", não \"garantir\". A equipe aplicará testes rigorosos sobre a \"lógica condicional\" para garantir que nenhum cenário sugira ao usuário ações imprudentes de vida e carreira.\n\nRisco 2: Afirmar categoricamente que o negócio é \"viável\" ou rentável após ele fornecer as estimativas.\nComo evitar: Limitar as entregas do Módulo 1 a um mapeamento descritivo, sem emitir laudos de viabilidade. O encaminhamento sugerido não deve ser \"abra o negócio\", mas sim a próxima etapa de investigação no aplicativo. As palavras \"bom\" e \"mau\" negócio devem ser evitadas."
  },
  "conexoes": [
   {
    "modulo": "2.0",
-   "nome": "Clientes, necessidades e comportamento de compra",
+   "nome": "Quem são seus clientes e como compram",
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "Sua ideia e uma primeira descrição do que você vende.",
    "combinado": "Não",
@@ -41,7 +41,7 @@ window.MODULO1 = {
   },
   {
    "modulo": "4.0",
-   "nome": "Produto, proposta de valor e teste da ideia",
+   "nome": "Produto, por que comprar de você e teste da ideia",
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "O que você já sabe e o que ainda precisa testar na sua ideia, além do seu tempo e do que você já tem.",
    "combinado": "Não",
@@ -49,7 +49,7 @@ window.MODULO1 = {
   },
   {
    "modulo": "6.0",
-   "nome": "Investimento, capital de giro e fluxo de caixa",
+   "nome": "Dinheiro para começar e para os primeiros meses",
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "Quanto dinheiro você pode usar e o que você já tem para trabalhar.",
    "combinado": "Não",
@@ -57,7 +57,7 @@ window.MODULO1 = {
   },
   {
    "modulo": "10.0",
-   "nome": "Comunicação, vendas, pessoas e plano de ação",
+   "nome": "Vendas, pessoas e plano de ação",
    "recebe": "Nenhum dado (fluxo de entrada)",
    "envia": "Seu retrato inicial: o tempo que você tem, o que limita você e o que motiva você.",
    "combinado": "Não",
@@ -224,7 +224,8 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Antes de gastar dinheiro, teste sua ideia com pouca coisa. Se alguém já provou, pergunte se compraria e por quanto."
+    "texto": "Escolha onde a sua ideia está hoje: só no papel ou na cabeça, já testou com algumas pessoas ou já vende. Não tem resposta certa: isso só ajuda a escolher o seu próximo passo.",
+    "exemplo": "Ex.: fez bolo para a família provar = já testou; vende para os vizinhos toda semana = já vende sempre."
    }
   },
   {
@@ -253,7 +254,7 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco. Antes de gastar, pergunte a algumas pessoas se elas comprariam."
+    "texto": "Escolha o motivo que mais pesa hoje. Quem precisa de dinheiro logo deve começar com algo que vende rápido e gasta pouco."
    }
   },
   {
@@ -278,7 +279,12 @@ window.MODULO1 = {
     "Observe seu bairro por alguns dias: o que as pessoas procuram e não acham perto? Onde tem fila ou falta? Isso é uma oportunidade."
    ],
    "promptIA": "Moro em [seu bairro e cidade]. Sei fazer [o que você sabe fazer] e tenho [quanto tempo por dia] e cerca de [quanto dinheiro] para começar. Me sugira 5 ideias de pequenos negócios que resolvam uma necessidade real das pessoas daqui e que eu possa começar gastando pouco. Para cada ideia, diga para quem vender e como testar em uma semana.",
-   "aviso_ajuda": "Quando escolher uma ideia, escreva no campo acima para continuar."
+   "aviso_ajuda": "Quando escolher uma ideia, escreva no campo acima para continuar.",
+   "por_estagio": {
+    "vende": {
+     "pergunta": "O que você vende?"
+    }
+   }
   },
   {
    "codigo": "M1.P03A",
@@ -304,7 +310,7 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Produto: você faz com materiais que compra. Mercadoria: você compra pronto e revende. Serviço: o cliente paga pelo seu trabalho.",
+    "texto": "Pense em como você ganha: produto é feito por você, mercadoria é comprada pronta para revender e serviço é o seu trabalho.",
     "exemplo": "Ex.: bolo de pote é produto; roupa da fábrica para revender é mercadoria; lavar carro é serviço."
    }
   },
@@ -333,13 +339,13 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Se vai começar do zero, procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar.",
+    "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Para começar do zero, procure um curso gratuito, como os do Sebrae.",
     "exemplo": "Ex.: Maria foi costureira por 5 anos e hoje faz consertos de roupa em casa."
    },
    "por_tipo": {
     "Produto": {
      "ajuda": {
-      "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Se vai começar do zero, procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar.",
+      "texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Para começar do zero, procure um curso gratuito, como os do Sebrae.",
       "exemplo": "Ex.: Joana faz bolo para a família há anos e hoje vende bolo de pote para os vizinhos."
      }
     },
@@ -365,8 +371,26 @@ window.MODULO1 = {
       }
      ],
      "ajuda": {
-      "texto": "Pense na qualidade, no preço e em onde comprar. Compre pouco no começo e compare pelo menos 2 fornecedores antes de comprar muito.",
+      "texto": "Para quem revende, conhecer bem é saber a qualidade, o preço e onde comprar. Compre pouco no começo e compare pelo menos 2 fornecedores.",
       "exemplo": "Ex.: Ana comprava roupas numa fábrica para ela e hoje revende para as vizinhas."
+     },
+     "por_estagio": {
+      "vende": {
+       "pergunta": "Você conhece bem o que revende?",
+       "pergunta_com_resposta": {
+        "de": "M1.P03",
+        "modelo": "Você conhece bem {resposta} e onde comprar?"
+       }
+      }
+     }
+    }
+   },
+   "por_estagio": {
+    "vende": {
+     "pergunta": "Você faz isso bem?",
+     "pergunta_com_resposta": {
+      "de": "M1.P03",
+      "modelo": "Você faz {resposta} bem?"
      }
     }
    }
@@ -396,19 +420,19 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana.",
+    "texto": "Conte só o tempo livre de verdade, depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes ou sob encomenda.",
     "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso fazer meus doces no sábado.”"
    },
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana.",
+      "texto": "Conte só o tempo livre de verdade, depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes ou sob encomenda.",
       "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.”"
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana.",
+      "texto": "Conte só o tempo livre de verdade, depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes ou sob encomenda.",
       "exemplo": "Ex.: “Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.”"
      }
     }
@@ -431,7 +455,7 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "Pense na sua semana: onde sobra um tempinho? Alguém em casa pode ajudar com a casa ou com os filhos em alguns horários? Se não der, tudo bem: o negócio pode crescer devagar, no seu ritmo."
+    "texto": "Pense se dá para liberar mais horas se os pedidos aumentarem: alguém em casa pode ajudar em alguns horários? Se não der, tudo bem: o negócio cresce no seu ritmo."
    }
   },
   {
@@ -457,17 +481,17 @@ window.MODULO1 = {
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "Ex.: ferramentas, materiais de trabalho ou um espaço para atender. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
+      "texto": "Conte ferramentas, materiais de trabalho ou um espaço para atender. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
+      "texto": "Conte um lugar para guardar a mercadoria, embalagens ou um jeito de entregar. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
      }
     }
    },
    "ajuda": {
-    "texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
+    "texto": "Conte utensílios, máquina, espaço, ingredientes ou materiais. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
    }
   },
   {
@@ -499,7 +523,7 @@ window.MODULO1 = {
     }
    ],
    "ajuda": {
-    "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro.",
+    "texto": "Conte só o dinheiro guardado que não faz falta para aluguel, comida e contas. Comece pequeno, sem pegar empréstimo no banco. Se não tiver nada, tudo bem.",
     "exemplo": "Ex.: “Tenho R$ 500 guardados para ingredientes. Se eu não vender nada, não falta comida em casa.”"
    },
    "video": {
@@ -510,13 +534,13 @@ window.MODULO1 = {
    "por_tipo": {
     "Serviço": {
      "ajuda": {
-      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro.",
+      "texto": "Conte só o dinheiro guardado que não faz falta para aluguel, comida e contas. Comece pequeno, sem pegar empréstimo no banco. Se não tiver nada, tudo bem.",
       "exemplo": "Ex.: “Tenho R$ 300 guardados para esmaltes e alicates. Se eu não tiver clientes, não falta comida em casa.”"
      }
     },
     "Mercadoria": {
      "ajuda": {
-      "texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro.",
+      "texto": "Conte só o dinheiro guardado que não faz falta para aluguel, comida e contas. Comece pequeno, sem pegar empréstimo no banco. Se não tiver nada, tudo bem.",
       "exemplo": "Ex.: “Tenho R$ 500 guardados para as primeiras peças. Se eu não vender nada, não falta comida em casa.”"
      }
     }
@@ -555,7 +579,12 @@ window.MODULO1 = {
    "promptIA": "Quero começar a vender [o que você vende], mas tenho pouco ou nenhum dinheiro e pouco material. Me dê 5 jeitos simples de começar gastando pouco ou nada, como vender por encomenda com pagamento adiantado ou pegar material emprestado. Explique cada um em linguagem simples.",
    "botao_ajuda": "Não sei",
    "ajuda": {
-    "texto": "Se for pegar emprestado, combine por escrito quanto e quando vai devolver."
+    "texto": "Pense em como conseguir o primeiro material sem apertar as contas da casa. Se for pegar emprestado, combine por escrito quanto e quando vai devolver."
+   },
+   "por_estagio": {
+    "vende": {
+     "pergunta": "Como você pensa em conseguir dinheiro ou material para o negócio?"
+    }
    }
   },
   {
@@ -617,6 +646,9 @@ window.MODULO1 = {
       }
      ]
     }
+   },
+   "ajuda": {
+    "texto": "Marque o que mais pode atrapalhar você no começo. Isso entra no seu resumo e ajuda a escolher por onde começar."
    }
   }
  ],

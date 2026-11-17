@@ -8,7 +8,7 @@ window.MODULO9 = {
  "origem": "Documento final do Grupo 9 (versão final de 30/10/2026)",
  "modulo": {
   "numero": "9",
-  "nome": "Licenças, endereço e atividades reguladas",
+  "nome": "Licenças e endereço",
   "versao": "versão final",
   "data": "30/10/2026",
   "tutora": "Luiza",
@@ -563,7 +563,7 @@ window.MODULO9 = {
  "conexoes": [
   {
    "modulo": "1",
-   "nome": "Perfil do empreendedor e definição da ideia",
+   "nome": "Você e a sua ideia de negócio",
    "recebe": "Oferta e tipo (M1-01, M1-02), recursos e espaço (M1-10, M1-10a) e experiência (M1-08)",
    "envia": "Restrições de local que podem mudar a ideia",
    "obs": "O tipo substitui a antiga pergunta 6"
@@ -577,35 +577,35 @@ window.MODULO9 = {
   },
   {
    "modulo": "4",
-   "nome": "Produto, proposta de valor e teste da ideia",
+   "nome": "Produto, por que comprar de você e teste da ideia",
    "recebe": "Forma de entrega (M4-06) e atividade regulada (M4-11)",
    "envia": "Alerta: atividade de interesse sanitário não deve atender ao público sem as licenças, nem em teste",
    "obs": "Ajustes: M4-11 com as mesmas categorias de M9-02 (alta); M4-06 guardar se o atendimento é só fora ou on-line (média)"
   },
   {
    "modulo": "6",
-   "nome": "Investimento, capital de giro e fluxo de caixa",
+   "nome": "Dinheiro para começar e para os primeiros meses",
    "recebe": "Itens do investimento (M6-01)",
    "envia": "Obra ou reforma (M9-12) para cruzar com o investimento",
    "obs": "Ajuste: garantir a categoria 'instalações e reforma' em M6-01 (média)"
   },
   {
    "modulo": "7",
-   "nome": "Operação, fornecedores, capacidade e qualidade",
+   "nome": "Como você produz, compra e entrega",
    "recebe": "Equipamentos e mapa do processo (M7-05, M7-01), inclusive equipamentos a gás, e validade curta (M7-08)",
    "envia": "Checklist do M9 como destino do item \"atividade regulada\"",
    "obs": "Ajuste: o checklist de riscos do M7 aponta para o checklist do M9 (média)"
   },
   {
    "modulo": "8",
-   "nome": "Formalização, enquadramento e tributação básica",
+   "nome": "Abrir o seu negócio: CNPJ, MEI e impostos",
    "recebe": "Descrição, CNPJ e código (M8-01, M8-02, M8-04) e ideias para depois (M8-09)",
    "envia": "Base de CNAEs com nível de risco provável, usada na busca guiada (M8-04a)",
    "obs": "Ajuste: combinar quem mantém a base compartilhada (alta). Substitui as antigas perguntas 2 a 5"
   },
   {
    "modulo": "10",
-   "nome": "Comunicação, vendas, pessoas e plano de ação",
+   "nome": "Vendas, pessoas e plano de ação",
    "recebe": "—",
    "envia": "Estado e cidade, local e viabilidade, nível de risco provável, itens pendentes do checklist, ideias e lacunas",
    "obs": "Cada dado é guardado uma vez"
@@ -899,7 +899,8 @@ window.MODULO9 = {
     "Procure a área construída no carnê ou boleto do IPTU, na escritura ou no contrato de aluguel.",
     "Se não achar, meça cada cômodo com uma trena (comprimento vezes largura) e some tudo. Um número aproximado já ajuda."
    ],
-   "promptIA": "Meu imóvel tem estes cômodos e medidas: [cômodo 1: comprimento x largura], [cômodo 2: comprimento x largura]. Calcule a área total em metros quadrados e mostre a conta passo a passo."
+   "promptIA": "Meu imóvel tem estes cômodos e medidas: [cômodo 1: comprimento x largura], [cômodo 2: comprimento x largura]. Calcule a área total em metros quadrados e mostre a conta passo a passo.",
+   "dica": "A área é o espaço do imóvel em metros quadrados (m²). O carnê do IPTU ou o contrato pode informar esse número. Ex.: um cômodo de 6 m por 4 m tem 24 m².",
   },
   {
    "codigo": "M9-06",
@@ -1364,7 +1365,7 @@ window.MODULO9 = {
   {
    "codigo": "M9-13",
    "fase": "Fechamento",
-   "pergunta": "Quer anotar alguma ideia sobre vendas, equipe ou próximos passos?",
+   "pergunta": "Quer anotar alguma dúvida sobre o local ou as licenças, para levar à prefeitura?",
    "descobre": "Ideias para depois",
    "aparece": "Sempre (opcional)",
    "caminhos": [

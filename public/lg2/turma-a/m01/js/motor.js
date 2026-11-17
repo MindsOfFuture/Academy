@@ -82,9 +82,18 @@
   /* pergunta como aparece para esta pessoa: "por_tipo" troca enunciado, opções ou exemplo conforme a
      palavra inicial da Pergunta 3A (Produto / Mercadoria / Serviço). Sem 3A respondida vale o texto base. */
   function efetiva(M, R, q) {
-    if (!q || !q.por_tipo) return q;
+    if (!q) return q;
     const t = tipoOferta(R);
-    return t && q.por_tipo[t] ? Object.assign({}, q, q.por_tipo[t]) : q;
+    let e = q.por_tipo && t && q.por_tipo[t] ? Object.assign({}, q, q.por_tipo[t]) : q;
+    /* "por_estagio": quem já vende (Pergunta 1) lê o enunciado sem tom de iniciante; as opções não mudam */
+    const s = estagio(R);
+    if (s && e.por_estagio && e.por_estagio[s]) e = Object.assign({}, e, e.por_estagio[s]);
+    return e;
+  }
+  const VENDE = ["Já vendi algumas vezes", "Já vendo sempre"];
+  function estagio(R) {
+    const r = R && R["M1.P01"];
+    return r && r.estado === "opcao" && VENDE.includes(r.opcao) ? "vende" : null;
   }
   /* trocou o tipo na 3A: a resposta guardada da P4/P8 passa para o texto equivalente (mesma posição) da
      lista nova, para não perder o que a pessoa já tinha marcado */
@@ -153,7 +162,7 @@
   const ESTAGIO = {
     "Ainda está só na minha cabeça": "Por enquanto, a ideia está só na sua cabeça. O melhor agora é testar com pouca coisa antes de gastar.",
     "Já fiz um pouco para testar ou dar de amostra": "Você já fez um pouco para testar ou dar de amostra. É hora de ouvir quem provou: compraria? Por quanto?",
-    "Já vendi algumas vezes": "Você já vendeu algumas vezes, então já sabe que tem gente que compra.",
+    "Já vendi algumas vezes": "Você já vendeu algumas vezes, então já sabe que tem gente que compra. O próximo passo é anotar custos e vendas para organizar o negócio.",
     "Já vendo sempre": "Você já vende sempre, então o foco agora é organizar o que já funciona.",
   };
   const SABE = {
@@ -210,8 +219,8 @@
     const vende = ["Já vendi algumas vezes", "Já vendo sempre"].includes(op("M1.P01"));
     if (ideia) frases.push((vende ? "Você vende " : "Você quer vender ") + ideia + (tipo ? TIPO[tipo] : "") + ".");
     else if (tipo) frases.push("O que você oferece é" + TIPO[tipo].replace(/^,/, "") + ".");
-    if (ESTAGIO[op("M1.P01")]) frases.push(ESTAGIO[op("M1.P01")]);
-    const c1 = frases.length;   // 1º parágrafo: o que vende e em que ponto está
+    /* o ponto em que a ideia está vira a conclusão do topo do resultado (conclusao), sem repetir aqui */
+    const c1 = frases.length;   // 1º parágrafo: o que vende
     const sabe = SABE[op("M1.P04")], tempo = TEMPO[op("M1.P05")];
     if (sabe || tempo) {
       let f = sabe || "Você";
@@ -232,6 +241,12 @@
     }) : [];
     if (pre.length) frases.push((pre.length > 1 ? "O que mais te preocupa agora: " : "O que mais te preocupa agora é: ") + juntar(pre) + ".");
     return emParagrafos(frases, c1, c2);
+  }
+
+  /* ---------- conclusão principal (1ª coisa do resultado): em que ponto a ideia está e o que fazer agora ---------- */
+  function conclusao(M, R) {
+    const r = R["M1.P01"];
+    return (r && r.estado === "opcao" && ESTAGIO[r.opcao]) || "";
   }
 
   /* ---------- "O que ainda falta descobrir": respostas "Não sei" ou vagas, em linguagem simples ---------- */
@@ -287,7 +302,7 @@
     return l;
   }
 
-  const API = { montar, valor, completa, avaliar, proxima, caminho, textoPergunta, regrasTodas, retrato, refs, itens, tipoOferta, entendimento,
+  const API = { montar, valor, completa, avaliar, proxima, caminho, textoPergunta, regrasTodas, retrato, refs, itens, tipoOferta, entendimento, conclusao, estagio,
     efetiva, remapear, ideiaVaga, faltaDescobrir, faltaItens, NADA_FALTA, tarefa, avisos };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

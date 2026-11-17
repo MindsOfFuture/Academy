@@ -6,7 +6,7 @@ window.MODULO5 = {
  "origem": "LG2_M05_planilha_do_grupo.xlsx",
  "modulo": {
   "numero": "5",
-  "nome": "Custos, despesas, preço e margem",
+  "nome": "Custos, preço e quanto sobra",
   "versao": "v0.1",
   "data": "10/09/2026",
   "turma": "Turma de 18",
@@ -34,7 +34,7 @@ window.MODULO5 = {
  "conexoes": [
   {
    "modulo": "2",
-   "nome": "Clientes, necessidades e comportamento de compra",
+   "nome": "Quem são seus clientes e como compram",
    "recebe": "Informação sobre demanda, perfil e comportamento dos clientes",
    "envia": "Preço estimado e margem para apoiar a análise de aceitação do preço",
    "combinado": "Não"
@@ -48,42 +48,42 @@ window.MODULO5 = {
   },
   {
    "modulo": "4",
-   "nome": "Produto, proposta de valor e teste da ideia",
+   "nome": "Produto, por que comprar de você e teste da ideia",
    "recebe": "Características do produto/serviço e proposta de valor",
    "envia": "Estimativa de custo, preço e margem para apoiar o teste da ideia",
    "combinado": "Não"
   },
   {
    "modulo": "6",
-   "nome": "Investimento, capital de giro e fluxo de caixa",
+   "nome": "Dinheiro para começar e para os primeiros meses",
    "recebe": "Informações sobre investimento, capital de giro e fluxo de caixa",
    "envia": "Estimativas de custos, despesas e margem",
    "combinado": "Não"
   },
   {
    "modulo": "7",
-   "nome": "Operação, fornecedores, capacidade e qualidade",
+   "nome": "Como você produz, compra e entrega",
    "recebe": "Informações dobre fornecedores, produção, perdas e capacidade",
    "envia": "Custos estimados de produção/operação",
    "combinado": "Não"
   },
   {
    "modulo": "8",
-   "nome": "Formalização, enquadramento e tributação básica",
+   "nome": "Abrir o seu negócio: CNPJ, MEI e impostos",
    "recebe": "Informações sobre possíveis custos e obrigações relacionadosà ",
    "envia": "Informações sobre possíveis custos e obrigações relacionados à formalização e tributação",
    "combinado": "Não"
   },
   {
    "modulo": "9",
-   "nome": "Licenças, endereço e atividades reguladas",
+   "nome": "Licenças e endereço",
    "recebe": "Informações sobre custos relacionados a licenças e exigências aplicáveis",
    "envia": "Inclusão desses custos na estimativa do negócio",
    "combinado": "Não"
   },
   {
    "modulo": "10",
-   "nome": "Comunicação, vendas, pessoas e plano de ação",
+   "nome": "Vendas, pessoas e plano de ação",
    "recebe": "Informações sobre gastos com comunicação, vendas e pessoas",
    "envia": "Estimativas de custos, preço e margem para o planejamneto",
    "combinado": "Não"
@@ -675,7 +675,7 @@ window.MODULO5 = {
    "codigo": "M5.P29",
    "modulo": "M5",
    "pergunta": "Quanto você paga de aluguel por mês?",
-   "ajuda": "Informe o valor mensal aproximado.",
+   "ajuda": "Informe o valor mensal aproximado. Se o negócio usa parte da casa, calcule só essa parte. Ex.: aluguel de R$ 1.000 dividido por 5 cômodos, usando 1 = R$ 200 por mês.",
    "tipo": "Número (R$)",
    "condicao": "P28 = Sim",
    "opcoes": "Não sei",
@@ -706,7 +706,7 @@ window.MODULO5 = {
    "codigo": "M5.P31",
    "modulo": "M5",
    "pergunta": "Quanto você costuma gastar por mês com água e luz do negócio?",
-   "ajuda": "Se os valores mudarem muito, informe uma média aproximada.",
+   "ajuda": "Some o que o negócio gasta com água e luz por mês. Se os valores mudarem, use a média das últimas 3 contas. Ex.: R$ 70 de luz + R$ 10 de água = R$ 80 por mês.",
    "tipo": "Número (R$)",
    "condicao": "P30 = Sim",
    "opcoes": "Não sei",
@@ -737,7 +737,7 @@ window.MODULO5 = {
    "codigo": "M5.P33",
    "modulo": "M5",
    "pergunta": "Quais são esses gastos e quanto você paga por mês em cada um?",
-   "ajuda": "Adicione cada conta separadamente. Ex.: internet R$ 100; contador R$ 200.",
+   "ajuda": "Adicione cada conta separadamente, com o valor por mês. Ex.: internet R$ 100 por mês; contador R$ 200 por mês.",
    "tipo": "Lista + número (R$)",
    "condicao": "P32 = Sim",
    "opcoes": "-",
@@ -767,7 +767,7 @@ window.MODULO5 = {
    "codigo": "M5.P35",
    "modulo": "M5",
    "pergunta": "Quanto você costuma separar para você por mês?",
-   "ajuda": "Informe aproximadamente quanto retira do negócio pelo seu trabalho.",
+   "ajuda": "Informe aproximadamente quanto retira do negócio pelo seu trabalho, em reais por mês. Ex.: R$ 1.000.",
    "tipo": "Número (R$)",
    "condicao": "P34 = Sim",
    "opcoes": "Não sei",
@@ -782,7 +782,7 @@ window.MODULO5 = {
    "codigo": "M5.P36",
    "modulo": "M5",
    "pergunta": "Por quanto você vende esse produto ou mercadoria, ou quanto cobra por esse serviço?",
-   "ajuda": "Informe quanto o cliente normalmente paga.",
+   "ajuda": "Informe quanto o cliente normalmente paga por uma unidade, em reais. Ex.: R$ 15 por produto, mercadoria ou serviço.",
    "tipo": "Número (R$)",
    "condicao": "Sempre",
    "opcoes": "Ainda não defini / Não sei",
@@ -798,7 +798,7 @@ window.MODULO5 = {
    "codigo": "M5.P37",
    "modulo": "M5",
    "pergunta": "Em um mês normal, quantos produtos ou mercadorias você vende, ou quantos serviços você faz?",
-   "ajuda": "Não precisa ser exato. Pense em um mês comum e informe aproximadamente.",
+   "ajuda": "Não precisa ser exato. Informe quantas unidades ou atendimentos vende em um mês comum. Ex.: 40 por mês.",
    "tipo": "Número",
    "condicao": "Sempre",
    "opcoes": "Ainda não comecei a vender / Não sei",

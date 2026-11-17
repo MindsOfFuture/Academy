@@ -164,8 +164,10 @@
     const est = { "Ainda está só na minha cabeça": ESTAGIOS[0], "Já fiz um pouco para testar ou dar de amostra": ESTAGIOS[1], "Já vendi algumas vezes": ESTAGIOS[2], "Já vendo sempre": ESTAGIOS[2] }[textoDe(m1["M1.P01"])];
     pega("estagio", est, 1);
     const vol = Mo.num(numDe(textoDe(m5["M5.P37"]))); pega("volume", vol > 0 ? numDe(textoDe(m5["M5.P37"])) : null, 5);
+    const tempoProd = valor(m5["M5.PT"]);
     const t23 = valor(m5["M5.P23"]);
-    if (t23 && typeof t23 === "object") { const m = (Mo.num(t23.h) || 0) * 60 + (Mo.num(t23.m) || 0); if (m > 0) { pega("minUn", m, 5); ini.minUnHM = { h: Mo.num(t23.h) || 0, m: Mo.num(t23.m) || 0 }; } }
+    if (tempoProd && typeof tempoProd === "object") { const m = (Mo.num(tempoProd.h) || 0) * 60 + (Mo.num(tempoProd.m) || 0); if (m > 0) { pega("minUn", m, 5); ini.minUnHM = { h: Mo.num(tempoProd.h) || 0, m: Mo.num(tempoProd.m) || 0 }; } }
+    if (!(ini.minUn > 0) && t23 && typeof t23 === "object") { const m = (Mo.num(t23.h) || 0) * 60 + (Mo.num(t23.m) || 0); if (m > 0) { pega("minUn", m, 5); ini.minUnHM = { h: Mo.num(t23.h) || 0, m: Mo.num(t23.m) || 0 }; } }
     /* materiais do Módulo 5: produto = P03/P06 (receita) ÷ P07 (unidades que rende); serviço = P19/P22 (por atendimento) */
     const prod = t5 ? t5.startsWith("Produto") : Array.isArray(valor(m5["M5.P03"]));
     /* revenda: o item principal é a própria mercadoria do Módulo 5 (não há lista de materiais) */
@@ -188,6 +190,11 @@
     const reg = textoDe(m4["M4.P15"]); pega("regulada", SN.includes(reg) ? reg : null, 4);
     /* Módulo 5 "Você costuma perder…?" = Não: a perda daqui já vem 0 (sem perguntar de novo) */
     if (textoDe(m5["M5.P26"]) === "Não") pega("perda", "0", 5);
+    else if (textoDe(m5["M5.P26"]) === "Sim") {
+      const perda5 = valor(m5["M5.P27"]);
+      const nPerda = perda5 && typeof perda5 === "object" ? Mo.num(perda5.valor) : Mo.num(perda5);
+      if (Number.isFinite(nPerda) && nPerda >= 0) pega("perda", String(nPerda).replace(".", ","), 5);
+    }
     if (rev && !ini.uso) ini.uso = "1";
     /* o Módulo 4 guarda texto livre ("60 pedidos"): fica só o número */
     pega("testeN", numDe(textoDe(m4["M4.P19"])), 4);
@@ -223,7 +230,7 @@
     "M7-04": { apoio: "Família, parceiro, amigo ou alguém que você paga. Conte só a ajuda para separar, embalar e entregar os pedidos." },
     "M7-05a": { pergunta: "Quantos pedidos ou caixas cabem de uma vez nesse espaço ou veículo, e em quanto tempo?", apoio: "Ex.: o carro leva 20 caixas por viagem, e cada viagem de entrega leva 1 h." },
     "M7-06": { apoio: "Pense em [item principal do Módulo 4], a mercadoria que mais vende ou que, se faltar, para as vendas. Quando pagar já foi visto na Etapa 6; aqui é o tempo até a mercadoria chegar." },
-    "M7-08": { pergunta: "Suas mercadorias estragam, vencem ou perdem valor com o tempo?", apoio: "Pense na data de validade, em produtos que precisam de geladeira ou de lugar seco e em itens que saem de moda." },
+    "M7-08": { pergunta: "O que estraga ou vence na sua oferta, e em quanto tempo?", apoio: "Pense na data de validade, em produtos que precisam de geladeira ou de lugar seco e em itens que saem de moda." },
     "M7-09": { apoio: "Pense no que faz o cliente voltar: pedido certo, validade em dia, embalagem inteira, prazo combinado." },
   };
   const ROT_REV = {
@@ -487,7 +494,7 @@
       });
     }
     const f = Object.assign({}, base);
-    const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio da Etapa ${base.de[campo]}</span>` : "";
+    const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio da Etapa ${base.de[campo]}${campo === "minUn" ? " · Trocar" : ""}</span>` : "";
     /* resposta que já veio de outro módulo: cartão pequeno (rótulo curto, valor, selo e "Trocar"); o campo só abre no "Trocar" */
     const CURTO = { oferta: "O que você vende", tipo: "Tipo", estagio: "Momento", horas: "Horas por semana", volume: "Vendas por mês", minUn: "Tempo por unidade", testeN: "Teste da ideia", testeDias: "Prazo para o teste", item: "Item principal", uso: "Em cada unidade", estoque: "Estoque", reposicao: "Compra", perda: "Perda", regulada: "Regras próprias", material: "Usa material" };
     const mostra = (c) => { const v = f[c]; return c === "minUn" ? fmtMin(Mo.num(v)) : c === "uso" ? `${v}${f.usoUn ? " " + f.usoUn : ""}` : c === "perda" ? `${v}%` : c === "testeN" ? `${v} pedidos` : c === "testeDias" ? `${v} dias` : String(v); };

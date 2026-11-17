@@ -141,9 +141,40 @@
   /* proposta de valor: o que a pessoa já escreveu neste módulo vem preenchido (o problema e o benefício) */
   const VEIO_DE_DENTRO = { "M4.PV1": ["M4.P09", "Trouxemos a sua resposta sobre o problema do cliente."], "M4.PV3": ["M4.P10", "Trouxemos a sua resposta sobre o que o cliente ganha."] };
   function daqui(cod) {
+    if (cod === "M4.P12") { const r = rascunhoP12(); return r ? { valor: r, nota: "Rascunho pronto" } : null; }
     const d = VEIO_DE_DENTRO[cod]; if (!d) return null;
     const v = Motor.valor(S.R, d[0]);
     return v && v !== Motor.NS ? { valor: v, nota: d[1] } : null;
+  }
+
+  /* lote 17/11 (auditoria): a pergunta 12 vem com um rascunho montado das respostas anteriores, editável.
+     problema = P09 (ou PV1), ganho = P10 (ou PV3), motivo = PV2 (= P11 ou M3.P21). Sem nenhuma parte: campo vazio. */
+  const semPonto = (s) => String(s ?? "").trim().replace(/[.!;\s]+$/, "");
+  const minuscula = (s) => (/^[A-ZÀ-Ú][a-zà-ú]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+  function rascunhoP12() {
+    const val = (c) => { const v = Motor.valor(S.R, c); return v && v !== Motor.NS ? semPonto(v) : ""; };
+    const oferta = val("M4.P01"), cliente = val("M4.P08"), prob = val("M4.P09") || val("M4.PV1"), ganho = val("M4.P10") || val("M4.PV3");
+    const motivo = semPonto(val("M4.PV2") || textoDe(lerOutro(M3, "M3.P21")) || motivoP11());
+    if (!prob && !ganho && !motivo) return "";
+    const fr = [];
+    if (oferta) fr.push(`Ofereço ${minuscula(oferta)}${cliente ? ` para ${minuscula(cliente)}` : ""}.`);
+    else if (cliente) fr.push(`Para ${minuscula(cliente)}.`);
+    if (prob) fr.push(`Resolvo este problema: ${minuscula(prob)}.`);
+    if (ganho) fr.push(`O cliente ganha: ${minuscula(ganho)}.`);
+    if (motivo) fr.push(`Por que comprar de mim: ${minuscula(motivo)}.`);
+    return fr.join(" ");
+  }
+  /* lote 17/11 (auditoria): a pergunta 9 e a 10 lembram, discretas, o que a pessoa disse na Etapa 3 sobre um assunto
+     parecido, para ela ver que agora a pergunta é outra (não está repetindo). Só aparece se a Etapa 3 tem a resposta. */
+  const REF_ETAPA3 = {
+    "M4.P09": ["M3.P11", "Na Etapa 3 você disse que o problema do cliente é", "Agora pense em quando ele sente isso no dia a dia."],
+    "M4.P10": ["M3.P21", "Na Etapa 3 você disse que o seu diferencial é", "Agora pense no que muda na vida do cliente."],
+  };
+  function refEtapa3(cod, atual) {
+    const r = REF_ETAPA3[cod]; if (!r) return "";
+    const v = textoDe(lerOutro(M3, r[0]));
+    if (!v || v === String(atual || "").trim()) return "";
+    return `<p class="ref-etapa" id="ref-etapa">${esc(r[1])}: “${esc(semPonto(v))}”. ${esc(r[2])}</p>`;
   }
 
   /* ===== pergunta repetida na jornada (lote 16/11, item F) =====
@@ -678,6 +709,7 @@
             ])}
             ${her && her.nota ? `<p class="selo-m"><b>${esc(her.nota)}</b> · Confira e ajuste se quiser.</p>` : origem && (origem.de || origem.nota) && (origem.valor || origem.opcao) ? (origem.de ? selo(origem.de) : `<p class="selo-m"><b>${esc(origem.nota)}</b> · Confira e ajuste se quiser.</p>`) : ""}
             ${cod === "M4.P08" ? avisoAmplo(her) : ""}
+            ${refEtapa3(cod, resp && resp.estado === "valor" ? resp.valor : her && her.valor)}
             ${ficha ? fichaHtml(ficha, resp) : ""}
             <div class="entrada" id="ent"></div>
             ${Motor.temNaoSei(q) ? `<div class="alt"><button class="btn-alt" id="ns">Não sei</button></div>` : ""}
@@ -739,7 +771,7 @@
       const ph = q.placeholder ? ` placeholder="${esc(T(q.placeholder))}"` : "";
       ent.appendChild(el(tipo === "numero"
         ? `<div class="linha">${unidade === "R$" ? `<span class="pre">R$</span>` : ""}<input class="campo" inputmode="${inteiro ? "numeric" : "decimal"}"${ph} aria-label="${esc(T(V.pergunta))}" value="${esc(v)}">${unidade === "dias" ? `<span class="pre">dias</span>` : ""}</div>`
-        : `<textarea class="campo" rows="3"${ph} aria-label="${esc(T(V.pergunta))}">${esc(v)}</textarea>`));
+        : `<textarea class="campo" rows="${cod === "M4.P12" ? Math.min(8, Math.max(3, Math.ceil(String(v).length / 34))) : 3}"${ph} aria-label="${esc(T(V.pergunta))}">${esc(v)}</textarea>`));
     }
     /* "Não sei" entre as opções: a caixa "Como descobrir" aparece ao tocar (a resposta só é gravada no Continuar) */
     const como = p.querySelector("#como");
@@ -997,7 +1029,7 @@
     const linhas = ["M4.PV1", "M4.PV2", "M4.PV3"].map((c) => { const v = Motor.valor(S.R, c); return v && v !== Motor.NS ? `<div class="pv-item"><b>${esc(T(M.porCodigo[c].pergunta))}</b><p>${txt(v)}</p></div>` : ""; }).filter(Boolean);
     const frase = Motor.valor(S.R, "M4.P12");
     if (!linhas.length && !frase) return "";
-    return `<section class="cartao proposta-valor"><h3>Sua proposta de valor</h3>${linhas.join("")}${frase ? `<div class="pv-item"><b>A sua frase</b><p>${txt(frase)}</p></div>` : ""}</section>`;
+    return `<section class="cartao proposta-valor"><h3>Por que comprar de você (sua proposta de valor)</h3>${linhas.join("")}${frase ? `<div class="pv-item"><b>A sua frase</b><p>${txt(frase)}</p></div>` : ""}</section>`;
   }
 
   /* "Sua próxima tarefa" (versão leve): uma ação concreta com o que a pessoa planejou */
@@ -1037,8 +1069,8 @@
     const pv1 = val("M4.PV1"), pv2 = val("M4.PV2"), pv3 = val("M4.PV3");
     const pv = [pv1 && pv1 !== dor && `resolve ${aspas(pv1)}`, pv2 && `o cliente escolheria você porque ${aspas(pv2)}`, pv3 && `o principal benefício é ${aspas(pv3)}`].filter(Boolean);
     const pvTxt = pv.length ? (pv.length > 1 ? pv.slice(0, -1).join(", ") + " e " + pv[pv.length - 1] : pv[0]) : "";
-    if (prop) frases.push(`Sua proposta de valor, por enquanto: ${aspas(prop)}.${pvTxt ? ` Ela ${pvTxt}.` : ""}`);
-    else if (pvTxt) frases.push(`Na sua proposta de valor, o que você oferece ${pvTxt}.`);
+    if (prop) frases.push(`Por que comprar de você, por enquanto: ${aspas(prop)}.${pvTxt ? ` Ela ${pvTxt}.` : ""}`);
+    else if (pvTxt) frases.push(`O que você oferece ${pvTxt}.`);
     else if (ganho || motivo) frases.push([ganho && `O cliente ganha ${aspas(ganho)}`, motivo && `e escolheria você por ${S.R["M4.P11"].detalhe ? aspas(motivo) : motivo.toLowerCase()}`].filter(Boolean).join(" ") + ".");
     const teste = val("M4.P14"), dias = val("M4.P20"), gasto = val("M4.P21"), crit = val("M4.P19");
     if (teste) {

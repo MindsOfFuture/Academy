@@ -146,7 +146,10 @@
   /* Lote 16/11: "Não sei" BLOQUEIA (mostra "Como descobrir" e não grava). Ele fica só onde a resposta é um fato
      a descobrir (preço, quantidade, conta, taxa); sai das perguntas sobre a própria pessoa (ela sempre sabe). */
   const SEM_NAO_SEI = [P_INICIAL, "M5.P01", "M5.P02", "M5.P10", "M5.P17", P_FORMAS, "M5.P08", "M5.P13", "M5.P15", "M5.P18",
-    "M5.P26", "M5.P28", "M5.P30", "M5.P32", "M5.P34", "M5.P35", "M5.PH", "M5.SZ", "M5.ENT"];
+    "M5.P26", "M5.P27", "M5.P28", "M5.P29", "M5.P30", "M5.P31", "M5.P32", "M5.P33", "M5.P34", "M5.P35", "M5.P37", "M5.PH", "M5.SZ", "M5.ENT"];
+  /* 17/11: valores que a própria pessoa paga/recebe (sem "Não sei"): botão "Como estimar" abre os passos e o pedido
+     para a IA, sem gravar nada. P36 (preço) mantém o "Não sei" que bloqueia e traz a conta de um preço possível. */
+  const COMO_ESTIMAR = ["M5.P27", "M5.P29", "M5.P31", "M5.P33", "M5.P35", "M5.P37"];
   /* "Ainda não defini" (P36) é o mesmo que "Não sei": sai das opções (fica um "Não sei" só, que bloqueia). */
   const IGUAL_NAO_SEI = /^(ainda n[ãa]o defini|ainda n[ãa]o pensei( nisso)?|ainda n[ãa]o sei)$/i;
   const MSG_RESPONDA_SEM_NS = "Escreva a sua resposta para continuar.";
@@ -899,7 +902,7 @@
     herdarEstagio, herdarTipo, entendemos,
     LIMITE_ACRESCIMO, LIMITE_FATURAMENTO, TETO_M1, MSG_NUMERO, MSG_FAT_ALTO, avisoValor, msgVezes, msgAbaixoCusto, abaixoCusto, gastoInicial, avisoInvestimento,
     exemploConceito, EXEMPLO_TIPO,
-    SEM_NAO_SEI, IGUAL_NAO_SEI, MSG_RESPONDA_SEM_NS, MSG_ESCOLHA_SEM_NS, MSG_ESCREVA, MSG_ESCOLHA, msgFalta, naoResposta, migrar, cent, vendasParaCobrir, precoPossivel, gastoInicialPartes,
+    SEM_NAO_SEI, COMO_ESTIMAR, IGUAL_NAO_SEI, MSG_RESPONDA_SEM_NS, MSG_ESCOLHA_SEM_NS, MSG_ESCREVA, MSG_ESCOLHA, msgFalta, naoResposta, migrar, cent, vendasParaCobrir, precoPossivel, gastoInicialPartes,
     P_TEMPO, P_HORAS, HORAS_VALOR_M1, precisaHoras, componentes, JUNTAS, MSG_UNIDADE,
     RESERVA_PCT, DICA_SEM_GASTO, reserva, peComGasto,
     P_ENTREGA, ENT_NAO, ENT_COBRA, ENT_PRECO, ENT_EXEMPLO, entregaParams, entregaPorVenda, validarEntrega,

@@ -276,6 +276,17 @@
   const temSocio = () => opR(SOCIO) === "Sim";
   const contrata = () => (opR("M10-08") || "").startsWith("Sim");
   const vende = () => I().estagio === ESTAGIOS[2];
+  /* Etapa 7 (M7-04 "Alguém ajuda você a fazer …?"): { tipo: "sozinho" | "familia" | "pago", horas } ou null */
+  function ajuda7() {
+    const r = lerR(7)["M7-04"];
+    if (!r || r.estado !== "opcao" || typeof r.opcao !== "string") return null;
+    const h = Number(r.horas) > 0 ? Number(r.horas) : 0;
+    if (r.opcao.startsWith("Não")) return { tipo: "sozinho", horas: 0 };
+    if (r.opcao.startsWith("Sim, pago")) return { tipo: "pago", horas: h };
+    if (r.opcao.startsWith("Sim")) return { tipo: "familia", horas: h };
+    return null;
+  }
+  const quemAjuda = (a) => `${a.tipo === "pago" ? "uma pessoa que você paga" : "família, amigo ou parceiro"}${a.horas ? `, ${nBR(a.horas)} h por semana` : ""}`;
   const SEM_ACORDO = ["Só combinamos de boca", "Ainda não"];
 
   /* ---------- opções: tiradas da coluna "Resposta / opção" ---------- */
@@ -329,9 +340,44 @@
     "Profissional por serviço avulso": "Ex.: pagar por dia ou por tarefa",
     "Rever o tempo de apoio": "Ex.: menos tempo com compras e mensagens",
     "Fazer a consulta de viabilidade na prefeitura": "Ex.: perguntar se pode funcionar no seu endereço",
+    /* 17/11: opções da M10-05 que são jeito de vender ou entregar (não divulgação): a linha explica (o texto da opção não muda) */
+    "Atendimento em domicílio": "É venda: divulgue na visita",
+    "Aplicativo de entrega": "É venda; o app também divulga",
+    "Menos variedade de opções": "Ex.: vender menos sabores ou modelos",
   };
 
-  const opTxt = (op) => `<span class="op-txt"><b>${esc(op)}</b>${OP_EX[op] ? `<small class="op-ex">${esc(OP_EX[op])}</small>` : ""}</span>`;
+  /* linha de exemplo: `ex` (da tela) vale mais que a fixa */
+  const opTxt = (op, ex) => { const e = ex || OP_EX[op]; return `<span class="op-txt"><b>${esc(op)}</b>${e ? `<small class="op-ex">${esc(e)}</small>` : ""}</span>`; };
+
+  /* ---------- M10-05 x Etapa 3 (M3.P13A "Como as pessoas ficam sabendo de você?") ----------
+     Retorno ao vivo de cada opção da M10-05 (17/11): a frase única da planilha ("A mensagem de apresentação usa o
+     seu diferencial") não fazia sentido para Parceria, Atendimento em domicílio, Aplicativo de entrega etc. */
+  const RET05 = {
+    "Indicação": ["Resposta", "Boa escolha: não custa nada. Peça a quem já comprou para indicar você a um conhecido."],
+    "WhatsApp": ["Resposta", "Poste no status e mande para a sua lista de contatos uma ou duas vezes por semana, sem exagerar. No resultado há uma mensagem de apresentação pronta para usar."],
+    "Redes sociais": ["Resposta", "Poste com frequência fotos do que você vende, com preço e como pedir. No resultado há uma mensagem de apresentação pronta para usar."],
+    "Grupos do bairro": ["Resposta", "Antes de postar, veja as regras do grupo. No resultado há uma mensagem de apresentação pronta para usar."],
+    "Atendimento direto": ["Resposta", "Deixar provar ou ver de perto convence quem ainda não conhece. Tenha um jeito fácil de a pessoa pedir depois."],
+    "Atendimento em domicílio": ["Dica", "Ir até a casa do cliente é um jeito de vender. Para mais gente saber de você, aproveite a visita: deixe um cartão e peça indicação de vizinhos."],
+    "Aplicativo de entrega": ["Dica", "O aplicativo é um lugar de venda que também mostra você para quem procura nele. Ele cobra uma parte de cada venda: confira essa taxa nos gastos da Etapa 5."],
+    "Cartaz ou panfleto": ["Resposta", "Coloque onde o seu cliente passa (padaria, mercado, ponto de ônibus) e ponha um jeito fácil de falar com você."],
+    "Parceria": ["Resposta", "Combine com o outro negócio o que cada um ganha. Ex.: o seu cartão no balcão dele e um desconto para os clientes dele."],
+    "Site próprio": ["Dica", "Um site só traz clientes se as pessoas chegarem até ele. Divulgue o endereço no WhatsApp e nas redes."],
+    "Marketplace": ["Dica", "O marketplace mostra você para quem já procura no site, mas cobra uma parte de cada venda: confira essa taxa nos gastos da Etapa 5."],
+  };
+  const caixa05 = (op) => RET05[op] ? caixa({ retorno: RET05[op][0], texto: RET05[op][1] }) : null;
+  /* como fica sabendo (Etapa 3) → opção da M10-05, só quando a equivalência é clara */
+  const P13A_PARA_05 = { "Indicação (boca a boca)": "Indicação", "Instagram ou outras redes sociais": "Redes sociais", "Status ou grupos de WhatsApp": "WhatsApp", "Placa, fachada ou panfleto": "Cartaz ou panfleto" };
+  const P13A_OPS = ["Indicação (boca a boca)", "Instagram ou outras redes sociais", "Status ou grupos de WhatsApp", "Google ou Google Maps", "Placa, fachada ou panfleto", "Feira ou evento", "Outro"];
+  /* resposta da Etapa 3 (sem "Não sei"); { opcoes, detalhe } ou null */
+  function sabeM3() {
+    const r = lerR(3)["M3.P13A"];
+    if (!r || r.estado !== "opcoes" || !Array.isArray(r.opcoes)) return null;
+    const ops = r.opcoes.filter((o) => o && !NS_RE.test(String(o).trim()));
+    return ops.length ? { opcoes: ops, detalhe: String(r.detalhe || "").trim() } : null;
+  }
+  /* lista legível: "indicação (boca a boca), Google ou Google Maps e carro de som" */
+  const sabeTxt = (h) => juntarE(h.opcoes.map((o) => (o === "Outro" ? h.detalhe : /^(Google|Instagram)/.test(o) ? o : o.charAt(0).toLowerCase() + o.slice(1))).filter(Boolean));
   const LINHA_APP = Object.fromEntries(Object.entries(OPS_APP).map(([c, l]) => [c, Object.fromEntries(l.map(([rotulo, original]) => [rotulo, original]))]));
   const OPS_ANTIGAS_UI = Object.fromEntries((OPS_APP["M10-05"] || []).map(([rotulo, , salvo]) => [salvo || rotulo, rotulo]));
   const rotuloAtual = (cod, valor) => cod === "M10-05" ? (OPS_ANTIGAS_UI[valor] || valor) : valor;
@@ -424,7 +470,14 @@
   }
   const FASE = (cod) => (cod === SOCIO ? "Pessoas" : Q[cod].fase);
   /* M10-01 sem canais de venda conhecidos: a pergunta não fala em "Além de …" */
-  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : cod === "M10-01" && !canaisVenda() ? "Por onde falam os clientes?" : preencher(Q[cod].pergunta, { "[oferta em foco]": ofertaNaFrase() }));
+  const TXT = (cod) => (cod === SOCIO ? D.socio.pergunta : cod === "M10-01" && !canaisVenda() ? "Por onde falam os clientes?"
+    : cod === "M10-05" && hoje05() ? TXT05_HERDADO
+    : preencher(Q[cod].pergunta, { "[oferta em foco]": ofertaNaFrase() }));
+  /* M10-05 com a Etapa 3 respondida: como as pessoas ficam sabendo HOJE já se sabe (cartão "Veio da Etapa 3");
+     a pergunta passa a ser o que é novo: o que reforçar */
+  const TXT05_HERDADO = "Qual caminho de divulgação você vai reforçar nas próximas semanas?";
+  /* o que a pessoa disse na Etapa 3 (ou trocou aqui, guardado na própria resposta da M10-05) */
+  const hoje05 = () => { const r = S.R["M10-05"], h = r && r.hoje && Array.isArray(r.hoje.opcoes) && r.hoje.opcoes.length ? r.hoje : null; return (h && h.trocado ? h : null) || sabeM3() || h; };
   /* oferta dentro de um enunciado: a resposta da pessoa só entra quando é curta e cabe na frase
      ("…saber que bolo de pote existe…"); longa, com ":" ou com várias linhas vira "o seu negócio" */
   const OFERTA_CURTA = 40;
@@ -696,7 +749,7 @@
           ${sel("estagio", ESTAGIOS, "Em que momento você está?")}
           <h3 class="secao-titulo">Como você vende hoje</h3>
           ${txt("canais", "Onde o cliente encontra você e compra", "", "Ex.: Instagram, WhatsApp, indicação de amigos, feira do bairro")}
-          ${txt("preco", "Preço de venda (R$)", 'inputmode="decimal" placeholder="Ex.: 12,50"')}
+          ${txt("preco", "Preço de venda de uma unidade (R$)", 'inputmode="decimal" placeholder="Ex.: 12,50"')}
           ${base.de && base.de.preco === 5 && comoPrecoM5() ? `<div id="como-preco">${comoLinha(comoPrecoM5())}</div>` : ""}
           ${txt("entrega", "Como chega ao cliente", "", "Ex.: entrega em casa ou retirada")}
           ${txt("pagamento", "Formas de pagamento", "", "Ex.: Pix, dinheiro, cartão")}
@@ -778,10 +831,10 @@
     ligar(p);
     let coletar = null;
 
-    function unica(ops, atual, aoTocar) {
+    function unica(ops, atual, aoTocar, exs) {
       const wrap = el(`<div class="opcoes"></div>`);
       ops.forEach((op) => {
-        const b = el(`<button type="button" class="opcao ${atual === op ? "sel" : ""}" aria-pressed="${atual === op}"><span class="radio" aria-hidden="true"></span>${opTxt(op)}</button>`);
+        const b = el(`<button type="button" class="opcao ${atual === op ? "sel" : ""}" aria-pressed="${atual === op}"><span class="radio" aria-hidden="true"></span>${opTxt(op, exs && exs[op])}</button>`);
         /* "Não sei" não fica marcado (não é resposta): só abre a ajuda */
         b.onclick = () => { const ns = op === NS; wrap.querySelectorAll(".opcao").forEach((x) => { const m = !ns && x === b; x.classList.toggle("sel", m); x.setAttribute("aria-pressed", String(m)); }); aoTocar(op); };
         wrap.appendChild(b);
@@ -883,6 +936,14 @@
         mostrar((etapas.some((e) => quem[e] === "Ninguém ainda") ? caixa(Q[cod].caminhos[1]) : caixa(Q[cod].caminhos[0])) + avisoSocio());
       };
       const fluxo = el('<div class="responsaveis-diagrama" aria-label="Etapas e responsáveis"></div>');
+      /* Etapa 7 (M7-04): quem ajuda já se sabe. Com ajuda, a nota diz que ela é o "Ajudante" da lista;
+         sozinho(a) e sem sócio, "Eu" vem marcado em todas (dá para trocar) */
+      const a7 = ajuda7();
+      if (a7 && a7.tipo !== "sozinho") ent.appendChild(el(`<p class="herdado" id="ajuda7"><span class="veio">Veio da Etapa 7</span> Você tem ajuda de ${esc(quemAjuda(a7))}: marque “Ajudante” onde ela ajuda.</p>`));
+      else if (a7 && !temSocio()) {
+        if (!resp) etapas.forEach((e) => { if (!quem[e]) quem[e] = "Eu"; });
+        ent.appendChild(el(`<p class="herdado" id="ajuda7"><span class="veio">Veio da Etapa 7</span> Você faz tudo sozinho(a), então marcamos “Eu” em todas. Troque onde for diferente.</p>`));
+      }
       const desenharFluxo = () => LG2Diagrama.render(fluxo, etapas.map((e) => ({ titulo: e, marca: quem[e] ? `Responsável: ${quem[e]}` : "Responsável: escolha abaixo" })));
       desenharFluxo(); ent.appendChild(fluxo);
       etapas.forEach((e) => {
@@ -972,10 +1033,10 @@
       const uni = (u) => `<option value="${esc(u)}" ${v.unidade === u ? "selected" : ""}>${esc(u)}</option>`;
       ent.appendChild(el(`<div>
         ${prin ? `<div class="bloco b-ok"><b>Prioridade mais urgente</b><p>${esc(prin)}</p></div>` : ""}
-        <label class="rot-campo" for="acao">O que vai fazer</label><input class="campo" id="acao" data-falar autocomplete="off" value="${esc(v.acao || "")}">
+        <label class="rot-campo" for="acao">O que vai fazer</label><input class="campo" id="acao" data-falar autocomplete="off" placeholder="Ex.: divulgar no grupo do bairro" value="${esc(v.acao || "")}">
         <label class="rot-campo" for="data">Até quando</label><input class="campo" id="data" type="date" min="${hoje}" value="${esc(v.data || "")}">
         <label class="rot-campo" for="sinal">Como saber se funcionou</label><input class="campo" id="sinal" data-falar autocomplete="off" placeholder="Ex.: pedidos pelo WhatsApp" value="${esc(v.sinal || "")}">
-        <label class="rot-campo" for="numero">Meta em número</label><input class="campo" id="numero" inputmode="decimal" autocomplete="off" placeholder="Ex.: 5" value="${esc(v.numero || "")}">
+        <label class="rot-campo" for="numero">Meta em número</label><input class="campo" id="numero" inputmode="decimal" autocomplete="off" placeholder="Ex.: 5 (pedidos, vendas ou clientes)" value="${esc(v.numero || "")}">
         <label class="rot-campo" for="unidade">O que vai contar</label><select class="campo" id="unidade"><option value="">Escolha</option>${Mo.UNIDADES_PLANO.map(uni).join("")}</select>
       </div>`));
       /* "Não sei": ajuda + exemplo ligado à prioridade; nada é gravado e o Continuar pede o plano */
@@ -1028,6 +1089,9 @@
       };
     } else if (cod === SOCIO) {
       let op = resp && resp.estado === "opcao" ? resp.opcao : null;
+      /* Etapa 7 (M7-04): quem ajuda já se sabe; a pergunta de sócio parte disso (ajudar não é ser sócio) */
+      const a7 = ajuda7();
+      if (a7 && a7.tipo !== "sozinho") ent.appendChild(el(`<p class="herdado" id="ajuda7"><span class="veio">Veio da Etapa 7</span> ${a7.tipo === "pago" ? "Você paga uma pessoa para ajudar: ela trabalha para você." : "Você tem ajuda de família, amigo ou parceiro. Quem só ajuda não é sócio."} Sócio divide com você o dinheiro, o resultado e as responsabilidades.</p>`));
       ent.appendChild(unica(D.socio.opcoes.filter((o) => o !== NS), op, (o) => { op = o; mostrar(""); }));
       coletar = () => {
         if (!op) { erro("Escolha uma opção para continuar."); return null; }
@@ -1037,18 +1101,56 @@
       /* escolha única com retorno ao tocar: M10-02, 04, 05, 06, 08 */
       let op = resp && resp.estado === "opcao" ? rotuloAtual(cod, resp.opcao) : null;
       const C = ctx();
-      /* M10-05 sem resposta: parte do que já foi dito (anúncio nos gastos do Módulo 5; redes sociais no Módulo 3) */
-      if (cod === "M10-05" && !resp) {
+      /* M10-08 com ajuda paga na Etapa 7: isso já se sabe e aparece antes das opções */
+      { const a7 = cod === "M10-08" ? ajuda7() : null;
+        if (a7 && a7.tipo === "pago") ent.appendChild(el(`<p class="herdado" id="ajuda7"><span class="veio">Veio da Etapa 7</span> Você já paga uma pessoa para ajudar${a7.horas ? ` (${esc(nBR(a7.horas))} h por semana)` : ""}. Pense se vai precisar de mais alguém.</p>`)); }
+      /* M10-05 com a Etapa 3 (M3.P13A): cartão "Veio da Etapa 3 · Trocar" com como as pessoas ficam sabendo hoje;
+         sem resposta, vem marcado o caminho equivalente (quando a equivalência é clara) */
+      const h05 = cod === "M10-05" ? hoje05() : null;
+      const hoje = h05 ? { opcoes: h05.opcoes.slice(), detalhe: h05.detalhe || "", trocado: !!h05.trocado } : null;
+      let tocou = !!resp;
+      const sug05 = () => { const x = hoje.opcoes.map((o) => P13A_PARA_05[o]).find(Boolean); return x || null; };
+      if (hoje) {
+        const ideia = estagioM1() === "comeca";
+        const card = el(`<div class="veio-card" id="veio05">
+          <div class="veio-linha"><span class="veio">Veio da Etapa 3</span><button type="button" class="btn-alt trocar05" id="trocar05" aria-expanded="false" aria-controls="troca05">Trocar</button></div>
+          <p class="veio-txt" id="veio05-txt"></p>
+          <div id="troca05" class="troca05" hidden><p class="rot-campo">${ideia ? "Como as pessoas vão ficar sabendo de você?" : "Como as pessoas ficam sabendo de você hoje?"}</p></div>
+        </div>`);
+        const txt = card.querySelector("#veio05-txt");
+        const pintarTxt = () => { txt.textContent = `${ideia ? "Na Etapa 3, você disse que as pessoas vão ficar sabendo de você por" : "Hoje as pessoas ficam sabendo de você por"}: ${sabeTxt(hoje) || "nenhum caminho marcado"}.`; };
+        const troca = card.querySelector("#troca05");
+        const outro = el(`<div ${hoje.opcoes.includes("Outro") ? "" : "hidden"}><label class="rot-campo" for="outro05">Qual?</label><input class="campo" id="outro05" data-falar placeholder="Ex.: carro de som" value="${esc(hoje.detalhe)}"></div>`);
+        const lista = multipla(P13A_OPS, hoje.opcoes, [], () => {
+          hoje.trocado = true; outro.hidden = !hoje.opcoes.includes("Outro");
+          /* sem resposta tocada: a marcação sugerida acompanha a troca */
+          if (!tocou) { const s = sug05(); op = s; ent.querySelectorAll(":scope > .opcoes .opcao").forEach((x) => { const m = !!s && x.querySelector(".op-txt b").textContent === s; x.classList.toggle("sel", m); x.setAttribute("aria-pressed", String(m)); }); }
+          pintarTxt();
+        });
+        outro.querySelector("input").addEventListener("input", (e) => { hoje.detalhe = e.target.value.trim(); hoje.trocado = true; pintarTxt(); });
+        troca.appendChild(lista); troca.appendChild(outro);
+        card.querySelector("#trocar05").onclick = (e) => { troca.hidden = !troca.hidden; e.currentTarget.setAttribute("aria-expanded", String(!troca.hidden)); };
+        if (!resp) { const s = sug05(); if (s) op = s; }
+        pintarTxt();
+        ent.appendChild(card);
+      } else if (cod === "M10-05" && !resp) {
+        /* M10-05 sem resposta: parte do que já foi dito (anúncio nos gastos do Módulo 5; redes sociais no Módulo 3) */
         const sug = C.divulgacaoM5 ? ["Anúncio pago", 5] : canaisM3().some((x) => /redes sociais|instagram|facebook/i.test(x)) ? ["Catálogo no Instagram ou outra rede social", 3] : null;
         if (sug) { op = rotuloAtual(cod, sug[0]); ent.appendChild(el(`<p class="herdado"><span class="veio">Veio da Etapa ${sug[1]}</span> Confira ou ajuste.</p>`)); }
       }
       const cruz = (o) => (cod === "M10-08" && o && o.startsWith("Sim") && C.cap7.cmp && C.cap7.cmp.tipo === "folga" ? cruzamento("Contratar e capacidade com folga (M7)", { "[folga]": Mo.fmt(C.cap7.cmp.n) }, comoLinha(comoFolga(C.cap7))) : "");
+      /* M10-05: retorno próprio de cada opção (a frase única da planilha não servia para todas) */
+      const ret1 = (o) => (cod === "M10-05" && caixa05(o)) || caixa(caminho(cod, o));
       let pediuNS = false;
-      ent.appendChild(unica(opcoesDe(cod), op, (o) => { if (o === NS) { op = null; pediuNS = true; return ajudaNS(); } op = o; mostrar(caixa(caminho(cod, o)) + cruz(o)); }));
-      if (op && !(cod === "M10-05" && !resp)) mostrar(caixa(caminho(cod, op)) + cruz(op));
+      ent.appendChild(unica(opcoesDe(cod), op, (o) => { tocou = true; if (o === NS) { op = null; pediuNS = true; return ajudaNS(); } op = o; mostrar(ret1(o) + cruz(o)); }));
+      if (op && !(cod === "M10-05" && !resp)) mostrar(ret1(op) + cruz(op));
       coletar = () => {
         if (!op) { erro(pediuNS ? "Escolha uma opção para continuar. A ajuda “Como descobrir” mostra como achar a resposta." : "Escolha uma opção para continuar."); return null; }
-        return { estado: "opcao", opcao: valorSalvo(cod, op) };
+        if (hoje && hoje.opcoes.includes("Outro") && !hoje.detalhe) { erro("Em “Trocar”, escreva qual é o outro jeito de as pessoas ficarem sabendo de você."); return null; }
+        const r0 = { estado: "opcao", opcao: valorSalvo(cod, op) };
+        /* o que veio da Etapa 3 fica junto da resposta (de: 3); trocado = a pessoa mudou aqui */
+        if (hoje && hoje.opcoes.length) r0.hoje = { opcoes: hoje.opcoes.slice(), detalhe: hoje.detalhe, de: 3, trocado: !!hoje.trocado };
+        return r0;
       };
     }
     p.querySelector("#ok").onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };
@@ -1144,7 +1246,7 @@
       const c5 = RN.contaM5(lerEstado(5));
       if (c5.mensal > teto) { acima.push(`na Etapa 5, os gastos do mês somam ${brl(c5.mensal)}`); ms.push(5); }
       const comoL = [n6 > teto ? somaTxt(parcelasM6(), n6, "gastos para começar da Etapa 6") : "", c5.mensal > teto ? somaTxt(parcelasM5(), c5.mensal, "gastos do mês da Etapa 5") : ""].filter(Boolean).join(" ");
-      if (acima.length) out.push({ tipo: "limite", como: comoL, detalhe: `Os gastos previstos passam do que você disse na Etapa 1 que pode usar (${teto === 0 ? "nada, por enquanto" : p07.charAt(0).toLowerCase() + p07.slice(1)}).`, mods: ms, texto: `No Etapa 1 você disse que pode usar ${teto === 0 ? "nada, por enquanto," : p07.charAt(0).toLowerCase() + p07.slice(1)} no negócio sem faltar para as contas da casa. Mas ${acima.join("; ")}. Confira se dá para começar menor ou se algum desses valores mudou.` });
+      if (acima.length) out.push({ tipo: "limite", como: comoL, detalhe: `Os gastos previstos passam do que você disse na Etapa 1 que pode usar (${teto === 0 ? "nada, por enquanto" : p07.charAt(0).toLowerCase() + p07.slice(1)}).`, mods: ms, texto: `Na Etapa 1 você disse que pode usar ${teto === 0 ? "nada, por enquanto," : p07.charAt(0).toLowerCase() + p07.slice(1)} no negócio sem faltar para as contas da casa. Mas ${acima.join("; ")}. Confira se dá para começar menor ou se algum desses valores mudou.` });
     }
     /* 2. tipo de oferta diferente entre os módulos */
     const tipos = [[1, textoDe(m1["M1.P03A"])], [4, textoDe(m4["M4.P02"])], [5, textoDe(m5["M5.P01"])], [8, textoDe(m8["M8.P02"])]].map(([n, t]) => [n, tiposDe(t)]).filter(([, t]) => t);
@@ -1305,9 +1407,9 @@
         ${botaoVoltar()}
         ${barraFases(null, true)}
         <section class="concluido">
-          <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao fim do percurso</h2><p>${esc(preencher(q12.apoio))}</p></div></div>
+          <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você chegou ao fim do percurso</h2>${prios[0] ? `<p class="conc-principal" id="conc-principal">Sua prioridade mais urgente: <b>${esc(prios[0])}</b>.${plano ? ` Primeiro passo: ${esc(plano.frase)}` : ""}</p>` : ""}<p>${esc(preencher(q12.apoio))}</p></div></div>
         </section>
-        ${entendemos.length ? `<section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3><div class="resumo-negocio">${entendemos.map((x) => `<p>${esc(x)}</p>`).join("")}</div>${contasRes.length ? `<div class="contas" id="contas">${contasRes.map(comoLinha).join("")}</div>` : ""}<p class="aviso-inst">Este resumo junta o que você respondeu nos 10 etapas. Se algo não estiver certo, corrija a resposta e o texto muda.</p></section>` : ""}
+        ${entendemos.length ? `<section class="cartao entendemos" id="entendemos"><h3>O que entendemos até aqui</h3><div class="resumo-negocio">${entendemos.map((x) => `<p>${esc(x)}</p>`).join("")}</div>${contasRes.length ? `<div class="contas" id="contas">${contasRes.map(comoLinha).join("")}</div>` : ""}<p class="aviso-inst">Este resumo junta o que você respondeu nas 10 etapas. Se algo não estiver certo, corrija a resposta e o texto muda.</p></section>` : ""}
         ${blocoComecar(comecar, estagioM1())}
         ${cz.length || pc.length ? `<section class="cartao"><h3>Pontos para conferir</h3>${pc.map((x) => `<div class="bloco b-alerta conferir"><b>Confira</b><p>${esc(x.texto)}</p>${comoLinha(x.como)}<p><span class="veio">${esc(modsTxt(x.mods))}</span></p></div>`).join("")}${cz.map((a) => `<div class="bloco ${a.x.forma === "Pergunta gentil" ? "b-alerta" : "b-proximo"}"><b>${esc(a.x.forma)}</b><p>${esc(a.texto)}</p>${comoLinha(a.como)}</div>`).join("")}</section>` : ""}
         <section class="cartao bloco-res"><h3>Seu plano</h3>
@@ -1322,6 +1424,7 @@
           ${linha("Onde o cliente encontra você e compra", canaisVenda())}
           ${linha(canaisVenda() ? "Por onde mais os clientes falam com você" : "Por onde os clientes falam com você", canaisTxt01)}
           ${linha("Tempo de resposta", opR("M10-02"))}
+          ${hoje05() ? linha("Como as pessoas ficam sabendo de você (Etapa 3)", cap1(sabeTxt(hoje05()))) : ""}
           ${linha("Divulgação principal", opR("M10-05"))}
           <h4>Roteiro de venda${opR("M10-03") === "Depende do cliente" ? " (base)" : opR("M10-03") === "Ainda não vendi" ? " (para testar)" : ""}</h4>
           <div id="roteiro-final-diagrama"></div>
@@ -1351,7 +1454,7 @@
             <p class="diag-r"><a href="${LINK(x.n)}">Abrir a Etapa ${x.n}</a></p>`}</div>`).join("")}
           ${avisoInst("Retrato final do percurso")}
         </section>
-        ${enc ? `<section class="cartao"><h3>Encaminhamento</h3><div class="bloco b-enc"><p>${esc(enc)}</p></div></section>` : ""}
+        ${enc ? `<section class="cartao"><h3>Onde buscar orientação</h3><div class="bloco b-enc"><p>${esc(enc)}</p></div></section>` : ""}
         ${lac.length ? `<section class="cartao"><h3>O que ainda falta definir</h3><ul class="lista-capa">${lac.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>` : ""}
         ${passos.length ? `<section class="cartao"><h3>Próximo passo</h3><ol class="lista-capa">${passos.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></section>` : ""}
         </details>

@@ -6,7 +6,7 @@ window.MODULO8 = {
  "origem": "LG2_M08_planilha_do_grupo.xlsx",
  "modulo": {
   "numero": "8",
-  "nome": "Formalização, enquadramento e tributação básica",
+  "nome": "Abrir o seu negócio: CNPJ, MEI e impostos",
   "versao": "v0.1",
   "data": "01/10/2026",
   "turma": "Turma de 24",

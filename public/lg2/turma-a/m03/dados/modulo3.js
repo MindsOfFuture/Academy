@@ -25,7 +25,7 @@ window.MODULO3 = {
   "nao_faz": "Não afirma que existe ou não existe concorrência suficiente para o negócio dar certo.\nNão garante lucro ou sucesso com base na análise de mercado.\nNão inventa concorrentes, preços, avaliações ou dados de mercado.\nNão guarda dados identificáveis de concorrentes reais além do que é necessário para a análise do próprio usuário.",
   "mensagem_limite": " O app oferece apoio educacional básico. As estimativas dependem dos dados fornecidos e não garantem resultados. Regras de registro, tributação, licenciamento e exercício profissional devem ser confirmadas em fontes oficiais e com profissionais habilitados.",
   "ter_em_maos": "A descrição simples da sua ideia de negócio.\nUm celular com internet (mesmo que básico) para dar uma olhada no Google Maps, Instagram ou WhatsApp.\nDisposição para observar o que outras pessoas vendem perto de você ou na internet.",
-  "entrega": "Um passo a passo prático de como pesquisar seus concorrentes usando só o celular.\nUma tabela com os concorrentes que você citar e um quadro com os pontos fortes, os pontos fracos, as oportunidades e as ameaças.\nO direcionamento para a próxima etapa do aplicativo (Etapa 4: Produto, proposta de valor e teste da ideia) para continuar tirando sua ideia do papel.",
+  "entrega": "Um passo a passo prático de como pesquisar seus concorrentes usando só o celular.\nUma tabela com os concorrentes que você citar e um quadro com os pontos fortes, os pontos fracos, as oportunidades e as ameaças.\nO direcionamento para a próxima etapa do aplicativo (Etapa 4: Produto, por que comprar de você e teste da ideia) para continuar tirando sua ideia do papel.",
   "encaminhamentos": "Nenhum encaminhamento a profissional regulado é típico desta etapa.",
   "caso_real": "Acompanhar o empreendedor real serve para testar se o roteiro de pesquisa funciona na prática: quais dúvidas ele teve ao procurar concorrentes, se encontrou dificuldade em registrar informações e analisá-las. Servindo para aprimorar o módulo.",
   "riscos": "Os principais riscos de conteúdo do módulo estão ligados a promessas de resultado e a recomendações fixas, que não fazem sentido na realidade específica de cada usuário. Esses riscos são evitados ao reunir o máximo de informações possível para orientar a pesquisa do usuário de forma eficaz, sem enviesar decisões nem levá-lo a conclusões precipitadas, o módulo apenas mostra o caminho e conduz à análise, deixando a interpretação final a cargo do próprio usuário."
@@ -33,7 +33,7 @@ window.MODULO3 = {
  "conexoes": [
   {
    "modulo": "2.0",
-   "nome": "Clientes, necessidades e comportamento de compra",
+   "nome": "Quem são seus clientes e como compram",
    "recebe": "Perfil do cliente ideal, hábitos de consumo e critérios de decisão de compra",
    "envia": "Canais e faixas de preço praticados pelos concorrentes locais/digitais",
    "combinado": "Não",
@@ -41,7 +41,7 @@ window.MODULO3 = {
   },
   {
    "modulo": "1.0",
-   "nome": "Perfil do empreendedor e definição da ideia",
+   "nome": "Você e a sua ideia de negócio",
    "recebe": "Descrição da ideia/produto",
    "envia": "Sinalização de mercado. Ex: saturado ou pouco explorado",
    "combinado": "Não",
@@ -49,7 +49,7 @@ window.MODULO3 = {
   },
   {
    "modulo": "4.0",
-   "nome": "Produto, proposta de valor e teste da ideia",
+   "nome": "Produto, por que comprar de você e teste da ideia",
    "recebe": "Hipótese de oferta, benefício e diferencial que precisam ser comparados.",
    "envia": "Preços observados, padrões de oferta, reclamações recorrentes e diferenças que merecem teste.",
    "combinado": "Não",
@@ -57,7 +57,7 @@ window.MODULO3 = {
   },
   {
    "modulo": "10.0",
-   "nome": "Comunicação, vendas, pessoas e plano de ação",
+   "nome": "Vendas, pessoas e plano de ação",
    "recebe": "Mensagem, canal e diferencial que o usuário pretende testar.",
    "envia": "Canais, formas de comunicação e critérios de escolha observados no mercado.",
    "combinado": "Não",
@@ -428,7 +428,7 @@ window.MODULO3 = {
    "codigo": "M3.P06",
    "bloco": "Bloco 1: Oportunidades do Negócio",
    "titulo": "Plano de Ação da Oportunidade",
-   "pergunta": "O que você já tem e o que ainda falta para colocar essa ideia em prática? (Ex.: dinheiro, equipamento, tempo, ajuda)",
+   "pergunta": "Além do tempo, dinheiro e materiais que você já contou na Etapa 1, o que falta especificamente para esta oportunidade?",
    "tipo": "Texto livre",
    "caminhos": [
     {
@@ -448,8 +448,13 @@ window.MODULO3 = {
     }
    ],
    "naosei": true,
-   "dica": "Faça duas listas rápidas: uma com o que já está na sua mão (como um celular ou fogão) e outra com o que precisa conseguir (dinheiro, embalagens ou ajuda).",
-   "oculta": true
+   "dica": "Pense só no que falta especificamente para esta novidade ou oportunidade. Ex.: para vender marmitas no evento novo, falta conseguir embalagens térmicas e combinar quem fará as entregas.",
+   "oculta": true,
+   "variantes": {
+    "ideia": {
+     "pergunta": "Além do tempo, dinheiro e materiais que você já contou na Etapa 1, o que falta especificamente para esta novidade?"
+    }
+   }
   },
   {
    "codigo": "M3.P07",
@@ -956,7 +961,7 @@ window.MODULO3 = {
    "codigo": "M3.P14",
    "bloco": "Bloco 3: Onde está o Negócio",
    "titulo": "Diagnóstico da Empresa",
-   "pergunta": "O que o seu negócio faz de melhor?",
+   "pergunta": "Qual é o ponto forte do seu jeito de trabalhar?",
    "tipo": "Texto livre",
    "caminhos": [
     {
@@ -973,10 +978,10 @@ window.MODULO3 = {
    "naosei": false,
    "variantes": {
     "ideia": {
-     "pergunta": "O que o seu negócio vai fazer de melhor?"
+     "pergunta": "Qual será o ponto forte do seu jeito de trabalhar?"
     }
    },
-   "dica": "Seja sincero: escreva o seu \"superpoder\". Ex.: atendimento rápido e simpático, receita da família, entrega no mesmo dia."
+   "dica": "Pense em algo que você faz de um jeito próprio e que ajuda o cliente. Ex.: lembra o pedido de cada cliente ou entrega no horário combinado."
   },
   {
    "codigo": "M3.P14B",
@@ -1243,7 +1248,7 @@ window.MODULO3 = {
    "codigo": "M3.P19",
    "bloco": "Bloco 4: Definição da Concorrência",
    "titulo": "Comparação com Concorrentes",
-   "pergunta": "Ao lado de cada concorrente, como o seu negócio se sai?",
+   "pergunta": "Lado a lado com cada concorrente, como vocês se comparam em preço, qualidade, atendimento e prazo?",
    "tipo": "Tabela (Melhor / Igual / Pior)",
    "caminhos": [
     {
@@ -1271,10 +1276,10 @@ window.MODULO3 = {
    "naosei": false,
    "variantes": {
     "ideia": {
-     "pergunta": "Ao lado de cada concorrente, como o seu negócio vai se sair?"
+     "pergunta": "Lado a lado com cada concorrente, como vocês vão se comparar em preço, qualidade, atendimento e prazo?"
     }
    },
-   "dica": "Compare lado a lado o seu negócio com os outros em 4 pontos: Preço, Qualidade, Atendimento e Prazo de Entrega. Avalie se você é melhor, igual ou pior.",
+   "dica": "Para cada concorrente, marque Melhor, Igual ou Pior em cada ponto. Ex.: seu preço é Melhor, a qualidade é Igual e o prazo é Pior.",
    "outro": "Outro ponto",
    "placeholder_outro": "Ex.: variedade de sabores: melhor",
    "porConcorrente": "tabela"
@@ -1283,7 +1288,7 @@ window.MODULO3 = {
    "codigo": "M3.P21",
    "bloco": "Bloco 4: Definição da Concorrência",
    "titulo": "Análise Comparativa / Diferencial",
-   "pergunta": "O que o seu cliente ganha comprando com você e não com o vizinho?",
+   "pergunta": "Em uma frase, por que o cliente escolheria você em vez de outro negócio?",
    "tipo": "Texto livre",
    "caminhos": [
     {
@@ -1305,13 +1310,10 @@ window.MODULO3 = {
    "naosei": false,
    "variantes": {
     "ideia": {
-     "pergunta": "O que o seu cliente vai ganhar comprando com você e não com o vizinho?",
-     "caminhos": {
-      "Não sei": "Pense no que você vai fazer diferente dos outros. Volte aqui depois de se comparar com os outros e ver o que eles fazem bem e onde deixam a desejar."
-     }
+     "pergunta": "Em uma frase, por que o cliente escolheria a sua ideia em vez de outro negócio?"
     }
    },
-   "dica": "Diga o seu grande atrativo! Pode ser um brinde exclusivo, atendimento personalizado, entregar no mesmo dia ou garantia facilitada."
+   "dica": "Resuma o motivo mais importante para escolher você. Ex.: “Recebe marmita quente no horário que combinamos”."
   }
  ],
  "regras": [],

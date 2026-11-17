@@ -633,7 +633,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   await preenche('#uv', '20'); await preenche('#tvh', '1'); await ok();
   await tocar('Dois ou mais'); await tocar('De 1 a 3 dias'); await ok();
   await tocar('Prazo de entrega'); await ok();
-  check('Revenda (validade): pergunta sobre as mercadorias e dica de armazenamento em "Ver dica"', /Suas mercadorias estragam, vencem/.test(await page.innerText('#pergunta')) && /lugar limpo, seco e arejado/.test(await page.textContent('.dica-toggle #dica-estoque')));
+  check('Revenda (validade): pergunta sobre as mercadorias e dica de armazenamento em "Ver dica"', /O que estraga ou vence na sua oferta, e em quanto tempo/.test(await page.innerText('#pergunta')) && /lugar limpo, seco e arejado/.test(await page.textContent('.dica-toggle #dica-estoque')));
   if (SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'l3_m07_revenda_validade.png') }); }
   await tocar('Sim, em semanas ou meses'); await ok();
   check('Revenda (qualidade): conferência sem "receita" nem "provando"', await page.evaluate(() => { const t = [...document.querySelectorAll('.opcao')].map((x) => (x.querySelector('.op-txt > b') || x).textContent.trim()); return t.includes('Sigo uma lista de conferência anotada') && !t.some((x) => /receita|provando/.test(x)); }));
@@ -931,6 +931,8 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     check('F: alvos de toque com pelo menos 44 px de altura', !ruinsF.length, ruinsF);
   }
 
+  check('Auditoria: M7-08 pergunta apenas o que estraga/vence e em quanto tempo', /O que estraga ou vence na sua oferta, e em quanto tempo\?/.test(D.perguntas.find((q) => q.codigo === 'M7-08').pergunta));
+  check('Auditoria: M7-12 fica no tema de fazer, entregar ou comprar', /como você faz, entrega ou compra/.test(D.perguntas.find((q) => q.codigo === 'M7-12').pergunta) && !/regras, documentos/.test(D.perguntas.find((q) => q.codigo === 'M7-12').pergunta));
   check('Sem erros de página', !erros.length, erros);
   await browser.close();
   servidor.close();

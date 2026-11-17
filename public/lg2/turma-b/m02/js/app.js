@@ -15,10 +15,8 @@
      Respostas salvas antes são convertidas para as opções novas. */
   /* v3 (lote 3): a pergunta sobre o que mais muda entre os clientes (M2.P08) passou a aceitar várias respostas
      e ganhou "Outra". A resposta única salva antes vira uma lista com ela (nada é descartado). */
-  /* v4 (lote 16/11): "Não sei" não é mais resposta (bloqueia até haver resposta concreta) e "Ainda não pensei nisso"
-     foi fundida nele. Respostas antigas "Não sei" viram "sem resposta" (a pessoa responde quando passar por lá,
-     com a caixa "Como descobrir" à vista); as outras respostas ficam. Perguntas que saíram (P16, P20) não são tocadas. */
-  const VERSAO = 4;
+  /* v5 (auditoria 17/11): P01 "Ainda não sei" é resposta real; P16 funde "Não sei" em "Ainda não". */
+  const VERSAO = 5;
   const ERA_NS = (r) => !!r && (r.estado === "naosei" || (r.estado === "opcao" && (r.opcao === "Não sei" || r.opcao === "Ainda não pensei nisso"
     || (Array.isArray(r.opcoes) && r.opcoes.length > 0 && r.opcoes.every((o) => o === "Não sei")))));
   const P21_ANTIGAS = { "Problema confirmado": "Contaram um problema de verdade", "Só elogios": "Só elogiaram a ideia" };
@@ -36,6 +34,18 @@
         }
         const r8 = s.R["M2.P08"];
         if (r8 && r8.estado === "opcao" && !Array.isArray(r8.opcoes)) r8.opcoes = [r8.opcao];
+        /* v5 soma-se às anteriores e roda ANTES da v4: P01 e P16 são sobre a própria pessoa, então o "Não sei"
+           antigo delas é resposta real (P01 → "Ainda não sei", P16 → "Ainda não") e não reabre. */
+        if (!(lido.v >= 5)) {
+          const p01Antiga = s.R["M2.P01"];
+          const p01Pendente = !p01Antiga && Array.isArray(s.pendentes) && s.pendentes.includes("M2.P01"); // v4 tirou o "Não sei" e deixou pendente
+          if (p01Pendente || (p01Antiga && (p01Antiga.estado === "naosei" || (p01Antiga.estado === "opcao" && ["Não sei", "Ainda não pensei nisso"].includes(p01Antiga.opcao))))) {
+            s.R["M2.P01"] = { estado: "opcao", opcao: "Ainda não sei" };
+            if (s.pendentes) { s.pendentes = s.pendentes.filter((c) => c !== "M2.P01"); if (!s.pendentes.length) delete s.pendentes; }
+          }
+          const p16 = s.R["M2.P16"];
+          if (p16 && (p16.estado === "naosei" || (p16.estado === "opcao" && p16.opcao === "Não sei"))) s.R["M2.P16"] = Object.assign({}, p16, { estado: "opcao", opcao: "Ainda não" });
+        }
         if (!(lido.v >= 4)) {
           const tiradas = M.perguntas.map((q) => q.codigo).filter((c) => ERA_NS(s.R[c]));
           tiradas.forEach((c) => { delete s.R[c]; });
@@ -299,6 +309,9 @@
      Os textos ficam nos dados de cada pergunta (comoDescobrir, promptIA); a resposta salva não muda. */
   /* a regra da planilha para "Não sei" deixou de disparar (o "Não sei" não é gravado): o texto dela entra na caixa,
      como frase de abertura, e o caminho que ela sugeria vira o último passo */
+  /* resposta real "ainda não sei" (sobre a própria pessoa): grava e segue, e os passos de "Como descobrir" aparecem
+     ao vivo como dica, sem travar */
+  const AINDA_NAO_SABE = { "M2.P01": "Ainda não sei" };
   const regraNS = (q) => D.regras.find((r) => String(r.condicao).trim() === `${q.codigo} = Não sei`);
   function caixaComo(q, classe) {
     if (!q || !q.comoDescobrir || !q.comoDescobrir.length) return "";
@@ -818,6 +831,7 @@
       const B = blocosRetorno(q, regras, nova);
       box.innerHTML = `<div class="retorno">
         ${regras.length ? regras.map((r) => `<div class="regra"><p class="r-texto">${L(r.texto)}</p></div>`).join("") : `<p class="r-texto r-pergunta">${L(q.resposta)}</p>`}
+        ${nova.estado === "opcao" && AINDA_NAO_SABE[cod] === nova.opcao ? caixaComo(q, "bloco b-ainda") : ""}
         ${B.naosei ? (caixaComo(q, "bloco b-naosei") || `<div class="bloco b-naosei"><b>Como descobrir</b>${B.naosei}</div>`) : ""}
         ${B.alerta ? `<div class="bloco b-alerta"><b>Atenção</b>${B.alerta}</div>` : ""}
         ${B.proximo ? `<div class="bloco b-proximo"><b>Próximo passo</b>${B.proximo}</div>` : ""}

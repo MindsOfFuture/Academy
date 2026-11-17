@@ -18,16 +18,16 @@
   var TOTAL = 10;
   var TRILHA = '/lg2/jornada/index.html';
   var NOMES = {
-    1: 'Perfil do empreendedor e definição da ideia',
-    2: 'Clientes, necessidades e comportamento de compra',
+    1: 'Você e a sua ideia de negócio',
+    2: 'Quem são seus clientes e como compram',
     3: 'Mercado, concorrentes e oportunidades',
-    4: 'Produto, proposta de valor e teste da ideia',
-    5: 'Custos, despesas, preço e margem',
-    6: 'Investimento, capital de giro e fluxo de caixa',
-    7: 'Operação, fornecedores, capacidade e qualidade',
-    8: 'Formalização, enquadramento e tributação básica',
-    9: 'Licenças, endereço e atividades reguladas',
-    10: 'Comunicação, vendas, pessoas e plano de ação'
+    4: 'Produto, por que comprar de você e teste da ideia',
+    5: 'Custos, preço e quanto sobra',
+    6: 'Dinheiro para começar e para os primeiros meses',
+    7: 'Como você produz, compra e entrega',
+    8: 'Abrir o seu negócio: CNPJ, MEI e impostos',
+    9: 'Licenças e endereço',
+    10: 'Vendas, pessoas e plano de ação'
   };
   var AVISO = 'Este app é educativo: estimativas não garantem resultados. Confirme regras de registro, impostos e licenças em fontes oficiais.';
   var CREDITO = 'Laboratório de Gestão II · FACC/UFJF';

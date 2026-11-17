@@ -10,7 +10,7 @@ window.MODULO10 = {
  },
  "modulo": {
   "numero": 10,
-  "nome": "Comunicação, vendas, pessoas e plano de ação"
+  "nome": "Vendas, pessoas e plano de ação"
  },
  "capa": {
   "objetivo": "Ao final da etapa, o usuário será capaz de organizar sua mensagem de vendas, mapear seus canais de atendimento, identificar gargalos de rotina, analisar a necessidade de sociedade ou contratação e definir as prioridades mais urgentes do negócio. Também poderá elaborar um plano de ação focado para resolver os principais problemas.",
@@ -550,11 +550,11 @@ window.MODULO10 = {
  "modulos": [
   {
    "numero": 1,
-   "nome": "Perfil do empreendedor e definição da ideia"
+   "nome": "Você e a sua ideia de negócio"
   },
   {
    "numero": 2,
-   "nome": "Clientes, necessidades e comportamento de compra"
+   "nome": "Quem são seus clientes e como compram"
   },
   {
    "numero": 3,
@@ -562,31 +562,31 @@ window.MODULO10 = {
   },
   {
    "numero": 4,
-   "nome": "Produto, proposta de valor e teste da ideia"
+   "nome": "Produto, por que comprar de você e teste da ideia"
   },
   {
    "numero": 5,
-   "nome": "Custos, despesas, preço e margem"
+   "nome": "Custos, preço e quanto sobra"
   },
   {
    "numero": 6,
-   "nome": "Investimento, capital de giro e fluxo de caixa"
+   "nome": "Dinheiro para começar e para os primeiros meses"
   },
   {
    "numero": 7,
-   "nome": "Operação, fornecedores, capacidade e qualidade"
+   "nome": "Como você produz, compra e entrega"
   },
   {
    "numero": 8,
-   "nome": "Formalização, enquadramento e tributação básica"
+   "nome": "Abrir o seu negócio: CNPJ, MEI e impostos"
   },
   {
    "numero": 9,
-   "nome": "Licenças, endereço e atividades reguladas"
+   "nome": "Licenças e endereço"
   },
   {
    "numero": 10,
-   "nome": "Comunicação, vendas, pessoas e plano de ação"
+   "nome": "Vendas, pessoas e plano de ação"
   }
  ],
  "resumo": {

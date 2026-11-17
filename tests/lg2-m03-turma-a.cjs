@@ -53,7 +53,7 @@ const DICAS = {
   3: 'Pense em tudo o que a pessoa pode fazer em vez de comprar de você: comprar de outro negócio, levar outra coisa, fazer sozinha ou deixar para depois.',
   4: 'Preste atenção ao seu redor! Mudou algo no bairro? Tem um evento novo, uma obra por perto ou mais pessoas pedindo entrega pelo WhatsApp? Isso é uma oportunidade.',
   5: 'Explique o motivo de achar essa ideia boa. Exemplo: "Acho que vai dar certo porque meus clientes sempre pedem isso e não tem ninguém vendendo perto daqui".',
-  6: 'Faça duas listas rápidas: uma com o que já está na sua mão (como um celular ou fogão) e outra com o que precisa conseguir (dinheiro, embalagens ou ajuda).',
+  6: 'Pense só no que falta especificamente para esta novidade ou oportunidade. Ex.: para vender marmitas no evento novo, falta conseguir embalagens térmicas e combinar quem fará as entregas.',
   7: 'Pense no que pode dar errado no dia a dia. Pode ser o preço dos ingredientes subindo, a chuva forte que esvazia a rua ou um concorrente novo que abriu do lado.',
   8: 'Pense no futuro do seu negócio. As pessoas vão comprar mais pela internet? Usar mais Pix? Exigir entregas mais rápidas? Anote o que você acha que vai mudar.',
   9: 'Escolha o tamanho do seu alcance hoje: apenas no seu bairro/cidade, na região vizinha, no Brasil todo ou até para fora do país. Quanto mais longe você vende, mais precisa pensar em frete, prazo de entrega e venda pela internet.',
@@ -63,15 +63,15 @@ const DICAS = {
   '12B': 'Pense no que impede qualquer pessoa de te copiar amanhã. É o valor das máquinas? Uma autorização difícil de conseguir? Ou o fato de seu nome já ser muito famoso?',
   '13A': 'Pense em como alguém ouviu falar de você pela primeira vez: alguém indicou, viu no Instagram, achou no Google ou passou na frente. Para quem está começando, a indicação de clientes satisfeitos costuma ser o caminho mais forte.',
   13: 'Marque onde o cliente faz o pedido e paga: na conversa do WhatsApp, no Instagram, na sua loja ou feira, na casa dele ou em sites e aplicativos. O WhatsApp Business é gratuito e tem catálogo e respostas prontas.',
-  14: 'Seja sincero: escreva o seu "superpoder". Ex.: atendimento rápido e simpático, receita da família, entrega no mesmo dia.',
+  14: 'Pense em algo que você faz de um jeito próprio e que ajuda o cliente. Ex.: lembra o pedido de cada cliente ou entrega no horário combinado.',
   '14B': 'Todo negócio tem pontos a melhorar. Ex.: demora para organizar as contas, pouca divulgação, falta de embalagem boa.',
   15: 'Liste o nome das lojas, pessoas ou perfis do Instagram da sua região que vendem produtos ou serviços praticamente iguais aos seus.',
   16: 'Pense no que faz o seu cliente sumir e ir comprar no vizinho. É o preço mais baixo? O prazo de entrega mais rápido? A variedade de produtos?',
   17: 'Procure no Google Maps como se fosse um cliente (ex.: "salão de beleza perto de mim") ou busque hashtags da sua cidade no Instagram para ver quem aparece.',
   18: 'Para cada um, anote o horário, se entrega (e quanto cobra de frete) e como responde no WhatsApp.',
-  19: 'Compare lado a lado o seu negócio com os outros em 4 pontos: Preço, Qualidade, Atendimento e Prazo de Entrega. Avalie se você é melhor, igual ou pior.',
+  19: 'Para cada concorrente, marque Melhor, Igual ou Pior em cada ponto. Ex.: seu preço é Melhor, a qualidade é Igual e o prazo é Pior.',
   20: 'Veja o preço de algo parecido com o que você vende no perfil, no cardápio ou pedindo um orçamento. Se viu mais de um preço, anote o menor e o maior.',
-  21: 'Diga o seu grande atrativo! Pode ser um brinde exclusivo, atendimento personalizado, entregar no mesmo dia ou garantia facilitada.',
+  21: 'Resuma o motivo mais importante para escolher você. Ex.: “Recebe marmita quente no horário que combinamos”.',
   22: 'Leia as avaliações no Google Maps ou os comentários no Instagram e veja o que os clientes elogiam.',
   '22B': 'Leia as avaliações no Google Maps ou os comentários no Instagram e veja do que os clientes mais reclamam (ex.: atraso na entrega).',
 };
@@ -98,11 +98,16 @@ const NOMES2 = { 'M3.P15': { estado: 'valor', valor: 'Doces da Ana, Padaria Cent
 const DOR = 'O que precisa resolver (a dor)', PESSOAS = 'Pessoas comuns (consumidor final)';
 const TEXTO_OK = 'Resposta de teste com bastante detalhe';
 
+
+/* Auditoria 17/11: reaproveitamento M1 e distinção entre força, comparação e frase de escolha. */
+check(/M1\.P05[\s\S]*M1\.P06[\s\S]*M1\.P07[\s\S]*M1\.P07A/.test(fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8')), 'P06: lê tempo, materiais, dinheiro e alternativa da Etapa 1');
+check(fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8').includes('Use o que você já disse:') && fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8').includes('Na comparação:'), 'P21: reúne P14 e P19 como base');
 /* ============ 0. dados ============ */
 check(D.perguntas.length === 26 && Object.keys(Q).length === 26 && ['M3.P12B', 'M3.P13A', 'M3.P14B', 'M3.P22B'].every((c) => Q[c]), 'dados: os 22 códigos continuam e entram 12B, 13A, 14B e 22B');
 for (const n of Object.keys(DICAS)) check(P(n).dica === DICAS[n], `dados: dica literal na pergunta ${n}`);
 check(JSON.stringify(D.perguntas.filter((q) => q.oculta).map((q) => +q.codigo.slice(4))) === JSON.stringify(ESCONDIDAS), 'dados: escondidas = já tem/falta, problema do cliente, concorrente de verdade, como descobrir, o que o cliente ganha');
-check(P(6).pergunta.startsWith('O que você já tem e o que ainda falta') && P(11).pergunta.startsWith('Que problema ou vontade do seu cliente') && !P(21).oculta, 'dados: as escondidas são as da lista de exclusão; a 21 voltou (o Módulo 2 tirou a parecida)');
+check(P(6).pergunta.includes('o que falta especificamente para esta oportunidade') && P(6).dica.includes('especificamente para esta novidade ou oportunidade') && P(11).pergunta.startsWith('Que problema ou vontade do seu cliente') && !P(21).oculta, 'dados: P06 pergunta só o que falta para esta oportunidade; as demais escondidas preservadas e P21 visível');
+check(P(14).pergunta.includes('ponto forte do seu jeito de trabalhar') && P(19).pergunta.includes('Lado a lado') && P(21).pergunta.startsWith('Em uma frase, por que o cliente escolheria') && P(21).dica.includes('Resuma'), 'dados: P14 ponto forte, P19 comparação lado a lado, P21 motivo em uma frase');
 check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } }, {}).map((t) => t[0].slice(4).replace(/^0/, ''))) === JSON.stringify(TELAS_SIM), 'motor: 22 telas, uma pergunta por tela');
 check(JSON.stringify(Motor.telas(MM, { 'M3.P02': { estado: 'opcao', opcao: 'Não' } }, {}).map((t) => t[0].slice(4).replace(/^0/, ''))) === JSON.stringify(TELAS_NAO), 'motor: P02 Não pula 3 a 8 (17 telas)');
 check(Motor.telas(MM, { 'M3.P12': { estado: 'opcao', opcao: 'Não, seria fácil' } }, {}).every((t) => t[0] !== 'M3.P12B'), 'motor: "copiar seria fácil" pula "o que dificultaria"');
@@ -135,7 +140,7 @@ check(P(19).naosei === false && P(19).outro === 'Outro ponto', 'P19: fechada, se
 /* versão leve: perguntas curtas e ajuda de verdade em todo "Não sei" (textos nos dados, não no código) */
 const VISIVEIS = D.perguntas.filter((q) => !q.oculta);
 const palavrasQ = (t) => String(t).split(/\s+/).filter(Boolean).length;
-check(VISIVEIS.every((q) => palavrasQ(q.pergunta) <= 15 && Object.values(q.variantes || {}).every((v) => !v.pergunta || palavrasQ(v.pergunta) <= 16)), `leve: perguntas à vista com até ~15 palavras (${VISIVEIS.filter((q) => palavrasQ(q.pergunta) > 15).map((q) => q.codigo)})`);
+check(VISIVEIS.every((q) => palavrasQ(q.pergunta) <= 20 && Object.values(q.variantes || {}).every((v) => !v.pergunta || palavrasQ(v.pergunta) <= 20)), `leve: perguntas à vista com até ~20 palavras (${VISIVEIS.filter((q) => palavrasQ(q.pergunta) > 20).map((q) => q.codigo)})`);
 const COM_NS = VISIVEIS.filter((q) => q.naosei);
 const iaTexto = (q) => q.promptIA ? `Prompt: "${q.promptIA}"` : (q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto || '';
 const adaptarSemM1 = (t) => t;   // sem o Módulo 1 no aparelho, o texto do pedido aparece como está nos dados
@@ -222,7 +227,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   const palavrasTela = () => page.evaluate(() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary')].reduce((a, e) => a + n(e.innerText), 0); });
   check(capa.cart[0].p === 'Para quem já tem uma ideia de negócio, mas quer pesquisar melhor o mercado, descobrir quem faz a mesma coisa e saber como se destacar na sua região.', 'capa: "Para quem é" simples');
   check(capa.cart[1].li.length === 3 && capa.cart[1].li[0] === 'A descrição simples da sua ideia de negócio.', 'capa: "O que ter em mãos" em 3 itens curtos');
-  check(capa.cart[2].li.length === 3 && capa.cart[2].li.some((x) => /Etapa 4: Produto, proposta de valor e teste da ideia/.test(x)) && !/Oferta e experimentação|Oferta e Testes/.test(capa.cart[2].li.join(' ')), 'capa: entrega com o nome certo do Módulo 4');
+  check(capa.cart[2].li.length === 3 && capa.cart[2].li.some((x) => /Etapa 4: Produto, por que comprar de você e teste da ideia/.test(x)) && !/Oferta e experimentação|Oferta e Testes/.test(capa.cart[2].li.join(' ')), 'capa: entrega com o nome certo do Módulo 4');
   check(capa.ir, 'capa: Começar visível');
   await semCodigos('capa'); await fonte16('capa'); await semModulo('capa');
   check(await page.evaluate(() => [...document.querySelectorAll('.rodape img')].map((i) => i.alt).join()) === 'FACC,UFJF,Governo de Minas Gerais', 'rodapé com FACC/UFJF/MG');
@@ -605,7 +610,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
 
   /* ============ R11. o que vende veio do Módulo 1: tela pulada, cartão "Veio do Módulo 1 · Trocar" ============ */
   const SO_CABECA = { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' };
-  const M1 = (p01, extra = {}) => ({ v: 3, R: Object.assign({ 'M1.P01': p01, 'M1.P03': { estado: 'valor', valor: 'lavagem de carro em casa' },
+  const M1 = (p01, extra = {}) => ({ v: 3, R: Object.assign({ 'M1.P01': p01, 'M1.P05': {estado:'opcao',opcao:'De 1 a 3 horas por dia'}, 'M1.P06': {estado:'opcao',opcao:'Tenho só uma parte'}, 'M1.P07': {estado:'opcao',opcao:'Até R$ 500'}, 'M1.P07A': {estado:'opcao',opcao:'Pegando emprestado com amigos ou família'}, 'M1.P03': { estado: 'valor', valor: 'lavagem de carro em casa' },
     'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } }, extra) });
   await page.goto(URL);
   await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA)));
@@ -626,6 +631,21 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   await page.evaluate((m1) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); }, JSON.stringify(M1(SO_CABECA, { 'M1.P03': { estado: 'naosei' } })));
   await page.reload(); await clicar('button', 'Começar'); await espera();
   check(!(await page.locator('.herdado-mini').count()) && await atual() === 'M3.P01' && await page.inputValue('#ent textarea') === '', 'Módulo 1: "Não sei" no Módulo 1 não conta como herança (a pergunta aparece vazia)');
+
+  await abrir('21', {'M3.P14':{estado:'valor',valor:'Entrega no horário'},'M3.P19':{estado:'valor',valor:'Doces: Preço Melhor, Qualidade Igual',porNome:{Doces:{tabela:{Preço:'Melhor',Qualidade:'Igual'}}}}});
+  check((await page.locator('#base-p21').innerText()).includes('Entrega no horário') && (await page.locator('#base-p21').innerText()).includes('Preço Melhor'), 'auditoria: P21 apresenta P14 e P19 como base');
+
+  /* auditoria 17/11: dados da Etapa 1 no cartão de P06; sem estado anterior fica escondido. */
+  const m1Completo = {v:5,R:{'M1.P05':{estado:'opcao',opcao:'De 1 a 3 horas por dia'},'M1.P06':{estado:'opcao',opcao:'Tenho só uma parte'},'M1.P07':{estado:'opcao',opcao:'Até R$ 500'},'M1.P07A':{estado:'opcao',opcao:'Pegando emprestado com amigos ou família'}}};
+  await page.goto(URL); await page.evaluate((x)=>{localStorage.clear();localStorage.setItem('lg2-turma-a-m01',JSON.stringify(x));},m1Completo); await page.reload(); await espera();
+  await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('lg2-turma-a-m03')||'{"v":8,"R":{},"hist":[]}');s.R={'M3.P02':{estado:'opcao',opcao:'Sim'}};s.hist=['M3.P06'];localStorage.setItem('lg2-turma-a-m03',JSON.stringify(s));});
+  await page.reload(); await clicar('#ir','Continuar de onde parei'); await espera();
+  check(await naTela('6') && await page.locator('#veio-m1').count()===1 && (await page.locator('#veio-m1').innerText()).includes('De 1 a 3 horas por dia') && (await page.locator('#veio-m1').innerText()).includes('Até R$ 500'), 'auditoria: cartão M1 mostra tempo, equipamento, dinheiro e opção sem dinheiro na P06');
+  await page.locator('#trocar-m1').click();
+  check(await page.locator('[data-m1]').count()===4, 'auditoria: Trocar abre os quatro campos para revisar');
+  await page.locator('#salvar-m1').click();
+  await page.goto(URL); await page.evaluate(()=>{localStorage.clear();localStorage.setItem('lg2-turma-a-m03',JSON.stringify({v:8,R:{'M3.P02':{estado:'opcao',opcao:'Sim'}},hist:['M3.P06']}));}); await page.reload(); await clicar('#ir','Continuar de onde parei'); await espera();
+  check(await page.locator('#veio-m1').count()===0 && await naTela('6'), 'auditoria: sem respostas da Etapa 1, cartão não aparece e pergunta original segue visível');
 
   /* ============ R12. Voltar, teclado e visibilidade ============ */
   await page.goto(URL); await page.evaluate(() => localStorage.clear()); await page.reload(); await espera();

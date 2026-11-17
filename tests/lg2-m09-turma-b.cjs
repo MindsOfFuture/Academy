@@ -395,7 +395,7 @@ const ESPERADO = {
 },
 {
 "codigo": "M9-13",
-"pergunta": "Quer anotar alguma ideia sobre vendas, equipe ou próximos passos?",
+"pergunta": "Quer anotar alguma dúvida sobre o local ou as licenças, para levar à prefeitura?",
 "aparece": "Sempre (opcional)",
 "caminhos": [
 [
@@ -521,6 +521,7 @@ const SAB_APP = {
   6: ['ok.onclick = () => { const r0 = coletar(); if (r0) avancar(r0); };', 'let seg = false; ok.onclick = () => { const r0 = coletar(); if (!r0) return; if (!seg) { seg = true; ok.textContent = "Seguir"; return; } avancar(r0); };'],
   7: ['return h.split(MARCA_LINK).join(linkEstadoHtml());', 'return h.split(MARCA_LINK).join("[link do estado]");'],
   9: ['x.setAttribute("aria-pressed", String(x.dataset.v === op));', ''],
+  10: ['if (cod === "M9-10" && X.m8Tecnico) return { op: X.m8Tecnico, m: 8 };', '// sabotagem: herança removida'],
 };
 /* sabotagem do CSS: tira o Continuar preso ao pé da tela */
 const SAB_CSS = { 8: ['.pe-fixo{position:sticky;', '.pe-fixo{position:static;'] };
@@ -533,7 +534,7 @@ function cssTexto() {
 function appTexto() {
   let t = fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8');
   const s = SAB_APP[process.env.SABOTAR];
-  if (s) { assert.ok(t.includes(s[0]), 'trecho da sabotagem não encontrado'); t = t.replace(s[0], s[1]); }
+  if (s) { assert.ok(t.includes(s[0]), 'trecho da sabotagem não encontrado'); t = t.replace(s[0], s[1]); if (process.env.SABOTAR === '10') t = t.replace('if (cod === \"M9-10\" && X.m8Tecnico) return { op: X.m8Tecnico, m: 8 };', '// sabotagem: segunda rota removida'); }
   return t;
 }
 function motorTexto() {
@@ -546,6 +547,8 @@ const ctx = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(DIR, 'dados/modulo9.js'), 'utf8'), ctx);
 vm.runInNewContext(motorTexto(), ctx);
 const D = JSON.parse(JSON.stringify(ctx.window.MODULO9));
+assert.equal(D.perguntas.find((q) => q.codigo === 'M9-13').pergunta, 'Quer anotar alguma dúvida sobre o local ou as licenças, para levar à prefeitura?', 'M9-13 trata de local/licenças');
+assert.ok(D.perguntas.find((q) => q.codigo === 'M9-05').dica.includes('24 m²'), 'M9-05 traz método e exemplo de área');
 const J = (x) => (x === undefined ? x : JSON.parse(JSON.stringify(x)));
 /* objetos do vm são de outro realm: passa tudo por JSON para o deepStrictEqual */
 const Mo = Object.fromEntries(Object.entries(ctx.window.Motor9).map(([k, v]) => [k, typeof v === 'function' ? (...a) => J(v(...a)) : J(v)]));
@@ -1230,6 +1233,9 @@ const server = http.createServer(async (req, res) => {
   }
   await abrir({ v: 2, R: R_(ATE10), feitos: {} }, m8({ 'M8.P08': { estado: 'naosei' } }));
   await page.click('#ir'); assert.equal(await page.locator('#ent .opcao.sel').count(), 0, 'Não sei do Módulo 8 não é herdado');
+  await abrir({ v: 2, R: R_(ATE10), feitos: {} }, {});
+  await page.click('#ir'); assert.equal(await codAtual(), 'M9-10', 'sem resposta da Etapa 8, pergunta aparece');
+  assert.equal(await page.locator('#herdadas').count(), 0, 'sem resposta anterior não mostra cartão herdado');
   /* M9-02 <- M4.P15 = Sim + o que vende: opção sugerida; sem pista, só o lembrete */
   await abrir({ v: 2, R: R_({ 'M9-01': 'Acre' }), feitos: {} }, Object.assign({ 'lg2-turma-a-m04': { R: { 'M4.P15': opc('Sim') } } }, { 'lg2-turma-a-m01': { R: { 'M1.P03': { estado: 'valor', valor: 'Bolos caseiros por encomenda' } } } }));
   await page.click('#ir');

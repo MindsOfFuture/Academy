@@ -6,7 +6,7 @@ window.MODULO2 = {
  "origem": "LG2_M02_planilha_do_grupo.xlsx",
  "modulo": {
   "numero": "2",
-  "nome": "Clientes, necessidades e comportamento de compra",
+  "nome": "Quem são seus clientes e como compram",
   "versao": "v0.3",
   "data": "14/10/2026",
   "turma": "Turma de 18",
@@ -41,7 +41,7 @@ window.MODULO2 = {
   },
   {
    "modulo": "4.0",
-   "nome": "Produto, proposta de valor e teste da ideia",
+   "nome": "Produto, por que comprar de você e teste da ideia",
    "recebe": "Nenhuma, por enquanto",
    "envia": "Evidências de comportamento de compra coletadas nas entrevistas (M2.I04)",
    "combinado": "Não",
@@ -49,7 +49,7 @@ window.MODULO2 = {
   },
   {
    "modulo": "5.0",
-   "nome": "Custos, despesas, preço e margem",
+   "nome": "Custos, preço e quanto sobra",
    "recebe": "Nenhuma, por enquanto",
    "envia": "Faixa de preço que o possível cliente aceitaria pagar, quando mencionada na entrevista",
    "combinado": "Não",
@@ -156,7 +156,7 @@ window.MODULO2 = {
    "ajuda": "Pense na pessoa que mais compraria de você. Não precisa ter certeza: uma ideia inicial já vale.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Sim; Em parte; Não sei",
+   "opcoes": "Sim; Em parte; Ainda não sei",
    "resposta": "Mostra se você parte de uma ideia de público ou do zero. Muda as próximas perguntas.",
    "alerta": "Nenhum",
    "proximo": "Pense em quem já pediu, perguntou ou comprou algo parecido com o que você oferece: essa pessoa é um bom ponto de partida.",
@@ -454,7 +454,7 @@ window.MODULO2 = {
    "ajuda": "Pense em lugares, redes sociais, grupos ou eventos onde elas costumam estar.",
    "tipo": "Escolha",
    "condicao": "sempre",
-   "opcoes": "Sim; Em parte; Ainda não; Não sei",
+   "opcoes": "Sim; Em parte; Ainda não",
    "resposta": "Um grupo só serve para começar se for possível alcançá-lo.",
    "alerta": "Nenhum",
    "proximo": "Use o lugar ou a rede que você conhece (ex.: grupo de WhatsApp, feira, igreja) para chamar as pessoas para as conversas (M2.I03).",
@@ -592,23 +592,11 @@ window.MODULO2 = {
   {
    "codigo": "M2.R03",
    "pergunta": "M2.P01",
-   "condicao": "M2.P01 = Ainda não pensei nisso",
+   "condicao": "M2.P01 = Ainda não sei",
    "texto": "Começar sem um público definido é normal. As próximas perguntas ajudam a levantar possíveis grupos de clientes.",
    "alerta": "Sem um público bem definido, a divulgação e a pesquisa tendem a ficar dispersas.",
    "lacuna": "Quem poderia comprar e por quê",
    "proximo": "Siga para as perguntas para dividir os clientes em grupos (M2.P05 a M2.P08) e use o roteiro de entrevista (M2.I01).",
-   "encaminhamento": "Nenhum",
-   "fonte": "Sebrae PR, 25/09/2026",
-   "status": "Rascunho"
-  },
-  {
-   "codigo": "M2.R04",
-   "pergunta": "M2.P01",
-   "condicao": "M2.P01 = Não sei",
-   "texto": "Não saber ainda quem compraria também é uma informação: indica que o público precisa ser explorado.",
-   "alerta": "Nenhum",
-   "lacuna": "Se existe alguma ideia inicial de público",
-   "proximo": "Pense na última pessoa que pediu algo parecido e siga para a pergunta sobre conversas com possíveis clientes (M2.P04).",
    "encaminhamento": "Nenhum",
    "fonte": "Sebrae PR, 25/09/2026",
    "status": "Rascunho"
@@ -1359,18 +1347,7 @@ window.MODULO2 = {
    "fonte": "QuestionPro Brasil, 01/10/2026",
    "status": "Rascunho"
   },
-  {
-   "codigo": "M2.R67",
-   "pergunta": "M2.P16",
-   "condicao": "M2.P16 = Não sei",
-   "texto": "Não saber como alcançar o público é uma lacuna comum e pode ser resolvida nas primeiras conversas.",
-   "alerta": "Nenhum",
-   "lacuna": "Por onde chegar até as pessoas do grupo",
-   "proximo": "Comece por pessoas que você alcança com facilidade e peça a elas que indiquem outras do mesmo perfil.",
-   "encaminhamento": "Nenhum",
-   "fonte": "QuestionPro Brasil, 01/10/2026",
-   "status": "Rascunho"
-  },
+
   {
    "codigo": "M2.R68",
    "pergunta": "M2.P17",
@@ -1736,7 +1713,7 @@ window.MODULO2 = {
   {
    "codigo": "M2.E02",
    "tipo": "Faça",
-   "onde": "M2.P04",
+   "onde": "M2.P18",
    "titulo": "Marque 3 conversas nesta semana",
    "texto": "Escolha três pessoas do público que você imagina e converse sobre a última vez que compraram algo parecido. Pergunte o que motivou a compra e o que foi difícil. Não fale do seu produto antes de ouvir a resposta completa: o objetivo é entender o comportamento real, não vender.",
    "exemplo": "Perguntar a um vizinho: \"quando você comprou um bolo pela última vez, o que te fez escolher aquele lugar?\"",

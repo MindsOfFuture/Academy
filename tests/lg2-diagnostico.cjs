@@ -145,7 +145,7 @@ const ESTADO = {
     // Um bloco por módulo, na ordem, com a situação.
     assert.deepEqual(d.blocos.map((b) => b.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     const bloco = (n) => d.blocos.find((b) => b.n === n);
-    assert.match(bloco(1).titulo, /^Etapa 1 · Perfil do empreendedor/);
+    assert.match(bloco(1).titulo, /^Etapa 1 · Você e a sua ideia de negócio/);
     assert.equal(bloco(1).estado, 'concluído');
     assert.equal(bloco(8).estado, 'em andamento');
     assert.equal(bloco(2).estado, 'não começou');

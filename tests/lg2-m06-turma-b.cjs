@@ -3,7 +3,8 @@
    Opcional: SHOTS=<pasta> grava os prints de celular (390x844); M06_DIR=<pasta> testa outra cópia;
    M06_SABOTAGEM=1 serve o app sem a caixa "Como descobrir"; M06_SABOTAGEM=2 faz o "Não sei" gravar "naosei"
    (lote 16/11: o teste tem de falhar nos dois); M06_SABOTAGEM=3 põe de volta o passo extra "Seguir" depois do Continuar
-   (lote 17/11, um toque por pergunta: o teste tem de falhar).
+   (lote 17/11, um toque por pergunta: o teste tem de falhar). M06_SABOTAGEM=4 tira a conclusão principal do resultado
+   (passada geral: o teste tem de falhar).
    Alcança todas as regras da aba 4, roda os casos da aba 8 (divergências são relatadas, não falham),
    confere os instrumentos contra a "saída esperada" da aba 5. Sai com código 1 se algo falhar. */
 const http = require('node:http');
@@ -24,6 +25,8 @@ const servidor = http.createServer((req, res) => {
   if (process.env.M06_SABOTAGEM === '3' && f.endsWith(path.join('js', 'app.js')))
     return res.end(fs.readFileSync(f, 'utf8').replace('sobreAnterior = visto ? null : textoSobre(Motor.regrasAgora(M, S.R, cod), r0);\n      ir(telaPergunta, prox);',
       'const sg = el(`<button class="btn btn-primario">Seguir</button>`); sg.onclick = () => ir(telaPergunta, prox); const ac = p.querySelector("#acoes"); ac.innerHTML = ""; ac.appendChild(sg);'));
+  if (process.env.M06_SABOTAGEM === '4' && f.endsWith(path.join('js', 'app.js')))
+    return res.end(fs.readFileSync(f, 'utf8').replace('${conclusaoCaixa()}', ''));
   fs.createReadStream(f).pipe(res);
 });
 
@@ -107,6 +110,9 @@ const NA_PAGINA = {
   if (R.length !== 73) divergencias.push(`Capa C33 diz 73 regras; a aba 4 tem ${R.length}`);
   check('chave da turma mantida (lg2-turma-b-m06)', fs.readFileSync(path.join(DIR, 'js/app.js'), 'utf8').includes(`const CHAVE = "${CHAVE}"`));
   check('versão exibida = Capa literal', D.modulo.versao === 'v0.1' && D.modulo.data === '25/09/2026', D.modulo);
+  const dadosQ = Object.fromEntries(D.perguntas.filter((q) => q.codigo).map((q) => [q.codigo, q]));
+  check('passada geral: ajuda de P01/P02/P03/P09 usa palavras simples, unidade e exemplos concretos', /Ex.:/.test(dadosQ['M6.P01'].exemplo) && /em reais/.test(dadosQ['M6.P02'].ajuda) && /à vista.*parcelas/.test(dadosQ['M6.P03'].ajuda) && /a cada 3 meses/.test(dadosQ['M6.P09'].ajuda));
+  check('título em palavras simples e “capital de giro” explicado na capa', /^Dinheiro para começar/i.test(D.modulo.nome) && !/capital de giro/i.test(D.modulo.nome) && /capital de giro/i.test(D.capa.frase) && /dinheiro para pagar contas/i.test(D.capa.frase));
 
   /* ---------- condutor de caminhos ---------- */
   const SECAO_NEGOCIO = {};   // código da pergunta -> valor de "Negócio" que a mostra
@@ -440,6 +446,8 @@ const NA_PAGINA = {
     const bt = nrm(box && box.txt);
     /* texto corrido (relatório do Bento): 1 a 3 parágrafos, sem lista */
     check('resultado: caixa "O que entendemos até aqui" acima do caixa, texto corrido em 1 a 3 parágrafos (sem <li>, com <p>)', box && box.antes && box.n >= 1 && box.n <= 3 && box.li === 0 && bt.startsWith('O que entendemos até aqui'), box);
+    const principal = await page.evaluate(() => { const x = document.querySelector('#conclusao-principal'); return x && { txt: x.innerText, valor: x.querySelector('.val')?.textContent.trim(), antes: !!(x.compareDocumentPosition(document.querySelector('#proximos')) & Node.DOCUMENT_POSITION_FOLLOWING), sec: x.closest('main')?.querySelector('.concluido')?.compareDocumentPosition(x) }; });
+    check('passada geral: primeira conclusão financeira vem antes das listas, informa falta/sobra e valor em reais', principal && principal.antes && /Falta dinheiro nos primeiros meses|O dinheiro dá para os primeiros meses/i.test(principal.txt) && /^R\$ [0-9.]+,[0-9]{2}$/.test(principal.valor), principal);
     check('caixa: parágrafos por assunto (negócio · gasto e vendas · caixa nas 13 semanas)', box && box.n === 3 && box.p[0].startsWith('Você oferece') && /Para começar/.test(box.p[1]) && /semana/.test(box.p[2]), box && box.p);
     check('caixa junta módulos anteriores e este (ideia, tipo, estágio, investimento, vendas, semana negativa)',
       bt.includes('Você oferece um serviço: Lavagem de carro em domicílio.') && bt.includes('Você ainda não começou a vender.')

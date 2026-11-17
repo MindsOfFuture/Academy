@@ -48,7 +48,8 @@ const EXP = {
    ["Já vendo sempre", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Antes de gastar dinheiro, teste sua ideia com pouca coisa. Se alguém já provou, pergunte se compraria e por quanto."
+  "ajuda_texto": "Escolha onde a sua ideia está hoje: só no papel ou na cabeça, já testou com algumas pessoas ou já vende. Não tem resposta certa: isso só ajuda a escolher o seu próximo passo.",
+  "exemplo": "Ex.: fez bolo para a família provar = já testou; vende para os vizinhos toda semana = já vende sempre."
  },
  "M1.P02": {
   "pergunta": "O que fez você querer ter um negócio?", "apoio": "Escolha o motivo principal.",
@@ -59,7 +60,7 @@ const EXP = {
    ["Quero trabalhar por conta própria", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Comece com algo que você já sabe fazer e que dá para vender rápido, gastando pouco. Antes de gastar, pergunte a algumas pessoas se elas comprariam."
+  "ajuda_texto": "Escolha o motivo que mais pesa hoje. Quem precisa de dinheiro logo deve começar com algo que vende rápido e gasta pouco."
  },
  "M1.P03": {
   "pergunta": "O que você vende ou quer vender?", "apoio": null,
@@ -80,7 +81,7 @@ const EXP = {
   ],
   "exemplos": ["Ex.: bolo de pote, sabonete, crochê", "Ex.: roupa ou perfume comprado para revender", "Ex.: manicure, conserto, faxina, aula"],
   "ajuda": true,
-  "ajuda_texto": "Produto: você faz com materiais que compra. Mercadoria: você compra pronto e revende. Serviço: o cliente paga pelo seu trabalho.",
+  "ajuda_texto": "Pense em como você ganha: produto é feito por você, mercadoria é comprada pronta para revender e serviço é o seu trabalho.",
   "exemplo": "Ex.: bolo de pote é produto; roupa da fábrica para revender é mercadoria; lavar carro é serviço."
  },
  "M1.P04": {
@@ -91,7 +92,7 @@ const EXP = {
    ["Ainda não sei fazer", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Se vai começar do zero, procure um curso gratuito, como os do Sebrae, ou alguém que possa te ensinar."
+  "ajuda_texto": "Vale o que você aprendeu em outro trabalho, em casa ou sozinho. Se ainda está aprendendo, pratique com amigos e família antes de vender. Para começar do zero, procure um curso gratuito, como os do Sebrae."
  },
  "M1.P05": {
   "pergunta": "Quanto tempo por dia você tem para o negócio?", "apoio": null,
@@ -102,7 +103,7 @@ const EXP = {
    ["Só nos fins de semana", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Conte só o tempo que sobra depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes, faça sob encomenda ou venda em feiras e eventos no fim de semana."
+  "ajuda_texto": "Conte só o tempo livre de verdade, depois do trabalho, da casa e da família. Pouco tempo também dá certo: comece com poucos clientes ou sob encomenda."
  },
  "M1.P05A": {
   "pergunta": "Se o negócio crescer, você consegue mais tempo para ele?", "apoio": null,
@@ -111,7 +112,7 @@ const EXP = {
    ["Não, meus horários não podem mudar", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Pense na sua semana: onde sobra um tempinho? Alguém em casa pode ajudar com a casa ou com os filhos em alguns horários? Se não der, tudo bem: o negócio pode crescer devagar, no seu ritmo."
+  "ajuda_texto": "Pense se dá para liberar mais horas se os pedidos aumentarem: alguém em casa pode ajudar em alguns horários? Se não der, tudo bem: o negócio cresce no seu ritmo."
  },
  "M1.P06": {
   "pergunta": "Você já tem o que precisa para trabalhar?", "apoio": null,
@@ -121,7 +122,7 @@ const EXP = {
    ["Não tenho nada ainda", null]
   ],
   "ajuda": true,
-  "ajuda_texto": "Ex.: ferramentas, máquinas, panelas, forno ou um espaço em casa. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
+  "ajuda_texto": "Conte utensílios, máquina, espaço, ingredientes ou materiais. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo."
  },
  "M1.P07": {
   "pergunta": "Quanto dinheiro você pode usar sem faltar para as contas da casa?", "apoio": null,
@@ -134,7 +135,7 @@ const EXP = {
   ],
   "video": true,
   "ajuda": true,
-  "ajuda_texto": "É um dinheiro que, se for perdido, não faz falta para comida, aluguel e contas. Mesmo podendo usar mais, comece pequeno e teste com pouco, sem pegar empréstimo no banco. Se não tiver nada, tudo bem: na próxima pergunta vamos ver como começar sem dinheiro."
+  "ajuda_texto": "Conte só o dinheiro guardado que não faz falta para aluguel, comida e contas. Comece pequeno, sem pegar empréstimo no banco. Se não tiver nada, tudo bem."
  },
  "M1.P07A": {
   "pergunta": "Como você pensa em começar sem dinheiro ou material?", "apoio": null,
@@ -146,7 +147,7 @@ const EXP = {
   ],
   "exemplos": [null, "Ex.: pagar alguém para costurar, entregar ou cozinhar uma parte", "Ex.: o cliente paga metade no pedido e o resto na entrega", null],
   "ajuda": true,
-  "ajuda_texto": "Se for pegar emprestado, combine por escrito quanto e quando vai devolver.",
+  "ajuda_texto": "Pense em como conseguir o primeiro material sem apertar as contas da casa. Se for pegar emprestado, combine por escrito quanto e quando vai devolver.",
   "botao_ajuda": "Não sei",
   "naosei": ["Pergunte a 3 pessoas se comprariam por encomenda e se pagariam metade adiantado. Esse dinheiro compra o material.",
    "Liste o que dá para pegar emprestado com família, vizinhos ou amigos: forno, ferramenta, espaço."]
@@ -162,7 +163,8 @@ const EXP = {
    ["Outra coisa", null]
   ],
   "outra_placeholder": "Ex.: medo de não vender",
-  "ajuda": false
+  "ajuda": true,
+  "ajuda_texto": "Marque o que mais pode atrapalhar você no começo. Isso entra no seu resumo e ajuda a escolher por onde começar."
  }
 };
 /* o que muda conforme o tipo da 3A (Mercadoria não pergunta se sabe FAZER; exemplos de serviço e de
@@ -181,20 +183,43 @@ const EXP_TIPO = {
       opcoes: [['Sim, conheço bem o produto e onde comprar', null],
         ['Conheço um pouco, ainda estou pesquisando', null],
         ['Ainda não conheço', null]],
-      ajuda_texto: "Pense na qualidade, no preço e em onde comprar. Compre pouco no começo e compare pelo menos 2 fornecedores antes de comprar muito.",
+      ajuda_texto: "Para quem revende, conhecer bem é saber a qualidade, o preço e onde comprar. Compre pouco no começo e compare pelo menos 2 fornecedores.",
       exemplo: 'Ex.: Ana comprava roupas numa fábrica para ela e hoje revende para as vizinhas.' },
     'M1.P05': { exemplo: 'Ex.: “Trabalho de segunda a sexta. Só posso buscar e entregar as encomendas no sábado.”' },
-    'M1.P06': { ajuda_texto: "Ex.: um lugar para guardar a mercadoria, embalagens ou um jeito de entregar. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo." },
+    'M1.P06': { ajuda_texto: "Conte um lugar para guardar a mercadoria, embalagens ou um jeito de entregar. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo." },
     'M1.P07': { exemplo: 'Ex.: “Tenho R$ 500 guardados para as primeiras peças. Se eu não vender nada, não falta comida em casa.”' },
     'M1.P08': { opcoes: OPS_P08_MERC, exemplos: ['Fornecedor é quem vende para você. Ex.: fábrica, loja de atacado', null, null, null, null] },
   },
   'Serviço': {
     'M1.P04': { exemplo: 'Ex.: Maria foi costureira por 5 anos e hoje faz consertos de roupa em casa.' },
     'M1.P05': { exemplo: 'Ex.: “Trabalho de segunda a sexta. Só posso atender minhas clientes de manicure no sábado.”' },
-    'M1.P06': { ajuda_texto: "Ex.: ferramentas, materiais de trabalho ou um espaço para atender. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo." },
+    'M1.P06': { ajuda_texto: "Conte ferramentas, materiais de trabalho ou um espaço para atender. Antes de comprar o que falta, veja se dá para pegar emprestado ou alugar no começo." },
     'M1.P07': { exemplo: 'Ex.: “Tenho R$ 300 guardados para esmaltes e alicates. Se eu não tiver clientes, não falta comida em casa.”' },
   },
 };
+/* lote 17/11 (2ª rodada): quem já vende (P1 = "Já vendi algumas vezes" / "Já vendo sempre") lê enunciados sem tom de
+   iniciante. Só o enunciado muda; as opções são as mesmas (outros módulos comparam o texto delas). */
+const VENDE = ['Já vendi algumas vezes', 'Já vendo sempre'];
+const vendeJa = (R) => VENDE.includes(R['M1.P01']);
+const EXP_VENDE = { 'M1.P03': 'O que você vende?', 'M1.P04': 'Você faz isso bem?', 'M1.P07A': 'Como você pensa em conseguir dinheiro ou material para o negócio?' };
+const EXP_VENDE_MERC = { 'M1.P04': 'Você conhece bem o que revende?' };
+function perguntaEsperada(c, R) {
+  const e = expDe(c, R), merc = tipoDe(R) === 'Mercadoria', vende = vendeJa(R);
+  if (c === 'M1.P04' && R['M1.P03'] && !R.__vaga)
+    return merc ? (vende ? `Você conhece bem ${R.__p4} e onde comprar?` : `Você já conhece bem ${R.__p4} e sabe onde comprar?`)
+      : (vende ? `Você faz ${R.__p4} bem?` : `Você já sabe fazer ${R.__p4}?`);
+  if (vende) return (merc && EXP_VENDE_MERC[c]) || EXP_VENDE[c] || e.pergunta;
+  return e.pergunta;
+}
+/* conclusão principal no topo do resultado, pelo estágio da P1 */
+const CONCLUSAO = {
+  'Ainda está só na minha cabeça': 'Por enquanto, a ideia está só na sua cabeça. O melhor agora é testar com pouca coisa antes de gastar.',
+  'Já fiz um pouco para testar ou dar de amostra': 'Você já fez um pouco para testar ou dar de amostra. É hora de ouvir quem provou: compraria? Por quanto?',
+  'Já vendi algumas vezes': 'Você já vendeu algumas vezes, então já sabe que tem gente que compra. O próximo passo é anotar custos e vendas para organizar o negócio.',
+  'Já vendo sempre': 'Você já vende sempre, então o foco agora é organizar o que já funciona.',
+};
+/* texto de TODAS as opções como estava antes deste lote (git show HEAD, 17/11): nenhuma pode mudar */
+const OPCOES_ORIGINAIS = {"M1.P01":["Ainda está só na minha cabeça","Já fiz um pouco para testar ou dar de amostra","Já vendi algumas vezes","Já vendo sempre"],"M1.P02":["Preciso de dinheiro logo para pagar as contas","Vi que as pessoas precisam de algo que eu posso vender","Quero ganhar um dinheiro a mais","Quero trabalhar por conta própria"],"M1.P03":[],"M1.P03A":["Produto: eu compro materiais e faço o que vendo","Mercadoria: compro pronto para revender","Serviço: meu cliente paga pelo trabalho que realizo"],"M1.P04":["Sim, já faço bem","Sei um pouco, ainda estou aprendendo","Ainda não sei fazer"],"M1.P04/Mercadoria":["Sim, conheço bem o produto e onde comprar","Conheço um pouco, ainda estou pesquisando","Ainda não conheço"],"M1.P05":["Até 1 hora por dia","De 1 a 3 horas por dia","Mais de 3 horas por dia","Só nos fins de semana"],"M1.P05A":["Sim, consigo arrumar mais tempo","Não, meus horários não podem mudar"],"M1.P06":["Sim, tenho tudo","Tenho só uma parte","Não tenho nada ainda"],"M1.P07":["Nada por enquanto","Até R$ 100","Entre R$ 100 e R$ 500","Entre R$ 500 e R$ 1.000","Mais de R$ 1.000"],"M1.P07A":["Pegando emprestado com amigos ou família","Pagando alguém para fazer uma parte do trabalho","Vendendo por encomenda, com o cliente pagando uma parte antes","Juntando dinheiro primeiro"],"M1.P08":["Ainda não sei fazer direito","Me falta lugar ou equipamento","Conheço poucas pessoas para vender ou me ajudar","Tenho dificuldade com celular, internet ou redes sociais","Outra coisa"],"M1.P08/Mercadoria":["Ainda não conheço bem o produto ou os fornecedores","Me falta lugar ou equipamento","Conheço poucas pessoas para vender ou me ajudar","Tenho dificuldade com celular, internet ou redes sociais","Outra coisa"]};
 /* limite de palavras do corpo de uma tela de pergunta (sem opções e sem dicas fechadas) */
 const LIMITE_PALAVRAS = 60;
 const tipoDe = (R) => (String(R['M1.P03A'] || '').match(/^(Produto|Mercadoria|Serviço)/) || [])[1] || null;
@@ -246,6 +271,14 @@ function conferirAjuste(D) {
       else if (q.video.url !== null) p.push(`${q.codigo}: vídeo ainda não chegou, url deve ser null`);
     } else if (q.video) p.push(`${q.codigo}: não deveria ter card de vídeo`);
     if (/Tudo bem/.test(JSON.stringify(q.botao_naosei || '')) ) p.push(`${q.codigo}: mensagem "Tudo bem" do Não sei`);
+    /* lote 17/11 (2ª rodada): toda pergunta tem dica ("Ver dica"), inclusive as variantes por tipo que trocam a dica */
+    if (!q.ajuda || !String(q.ajuda.texto || '').trim()) p.push(`${q.codigo}: sem dica`);
+    for (const [k, v] of Object.entries(q.por_tipo || {})) if (v.ajuda && !String(v.ajuda.texto || '').trim()) p.push(`${q.codigo}/${k}: dica vazia`);
+    /* o texto das opções é o mesmo de antes (outros módulos, jornada e diagnóstico comparam) */
+    if (JSON.stringify(ops) !== JSON.stringify(OPCOES_ORIGINAIS[q.codigo])) p.push(`${q.codigo}: texto das opções mudou`);
+    for (const [k, v] of Object.entries(q.por_tipo || {})) if (v.opcoes && JSON.stringify(v.opcoes.map((o) => o.texto)) !== JSON.stringify(OPCOES_ORIGINAIS[q.codigo + '/' + k])) p.push(`${q.codigo}/${k}: texto das opções mudou`);
+    /* o enunciado por estágio não troca opções */
+    for (const v of [q, ...Object.values(q.por_tipo || {})]) for (const [k, x] of Object.entries(v.por_estagio || {})) if (x.opcoes) p.push(`${q.codigo}: por_estagio.${k} não pode trocar opções`);
     /* versão leve: toda pergunta com "Não sei" (e a P3, com "Ainda não sei o que vender") traz passos e pedido para a IA */
     if (COM_NAOSEI.includes(q.codigo)) {
       if (!Array.isArray(q.comoDescobrir) || !q.comoDescobrir.length || q.comoDescobrir.some((x) => !String(x || '').trim())) p.push(`${q.codigo}: falta "comoDescobrir"`);
@@ -255,6 +288,11 @@ function conferirAjuste(D) {
   return p;
 }
 const DADOS = lerDados(dados);
+try {
+  const head = require('node:child_process').execSync('git show HEAD:public/lg2/turma-a/m01/dados/modulo1.js', { cwd: path.resolve(__dirname, '..'), stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+  const H = lerDados(head), lista = (D) => D.perguntas.map((q) => [q.codigo, (q.opcoes || []).map((o) => o.texto), Object.entries(q.por_tipo || {}).map(([k, v]) => [k, (v.opcoes || []).map((o) => o.texto)])]);
+  ok(JSON.stringify(lista(H)) === JSON.stringify(lista(DADOS)), 'texto das opções idêntico ao de git show HEAD');
+} catch { /* sem git: vale a lista OPCOES_ORIGINAIS */ }
 const probs = conferirAjuste(DADOS);
 ok(probs.length === 0, 'ajuste nos dados: ' + probs.join(' | '));
 /* sabotagem: cada estrago tem de ser apontado pelo conferidor */
@@ -270,6 +308,12 @@ const sabot = [
   ['7A sem "Como descobrir"', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P07A').comoDescobrir; }],
   ['7A com passo vazio', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P07A').comoDescobrir.push(' '); }],
   ['P3 sem pedido para a IA', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P03').promptIA; }],
+  ['P8 sem dica', (D) => { delete D.perguntas.find((x) => x.codigo === 'M1.P08').ajuda; }],
+  ['P1 com dica vazia', (D) => { D.perguntas[0].ajuda.texto = ' '; }],
+  ['dica colada no texto da opção (P1)', (D) => { D.perguntas[0].opcoes[0].texto += ' Considere se já testou'; }],
+  ['opção da revenda trocada (P4)', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P04').por_tipo.Mercadoria.opcoes[2].texto = 'Não conheço'; }],
+  ['opção a mais na 5A', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P05A').opcoes.push({ texto: 'Talvez', mensagem: null }); }],
+  ['por_estagio trocando opções', (D) => { D.perguntas.find((x) => x.codigo === 'M1.P04').por_estagio.vende.opcoes = []; }],
 ];
 for (const [nome, estraga] of sabot) {
   const D = JSON.parse(JSON.stringify(DADOS)); estraga(D);
@@ -294,6 +338,10 @@ async function servidor() {
         b = String(b) + '\n.acoes-q{position:static!important}';
       else if (SAB === 'foco' && f.endsWith(path.join('js', 'app.js')))
         b = String(b).replace('if (q) try { q.focus', 'if (false) try { q.focus');
+      else if (SAB === 'conclusao' && f.endsWith(path.join('js', 'app.js')))   // resultado sem a conclusão no topo
+        b = String(b).replace('const conclusao = Motor.conclusao(M, S.R);', 'const conclusao = \'\';');
+      else if (SAB === 'estagio' && f.endsWith(path.join('js', 'motor.js')))   // enunciado de iniciante para quem já vende
+        b = String(b).replace('if (s && e.por_estagio', 'if (false && e.por_estagio');
       else if (SAB === 'modulo' && f.endsWith(path.join('js', 'app.js')))
         b = String(b).replace('>Ir para a Etapa 2<', '>Ir para o Módulo 2<');
       else if (SAB === '1' && f.endsWith(path.join('js', 'app.js')))
@@ -444,8 +492,7 @@ async function servidor() {
     const e = expDe(c, R);
     const t = await texto();
     const q = await page.evaluate(() => document.querySelector('.q').textContent);
-    let qEsp = e.pergunta;
-    if (c === 'M1.P04' && R['M1.P03'] && !R.__vaga) qEsp = tipoDe(R) === 'Mercadoria' ? `Você já conhece bem ${R.__p4} e sabe onde comprar?` : `Você já sabe fazer ${R.__p4}?`;
+    const qEsp = perguntaEsperada(c, R);
     if (e.exemplo) ok(await page.evaluate(() => (document.querySelector('.ajuda-box .ex') || {}).textContent) === e.exemplo, `${c} (${tipoDe(R)}): exemplo da ajuda conforme o tipo`);
     else ok(await page.evaluate(() => !document.querySelector('.ajuda-box .ex')), `${c}: sem exemplo na dica`);
     ok(q === qEsp, `${c}: pergunta "${q}" != "${qEsp}"`);
@@ -644,7 +691,7 @@ async function servidor() {
   const avisosAgora = () => page.evaluate(() => [...document.querySelectorAll('.b-aviso p')].map((l) => l.textContent));
   /* texto corrido (relatório do Bento): frases agrupadas por assunto em 1 a 3 parágrafos, sem lista */
   ok(JSON.stringify(await entendemos()) === JSON.stringify([
-    'Você vende bolo de pote, um produto: você compra os materiais e faz o que vende. Você já vendeu algumas vezes, então já sabe que tem gente que compra.',
+    'Você vende bolo de pote, um produto: você compra os materiais e faz o que vende.',
     'Você já sabe fazer isso bem e tem até 1 hora por dia para o negócio, e consegue arrumar mais tempo se ele crescer. Por enquanto, você não tem dinheiro para colocar no negócio e já tem tudo o que precisa para trabalhar; você pensa em começar juntando dinheiro primeiro.',
     'O que mais te preocupa agora: conhecer poucas pessoas para vender ou te ajudar e medo de não vender.',
   ]), 'resultado: "O que entendemos até aqui" em 3 parágrafos ' + JSON.stringify(await entendemos()));
@@ -653,7 +700,15 @@ async function servidor() {
   ok(await page.evaluate(() => { const e = document.querySelector('.entendemos'), d = document.querySelector('details.respostas');
     return e.querySelector('h3').textContent === 'O que entendemos até aqui' && e.getBoundingClientRect().top < innerHeight && !!d && d.open && d.querySelector('summary').textContent === 'Ver suas respostas' && (e.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING); }),
     'resultado: caixa no topo (visível sem rolar) e respostas abertas abaixo dela (relatório aberto, 16/11)');
-  ok((await texto()).includes('Você já sabe fazer bolo de pote?'), 'resultado: lista de respostas começa aberta');
+  ok((await texto()).includes('Você faz bolo de pote bem?'), 'resultado: lista de respostas começa aberta (enunciado de quem já vende)');
+  /* passada geral 17/11: a conclusão principal é a 1ª coisa do resultado, à vista sem rolar, e não se repete em "O que entendemos" */
+  const conclusaoAgora = () => page.evaluate(() => { const c = document.querySelector('.concluido .conclusao'), e = document.querySelector('.entendemos');
+    if (!c) return null; const r = c.getBoundingClientRect();
+    return { t: c.textContent, vis: r.top >= 0 && r.bottom <= innerHeight, antes: !e || !!(c.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING), repete: !!e && e.textContent.includes(c.textContent) }; });
+  {
+    const c = await conclusaoAgora();
+    ok(c && c.t === CONCLUSAO['Já vendi algumas vezes'] && c.vis && c.antes && !c.repete, 'resultado: conclusão principal no topo, à vista, sem repetir ' + JSON.stringify(c));
+  }
   await shot('06-resultado');
   await page.evaluate(() => { document.querySelector('details.respostas').open = true; });
   t = await texto();
@@ -661,7 +716,7 @@ async function servidor() {
   ok(await page.evaluate(() => { const c = [...document.querySelectorAll('.resp')].find((x) => x.textContent.includes('O que mais te preocupa agora?')); return c ? [...c.querySelectorAll('li')].map((l) => l.textContent).join('|') : ''; }) ===
     'Conheço poucas pessoas para vender ou me ajudar|Outra coisa: Medo de não vender', 'resultado: Pergunta 8 lista as duas preocupações');
   ok(t.includes('O que você oferece?') && t.includes('Produto: eu compro materiais e faço o que vendo'), 'resultado: resposta da 3A');
-  ok(t.includes('Você já sabe fazer bolo de pote?') && t.includes('Bolo de pote'), 'resultado: resumo com P3/P4');
+  ok(t.includes('Você faz bolo de pote bem?') && t.includes('O que você vende?') && t.includes('Bolo de pote') && !t.includes('O que você vende ou quer vender?'), 'resultado: resumo com P3/P4 no enunciado de quem já vende');
   ok(/Ver suas respostas/i.test(t) && /Mais detalhes/.test(t) && /Para onde seguem estas informações/i.test(t), 'resultado: resumo + "Mais detalhes" aberto');
   {
     /* versão leve: o resultado começa pelo que importa (entendemos, tarefa, falta descobrir); o resto fica recolhido */
@@ -708,16 +763,19 @@ async function servidor() {
     'M1.P03A': 'Serviço: meu cliente paga pelo trabalho que realizo', 'M1.P04': 'Ainda não sei fazer', 'M1.P05': 'Mais de 3 horas por dia', 'M1.P06': 'Tenho só uma parte', 'M1.P07': 'Até R$ 100',
     'M1.P08': EXP['M1.P08'].opcoes.map((o) => o[0]), __outra: 'Chuva' }));
   ok(JSON.stringify(await entendemos()) === JSON.stringify([
-    'Você quer vender lavagem de carro em domicílio, um serviço: o cliente paga pelo trabalho que você faz. Por enquanto, a ideia está só na sua cabeça. O melhor agora é testar com pouca coisa antes de gastar.',
+    'Você quer vender lavagem de carro em domicílio, um serviço: o cliente paga pelo trabalho que você faz.',
     'Você ainda precisa aprender a fazer isso e tem mais de 3 horas por dia para o negócio. Você pode usar até R$ 100 sem faltar para as contas da casa e já tem uma parte do que precisa para trabalhar.',
     'O que mais te preocupa agora: ainda não saber fazer direito, a falta de lugar ou equipamento, conhecer poucas pessoas para vender ou te ajudar, a dificuldade com celular, internet ou redes sociais e chuva.',
   ]), 'entendemos (serviço): ' + JSON.stringify(await entendemos()));
   ok(await tarefaAgora() === 'Pergunte a 3 pessoas próximas se comprariam lavagem de carro em domicílio e por quanto.', 'tarefa (só na cabeça): ' + await tarefaAgora());
+  { const c = await conclusaoAgora(); ok(c && c.t === CONCLUSAO['Ainda está só na minha cabeça'] && c.vis && !c.repete, 'conclusão (só na cabeça): ' + JSON.stringify(c)); }
+  ok((await texto()).includes('Você já sabe fazer lavagem de carro em domicílio?') && (await texto()).includes('O que você vende ou quer vender?'), 'resultado (só na cabeça): enunciados de quem ainda não vende');
   ok(JSON.stringify(await faltaAgora()) === '[]' && JSON.stringify(await avisosAgora()) === '[]', 'serviço só na cabeça: nada falta, sem aviso');
   // mercadoria: a Pergunta 4 fala de conhecer o produto e onde comprar (não de saber fazer)
   const MERC = { 'M1.P03A': 'Mercadoria: compro pronto para revender', 'M1.P04': 'Conheço um pouco, ainda estou pesquisando', 'M1.P08': ['Ainda não conheço bem o produto ou os fornecedores'] };
   await caminho('mercadoria', com(Object.assign({ 'M1.P01': 'Já fiz um pouco para testar ou dar de amostra' }, MERC)));
-  ok(((await entendemos()) || [])[0] === 'Você quer vender bolo de pote, uma mercadoria: você compra pronto para revender. Você já fez um pouco para testar ou dar de amostra. É hora de ouvir quem provou: compraria? Por quanto?', 'entendemos (mercadoria)');
+  ok(((await entendemos()) || [])[0] === 'Você quer vender bolo de pote, uma mercadoria: você compra pronto para revender.', 'entendemos (mercadoria)');
+  { const c = await conclusaoAgora(); ok(c && c.t === CONCLUSAO['Já fiz um pouco para testar ou dar de amostra'] && !c.repete, 'conclusão (amostra): ' + JSON.stringify(c)); }
   ok(await tarefaAgora() === 'Pergunte a 3 pessoas que já experimentaram se comprariam bolo de pote e por quanto.', 'tarefa (amostra): ' + await tarefaAgora());
   await caminho('mercadoria já vende (todas as mensagens)', com(Object.assign({ 'M1.P01': 'Já vendo sempre', 'M1.P03': 'Roupas femininas', __p4: 'roupas femininas',
     'M1.P08': ['Ainda não conheço bem o produto ou os fornecedores', 'Me falta lugar ou equipamento'] }, MERC, { 'M1.P08': OPS_P08_MERC.slice(0, 2).map((o) => o[0]) })), { todasMsgs: true });
@@ -727,6 +785,8 @@ async function servidor() {
       f[0].includes('O que mais te preocupa agora: ainda não conhecer bem o produto ou os fornecedores e a falta de lugar ou equipamento.') &&
       !f.join(' ').includes('aprendendo a fazer'), 'entendemos (mercadoria): fala de conhecer o produto, não de saber fazer ' + JSON.stringify(f));
     ok(await tarefaAgora() === 'Pesquise o preço de compra de roupas femininas em 2 fornecedores.', 'tarefa (mercadoria): ' + await tarefaAgora());
+    { const c = await conclusaoAgora(); ok(c && c.t === CONCLUSAO['Já vendo sempre'] && !c.repete, 'conclusão (vende sempre): ' + JSON.stringify(c)); }
+    ok((await texto()).includes('Você conhece bem roupas femininas e onde comprar?'), 'resultado (revenda, já vende): enunciado da P4 sem tom de iniciante');
     await shot('m01-resultado-mercadoria');
   }
   // serviço que já vende mas "ainda não sabe fazer": aviso que não trava
@@ -763,7 +823,7 @@ async function servidor() {
       'Na Etapa 4 você vai usar essas informações para montar uma primeira oferta simples e testar a ideia gastando pouco.',
       'Na Etapa 6 você vai usar esse valor para planejar quanto investir no começo sem se arriscar.',
       'Na Etapa 10, o seu tempo e o que limita você vão ajudar a definir o ritmo e as prioridades do seu plano de 90 dias.',
-      'Etapa 2: Clientes, necessidades e comportamento de compra',
+      'Etapa 2: Quem são seus clientes e como compram',
       'Seu retrato inicial: o tempo que você tem, o que limita você e o que motiva você.'])
       ok(t2.includes(s), `resultado: falta "${s}"`);
   }
@@ -797,7 +857,7 @@ async function servidor() {
   await clicarTexto('button', '‹ Voltar');
   ok((await estadoOpcoes()).find((o) => o.t === 'Só nos fins de semana').check, 'persistência: P5 mantém a escolha');
   await clicarTexto('button', '‹ Voltar');
-  ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já sabe fazer conserto de celular?', 'persistência: P4 repete a resposta da P3');
+  ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você faz conserto de celular bem?', 'persistência: P4 repete a resposta da P3 (quem já vende)');
   // trocar a P5 para uma opção sem 5A remove a resposta extra do caminho
   await continuar();
   await opcao('Mais de 3 horas por dia'); await continuar();
@@ -934,13 +994,13 @@ async function servidor() {
     await opcao('Quero ganhar um dinheiro a mais'); await continuar();
     await page.fill('#txt', 'Roupas'); await continuar();
     await opcao('Produto: eu compro materiais e faço o que vendo'); await continuar();
-    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já sabe fazer roupas?', 'troca de tipo: P4 de produto');
+    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você faz roupas bem?', 'troca de tipo: P4 de produto');
     await opcao('Sim, já faço bem');
     await clicarTexto('button', '‹ Voltar');
     await opcao('Mercadoria: compro pronto para revender');
     ok(JSON.stringify((await page.evaluate(() => JSON.parse(localStorage.getItem('lg2-turma-a-m01')))).R['M1.P03A']) === JSON.stringify({ estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }), 'troca de tipo: 3A no mesmo formato');
     await continuar();
-    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você já conhece bem roupas e sabe onde comprar?', 'troca de tipo: P4 de revenda');
+    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você conhece bem roupas e onde comprar?', 'troca de tipo: P4 de revenda');
     ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Sim, conheço bem o produto e onde comprar"]' && await pronto(),
       'troca de tipo: a resposta da P4 passa para a opção equivalente, Continuar aceso');
     ok(!(await texto()).includes('ainda estou aprendendo'), 'troca de tipo: sem opção de "aprender a fazer" na revenda');
@@ -949,6 +1009,28 @@ async function servidor() {
     await clicarTexto('button', '‹ Voltar');
     await opcao('Serviço: meu cliente paga pelo trabalho que realizo'); await continuar();
     ok(JSON.stringify((await estadoOpcoes()).filter((o) => o.sel).map((o) => o.t)) === '["Sim, já faço bem"]', 'troca de tipo: voltar para serviço restaura a opção de saber fazer');
+  }
+
+  /* ---------- enunciado por estágio: trocar a P1 troca o enunciado da P3/P4, as opções e a resposta ficam ---------- */
+  {
+    await inicio();
+    await clicarTexto('button', 'Começar');
+    await opcao('Ainda está só na minha cabeça'); await continuar();
+    await opcao('Quero ganhar um dinheiro a mais'); await continuar();
+    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'O que você vende ou quer vender?', 'estágio: P3 de quem ainda não vende');
+    await page.fill('#txt', 'Pão de mel'); await continuar();
+    await opcao('Produto: eu compro materiais e faço o que vendo'); await continuar();
+    const q4 = await page.evaluate(() => document.querySelector('.q').textContent);
+    const ops4 = JSON.stringify((await estadoOpcoes()).map((o) => o.t));
+    ok(q4 === 'Você já sabe fazer pão de mel?', 'estágio: P4 de quem ainda não vende: ' + q4);
+    await opcao('Sim, já faço bem');
+    for (let i = 0; i < 4; i++) await clicarTexto('button', '‹ Voltar');
+    ok(await cod() === 'M1.P01', 'estágio: de volta à P1');
+    await opcao('Já vendo sempre'); await continuar(); await continuar();
+    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'O que você vende?', 'estágio: P3 de quem já vende');
+    await continuar(); await continuar();
+    ok(await page.evaluate(() => document.querySelector('.q').textContent) === 'Você faz pão de mel bem?', 'estágio: P4 de quem já vende');
+    ok(JSON.stringify((await estadoOpcoes()).map((o) => o.t)) === ops4 && (await estadoOpcoes()).find((o) => o.t === 'Sim, já faço bem').sel, 'estágio: mesmas opções e a resposta continua marcada');
   }
 
   /* ---------- teclado do celular (receita A): campo e Continuar visíveis com o teclado aberto ---------- */

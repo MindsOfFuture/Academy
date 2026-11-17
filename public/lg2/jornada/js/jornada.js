@@ -13,16 +13,16 @@
   // Ordem da jornada. caminho null = módulo ainda não entregue ("em breve"), não trava os seguintes.
   // Precisa bater com PRONTOS em components/modules/laboratorio-gestao/turmas.ts (há teste).
   var MODULOS = [
-    { n: 1, nome: 'Perfil do empreendedor e definição da ideia', caminho: '/lg2/turma-a/m01/index.html' },
-    { n: 2, nome: 'Clientes, necessidades e comportamento de compra', caminho: '/lg2/turma-b/m02/index.html' },
+    { n: 1, nome: 'Você e a sua ideia de negócio', caminho: '/lg2/turma-a/m01/index.html' },
+    { n: 2, nome: 'Quem são seus clientes e como compram', caminho: '/lg2/turma-b/m02/index.html' },
     { n: 3, nome: 'Mercado, concorrentes e oportunidades', caminho: '/lg2/turma-a/m03/index.html' },
-    { n: 4, nome: 'Produto, proposta de valor e teste da ideia', caminho: '/lg2/turma-a/m04/index.html' },
-    { n: 5, nome: 'Custos, despesas, preço e margem', caminho: '/lg2/turma-a/m05/index.html' },
-    { n: 6, nome: 'Investimento, capital de giro e fluxo de caixa', caminho: '/lg2/turma-b/m06/index.html' },
-    { n: 7, nome: 'Operação, fornecedores, capacidade e qualidade', caminho: '/lg2/turma-b/m07/index.html' },
-    { n: 8, nome: 'Formalização, enquadramento e tributação básica', caminho: '/lg2/turma-b/m08/index.html' },
-    { n: 9, nome: 'Licenças, endereço e atividades reguladas', caminho: '/lg2/turma-b/m09/index.html' },
-    { n: 10, nome: 'Comunicação, vendas, pessoas e plano de ação', caminho: '/lg2/turma-b/m10/index.html' }
+    { n: 4, nome: 'Produto, por que comprar de você e teste da ideia', caminho: '/lg2/turma-a/m04/index.html' },
+    { n: 5, nome: 'Custos, preço e quanto sobra', caminho: '/lg2/turma-a/m05/index.html' },
+    { n: 6, nome: 'Dinheiro para começar e para os primeiros meses', caminho: '/lg2/turma-b/m06/index.html' },
+    { n: 7, nome: 'Como você produz, compra e entrega', caminho: '/lg2/turma-b/m07/index.html' },
+    { n: 8, nome: 'Abrir o seu negócio: CNPJ, MEI e impostos', caminho: '/lg2/turma-b/m08/index.html' },
+    { n: 9, nome: 'Licenças e endereço', caminho: '/lg2/turma-b/m09/index.html' },
+    { n: 10, nome: 'Vendas, pessoas e plano de ação', caminho: '/lg2/turma-b/m10/index.html' }
   ];
   var CHAVE = 'lg2-jornada';
   var TOTAL = MODULOS.length;
@@ -62,6 +62,7 @@
   function anteriorPronto(n) { return prontos[prontos.findIndex(function (x) { return x.n === n; }) - 1] || null; }
 
   var iframe = document.getElementById('modulo');
+  var abrindo = document.getElementById('abrindo'), abrindoTxt = document.getElementById('abrindo-txt');
   var trilha = document.getElementById('trilha');
   var telaTrilha = document.getElementById('trilha-tela');
   var telaConcluida = document.getElementById('concluida');
@@ -227,6 +228,7 @@
     if (!manterModulo) {
       clearInterval(vigia);
       iframe.hidden = true;
+      abrindo.hidden = true;
       if (iframe.getAttribute('src') && iframe.getAttribute('src') !== 'about:blank') iframe.setAttribute('src', 'about:blank');
     }
   }
@@ -253,7 +255,12 @@
     iframe.hidden = false;
     aviso.textContent = feito(n) ? 'Etapa concluída. Pode rever e mudar suas respostas.' : '';
     topo('Etapa ' + m.n + ' de ' + TOTAL, m.nome, true);
-    if (iframe.getAttribute('src') !== m.caminho) iframe.setAttribute('src', m.caminho);
+    if (iframe.getAttribute('src') !== m.caminho) {
+      // Internet lenta: mostra que a etapa está abrindo (some no load do iframe ou ao sair da etapa).
+      abrindoTxt.textContent = 'Abrindo a Etapa ' + m.n + '…';
+      abrindo.hidden = false;
+      iframe.setAttribute('src', m.caminho);
+    }
   }
 
   function concluir(n) {
@@ -562,6 +569,7 @@
   // O botão dela ("Ir para o Módulo N" / "Voltar aos módulos") passa a mostrar a tela de etapa concluída.
   iframe.addEventListener('load', function () {
     clearInterval(vigia);
+    abrindo.hidden = true;
     if (iframe.hidden) return;
     var doc, caminho;
     try { doc = iframe.contentDocument; caminho = iframe.contentWindow.location.pathname; } catch (e) { return; }

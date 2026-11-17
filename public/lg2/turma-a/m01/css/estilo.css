@@ -161,6 +161,7 @@ body.com-video{overflow:hidden}
 .conc-check{flex:0 0 40px;height:40px;border-radius:50%;background:var(--i-check-roxo) center/contain no-repeat}
 .conc-topo h2{font-size:21px;line-height:1.2;color:#2b2340}
 .conc-topo p{font-size:16px;color:var(--m-gray);margin-top:3px}
+.conc-topo p.conclusao{font-size:17px;color:#2b2340;line-height:1.45;margin-top:6px}
 
 /* rodapé institucional */
 .rodape{margin-top:26px;padding-top:16px;border-top:2px solid var(--m-lavender);text-align:center}

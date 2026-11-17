@@ -314,7 +314,7 @@
     "M9.BT02": ["Nível de risco da atividade", "Cada atividade tem um nível de risco. Baixo: não precisa de alvará nem de licença. Médio: a licença sai logo depois do registro e a vistoria vem depois. Alto: só pode funcionar depois da vistoria."],
     "M9.BT03": ["Código da atividade", "Número oficial que diz qual é a sua atividade. Ele aparece no cartão do CNPJ e no certificado do MEI. A empresa tem uma atividade principal e pode ter outras."],
     "M9.BT04": ["Nível de risco na sua cidade", "A sua cidade ou o seu estado podem ter uma lista própria com o risco de cada atividade. Se não tiverem, vale a lista do governo federal. Quem tem mais de uma atividade segue, em geral, a de maior risco."],
-    "M9.BT05": ["Consulta de viabilidade", "É perguntar à prefeitura, antes de abrir ou de mudar de endereço, se o seu tipo de negócio pode funcionar naquele lugar. Ela é feita pela internet, no site da Junta Comercial do seu estado, e muitas vezes a resposta já diz se você precisa de alvará."],
+    "M9.BT05": ["verificação do endereço na prefeitura", "É perguntar à prefeitura, antes de abrir ou de mudar de endereço, se o seu tipo de negócio pode funcionar naquele lugar. Ela é feita pela internet, no site da Junta Comercial do seu estado, e muitas vezes a resposta já diz se você precisa de alvará."],
     "M9.BT06": ["Licença provisória (risco médio)", "Na atividade de risco médio, a licença sai logo depois do registro, com base na sua palavra de que cumpre as regras. A vistoria vem depois. O nome, o prazo e as condições mudam de cidade para cidade."],
     "M9.BT07": ["Sem alvará não quer dizer sem regras", "Mesmo sem precisar de alvará, o negócio tem de seguir as regras da cidade, de higiene, de meio ambiente e de segurança, e pode ser fiscalizado. As regras de obra também continuam valendo."],
     "M9.BT08": ["Trabalhar em casa", "No MEI, você pode usar a sua casa como endereço do negócio quando a atividade não precisa de um lugar próprio. Atividades simples, de baixo risco, podem funcionar em casa sem alvará. Mas a prefeitura pode pôr condições: a rua aceitar comércio, tamanho máximo, número de clientes, gás e produtos que pegam fogo."],
@@ -386,6 +386,7 @@
      O texto da opção não muda (outros módulos comparam o valor salvo); o exemplo é uma linha à parte. */
   function exemploPergunta(cod, X) {
     if (cod === "M9-04") return "Ex.: perguntar se pode abrir um salão ou uma lanchonete naquele endereço.";
+    if (cod === "M9-05") return "Ex.: IPTU ou contrato mostram a área; um cômodo de 6 m × 4 m tem 24 m².";
     if (cod === "M9-10") return "Ex.: nutricionista, veterinário, engenheiro, contador, educador físico.";
     return "";
   }
@@ -754,7 +755,7 @@
     /* o endereço do portal do estado (vindo de "[link do estado]") aparece com nome simples, como na pergunta */
     const bonito = (h) => h.split(`>${esc(linkUF)}</a>`).join(`>${esc(nomeLinkEstado())}</a>`);
     const linkOrgao = (k) => k === "prefeitura"
-      ? { u: linkUF, t: estado && estado !== NS ? `Consulta de viabilidade · ${estado}` : "Consulta de viabilidade · portais de todos os estados", d: D.viabilidade.data }
+      ? { u: linkUF, t: estado && estado !== NS ? `verificação do endereço na prefeitura · ${estado}` : "verificação do endereço na prefeitura · portais de todos os estados", d: D.viabilidade.data }
       : { u: BASE[Mo.ORGAOS[k].base].link, t: BASE[Mo.ORGAOS[k].base].referencia, d: BASE[Mo.ORGAOS[k].base].data };
     /* na tela, o link tem nome simples; o nome da lei ou norma fica em "Detalhes técnicos" */
     const linkSimples = (k) => { const l = linkOrgao(k); return k === "prefeitura" ? link(l.u, l.t) : `${link(l.u, "Ver a regra oficial")}${tecHtml(`<p>Regra: ${esc(l.t)}</p>`)}`; };

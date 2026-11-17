@@ -1172,7 +1172,7 @@
         <div class="cartao" id="cx-min"><h3>Menor saldo</h3><p><b>${brl(r.min)}</b></p><p class="mini-info">na semana ${r.semanaMin}</p></div>
         <div class="cartao" id="cx-final"><h3>Saldo final</h3><p><b>${brl(r.final)}</b></p><p class="mini-info">na semana 13</p></div>
       </div>
-      <div class="res-num" id="cx-capital"><div class="lbl">Capital de giro: dinheiro extra necessário</div><div class="val">${brl(r.capital)}</div>
+      <div class="res-num" id="cx-capital"><div class="lbl">Dinheiro extra necessário para pagar as contas nos primeiros meses (capital de giro)</div><div class="val">${brl(r.capital)}</div>
         <div class="sub">${falta ? "Dinheiro a mais que você precisa ter no caixa para não ficar no negativo." : "Com essas contas, o caixa não fica negativo."}</div></div>
       ${como(`o saldo mais baixo das 13 semanas é ${brl(r.min)}, na semana ${r.semanaMin}. ${falta ? `Para ele não ficar negativo, faltam ${brl(r.capital)}` : "Ele não fica negativo, então não falta dinheiro"} (capital adicional = saldo mais baixo com o sinal trocado, ou zero).`, "como-capital")}
       ${como(`saldo final = ${brl(c.inicial)} (caixa hoje) + ${brl(c.entradas)} (tudo o que entra) − ${brl(c.saidas)} (tudo o que sai) = ${brl(c.saldo)}.`, "como-final")}
@@ -1296,6 +1296,11 @@
     const l = AUTO.filter((c) => autoHerdada(c, S.R));
     return l.length ? `<details class="resultado-mais herdadas" id="herdadas-res"><summary>Respostas que vieram de outras etapas</summary><ul>${l.map(itemHerdado).join("")}</ul></details>` : "";
   }
+  /* Resposta principal antes das listas: o caixa dá ou falta nos primeiros meses e quanto. */
+  function conclusaoCaixa() {
+    const r = Motor.resumoCaixa(fluxo());
+    return `<div class="res-num" id="conclusao-principal"><div class="lbl">${r.capital > 0 ? "Falta dinheiro nos primeiros meses" : "O dinheiro dá para os primeiros meses"}</div><div class="val">${brl(r.capital)}</div><div class="sub">${r.capital > 0 ? `É quanto falta para o caixa não ficar negativo; o menor saldo é ${brl(r.min)} na semana ${r.semanaMin}.` : `Não falta dinheiro extra (R$ 0,00); o menor saldo previsto é ${brl(r.min)} na semana ${r.semanaMin}.`}</div></div>`;
+  }
   function telaResultado() {
     const regras = Motor.regrasTodas(M, S.R);
     const lac = Motor.lacunas(regras), enc = Motor.encaminhamentos(regras), ale = Motor.alertas(regras);
@@ -1310,6 +1315,7 @@
           <section class="concluido">
             <div class="conc-topo"><span class="check" aria-hidden="true"></span><div><h2>Você concluiu a Etapa ${esc(D.modulo.numero)}</h2><p>Seu resumo está logo abaixo.</p></div></div>
           </section>
+          <section class="conclusao-caixa" id="conclusao-caixa">${conclusaoCaixa()}</section>
           <section class="entendemos" id="entendemos">${blocoEntendemos()}</section>
           <div class="secao-titulo">Sua próxima tarefa</div>
           ${falta.length ? `<ol class="roteiro" id="proximos">${falta.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`
@@ -1376,7 +1382,7 @@
         S.cen[x.dataset.k] = Motor.num(x.value) || 0; salvar(); const y = window.scrollY; refazer("#i05", blocoI05); refazer("#atencao", blocoAtencao); window.scrollTo(0, y);
       }));
     }
-    function atualizarCaixa() { const y = window.scrollY; p.querySelector("#entendemos").innerHTML = blocoEntendemos(); p.querySelector("#atencao").innerHTML = blocoAtencao(); p.querySelector("#caixa").innerHTML = blocoCaixa(); p.querySelector("#operacao").innerHTML = blocoOperacao(); p.querySelector("#retorno-inv").innerHTML = blocoRetorno(); p.querySelector("#i04").innerHTML = blocoI04(); p.querySelector("#i03").innerHTML = blocoI03(); p.querySelector("#i05").innerHTML = blocoI05(); ["#caixa", "#i04", "#i03", "#i05"].forEach((id) => abrir(p.querySelector(id))); ligar(); window.scrollTo(0, y); }
+    function atualizarCaixa() { const y = window.scrollY; p.querySelector("#conclusao-caixa").innerHTML = conclusaoCaixa(); p.querySelector("#entendemos").innerHTML = blocoEntendemos(); p.querySelector("#atencao").innerHTML = blocoAtencao(); p.querySelector("#caixa").innerHTML = blocoCaixa(); p.querySelector("#operacao").innerHTML = blocoOperacao(); p.querySelector("#retorno-inv").innerHTML = blocoRetorno(); p.querySelector("#i04").innerHTML = blocoI04(); p.querySelector("#i03").innerHTML = blocoI03(); p.querySelector("#i05").innerHTML = blocoI05(); ["#caixa", "#i04", "#i03", "#i05"].forEach((id) => abrir(p.querySelector(id))); ligar(); window.scrollTo(0, y); }
     ligar();
     ligarTrocar(p);
     ligarCopiar(p);

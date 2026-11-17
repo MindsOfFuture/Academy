@@ -28,7 +28,8 @@ const K = 'lg2-turma-b-m08';
     const t = (document.querySelector('.passo') || {}).textContent || '';
     if (/Resultado/.test(t)) return 'RESULTADO';
     const m = t.match(/Pergunta (\d+)/);
-    return m ? Motor.montar(window.MODULO8).perguntas[+m[1] - 1].codigo : null;
+    /* o número é a posição entre as telas vistas (reaproveitadas não contam): o código vem da própria tela */
+    return m ? ((document.querySelector('.cartao-q[data-cod]') || {}).dataset || {}).cod || null : null;
   });
   /* versão leve (nov/2026): nas perguntas, faixa compacta (passo + barra), sem barra do topo nem ilustração */
   const palavras = async () => (await page.evaluate(() => document.querySelector('#tela').innerText)).split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length;
@@ -63,9 +64,10 @@ const K = 'lg2-turma-b-m08';
   assert.ok(nrm(await page.textContent('details.como-funciona')).includes(nrm(D.mapa.ter_em_maos)), 'capa: "O que ter em mãos" dentro de "Como funciona"');
   assert.ok(await palavras() <= 60, `capa: até 60 palavras (${await palavras()})`);
   await btn('Começar').click();
+  assert.equal(nrm(await page.textContent('.passo')), 'Pergunta 1 de 9', 'primeira tela: Pergunta 1 de 9');
 
   /* perguntas até o resultado */
-  const resp = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P09': 'Sim', 'M8.P10': null };
+  const resp = { 'M8.P02': 'Serviço', 'M8.P03': 'Minha casa', 'M8.P05': 'Não', 'M8.P07': 'Sim', 'M8.P08': 'Não', 'M8.P10': null };
   /* lote 16/11 (item D): linha simples com exemplo à vista + exemplo embaixo das opções difíceis; limite subiu de 60 para 85 */
   const LIMITE_PALAVRAS = 85;
   const vistas = [], contagem = {};
@@ -130,7 +132,8 @@ const K = 'lg2-turma-b-m08';
     if (vistas.length === 1) assert.ok((await st()).hist.length >= 2);
   }
   assert.equal(await atual(), 'RESULTADO', 'chegou ao resultado');
-  assert.deepEqual(vistas, ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P09', 'M8.P10'], 'caminho pelas condições F');
+  assert(nrm(await page.textContent('#etapa9-nota')).includes('As licenças e o endereço você confere na Etapa 9'), 'resultado direciona à Etapa 9 para licenças e endereço');
+  assert.deepEqual(vistas, ['M8.P01', 'M8.P02', 'M8.P03', 'M8.P04', 'M8.P05', 'M8.P06', 'M8.P07', 'M8.P08', 'M8.P10'], 'caminho pelas condições F');
 
   /* resultado */
   await layout('resultado');
@@ -182,6 +185,7 @@ const K = 'lg2-turma-b-m08';
   /* item F (16/11): as 4 respostas que já vieram de outros módulos não têm tela; a 1ª tela é a P05, com o cartão "Veio do Módulo N · Trocar" */
   const esperado = { 'M8.P01': ['Lava-jato em domicílio', 1], 'M8.P02': ['Serviço', 1], 'M8.P03': ['Atendimento externo', 9], 'M8.P04': ['2.000', 5] };
   assert.equal(await atual(), 'M8.P05', 'P01 a P04 já respondidas em outros módulos: a 1ª tela é a P05');
+  assert.equal(nrm(await page.textContent('.passo')), 'Pergunta 1 de 9', 'herança: a 1ª tela vista (P05) é "Pergunta 1 de 9"');
   assert.equal(await page.locator('#veio .veio-linha').count(), 4, 'cartão com as 4 respostas reaproveitadas');
   for (const [cod, [val, mod]] of Object.entries(esperado)) {
     const linha = nrm(await page.textContent(`#veio .veio-linha[data-cod="${cod}"]`));

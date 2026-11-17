@@ -16,6 +16,10 @@ const SABOTAGEM2 = process.env.SABOTAGEM === '2';
 const SABOTAGEM3 = process.env.SABOTAGEM === '3';
 /* SABOTAGEM=4 tira a área de ações presa ao pé da tela (o Continuar some em tela pequena) */
 const SABOTAGEM4 = process.env.SABOTAGEM === '4';
+/* SABOTAGEM=5 desfaz o lote 17/11 (auditoria): sem rascunho na pergunta 12 e sem a lembrança da Etapa 3 nas perguntas 9 e 10 */
+const SABOTAGEM5 = process.env.SABOTAGEM === '5';
+/* SABOTAGEM=6 mostra a lembrança da Etapa 3 mesmo sem resposta lá (o teste tem de acusar) */
+const SABOTAGEM6 = process.env.SABOTAGEM === '6';
 const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
@@ -24,6 +28,8 @@ const servidor = http.createServer((req, res) => {
   if (SABOTAGEM2 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (ns) ns.onclick = () => { p.querySelector("#erro").hidden = true;', 'if (ns) ns.onclick = () => { S.R[cod] = { estado: "naosei" }; salvar();'));
   if (SABOTAGEM3 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('const prox = seguinte(cod);\n      if (prox === "RESULTADO")',
     'const prox = seguinte(cod); { const ac = p.querySelector("#acoes"); ac.innerHTML = ""; const b = document.createElement("button"); b.className = "btn btn-primario"; b.textContent = "Seguir"; b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); }; ac.appendChild(b); const c = document.createElement("button"); c.className = "btn btn-claro"; c.textContent = "Corrigir minha resposta"; c.onclick = () => ir(telaPergunta, cod); ac.appendChild(c); return; }\n      if (prox === "RESULTADO")'));
+  if (SABOTAGEM5 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (cod === "M4.P12") { const r = rascunhoP12();', 'if (false) { const r = rascunhoP12();').replace('function refEtapa3(cod, atual) {', 'function refEtapa3(cod, atual) { return "";'));
+  if (SABOTAGEM6 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (!v || v === String(atual || "").trim()) return "";', 'if (v && v === String(atual || "").trim()) return "";'));
   if (SABOTAGEM4 && f.endsWith(path.join('css', 'estilo.css'))) return res.end(fs.readFileSync(f, 'utf8').replace('.corpo>.acoes-fixas{position:sticky;bottom:0;', '.corpo>.acoes-fixas{'));
   fs.createReadStream(f).pipe(res);
 });
@@ -107,6 +113,8 @@ async function caminho(page, respostas, outros) {
     const antes = await page.evaluate(() => ({
       palavras: (() => { const n = (t) => t.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ0-9]/.test(w)).length; return n(document.querySelector('#tela').innerText) - [...document.querySelectorAll('.p-linha-integrada, .p-fontes summary, .op-sub, .reuso')].reduce((a, e) => a + n(e.innerText), 0); })(),
       dica: [...document.querySelectorAll('details.dica-toggle')].map((d) => d.open),
+      valor0: (document.querySelector('#ent textarea, #ent input') || {}).value || '',
+      ref3: (document.querySelector('#ref-etapa') || {}).textContent || '',
       ph: (document.querySelector('#ent textarea, #ent input') || {}).placeholder || '',
     }));
     const temNS = await page.evaluate(() => !!document.querySelector('#ns') || [...document.querySelectorAll('.opcao')].some((x) => x.dataset.op === 'Não sei'));
@@ -408,6 +416,8 @@ async function caminho(page, respostas, outros) {
     const R = await estado();
     check('F: PV1–PV3 gravadas no formato lido pelo Módulo 10 ({estado:"valor", valor})', R['M4.PV1'].estado === 'valor' && R['M4.PV1'].valor === 'Pais sem tempo de fazer lanche' && R['M4.PV2'].valor === 'Entrego na porta da escola, na hora do lanche' && R['M4.PV2'].de === 3 && R['M4.PV3'].valor === 'Lanche pronto sem esforço' && R['M4.PV3'].igual === 'M4.P10' && !R['M4.P11'], [R['M4.PV1'], R['M4.PV2'], R['M4.PV3'], R['M4.P11']]);
     const t12 = c.telas['M4.P12'].corpo;
+    check('auditoria 17/11: com M3.P21, a pergunta 10 lembra o diferencial dito na Etapa 3 (para não parecer repetida)', c.telas['M4.P10'].ref3 === 'Na Etapa 3 você disse que o seu diferencial é: “Entrego na porta da escola, na hora do lanche”. Agora pense no que muda na vida do cliente.', c.telas['M4.P10'].ref3);
+    check('auditoria 17/11: a pergunta 12 já vem com o rascunho montado (problema da 9, ganho da 10, motivo da Etapa 3), editável', c.telas['M4.P12'].valor0.startsWith('Ofereço ') && c.telas['M4.P12'].valor0.endsWith('Resolvo este problema: pais sem tempo de fazer lanche. O cliente ganha: lanche pronto sem esforço. Por que comprar de mim: entrego na porta da escola, na hora do lanche.') && /Rascunho pronto/.test(t12), c.telas['M4.P12'].valor0);
     check('F: cartão na tela 12 com o problema, o motivo (Módulo 3) e o benefício', /Veio da sua resposta anterior/.test(t12) && /Veio da Etapa 3/.test(t12) && t12.includes('Entrego na porta da escola'), t12.slice(0, 700));
     const fim = await page.evaluate(() => ({ cartao: (document.querySelector('main .reuso') || {}).innerText || '', caixa: document.querySelector('.entendemos').innerText }));
     check('F: resultado tem "Respostas que já tínhamos" com Trocar, e o resumo usa a resposta do Módulo 3', /Respostas que já tínhamos/.test(fim.cartao) && /Trocar/.test(fim.cartao) && fim.caixa.includes('Entrego na porta da escola'), fim);
@@ -448,13 +458,13 @@ async function caminho(page, respostas, outros) {
     check('caixa: ideia + tipo (do Módulo 1)', f.includes('Você quer oferecer “Lavagem de carro na casa do cliente”, que é um serviço (o cliente paga pelo seu trabalho).'), f);
     check('caixa: estágio do Módulo 1', f.includes('ainda não saiu do papel'), f);
     check('caixa: problema do cliente (herdado do Módulo 3)', f.includes('problema que você ajuda a resolver é “Falta de tempo para lavar o carro”'), f);
-    check('caixa: proposta de valor', f.includes('Sua proposta de valor, por enquanto: “Para quem trabalha fora, lavo o carro na porta de casa”.'), f);
+    check('caixa: proposta de valor', f.includes('Por que comprar de você, por enquanto: “Para quem trabalha fora, lavo o carro na porta de casa”.'), f);
     check('caixa: teste com prazo, gasto e critério', f.includes('No primeiro teste, você vai atender poucos clientes, já cobrando, durante 7 dias, sem gastar dinheiro, e vai considerar que deu certo se chegar a 5 pedidos ou reservas.'), f);
     check('16/11: caixa sem "pontos em aberto" (nada de "Não sei" gravado)', !/em aberto|falta responder/.test(f), f);
     /* texto corrido (relatório do Bento): frases agrupadas por assunto em 1 a 3 parágrafos, sem lista */
     const par = await page.evaluate(() => { const e = document.querySelector('.entendemos'); return { n: e.querySelectorAll('p').length, li: e.querySelectorAll('ul, ol, li').length, p: [...e.querySelectorAll('p')].map((x) => x.textContent) }; });
     check('caixa: texto corrido em 1 a 3 parágrafos, sem <li> e com <p>', par.n >= 1 && par.n <= 3 && par.li === 0, par);
-    check('caixa: 1º parágrafo = negócio, estágio e cliente; 2º = proposta e teste', par.n === 2 && par.p[0].startsWith('Você quer oferecer') && /problema que você ajuda/.test(par.p[0]) && par.p[1].startsWith('Sua proposta de valor') && /No primeiro teste/.test(par.p[1]), par.p);
+    check('caixa: 1º parágrafo = negócio, estágio e cliente; 2º = proposta e teste', par.n === 2 && par.p[0].startsWith('Você quer oferecer') && /problema que você ajuda/.test(par.p[0]) && par.p[1].startsWith('Por que comprar de você') && /No primeiro teste/.test(par.p[1]), par.p);
     check('I: lista de respostas aberta no relatório e com selo de origem', await page.evaluate(() => { const d = document.querySelector('details.respostas'); return !!d && d.open && /Veio da Etapa 1/.test(d.textContent); }));
     check('jornada: caixa lg2-proximo continua no fim', /class="acoes lg2-proximo"/.test(await page.content()));
   }
@@ -707,6 +717,17 @@ async function caminho(page, respostas, outros) {
     }
   }
   {
+    /* auditoria 17/11: pergunta 9 respondida aqui antes; a Etapa 3 tem outro problema -> lembrança discreta; igual -> nada */
+    const base9 = { v: 6, hist: ['M4.P01', 'M4.P02', 'M4.P03', 'M4.P04', 'M4.P05', 'M4.P07', 'M4.P08', 'M4.P09'], R: { 'M4.P01': { estado: 'valor', valor: 'Bolo de pote' }, 'M4.P02': { estado: 'opcao', opcao: 'Produto' }, 'M4.P03': { estado: 'valor', valor: 'farinha' }, 'M4.P04': { estado: 'opcoes', opcoes: ['Retirada presencial pelo cliente'] }, 'M4.P05': { estado: 'valor', valor: '2' }, 'M4.P07': { estado: 'valor', valor: 'bolo' }, 'M4.P08': { estado: 'valor', valor: 'pais da escola' }, 'M4.P09': { estado: 'valor', valor: 'Sem tempo de manhã' } } };
+    const ref9 = async (m3) => { await page.evaluate(([a, b]) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m04', JSON.stringify(a)); if (b) localStorage.setItem('lg2-turma-a-m03', JSON.stringify(b)); }, [base9, m3]); await page.reload(); await page.click('#ir'); return page.evaluate(() => ({ cod: document.querySelector('.cartao-q').dataset.cod, q: document.querySelector('.q').textContent, ref: (document.querySelector('#ref-etapa') || {}).textContent || '' })); };
+    let r9 = await ref9({ v: 7, R: { 'M3.P11': { estado: 'valor', valor: 'Falta de tempo para cozinhar.' } } });
+    check('auditoria 17/11: pergunta 9 pede o momento do dia a dia (diferente da Etapa 3) e lembra o problema dito lá', r9.cod === 'M4.P09' && /momento do dia a dia/.test(r9.q) && r9.ref === 'Na Etapa 3 você disse que o problema do cliente é: “Falta de tempo para cozinhar”. Agora pense em quando ele sente isso no dia a dia.', r9);
+    r9 = await ref9(null);
+    check('auditoria 17/11: sem resposta na Etapa 3, a pergunta 9 não mostra a lembrança', r9.cod === 'M4.P09' && r9.ref === '', r9);
+    r9 = await ref9({ v: 7, R: { 'M3.P11': { estado: 'valor', valor: 'Sem tempo de manhã' } } });
+    check('auditoria 17/11: lembrança não aparece quando o campo já tem a mesma resposta da Etapa 3', r9.ref === '', r9);
+  }
+  {
     /* 5. perguntas 12 e 13 sem "Não sei" */
     check('J5: perguntas 12 e 13 sem "Não sei" nos dados', !/Não sei/.test(P['M4.P12'].opcoes) && !/Não sei/.test(P['M4.P13'].opcoes));
     await abrirEm('M4.P12', { 'M4.P02': 'Produto', 'M4.P05': '2' });
@@ -724,13 +745,16 @@ async function caminho(page, respostas, outros) {
     const ordem = D.perguntas.map((p) => p.codigo);
     check('J6: ficam depois da pergunta do motivo (P11) e antes da frase da proposta (P12)', ordem.indexOf('M4.P11') + 1 === ordem.indexOf('M4.PV1') && ordem.indexOf('M4.PV3') + 1 === ordem.indexOf('M4.P12'), ordem);
     const c = await caminho(page, { 'M4.P01': 'Bolo de pote', 'M4.P02': 'Produto', 'M4.P05': '2', 'M4.P09': 'Pais sem tempo de fazer lanche', 'M4.P10': 'Lanche pronto sem esforço', 'M4.P11': 'Conveniência', 'M4.P12': 'Para pais da escola, bolo de pote na saída' });
+    check('auditoria 17/11: sem M3.P21, a pergunta 10 não mostra lembrança da Etapa 3', c.telas['M4.P10'].ref3 === '' && !/Na Etapa 3 você disse/.test(c.telas['M4.P10'].corpo), c.telas['M4.P10'].ref3);
+    check('auditoria 17/11: rascunho da 12 montado com o que você oferece, o problema (9), o ganho (10) e o motivo (11)', /^Ofereço bolo de pote para resposta de teste\. Resolvo este problema: pais sem tempo de fazer lanche\. O cliente ganha: lanche pronto sem esforço\. Por que comprar de mim: conveniência\.$/.test(c.telas['M4.P12'].valor0), c.telas['M4.P12'].valor0);
+    check('auditoria 17/11: a frase editada pela pessoa é a que fica gravada na 12', (await estado())['M4.P12'].valor === 'Para pais da escola, bolo de pote na saída' && !(await estado())['M4.P12'].de && !(await estado())['M4.P12'].igual);
     check('J6 + F: P11 respondida -> PV2 reutilizada sem repetir; PV1 e PV3 não repetem 9 e 10', c.visitadas.join(',').includes('M4.P11,M4.P12') && !['M4.PV1','M4.PV2','M4.PV3'].some((k) => c.visitadas.includes(k)), c.visitadas);
     const R = await estado();
     check('J6: PV1–PV3 gravadas em campos value compatíveis com Módulo 10 (origem interna registrada)', ['M4.PV1','M4.PV2','M4.PV3'].every((k) => R[k].estado === 'valor' && typeof R[k].valor === 'string') && R['M4.PV1'].valor === 'Pais sem tempo de fazer lanche' && R['M4.PV1'].igual === 'M4.P09' && R['M4.PV2'].valor === 'Conveniência' && R['M4.PV2'].igual === 'M4.P11' && R['M4.PV3'].valor === 'Lanche pronto sem esforço' && R['M4.PV3'].igual === 'M4.P10', [R['M4.PV1'], R['M4.PV2'], R['M4.PV3']]);
     const caixa = await page.evaluate(() => document.querySelector('.entendemos').innerText);
     check('J6: "O que entendemos até aqui" traz a proposta de valor', caixa.includes('o cliente escolheria você porque “Conveniência”'), caixa);
     const card = await page.evaluate(() => ((document.querySelector('.proposta-valor') || {}).textContent || '').replace(/\s+/g, ' '));   // fica em "Mais detalhes"
-    check('J6: resultado tem o cartão "Sua proposta de valor" com as três respostas', /Sua proposta de valor/.test(card) && card.includes('Conveniência') && card.includes(ENUN['M4.PV1']) && card.includes(ENUN['M4.PV3']), card);
+    check('J6: resultado tem o cartão "Por que comprar de você (sua proposta de valor)" com as três respostas', /Por que comprar de você \(sua proposta de valor\)/.test(card) && card.includes('Conveniência') && card.includes(ENUN['M4.PV1']) && card.includes(ENUN['M4.PV3']), card);
     /* Trocar no resultado: a PV1 abre com o problema da pergunta 9 e "Confira e ajuste se quiser" */
     await page.evaluate(() => document.querySelector('[data-trocar="M4.PV1"]').click());
     let t = await tela();

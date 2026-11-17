@@ -153,7 +153,13 @@
     /* Módulo 2 (só leitura): tipo de cliente e o que ajuda a marcar o perfil */
     const op2 = (c) => { const r = lerOutro("lg2-turma-b-m02", c); return r && r.estado === "opcao" && r.opcao && !Motor.ehNS(r.opcao) ? String(r.opcao) : null; };
     const m2 = { tipo: op2("M2.P07"), fase: op2("M2.P09"), preco: op2("M2.P10"), onde: op2("M2.P11"), situacao: op2("M2.P12"), pesa: op2("M2.P13") };
-    return { ideia, tipo: t ? t[0] : null, tipoFrase: t ? t[1] : null, estagio, m2,
+    const m1 = {};
+    ["M1.P05", "M1.P06", "M1.P07", "M1.P07A"].forEach((c) => {
+      const r = lerOutro("lg2-turma-a-m01", c);
+      const v = r && r.estado === "opcao" ? (Array.isArray(r.opcoes) ? r.opcoes.join("; ") : r.opcao) : r && r.estado === "valor" ? r.valor : null;
+      if (v && !Motor.ehNS(v)) m1[c] = String(v).trim();
+    });
+    return { ideia, tipo: t ? t[0] : null, tipoFrase: t ? t[1] : null, estagio, m2, m1,
       /* resposta pronta para "em que ramo e o que vende" */
       p01: ideia ? ideia + (t ? ` (${t[0].toLowerCase()})` : "") : null };
   }
@@ -518,6 +524,14 @@
     const rotNS = q.rotulo_naosei || Motor.NS;
     const rotOp = (op) => (op === Motor.NS ? rotNS : (q.rotulos_opcoes || {})[op] || op);
 
+    let baseP21 = "";
+    if (cod === "M3.P21") {
+      const r14 = S.R["M3.P14"], p14 = r14 && r14.estado === "valor" && !vazio(r14.valor) ? r14.valor : "";
+      const r19 = S.R["M3.P19"];
+      const comp = r19 && r19.porNome ? Object.entries(r19.porNome).map(([n,x]) => `${n}: ${Object.entries(x.tabela||{}).map(([k,v]) => `${k} ${v}`).join(", ")}`).join("; ") : r19 && r19.tabela ? Object.entries(r19.tabela).map(([k,v]) => `${k} ${v}`).join(", ") : "";
+      const bases = [p14 && `Seu ponto forte: ${p14}`, comp && `Na comparação: ${comp}`].filter(Boolean);
+      if (bases.length) baseP21 = `<div class="bloco b-dica" id="base-p21"><b>Use o que você já disse:</b><ul>${bases.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+    }
     const p = el(`
       <div class="pag">
         ${topo("")}
@@ -526,9 +540,11 @@
         <main class="corpo">
           <div class="cartao-q">
           ${botaoVoltar()}
-          ${sobre && sobre.length ? `<div class="bloco b-dica sobre-ant" role="note"><b>Sobre a sua resposta anterior</b>${sobre.map((c) => `<p>${esc(adaptar(c.texto))}</p>`).join("")}</div>` : ""}
+          ${sobre && sobre.length ? `<div class="bloco b-dica sobre-ant" role="note"><b>${"Sobre a sua resposta anterior"}</b>${sobre.map((c) => `<p>${esc(adaptar(c.texto))}</p>`).join("")}</div>` : ""}
+          ${cod === "M3.P06" && Object.keys(H.m1 || {}).length ? `<section class="herdado-mini" id="veio-m1"><span class="selo-m">Veio da Etapa 1</span><p>Você já contou:</p><ul>${Object.entries(H.m1).map(([c,v]) => `<li><b>${esc(({ "M1.P05":"Tempo", "M1.P06":"O que você tem", "M1.P07":"Dinheiro", "M1.P07A":"Como começar sem dinheiro"})[c])}:</b> ${esc(v)}</li>`).join("")}</ul><button class="btn-alt" id="trocar-m1" type="button">Trocar</button></section>` : ""}
           ${doResumo ? "" : puladasAntes(cod).map(cartaoHerdado).join("")}
           <div class="pergunta">
+            ${baseP21}
             <h2 class="q" tabindex="-1">${esc(enunciadoPergunta(q))}</h2>
             ${seloTxt ? selo(seloTxt) : ""}
             ${q.dica && !dicaNoCampo ? `<details class="dica-toggle dica-q"><summary>Ver dica</summary><p>${esc(porTipo(q.dica))}</p></details>` : ""}
@@ -547,6 +563,16 @@
       </div>`);
     ligar(p);
     p.querySelectorAll(".trocar-h").forEach((b) => (b.onclick = () => ir(telaPergunta, b.dataset.cod)));
+    const trocarM1 = p.querySelector("#trocar-m1");
+    if (trocarM1) trocarM1.onclick = () => {
+      const labels = {"M1.P05":"Tempo", "M1.P06":"O que você tem", "M1.P07":"Dinheiro", "M1.P07A":"Como começar sem dinheiro"};
+      trocarM1.closest(".herdado-mini").innerHTML = `<span class="selo-m">Veio da Etapa 1</span><p>Confira ou ajuste cada resposta:</p>${Object.entries(H.m1).map(([c,v]) => `<label class="item"><span>${esc(labels[c])}</span><input class="campo" data-m1="${c}" value="${esc(v)}"></label>`).join("")}<button class="btn-alt" id="salvar-m1" type="button">Salvar</button>`;
+      p.querySelector("#salvar-m1").onclick = () => {
+        const campos = [...p.querySelectorAll("[data-m1]")];
+        campos.forEach(i => { S.R["M3.P06_" + i.dataset.m1.slice(3)] = { estado:"valor", valor:i.value.trim(), de:1, herdado:true }; });
+        salvar();
+      };
+    };
 
     p.querySelector("#v").onclick = () => {
       if (doResumo) { S.hist.pop(); salvar(); return ir(telaResultado); }

@@ -42,7 +42,7 @@
   /* P07 ("está na lista do MEI?") sai respondida "Sim" quando o CNAE da P06 está na lista de ocupações do MEI (de: "CNAE") */
   const DE_CNAE = "CNAE";
   /* anotações da pesquisa: perguntas que dependem de pesquisar (lote 16/11) */
-  const NOTAS_EM = ["M8.P02", "M8.P04", "M8.P05", "M8.P06", "M8.P07", "M8.P08", "M8.P09"];
+  const NOTAS_EM = ["M8.P02", "M8.P04", "M8.P05", "M8.P06", "M8.P07", "M8.P08"];
   /* exemplos de faturamento e de CNAE pelo tipo do negócio (P02) */
   const EX_FAT = {
     "Produto": "Ex.: vendeu 100 bolos de R$ 10 no mês: faturou R$ 1.000.",
@@ -369,9 +369,8 @@
     p.querySelectorAll("[data-inicio]").forEach((b) => { b.onclick = () => ir(telaCapa); });
   }
 
-  /* item G (17/11): tempo honesto na capa. Caminho mais comum = 10 perguntas (P01–P05, P06 e P07 de quem ainda não
-     tem CNPJ, P09 de quem não é só online, P10; P08 só para serviço). 35 s por pergunta, arredondado para múltiplo de 5 min. */
-  const SEG_POR_PERGUNTA = 35, CAMINHO_COMUM = 10;
+  /* item G (17/11): tempo honesto na capa. Caminho mais comum = 8 perguntas no caminho comum; P09 saiu do fluxo, P06/P07/P08 são condicionais. 35 s por pergunta, arredondado para múltiplo de 5 min. */
+  const SEG_POR_PERGUNTA = 35, CAMINHO_COMUM = 8;
   const minutosCapa = () => Math.max(5, Math.round((CAMINHO_COMUM * SEG_POR_PERGUNTA) / 60 / 5) * 5);
   /* ================= capa ================= */
   function telaCapa() {
@@ -402,7 +401,7 @@
     p.querySelector("#ir").onclick = () => {
       const atual = S.hist[S.hist.length - 1];
       if (atual === "RESULTADO") ir(telaResultado);
-      else abrir(atual);   // pula as perguntas que já vieram de outros módulos
+      else abrir(atual || null);   // pula as perguntas que já vieram de outros módulos
     };
     const z = p.querySelector("#zerar");
     if (z) z.onclick = () => { if (confirm("Apagar suas respostas e recomeçar?")) { S = novo(); salvar(); ir(telaCapa); } };
@@ -654,11 +653,21 @@
   }
 
   /* ================= pergunta ================= */
-  /* item G (17/11): total estável (as 10 perguntas, o caminho mais longo) e barra pela posição da pergunta:
-     "Pergunta N de 10" e a barra andam juntas e nunca voltam ao seguir em frente */
-  function progresso(q) {
-    return Math.min(100, Math.round(((M.perguntas.indexOf(q) + 1) / M.perguntas.length) * 100));
+  /* Contador das telas que a pessoa vê: P09 não entra; o total fixo é o caminho mais longo (9 telas).
+     O número é a posição da pergunta no caminho atual contando só as telas de verdade: respostas que vieram
+     de outra etapa (puladas) não ocupam número, então a 1ª tela vista é sempre "Pergunta 1" e sobe de 1 em 1. */
+  const TOTAL_VISIVEIS = 9;
+  function numeroVisivel(cod) {
+    let n = 0, c = Motor.proxima(M, S.R, null);
+    for (let g = 0; c && c !== "RESULTADO" && g < 50; g++) {
+      if (c === cod) return n + 1;
+      if (!reusada(c)) n++;
+      c = Motor.proxima(M, S.R, c);
+    }
+    return Math.max(1, n);
   }
+  function progresso(q) { return Math.min(100, Math.round((numeroVisivel(q.codigo) / TOTAL_VISIVEIS) * 100)); }
+
 
   const LIGA_ANEXO = ["M8.P06", "M8.P07"];   // perguntas que citam CNAE / lista de ocupações MEI
   function telaPergunta(cod, opts) {
@@ -674,9 +683,9 @@
 
     const p = el(`
       <div class="pag">
-        ${heroi({ compacta: true, titulo: `Pergunta ${M.perguntas.indexOf(q) + 1} de ${M.perguntas.length}`, progresso: progresso(q) })}
+        ${heroi({ compacta: true, titulo: `Pergunta ${numeroVisivel(cod)} de ${TOTAL_VISIVEIS}`, progresso: progresso(q) })}
         <main class="corpo corpo-pergunta">
-          <div class="cartao-q pergunta">
+          <div class="cartao-q pergunta" data-cod="${esc(cod)}">
             ${botaoVoltar()}
             ${cartaoReuso(opts.pulei || [], "veio", "Já respondido antes")}
             <h2 class="q" id="enunciado" tabindex="-1" data-foco>${esc(q.pergunta)}</h2>
@@ -925,6 +934,7 @@
             ${(() => { const f = faturamentoAno(); return f && f.ano <= LIMITE_MEI_ANO && jaMei() && numero(Motor.valor(S.R, "M8.P04")) > 0 ? `<div class="como-calc" id="calc-folga">${esc(calcFolga(f.ano))}</div>` : ""; })()}
           </section>
           ${cartaoReuso(REUSO.concat("M8.P07"), "veio-res", "Respostas reaproveitadas")}
+          <p class="mini-info" id="etapa9-nota">${esc(notaEtapa9())}</p>
           ${alertaMei()}
           ${blocoFolga()}
           ${avisoTipo(Motor.valor(S.R, "M8.P02"))}
@@ -990,6 +1000,11 @@
   }
 
   /* "Seu próximo passo": uma tarefa só, pela dúvida principal (P10) e pelo que ficou em aberto */
+  function notaEtapa9() {
+    let feita = false;
+    try { const s = JSON.parse(localStorage.getItem("lg2-turma-b-m09") || "null"); feita = !!(s && s.hist && s.hist.includes("RESULTADO")); } catch {}
+    return feita ? "As licenças e o endereço você confere na Etapa 9, que você já concluiu." : "As licenças e o endereço você confere na Etapa 9.";
+  }
   function tarefa() {
     const f = faturamentoAno(), cnpj = sigla(Motor.valor(S.R, "M8.P05"));
     if (f && f.ano > LIMITE_MEI_ANO && (!cnpj || ["MEI", "Não", NS].includes(cnpj)))
@@ -997,7 +1012,7 @@
     const porDuvida = {
       "Como escolher o CNAE": "Abra “Ocupações do MEI para a sua atividade”, logo abaixo, escolha a que mais descreve o que você faz e confirme o código na Sala do Empreendedor.",
       "Se posso ser MEI": "Confira os 4 pontos de “Quem pode ser MEI”, em “Mais detalhes”, e leve este resumo à Sala do Empreendedor de Juiz de Fora.",
-      "Quais licenças preciso": "Faça a Etapa 9: ela mostra as licenças mais comuns para a sua atividade e o seu local.",
+      "Quais licenças preciso": notaEtapa9(),
       "Obrigações do CNPJ": "Converse com um contador ou ligue de graça para o Sebrae (" + SEBRAE_TEL + ") sobre os impostos e as obrigações de cada mês.",
     };
     return porDuvida[Motor.valor(S.R, "M8.P10")] || "Leve este resumo à Sala do Empreendedor de Juiz de Fora (ou da sua cidade) para tirar as dúvidas e ver o primeiro passo.";

@@ -123,11 +123,14 @@ ok(Motor.herdarEstagio(M, { estado: 'opcao', opcao: 'Não sei dizer' }) === null
   ok(Motor.exemploConceito(M.conceito['M5.BT04'], 'Serviço').includes('manicure') && Motor.exemploConceito(M.conceito['M5.BT04'], 'Produto') === M.conceito['M5.BT04'].exemplo && Motor.exemploConceito(M.conceito['M5.BT07'], 'Mercadoria').includes('revende'), 'exemplos dos conceitos por tipo (perdas, trabalho)');
 }
 /* ===== lote 16/11 (A): "Não sei" bloqueia; sai das perguntas sobre a própria pessoa; "Ainda não defini" = "Não sei" ===== */
-const SEM_NS = ['M5.P00', 'M5.P01', 'M5.P02', 'M5.P10', 'M5.P17', 'M5.PG', 'M5.P08', 'M5.P13', 'M5.P15', 'M5.P18', 'M5.P26', 'M5.P28', 'M5.P30', 'M5.P32', 'M5.P34', 'M5.P35', 'M5.PH', 'M5.SZ', 'M5.ENT'];
+const SEM_NS = ['M5.P27', 'M5.P29', 'M5.P31', 'M5.P33', 'M5.P35', 'M5.P37', 'M5.P00', 'M5.P01', 'M5.P02', 'M5.P10', 'M5.P17', 'M5.PG', 'M5.P08', 'M5.P13', 'M5.P15', 'M5.P18', 'M5.P26', 'M5.P28', 'M5.P30', 'M5.P32', 'M5.P34', 'M5.P35', 'M5.PH', 'M5.SZ', 'M5.ENT'];
 for (const q of M.ordem) ok(q.botaoNaoSei === !SEM_NS.includes(q.codigo), `${q.codigo}: botão "Não sei" ${SEM_NS.includes(q.codigo) ? 'saiu (pergunta sobre a pessoa)' : 'fica (fato a descobrir)'}`);
+for (const c of ['M5.P27','M5.P29','M5.P31','M5.P35']) { const q=M.porCodigo[c]; ok(!q.botaoNaoSei && !q.opcoesLista.some(o=>/não sei/i.test(o)), `${c}: valor pessoal sem botão/opção Não sei`); ok(/ex\.|últim|média|estime/i.test(q.ajuda+' '+(q.placeholder||'')+' '+(q.comoDescobrir||[]).join(' ')), `${c}: ajuda orienta estimativa`); }
 ok(!M.porCodigo['M5.P36'].opcoesLista.some((o) => /ainda n/i.test(o)) && Motor.botoesAlternativos(M, M.porCodigo['M5.P36']).length === 0, 'P36: "Ainda não defini" fundido no "Não sei" (sem botão alternativo)');
+ok(M.porCodigo['M5.P36'].botaoNaoSei && M.porCodigo['M5.P36'].ajudaNaoSei, 'P36 (preço): mantém o "Não sei" que bloqueia e abre a conta de um preço possível (caminho de quem ainda não tem preço)');
+ok(JSON.stringify(Motor.COMO_ESTIMAR) === JSON.stringify(['M5.P27', 'M5.P29', 'M5.P31', 'M5.P33', 'M5.P35', 'M5.P37']) && Motor.COMO_ESTIMAR.every((c) => !M.porCodigo[c].botaoNaoSei && M.porCodigo[c].comoDescobrir.length === 2), 'valores da própria pessoa: sem "Não sei", com "Como estimar" (2 passos)');
 ok(JSON.stringify(Motor.botoesAlternativos(M, M.porCodigo['M5.P37'])) === '["Ainda não comecei a vender"]', 'P37: "Ainda não comecei a vender" (resposta real) continua');
-ok(Motor.msgFalta(M.porCodigo['M5.P29'], false) === Motor.MSG_RESPONDA && Motor.msgFalta(M.porCodigo['M5.P29'], true) === 'Use a ajuda acima e escreva a sua resposta para continuar.' && Motor.msgFalta(M.porCodigo['M5.P24'], true) === 'Use a ajuda acima e escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P28'], false) === 'Escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P35'], false) === 'Escreva a sua resposta para continuar.', 'mensagens de "falta responder" (com/sem Não sei, ajuda aberta)');
+ok(Motor.msgFalta(M.porCodigo['M5.P29'], false) === Motor.MSG_RESPONDA_SEM_NS && Motor.msgFalta(M.porCodigo['M5.P29'], true) === Motor.MSG_RESPONDA_SEM_NS && Motor.msgFalta(M.porCodigo['M5.P24'], true) === 'Use a ajuda acima e escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P28'], false) === 'Escolha uma opção para continuar.' && Motor.msgFalta(M.porCodigo['M5.P35'], false) === Motor.MSG_RESPONDA_SEM_NS, 'mensagens de "falta responder" (com/sem Não sei, ajuda aberta)');
 /* 17/11 (F8): preço e quantidade comprada na mesma tela; unidade sem marcação prévia */
 ok(Motor.proxima(M, M.porCodigo['M5.P04'], { estado: 'valor', valor: ['10'] }, null) === 'M5.P06' && Motor.proxima(M, M.porCodigo['M5.P20'], { estado: 'valor', valor: ['10'] }, null) === 'M5.P22', 'P04 (com a P05 na mesma tela) -> P06; P20 (com a P21) -> P22');
 ok(Motor.validar(M, M.porCodigo['M5.P05'], [{ q: '1', u: '' }], {}) === Motor.MSG_UNIDADE && Motor.MSG_UNIDADE === 'Escolha a unidade de cada item (kg, g, L, ml, unidade ou outro).', 'sem unidade escolhida: mensagem simples');
@@ -350,6 +353,16 @@ const server = http.createServer(async (req, res) => {
         if (testarBloqueio) {
           await continuar();
           ok(await erroVisivel() && (await texto('#erro')) === Motor.msgFalta(q, false) && await atual() === c, `${c}: Continuar sem resposta pede a resposta (${await texto('#erro')})`);
+        }
+        if (Motor.COMO_ESTIMAR.includes(c)) {
+          /* 17/11: valor da própria pessoa -> "Como estimar" (passos + pedido para a IA), sem gravar; fica aberto */
+          const antes = JSON.stringify(await state());
+          ok(await page.locator('#estimar').count() === 1 && await page.locator('#painel').isHidden(), `${c}: botão "Como estimar", ajuda fechada no início`);
+          await page.click('#estimar');
+          const passos = await page.$$eval('#painel .como-descobrir li', (xs) => xs.map((x) => x.textContent.trim()));
+          ok(await page.locator('#painel .como-descobrir').isVisible() && (await texto('#painel .como-tit')) === 'Como estimar' && norm(passos.join(' ')) === norm(q.comoDescobrir.join(' ')), `${c}: "Como estimar" mostra os 2 passos`);
+          ok(!q.promptIA || norm(await page.textContent('#painel .prompt')) === norm(q.promptIA), `${c}: pedido para a IA`);
+          ok(JSON.stringify(await state()) === antes && await page.getAttribute('#estimar', 'aria-expanded') === 'true', `${c}: "Como estimar" não grava nada`);
         }
         return '';
       }
@@ -577,7 +590,7 @@ const server = http.createServer(async (req, res) => {
     await page.click('#dica summary');
     await fonte16('.obs'); await fonte16('.btn-ajuda'); await fonte16('#painel p');
     await page.click('#dica summary');
-    await page.click('#naosei');                                    // fecha o painel para o print
+    await page.click('#estimar');                                   // fecha o painel para o print
     await teclado('P29');
     await shot('03-aluguel-observacao-P29.png');
     await page.locator('#ent input').fill('500');
@@ -591,7 +604,7 @@ const server = http.createServer(async (req, res) => {
     await preencher(['150']);
     await checarFixo(false); await escolher('Sim');                 // P32
     await checarFixo(true);                                         // P33 lista vazia bloqueia
-    await page.click('#naosei');
+    await page.click('#estimar');
     await page.locator('.lista .nome').first().fill('Internet fibra do negócio');
     await page.locator('.lista .valor').first().fill('100');
     await clicar('.btn-mais', '+ adicionar conta');
@@ -935,6 +948,38 @@ const server = http.createServer(async (req, res) => {
     await shot('m05_resultado_sem_sobra.png');
     console.log('PASS-stage: sem sobra + simulação');
 
+    /* ===== 5b. (17/11) Ideia só na cabeça, sem preço e sem vendas: "Ainda não comecei a vender" (P37) e o "Não sei" do
+       preço (P36) com a conta de um preço possível continuam levando ao resultado ===== */
+    await inicio(null, 'Ainda está só na minha cabeça');
+    await escolher('Mercadoria');
+    await preencher(['Boné']); await preencher(['200']); await preencher(['10']);
+    await escolher('Não'); await escolher('Não');
+    await formas(['Pix']);
+    await escolher('Não'); await escolher('Não');           // P24, P26
+    await escolher('Sim'); await preencher(['500']);        // P28/P29
+    await escolher('Não'); await escolher('Não'); await escolher('Não');
+    ok(await atual() === 'M5.P37' && await page.locator('#naosei').count() === 0 && await page.locator('#estimar').count() === 1, 'ideia: P37 sem "Não sei", com "Como estimar"');
+    await alt('Ainda não comecei a vender');                // P37: resposta real, não bloqueia
+    ok((await state()).R['M5.P37'].opcao === 'Ainda não comecei a vender', 'ideia: P37 grava "Ainda não comecei a vender"');
+    await escolher('Não, é parecido o ano todo');           // SZ
+    ok(await atual() === 'M5.P36' && await page.locator('#naosei').count() === 1, 'ideia: P36 (preço) com o "Não sei" de quem ainda não tem preço');
+    {
+      const antes = JSON.stringify(await state());
+      await page.click('#naosei');
+      ok(await page.locator('#calc-preco').isVisible(), 'ideia: "Não sei" do preço abre a conta de um preço possível');
+      await clicar('#ok', 'Continuar');
+      ok(await erroVisivel() && await atual() === 'M5.P36' && JSON.stringify(await state()) === antes, 'ideia: "Não sei" do preço não grava nem avança');
+      await page.fill('#pp-pct', '50'); await page.click('#pp-usar');
+      ok(await page.inputValue('#ent input') === '30,00' || await page.inputValue('#ent input') === '30', 'ideia: "Usar este preço" põe R$ 30 (custo 20 + 50%) no campo: ' + await page.inputValue('#ent input'));
+    }
+    await continuar(); await seguir();
+    ok(await atual() === 'PRECO', 'ideia: preço calculado -> passo do preço');
+    ok(await clicar('#res', 'Ver o resultado'), 'ideia: Ver o resultado');
+    await semNaN('resultado da ideia sem preço/vendas');
+    ok((await texto('#simulacao')).includes(Motor.MSG_SIMULACAO) && await page.locator('.lg2-proximo').isVisible(), 'ideia: resultado (simulação) com "Ir para a Etapa 6" visível');
+    await shot('m05_ideia_resultado.png');
+    console.log('PASS-stage: ideia sem preço e sem vendas chega ao resultado');
+
     /* ===== 6. Herança completa do Módulo 1 (lava-jato em domicílio): estágio + tipo -> pula P00 e P01 ===== */
     const m1b = { v: 2, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Lava-jato em domicílio' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
     await inicio(m1b);
@@ -1131,6 +1176,7 @@ const server = http.createServer(async (req, res) => {
         if (junto) { nJunto++; continue; }
         if (!q.botaoNaoSei) {
           ok(await page.locator('#naosei').count() === 0 && await page.locator('#ent .opcao, .btn-alt').filter({ hasText: /n[ãa]o sei|ainda n[ãa]o defini/i }).count() === 0, `${q.codigo}: sem "Não sei" (saiu)`);
+          ok(await page.locator('#estimar').count() === (Motor.COMO_ESTIMAR.includes(q.codigo) ? 1 : 0), `${q.codigo}: "Como estimar" só nos valores da própria pessoa`);
           nSem++;
           continue;
         }
@@ -1142,7 +1188,8 @@ const server = http.createServer(async (req, res) => {
         ok(await erroVisivel() && (await texto('#erro')) === Motor.msgFalta(q, true) && await atual() === q.codigo && JSON.stringify(await state()) === antes && await page.locator('#retorno .retorno, #acoes button').filter({ hasText: /^Seguir$/ }).count() === 0, `${q.codigo}: "Não sei" não grava e o Continuar não avança (${await texto('#erro')})`);
         nBloq++;
       }
-      ok(nBloq === 22 && nSem === 19 && nJunto === 2, `"Não sei" bloqueia em ${nBloq} telas (+${nJunto} perguntas na mesma tela do preço); saiu de ${nSem}`);
+      /* 17/11: P27, P29, P31, P33 e P37 (valores da própria pessoa) saíram do "Não sei": 22 -> 17 e 19 -> 24 */
+      ok(nBloq === 17 && nSem === 24 && nJunto === 2, `"Não sei" bloqueia em ${nBloq} telas (+${nJunto} perguntas na mesma tela do preço); saiu de ${nSem}`);
       console.log(`PASS-stage: "Não sei" bloqueia em ${nBloq} perguntas; saiu de ${nSem}`);
     }
 
@@ -1312,7 +1359,7 @@ const server = http.createServer(async (req, res) => {
         await abrirQ(c, montarR(c));
         if (c === 'M5.SZ') await clicar('#ent .opcao', Motor.SZ_SIM);
         if (await page.locator('#dica').count()) await page.click('#dica summary');
-        if (await page.locator('#naosei').count()) await page.click('#naosei');
+        if (await page.locator('#naosei, #estimar').count()) await page.click('#naosei, #estimar');
         achados.push(...await semModulo(c)); peq.push(...await pequenos(c));
       }
       const RF = Object.assign(JSON.parse(JSON.stringify(RC)), { 'M5.P09': vl({ preco: '20', qtd: '10' }), 'M5.P25': vl([{ forma: 'Pix', taxa: '0', prazo: '', parte: '60' }, { forma: 'Cartão de crédito', taxa: '5', prazo: '30', parte: '40' }]), 'M5.P27': vl('30'), 'M5.P29': vl('300'), 'M5.P31': vl('80'), 'M5.P33': vl([{ nome: 'Internet', v: '50' }]), 'M5.SZ': op(Motor.SZ_NAO), 'M5.P36': vl('25') });
