@@ -15,7 +15,7 @@ export default function Footer({ socials }: { socials: SocialLink[] }) {
       <div className="flex-1 flex justify-center items-center gap-6 md:gap-16 mb-8 md:mb-0">
         <Image
           src={"/Logotipo-FACC_29-01.png"}
-          alt="Logo UFJF"
+          alt="Logo FACC"
           width={180}
           height={180}
           className="w-24 h-auto md:w-40"

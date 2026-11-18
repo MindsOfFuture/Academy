@@ -8,6 +8,7 @@ import { OurCourses } from "@/components/ourCourses/ourCourses";
 import Footer from "@/components/footer/footer";
 import AboutUs from "@/components/about-us/about-us";
 import OurArticles from "@/components/ourArticles/ourArticles";
+import JogosHome from "@/components/home/jogos-home";
 import BlurryBackground from "@/components/BlurryBackground/BlurryBackground";
 import { type CourseSummary, type ArticleSummary } from "@/lib/api/types";
 import { type HeroData, type AboutUsSlide, type FooterLink } from "@/lib/api/content";
@@ -68,6 +69,7 @@ export default function HomeClient({ heroData, courses, aboutUsSlides, socialLin
                 speed={12}
             >
                 <OurCourses cursos={courses} />
+                <JogosHome />
                 <AboutUs slides={aboutUsSlides} />
                 <OurArticles articles={articlesData} />
             </BlurryBackground>

@@ -129,7 +129,7 @@ export function AuthButtonClient() {
             className="text-m md:text-2xl bold transition-all duration-300 hover:text-[26px]"
             href="/auth"
         >
-            Entre
+            Entrar
         </Link>
     );
 }
