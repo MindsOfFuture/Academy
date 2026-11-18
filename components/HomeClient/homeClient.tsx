@@ -52,9 +52,7 @@ export default function HomeClient({ heroData, courses, aboutUsSlides, socialLin
         <main>
             <Navbar showTextLogo={!isHeroLogoVisible} />
             <Hero
-                escolas_atendidas={heroData?.n_escolas ?? 0}
-                alunos_impactados={heroData?.n_alunos ?? 0}
-                aulas_realizadas={heroData?.n_aulas ?? 0}
+                destaques={(heroData?.destaques ?? []).filter((d) => d.mostrar)}
                 subtitulo={heroData?.subtitulo ?? ""}
                 logoRef={heroLogoRef}
             />

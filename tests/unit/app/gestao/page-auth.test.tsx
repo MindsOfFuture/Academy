@@ -71,18 +71,17 @@ vi.mock("@/lib/supabase/server", async (original) => ({
 }));
 vi.mock("@/lib/api/content", () => ({
   getHero: async () => ({
-    n_escolas: 36,
-    n_alunos: 1524,
-    n_aulas: 130,
     subtitulo: "",
-    base: { escolas: 35, alunos: 1499, aulas: 120 },
+    destaques: [
+      { chave: "escolas", rotulo: "Escolas atendidas", mostrar: true, total: 36, base: 35 },
+      { chave: "alunos", rotulo: "Alunos impactados", mostrar: true, total: 1524, base: 1499 },
+      { chave: "aulas", rotulo: "Aulas realizadas", mostrar: false, total: 130, base: 120 },
+    ],
   }),
 }));
 vi.mock("@/app/gestao/numeros-do-site", () => ({
-  FormNumerosDoSite: ({ escolas, alunos }: { escolas: number; alunos: number }) => (
-    <p>
-      site: {escolas} escolas, {alunos} alunos
-    </p>
+  FormNumerosDoSite: ({ destaques }: { destaques: { chave: string; base: number }[] }) => (
+    <p>site: {destaques.map((d) => `${d.base} ${d.chave}`).join(", ")}</p>
   ),
 }));
 vi.mock("@/app/gestao/equipe/forms", () => ({
@@ -141,7 +140,7 @@ describe("rota /gestao", () => {
     expect(screen.getByText("Alunos participantes")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("Números da página inicial")).toBeInTheDocument();
-    expect(screen.getByText("site: 35 escolas, 1499 alunos")).toBeInTheDocument();
+    expect(screen.getByText("site: 35 escolas, 1499 alunos, 120 aulas")).toBeInTheDocument();
   });
 
   it("mostra ao bolsista só as pendências, sem os indicadores do convênio", async () => {

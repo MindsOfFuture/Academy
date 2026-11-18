@@ -16,6 +16,7 @@ import {
   validarMeta,
   validarMudancaAlocacao,
   validarNumerosDoSite,
+  validarTextosDoSite,
   validarProducao,
   validarReuniao,
   validarTurma,
@@ -401,5 +402,29 @@ describe("validarProducao", () => {
     expect(validarProducao(form({ ...BASE, link: "https://exemplo.org/a b" }))).toMatchObject({ ok: false });
     expect(validarProducao(form({ ...BASE, link: "https://" + "x".repeat(493) }))).toMatchObject({ ok: false });
     expect(validarProducao(form({ ...BASE, link: "https://" + "x".repeat(492) }))).toMatchObject({ ok: true });
+  });
+});
+
+describe("textos dos números da página inicial (spec 028)", () => {
+  const ok = { rotulo_escolas: "Escolas atendidas", rotulo_alunos: "  Jovens   alcançados ", rotulo_aulas: "Aulas" };
+
+  it("lê o texto (espaços arrumados) e a caixa marcada", () => {
+    expect(validarTextosDoSite(form({ ...ok, mostrar_escolas: "on", mostrar_alunos: "on" }))).toEqual({
+      ok: true,
+      valor: {
+        escolas: { rotulo: "Escolas atendidas", mostrar: true },
+        alunos: { rotulo: "Jovens alcançados", mostrar: true },
+        aulas: { rotulo: "Aulas", mostrar: false },
+      },
+    });
+  });
+
+  it("recusa texto vazio, de uma letra ou acima de 40", () => {
+    for (const rotulo of ["", " ", "A", "x".repeat(41)]) {
+      expect(validarTextosDoSite(form({ ...ok, rotulo_alunos: rotulo }))).toEqual({
+        ok: false,
+        mensagem: "Escreva o texto do número de alunos (de 2 a 40 letras).",
+      });
+    }
   });
 });

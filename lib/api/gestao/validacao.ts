@@ -156,6 +156,26 @@ export function validarNumerosDoSite(form: FormData): Validado<{ escolas: number
   return { ok: true, valor: { escolas: Number(escolas), alunos: Number(alunos), aulas: Number(aulas) } };
 }
 
+type TextoDoDestaque = { rotulo: string; mostrar: boolean };
+
+/**
+ * Texto e visibilidade dos números da página inicial (spec 028). Campos
+ * `rotulo_<destaque>` (2 a 40 letras) e `mostrar_<destaque>` (caixa marcada = "on").
+ */
+export function validarTextosDoSite(
+  form: FormData,
+): Validado<{ escolas: TextoDoDestaque; alunos: TextoDoDestaque; aulas: TextoDoDestaque }> {
+  const valor = {} as { escolas: TextoDoDestaque; alunos: TextoDoDestaque; aulas: TextoDoDestaque };
+  for (const chave of ["escolas", "alunos", "aulas"] as const) {
+    const rotulo = texto(form, `rotulo_${chave}`).replace(/\s+/g, " ");
+    if (rotulo.length < 2 || rotulo.length > 40) {
+      return { ok: false, mensagem: `Escreva o texto do número de ${chave} (de 2 a 40 letras).` };
+    }
+    valor[chave] = { rotulo, mostrar: texto(form, `mostrar_${chave}`) === "on" };
+  }
+  return { ok: true, valor };
+}
+
 export function validarEscola(form: FormData): Validado<NovaEscola> {
   const nome = texto(form, "nome");
   const categoria = texto(form, "categoria");

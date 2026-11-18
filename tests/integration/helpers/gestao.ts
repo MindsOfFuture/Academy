@@ -53,6 +53,7 @@ export const GESTAO_EM_ORDEM = [
   "20261120_gestao_chamada",
   "20261121_gestao_artigo_e_do_site",
   "20261122_gestao_calendario_da_equipe",
+  "20261123_gestao_destaques_da_home",
 ] as const;
 
 export type MigracaoGestao = (typeof GESTAO_EM_ORDEM)[number];
