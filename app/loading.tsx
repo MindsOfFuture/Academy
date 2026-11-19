@@ -1,8 +1,11 @@
+import Navbar from "@/components/navbar/navbar";
+
 /** Esboço da página enquanto ela chega: o formato aparece na hora, sem cobrir a tela. */
 export default function Loading() {
     return (
         <div className="min-h-screen bg-gray-100" aria-busy="true">
-            <div className="h-[82px] rounded-b-lg bg-[#684A97] shadow-lg" aria-hidden="true" />
+            {/* O topo de verdade, já com o login da pessoa: não some durante o carregamento */}
+            <Navbar showTextLogo />
             <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6 md:p-8">
                 <p role="status" className="sr-only">
                     Carregando...

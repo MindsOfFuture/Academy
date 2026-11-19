@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/navbar/navbar";
@@ -55,7 +56,21 @@ export default async function ProtectedPage() {
           {(isAdmin || isTeacherApproved) && (
             <div className="space-y-8">
               <CoursesSection isAdmin={isAdmin} />
-              {isAdmin && <UsersTable />}
+              {/* A lista de usuários é a parte mais demorada: o painel aparece na hora e ela chega depois */}
+              {isAdmin && (
+                <Suspense
+                  fallback={
+                    <div aria-busy="true" className="rounded-2xl bg-white p-6 shadow-sm">
+                      <p role="status" className="text-[#684A97]">Carregando usuários...</p>
+                      <div aria-hidden="true" className="mt-4 space-y-3">
+                        {[0, 1, 2, 3].map((i) => <div key={i} className="h-10 rounded bg-gray-100 motion-safe:animate-pulse" />)}
+                      </div>
+                    </div>
+                  }
+                >
+                  <UsersTable />
+                </Suspense>
+              )}
             </div>
           )}
 

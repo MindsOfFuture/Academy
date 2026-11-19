@@ -5,6 +5,8 @@ import { Bell, CheckCheck, MessageSquare, GraduationCap, UserCheck, UserX, BookO
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeNextPath } from "@/lib/utils";
+import { useHeaderSession } from "../auth/auth-button-client";
+import { getHeaderSession, patchHeaderSession } from "@/lib/auth/header-session";
 
 interface NotificationPayload {
     title: string;
@@ -59,9 +61,17 @@ function timeAgo(dateStr: string): string {
 }
 
 export function NotificationBell() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    // Login e contagem vêm do estado do topo, compartilhado entre páginas: o sino
+    // já nasce com o número certo em vez de sumir e reaparecer a cada clique.
+    const topo = useHeaderSession();
+    const [sessaoRecusada, setSessaoRecusada] = useState(false);
+    const isLoggedIn = topo.status === "in" && !sessaoRecusada;
+    const unreadCount = topo.unread;
+    const setUnreadCount = useCallback((next: number | ((c: number) => number)) => {
+        const valor = typeof next === "function" ? next(getHeaderSession().unread) : next;
+        patchHeaderSession({ unread: valor });
+    }, []);
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [unreadCount, setUnreadCount] = useState(0);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -70,16 +80,15 @@ export function NotificationBell() {
     const router = useRouter();
     const supabase = createClient();
 
-    // Listen to auth state — only show bell for logged-in users
+    // Login novo revalida a sessão e libera o polling de volta
     useEffect(() => {
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, session) => {
-            // Login novo revalida a sessão e libera o polling de volta
+        } = supabase.auth.onAuthStateChange((event) => {
             if (event === "SIGNED_IN") {
                 sessionInvalidRef.current = false;
+                setSessaoRecusada(false);
             }
-            setIsLoggedIn(!!session?.user);
         });
         return () => subscription.unsubscribe();
     }, [supabase.auth]);
@@ -92,7 +101,7 @@ export function NotificationBell() {
             const res = await fetch(url);
             if (res.status === 401) {
                 sessionInvalidRef.current = true;
-                setIsLoggedIn(false);
+                setSessaoRecusada(true);
                 return null;
             }
             return res.ok ? await res.json() : null;
@@ -107,7 +116,7 @@ export function NotificationBell() {
         if (data) {
             setUnreadCount(data.count ?? 0);
         }
-    }, [fetchJson]);
+    }, [fetchJson, setUnreadCount]);
 
     const fetchNotifications = useCallback(async () => {
         setLoading(true);
@@ -118,7 +127,7 @@ export function NotificationBell() {
             setUnreadCount(unreadNotifications.length);
         }
         setLoading(false);
-    }, [fetchJson]);
+    }, [fetchJson, setUnreadCount]);
 
     // Poll for unread count every 30s — só com usuário logado e sessão válida
     useEffect(() => {

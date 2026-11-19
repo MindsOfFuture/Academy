@@ -6,8 +6,11 @@ import TrilhasClient from "@/components/trilhas/TrilhasClient";
 
 const Trilhas = async () => {
 
-  const trilhasData: LearningPathSummary[] = await getLearningPaths();
-  const coursesData: CourseSummary[] = await listCoursesServer();
+  // As duas listas não dependem uma da outra: busca junto.
+  const [trilhasData, coursesData]: [LearningPathSummary[], CourseSummary[]] = await Promise.all([
+    getLearningPaths(),
+    listCoursesServer(),
+  ]);
 
   return <TrilhasClient trilhasData={trilhasData} coursesData={coursesData} />;
 };
