@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useSyncExternalStore } from "react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { ChevronDown } from "lucide-react";
+import { NotificationBell } from "../notifications/notification-bell";
+import { TEXTO_TOPO } from "../navbar/estilo";
 import { createClient } from "@/lib/supabase/client";
 import {
     getHeaderSession,
@@ -37,7 +39,7 @@ function iniciais(s: HeaderSession) {
     return "U";
 }
 
-const TEXTO_TOPO = "whitespace-nowrap text-m md:text-2xl bold transition-all duration-300 hover:text-[26px]";
+
 
 export function AuthButtonClient() {
     const s = useHeaderSession();
@@ -75,6 +77,9 @@ export function AuthButtonClient() {
             <Link className={TEXTO_TOPO} href="/protected">
                 Meu espaço
             </Link>
+            {/* Avisos e foto juntos: tudo que é "da conta" fica no canto */}
+            <div className="flex items-center gap-1 md:gap-2">
+            <NotificationBell />
             <Dropdown className="text-lg hover:cursor-pointer">
                 <DropdownTrigger className="text-lg rounded-lg outline-none">
                     <button className="flex items-center gap-1 md:gap-2 hover:opacity-80 transition-opacity" aria-label="Menu da conta">
@@ -95,6 +100,7 @@ export function AuthButtonClient() {
                     </DropdownItem>
                 </DropdownMenu>
             </Dropdown>
+            </div>
         </>
     );
 }

@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
 import { AuthButtonClient } from "../auth/auth-button-client";
-import { NotificationBell } from "../notifications/notification-bell";
+import { TEXTO_TOPO } from "./estilo";
 import { MobileMenu } from "./mobile-menu";
 
 /**
@@ -41,15 +40,12 @@ export default function Navbar({ showTextLogo }: { showTextLogo: boolean }) {
                 <ul className="hidden md:flex items-center gap-6">
                     {NAV_LINKS.map(({ href, label }) => (
                         <li key={href}>
-                            <Link href={href} className="text-xl transition-opacity duration-300 hover:opacity-80">
+                            <Link href={href} className={TEXTO_TOPO}>
                                 {label}
                             </Link>
                         </li>
                     ))}
                 </ul>
-                <Suspense fallback={null}>
-                    <NotificationBell />
-                </Suspense>
                 <AuthButtonClient />
                 {/* Celular: um botão de menu abre a lista, no amarelo do menu do usuário */}
                 <MobileMenu links={NAV_LINKS} />
