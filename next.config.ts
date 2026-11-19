@@ -56,6 +56,10 @@ const nextConfig: NextConfig = {
     // Ordem importa: a regra posterior sobrescreve a mesma chave da anterior.
     return [
       { source: "/:path*", headers: securityHeaders },
+      // O nginx do servidor segura a resposta inteira antes de mandar; com isto ele
+      // repassa aos pedaços e as partes lentas da página (ex.: lista de usuários no
+      // Meu espaço) chegam depois, sem atrasar o resto.
+      { source: "/:path*", headers: [{ key: "X-Accel-Buffering", value: "no" }] },
       { source: "/lg2/:path*", headers: lg2FrameHeaders },
     ];
   },
