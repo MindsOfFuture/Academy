@@ -91,7 +91,11 @@ function generateSlug(title: string): string {
 
 export async function getLearningPaths(options?: { scope?: "public" | "manage" }): Promise<LearningPathSummary[]> {
     const isManageScope = options?.scope === "manage";
-    const { supabase, userId, role } = await getCurrentUserAndRole(isManageScope);
+    // Na vitrine pública o usuário e o papel não mudam a consulta (o RLS já vem do
+    // cookie): não gasta duas idas ao banco descobrindo quem é.
+    const { supabase, userId, role } = isManageScope
+        ? await getCurrentUserAndRole(true)
+        : { supabase: await createServerSupabase(), userId: null, role: "unknown" as RoleName };
 
     if (isManageScope && !userId) return [];
 
@@ -132,7 +136,11 @@ export async function getLearningPaths(options?: { scope?: "public" | "manage" }
 // Busca uma trilha por ID com detalhes completos
 export async function getLearningPathDetail(pathId: string, options?: { scope?: "public" | "manage" }): Promise<LearningPathSummary | null> {
     const isManageScope = options?.scope === "manage";
-    const { supabase, userId, role } = await getCurrentUserAndRole(isManageScope);
+    // Na vitrine pública o usuário e o papel não mudam a consulta (o RLS já vem do
+    // cookie): não gasta duas idas ao banco descobrindo quem é.
+    const { supabase, userId, role } = isManageScope
+        ? await getCurrentUserAndRole(true)
+        : { supabase: await createServerSupabase(), userId: null, role: "unknown" as RoleName };
 
     if (isManageScope && !userId) return null;
 
