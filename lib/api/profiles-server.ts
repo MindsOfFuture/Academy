@@ -305,18 +305,20 @@ export async function getAllUsers(): Promise<UserProfileSummary[]> {
     }
 
     const userIds = data.map((u) => u.id);
-    const { data: roleLinks } = await supabase
-        .from("user_role")
-        .select("user_profile_id, role:role_id(name)")
-        .in("user_profile_id", userIds);
-
-    const { data: teacherRequests } = await supabase
-        .from("teacher_request")
-        .select("user_id, status, observations, qualification_document_url, created_at")
-        .in("user_id", userIds);
+    // Papéis, pedidos de professor e contatos dependem só dos ids: vêm juntos.
+    const [{ data: roleLinks }, { data: teacherRequests }, contatos] = await Promise.all([
+        supabase
+            .from("user_role")
+            .select("user_profile_id, role:role_id(name)")
+            .in("user_profile_id", userIds),
+        supabase
+            .from("teacher_request")
+            .select("user_id, status, observations, qualification_document_url, created_at")
+            .in("user_id", userIds),
+        contatosParaAdmin(userIds),
+    ]);
 
     const latestTeacherRequestByUser = mapLatestTeacherRequestByUser(teacherRequests as TeacherRequestRow[]);
-    const contatos = await contatosParaAdmin(userIds);
     const comprovantes = await comprovantesParaAdmin(Object.values(latestTeacherRequestByUser).map((r) => r?.qualification_document_url));
 
     return data.map<UserProfileSummary>((row) => {
@@ -369,18 +371,20 @@ export async function getUsersPage(
     }
 
     const userIds = (data || []).map((u) => u.id);
-    const { data: roleLinks } = await supabase
-        .from("user_role")
-        .select("user_profile_id, role:role_id(name)")
-        .in("user_profile_id", userIds);
-
-    const { data: teacherRequests } = await supabase
-        .from("teacher_request")
-        .select("user_id, status, observations, qualification_document_url, created_at")
-        .in("user_id", userIds);
+    // Papéis, pedidos de professor e contatos dependem só dos ids: vêm juntos.
+    const [{ data: roleLinks }, { data: teacherRequests }, contatos] = await Promise.all([
+        supabase
+            .from("user_role")
+            .select("user_profile_id, role:role_id(name)")
+            .in("user_profile_id", userIds),
+        supabase
+            .from("teacher_request")
+            .select("user_id, status, observations, qualification_document_url, created_at")
+            .in("user_id", userIds),
+        contatosParaAdmin(userIds),
+    ]);
 
     const latestTeacherRequestByUser = mapLatestTeacherRequestByUser(teacherRequests as TeacherRequestRow[]);
-    const contatos = await contatosParaAdmin(userIds);
     const comprovantes = await comprovantesParaAdmin(Object.values(latestTeacherRequestByUser).map((r) => r?.qualification_document_url));
 
     const users = (data || []).map<UserProfileSummary>((row) => {

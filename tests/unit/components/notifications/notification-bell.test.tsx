@@ -9,12 +9,15 @@ const client = vi.hoisted(() => ({
       return { data: { subscription: { unsubscribe: () => {} } } };
     },
   },
+  from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => client }));
+vi.mock("@/app/gestao/actions", () => ({ temAcessoGestaoAction: async () => false }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { __resetHeaderSessionForTests } from "@/lib/auth/header-session";
 
 function ocultar(valor: boolean) {
   Object.defineProperty(document, "hidden", { configurable: true, value: valor });
@@ -24,6 +27,8 @@ describe("NotificationBell polling", () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
+    window.sessionStorage.clear();
+    __resetHeaderSessionForTests();
     vi.useFakeTimers();
     fetchMock.mockReset();
     fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ count: 0 }) });

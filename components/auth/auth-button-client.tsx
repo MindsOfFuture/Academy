@@ -1,135 +1,100 @@
 "use client";
 
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
-
+import Image from "next/image";
+import { useSyncExternalStore } from "react";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { ChevronDown } from "lucide-react";
-import Image from "next/image";
-import { temAcessoGestaoAction } from "@/app/gestao/actions";
+import { createClient } from "@/lib/supabase/client";
+import {
+    getHeaderSession,
+    getServerHeaderSession,
+    subscribeHeaderSession,
+    type HeaderSession,
+} from "@/lib/auth/header-session";
 
-interface UserProfile {
-    full_name: string | null;
-    avatar_url: string | null;
+/** Estado do topo compartilhado por todas as páginas (não refaz a busca a cada clique). */
+export function useHeaderSession(): HeaderSession {
+    return useSyncExternalStore(subscribeHeaderSession, getHeaderSession, getServerHeaderSession);
 }
 
+function isValidUrl(str: string) {
+    try {
+        new URL(str);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function iniciais(s: HeaderSession) {
+    const name = s.name || s.email;
+    if (name?.trim()) {
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0][0]?.toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return "U";
+}
+
+const TEXTO_TOPO = "whitespace-nowrap text-m md:text-2xl bold transition-all duration-300 hover:text-[26px]";
+
 export function AuthButtonClient() {
-    const [user, setUser] = useState<User | null>(null);
-    const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [gestao, setGestao] = useState(false);
-    const supabase = createClient();
-
-    useEffect(() => {
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
-
-        return () => subscription.unsubscribe();
-    }, [supabase.auth]);
-
-    // Buscar dados do perfil quando o usuário mudar
-    useEffect(() => {
-        async function fetchProfile() {
-            if (!user) {
-                setProfile(null);
-                return;
-            }
-            const { data } = await supabase
-                .from("user_profile")
-                .select("full_name, avatar_url")
-                .eq("id", user.id)
-                .maybeSingle();
-            setProfile(data);
-        }
-        fetchProfile();
-    }, [user, supabase]);
-
-    // "Gestão" só para coordenação ou bolsista, e só com o módulo ligado
-    useEffect(() => {
-        if (!user) {
-            setGestao(false);
-            return;
-        }
-        temAcessoGestaoAction().then(setGestao, () => setGestao(false));
-    }, [user]);
+    const s = useHeaderSession();
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        await createClient().auth.signOut();
         window.location.href = "/";
     };
 
-    // Valida se a string é uma URL válida
-    function isValidUrl(str: string) {
-        try {
-            new URL(str);
-            return true;
-        } catch {
-            return false;
-        }
+    // Primeira leitura ainda não chegou: reserva o lugar sem piscar "Entrar".
+    if (s.status === "unknown") {
+        return <span className="inline-block h-10 w-16 md:w-28" aria-hidden="true" />;
     }
 
-    // Função para gerar iniciais do nome
-    function getInitials() {
-        const name = profile?.full_name || user?.user_metadata?.full_name || user?.email;
-        if (name?.trim()) {
-            const parts = name.trim().split(/\s+/);
-            if (parts.length === 1) return parts[0][0]?.toUpperCase();
-            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-        }
-        return user?.email?.[0]?.toUpperCase() || "U";
-    }
-
-    return user ? (
-        <>
-        {/* Atalho visível no topo para a equipe da gestão (coordenação e bolsistas) */}
-        {gestao ? (
-            <Link
-                href="/gestao"
-                className="rounded-full bg-[#FFD300] px-3 py-1 text-sm font-semibold text-[#684A97] shadow-md transition-opacity hover:opacity-90 md:text-base"
-            >
-                Gestão
+    if (s.status === "out") {
+        return (
+            <Link className={TEXTO_TOPO} href="/auth">
+                Entrar
             </Link>
-        ) : null}
-        <Dropdown className="text-lg hover:cursor-pointer">
-            <DropdownTrigger className="text-lg rounded-lg outline-none">
-                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    {/* Avatar do usuário */}
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD300] to-[#FFA500] text-[#684A97] flex items-center justify-center text-sm font-bold shadow-md overflow-hidden">
-                        {profile?.avatar_url && isValidUrl(profile.avatar_url) ? (
-                            <Image
-                                src={profile.avatar_url}
-                                alt="Avatar"
-                                width={40}
-                                height={40}
-                                className="object-cover w-full h-full"
-                            />
-                        ) : (
-                            getInitials()
-                        )}
-                    </div>
-                    {/* Setinha para baixo */}
-                    <ChevronDown className="w-5 h-5 text-white" />
-                </button>
-            </DropdownTrigger>
-            <DropdownMenu aria-label="Menu do usuário" className="bg-[#FFD300] p-2 rounded-lg">
-                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Dashboard" as={Link} href="/protected">Dashboard</DropdownItem>
-                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" as={Link} href="/protected/perfil">Perfil</DropdownItem>
-                <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onPress={handleSignOut} color="danger">
-                    Sair
-                </DropdownItem>
-            </DropdownMenu>
-        </Dropdown>
+        );
+    }
+
+    return (
+        <>
+            {/* Atalho visível no topo para a equipe da gestão (coordenação e bolsistas) */}
+            {s.gestao ? (
+                <Link
+                    href="/gestao"
+                    className="hidden md:inline-flex rounded-full bg-[#FFD300] px-3 py-1 text-sm font-semibold text-[#684A97] shadow-md transition-opacity hover:opacity-90 md:text-base"
+                >
+                    Gestão
+                </Link>
+            ) : null}
+            {/* Logado, o lugar do "Entrar" vira o atalho para o espaço da pessoa */}
+            <Link className={TEXTO_TOPO} href="/protected">
+                Meu espaço
+            </Link>
+            <Dropdown className="text-lg hover:cursor-pointer">
+                <DropdownTrigger className="text-lg rounded-lg outline-none">
+                    <button className="flex items-center gap-1 md:gap-2 hover:opacity-80 transition-opacity" aria-label="Menu da conta">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD300] to-[#FFA500] text-[#684A97] flex items-center justify-center text-sm font-bold shadow-md overflow-hidden">
+                            {s.avatarUrl && isValidUrl(s.avatarUrl) ? (
+                                <Image src={s.avatarUrl} alt="Avatar" width={40} height={40} className="object-cover w-full h-full" />
+                            ) : (
+                                iniciais(s)
+                            )}
+                        </div>
+                        <ChevronDown className="w-5 h-5 text-white" />
+                    </button>
+                </DropdownTrigger>
+                <DropdownMenu aria-label="Menu do usuário" className="bg-[#FFD300] p-2 rounded-lg">
+                    <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" as={Link} href="/protected/perfil">Perfil</DropdownItem>
+                    <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onPress={handleSignOut} color="danger">
+                        Sair
+                    </DropdownItem>
+                </DropdownMenu>
+            </Dropdown>
         </>
-    ) : (
-        <Link
-            className="text-m md:text-2xl bold transition-all duration-300 hover:text-[26px]"
-            href="/auth"
-        >
-            Entrar
-        </Link>
     );
 }
