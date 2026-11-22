@@ -15,6 +15,7 @@ import type {
   NovoCurso,
   NovoAfastamento,
   NovoEncontro,
+  NovoEncontroDoBolsista,
   Ocorrencia,
   PedidoLote,
   RespostaMelhoria,
@@ -584,14 +585,54 @@ export function mensagemDeErro(erro: unknown, padrao = "Não foi possível salva
 }
 
 /** Atividade do relatório: nome, o dia em que aconteceu e, se houver, a comprovação. */
+/** Caminho de foto no bucket `gestao-comprovacao`: "<id>/<uuid>.<jpg|png|webp>". */
+export const FOTO_COMPROVACAO = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
+
+function uuids(form: FormData, campo: string): string[] {
+  return [...new Set(form.getAll(campo).filter((v): v is string => typeof v === "string" && UUID.test(v)))];
+}
+
 export function validarAtividade(form: FormData): Validado<NovaAtividade> {
   const nome = texto(form, "nome");
   const data = texto(form, "data");
+  const inicio = texto(form, "inicio");
+  const fim = texto(form, "fim");
   const comprovacao = texto(form, "comprovacao");
+  const foto = texto(form, "foto");
+  const participantes = uuids(form, "participantes");
   if (nome.length < 2 || nome.length > 200) return { ok: false, mensagem: "Dê um nome à atividade (até 200 caracteres)." };
   if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe o dia em que a atividade aconteceu." };
+  if (!HORA.test(inicio) || !HORA.test(fim)) return { ok: false, mensagem: "Informe o início e o fim da atividade." };
+  if (fim <= inicio) return { ok: false, mensagem: "O fim precisa ser depois do início." };
   if (comprovacao.length > 500) return { ok: false, mensagem: "A comprovação pode ter até 500 caracteres." };
-  return { ok: true, valor: { nome, data, comprovacao: comprovacao || null } };
+  if (foto && !FOTO_COMPROVACAO.test(foto)) return { ok: false, mensagem: "Envie a foto de novo." };
+  if (participantes.length > 30) return { ok: false, mensagem: "Escolha até 30 pessoas." };
+  return {
+    ok: true,
+    valor: { nome, data, inicio, fim, comprovacao: comprovacao || null, foto_comprovacao: foto || null, participantes },
+  };
+}
+
+export function validarEncontroDoBolsista(form: FormData): Validado<NovoEncontroDoBolsista> {
+  const data = texto(form, "data");
+  const inicio = texto(form, "inicio");
+  const fim = texto(form, "fim");
+  const tipo = (texto(form, "tipo") || "outro") as TipoEncontro;
+  const modalidade = texto(form, "modalidade");
+  const descricao = texto(form, "descricao");
+  const espacoId = texto(form, "espacoId");
+  const colegas = uuids(form, "colegas");
+  if (!DATA_ISO.test(data)) return { ok: false, mensagem: "Informe a data do encontro." };
+  if (!HORA.test(inicio) || !HORA.test(fim)) return { ok: false, mensagem: "Informe o início e o fim do encontro." };
+  if (fim <= inicio) return { ok: false, mensagem: "O fim precisa ser depois do início." };
+  if (!TIPOS.includes(tipo)) return { ok: false, mensagem: "Escolha o tipo da atividade." };
+  if (modalidade.length < 2 || modalidade.length > 120) {
+    return { ok: false, mensagem: "Informe a atividade, como Gravação de vídeo ou Organizar materiais." };
+  }
+  if (descricao.length > 200) return { ok: false, mensagem: "A descrição passou de 200 caracteres." };
+  if (espacoId && !UUID.test(espacoId)) return { ok: false, mensagem: "Escolha o espaço de novo." };
+  if (colegas.length > 30) return { ok: false, mensagem: "Escolha até 30 colegas." };
+  return { ok: true, valor: { data, inicio, fim, tipo, modalidade, descricao, espacoId: espacoId || null, colegas } };
 }
 
 /** Endereço do artigo: minúsculo, sem acento, palavras ligadas por hífen. */

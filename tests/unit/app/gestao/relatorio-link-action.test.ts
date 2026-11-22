@@ -39,13 +39,23 @@ describe("salvarLinkEncontroAction", () => {
   it("manda o link sem as bordas; vazio vira null e apaga", async () => {
     expect(await salvarLinkEncontroAction(null, form({ encontroId: "e1", link: " https://drive.google.com/x " }))).toEqual({
       ok: true,
-      mensagem: "Link salvo.",
+      mensagem: "Comprovação salva.",
     });
-    expect(escreverLinkComprovacao).toHaveBeenLastCalledWith("e1", "https://drive.google.com/x");
+    expect(escreverLinkComprovacao).toHaveBeenLastCalledWith("e1", "https://drive.google.com/x", null);
     expect(revalidatePath).toHaveBeenCalledWith("/gestao/relatorio");
 
     await salvarLinkEncontroAction(null, form({ encontroId: "e1", link: "  " }));
-    expect(escreverLinkComprovacao).toHaveBeenLastCalledWith("e1", null);
+    expect(escreverLinkComprovacao).toHaveBeenLastCalledWith("e1", null, null);
+  });
+
+  it("manda a foto da própria pasta e recusa caminho fora do formato", async () => {
+    await salvarLinkEncontroAction(null, form({ encontroId: "e1", link: "", foto: "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.jpg" }));
+    expect(escreverLinkComprovacao).toHaveBeenLastCalledWith("e1", null, "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.jpg");
+    escreverLinkComprovacao.mockClear();
+    for (const foto of ["../outro/arquivo.jpg", "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.jpg".replace(".jpg", ".exe")]) {
+      expect((await salvarLinkEncontroAction(null, form({ encontroId: "e1", foto }))).ok).toBe(false);
+    }
+    expect(escreverLinkComprovacao).not.toHaveBeenCalled();
   });
 
   it("repassa a recusa do banco", async () => {

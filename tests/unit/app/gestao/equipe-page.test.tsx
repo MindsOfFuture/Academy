@@ -64,7 +64,11 @@ const { encontrosDoMes, atividadesDoMes } = vi.hoisted(() => ({
   ]),
   atividadesDoMes: vi.fn(async (_mes: string, _pessoa?: string) => [{ id: "a1", nome: "Preparei o material", data: "2026-10-08" }]),
 }));
-vi.mock("@/lib/api/gestao/relatorio", () => ({ encontrosDoMes, atividadesDoMes }));
+vi.mock("@/lib/api/gestao/relatorio", () => ({
+  encontrosDoMes,
+  atividadesDoMes,
+  extrasDoRegistro: async () => ({ urls: {}, nomes: {} }),
+}));
 
 const SEM_PARAMS = { searchParams: Promise.resolve({}) };
 

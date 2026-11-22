@@ -53,6 +53,8 @@ export const GESTAO_EM_ORDEM = [
   "20261120_gestao_chamada",
   "20261121_gestao_artigo_e_do_site",
   "20261122_gestao_calendario_da_equipe",
+  "20261123_gestao_foto_e_atividade_com_equipe",
+  "20261123_gestao_encontro_do_bolsista",
   "20261123_gestao_destaques_da_home",
 ] as const;
 

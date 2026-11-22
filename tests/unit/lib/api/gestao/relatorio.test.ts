@@ -29,8 +29,8 @@ describe("montarEncontros — encontros do relatório", () => {
       ],
     );
     expect(lista).toEqual([
-      { encontroId: "a", data: "2026-11-03", horario: "8h às 12h", descricao: "Robótica", escolaNome: "EE A", turmaNome: "Turma 1", tipo: "aula", espacoNome: null, situacao: "cobertura", horas: 2, links: [], inicio: null, meuLink: null },
-      { encontroId: "b", data: "2026-11-05", horario: "8h às 12h", descricao: "Lego", escolaNome: null, turmaNome: null, tipo: "aula", espacoNome: null, situacao: "cumprida", horas: 4, links: [], inicio: null, meuLink: null },
+      { encontroId: "a", data: "2026-11-03", horario: "8h às 12h", descricao: "Robótica", escolaNome: "EE A", turmaNome: "Turma 1", tipo: "aula", espacoNome: null, situacao: "cobertura", horas: 2, links: [], fotos: [], inicio: null, meuLink: null, minhaFoto: null },
+      { encontroId: "b", data: "2026-11-05", horario: "8h às 12h", descricao: "Lego", escolaNome: null, turmaNome: null, tipo: "aula", espacoNome: null, situacao: "cumprida", horas: 4, links: [], fotos: [], inicio: null, meuLink: null, minhaFoto: null },
     ]);
   });
 
@@ -90,20 +90,42 @@ describe("validarAtividade", () => {
     return f;
   }
 
-  it("aceita nome e data", () => {
-    expect(validarAtividade(form({ nome: "  Preparei a aula  ", data: "2026-11-04" }))).toEqual({
+  const HORA = { inicio: "14:00", fim: "16:00" };
+  const COLEGA = "11111111-1111-4111-8111-111111111111";
+
+  it("aceita nome, data, horário, foto e participantes", () => {
+    expect(validarAtividade(form({ nome: "  Preparei a aula  ", data: "2026-11-04", ...HORA }))).toEqual({
       ok: true,
-      valor: { nome: "Preparei a aula", data: "2026-11-04", comprovacao: null },
+      valor: {
+        nome: "Preparei a aula",
+        data: "2026-11-04",
+        inicio: "14:00",
+        fim: "16:00",
+        comprovacao: null,
+        foto_comprovacao: null,
+        participantes: [],
+      },
     });
-    expect(validarAtividade(form({ nome: "Reunião", data: "2026-11-04", comprovacao: " https://drive/x " }))).toMatchObject({
+    expect(validarAtividade(form({ nome: "Reunião", data: "2026-11-04", ...HORA, comprovacao: " https://drive/x " }))).toMatchObject({
       valor: { comprovacao: "https://drive/x" },
     });
+    const f = form({ nome: "Reunião", data: "2026-11-04", ...HORA, foto: `${COLEGA}/${COLEGA}.png` });
+    f.append("participantes", COLEGA);
+    f.append("participantes", COLEGA);
+    f.append("participantes", "não é id");
+    expect(validarAtividade(f)).toMatchObject({ valor: { foto_comprovacao: `${COLEGA}/${COLEGA}.png`, participantes: [COLEGA] } });
+  });
+
+  it("exige início antes do fim e foto no formato da pasta", () => {
+    expect(validarAtividade(form({ nome: "Reunião", data: "2026-11-04" })).ok).toBe(false);
+    expect(validarAtividade(form({ nome: "Reunião", data: "2026-11-04", inicio: "16:00", fim: "14:00" })).ok).toBe(false);
+    expect(validarAtividade(form({ nome: "Reunião", data: "2026-11-04", ...HORA, foto: "https://a.org/x.jpg" })).ok).toBe(false);
   });
 
   it("recusa sem nome, nome longo demais e sem data", () => {
     expect(validarAtividade(form({ nome: "a", data: "2026-11-04" })).ok).toBe(false);
     expect(validarAtividade(form({ nome: "x".repeat(201), data: "2026-11-04" })).ok).toBe(false);
     expect(validarAtividade(form({ nome: "Reunião", data: "" })).ok).toBe(false);
-    expect(validarAtividade(form({ nome: "Reunião", data: "2026-11-04", comprovacao: "x".repeat(501) })).ok).toBe(false);
+    expect(validarAtividade(form({ nome: "Reunião", data: "2026-11-04", ...HORA, comprovacao: "x".repeat(501) })).ok).toBe(false);
   });
 });

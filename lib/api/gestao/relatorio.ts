@@ -1,7 +1,8 @@
 import "server-only";
 import { createClient, usuarioDaRequisicao } from "@/lib/supabase/server";
-import { limitesDoMes } from "./alocacao";
+import { limitesDoMes, nomesDaEquipe } from "./alocacao";
 import type { AtividadeRelatorio, EncontroDoRelatorio, NovaAtividade, SituacaoAlocacao, TipoEncontro } from "./types";
+import type { FotoDoRelatorio } from "./relatorio-docx";
 
 /**
  * Relatório do mês de uma pessoa: os encontros em que esteve e as atividades
@@ -31,7 +32,12 @@ export interface AgendaDoRelatorio {
   escola: { nome: string } | { nome: string }[] | null;
   turma: { nome: string } | { nome: string }[] | null;
   espaco: { nome: string } | { nome: string }[] | null;
-  agenda_bolsista: { bolsista_id: string; situacao: SituacaoAlocacao; link_comprovacao: string | null }[];
+  agenda_bolsista: {
+    bolsista_id: string;
+    situacao: SituacaoAlocacao;
+    link_comprovacao: string | null;
+    foto_comprovacao?: string | null;
+  }[];
 }
 
 function primeiro<T>(valor: T | T[] | null): T | null {
@@ -50,6 +56,8 @@ export function montarEncontros(
   pessoa?: string,
 ): EncontroDoRelatorio[] {
   const porId = new Map(agendas.map((a) => [a.id, a]));
+  const minha = (a: AgendaDoRelatorio) =>
+    (a.agenda_bolsista ?? []).find((b) => pessoa && b.bolsista_id === pessoa && PRESENTE(b));
   return cargas
     .filter((c) => ESTEVE.has(c.situacao))
     .flatMap((c) => {
@@ -74,9 +82,16 @@ export function montarEncontros(
                 .map((b) => b.link_comprovacao as string),
             ),
           ].sort(),
+          fotos: [
+            ...new Set(
+              (a.agenda_bolsista ?? [])
+                .filter((b) => b.foto_comprovacao && PRESENTE(b))
+                .map((b) => b.foto_comprovacao as string),
+            ),
+          ].sort(),
           inicio: a.inicio,
-          meuLink:
-            (a.agenda_bolsista ?? []).find((b) => pessoa && b.bolsista_id === pessoa && PRESENTE(b))?.link_comprovacao ?? null,
+          meuLink: minha(a)?.link_comprovacao ?? null,
+          minhaFoto: minha(a)?.foto_comprovacao ?? null,
         },
       ];
     })
@@ -107,7 +122,7 @@ export async function encontrosDoMes(mes: string, pessoaId?: string): Promise<En
     .schema("gestao")
     .from("agenda")
     .select(
-      "id, data, horario, inicio, modalidade, aulas, cancelado_em, tipo, escola(nome), turma(nome), espaco(nome), agenda_bolsista(bolsista_id, situacao, link_comprovacao)",
+      "id, data, horario, inicio, modalidade, aulas, cancelado_em, tipo, escola(nome), turma(nome), espaco(nome), agenda_bolsista(bolsista_id, situacao, link_comprovacao, foto_comprovacao)",
     )
     .in("id", ids);
   if (erro) throw new Error(erro.message);
@@ -117,27 +132,92 @@ export async function encontrosDoMes(mes: string, pessoaId?: string): Promise<En
 export async function atividadesDoMes(mes: string, pessoaId?: string): Promise<AtividadeRelatorio[]> {
   const supabase = await createClient();
   const pessoa = pessoaId ?? (await usuarioAtual());
+  // Entra no filtro do PostgREST como texto: só id de verdade.
+  if (!/^[0-9a-f-]{36}$/i.test(pessoa)) throw new Error("gestao: pessoa inválida");
   const { de, ate } = limitesDoMes(mes);
   const { data, error } = await supabase
     .schema("gestao")
     .from("atividade_relatorio")
-    .select("id, nome, data, comprovacao")
-    .eq("user_profile_id", pessoa)
+    .select("id, user_profile_id, nome, data, inicio, fim, comprovacao, foto_comprovacao, participantes")
+    // As que a pessoa cadastrou e as em que outro a pôs como participante.
+    .or(`user_profile_id.eq.${pessoa},participantes.cs.{${pessoa}}`)
     .gte("data", de)
     .lte("data", ate)
     .order("data")
+    .order("inicio", { nullsFirst: true })
     .order("criado_em");
   if (error) throw new Error(error.message);
   return (data ?? []) as AtividadeRelatorio[];
 }
 
-/** Só o link de quem está logado no encontro; quem pode o banco decide. Vazio apaga. */
-export async function escreverLinkComprovacao(encontroId: string, link: string | null): Promise<void> {
+/** Link e foto de quem está logado no encontro; quem pode o banco decide. Null apaga. */
+export async function escreverLinkComprovacao(encontroId: string, link: string | null, foto: string | null): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
     .schema("gestao")
-    .rpc("escrever_link_comprovacao", { p_agenda: encontroId, p_link: link });
+    .rpc("escrever_link_comprovacao", { p_agenda: encontroId, p_link: link, p_foto: foto });
   if (error) throw new Error(error.message);
+}
+
+/** Colegas ativos da equipe (sem quem está logado), para escolher participantes. */
+export async function colegasDaEquipe(): Promise<{ id: string; nome: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("gestao").rpc("colegas");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { user_profile_id: string; nome: string }[]).map((c) => ({ id: c.user_profile_id, nome: c.nome }));
+}
+
+export const BUCKET_FOTOS = "gestao-comprovacao";
+
+/** O que o registro do mês mostra além das linhas: URLs das fotos e nomes de quem participou. */
+export async function extrasDoRegistro(
+  encontros: EncontroDoRelatorio[],
+  atividades: AtividadeRelatorio[],
+): Promise<{ urls: Record<string, string>; nomes: Record<string, string> }> {
+  const [urls, nomes] = await Promise.all([
+    urlsDasFotos([...encontros.flatMap((e) => e.fotos), ...atividades.flatMap((a) => (a.foto_comprovacao ? [a.foto_comprovacao] : []))]),
+    atividades.some((a) => a.participantes.length) ? nomesDaEquipe() : new Map<string, string>(),
+  ]);
+  return { urls, nomes: Object.fromEntries(nomes) };
+}
+
+/** URL assinada (1h) de cada foto, para a tela; foto que falhar fica de fora. */
+export async function urlsDasFotos(caminhos: string[]): Promise<Record<string, string>> {
+  const unicos = [...new Set(caminhos)];
+  if (unicos.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage.from(BUCKET_FOTOS).createSignedUrls(unicos, 3600);
+  if (error) throw new Error(error.message);
+  return Object.fromEntries((data ?? []).filter((d) => d.signedUrl && d.path).map((d) => [d.path as string, d.signedUrl]));
+}
+
+/**
+ * Fotos prontas para o .docx: reduzidas a no máximo 1200 px e em JPEG, para o
+ * arquivo não inchar com fotos de 20 MB. Foto que não baixa fica de fora.
+ */
+export async function fotosParaRelatorio(caminhos: string[]): Promise<Map<string, FotoDoRelatorio>> {
+  const unicos = [...new Set(caminhos)];
+  const fotos = new Map<string, FotoDoRelatorio>();
+  if (unicos.length === 0) return fotos;
+  const supabase = await createClient();
+  const { default: sharp } = await import("sharp");
+  await Promise.all(
+    unicos.map(async (caminho) => {
+      const { data, error } = await supabase.storage.from(BUCKET_FOTOS).download(caminho);
+      if (error || !data) return;
+      try {
+        const { data: bytes, info } = await sharp(Buffer.from(await data.arrayBuffer()))
+          .rotate() // respeita a orientação da câmera
+          .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+          .jpeg({ quality: 80 })
+          .toBuffer({ resolveWithObject: true });
+        fotos.set(caminho, { bytes: new Uint8Array(bytes), largura: info.width, altura: info.height });
+      } catch {
+        // Arquivo que não é imagem de verdade: o relatório sai sem ele.
+      }
+    }),
+  );
+  return fotos;
 }
 
 /** O banco grava em nome de quem está logado (`auth.uid()`). */

@@ -766,24 +766,52 @@ export interface EncontroDoRelatorio {
     horas: number;
     /** Links de comprovação dos bolsistas do encontro, sem repetição. */
     links: string[];
+    /** Fotos de comprovação (caminho no bucket) dos bolsistas do encontro. */
+    fotos: string[];
     inicio: string | null;
     /** Link da própria pessoa; null quando não informou ou só cobriu. */
     meuLink: string | null;
+    /** Foto da própria pessoa (caminho no bucket). */
+    minhaFoto: string | null;
 }
 
-/** Atividade do relatório: o dono e a coordenação veem; só o dono edita. */
+/** Atividade do relatório: o dono, os participantes e a coordenação veem; só o dono edita. */
 export interface AtividadeRelatorio {
     id: string;
+    /** Quem cadastrou (o dono). */
+    user_profile_id: string;
     nome: string;
     data: string;
+    /** "HH:MM:SS"; null nas atividades de antes do horário. */
+    inicio: string | null;
+    fim: string | null;
     /** Link ou descrição curta; vai para "Fonte de comprovação" no .docx. */
     comprovacao: string | null;
+    /** Caminho da foto no bucket `gestao-comprovacao`. */
+    foto_comprovacao: string | null;
+    participantes: string[];
 }
 
 export interface NovaAtividade {
     nome: string;
     data: string;
+    inicio: string;
+    fim: string;
     comprovacao: string | null;
+    foto_comprovacao: string | null;
+    participantes: string[];
+}
+
+/** Encontro que o bolsista cria: sem escola nem turma; ele entra como responsável. */
+export interface NovoEncontroDoBolsista {
+    data: string;
+    inicio: string;
+    fim: string;
+    tipo: TipoEncontro;
+    modalidade: string;
+    descricao: string;
+    espacoId: string | null;
+    colegas: string[];
 }
 
 // ---------------------------------------------------------------------------
