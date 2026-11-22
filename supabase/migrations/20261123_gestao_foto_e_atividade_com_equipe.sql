@@ -159,6 +159,9 @@ begin
 end;
 $$;
 
+-- Só o gatilho chama.
+revoke execute on function gestao.atividade_participantes_da_equipe() from public, anon, authenticated;
+
 drop trigger if exists atividade_participantes_da_equipe on gestao.atividade_relatorio;
 create trigger atividade_participantes_da_equipe
   before insert or update of participantes on gestao.atividade_relatorio
