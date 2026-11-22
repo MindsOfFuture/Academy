@@ -3,7 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { ensureGestaoMember } from "@/lib/api/gestao/auth";
 import { gestaoHabilitada } from "@/lib/api/gestao/feature-flags";
-import { encontrosDoMes, meuPerfilParaRelatorio, atividadesDoMes } from "@/lib/api/gestao/relatorio";
+import { encontrosDoMes, fotosParaRelatorio, meuPerfilParaRelatorio, atividadesDoMes } from "@/lib/api/gestao/relatorio";
 import { preencherRelatorio } from "@/lib/api/gestao/relatorio-docx";
 import { docxParaPdf } from "@/lib/api/gestao/relatorio-pdf";
 import { mesDaUrl } from "../../alocacao/rotulos";
@@ -25,8 +25,12 @@ export async function GET(request: Request) {
       encontrosDoMes(mes),
       atividadesDoMes(mes),
     ]);
+    const fotos = await fotosParaRelatorio([
+      ...encontros.flatMap((e) => e.fotos),
+      ...atividades.flatMap((a) => (a.foto_comprovacao ? [a.foto_comprovacao] : [])),
+    ]);
     const modelo = readFileSync(path.join(process.cwd(), "lib/api/gestao/modelos/relatorio-mensal.docx"));
-    const arquivo = await docxParaPdf(preencherRelatorio(modelo, { mes, ...perfil, encontros, atividades }));
+    const arquivo = await docxParaPdf(preencherRelatorio(modelo, { mes, ...perfil, encontros, atividades, fotos }));
     return new NextResponse(Buffer.from(arquivo), {
       headers: {
         "Content-Type": "application/pdf",

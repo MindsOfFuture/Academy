@@ -33,12 +33,22 @@ beforeEach(() => {
 describe("ações das atividades do relatório", () => {
   it("edita com data do mês aberto", async () => {
     const data = `${mesCorrente()}-01`;
-    expect(await editarAtividadeAction(null, form({ id: "a1", nome: "Reunião", data }))).toEqual({ ok: true, mensagem: "Atividade atualizada." });
-    expect(editarAtividade).toHaveBeenCalledWith("a1", { nome: "Reunião", data, comprovacao: null });
+    expect(
+      await editarAtividadeAction(null, form({ id: "a1", nome: "Reunião", data, inicio: "14:00", fim: "15:30" })),
+    ).toEqual({ ok: true, mensagem: "Atividade atualizada." });
+    expect(editarAtividade).toHaveBeenCalledWith("a1", {
+      nome: "Reunião",
+      data,
+      inicio: "14:00",
+      fim: "15:30",
+      comprovacao: null,
+      foto_comprovacao: null,
+      participantes: [],
+    });
   });
 
   it("recusa levar a atividade para um mês que já terminou, sem ir ao banco", async () => {
-    const estado = await editarAtividadeAction(null, form({ id: "a1", nome: "Reunião", data: "2020-01-10" }));
+    const estado = await editarAtividadeAction(null, form({ id: "a1", nome: "Reunião", data: "2020-01-10", inicio: "14:00", fim: "15:30" }));
     expect(estado.ok).toBe(false);
     expect(editarAtividade).not.toHaveBeenCalled();
   });

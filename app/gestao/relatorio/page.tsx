@@ -1,4 +1,5 @@
-import { atividadesDoMes, encontrosDoMes } from "@/lib/api/gestao/relatorio";
+import { atividadesDoMes, colegasDaEquipe, encontrosDoMes, extrasDoRegistro } from "@/lib/api/gestao/relatorio";
+import { usuarioDaRequisicao } from "@/lib/supabase/server";
 import { exigirMembro } from "../guard";
 import { diaCurto, hojeIso, mesCorrente, mesDaUrl, mesEditavel } from "../alocacao/rotulos";
 import { FormAtividade, FormLinkEncontro, LinhaAtividade } from "./forms";
@@ -13,7 +14,13 @@ import { RegistroDoMes } from "./registro";
 export default async function RelatorioPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   await exigirMembro("/gestao/relatorio");
   const mes = mesDaUrl((await searchParams).mes);
-  const [encontros, atividades] = await Promise.all([encontrosDoMes(mes), atividadesDoMes(mes)]);
+  const [encontros, atividades, colegas, eu] = await Promise.all([
+    encontrosDoMes(mes),
+    atividadesDoMes(mes),
+    colegasDaEquipe(),
+    usuarioDaRequisicao(),
+  ]);
+  const extras = await extrasDoRegistro(encontros, atividades);
 
   const hoje = hojeIso();
   const dataPadrao = hoje.startsWith(mes) ? hoje : `${mes}-01`;
@@ -44,15 +51,31 @@ export default async function RelatorioPage({ searchParams }: { searchParams: Pr
       <RegistroDoMes
         encontros={encontros}
         atividades={atividades}
+        {...extras}
         linhaEncontro={(e) =>
           (e.situacao === "prevista" || e.situacao === "cumprida") &&
-          jaComecou(e) && <FormLinkEncontro key={`${e.encontroId}-${e.meuLink}`} encontroId={e.encontroId} link={e.meuLink} />
+          jaComecou(e) && (
+            <FormLinkEncontro
+              key={`${e.encontroId}-${e.meuLink}-${e.minhaFoto}`}
+              encontroId={e.encontroId}
+              link={e.meuLink}
+              foto={e.minhaFoto}
+            />
+          )
         }
         linhaAtividade={
-          editavel ? (a) => <LinhaAtividade atividade={a} dataMinima={dataMinima} dia={diaCurto(a.data)} /> : undefined
+          editavel
+            ? (a, detalhes) =>
+                // Quem só participa vê a atividade; só quem cadastrou edita.
+                a.user_profile_id === eu ? (
+                  <LinhaAtividade atividade={a} dataMinima={dataMinima} dia={diaCurto(a.data)} colegas={colegas}>
+                    {detalhes}
+                  </LinhaAtividade>
+                ) : null
+            : undefined
         }
       >
-        <FormAtividade key={mes} dataPadrao={dataPadrao} />
+        <FormAtividade key={mes} dataPadrao={dataPadrao} colegas={colegas} />
       </RegistroDoMes>
     </div>
   );

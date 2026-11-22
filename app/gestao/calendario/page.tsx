@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { calendarioDaEquipe } from "@/lib/api/gestao/alocacao";
+import { calendarioDaEquipe, listarEspacos } from "@/lib/api/gestao/alocacao";
+import { colegasDaEquipe } from "@/lib/api/gestao/relatorio";
 import type { EncontroDoCalendario } from "@/lib/api/gestao/types";
 import { GradeDoMes } from "../grade-do-mes";
 import { exigirMembro } from "../guard";
 import { SeletorMes } from "../seletor-mes";
-import { mesDaUrl, TIPO_ENCONTRO } from "../alocacao/rotulos";
+import { hojeIso, mesDaUrl, TIPO_ENCONTRO } from "../alocacao/rotulos";
+import { FormEncontroDoBolsista } from "./forms";
 
 /**
- * Calendário do bolsista: os próprios encontros do mês ou os da equipe toda,
- * só para ver. Os próprios abrem a página do encontro.
+ * Calendário do bolsista: os próprios encontros do mês ou os da equipe toda.
+ * Os próprios abrem a página do encontro. Daqui o bolsista cria encontro sem
+ * escola nem turma.
  */
 
 function Cartao({ e }: { e: EncontroDoCalendario }) {
@@ -50,7 +53,8 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
   const params = await searchParams;
   const mes = mesDaUrl(params.mes);
   const equipe = params.ver === "equipe";
-  const encontros = await calendarioDaEquipe(mes);
+  const [encontros, colegas, espacos] = await Promise.all([calendarioDaEquipe(mes), colegasDaEquipe(), listarEspacos()]);
+  const hoje = hojeIso();
   const visiveis = equipe ? encontros : encontros.filter((e) => e.minha);
 
   const filtros: [string, string, boolean][] = [
@@ -84,6 +88,13 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
           Exportar para o Google Agenda
         </a>
       </div>
+
+      <FormEncontroDoBolsista
+        key={mes}
+        dataPadrao={hoje.startsWith(mes) ? hoje : `${mes}-01`}
+        colegas={colegas}
+        espacos={espacos.filter((e) => e.ativo)}
+      />
 
       <GradeDoMes
         mes={mes}

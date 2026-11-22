@@ -24,6 +24,7 @@ import type {
   Chamada,
   NovoAfastamento,
   NovoEncontro,
+  NovoEncontroDoBolsista,
   Ocorrencia,
   PedidoLote,
   PlanoLote,
@@ -331,6 +332,23 @@ export async function criarEncontro(novo: NovoEncontro): Promise<string> {
   const id = (data as { id: string }).id;
   if (novo.equipe.length > 0) await alocar(id, novo.equipe, novo.responsaveis);
   return id;
+}
+
+/** Encontro que o bolsista cria (sem escola nem turma); a função do banco o põe como responsável. */
+export async function criarEncontroDoBolsista(novo: NovoEncontroDoBolsista): Promise<string> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.schema("gestao").rpc("criar_encontro_do_bolsista", {
+    p_data: novo.data,
+    p_inicio: novo.inicio,
+    p_fim: novo.fim,
+    p_tipo: novo.tipo,
+    p_modalidade: novo.modalidade,
+    p_descricao: novo.descricao,
+    p_espaco: novo.espacoId,
+    p_colegas: novo.colegas,
+  });
+  throwOnError(error);
+  return data as string;
 }
 
 /**

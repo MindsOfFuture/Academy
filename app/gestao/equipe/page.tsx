@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
-import { atividadesDoMes, encontrosDoMes } from "@/lib/api/gestao/relatorio";
+import { atividadesDoMes, encontrosDoMes, extrasDoRegistro } from "@/lib/api/gestao/relatorio";
 import type { MembroEquipe, ModalidadeBolsa } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../guard";
 import { mesDaUrl } from "../alocacao/rotulos";
@@ -38,6 +38,7 @@ export default async function EquipePage({
   const registro = doRegistro
     ? await Promise.all([encontrosDoMes(mes, doRegistro.userProfileId), atividadesDoMes(mes, doRegistro.userProfileId)])
     : null;
+  const extras = registro ? await extrasDoRegistro(registro[0], registro[1]) : undefined;
 
   const ativos = equipe.filter((m) => !m.desligadoEm);
   const desligados = equipe.filter((m) => m.desligadoEm);
@@ -72,7 +73,7 @@ export default async function EquipePage({
       {doRegistro && registro && (
         <JanelaRegistro titulo={`Registro de atividades · ${doRegistro.nome}`}>
           <SeletorMes mes={mes} titulo="Relatório de" parametros={{ registro: doRegistro.userProfileId }} />
-          <RegistroDoMes encontros={registro[0]} atividades={registro[1]} vazio="do bolsista" />
+          <RegistroDoMes encontros={registro[0]} atividades={registro[1]} vazio="do bolsista" {...extras} />
         </JanelaRegistro>
       )}
     </div>

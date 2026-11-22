@@ -24,7 +24,10 @@ const encontro = (id: string, modalidade: string, minha: boolean) => ({
 });
 vi.mock("@/lib/api/gestao/alocacao", () => ({
   calendarioDaEquipe: async () => [encontro("meu", "Lego", true), encontro("do-caio", "Python", false)],
+  listarEspacos: async () => [],
 }));
+vi.mock("@/lib/api/gestao/relatorio", () => ({ colegasDaEquipe: async () => [] }));
+vi.mock("@/app/gestao/calendario/actions", () => ({ criarEncontroDoBolsistaAction: async () => ({ ok: true, mensagem: "" }) }));
 
 import CalendarioPage from "@/app/gestao/calendario/page";
 
