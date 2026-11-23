@@ -3,8 +3,14 @@ name: Deploy (VPS)
 permissions:
   contents: read
 
+# Só publica depois do workflow "Tests" verde num push na main (o deploy
+# não corre mais em paralelo com os testes). O Playwright ainda não entra
+# no portão: falha em toda execução desde nov/2026 e travaria todo deploy.
+# workflow_dispatch continua para publicar à mão.
 on:
-  push:
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
     branches: [main]
   workflow_dispatch: {}
 
@@ -14,10 +20,44 @@ concurrency:
 
 jobs:
   deploy:
+    # Push na main deste repositório com Tests verde. O filtro "branches" do
+    # workflow_run olha só o nome do branch: PR de fork chamado "main" também
+    # casaria, por isso a conferência de evento e repositório.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      publicou: ${{ steps.atual.outputs.publicar }}
+      commit: ${{ steps.atual.outputs.commit }}
+    env:
+      # No workflow_run, github.sha é a ponta da main na hora do evento, não o
+      # commit testado: publica sempre o head_sha que passou nos testes.
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
+      # Testes de dois pushes seguidos podem terminar fora de ordem; sem esta
+      # conferência o commit antigo seria publicado por cima do novo.
+      - name: Conferir que é o commit mais novo da main
+        id: atual
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          EVENTO: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          echo "commit=${DEPLOY_SHA}" >> "$GITHUB_OUTPUT"
+          ponta=$(git ls-remote "$REPO_URL" refs/heads/main | cut -f1)
+          if [ "$EVENTO" = "workflow_run" ] && [ "$ponta" != "$DEPLOY_SHA" ]; then
+            echo "::notice::${DEPLOY_SHA::7} não é mais a ponta da main (${ponta::7}); o deploy do commit novo publica."
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configurar SSH
+        if: steps.atual.outputs.publicar == 'true'
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
@@ -30,12 +70,13 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
       - name: Rodar release no servidor
+        if: steps.atual.outputs.publicar == 'true'
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
           set -euo pipefail
-          COMMIT="${GITHUB_SHA}"
+          COMMIT="${DEPLOY_SHA}"
           ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "sudo -n /root/deploy-release.sh '${COMMIT}'"
@@ -47,16 +88,19 @@ jobs:
   # Smoke pós-deploy (RUNBOOK §2.4). Falha deixa o deploy vermelho e avisa a caixa da equipe.
   smoke:
     needs: deploy
+    if: needs.deploy.outputs.publicou == 'true'
     # Playwright 1.57 não suporta Ubuntu 26.04 (ubuntu-latest desde out/2026). Volta para ubuntu-latest ao subir o Playwright para 1.65+.
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       PLAYWRIGHT_BASE_URL: https://mindsofthefuture.com.br
-      # Conta dedicada de smoke, sem dado de aluno. Reaproveita os nomes do auth.fixture.ts.
-      TEST_STUDENT_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
-      TEST_STUDENT_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
+      DEPLOY_SHA: ${{ needs.deploy.outputs.commit }}
     steps:
+      # O mesmo commit publicado, para o smoke bater com o código no ar.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.deploy.outputs.commit }}
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -76,6 +120,10 @@ jobs:
       - name: Rodar smoke
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: smoke-results.json
+          # Conta dedicada de smoke, sem dado de aluno. Reaproveita os nomes do auth.fixture.ts.
+          # Só neste passo: o npm ci e os outros passos não veem a senha.
+          TEST_STUDENT_EMAIL: ${{ secrets.SMOKE_USER_EMAIL }}
+          TEST_STUDENT_PASSWORD: ${{ secrets.SMOKE_USER_PASSWORD }}
         run: npx playwright test e2e/flows/smoke-producao.spec.ts --project=chromium --no-deps --retries=1 --trace=off --reporter=list,json
 
       # ADR 012: verde por não ter rodado nada é o pior caso. Exige os 4 testes executados.
@@ -91,7 +139,13 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        # JSON montado pelo jq: nenhum valor é interpolado no texto do comando.
         run: |
+          corpo=$(jq -n \
+            --arg from "$RESEND_FROM_EMAIL" \
+            --arg subject "[deploy] smoke falhou em ${DEPLOY_SHA::7}" \
+            --arg text "Smoke pos-deploy falhou contra $PLAYWRIGHT_BASE_URL."$'\n'"Commit: $DEPLOY_SHA"$'\n'"Run: $RUN_URL" \
+            '{from: $from, to: ["mindsofthefuture.ufjf@gmail.com"], subject: $subject, text: $text}')
           curl -fsS --max-time 30 https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" -H "Content-Type: application/json" \
-            -d "{\"from\":\"$RESEND_FROM_EMAIL\",\"to\":[\"mindsofthefuture.ufjf@gmail.com\"],\"subject\":\"[deploy] smoke falhou em ${GITHUB_SHA::7}\",\"text\":\"Smoke pos-deploy falhou contra $PLAYWRIGHT_BASE_URL.\nRun: $RUN_URL\"}"
+            --data-binary "$corpo"

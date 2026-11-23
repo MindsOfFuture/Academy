@@ -31,7 +31,8 @@ cp -r .next/static .next/standalone/.next/static
 cp -r public       .next/standalone/public
 ```
 
-Push na `main` faz isso automaticamente em `.github/workflows/deploy.yml`.
+Push na `main` faz isso automaticamente em `.github/workflows/deploy.yml`,
+depois que o workflow **Tests** do mesmo commit termina verde.
 Manualmente:
 
 ```bash
