@@ -75,9 +75,18 @@ describe("escreverNotaAction — link de comprovação", () => {
 
   it("sem link manda null; com link manda o link sem as bordas", async () => {
     expect(await escreverNotaAction(null, form({ encontroId: "e1", nota: NOTA, link: "  " }))).toEqual({ ok: true, mensagem: "Nota salva." });
-    expect(escreverNotaEncerramento).toHaveBeenLastCalledWith("e1", NOTA, null);
+    expect(escreverNotaEncerramento).toHaveBeenLastCalledWith("e1", NOTA, null, null);
 
     await escreverNotaAction(null, form({ encontroId: "e1", nota: NOTA, link: " https://drive.google.com/x " }));
-    expect(escreverNotaEncerramento).toHaveBeenLastCalledWith("e1", NOTA, "https://drive.google.com/x");
+    expect(escreverNotaEncerramento).toHaveBeenLastCalledWith("e1", NOTA, "https://drive.google.com/x", null);
+  });
+
+  it("foto: caminho da própria pasta vai ao banco; caminho estranho é recusado", async () => {
+    const foto = "11111111-1111-1111-1111-111111111111/22222222-2222-2222-2222-222222222222.jpg";
+    await escreverNotaAction(null, form({ encontroId: "e1", nota: NOTA, link: "", foto }));
+    expect(escreverNotaEncerramento).toHaveBeenLastCalledWith("e1", NOTA, null, foto);
+    escreverNotaEncerramento.mockClear();
+    expect((await escreverNotaAction(null, form({ encontroId: "e1", nota: NOTA, foto: "../outra/x.jpg" }))).ok).toBe(false);
+    expect(escreverNotaEncerramento).not.toHaveBeenCalled();
   });
 });

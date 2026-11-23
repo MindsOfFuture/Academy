@@ -418,7 +418,7 @@ describe("mapEncontro", () => {
       },
       new Map([["ana", "Ana"], ["bia", "Bia"], ["caio", "Caio"]]),
     );
-    const base = { situacao: "prevista", inicio: null, fim: null, cobertoPor: null, cobertoPorNome: null, motivo: null, carga: "4h", notaEncerramento: null, linkComprovacao: null, atrasoMinutos: null };
+    const base = { situacao: "prevista", inicio: null, fim: null, cobertoPor: null, cobertoPorNome: null, motivo: null, carga: "4h", notaEncerramento: null, linkComprovacao: null, fotoComprovacao: null, atrasoMinutos: null };
     expect(encontro).toEqual({
       id: "e1", data: "2026-10-05", inicio: "08:00", fim: "12:00", horario: "8h às 12h", modalidade: "Impressão",
       descricao: "Impressão", escolaId: null, escolaNome: null, turmaId: null, turmaNome: null, turmaStatus: null,

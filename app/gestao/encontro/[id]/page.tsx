@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { chamadaDoEncontro, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { usuarioAtualId } from "@/lib/api/gestao/melhorias";
+import { urlsDasFotos } from "@/lib/api/gestao/relatorio";
 import { FormChamada, FormNotaEncerramento, FormPresentes } from "../../alocacao/forms";
 import { NotasPendentes, Relatorio, Resumo, jaComecou } from "../../alocacao/resumo";
 import { TIPO_ENCONTRO, diaCurto } from "../../alocacao/rotulos";
@@ -29,6 +30,8 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
     (a) => a.bolsistaId === eu && (a.situacao === "prevista" || a.situacao === "cumprida"),
   );
   const podeEscrever = minha && !encontro.canceladoEm && jaComecou(encontro);
+  const minhaFoto = podeEscrever ? minha.fotoComprovacao : null;
+  const fotoUrl = minhaFoto ? (await urlsDasFotos([minhaFoto]))[minhaFoto] : null;
 
   return (
     <div className="space-y-6">
@@ -56,7 +59,7 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
         {podeEscrever && (encontro.escolaId || encontro.turmaId) && (
           <FormPresentes key={encontro.presentes ?? ""} encontroId={encontro.id} presentes={encontro.presentes} />
         )}
-        {podeEscrever && <FormNotaEncerramento encontroId={encontro.id} nota={minha.notaEncerramento} link={minha.linkComprovacao} />}
+        {podeEscrever && <FormNotaEncerramento encontroId={encontro.id} nota={minha.notaEncerramento} link={minha.linkComprovacao} foto={minha.fotoComprovacao} fotoUrl={fotoUrl} />}
       </section>
 
       <section aria-labelledby="equipe" className="space-y-3">

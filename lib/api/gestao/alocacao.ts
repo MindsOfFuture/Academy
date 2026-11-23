@@ -52,7 +52,7 @@ import type {
 const SELECT_ENCONTRO =
   "id, data, inicio, fim, horario, modalidade, aulas, escola_id, turma_id, cancelado_em, motivo_cancelamento, concluido_em, relatorio, numero_aula, presentes, tipo, espaco_id, " +
   "escola(nome), turma(nome, status), espaco(nome), " +
-  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, nota_encerramento, link_comprovacao, atraso_minutos, funcao)";
+  "agenda_bolsista(id, bolsista_id, situacao, inicio, fim, coberto_por, motivo, carga, nota_encerramento, link_comprovacao, foto_comprovacao, atraso_minutos, funcao)";
 
 function throwOnError(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
@@ -115,6 +115,7 @@ function mapAlocacao(row: AlocacaoRow, nomes: Map<string, string>): Alocacao {
     carga: row.carga,
     notaEncerramento: row.nota_encerramento,
     linkComprovacao: row.link_comprovacao,
+    fotoComprovacao: row.foto_comprovacao ?? null,
     atrasoMinutos: row.atraso_minutos ?? null,
     funcao: row.funcao ?? "apoio",
   };
@@ -656,14 +657,24 @@ export async function concluirEncontro(id: string, concluir: boolean, relatorio:
 /**
  * A nota de encerramento de quem pede. O banco confere que a pessoa esteve no
  * encontro e que ele já começou; devolve true quando foi a última nota e o
- * encontro se concluiu.
+ * encontro se concluiu. A foto vai por `escrever_link_comprovacao`, a mesma do
+ * relatório, que grava o link de novo junto.
  */
-export async function escreverNotaEncerramento(encontroId: string, nota: string, link: string | null): Promise<boolean> {
+export async function escreverNotaEncerramento(
+  encontroId: string,
+  nota: string,
+  link: string | null,
+  foto: string | null,
+): Promise<boolean> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .schema("gestao")
     .rpc("escrever_nota_encerramento", { p_agenda: encontroId, p_nota: nota, p_link: link });
   throwOnError(error);
+  const comprovacao = await supabase
+    .schema("gestao")
+    .rpc("escrever_link_comprovacao", { p_agenda: encontroId, p_link: link, p_foto: foto });
+  throwOnError(comprovacao.error);
   return data === true;
 }
 

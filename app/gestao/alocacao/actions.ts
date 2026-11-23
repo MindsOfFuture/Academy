@@ -36,6 +36,7 @@ import {
 import { avisar, avisarLote, type ItemAviso, type MotivoAviso } from "@/lib/api/gestao/avisos";
 import type { ConflitoHorario, EstadoAcao } from "@/lib/api/gestao/types";
 import {
+  FOTO_COMPROVACAO,
   falha,
   mensagemDeErro,
   sucesso,
@@ -329,14 +330,16 @@ export async function escreverNotaAction(_anterior: EstadoAcao | null, form: For
   const id = campo(form, "encontroId");
   const nota = campo(form, "nota");
   const link = campo(form, "link");
+  const foto = campo(form, "foto");
   if (!id) return falha("Encontro não informado.");
   if (nota.length < 10 || nota.length > 5000) return falha("Escreva a nota de encerramento (de 10 a 5000 caracteres).");
   if (link && (link.length > 500 || !/^https?:\/\/\S+$/.test(link))) {
     return falha("O link precisa começar com http:// ou https://, sem espaços, com até 500 caracteres.");
   }
+  if (foto && !FOTO_COMPROVACAO.test(foto)) return falha("Envie a foto de novo.");
   let concluiu = false;
   const estado = await executar(async () => {
-    concluiu = await escreverNotaEncerramento(id, nota, link || null);
+    concluiu = await escreverNotaEncerramento(id, nota, link || null, foto || null);
   }, "Nota salva.");
   return estado.ok && concluiu ? sucesso("Nota salva. Era a última: o encontro foi concluído.") : estado;
 }
