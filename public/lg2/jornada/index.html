@@ -20,6 +20,7 @@
     </div>
     <div class="topo-rodape">
       <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
+      <button type="button" class="abre-videos" id="abre-videos" aria-haspopup="dialog" aria-controls="videos" hidden>Vídeos</button>
       <button type="button" class="abre-painel" id="abre-painel" aria-haspopup="dialog" aria-controls="painel">Meu resumo e plano</button>
     </div>
   </header>
@@ -110,6 +111,17 @@
       </div>
     </section>
   </main>
+  <div class="videos-fundo" id="videos" hidden>
+    <section class="videos-caixa" role="dialog" aria-modal="true" aria-labelledby="videos-titulo">
+      <div class="videos-topo">
+        <button type="button" class="videos-voltar" id="videos-voltar" hidden>Outros vídeos</button>
+        <h2 id="videos-titulo">Vídeos da etapa</h2>
+        <button type="button" class="fechar" id="fecha-videos">Fechar</button>
+      </div>
+      <ul class="videos-lista" id="videos-lista"></ul>
+      <div class="videos-tocador" id="videos-tocador" hidden></div>
+    </section>
+  </div>
   <div class="painel-fundo" id="painel" hidden>
     <section class="painel" role="dialog" aria-modal="true" aria-labelledby="painel-titulo" tabindex="-1">
       <div class="painel-topo">
@@ -162,6 +174,7 @@
   <script src="js/motor5.js"></script>
   <script src="js/motor6.js"></script>
   <script src="js/plano.js"></script>
+  <script src="js/videos.js"></script>
   <script src="js/jornada.js"></script>
   <script src="js/metricas.js" defer></script>
 </body>

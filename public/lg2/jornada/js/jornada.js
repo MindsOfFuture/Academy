@@ -227,6 +227,7 @@
     document.body.classList.remove('na-capa');
     if (!manterModulo) {
       clearInterval(vigia);
+      if (window.LG2Videos) window.LG2Videos.etapa(null);
       iframe.hidden = true;
       abrindo.hidden = true;
       if (iframe.getAttribute('src') && iframe.getAttribute('src') !== 'about:blank') iframe.setAttribute('src', 'about:blank');
@@ -255,6 +256,7 @@
     iframe.hidden = false;
     aviso.textContent = feito(n) ? 'Etapa concluída. Pode rever e mudar suas respostas.' : '';
     topo('Etapa ' + m.n + ' de ' + TOTAL, m.nome, true);
+    if (window.LG2Videos) window.LG2Videos.etapa(m.n);
     if (iframe.getAttribute('src') !== m.caminho) {
       // Internet lenta: mostra que a etapa está abrindo (some no load do iframe ou ao sair da etapa).
       abrindoTxt.textContent = 'Abrindo a Etapa ' + m.n + '…';
