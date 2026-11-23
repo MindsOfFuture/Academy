@@ -13,18 +13,21 @@ const EXTENSAO: Record<string, string> = { "image/jpeg": "jpg", "image/png": "pn
  * Foto de comprovação: envia direto do navegador para o bucket privado, na
  * pasta de quem está logado (a policy do Storage confere), e guarda o caminho
  * no campo escondido `foto`. `onEnviando` trava o botão de salvar no meio do envio.
+ * `url` mostra a miniatura da foto já salva.
  */
 export function CampoFoto({
   inicial,
+  url,
   onEnviando,
 }: {
   inicial: string | null;
+  url?: string | null;
   onEnviando?: (enviando: boolean) => void;
 }) {
   const id = useId();
   const arquivo = useRef<HTMLInputElement>(null);
   const [caminho, setCaminho] = useState(inicial ?? "");
-  const [previa, setPrevia] = useState<string | null>(null);
+  const [previa, setPrevia] = useState<string | null>(url ?? null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -61,10 +64,9 @@ export function CampoFoto({
 
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className={rotuloCampo}>
-        Foto (opcional)
-      </label>
+      <span className={`block ${rotuloCampo}`}>Foto (opcional)</span>
       <input type="hidden" name="foto" value={caminho} />
+      {/* O botão nativo do arquivo sai no idioma do navegador; este fica em português. */}
       <input
         id={id}
         ref={arquivo}
@@ -75,8 +77,14 @@ export function CampoFoto({
           const file = e.target.files?.[0];
           if (file) void enviar(file);
         }}
-        className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-[#684A97] file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-[#684A97]"
+        className="peer sr-only"
       />
+      <label
+        htmlFor={id}
+        className="inline-flex cursor-pointer items-center rounded-md border border-[#684A97] bg-white px-3 py-1.5 text-sm text-[#684A97] hover:bg-[#684A97]/5 peer-focus-visible:ring-2 peer-focus-visible:ring-[#684A97] peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
+      >
+        {caminho ? "Trocar foto" : "Escolher foto"}
+      </label>
       {enviando && <p className="text-sm text-muted-foreground">Enviando a foto…</p>}
       {erro && (
         <p role="alert" className="text-sm text-red-700">
@@ -86,7 +94,7 @@ export function CampoFoto({
       {caminho && !enviando && (
         <div className="flex items-center gap-3">
           {previa ? (
-            // Prévia local (blob:), antes de salvar; não passa pelo otimizador.
+            // Prévia local (blob:) ou URL assinada de 1 h; não passa pelo otimizador.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={previa} alt="Foto escolhida" className="h-16 w-16 rounded-md object-cover" />
           ) : (

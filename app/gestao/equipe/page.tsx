@@ -73,7 +73,7 @@ export default async function EquipePage({
       {doRegistro && registro && (
         <JanelaRegistro titulo={`Registro de atividades · ${doRegistro.nome}`}>
           <SeletorMes mes={mes} titulo="Relatório de" parametros={{ registro: doRegistro.userProfileId }} />
-          <RegistroDoMes encontros={registro[0]} atividades={registro[1]} vazio="do bolsista" {...extras} />
+          <RegistroDoMes encontros={registro[0]} atividades={registro[1]} vazio="do bolsista" pessoa={doRegistro.userProfileId} {...extras} />
         </JanelaRegistro>
       )}
     </div>

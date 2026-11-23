@@ -52,6 +52,7 @@ export default async function RelatorioPage({ searchParams }: { searchParams: Pr
         encontros={encontros}
         atividades={atividades}
         {...extras}
+        pessoa={eu}
         linhaEncontro={(e) =>
           (e.situacao === "prevista" || e.situacao === "cumprida") &&
           jaComecou(e) && (

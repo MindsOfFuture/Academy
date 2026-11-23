@@ -20,6 +20,7 @@ import type {
   Turma,
 } from "@/lib/api/gestao/types";
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
+import { CampoFoto } from "../relatorio/foto";
 import { FUNCAO, SITUACAO, STATUS_TURMA, TIPO_ENCONTRO } from "./rotulos";
 import {
   adicionarCursoAction,
@@ -629,12 +630,17 @@ export function FormNotaEncerramento({
   encontroId,
   nota,
   link,
+  foto,
+  fotoUrl,
 }: {
   encontroId: string;
   nota: string | null;
   link: string | null;
+  foto: string | null;
+  fotoUrl?: string | null;
 }) {
   const [estado, acao, enviando] = useAcao(escreverNotaAction);
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
   // Controlado: o React limpa o formulário depois do envio, e uma nota recusada não pode sumir.
   const [texto, setTexto] = useState(nota ?? "");
   const [url, setUrl] = useState(link ?? "");
@@ -659,7 +665,8 @@ export function FormNotaEncerramento({
         <span className={rotuloCampo}>Link de comprovação</span>
         <Input name="link" type="url" maxLength={500} value={url} onChange={(e) => setUrl(e.target.value)} />
       </label>
-      <Button type="submit" size="sm" disabled={enviando}>
+      <CampoFoto inicial={foto} url={fotoUrl} onEnviando={setEnviandoFoto} />
+      <Button type="submit" size="sm" disabled={enviando || enviandoFoto}>
         {enviando ? "Salvando…" : nota ? "Atualizar nota" : "Salvar nota"}
       </Button>
       <Aviso estado={estado} />

@@ -490,6 +490,7 @@ export interface AlocacaoRow {
     carga: string;
     nota_encerramento: string | null;
     link_comprovacao: string | null;
+    foto_comprovacao?: string | null;
     atraso_minutos: number | null;
     funcao: FuncaoAlocacao;
 }
@@ -509,6 +510,7 @@ export interface Alocacao {
     /** Escrita pela própria pessoa depois do início; a última nota conclui o encontro. */
     notaEncerramento: string | null;
     linkComprovacao: string | null;
+    fotoComprovacao: string | null;
     /** Só informativo: não muda as horas. */
     atrasoMinutos: number | null;
     /** Responsável e apoio contam as mesmas horas. */

@@ -28,6 +28,7 @@ export function RegistroDoMes({
   linhaEncontro,
   urls = {},
   nomes = {},
+  pessoa,
   children,
 }: {
   encontros: EncontroDoRelatorio[];
@@ -45,6 +46,8 @@ export function RegistroDoMes({
   urls?: Record<string, string>;
   /** Nome de cada pessoa que participa de alguma atividade. */
   nomes?: Record<string, string>;
+  /** Dono do registro: fica fora do "Com …". */
+  pessoa?: string | null;
   /** Embaixo das outras atividades (o formulário, na aba Relatório). */
   children?: ReactNode;
 }) {
@@ -58,7 +61,11 @@ export function RegistroDoMes({
       )}
       {a.participantes?.length > 0 && (
         <p className="text-sm text-muted-foreground">
-          Com {[a.user_profile_id, ...a.participantes].map((id) => nomes[id] ?? "Pessoa da equipe").join(", ")}
+          Com{" "}
+          {[a.user_profile_id, ...a.participantes]
+            .filter((id) => id !== pessoa)
+            .map((id) => nomes[id] ?? "Pessoa da equipe")
+            .join(", ")}
         </p>
       )}
       <Comprovacao texto={a.comprovacao} />
