@@ -1,3 +1,5 @@
+import { AcaoComFormulario } from "@/components/ui/acao-formulario";
+import { CABECALHO_SECAO } from "@/components/ui/botoes";
 import { listarEspacos } from "@/lib/api/gestao/alocacao";
 import { exigirMembro } from "../../guard";
 import { FormEspaco } from "../forms";
@@ -9,12 +11,13 @@ export default async function EspacosPage() {
 
   return (
     <div className="space-y-6">
-      <FormEspaco />
-
       <section aria-labelledby="espacos" className="space-y-3">
+        <div className={CABECALHO_SECAO}>
         <h2 id="espacos" className="text-xl font-semibold">
           Espaços ({espacos.length})
         </h2>
+        <AcaoComFormulario rotulo="Novo espaço"><FormEspaco /></AcaoComFormulario>
+        </div>
         <ul className="divide-y rounded-lg border bg-white text-sm shadow-sm">
           {espacos.map((s) => (
             <li key={s.id} className="space-y-2 p-3">
@@ -25,7 +28,7 @@ export default async function EspacosPage() {
                 )}
               </p>
               <details>
-                <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
+                <summary className="min-h-11 md:min-h-8 flex items-center cursor-pointer font-medium text-[#684A97]">Editar</summary>
                 <div className="pt-3">
                   <FormEspaco key={`${s.nome}|${s.ativo}`} espaco={s} />
                 </div>

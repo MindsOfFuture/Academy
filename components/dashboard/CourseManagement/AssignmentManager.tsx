@@ -133,7 +133,7 @@ export default function AssignmentManager({
     return (
         <div className="mt-4 ml-6 border-l-2 border-gray-200 pl-4">
             <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-purple-600" />
+                <FileText className="w-4 h-4 text-[#684A97]" />
                 <h4 className="text-sm font-semibold text-gray-700">
                     Atividades da aula: {lessonTitle}
                 </h4>
@@ -216,7 +216,7 @@ export default function AssignmentManager({
                                         <div className="flex gap-1">
                                             <button
                                                 onClick={() => setViewingSubmissions(assignment)}
-                                                className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+                                                className="p-1 text-[#684A97] hover:bg-[#684A97]/10 rounded"
                                                 title="Ver Entregas"
                                             >
                                                 <Users className="w-4 h-4" />
@@ -228,8 +228,8 @@ export default function AssignmentManager({
                                                     )
                                                 }
                                                 className={`p-1 rounded transition ${chatOpenId === assignment.id
-                                                    ? "bg-purple-100 text-purple-700"
-                                                    : "text-purple-500 hover:bg-purple-50"
+                                                    ? "bg-[#684A97]/10 text-[#684A97]"
+                                                    : "text-[#684A97] hover:bg-[#684A97]/10"
                                                     }`}
                                                 title="Conversas com alunos"
                                             >
@@ -269,7 +269,7 @@ export default function AssignmentManager({
 
             {/* Formulário de adicionar */}
             {isAdding ? (
-                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200 space-y-2">
+                <div className="bg-[#684A97]/10 rounded-lg p-3 border border-[#684A97]/30 space-y-2">
                     <input
                         type="text"
                         placeholder="Título da atividade *"
@@ -305,7 +305,7 @@ export default function AssignmentManager({
                         <button
                             onClick={handleAdd}
                             disabled={loading}
-                            className="flex items-center gap-1 bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 disabled:opacity-50"
+                            className="flex items-center gap-1 bg-[#684A97] text-white px-3 py-1 rounded text-sm hover:bg-[#553d7a] disabled:opacity-50"
                         >
                             <Save className="w-3 h-3" />
                             {loading ? "Salvando..." : "Salvar"}
@@ -322,7 +322,7 @@ export default function AssignmentManager({
             ) : (
                 <button
                     onClick={() => setIsAdding(true)}
-                    className="flex items-center gap-1 text-purple-600 hover:text-purple-700 text-sm"
+                    className="flex items-center gap-1 text-[#684A97] hover:text-[#684A97] text-sm"
                 >
                     <Plus className="w-4 h-4" />
                     Adicionar atividade

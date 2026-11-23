@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PRIMARIO } from "@/components/ui/botoes";
+
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +87,7 @@ export function FormEncontroDoBolsista({
       </div>
       <EscolhaPessoas name="colegas" rotulo="Quem vai com você" pessoas={colegas} />
       <div className="flex gap-2">
-        <Button type="submit" disabled={enviando}>
+        <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
           {enviando ? "Criando…" : "Criar encontro"}
         </Button>
         <Button type="button" variant="outline" onClick={() => setAberto(false)}>

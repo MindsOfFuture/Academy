@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PERIGO } from "@/components/ui/botoes";
+
 import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -100,7 +102,7 @@ export function CampoFoto({
           ) : (
             <span className="text-sm text-muted-foreground">Foto enviada</span>
           )}
-          <Button type="button" size="sm" variant="outline" onClick={remover}>
+          <Button type="button" size="sm" variant="outline" onClick={remover} className={BOTAO_PERIGO}>
             Remover foto
           </Button>
         </div>

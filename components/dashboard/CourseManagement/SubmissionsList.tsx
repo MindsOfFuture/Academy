@@ -80,7 +80,7 @@ export default function SubmissionsList({
                     <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <Users className="w-5 h-5 text-purple-600" />
+                                <Users className="w-5 h-5 text-[#684A97]" />
                                 Entregas da Atividade
                             </h2>
                             <p className="text-sm text-gray-500 mt-1">
@@ -124,7 +124,7 @@ export default function SubmissionsList({
                                 <button
                                     onClick={() => setFilter("all")}
                                     className={`px-3 py-1 rounded text-sm transition ${filter === "all"
-                                            ? "bg-purple-100 text-purple-700"
+                                            ? "bg-[#684A97]/10 text-[#684A97]"
                                             : "text-gray-600 hover:bg-gray-100"
                                         }`}
                                 >
@@ -178,7 +178,7 @@ export default function SubmissionsList({
                                         key={sub.id}
                                         className={`border rounded-lg p-4 transition ${sub.gradedAt
                                                 ? "bg-green-50 border-green-200"
-                                                : "bg-white border-gray-200 hover:border-purple-300"
+                                                : "bg-white border-gray-200 hover:border-[#684A97]/30"
                                             }`}
                                     >
                                         <div className="flex items-start justify-between">
@@ -243,7 +243,7 @@ export default function SubmissionsList({
 
                                             <button
                                                 onClick={() => setGradingSubmission(sub)}
-                                                className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm ml-4 flex-shrink-0"
+                                                className="flex items-center gap-2 px-3 py-2 bg-[#684A97] text-white rounded-lg hover:bg-[#553d7a] transition text-sm ml-4 flex-shrink-0"
                                             >
                                                 <PencilLine className="w-4 h-4" />
                                                 {sub.gradedAt ? "Editar" : "Corrigir"}

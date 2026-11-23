@@ -1,3 +1,4 @@
+import { BOTAO_SECUNDARIO, classeFiltro } from "@/components/ui/botoes";
 import Link from "next/link";
 import { calendarioDaEquipe, listarEspacos } from "@/lib/api/gestao/alocacao";
 import { colegasDaEquipe } from "@/lib/api/gestao/relatorio";
@@ -74,7 +75,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
               href={href}
               scroll={false}
               aria-current={atual ? "page" : undefined}
-              className={`rounded-full border px-3 py-1 ${atual ? "border-[#684A97] bg-[#684A97] text-white" : "bg-white text-[#684A97] hover:bg-[#684A97]/10"}`}
+              className={classeFiltro(atual)}
             >
               {rotulo}
             </Link>
@@ -83,7 +84,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
         {/* Link comum: o navegador baixa o .ics dos próprios encontros do mês. */}
         <a
           href={`/gestao/calendario/exportar?mes=${mes}&meus=1`}
-          className="rounded-md border border-[#684A97] px-4 py-2 text-sm font-medium text-[#684A97] hover:bg-[#684A97]/10"
+          className={BOTAO_SECUNDARIO}
         >
           Exportar para o Google Agenda
         </a>

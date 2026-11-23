@@ -181,7 +181,7 @@ export default function GradingModal({
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="grading-score" className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
-                                <Award className="w-4 h-4 text-purple-600" />
+                                <Award className="w-4 h-4 text-[#684A97]" />
                                 Nota *
                             </label>
                             <div className="flex items-center gap-2">
@@ -194,7 +194,7 @@ export default function GradingModal({
                                     value={score}
                                     onChange={(e) => setScore(e.target.value)}
                                     placeholder="0"
-                                    className="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                    className="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#684A97] focus:border-[#684A97] outline-none"
                                 />
                                 <span className="text-gray-500">
                                     de {effectiveMaxScore} pontos
@@ -204,7 +204,7 @@ export default function GradingModal({
 
                         <div>
                             <label htmlFor="grading-feedback" className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
-                                <MessageSquare className="w-4 h-4 text-purple-600" />
+                                <MessageSquare className="w-4 h-4 text-[#684A97]" />
                                 Feedback para o Aluno *
                             </label>
                             <textarea
@@ -213,7 +213,7 @@ export default function GradingModal({
                                 onChange={(e) => setFeedback(e.target.value)}
                                 placeholder="Escreva um feedback construtivo para o aluno..."
                                 rows={4}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#684A97] focus:border-[#684A97] outline-none resize-none"
                             />
                         </div>
                     </div>
@@ -230,7 +230,7 @@ export default function GradingModal({
                     <button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#684A97] text-white rounded-lg hover:bg-[#553d7a] transition disabled:opacity-50"
                     >
                         <Save className="w-4 h-4" />
                         {loading ? "Salvando..." : "Salvar Correção"}

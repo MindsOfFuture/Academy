@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PRIMARIO } from "@/components/ui/botoes";
+
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +52,7 @@ export function FormMeta({ meta, pessoas }: { meta?: Meta; pessoas: { id: string
           ))}
         </div>
       </fieldset>
-      <Button type="submit" disabled={enviando}>
+      <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
         {enviando ? "Salvando…" : meta ? "Salvar" : "Criar meta"}
       </Button>
       <Aviso estado={estado} />
@@ -67,7 +69,7 @@ export function FormAndamento({ metaId }: { metaId: string }) {
         <span className={rotulo}>Registrar andamento</span>
         <textarea name="texto" required minLength={2} maxLength={2000} className={areaTexto} />
       </label>
-      <Button type="submit" size="sm" disabled={enviando}>
+      <Button type="submit" size="sm" disabled={enviando} className={BOTAO_PRIMARIO}>
         {enviando ? "Registrando…" : "Registrar"}
       </Button>
       <Aviso estado={estado} />
@@ -81,7 +83,7 @@ export function FormConcluirMeta({ metaId, concluida }: { metaId: string; conclu
     <form action={acao} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="id" value={metaId} />
       {concluida && <input type="hidden" name="acao" value="reabrir" />}
-      <Button type="submit" size="sm" variant={concluida ? "outline" : "default"} disabled={enviando}>
+      <Button type="submit" size="sm" variant={concluida ? "outline" : "default"} disabled={enviando} className={BOTAO_PRIMARIO}>
         {concluida ? "Reabrir meta" : "Marcar como concluída"}
       </Button>
       <Aviso estado={estado} />

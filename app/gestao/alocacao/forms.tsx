@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PERIGO, BOTAO_PRIMARIO, BOTAO_SECUNDARIO } from "@/components/ui/botoes";
+
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -141,7 +143,7 @@ export function JanelaConflitos({
           <Button type="button" variant="outline" onClick={() => janelaRef.current?.close()}>
             Revisar
           </Button>
-          <Button type="button" onClick={aoConfirmar}>
+          <Button type="button" onClick={aoConfirmar} className={BOTAO_PRIMARIO}>
             {confirmar}
           </Button>
         </div>
@@ -497,7 +499,7 @@ export function FormEncontro({
         )}
       </fieldset>
 
-      <Button type="submit" disabled={enviando || conferindo}>
+      <Button type="submit" disabled={enviando || conferindo} className={BOTAO_PRIMARIO}>
         {conferindo
           ? "Conferindo horários…"
           : enviando
@@ -526,7 +528,7 @@ export function FormCancelarEncontro({ encontroId }: { encontroId: string }) {
         <span className={rotuloCampo}>Motivo do cancelamento</span>
         <Input name="motivo" required minLength={3} maxLength={500} placeholder="Escola suspendeu as aulas…" />
       </label>
-      <Button type="submit" variant="destructive" disabled={enviando}>
+      <Button type="submit" variant="destructive" disabled={enviando} className={BOTAO_PERIGO}>
         Cancelar encontro
       </Button>
       <Aviso estado={estado} />
@@ -567,7 +569,7 @@ export function FormConcluirEncontro({
       >
         <input type="hidden" name="encontroId" value={encontroId} />
         <input type="hidden" name="acao" value="reabrir" />
-        <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+        <Button type="submit" size="sm" variant="outline" disabled={enviando} className={BOTAO_SECUNDARIO}>
           Reabrir encontro
         </Button>
         {estado && !estado.ok && <Aviso estado={estado} />}
@@ -715,7 +717,7 @@ export function FormRemoverAlocacao({ alocacaoId, nome }: { alocacaoId: string; 
       className="inline-flex flex-col items-start gap-1"
     >
       <input type="hidden" name="alocacaoId" value={alocacaoId} />
-      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+      <Button type="submit" size="sm" variant="outline" disabled={enviando} className={BOTAO_PERIGO}>
         Remover do encontro
       </Button>
       {estado && !estado.ok && <Aviso estado={estado} />}
@@ -762,7 +764,7 @@ export function FormAlocar({ encontroId, pessoas }: { encontroId: string; pessoa
           ))}
         </div>
       </fieldset>
-      <Button type="submit" variant="outline" disabled={enviando || marcadas.size === 0}>
+      <Button type="submit" variant="outline" disabled={enviando || marcadas.size === 0} className={BOTAO_SECUNDARIO}>
         {marcadas.size > 1 ? `Alocar ${marcadas.size} pessoas` : "Alocar"}
       </Button>
       <Aviso estado={estado} />
@@ -863,7 +865,7 @@ export function FormAlocacao({
             <span className={rotuloCampo}>Motivo</span>
             <Input name="motivo" maxLength={500} placeholder="Afastamento, troca de turma…" />
           </label>
-          <Button type="submit" size="sm" variant="outline" disabled={substituindo}>
+          <Button type="submit" size="sm" variant="outline" disabled={substituindo} className={BOTAO_SECUNDARIO}>
             Substituir
           </Button>
           <Aviso estado={sub} />
@@ -1116,7 +1118,7 @@ export function FormTurma({ escolas, turma }: { escolas: Opcao[]; turma?: Turma 
         {!turma && <CamposCurso />}
         {!turma && <CampoAlunos />}
       </div>
-      <Button type="submit" disabled={enviando}>
+      <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
         {turma ? "Salvar nome" : "Salvar turma"}
       </Button>
       <Aviso estado={estado} />
@@ -1146,7 +1148,7 @@ export function FormAlunos({ turma }: { turma: Turma }) {
     <form action={acao} className="space-y-3">
       <input type="hidden" name="turmaId" value={turma.id} />
       <CampoAlunos alunos={turma.alunos.map((a) => a.nome)} />
-      <Button type="submit" disabled={enviando}>
+      <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
         Salvar lista
       </Button>
       <Aviso estado={estado} />
@@ -1188,7 +1190,7 @@ export function FormCurso({ turmaId, curso }: { turmaId: string; curso?: Curso }
       <div className="grid gap-3 sm:grid-cols-2">
         <CamposCurso curso={curso} />
       </div>
-      <Button type="submit" disabled={enviando}>
+      <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
         {curso ? "Salvar curso" : "Adicionar curso"}
       </Button>
       <Aviso estado={estado} />
@@ -1215,7 +1217,7 @@ export function FormSituacaoTurma({ turma }: { turma: Turma }) {
         <span className={rotuloCampo}>Motivo</span>
         <Input name="motivo" maxLength={500} defaultValue={turma.motivo ?? ""} placeholder="Obrigatório se não abriu" />
       </label>
-      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+      <Button type="submit" size="sm" variant="outline" disabled={enviando} className={BOTAO_SECUNDARIO}>
         Salvar
       </Button>
       <Aviso estado={estado} />
@@ -1251,7 +1253,7 @@ export function FormAfastamento({ pessoas }: { pessoas: Opcao[] }) {
         </label>
       </div>
       <p className="text-xs text-muted-foreground">Não registre dado de saúde nem anexe atestado.</p>
-      <Button type="submit" disabled={enviando}>
+      <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
         Registrar
       </Button>
       <Aviso estado={estado} />
@@ -1274,7 +1276,7 @@ export function FormSubstituirTodos({ alocacoes, pessoas }: { alocacoes: string[
         <span className={rotuloCampo}>Substituir em todos por</span>
         <Escolha name="substitutoId" opcoes={pessoas} vazio="Escolha…" required />
       </label>
-      <Button type="submit" size="sm" variant="outline" disabled={enviando}>
+      <Button type="submit" size="sm" variant="outline" disabled={enviando} className={BOTAO_SECUNDARIO}>
         {enviando ? "Substituindo…" : `Substituir em ${n} ${n === 1 ? "encontro" : "encontros"}`}
       </Button>
       <Aviso estado={estado} />

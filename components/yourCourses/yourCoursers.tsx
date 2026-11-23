@@ -8,6 +8,8 @@ import { getUserCourses } from "@/lib/api/enrollments";
 import { checkCourseCompletion, getExistingCertificate, issueCertificate, type CertificateInfo } from "@/lib/api/certificates";
 import toast from "react-hot-toast";
 import { Award, Download } from "lucide-react";
+import { BOTAO_PRIMARIO } from "@/components/ui/botoes";
+import { cn } from "@/lib/utils";
 
 type YourCoursesProps = {
   initialCursos?: EnrollmentSummary[];
@@ -164,7 +166,7 @@ export function YourCourses({ initialCursos = [] }: YourCoursesProps) {
         </div>
         <Link
           href="/trilhas"
-          className="bg-[#684A97] hover:bg-[#553d7a] text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          className={BOTAO_PRIMARIO}
         >
           Explorar Trilhas
         </Link>
@@ -172,75 +174,76 @@ export function YourCourses({ initialCursos = [] }: YourCoursesProps) {
     );
   }
 
+  // Cartão horizontal: foto, nome, barra de progresso e a ação. Cabem dois por
+  // linha no computador e a página não fica com um cartão alto solto no meio.
   return (
-    <div className="flex flex-col h-auto items-center">
+    <div className="relative">
       {loading && (
-        <div className="absolute top-2 right-2 text-sm text-gray-500">
+        <div className="absolute -top-7 right-0 text-sm text-gray-500">
           Atualizando...
         </div>
       )}
-      <div className="flex flex-col">
-        <div className="flex justify-center items-start gap-20 flex-wrap p-6">
-
-          {cursos.map((curso) => {
-            const hasCertButton = !!(certificates[curso.course.id] || completionFlags[curso.course.id]);
-            return (
-            <Link
-              key={curso.enrollmentId}
-              href={`/course?id=${curso.course.id}`}
-              className="flex flex-col items-center p-3 rounded-[5px] bg-white shadow-[15px_15px_4px_0_rgba(152,152,152,0.2)] text-black w-[300px] h-[500px] cursor-pointer hover:shadow-lg transition"
-            >
-              <Image
-                src={curso.course.thumbUrl || "/logo_navbar.svg"}
-                alt={curso.course.title}
-                width={430}
-                height={72}
-                className="w-full h-[180px] bg-gray-200 p-4"
-              />
-              <h3 className="text-[18pt] font-bold w-full flex items-center justify-center mt-4">
-                {curso.course.title}
-              </h3>
-
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <div className={`relative ${hasCertButton ? "size-28" : "size-40"}`}>
-                  <svg className="size-full rotate-180" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-current text-orange-100" strokeWidth="3" strokeDasharray="50 100" strokeLinecap="round"></circle>
-                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-current text-orange-600" strokeWidth="1" strokeDasharray={`${curso.progressPercent / 2} 100`} strokeLinecap="round"></circle>
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className={`font-bold text-orange-600 ${hasCertButton ? "text-xl" : "text-2xl"}`}>{curso.progressPercent}%</span>
-                    <span className="text-xs text-orange-600">Concluído</span>
+      <ul className="grid gap-4 md:grid-cols-2">
+        {cursos.map((curso) => {
+          const hasCertButton = !!(certificates[curso.course.id] || completionFlags[curso.course.id]);
+          return (
+            <li key={curso.enrollmentId}>
+              <Link
+                href={`/course?id=${curso.course.id}`}
+                className="flex h-full items-center gap-4 rounded-2xl border border-gray-200 bg-white p-3 text-black shadow-sm transition hover:border-[#684A97]/40 hover:shadow-md"
+              >
+                <Image
+                  src={curso.course.thumbUrl || "/logo_navbar.svg"}
+                  alt={curso.course.title}
+                  width={240}
+                  height={160}
+                  className="h-20 w-28 shrink-0 rounded-xl bg-gray-100 object-cover sm:w-32"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold leading-snug line-clamp-2">{curso.course.title}</h3>
+                  <div
+                    className="mt-2 h-2 rounded-full bg-[#ECE9F3]"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={curso.progressPercent}
+                    aria-label={`Progresso em ${curso.course.title}`}
+                  >
+                    <div className="h-2 rounded-full bg-[#684A97]" style={{ width: `${curso.progressPercent}%` }} />
                   </div>
-                </div>
-              </div>
-
-              {/* Botão de Certificado */}
-              {hasCertButton && (
-                <button
-                  onClick={(e) => handleCertificate(e, curso.course.id)}
-                  disabled={issuingMap[curso.course.id]}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mb-1 bg-[#684A97] text-white rounded-lg hover:bg-[#553d7a] transition text-sm font-semibold disabled:opacity-50 shadow-md"
-                >
-                  {certificates[curso.course.id] ? (
-                    <>
-                      <Download className="w-4 h-4" />
-                      Baixar Certificado
-                    </>
-                  ) : issuingMap[curso.course.id] ? (
-                    "Emitindo..."
-                  ) : (
-                    <>
-                      <Award className="w-4 h-4" />
-                      Emitir Certificado
-                    </>
+                  <p className="mt-1 text-sm text-gray-600">{curso.progressPercent}% concluído</p>
+                  {hasCertButton && (
+                    <button
+                      onClick={(e) => handleCertificate(e, curso.course.id)}
+                      disabled={issuingMap[curso.course.id]}
+                      className={cn(BOTAO_PRIMARIO, "mt-2")}
+                    >
+                      {certificates[curso.course.id] ? (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Baixar Certificado
+                        </>
+                      ) : issuingMap[curso.course.id] ? (
+                        "Emitindo..."
+                      ) : (
+                        <>
+                          <Award className="w-4 h-4" />
+                          Emitir Certificado
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
-              )}
-            </Link>
-            );
-          })}
-        </div>
-      </div>
+                </div>
+                {!hasCertButton && (
+                  <span className="hidden shrink-0 rounded-full bg-[#684A97] px-4 py-2 text-sm font-semibold text-white sm:inline-flex">
+                    {curso.progressPercent > 0 ? "Continuar" : "Começar"}
+                  </span>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

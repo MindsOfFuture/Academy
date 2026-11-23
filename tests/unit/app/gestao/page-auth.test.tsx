@@ -251,8 +251,8 @@ describe("rota /gestao", () => {
 
   it("dá a aba Equipe só à coordenação; Metas, Pesquisa e Melhorias aos dois", () => {
     expect(abasDoPapel("coordenacao").map((a) => a.rotulo)).toEqual([
-      "Hoje", "Alocação", "Equipe", "Testes", "Treinamentos", "Relatório", "Metas", "Pesquisa", "Melhorias",
+      "Hoje", "Alocação", "Equipe", "Relatório", "Metas", "Treinamentos", "Melhorias", "Pesquisa", "Empreenda+",
     ]);
-    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Calendário", "Treinamentos", "Relatório", "Metas", "Pesquisa", "Melhorias"]);
+    expect(abasDoPapel("bolsista").map((a) => a.rotulo)).toEqual(["Hoje", "Calendário", "Relatório", "Metas", "Treinamentos", "Melhorias", "Pesquisa"]);
   });
 });

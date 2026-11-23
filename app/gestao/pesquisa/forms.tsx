@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PERIGO, BOTAO_PRIMARIO } from "@/components/ui/botoes";
+
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +22,7 @@ function Apagar({ id, acao, pergunta }: { id: string; acao: Acao; pergunta: stri
   return (
     <form action={apagar} onSubmit={confirmarEnvio(pergunta, { rotulo: "Apagar", destrutivo: true })} className="space-y-2">
       <input type="hidden" name="id" value={id} />
-      <Button type="submit" variant="outline" disabled={apagando}>
+      <Button type="submit" variant="outline" disabled={apagando} className={BOTAO_PERIGO}>
         {apagando ? "Apagando…" : "Apagar"}
       </Button>
       <Aviso estado={estado} />
@@ -56,7 +58,7 @@ export function FormReuniao({ reuniao, podeApagar }: { reuniao: ReuniaoPesquisa 
             defaultValue={reuniao?.desdobramentos ?? ""}
           />
         </label>
-        <Button type="submit" disabled={enviando}>
+        <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
           {enviando ? "Salvando…" : "Salvar"}
         </Button>
         <Aviso estado={estado} />
@@ -102,7 +104,7 @@ export function FormProducao({ producao, podeApagar }: { producao: ProducaoPesqu
           <span className={rotuloCampo}>Link</span>
           <Input name="link" type="url" maxLength={500} defaultValue={producao?.link ?? ""} />
         </label>
-        <Button type="submit" disabled={enviando}>
+        <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
           {enviando ? "Salvando…" : "Salvar"}
         </Button>
         <Aviso estado={estado} />

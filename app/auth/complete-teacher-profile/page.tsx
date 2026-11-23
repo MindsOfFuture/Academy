@@ -155,12 +155,12 @@ function CompleteTeacherProfileContent() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#6A4A98] to-[#8e6bc9] flex items-center justify-center p-4 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-[#684A97] to-[#8e6bc9] flex items-center justify-center p-4 py-8">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 md:p-8">
                 <div className="mb-6">
                     <Link
                         href="/auth"
-                        className="flex items-center gap-2 text-[#6A4A98] hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-2 text-[#684A97] hover:opacity-80 transition-opacity"
                     >
                         <ArrowLeft size={20} />
                         <span className="text-sm font-medium">Voltar</span>
@@ -183,7 +183,7 @@ function CompleteTeacherProfileContent() {
                         <select
                             value={educationLevel}
                             onChange={(e) => setEducationLevel(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97]"
                         >
                             <option value="">Selecione...</option>
                             <option value="ensino_fundamental">Ensino Fundamental</option>
@@ -203,7 +203,7 @@ function CompleteTeacherProfileContent() {
                             value={degree}
                             onChange={(e) => setDegree(e.target.value)}
                             placeholder="Ex: Licenciatura em Matemática"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97]"
                         />
                     </div>
 
@@ -225,7 +225,7 @@ function CompleteTeacherProfileContent() {
                                             value={school}
                                             onChange={(e) => updateSchool(index, e.target.value)}
                                             placeholder={`Escola ${index + 1}`}
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97]"
                                         />
                                     </div>
                                     {schools.length > 1 && (
@@ -243,7 +243,7 @@ function CompleteTeacherProfileContent() {
                         <button
                             type="button"
                             onClick={addSchool}
-                            className="mt-2 flex items-center gap-1 text-sm text-[#6A4A98] hover:opacity-80 transition-opacity"
+                            className="mt-2 flex items-center gap-1 text-sm text-[#684A97] hover:opacity-80 transition-opacity"
                         >
                             <Plus size={16} />
                             Adicionar Escola
@@ -265,7 +265,7 @@ function CompleteTeacherProfileContent() {
                             />
                             <label
                                 htmlFor="file-input"
-                                className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-[#6A4A98] transition-colors"
+                                className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-[#684A97] transition-colors"
                             >
                                 <Upload size={20} className="text-gray-400" />
                                 <div className="text-center">
@@ -287,7 +287,7 @@ function CompleteTeacherProfileContent() {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full rounded-full bg-[#6A4A98] py-2 text-base font-semibold text-white hover:bg-[#5a3e85] transition-all mt-6"
+                        className="w-full rounded-full bg-[#684A97] py-2 text-base font-semibold text-white hover:bg-[#5a3e85] transition-all mt-6"
                     >
                         {isLoading ? "Enviando..." : "Completar Cadastro"}
                     </Button>
@@ -299,7 +299,7 @@ function CompleteTeacherProfileContent() {
 
 export default function CompleteTeacherProfilePage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-[#6A4A98] to-[#8e6bc9]" />}>
+        <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-[#684A97] to-[#8e6bc9]" />}>
             <CompleteTeacherProfileContent />
         </Suspense>
     );

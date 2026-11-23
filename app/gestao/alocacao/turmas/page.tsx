@@ -1,3 +1,5 @@
+import { AcaoComFormulario } from "@/components/ui/acao-formulario";
+import { CABECALHO_SECAO } from "@/components/ui/botoes";
 import { listarTurmas } from "@/lib/api/gestao/alocacao";
 import { listEscolas } from "@/lib/api/gestao/entities";
 import { exigirMembro } from "../../guard";
@@ -21,15 +23,13 @@ export default async function TurmasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <FormTurma escolas={opcoesEscola} />
-        <FormEscola />
-      </div>
-
       <section aria-labelledby="turmas" className="space-y-3">
+        <div className={CABECALHO_SECAO}>
         <h2 id="turmas" className="text-xl font-semibold">
           Turmas ({turmas.length})
         </h2>
+        <AcaoComFormulario rotulo="Nova turma"><FormTurma escolas={opcoesEscola} /></AcaoComFormulario>
+        </div>
         <ul className="divide-y rounded-lg border bg-white shadow-sm">
           {turmas.map((t) => (
             <li key={t.id} className="space-y-3 p-4">
@@ -46,7 +46,7 @@ export default async function TurmasPage() {
                 {t.cursos.map((c) => (
                   <li key={c.id}>
                     <details>
-                      <summary className="cursor-pointer">
+                      <summary className="min-h-11 md:min-h-8 flex items-center cursor-pointer">
                         <span className="font-medium">{c.modalidade}</span> · desde {dataBr(c.inicio)}
                         {c.fim && ` até ${dataBr(c.fim)}`}
                         {c.nAlunos !== null && ` · ${c.nAlunos} ${c.nAlunos === 1 ? "aluno" : "alunos"}`}
@@ -59,7 +59,7 @@ export default async function TurmasPage() {
                 ))}
                 <li>
                   <details>
-                    <summary className="cursor-pointer font-medium text-[#684A97]">Novo curso</summary>
+                    <summary className="min-h-11 md:min-h-8 flex items-center cursor-pointer font-medium text-[#684A97]">Novo curso</summary>
                     <div className="pt-3">
                       <FormCurso key={t.cursos.length} turmaId={t.id} />
                     </div>
@@ -69,7 +69,7 @@ export default async function TurmasPage() {
               {/* As chaves remontam os formulários com o que foi salvo (ver a página do encontro). */}
               <FormSituacaoTurma key={`${t.status}|${t.motivo}`} turma={t} />
               <details className="text-sm">
-                <summary className="cursor-pointer font-medium text-[#684A97]">
+                <summary className="min-h-11 md:min-h-8 flex items-center cursor-pointer font-medium text-[#684A97]">
                   Alunos{t.alunos.length > 0 && ` (${t.alunos.length})`}
                 </summary>
                 <div className="pt-3">
@@ -77,7 +77,7 @@ export default async function TurmasPage() {
                 </div>
               </details>
               <details className="text-sm">
-                <summary className="cursor-pointer font-medium text-[#684A97]">Editar nome</summary>
+                <summary className="min-h-11 md:min-h-8 flex items-center cursor-pointer font-medium text-[#684A97]">Editar nome</summary>
                 <div className="pt-3">
                   <FormTurma key={t.nome} escolas={opcoesEscola} turma={t} />
                 </div>
@@ -89,9 +89,12 @@ export default async function TurmasPage() {
       </section>
 
       <section aria-labelledby="escolas" className="space-y-3">
+        <div className={CABECALHO_SECAO}>
         <h2 id="escolas" className="text-xl font-semibold">
           Escolas ({escolas.length})
         </h2>
+        <AcaoComFormulario rotulo="Nova escola"><FormEscola /></AcaoComFormulario>
+        </div>
         <ul className="divide-y rounded-lg border bg-white text-sm shadow-sm">
           {escolas.map((e) => (
             <li key={e.id} className="space-y-2 p-3">
@@ -99,7 +102,7 @@ export default async function TurmasPage() {
                 {e.nome} · {e.categoria} · {e.cidade}
               </p>
               <details>
-                <summary className="cursor-pointer font-medium text-[#684A97]">Editar</summary>
+                <summary className="min-h-11 md:min-h-8 flex items-center cursor-pointer font-medium text-[#684A97]">Editar</summary>
                 <div className="pt-3">
                   <FormEscola key={[e.nome, e.categoria, e.cidade].join("|")} escola={e} />
                 </div>

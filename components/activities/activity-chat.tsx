@@ -181,9 +181,9 @@ export default function ActivityChat({
     return (
         <div className="bg-white shadow rounded-lg overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200 bg-purple-50">
+            <div className="px-6 py-4 border-b border-gray-200 bg-[#684A97]/10">
                 <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-purple-600" />
+                    <MessageSquare className="w-5 h-5 text-[#684A97]" />
                     Chat da Atividade
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -202,7 +202,7 @@ export default function ActivityChat({
                         <button
                             onClick={loadOlderMessages}
                             disabled={loadingOlder}
-                            className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 disabled:text-gray-400 transition px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 disabled:bg-gray-50"
+                            className="flex items-center gap-1.5 text-xs text-[#684A97] hover:text-[#684A97] disabled:text-gray-400 transition px-3 py-1.5 rounded-full bg-[#684A97]/10 hover:bg-[#684A97]/10 disabled:bg-gray-50"
                         >
                             {loadingOlder ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -217,7 +217,7 @@ export default function ActivityChat({
                 {/* Loading inicial */}
                 {loading && (
                     <div className="flex justify-center items-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                        <Loader2 className="w-6 h-6 animate-spin text-[#684A97]" />
                     </div>
                 )}
 
@@ -250,7 +250,7 @@ export default function ActivityChat({
                                     <div
                                         className={`flex items-center gap-1.5 mb-1 ${own ? "justify-end" : "justify-start"}`}
                                     >
-                                        <span className="text-xs font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                                        <span className="text-xs font-semibold text-[#684A97] bg-[#684A97]/10 px-2 py-0.5 rounded-full">
                                             {msg.senderName}
                                         </span>
                                     </div>
@@ -260,10 +260,10 @@ export default function ActivityChat({
                                 <div
                                     className={`rounded-2xl px-4 py-2.5 ${own
                                             ? teacher
-                                                ? "bg-purple-600 text-white"
+                                                ? "bg-[#684A97] text-white"
                                                 : "bg-blue-600 text-white"
                                             : teacher
-                                                ? "bg-purple-100 text-gray-900"
+                                                ? "bg-[#684A97]/10 text-gray-900"
                                                 : "bg-gray-100 text-gray-900"
                                         }`}
                                 >
@@ -302,13 +302,13 @@ export default function ActivityChat({
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Digite sua mensagem..."
-                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition text-sm bg-white"
+                        className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:ring-2 focus:ring-[#684A97] focus:border-[#684A97] outline-none transition text-sm bg-white"
                         disabled={sending}
                     />
                     <button
                         onClick={handleSend}
                         disabled={sending || !newMessage.trim()}
-                        className="p-2.5 bg-purple-600 text-white rounded-full hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition flex-shrink-0"
+                        className="p-2.5 bg-[#684A97] text-white rounded-full hover:bg-[#553d7a] disabled:bg-gray-300 disabled:cursor-not-allowed transition flex-shrink-0"
                         title="Enviar mensagem"
                     >
                         {sending ? (

@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PRIMARIO } from "@/components/ui/botoes";
+
 import {
   startTransition,
   useActionState,
@@ -339,7 +341,7 @@ export function SelecaoLote({
           <Button
             type="submit"
             disabled={enviando || conferindo || marcados === 0}
-          >
+           className={BOTAO_PRIMARIO}>
             {conferindo
               ? "Conferindo horários…"
               : enviando

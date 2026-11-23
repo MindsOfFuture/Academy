@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PRIMARIO } from "@/components/ui/botoes";
+
 import { useActionState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -65,7 +67,7 @@ export function FormArtigo({ artigo }: { artigo: ArtigoGestao | null }) {
         </select>
       </label>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={enviando}>
+        <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
           {enviando ? "Salvando…" : "Salvar"}
         </Button>
         {artigo?.status === "published" && (

@@ -213,7 +213,7 @@ export default function PendingCorrections() {
                         <>
                             <button
                                 onClick={() => setGradingSubmission(sub)}
-                                className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm"
+                                className="flex items-center gap-2 px-3 py-2 bg-[#684A97]/10 text-[#684A97] rounded-lg hover:bg-[#684A97] transition text-sm"
                                 title="Editar correção"
                             >
                                 <PencilLine className="w-4 h-4" />
@@ -232,7 +232,7 @@ export default function PendingCorrections() {
                     ) : (
                         <button
                             onClick={() => setGradingSubmission(sub)}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#684A97] text-white rounded-lg hover:bg-[#553d7a] transition text-sm"
                         >
                             <PencilLine className="w-4 h-4" />
                             Corrigir
@@ -247,10 +247,10 @@ export default function PendingCorrections() {
         <div className="space-y-6">
             {Object.entries(groups).map(([courseId, { courseName, submissions: courseSubs }]) => (
                 <div key={courseId} className="bg-white rounded-lg shadow border overflow-hidden">
-                    <div className={`${isHistory ? "bg-green-50" : "bg-purple-50"} px-4 py-3 border-b flex items-center gap-2`}>
-                        <BookOpen className={`w-5 h-5 ${isHistory ? "text-green-600" : "text-purple-600"}`} />
-                        <h3 className={`font-semibold ${isHistory ? "text-green-900" : "text-purple-900"}`}>{courseName}</h3>
-                        <span className={`ml-auto text-sm ${isHistory ? "text-green-600 bg-green-100" : "text-purple-600 bg-purple-100"} px-2 py-0.5 rounded-full`}>
+                    <div className={`${isHistory ? "bg-green-50" : "bg-[#684A97]/10"} px-4 py-3 border-b flex items-center gap-2`}>
+                        <BookOpen className={`w-5 h-5 ${isHistory ? "text-green-600" : "text-[#684A97]"}`} />
+                        <h3 className={`font-semibold ${isHistory ? "text-green-900" : "text-[#684A97]"}`}>{courseName}</h3>
+                        <span className={`ml-auto text-sm ${isHistory ? "text-green-600 bg-green-100" : "text-[#684A97] bg-[#684A97]/10"} px-2 py-0.5 rounded-full`}>
                             {courseSubs.length} {isHistory ? "corrigida" : "pendente"}{courseSubs.length > 1 ? "s" : ""}
                         </span>
                     </div>
@@ -270,7 +270,7 @@ export default function PendingCorrections() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <div>
                     <h2 className="text-xl font-semibold flex items-center gap-2">
-                        <ClipboardCheck className="w-6 h-6 text-purple-600" />
+                        <ClipboardCheck className="w-6 h-6 text-[#684A97]" />
                         Correções
                     </h2>
                     <p className="text-gray-600 text-sm mt-1">
@@ -296,14 +296,14 @@ export default function PendingCorrections() {
                     onClick={() => setActiveSubTab("pending")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
                         activeSubTab === "pending"
-                            ? "bg-white text-purple-700 shadow-sm"
+                            ? "bg-white text-[#684A97] shadow-sm"
                             : "text-gray-600 hover:text-gray-800"
                     }`}
                 >
                     <ClipboardCheck className="w-4 h-4" />
                     Pendentes
                     {submissions.length > 0 && (
-                        <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">
+                        <span className="bg-[#684A97]/10 text-[#684A97] text-xs px-2 py-0.5 rounded-full">
                             {submissions.length}
                         </span>
                     )}

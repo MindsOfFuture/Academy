@@ -284,7 +284,7 @@ function ActivitiePageContent() {
             <p className="text-gray-600">Atividade não encontrada.</p>
             <button
               onClick={() => router.back()}
-              className="text-purple-600 hover:text-purple-800 transition"
+              className="text-[#684A97] hover:text-[#684A97] transition"
             >
               ← Voltar
             </button>
@@ -300,7 +300,7 @@ function ActivitiePageContent() {
       <div className="max-w-4xl mx-auto py-8 px-4 overflow-hidden">
         <button
           onClick={() => router.back()}
-          className="mb-4 text-purple-600 hover:text-purple-800 transition"
+          className="mb-4 text-[#684A97] hover:text-[#684A97] transition"
         >
           ← Voltar
         </button>
@@ -311,8 +311,8 @@ function ActivitiePageContent() {
             {/* Header da Atividade */}
             <div className="bg-white shadow rounded-lg p-6 overflow-hidden">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg flex-shrink-0">
-                  <FileText className="w-8 h-8 text-purple-600" />
+                <div className="p-3 bg-[#684A97]/10 rounded-lg flex-shrink-0">
+                  <FileText className="w-8 h-8 text-[#684A97]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="min-w-0">
@@ -355,7 +355,7 @@ function ActivitiePageContent() {
             {/* Formulário de Resposta */}
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-purple-600" />
+                <Upload className="w-5 h-5 text-[#684A97]" />
                 {submission ? "Sua Resposta" : "Enviar Resposta"}
               </h2>
 
@@ -371,7 +371,7 @@ function ActivitiePageContent() {
                       value={answerUrl}
                       onChange={(e) => setAnswerUrl(e.target.value)}
                       placeholder="https://drive.google.com/... ou link do arquivo"
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#684A97] focus:border-[#684A97] outline-none transition"
                       disabled={submitting}
                     />
                   </div>
@@ -391,7 +391,7 @@ function ActivitiePageContent() {
                       onChange={(e) => setComments(e.target.value)}
                       placeholder="Adicione observações sobre sua entrega..."
                       rows={3}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition resize-none"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#684A97] focus:border-[#684A97] outline-none transition resize-none"
                       disabled={submitting}
                     />
                   </div>
@@ -403,7 +403,7 @@ function ActivitiePageContent() {
                     disabled={submitting || !answerUrl.trim()}
                     className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${submitting || !answerUrl.trim()
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-purple-600 text-white hover:bg-purple-700"
+                      : "bg-[#684A97] text-white hover:bg-[#553d7a]"
                       }`}
                   >
                     {submitting ? (
@@ -502,10 +502,10 @@ function ActivitiePageContent() {
             {submission?.feedback && (
               <div className="bg-white shadow rounded-lg p-6">
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-purple-600" />
+                  <MessageSquare className="w-4 h-4 text-[#684A97]" />
                   Feedback do Professor
                 </h3>
-                <div className="p-3 bg-purple-50 rounded-lg">
+                <div className="p-3 bg-[#684A97]/10 rounded-lg">
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">
                     {submission.feedback}
                   </p>
@@ -518,7 +518,7 @@ function ActivitiePageContent() {
               <h3 className="font-semibold text-gray-900 mb-3">Pontuação</h3>
               <div className="flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-purple-600">
+                  <div className="text-4xl font-bold text-[#684A97]">
                     {submission?.score ?? "-"}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">

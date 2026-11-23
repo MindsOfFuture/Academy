@@ -88,7 +88,7 @@ export default function CourseEditor({
         <button
           type="button"
           onClick={() => onChange("audience", isTeacherOnly ? "student" : "teacher")}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-[#684A97]" : "bg-gray-300"
             }`}
         >
           <span
@@ -101,7 +101,7 @@ export default function CourseEditor({
       <div className="flex gap-2">
         <button
           onClick={onSave}
-          className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+          className="bg-[#684A97] text-white px-3 py-1 rounded hover:bg-[#553d7a]"
         >
           Salvar
         </button>

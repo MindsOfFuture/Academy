@@ -27,7 +27,7 @@ export function UsersPagination({ page, totalPages, total, pageSize, pageSizes =
                 <div className="flex items-center gap-2">
                     <label className="text-sm text-gray-600">Por página:</label>
                     <select
-                        className="border rounded px-2 py-1 text-sm"
+                        className="border rounded px-2 py-1 text-sm min-h-11 md:min-h-0"
                         value={pageSize}
                         onChange={e => onChangePageSize(parseInt(e.target.value, 10))}
                         disabled={loading}

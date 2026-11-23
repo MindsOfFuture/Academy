@@ -1,3 +1,5 @@
+import { AcaoComFormulario } from "@/components/ui/acao-formulario";
+import { CABECALHO_SECAO, classeFiltro } from "@/components/ui/botoes";
 import Link from "next/link";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import { STATUS_META, listarMetas, ordenarMetas, statusDaMeta } from "@/lib/api/gestao/metas";
@@ -46,10 +48,12 @@ export default async function MetasPage({
   return (
     <div className="space-y-6">
       <section aria-labelledby="metas" className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className={CABECALHO_SECAO}>
           <h2 id="metas" className="text-xl font-semibold">
             Metas
           </h2>
+          {coordenacao && <AcaoComFormulario rotulo="Nova meta"><FormMeta pessoas={pessoas} /></AcaoComFormulario>}
+        </div>
           <nav aria-label="Filtrar metas" className="flex flex-wrap gap-2">
             {FILTROS.map((f) => {
               const ativo = f.minhas ? minhas : !minhas && status === (f.status ?? null);
@@ -59,16 +63,13 @@ export default async function MetasPage({
                   key={f.rotulo}
                   href={href}
                   aria-current={ativo ? "page" : undefined}
-                  className={`rounded-full border px-3 py-1 text-sm ${
-                    ativo ? "border-[#684A97] bg-[#684A97] text-white" : "bg-white hover:border-[#684A97]"
-                  }`}
+                  className={classeFiltro(ativo)}
                 >
                   {f.rotulo}
                 </Link>
               );
             })}
           </nav>
-        </div>
         {lista.length === 0 ? (
           <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhuma meta.</p>
         ) : (
@@ -80,7 +81,6 @@ export default async function MetasPage({
         )}
       </section>
 
-      {coordenacao && <FormMeta pessoas={pessoas} />}
     </div>
   );
 }

@@ -66,16 +66,16 @@ export function UpdatePasswordForm({
     >
       <Image src="/logo.svg" alt="Logo" width={170} height={100} />
       <div className="w-full max-w-sm text-center">
-        <h2 className="text-2xl font-bold text-[#6A4A98]">Redefinir sua senha</h2>
+        <h2 className="text-2xl font-bold text-[#684A97]">Redefinir sua senha</h2>
         <p className="mt-2 text-sm text-gray-600">
           Digite sua nova senha abaixo para concluir a redefinição.
         </p>
-        <div className="mx-auto mt-2 h-[3px] w-20 bg-[#6A4A98]"></div>
+        <div className="mx-auto mt-2 h-[3px] w-20 bg-[#684A97]"></div>
       </div>
 
       <form onSubmit={handleUpdatePassword} className="w-full max-w-sm space-y-6">
         <div className="relative flex items-center">
-          <Lock className="absolute left-4 text-[#6A4A98]" size={20} />
+          <Lock className="absolute left-4 text-[#684A97]" size={20} />
           <Input
             id="password"
             type="password"
@@ -83,12 +83,12 @@ export function UpdatePasswordForm({
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
+            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#684A97] focus-visible:ring-offset-2"
           />
         </div>
 
         <div className="relative flex items-center">
-          <Lock className="absolute left-4 text-[#6A4A98]" size={20} />
+          <Lock className="absolute left-4 text-[#684A97]" size={20} />
           <Input
             id="confirmPassword"
             type="password"
@@ -96,7 +96,7 @@ export function UpdatePasswordForm({
             required
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
+            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#684A97] focus-visible:ring-offset-2"
           />
         </div>
 
@@ -105,14 +105,14 @@ export function UpdatePasswordForm({
 
         <Button
           type="submit"
-          className="w-full rounded-full bg-[#6A4A98] py-6 text-base font-semibold text-white hover:bg-[#5a3e85]"
+          className="w-full rounded-full bg-[#684A97] py-6 text-base font-semibold text-white hover:bg-[#5a3e85]"
           disabled={isLoading}
         >
           {isLoading ? "Salvando..." : "Salvar nova senha"}
         </Button>
       </form>
 
-      <Link href="/auth" className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#6A4A98]">
+      <Link href="/auth" className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#684A97]">
         <ArrowLeft size={16} />
         Voltar para o login
       </Link>

@@ -1,3 +1,5 @@
+import { AcaoComFormulario } from "@/components/ui/acao-formulario";
+import { BOTAO_SECUNDARIO, CABECALHO_SECAO } from "@/components/ui/botoes";
 import Link from "next/link";
 import { AREA_MELHORIA, STATUS_MELHORIA, listarMelhorias, ordenarFila } from "@/lib/api/gestao/melhorias";
 import type { AreaMelhoria, Melhoria, StatusMelhoria } from "@/lib/api/gestao/types";
@@ -39,17 +41,16 @@ export default async function MelhoriasPage({
           <Numero titulo="Esperando resposta" valor={esperando} />
           <Numero titulo="Há mais de 14 dias" valor={atrasadas} destaque={atrasadas > 0} />
         </section>
-      ) : (
-        <FormNovaMelhoria areas={AREA_MELHORIA} />
-      )}
+      ) : null}
 
       <section aria-labelledby="pedidos" className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className={CABECALHO_SECAO}>
           <h2 id="pedidos" className="text-xl font-semibold">
             {papel === "coordenacao" ? "Fila de pedidos" : "Pedidos da equipe"}
           </h2>
-          <Filtros status={status} area={area} />
+          <AcaoComFormulario rotulo="Novo pedido"><FormNovaMelhoria areas={AREA_MELHORIA} /></AcaoComFormulario>
         </div>
+        <Filtros status={status} area={area} />
         {lista.length === 0 ? (
           <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Nenhum pedido por aqui.</p>
         ) : (
@@ -61,14 +62,6 @@ export default async function MelhoriasPage({
         )}
       </section>
 
-      {papel === "coordenacao" && (
-        <details className="rounded-lg border bg-white p-4">
-          <summary className="cursor-pointer text-sm font-medium">A coordenação também pode pedir uma melhoria</summary>
-          <div className="mt-3">
-            <FormNovaMelhoria areas={AREA_MELHORIA} />
-          </div>
-        </details>
-      )}
     </div>
   );
 }
@@ -85,7 +78,7 @@ function Numero({ titulo, valor, destaque }: { titulo: string; valor: number; de
 function Filtros({ status, area }: { status: StatusMelhoria | null; area: AreaMelhoria | null }) {
   return (
     <form className="flex flex-wrap gap-2" method="get">
-      <select name="status" defaultValue={status ?? ""} aria-label="Filtrar por situação" className="h-9 rounded-md border bg-white px-2 text-sm">
+      <select name="status" defaultValue={status ?? ""} aria-label="Filtrar por situação" className="min-h-11 md:min-h-9 rounded-md border bg-white px-2 text-sm">
         <option value="">Todas as situações</option>
         {(Object.keys(STATUS_MELHORIA) as StatusMelhoria[]).map((s) => (
           <option key={s} value={s}>
@@ -93,7 +86,7 @@ function Filtros({ status, area }: { status: StatusMelhoria | null; area: AreaMe
           </option>
         ))}
       </select>
-      <select name="area" defaultValue={area ?? ""} aria-label="Filtrar por assunto" className="h-9 rounded-md border bg-white px-2 text-sm">
+      <select name="area" defaultValue={area ?? ""} aria-label="Filtrar por assunto" className="min-h-11 md:min-h-9 rounded-md border bg-white px-2 text-sm">
         <option value="">Todos os assuntos</option>
         {(Object.keys(AREA_MELHORIA) as AreaMelhoria[]).map((a) => (
           <option key={a} value={a}>
@@ -101,7 +94,7 @@ function Filtros({ status, area }: { status: StatusMelhoria | null; area: AreaMe
           </option>
         ))}
       </select>
-      <button type="submit" className="h-9 rounded-md border bg-white px-3 text-sm hover:bg-gray-50">
+      <button type="submit" className={BOTAO_SECUNDARIO}>
         Filtrar
       </button>
     </form>

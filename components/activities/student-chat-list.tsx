@@ -58,23 +58,23 @@ export default function StudentChatList({
     // Se um aluno está selecionado, mostra o chat
     if (selectedStudent && currentUser) {
         return (
-            <div className="border border-purple-200 rounded-lg overflow-hidden bg-white mt-3">
+            <div className="border border-[#684A97]/30 rounded-lg overflow-hidden bg-white mt-3">
                 {/* Header com botão voltar */}
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-purple-50 border-b border-purple-200">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-[#684A97]/10 border-b border-[#684A97]/30">
                     <button
                         onClick={() => setSelectedStudent(null)}
-                        className="p-1 hover:bg-purple-100 rounded transition"
+                        className="p-1 hover:bg-[#684A97]/10 rounded transition"
                         title="Voltar para lista de alunos"
                     >
-                        <ChevronLeft className="w-4 h-4 text-purple-700" />
+                        <ChevronLeft className="w-4 h-4 text-[#684A97]" />
                     </button>
-                    <User className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-medium text-purple-800">
+                    <User className="w-4 h-4 text-[#684A97]" />
+                    <span className="text-sm font-medium text-[#684A97]">
                         Chat com {selectedStudent.fullName}
                     </span>
                     <button
                         onClick={onClose}
-                        className="ml-auto p-1 hover:bg-purple-100 rounded transition"
+                        className="ml-auto p-1 hover:bg-[#684A97]/10 rounded transition"
                         title="Fechar"
                     >
                         <X className="w-4 h-4 text-gray-500" />
@@ -91,18 +91,18 @@ export default function StudentChatList({
     }
 
     return (
-        <div className="border border-purple-200 rounded-lg overflow-hidden bg-white mt-3">
+        <div className="border border-[#684A97]/30 rounded-lg overflow-hidden bg-white mt-3">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-purple-50 border-b border-purple-200">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#684A97]/10 border-b border-[#684A97]/30">
                 <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-medium text-purple-800">
+                    <MessageSquare className="w-4 h-4 text-[#684A97]" />
+                    <span className="text-sm font-medium text-[#684A97]">
                         Conversas — {assignmentTitle}
                     </span>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1 hover:bg-purple-100 rounded transition"
+                    className="p-1 hover:bg-[#684A97]/10 rounded transition"
                     title="Fechar"
                 >
                     <X className="w-4 h-4 text-gray-500" />
@@ -113,7 +113,7 @@ export default function StudentChatList({
             <div className="p-3">
                 {loading ? (
                     <div className="flex items-center justify-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+                        <Loader2 className="w-5 h-5 animate-spin text-[#684A97]" />
                     </div>
                 ) : students.length === 0 ? (
                     <div className="text-center py-6 text-gray-400">
@@ -131,7 +131,7 @@ export default function StudentChatList({
                                             fullName: student.fullName,
                                         })
                                     }
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition text-left group"
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#684A97]/10 transition text-left group"
                                 >
                                     {/* Avatar */}
                                     {student.avatarUrl ? (
@@ -143,18 +143,18 @@ export default function StudentChatList({
                                             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                         />
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                            <User className="w-4 h-4 text-purple-600" />
+                                        <div className="w-8 h-8 rounded-full bg-[#684A97]/10 flex items-center justify-center flex-shrink-0">
+                                            <User className="w-4 h-4 text-[#684A97]" />
                                         </div>
                                     )}
 
                                     {/* Nome */}
-                                    <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700 transition">
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-[#684A97] transition">
                                         {student.fullName}
                                     </span>
 
                                     {/* Seta */}
-                                    <MessageSquare className="w-4 h-4 text-gray-300 group-hover:text-purple-500 ml-auto transition" />
+                                    <MessageSquare className="w-4 h-4 text-gray-300 group-hover:text-[#684A97] ml-auto transition" />
                                 </button>
                             </li>
                         ))}

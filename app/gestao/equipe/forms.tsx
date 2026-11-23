@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useId, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { EstadoAcao, GestaoPapel, PapeisMembro, UsuarioEncontrado } from "@/lib/api/gestao/types";
 import {
@@ -13,6 +12,8 @@ import {
   removerMembroAction,
 } from "./actions";
 import { confirmarEnvio } from "@/components/ui/confirmar";
+import { BOTAO_PERIGO, BOTAO_PRIMARIO, BOTAO_SECUNDARIO } from "@/components/ui/botoes";
+import { cn } from "@/lib/utils";
 
 type Acao = (anterior: EstadoAcao | null, form: FormData) => Promise<EstadoAcao>;
 
@@ -155,7 +156,7 @@ function BuscaPessoa() {
 export function FormConcederPapel() {
   const [estado, acao, enviando] = useActionState<EstadoAcao | null, FormData>(concederPapelAction, null);
   return (
-    <form action={acao} className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
+    <form action={acao} className="space-y-3">
       <h3 className="font-semibold">Adicionar pessoa à equipe</h3>
       <p className="text-sm text-muted-foreground">
         Busque pelo nome ou pelo começo do e-mail; a pessoa precisa ter conta no site. Se ela já está na equipe, o
@@ -172,9 +173,9 @@ export function FormConcederPapel() {
             <option value="ambos">Coordenação e bolsista</option>
           </select>
         </label>
-        <Button type="submit" disabled={enviando}>
+        <button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
           {enviando ? "Adicionando…" : "Adicionar"}
-        </Button>
+        </button>
       </div>
       <Aviso estado={estado} />
     </form>
@@ -185,7 +186,7 @@ export function FormBolsa({ bolsistas }: { bolsistas: { id: string; nome: string
   const [estado, acao, enviando] = useActionState<EstadoAcao | null, FormData>(cadastrarBolsaAction, null);
   if (bolsistas.length === 0) return null;
   return (
-    <form action={acao} className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
+    <form action={acao} className="space-y-3">
       <h3 className="font-semibold">Cadastrar bolsa</h3>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="space-y-1 sm:col-span-3">
@@ -224,9 +225,9 @@ export function FormBolsa({ bolsistas }: { bolsistas: { id: string; nome: string
           <Input name="fim" type="date" required />
         </label>
         <div className="flex items-end">
-          <Button type="submit" disabled={enviando} className="w-full">
+          <button type="submit" disabled={enviando} className={cn(BOTAO_PRIMARIO, "w-full")}>
             {enviando ? "Salvando…" : "Salvar bolsa"}
-          </Button>
+          </button>
         </div>
       </div>
       <Aviso estado={estado} />
@@ -240,26 +241,38 @@ function BotaoAcao({
   rotulo,
   confirmar,
   variante = "outline",
+  className,
 }: {
   acao: Acao;
   campos: Record<string, string>;
   rotulo: string;
   confirmar?: string;
-  variante?: "outline" | "destructive";
+  variante?: "outline" | "destructive" | "menu";
+  className?: string;
 }) {
   const [estado, executar, enviando] = useActionState<EstadoAcao | null, FormData>(acao, null);
   return (
     <form
       action={executar}
       onSubmit={confirmar ? confirmarEnvio(confirmar, { rotulo, destrutivo: variante === "destructive" }) : undefined}
-      className="inline-flex flex-col items-start gap-1"
+      className={cn("inline-flex flex-col items-stretch gap-1", className)}
     >
       {Object.entries(campos).map(([nome, valor]) => (
         <input key={nome} type="hidden" name={nome} value={valor} />
       ))}
-      <Button type="submit" size="sm" variant={variante} disabled={enviando}>
+      <button
+        type="submit"
+        disabled={enviando}
+        className={
+          variante === "destructive"
+            ? BOTAO_PERIGO
+            : variante === "menu"
+              ? "min-h-11 w-full rounded-md px-3 text-left text-sm text-gray-800 hover:bg-[#684A97]/10 disabled:opacity-50 md:min-h-9"
+              : BOTAO_SECUNDARIO
+        }
+      >
         {rotulo}
-      </Button>
+      </button>
       {estado && !estado.ok && <Aviso estado={estado} />}
     </form>
   );
@@ -284,6 +297,7 @@ function BotoesPapel({ userProfileId, nome, papeis }: { userProfileId: string; n
               acao={definirPapelAction}
               campos={{ userProfileId, papel, acao: "dar" }}
               rotulo={`Dar papel de ${NOME_PAPEL[papel]}`}
+              variante="menu"
             />
           );
         }
@@ -295,6 +309,7 @@ function BotoesPapel({ userProfileId, nome, papeis }: { userProfileId: string; n
             campos={{ userProfileId, papel, acao: "tirar" }}
             rotulo={`Tirar papel de ${NOME_PAPEL[papel]}`}
             confirmar={`Tirar o papel de ${NOME_PAPEL[papel]} de ${nome}? A pessoa continua na equipe como ${NOME_PAPEL[outro]}.`}
+            variante="menu"
           />
         );
       })}
@@ -315,22 +330,41 @@ export function AcoesMembro({
   desligado: boolean;
   temAlocacao: boolean;
 }) {
+  // Mesmas três colunas em toda linha (Papéis · Desligar · Remover): os botões
+  // ficam um embaixo do outro na lista, mesmo quando falta algum.
   return (
-    <div className="flex flex-wrap gap-2">
-      {!desligado && <BotoesPapel userProfileId={userProfileId} nome={nome} papeis={papeis} />}
+    <div className="grid grid-cols-[auto_auto_auto] items-start justify-start gap-2 md:justify-end">
+      {desligado ? (
+        <span aria-hidden className="w-28" />
+      ) : (
+        <details className="group relative">
+          <summary
+            className={cn(BOTAO_SECUNDARIO, "w-28 list-none cursor-pointer [&::-webkit-details-marker]:hidden")}
+          >
+            Papéis <span aria-hidden className="transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="absolute right-0 z-20 mt-2 w-60 rounded-lg border bg-white p-1 shadow-lg">
+            <BotoesPapel userProfileId={userProfileId} nome={nome} papeis={papeis} />
+          </div>
+        </details>
+      )}
       <BotaoAcao
         acao={desligamentoAction}
         campos={{ userProfileId, acao: desligado ? "reativar" : "desligar" }}
         rotulo={desligado ? "Reativar" : "Desligar"}
         confirmar={desligado ? undefined : `Desligar ${nome}? O acesso é cortado agora e o histórico fica.`}
+        className="w-28"
       />
-      {!temAlocacao && (
+      {temAlocacao ? (
+        <span aria-hidden className="w-24" />
+      ) : (
         <BotaoAcao
           acao={removerMembroAction}
           campos={{ userProfileId }}
           rotulo="Remover"
           variante="destructive"
           confirmar={`Remover ${nome} da equipe? Só é possível porque a pessoa nunca foi alocada.`}
+          className="w-24"
         />
       )}
     </div>

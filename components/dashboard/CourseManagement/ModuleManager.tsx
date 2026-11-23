@@ -92,7 +92,7 @@ export default function ModuleManager({
                       <button
                         onClick={() => toggleLessonExpanded(lesson.id)}
                         className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${expandedLessons[lesson.id]
-                          ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                          ? "bg-[#684A97]/10 text-[#684A97] hover:bg-[#684A97]"
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                           }`}
                         title="Gerenciar atividades desta lição"
@@ -114,7 +114,7 @@ export default function ModuleManager({
                         href={lesson.contentUrl.startsWith('http') ? lesson.contentUrl : `https://${lesson.contentUrl}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-purple-600 hover:text-purple-800 ml-6 block"
+                        className="text-sm text-[#684A97] hover:text-[#684A97] ml-6 block"
                       >
                         {lesson.contentUrl}
                       </a>
@@ -201,7 +201,7 @@ export default function ModuleManager({
             onAddModule(newModule);
             setNewModule("");
           }}
-          className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+          className="bg-[#684A97] text-white px-3 py-1 rounded hover:bg-[#553d7a]"
         >
           Adicionar
         </button>

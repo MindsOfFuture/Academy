@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PERIGO, BOTAO_PRIMARIO, BOTAO_SECUNDARIO } from "@/components/ui/botoes";
+
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +83,7 @@ export function FormNovaMelhoria({ areas }: { areas: Record<AreaMelhoria, string
         dias. Questão de conduta ou sobre uma pessoa vai direto à coordenação, fora daqui.
       </p>
       <CamposPedido areas={areas} />
-      <Button type="submit" disabled={enviando}>
+      <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
         {enviando ? "Enviando…" : "Enviar pedido"}
       </Button>
       <Aviso estado={estado} />
@@ -105,7 +107,7 @@ export function FormEditarMelhoria({ areas, pedido }: { areas: Record<AreaMelhor
           onSubmit={confirmarEnvio("Retirar este pedido? Ele some da lista.", { rotulo: "Retirar", destrutivo: true })}
         >
           <input type="hidden" name="id" value={pedido.id} />
-          <Button type="submit" variant="destructive" size="sm" disabled={retirando}>
+          <Button type="submit" variant="destructive" size="sm" disabled={retirando} className={BOTAO_PERIGO}>
             Retirar pedido
           </Button>
         </form>
@@ -115,7 +117,7 @@ export function FormEditarMelhoria({ areas, pedido }: { areas: Record<AreaMelhor
         <form action={acao} className="space-y-3 rounded-lg border bg-white p-4">
           <input type="hidden" name="id" value={pedido.id} />
           <CamposPedido areas={areas} pedido={pedido} />
-          <Button type="submit" disabled={enviando}>
+          <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>
             {enviando ? "Salvando…" : "Salvar"}
           </Button>
           <Aviso estado={estado} />
@@ -196,7 +198,7 @@ export function FormResponderMelhoria({
           defaultValue={pedido.resposta ?? ""}
         />
       </label>
-      <Button type="submit" disabled={enviando || !status}>
+      <Button type="submit" disabled={enviando || !status} className={BOTAO_PRIMARIO}>
         {enviando ? "Salvando…" : "Registrar resposta"}
       </Button>
       <Aviso estado={estado} />
@@ -212,7 +214,7 @@ export function BotaoApoio({ id, apoiei, apoios, podeApoiar }: { id: string; apo
     <form action={acao} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="apoiar" value={apoiei ? "0" : "1"} />
-      <Button type="submit" size="sm" variant="outline" disabled={enviando} aria-pressed={apoiei}>
+      <Button type="submit" size="sm" variant="outline" disabled={enviando} aria-pressed={apoiei} className={BOTAO_SECUNDARIO}>
         {apoiei ? "Retirar apoio" : "Preciso disso também"}
       </Button>
       <span className="text-sm text-muted-foreground">{texto}</span>

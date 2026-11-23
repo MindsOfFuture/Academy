@@ -268,7 +268,7 @@ export function SignUpForm({
     }
   };
 
-  const inputClass = "w-full rounded-full border-none bg-[#EFEBF5] py-5 pl-12 pr-4 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#6A4A98]";
+  const inputClass = "w-full rounded-full border-none bg-[#EFEBF5] py-5 pl-12 pr-4 text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#684A97]";
 
   const variants = {
     enter: (direction: number) => ({
@@ -291,12 +291,12 @@ export function SignUpForm({
   const credentialFields = (
     <>
               <div className="relative flex items-center">
-                <Mail className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <Mail className="absolute left-4 text-[#684A97] z-10" size={20} />
                 <Input aria-label="Seu melhor E-mail" autoComplete="email" type="email" placeholder="Seu melhor E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
               </div>
 
               <div className="relative flex items-center">
-                <Lock className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <Lock className="absolute left-4 text-[#684A97] z-10" size={20} />
                 {/* O Edge desenha um olho próprio em campo de senha; `[&::-ms-reveal]:hidden` o esconde para não duplicar o botão abaixo. */}
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -311,14 +311,14 @@ export function SignUpForm({
                   type="button"
                   onClick={() => setShowPassword(p => !p)}
                   aria-label="Mostrar ou ocultar senha"
-                  className="absolute right-4 text-[#6A4A98] transition-colors z-20"
+                  className="absolute right-4 text-[#684A97] transition-colors z-20"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
               <div className="relative flex items-center">
-                <Lock className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <Lock className="absolute left-4 text-[#684A97] z-10" size={20} />
                 <Input
                   type={showRepeatPassword ? "text" : "password"}
                   placeholder="Confirme a senha"
@@ -332,7 +332,7 @@ export function SignUpForm({
                   type="button"
                   onClick={() => setShowRepeatPassword(p => !p)}
                   aria-label="Mostrar ou ocultar senha"
-                  className="absolute right-4 text-[#6A4A98] transition-colors z-20"
+                  className="absolute right-4 text-[#684A97] transition-colors z-20"
                 >
                   {showRepeatPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -344,7 +344,7 @@ export function SignUpForm({
                   id="terms"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6A4A98] focus:ring-[#6A4A98] cursor-pointer accent-[#6A4A98]"
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[#684A97] focus:ring-[#684A97] cursor-pointer accent-[#684A97]"
                 />
                 <label htmlFor="terms" className="text-sm text-white/90 leading-tight">
                   Li e concordo com os{" "}
@@ -375,7 +375,7 @@ export function SignUpForm({
   return (
     <div
       className={cn(
-        "flex w-full flex-col items-center justify-center gap-6 bg-[#6A4A98] p-6 text-white md:w-1/2 lg:p-12 overflow-hidden relative",
+        "flex w-full flex-col items-center justify-center gap-6 bg-[#684A97] p-6 text-white md:w-1/2 lg:p-12 overflow-hidden relative",
         className
       )}
       {...props}
@@ -432,7 +432,7 @@ export function SignUpForm({
                   className={cn(
                     "flex-1 rounded-full py-3 font-semibold transition-all border-2",
                     userType === "student"
-                      ? "bg-white text-[#6A4A98] border-white"
+                      ? "bg-white text-[#684A97] border-white"
                       : "bg-transparent border-white/50 text-white/70 hover:bg-white/10 hover:border-white hover:text-white"
                   )}
                 >
@@ -445,7 +445,7 @@ export function SignUpForm({
                   className={cn(
                     "flex-1 rounded-full py-3 font-semibold transition-all border-2",
                     userType === "teacher"
-                      ? "bg-white text-[#6A4A98] border-white"
+                      ? "bg-white text-[#684A97] border-white"
                       : "bg-transparent border-white/50 text-white/70 hover:bg-white/10 hover:border-white hover:text-white"
                   )}
                 >
@@ -455,13 +455,13 @@ export function SignUpForm({
               </div>
 
               <div className="relative flex items-center">
-                <User className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <User className="absolute left-4 text-[#684A97] z-10" size={20} />
                 <Input aria-label="Nome completo" autoComplete="name" type="text" placeholder="Nome completo" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} autoFocus />
               </div>
 
               {!isStudent && (
                 <div className="relative flex items-center">
-                  <FileText className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                  <FileText className="absolute left-4 text-[#684A97] z-10" size={20} />
                   <Input aria-label="CPF ou RG" type="text" placeholder="CPF ou RG" value={document} onChange={(e) => setDocument(e.target.value)} className={inputClass} />
                 </div>
               )}
@@ -469,10 +469,10 @@ export function SignUpForm({
               <div className="space-y-1">
               <label htmlFor="birthDate" className="text-sm text-white/70 ml-2">Data de nascimento</label>
               <div className="relative flex items-center">
-                <Calendar className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <Calendar className="absolute left-4 text-[#684A97] z-10" size={20} />
                 <Input id="birthDate" type="date" autoComplete="bday" placeholder="Data de nascimento" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={cn(inputClass, "pr-4")} />
                 {age !== null && age >= 0 && (
-                  <span className="absolute right-4 text-[#6A4A98] text-sm font-medium">{age} anos</span>
+                  <span className="absolute right-4 text-[#684A97] text-sm font-medium">{age} anos</span>
                 )}
               </div>
               </div>
@@ -480,7 +480,7 @@ export function SignUpForm({
               {isStudent && isMinor && (
                 <div className="space-y-1">
                   <div className="relative flex items-center">
-                    <Users className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                    <Users className="absolute left-4 text-[#684A97] z-10" size={20} />
                     <Input aria-label="Nome do responsável" type="text" placeholder="Nome do responsável" value={parentName} onChange={(e) => setParentName(e.target.value)} className={inputClass} />
                   </div>
                   <p className="text-xs text-white/80 ml-2">Como você tem menos de 18 anos, precisamos do nome de um responsável.</p>
@@ -510,12 +510,12 @@ export function SignUpForm({
               className="space-y-4 w-full"
             >
               <div className="relative flex items-center">
-                <MapPin className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <MapPin className="absolute left-4 text-[#684A97] z-10" size={20} />
                 <Input aria-label="Endereço (Cidade/Estado)" type="text" placeholder="Endereço (Cidade/Estado)" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} autoFocus />
               </div>
 
               <div className="relative flex items-center">
-                <Phone className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                <Phone className="absolute left-4 text-[#684A97] z-10" size={20} />
                 <Input aria-label="Telefone / Celular" autoComplete="tel" type="tel" placeholder="Telefone / Celular" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
               </div>
 
@@ -544,7 +544,7 @@ export function SignUpForm({
                     <label className="text-sm text-white/70 ml-2">Escolas onde leciona</label>
                     {schools.map((s, index) => (
                       <div key={index} className="relative flex items-center gap-2">
-                        <School className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                        <School className="absolute left-4 text-[#684A97] z-10" size={20} />
                         <Input
                           type="text"
                           placeholder={`Escola ${index + 1}`}
@@ -575,7 +575,7 @@ export function SignUpForm({
                   </div>
 
                   <div className="relative flex items-center">
-                    <GraduationCap className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                    <GraduationCap className="absolute left-4 text-[#684A97] z-10" size={20} />
                     <select
                       value={educationLevel}
                       onChange={(e) => setEducationLevel(e.target.value)}
@@ -591,7 +591,7 @@ export function SignUpForm({
                   </div>
 
                   <div className="relative flex items-center">
-                    <FileText className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                    <FileText className="absolute left-4 text-[#684A97] z-10" size={20} />
                     <Input aria-label="Formação (ex: Matemática)" type="text" placeholder="Formação (ex: Matemática)" value={degree} onChange={(e) => setDegree(e.target.value)} className={inputClass} />
                   </div>
 
@@ -600,7 +600,7 @@ export function SignUpForm({
                     <p className="text-xs text-white/80 mb-3">
                       Envie diploma ou comprovante de vínculo/cargo de trabalho. Formatos: PDF, JPG, PNG ou WEBP (máx. 10MB).
                     </p>
-                    <label className="flex items-center justify-center gap-2 rounded-full bg-white text-[#6A4A98] font-semibold px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors">
+                    <label className="flex items-center justify-center gap-2 rounded-full bg-white text-[#684A97] font-semibold px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors">
                       <Upload size={16} />
                       {qualificationFile ? "Trocar anexo" : "Selecionar anexo"}
                       <input
@@ -696,7 +696,7 @@ export function SignUpForm({
             <Button
               type="button"
               onClick={handleNext}
-              className="w-full sm:flex-[2] rounded-full bg-white text-[#6A4A98] hover:bg-gray-100 font-bold h-12"
+              className="w-full sm:flex-[2] rounded-full bg-white text-[#684A97] hover:bg-gray-100 font-bold h-12"
             >
               Próximo <ChevronRight className="ml-2 h-4 w-4" />
             </Button>

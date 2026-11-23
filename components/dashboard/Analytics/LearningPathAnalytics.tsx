@@ -27,7 +27,7 @@ export function LearningPathAnalytics({ paths }: LearningPathAnalyticsProps) {
         <select
           value={selectedPathId || ""}
           onChange={(e) => setSelectedPathId(e.target.value)}
-          className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
+          className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97] bg-white"
         >
           {paths.map((p) => (
             <option key={p.id} value={p.id}>
@@ -47,9 +47,9 @@ export function LearningPathAnalytics({ paths }: LearningPathAnalyticsProps) {
           ) : (
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded bg-purple-50 p-3"><p className="text-xs text-gray-500">Interações</p><strong>{learningEvents.totalInteractions}</strong></div>
-                <div className="rounded bg-purple-50 p-3"><p className="text-xs text-gray-500">Sessões</p><strong>{learningEvents.sessions}</strong></div>
-                <div className="rounded bg-purple-50 p-3"><p className="text-xs text-gray-500">Alunos ativos</p><strong>{learningEvents.activeStudents}</strong></div>
+                <div className="rounded bg-[#684A97]/10 p-3"><p className="text-xs text-gray-500">Interações</p><strong>{learningEvents.totalInteractions}</strong></div>
+                <div className="rounded bg-[#684A97]/10 p-3"><p className="text-xs text-gray-500">Sessões</p><strong>{learningEvents.sessions}</strong></div>
+                <div className="rounded bg-[#684A97]/10 p-3"><p className="text-xs text-gray-500">Alunos ativos</p><strong>{learningEvents.activeStudents}</strong></div>
                 <div className="col-span-3 rounded bg-gray-50 p-3 text-sm">
                   <p className="font-medium text-gray-700">Contagens por ação</p>
                   <div className="mt-2 flex flex-wrap gap-2">

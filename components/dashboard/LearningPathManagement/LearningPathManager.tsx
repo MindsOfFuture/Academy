@@ -131,7 +131,7 @@ export default function LearningPathManager({
                 </div>
                 <button
                     onClick={() => setIsCreating(true)}
-                    className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                    className="flex items-center gap-2 bg-[#684A97] text-white px-4 py-2 rounded-lg hover:bg-[#553d7a]"
                     disabled={loading}
                 >
                     <Plus className="w-4 h-4" />
@@ -188,7 +188,7 @@ export default function LearningPathManager({
                                 {path.description && (
                                     <p className="text-sm text-gray-500">{path.description}</p>
                                 )}
-                                <p className="text-xs text-purple-600 mt-1">
+                                <p className="text-xs text-[#684A97] mt-1">
                                     {path.courses.length} curso(s) vinculado(s)
                                 </p>
                             </div>
@@ -210,7 +210,7 @@ export default function LearningPathManager({
                                 </button>
                                 <button
                                     onClick={() => setSelectedPathId(path.id)}
-                                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded"
+                                    className="p-2 text-gray-500 hover:text-[#684A97] hover:bg-[#684A97]/10 rounded"
                                     title="Gerenciar cursos"
                                 >
                                     <ChevronRight className="w-5 h-5" />

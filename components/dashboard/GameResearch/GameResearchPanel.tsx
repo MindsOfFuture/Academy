@@ -135,7 +135,7 @@ export default function GameResearchPanel() {
             <div
               role="group"
               aria-label="Período do panorama"
-              className="mt-2 inline-flex flex-wrap gap-1 rounded-xl bg-purple-50 p-1"
+              className="mt-2 inline-flex flex-wrap gap-1 rounded-xl bg-[#684A97]/10 p-1"
             >
               {PERIODS.map((item) => {
                 const ativo = period === item.key;
@@ -146,10 +146,10 @@ export default function GameResearchPanel() {
                     onClick={() => setPeriod(item.key)}
                     aria-pressed={ativo}
                     title={item.hint}
-                    className={`rounded-lg px-4 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600 ${
+                    className={`rounded-lg px-4 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#684A97] ${
                       ativo
-                        ? "bg-purple-700 text-white shadow-sm"
-                        : "text-purple-800 hover:bg-purple-100"
+                        ? "bg-[#553d7a] text-white shadow-sm"
+                        : "text-[#684A97] hover:bg-[#684A97]/10"
                     }`}
                   >
                     {item.label}
@@ -164,7 +164,7 @@ export default function GameResearchPanel() {
             <select
               value={game}
               onChange={(event) => setGame(event.target.value as GameKey | "todos")}
-              className="mt-2 rounded-xl border border-purple-200 px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-purple-600"
+              className="mt-2 rounded-xl border border-[#684A97]/30 px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-[#684A97]"
             >
               <option value="todos">Todos os jogos</option>
               {GAME_KEYS.map((key) => (
@@ -178,7 +178,7 @@ export default function GameResearchPanel() {
               type="checkbox"
               checked={includeText}
               onChange={(event) => setIncludeText(event.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-600"
+              className="h-4 w-4 rounded border-gray-300 text-[#684A97] focus:ring-[#684A97]"
             />
             Incluir o que os alunos escreveram
           </label>
@@ -187,7 +187,7 @@ export default function GameResearchPanel() {
             type="button"
             onClick={baixarCsv}
             disabled={downloading}
-            className="rounded-xl bg-purple-700 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl bg-[#553d7a] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#553d7a] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {downloading ? "Gerando…" : "Baixar planilha"}
           </button>
@@ -195,7 +195,7 @@ export default function GameResearchPanel() {
           <button
             type="button"
             onClick={() => void loadSummary()}
-            className="rounded-xl border border-purple-300 px-4 py-2.5 text-sm font-bold text-purple-800 transition hover:bg-purple-50"
+            className="rounded-xl border border-[#684A97]/30 px-4 py-2.5 text-sm font-bold text-[#684A97] transition hover:bg-[#684A97]/10"
           >
             Atualizar
           </button>

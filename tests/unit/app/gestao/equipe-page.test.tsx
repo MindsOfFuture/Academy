@@ -4,7 +4,7 @@
  * bolsista — inclusive da coordenação — entra na lista de bolsa. A bolsa aparece
  * sem valor em dinheiro (spec 003, alterada em 28/09/2026).
  */
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MembroEquipe } from "@/lib/api/gestao/types";
 
@@ -107,6 +107,9 @@ describe("tela de equipe com papéis acumulados", () => {
 
   it("põe na lista de bolsa quem é bolsista, inclusive da coordenação", async () => {
     render(await EquipePage(SEM_PARAMS));
+    // O formulário fica fechado: abre pelo botão no canto do cabeçalho.
+    expect(screen.queryByRole("combobox", { name: "Bolsista" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar bolsa" }));
     const lista = screen.getByRole("combobox", { name: "Bolsista" });
     const nomes = within(lista)
       .getAllByRole("option")
@@ -123,6 +126,7 @@ describe("tela de equipe com papéis acumulados", () => {
 
   it("oferece adicionar alguém com os dois papéis de uma vez", async () => {
     render(await EquipePage(SEM_PARAMS));
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar pessoa" }));
     const papel = screen.getByRole("combobox", { name: "Papel" });
     expect(within(papel).getAllByRole("option").map((o) => o.textContent)).toEqual([
       "Bolsista",
@@ -149,6 +153,20 @@ describe("tela de equipe com papéis acumulados", () => {
     expect(within(janela).getByRole("link", { name: /Lego/ })).toBeInTheDocument();
     expect(within(janela).getByRole("link", { name: "Mês anterior" })).toHaveAttribute("href", "?registro=bia&mes=2026-09");
     expect(within(janela).getByRole("link", { name: "Próximo mês" })).toHaveAttribute("href", "?registro=bia&mes=2026-11");
+  });
+
+  it("abre direto o cadastro de bolsa quando vem do atalho da tela Hoje", async () => {
+    render(await EquipePage({ searchParams: Promise.resolve({ acao: "bolsa" }) }));
+    expect(screen.getByRole("combobox", { name: "Bolsista" })).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Papel" })).toBeNull();
+  });
+
+  it("a busca filtra a equipe pelo nome, sem acento", async () => {
+    render(await EquipePage(SEM_PARAMS));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar na equipe" }), { target: { value: "coordenacao e" } });
+    const lista = screen.getByRole("heading", { name: /Equipe ativa/ }).closest("section") as HTMLElement;
+    expect(within(lista).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(lista).getByText("Cris Coordenação e Bolsa", { exact: false })).toBeInTheDocument();
   });
 
   it("não abre registro de quem não é bolsista da equipe", async () => {

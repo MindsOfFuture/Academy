@@ -55,30 +55,30 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       className={cn("flex w-full flex-col items-center justify-center gap-8 bg-white p-8 md:w-1/2 lg:p-12", className)} {...props} >
       <Image src="/logo.svg" alt="Logo" width={170} height={100} />
       <div className="w-full max-w-sm text-center">
-        <h2 className="text-2xl font-bold text-[#6A4A98]">Bem-vindo de volta!</h2>
-        <div className="mx-auto mt-2 h-[3px] w-20 bg-[#6A4A98]"></div>
+        <h2 className="text-2xl font-bold text-[#684A97]">Bem-vindo de volta!</h2>
+        <div className="mx-auto mt-2 h-[3px] w-20 bg-[#684A97]"></div>
       </div>
       <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6">
         <div className="relative flex items-center">
-          <Mail className="absolute left-4 text-[#6A4A98]" size={20} />
-          <Input id="email" type="email" placeholder="Email" required className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2" />
+          <Mail className="absolute left-4 text-[#684A97]" size={20} />
+          <Input id="email" type="email" placeholder="Email" required className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#684A97] focus-visible:ring-offset-2" />
         </div>
 
         <div className="relative flex items-center">
-          <Lock className="absolute left-4 text-[#6A4A98]" size={20} />
+          <Lock className="absolute left-4 text-[#684A97]" size={20} />
           {/* O Edge desenha um olho próprio em campo de senha; `[&::-ms-reveal]:hidden` o esconde para não duplicar o botão abaixo. */}
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
             placeholder="Senha"
             required
-            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-14 placeholder:text-gray-500 [&::-ms-reveal]:hidden focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2"
+            className="w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-14 placeholder:text-gray-500 [&::-ms-reveal]:hidden focus-visible:ring-2 focus-visible:ring-[#684A97] focus-visible:ring-offset-2"
           />
           <button
             type="button"
             onClick={() => setShowPassword((p) => !p)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-            className="absolute right-1.5 flex h-11 w-11 items-center justify-center rounded-full text-[#6A4A98] transition-colors hover:text-[#5a3e85]"
+            className="absolute right-1.5 flex h-11 w-11 items-center justify-center rounded-full text-[#684A97] transition-colors hover:text-[#5a3e85]"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -86,14 +86,14 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
         <div className="w-full flex text-sm">
           <Link
             href="/auth/forgot-password"
-            className="font-medium text-gray-600 hover:text-[#6A4A98] hover:underline"
+            className="font-medium text-gray-600 hover:text-[#684A97] hover:underline"
           >
             Esqueceu sua senha?
           </Link>
         </div>
 
         {error && <p className="text-center text-sm text-red-500">{error}</p>}
-        <Button type="submit" className="w-full rounded-full bg-[#6A4A98] py-6 text-base font-semibold text-white hover:bg-[#5a3e85]" disabled={isLoading}>
+        <Button type="submit" className="w-full rounded-full bg-[#684A97] py-6 text-base font-semibold text-white hover:bg-[#5a3e85]" disabled={isLoading}>
           {isLoading ? "Entrando..." : "Entrar"}
         </Button>
 
@@ -110,7 +110,7 @@ export function LoginForm({ className, onToggleView, ...props }: LoginFormProps)
       </form>
       <p className="mt-4 text-center text-sm text-gray-600 md:hidden">
         Não tem uma conta?{" "}
-        <button type="button" onClick={onToggleView} className="inline-flex min-h-11 items-center font-semibold text-[#6A4A98] underline hover:text-[#5a3e85]">
+        <button type="button" onClick={onToggleView} className="inline-flex min-h-11 items-center font-semibold text-[#684A97] underline hover:text-[#5a3e85]">
           Criar conta
         </button>
       </p>

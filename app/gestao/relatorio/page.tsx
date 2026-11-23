@@ -1,3 +1,4 @@
+import { BOTAO_PRIMARIO, BOTAO_SECUNDARIO } from "@/components/ui/botoes";
 import { atividadesDoMes, colegasDaEquipe, encontrosDoMes, extrasDoRegistro } from "@/lib/api/gestao/relatorio";
 import { usuarioDaRequisicao } from "@/lib/supabase/server";
 import { exigirMembro } from "../guard";
@@ -36,13 +37,13 @@ export default async function RelatorioPage({ searchParams }: { searchParams: Pr
         {/* Link comum: o navegador baixa o arquivo que a rota devolve. */}
         <a
           href={`/gestao/relatorio/pdf?mes=${mes}`}
-          className="rounded-md bg-[#684A97] px-4 py-2 text-sm font-medium text-white hover:bg-[#684A97]/90"
+          className={BOTAO_PRIMARIO}
         >
           Baixar relatório (.pdf)
         </a>
         <a
           href={`/gestao/relatorio/docx?mes=${mes}`}
-          className="rounded-md border border-[#684A97] px-4 py-2 text-sm font-medium text-[#684A97] hover:bg-[#684A97]/10"
+          className={BOTAO_SECUNDARIO}
         >
           Baixar relatório (.docx)
         </a>

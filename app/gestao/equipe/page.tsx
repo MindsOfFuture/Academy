@@ -1,33 +1,19 @@
-import Link from "next/link";
 import { listarEquipe } from "@/lib/api/gestao/equipe";
 import { atividadesDoMes, encontrosDoMes, extrasDoRegistro } from "@/lib/api/gestao/relatorio";
-import type { MembroEquipe, ModalidadeBolsa } from "@/lib/api/gestao/types";
 import { exigirMembro } from "../guard";
 import { mesDaUrl } from "../alocacao/rotulos";
 import { RegistroDoMes } from "../relatorio/registro";
 import { SeletorMes } from "../seletor-mes";
-import { AcoesMembro, FormBolsa, FormConcederPapel } from "./forms";
+import { FormBolsa, FormConcederPapel } from "./forms";
+import { CabecalhoEquipe, ListaMembros } from "./lista";
 import { JanelaRegistro } from "./janela-registro";
 
 /** Equipe do projeto (spec 003) — só a coordenação chega aqui. */
 
-const MODALIDADE: Record<ModalidadeBolsa, string> = {
-  graduacao: "Graduação",
-  mestrado: "Mestrado",
-  bdcti: "BDCTI",
-  critt: "CRITT",
-  outra: "Outra",
-};
-
-function dataBr(iso: string): string {
-  const [ano, mes, dia] = iso.slice(0, 10).split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
 export default async function EquipePage({
   searchParams,
 }: {
-  searchParams: Promise<{ registro?: string; mes?: string }>;
+  searchParams: Promise<{ registro?: string; mes?: string; acao?: string }>;
 }) {
   await exigirMembro("/gestao/equipe", "coordenacao");
   const params = await searchParams;
@@ -46,16 +32,19 @@ export default async function EquipePage({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <FormConcederPapel />
-        <FormBolsa bolsistas={bolsistas} />
-      </div>
-
       <section aria-labelledby="equipe-ativa" className="space-y-3">
-        <h2 id="equipe-ativa" className="text-xl font-semibold">
-          Equipe ativa ({ativos.length})
-        </h2>
-        <ListaMembros membros={ativos} />
+        {/* Ações no canto direito do cabeçalho; os formulários só abrem quando pedidos */}
+        <CabecalhoEquipe
+          titulo={
+            <h2 id="equipe-ativa" className="text-xl font-semibold">
+              Equipe ativa ({ativos.length})
+            </h2>
+          }
+          formPessoa={<FormConcederPapel />}
+          formBolsa={bolsistas.length > 0 ? <FormBolsa bolsistas={bolsistas} /> : null}
+          abrir={params.acao === "bolsa" ? "bolsa" : params.acao === "pessoa" ? "pessoa" : null}
+        />
+        <ListaMembros membros={ativos} busca />
       </section>
 
       {desligados.length > 0 && (
@@ -77,53 +66,5 @@ export default async function EquipePage({
         </JanelaRegistro>
       )}
     </div>
-  );
-}
-
-function Selo({ children }: { children: string }) {
-  return (
-    <span className="ml-1 rounded-full bg-[#684A97]/10 px-2 py-0.5 text-xs font-medium text-[#684A97]">{children}</span>
-  );
-}
-
-function ListaMembros({ membros }: { membros: MembroEquipe[] }) {
-  if (membros.length === 0) {
-    return <p className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">Ninguém por aqui ainda.</p>;
-  }
-  return (
-    <ul className="divide-y rounded-lg border bg-white shadow-sm">
-      {membros.map((m) => (
-        <li key={m.userProfileId} className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="font-medium">
-              {m.nome}{" "}
-              {m.coordenacao && <Selo>Coordenação</Selo>}
-              {m.bolsista && <Selo>Bolsista</Selo>}
-            </p>
-            <p className="text-sm text-muted-foreground">{m.email}</p>
-            {m.bolsista && (
-              <p className="text-sm">
-                {m.bolsaVigente
-                  ? `${MODALIDADE[m.bolsaVigente.modalidade]} · ${m.bolsaVigente.cargaSemanalHoras} h/semana · até ${dataBr(m.bolsaVigente.fim)}`
-                  : "Sem bolsa vigente"}
-              </p>
-            )}
-            {m.desligadoEm && <p className="text-sm text-muted-foreground">Desligado em {dataBr(m.desligadoEm)}</p>}
-            {m.bolsista && (
-              <Link href={`?registro=${m.userProfileId}`} scroll={false} className="text-sm text-[#684A97] hover:underline">
-                Registro de atividades
-              </Link>
-            )}
-          </div>
-          <AcoesMembro
-            userProfileId={m.userProfileId}
-            nome={m.nome}
-            papeis={{ coordenacao: m.coordenacao, bolsista: m.bolsista }}
-            desligado={Boolean(m.desligadoEm)}
-            temAlocacao={m.temAlocacao}
-          />
-        </li>
-      ))}
-    </ul>
   );
 }

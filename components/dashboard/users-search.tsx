@@ -17,7 +17,7 @@ export function UsersSearch({ value, onChange }: UsersSearchProps) {
                 placeholder="Pesquisar por nome ou email..."
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className="h-9"
+                className="h-11 md:h-9"
             />
         </div>
     );

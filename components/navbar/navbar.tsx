@@ -12,7 +12,8 @@ import { MobileMenu } from "./mobile-menu";
  */
 export const NAV_LINKS = [
     { href: "/trilhas", label: "Cursos" },
-    { href: "/protected/modulos/educacao-financeira", label: "Jogos" },
+    // Leva às duas atividades (Educação Financeira e Empreenda+), não só a uma
+    { href: "/protected#atividades", label: "Atividades" },
 ] as const;
 
 export default function Navbar({ showTextLogo }: { showTextLogo: boolean }) {

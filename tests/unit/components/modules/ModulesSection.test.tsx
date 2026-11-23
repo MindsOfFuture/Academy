@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import ModulesSection, { MODULOS_ESPECIAIS } from "@/components/modules/ModulesSection";
 
-describe("ModulesSection — seção Módulos do painel", () => {
+describe("ModulesSection — seção Atividades do painel", () => {
     it("renderiza o título da seção", () => {
         render(<ModulesSection />);
         expect(
-            screen.getByRole("heading", { level: 2, name: "Módulos" }),
+            screen.getByRole("heading", { level: 2, name: "Atividades" }),
         ).toBeInTheDocument();
     });
 

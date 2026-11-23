@@ -1,3 +1,4 @@
+import { classeFiltro } from "@/components/ui/botoes";
 import Link from "next/link";
 import { equipesRecentes, listarEncontrosDoMes, listarEspacos, listarTurmas } from "@/lib/api/gestao/alocacao";
 import { listEscolas } from "@/lib/api/gestao/entities";
@@ -123,7 +124,7 @@ export default async function AlocacaoPage({
                 href={linkEspaco(s.id)}
                 scroll={false}
                 aria-current={atual ? "page" : undefined}
-                className={`rounded-full border px-3 py-1 ${atual ? "border-[#684A97] bg-[#684A97] text-white" : "bg-white text-[#684A97] hover:bg-[#684A97]/10"}`}
+                className={classeFiltro(atual)}
               >
                 {s.nome}
               </Link>

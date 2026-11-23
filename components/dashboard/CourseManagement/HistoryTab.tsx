@@ -230,7 +230,7 @@ export default function HistoryTab({ courseId, modules }: HistoryTabProps) {
           Nenhuma alteração encontrada para estes filtros.
         </p>
       ) : (
-        <ol className="relative ml-3 border-l-2 border-purple-100">
+        <ol className="relative ml-3 border-l-2 border-[#684A97]/30">
           {entries.map((entry) => (
             <li key={entry.id} className="relative mb-6 ml-6 last:mb-0">
               <span className="absolute -left-[2.05rem] flex h-7 w-7 items-center justify-center rounded-full bg-[#684A97] text-white ring-4 ring-white">

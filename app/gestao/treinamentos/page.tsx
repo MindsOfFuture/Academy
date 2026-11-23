@@ -1,3 +1,5 @@
+import { AcaoComFormulario } from "@/components/ui/acao-formulario";
+import { CABECALHO_SECAO } from "@/components/ui/botoes";
 import { listarTreinamentos, resumoTreinamentos } from "@/lib/api/gestao/treinamentos";
 import { exigirMembro } from "../guard";
 import { FormTreinamento } from "./form";
@@ -17,7 +19,10 @@ export default async function TreinamentosPage() {
         <h1 className="text-2xl font-semibold">Treinamentos</h1>
         <p className="text-sm text-muted-foreground">Vídeos de formação da equipe do Minds. A coordenação acompanha quem já assistiu.</p>
       </div>
-      {coordenacao && <FormTreinamento proximo={proximo} />}
+      <div className={CABECALHO_SECAO}>
+        <h2 className="text-xl font-semibold">Vídeos</h2>
+        {coordenacao && <AcaoComFormulario rotulo="Publicar vídeo"><FormTreinamento proximo={proximo} /></AcaoComFormulario>}
+      </div>
       {videos.length === 0 ? (
         <p className="rounded-xl border bg-white p-6 text-center text-muted-foreground">Nenhum vídeo publicado ainda.</p>
       ) : (

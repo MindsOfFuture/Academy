@@ -254,7 +254,7 @@ export function ProfileClient({
         }
     };
 
-    const inputClass = "w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#6A4A98] focus-visible:ring-offset-2";
+    const inputClass = "w-full rounded-full border-none bg-[#F3F0F9] py-6 pl-12 pr-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#684A97] focus-visible:ring-offset-2";
 
     return (
         <div className="space-y-10">
@@ -306,7 +306,7 @@ export function ProfileClient({
                                 type="button"
                                 onClick={handleRemoveAvatar}
                                 disabled={removingAvatar || uploadingAvatar}
-                                className="mt-2 flex items-center justify-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="mt-2 flex min-h-11 md:min-h-8 items-center justify-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {removingAvatar ? (
                                     <RefreshCw className="animate-spin" size={12} />
@@ -349,14 +349,14 @@ export function ProfileClient({
                     <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 block">Nome</label>
                         <div className="relative flex items-center">
-                            <UserIcon className="absolute left-4 text-[#6A4A98]" size={20} />
+                            <UserIcon className="absolute left-4 text-[#684A97]" size={20} />
                             <Input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome" className={inputClass} />
                         </div>
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
                         <div className="relative flex items-center">
-                            <Mail className="absolute left-4 text-[#6A4A98]" size={20} />
+                            <Mail className="absolute left-4 text-[#684A97]" size={20} />
                             <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Seu email" className={inputClass} />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Alterar e-mail pode exigir confirmação.</p>
@@ -364,14 +364,14 @@ export function ProfileClient({
                     <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 block">Telefone</label>
                         <div className="relative flex items-center">
-                            <Phone className="absolute left-4 text-[#6A4A98]" size={20} />
+                            <Phone className="absolute left-4 text-[#684A97]" size={20} />
                             <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefone / Celular" className={inputClass} />
                         </div>
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 block">Endereço</label>
                         <div className="relative flex items-center">
-                            <MapPin className="absolute left-4 text-[#6A4A98]" size={20} />
+                            <MapPin className="absolute left-4 text-[#684A97]" size={20} />
                             <Input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Cidade / Estado" className={inputClass} />
                         </div>
                     </div>
@@ -384,13 +384,13 @@ export function ProfileClient({
                                     onChange={(e) => setBio(e.target.value)}
                                     rows={4}
                                     placeholder="Descreva sua experiência, áreas de atuação e metodologia."
-                                    className="w-full rounded-2xl border border-gray-200 bg-[#F9F7FC] p-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                    className="w-full rounded-2xl border border-gray-200 bg-[#F9F7FC] p-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#684A97]"
                                 />
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-gray-700 mb-1 block">Escolas onde leciona</label>
                                 <div className="relative flex items-center">
-                                    <School className="absolute left-4 text-[#6A4A98]" size={20} />
+                                    <School className="absolute left-4 text-[#684A97]" size={20} />
                                     <Input
                                         value={schoolsCsv}
                                         onChange={(e) => setSchoolsCsv(e.target.value)}
@@ -403,11 +403,11 @@ export function ProfileClient({
                             <div>
                                 <label className="text-sm font-medium text-gray-700 mb-1 block">Grau de escolaridade</label>
                                 <div className="relative flex items-center">
-                                    <GraduationCap className="absolute left-4 text-[#6A4A98] z-10" size={20} />
+                                    <GraduationCap className="absolute left-4 text-[#684A97] z-10" size={20} />
                                     <select
                                         value={educationLevel}
                                         onChange={(e) => setEducationLevel(e.target.value)}
-                                        className="w-full rounded-full border-none bg-[#F3F0F9] py-4 pl-12 pr-4 text-gray-800 appearance-none cursor-pointer focus:ring-2 focus:ring-[#6A4A98] focus:ring-offset-2 focus:outline-none"
+                                        className="w-full rounded-full border-none bg-[#F3F0F9] py-4 pl-12 pr-4 text-gray-800 appearance-none cursor-pointer focus:ring-2 focus:ring-[#684A97] focus:ring-offset-2 focus:outline-none"
                                     >
                                         {EDUCATION_LEVEL_OPTIONS.map((opt) => (
                                             <option key={opt.value} value={opt.value}>
@@ -423,7 +423,7 @@ export function ProfileClient({
                             <div>
                                 <label className="text-sm font-medium text-gray-700 mb-1 block">Formação</label>
                                 <div className="relative flex items-center">
-                                    <FileText className="absolute left-4 text-[#6A4A98]" size={20} />
+                                    <FileText className="absolute left-4 text-[#684A97]" size={20} />
                                     <Input
                                         value={degree}
                                         onChange={(e) => setDegree(e.target.value)}
@@ -438,7 +438,7 @@ export function ProfileClient({
                                     value={specialtiesCsv}
                                     onChange={(e) => setSpecialtiesCsv(e.target.value)}
                                     placeholder="Ex: Matemática, Geometria, ENEM"
-                                    className="w-full rounded-full border-none bg-[#F3F0F9] py-6 px-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#6A4A98]"
+                                    className="w-full rounded-full border-none bg-[#F3F0F9] py-6 px-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#684A97]"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Separe cada especialidade com vírgula.</p>
                             </div>
@@ -448,7 +448,7 @@ export function ProfileClient({
                                     value={certificationsCsv}
                                     onChange={(e) => setCertificationsCsv(e.target.value)}
                                     placeholder="Ex: Pós-graduação em Educação, Certificação XYZ"
-                                    className="w-full rounded-full border-none bg-[#F3F0F9] py-6 px-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#6A4A98]"
+                                    className="w-full rounded-full border-none bg-[#F3F0F9] py-6 px-4 text-gray-800 focus-visible:ring-2 focus-visible:ring-[#684A97]"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Separe cada certificação com vírgula.</p>
                             </div>
@@ -467,7 +467,7 @@ export function ProfileClient({
                                     <p className="text-xs text-amber-700">Nenhum anexo enviado.</p>
                                 )}
 
-                                <label className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#F3F0F9] px-4 py-2 text-sm font-medium text-[#6A4A98] cursor-pointer hover:bg-[#ece5f8]">
+                                <label className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#F3F0F9] px-4 py-2 text-sm font-medium text-[#684A97] cursor-pointer hover:bg-[#ece5f8]">
                                     <Upload size={14} />
                                     {qualificationFile ? "Trocar anexo" : "Selecionar novo anexo"}
                                     <input
@@ -484,7 +484,7 @@ export function ProfileClient({
                         </>
                     )}
                     <div className="flex gap-3">
-                        <Button type="submit" disabled={savingProfile || uploadingQualification} className="rounded-full bg-[#6A4A98] hover:bg-[#5a3e85]">
+                        <Button type="submit" disabled={savingProfile || uploadingQualification} className="rounded-full bg-[#684A97] hover:bg-[#5a3e85]">
                             {(savingProfile || uploadingQualification) ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
                             {savingProfile ? 'Salvando...' : 'Salvar perfil'}
                         </Button>

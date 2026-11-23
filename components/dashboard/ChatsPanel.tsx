@@ -96,7 +96,7 @@ export default function ChatsPanel() {
             <div>
                 <button
                     onClick={() => setOpenChat(null)}
-                    className="flex items-center gap-2 mb-4 text-purple-600 hover:text-purple-800 transition text-sm font-medium"
+                    className="flex items-center gap-2 mb-4 text-[#684A97] hover:text-[#684A97] transition text-sm font-medium"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Voltar para lista de chats
@@ -137,7 +137,7 @@ export default function ChatsPanel() {
                 <button
                     onClick={loadData}
                     disabled={loading}
-                    className="text-sm text-purple-600 hover:text-purple-800 disabled:text-gray-400 transition"
+                    className="text-sm text-[#684A97] hover:text-[#684A97] disabled:text-gray-400 transition"
                 >
                     Atualizar
                 </button>
@@ -146,7 +146,7 @@ export default function ChatsPanel() {
             {/* Loading */}
             {loading && (
                 <div className="flex items-center justify-center py-16">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                    <Loader2 className="w-8 h-8 animate-spin text-[#684A97]" />
                 </div>
             )}
 
@@ -181,7 +181,7 @@ export default function ChatsPanel() {
                                 ) : (
                                     <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
                                 )}
-                                <BookOpen className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                                <BookOpen className="w-5 h-5 text-[#684A97] flex-shrink-0" />
                                 <span className="font-semibold text-gray-900">
                                     {group.courseTitle}
                                 </span>
@@ -224,7 +224,7 @@ export default function ChatsPanel() {
                                                 ) : (
                                                     <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                                                 )}
-                                                <FileText className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                                                <FileText className="w-4 h-4 text-[#684A97] flex-shrink-0" />
                                                 <div className="flex-1 min-w-0">
                                                     <span className="text-sm font-medium text-gray-800">
                                                         {assignment.assignmentTitle}
@@ -289,14 +289,14 @@ export default function ChatsPanel() {
                                                                                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                                                                                 />
                                                                             ) : (
-                                                                                <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                                                                    <User className="w-4 h-4 text-purple-600" />
+                                                                                <div className="w-9 h-9 rounded-full bg-[#684A97]/10 flex items-center justify-center flex-shrink-0">
+                                                                                    <User className="w-4 h-4 text-[#684A97]" />
                                                                                 </div>
                                                                             )}
 
                                                                             {/* Info */}
                                                                             <div className="flex-1 min-w-0">
-                                                                                <p className="text-sm font-medium text-gray-700 group-hover:text-purple-700 transition">
+                                                                                <p className="text-sm font-medium text-gray-700 group-hover:text-[#684A97] transition">
                                                                                     {
                                                                                         student.fullName
                                                                                     }
@@ -319,7 +319,7 @@ export default function ChatsPanel() {
                                                                                 </span>
                                                                             )}
 
-                                                                            <MessageSquare className="w-4 h-4 text-gray-300 group-hover:text-purple-500 transition flex-shrink-0" />
+                                                                            <MessageSquare className="w-4 h-4 text-gray-300 group-hover:text-[#684A97] transition flex-shrink-0" />
                                                                         </button>
                                                                     </li>
                                                                 ),

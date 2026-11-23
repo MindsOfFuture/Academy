@@ -6,7 +6,7 @@
 //  - Debounce de 400ms reduz chamadas enquanto digitação ocorre.
 //  - Modal separado para edição e confirmação de exclusão.
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { BOTAO_PERIGO, BOTAO_SECUNDARIO } from "@/components/ui/botoes";
 import { createClient } from "@/lib/supabase/client";
 import { type UserProfileSummary } from "@/lib/api/types";
 import { UsersSearch } from "./users-search";
@@ -232,8 +232,8 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
     return (
         <div>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="text-center sm:text-left">
-                    <h2 className="text-xl font-semibold">Usuários</h2>
+                <div>
+                    <h3 className="text-lg font-semibold">Usuários</h3>
                     <p className="text-gray-600 text-sm">Lista completa dos usuários cadastrados</p>
                 </div>
             </div>
@@ -248,7 +248,7 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                         setStatusFilter(nextValue);
                         loadPage(1, undefined, search, nextValue);
                     }}
-                    className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm"
+                    className="h-11 md:h-9 rounded-md border border-gray-300 bg-white px-3 text-sm"
                 >
                     <option value="all">Todos os status</option>
                     <option value="pending">Professores pendentes</option>
@@ -271,7 +271,7 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                                                 <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wide">Nome</th>
                                                 <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wide">Tipo</th>
                                                 <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wide">Verificação</th>
-                                                <th className="text-center py-2 px-4 text-xs font-semibold uppercase tracking-wide">Ações</th>
+                                                <th className="text-right py-2 px-4 text-xs font-semibold uppercase tracking-wide">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -289,18 +289,19 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                                                             <span className="text-gray-400">-</span>
                                                         )}
                                                     </td>
-                                                    <td className="py-2 px-4 text-center">
-                                                        <div className="flex flex-col items-center gap-1 lg:flex-row lg:justify-center">
-                                                            <Button variant="destructive" size="sm" onClick={() => onAskDelete(u)}>Apagar</Button>
-                                                            <Button variant="outline" size="sm" onClick={() => onEdit(u)}>Editar</Button>
+                                                    <td className="py-2 px-4">
+                                                        {/* Editar primeiro; Apagar por último, só em texto vermelho */}
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button type="button" className={BOTAO_SECUNDARIO} onClick={() => onEdit(u)}>Editar</button>
                                                             {u.role === "teacher" && (
-                                                                <Button variant="secondary" size="sm" onClick={() => {
+                                                                <button type="button" className={BOTAO_SECUNDARIO} onClick={() => {
                                                                     setVerificationUser(u);
                                                                     setVerificationModalOpen(true);
                                                                 }}>
                                                                     Verificar
-                                                                </Button>
+                                                                </button>
                                                             )}
+                                                            <button type="button" className={BOTAO_PERIGO} onClick={() => onAskDelete(u)}>Apagar</button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -333,16 +334,16 @@ export default function UsersTableClient({ initialUsers, initialTotal, initialPa
                                                 </div>
                                             </div>
                                             <div className="pt-2 flex flex-wrap gap-2">
-                                                <Button variant="destructive" size="sm" onClick={() => onAskDelete(u)}>Apagar</Button>
-                                                <Button variant="outline" size="sm" onClick={() => onEdit(u)}>Editar</Button>
+                                                <button type="button" className={BOTAO_SECUNDARIO} onClick={() => onEdit(u)}>Editar</button>
                                                 {u.role === "teacher" && (
-                                                    <Button variant="secondary" size="sm" onClick={() => {
+                                                    <button type="button" className={BOTAO_SECUNDARIO} onClick={() => {
                                                         setVerificationUser(u);
                                                         setVerificationModalOpen(true);
                                                     }}>
                                                         Verificar
-                                                    </Button>
+                                                    </button>
                                                 )}
+                                                <button type="button" className={BOTAO_PERIGO} onClick={() => onAskDelete(u)}>Apagar</button>
                                             </div>
                                             {u.role === "teacher" && u.verificationStatus === "rejected" && u.verificationReason && (
                                                 <p className="text-xs text-red-700">Motivo: {u.verificationReason}</p>

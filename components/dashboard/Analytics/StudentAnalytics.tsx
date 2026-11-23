@@ -30,7 +30,7 @@ export function StudentAnalytics({ students }: StudentAnalyticsProps) {
         <select
           value={selectedUserId || ""}
           onChange={(e) => setSelectedUserId(e.target.value)}
-          className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
+          className="w-full sm:w-auto px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97] bg-white"
         >
           {students.map((s) => (
             <option key={s.id} value={s.id}>
@@ -50,8 +50,8 @@ export function StudentAnalytics({ students }: StudentAnalyticsProps) {
           ) : (
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded bg-purple-50 p-3"><p className="text-xs text-gray-500">Interações</p><strong>{learningEvents.totalInteractions}</strong></div>
-                <div className="rounded bg-purple-50 p-3"><p className="text-xs text-gray-500">Sessões</p><strong>{learningEvents.sessions}</strong></div>
+                <div className="rounded bg-[#684A97]/10 p-3"><p className="text-xs text-gray-500">Interações</p><strong>{learningEvents.totalInteractions}</strong></div>
+                <div className="rounded bg-[#684A97]/10 p-3"><p className="text-xs text-gray-500">Sessões</p><strong>{learningEvents.sessions}</strong></div>
                 <div className="col-span-2 rounded bg-gray-50 p-3 text-sm">
                   <p className="font-medium text-gray-700">Contagens por ação</p>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -106,10 +106,10 @@ export function StudentAnalytics({ students }: StudentAnalyticsProps) {
             {data.student_context && (
               <div className="mt-6 pt-4 border-t space-y-2 text-sm text-gray-600">
                 {data.student_context.department && (
-                  <p className="flex items-center gap-2"><Building className="w-4 h-4 text-purple-500" /> Dept: {data.student_context.department}</p>
+                  <p className="flex items-center gap-2"><Building className="w-4 h-4 text-[#684A97]" /> Dept: {data.student_context.department}</p>
                 )}
                 {data.student_context.timezone && (
-                  <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-purple-500" /> Fuso: {data.student_context.timezone}</p>
+                  <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[#684A97]" /> Fuso: {data.student_context.timezone}</p>
                 )}
               </div>
             )}
@@ -130,7 +130,7 @@ export function StudentAnalytics({ students }: StudentAnalyticsProps) {
                         <span>{pct}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1.5">
-                        <div className="bg-purple-600 h-1.5 rounded-full" style={{ width: `${pct}%` }}></div>
+                        <div className="bg-[#684A97] h-1.5 rounded-full" style={{ width: `${pct}%` }}></div>
                       </div>
                     </div>
                   )
@@ -152,7 +152,7 @@ export function StudentAnalytics({ students }: StudentAnalyticsProps) {
                       {act.type === "video" ? (
                         act.detail === "complete" ? <CheckCircle className="w-4 h-4 text-green-500" /> : <PlayCircle className="w-4 h-4 text-blue-500" />
                       ) : (
-                        <FileText className="w-4 h-4 text-purple-500" />
+                        <FileText className="w-4 h-4 text-[#684A97]" />
                       )}
                     </div>
                     <div>

@@ -42,7 +42,7 @@ export default function JogosHome() {
               <Icone className="h-10 w-10 text-[#E8473A]" aria-hidden="true" />
               <h3 className="mt-4 text-xl font-bold">{titulo}</h3>
               <p className="flex-1 mt-2 text-base">{texto}</p>
-              <span className="mt-5 px-6 py-3 font-semibold text-white bg-purple-600 rounded-xl shadow-md">
+              <span className="mt-5 px-6 py-3 font-semibold text-white bg-[#684A97] rounded-xl shadow-md">
                 Jogar
               </span>
             </Link>

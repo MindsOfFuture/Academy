@@ -36,7 +36,7 @@ function CourseCard({ course, learningPathId }: { course: CourseSummary; learnin
         {course.title}
       </span>
 
-      <div className="mt-4 shrink-0 rounded-full bg-[#FFD600] px-5 py-2 text-xs font-bold uppercase tracking-wide text-[#4A2D7A] shadow-sm transition-all duration-300 group-hover:bg-[#ffe14d] group-hover:shadow-md">
+      <div className="mt-4 shrink-0 rounded-full bg-[#684A97] px-5 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition-all duration-300 group-hover:bg-[#553d7a] group-hover:shadow-md">
         Ver curso
       </div>
     </Link>

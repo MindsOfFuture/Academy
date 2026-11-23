@@ -1,3 +1,4 @@
+import { BOTAO_PRIMARIO, classeFiltro } from "@/components/ui/botoes";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { usuarioDaRequisicao } from "@/lib/supabase/server";
@@ -6,7 +7,6 @@ import { buscarProducao, buscarReuniao, listarProducoes, listarReunioes } from "
 import type { ArtigoGestao, ProducaoPesquisa, ReuniaoPesquisa, TipoProducao } from "@/lib/api/gestao/types";
 import { separarMetadados } from "@/lib/utils/artigo-metadados";
 import { TIPO_PRODUCAO } from "@/lib/api/gestao/validacao";
-import { cn } from "@/lib/utils";
 import { exigirMembro } from "../guard";
 import { FormProducao, FormReuniao } from "./forms";
 import { PartesDaPesquisa } from "./partes";
@@ -70,7 +70,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: Pro
         <PartesDaPesquisa atual={producoes ? "producoes" : "reunioes"} />
         <Link
           href={novo}
-          className="mb-2 rounded-md bg-[#684A97] px-4 py-2 text-sm font-medium text-white hover:bg-[#684A97]/90"
+          className={BOTAO_PRIMARIO}
         >
           {site ? "Novo artigo" : producoes ? "Nova produção" : "Nova reunião"}
         </Link>
@@ -150,10 +150,7 @@ function Filtros({ atual, coordenacao }: { atual: TipoProducao | "site" | undefi
           key={href}
           href={href}
           aria-current={ativo ? "page" : undefined}
-          className={cn(
-            "rounded-full border px-3 py-1 text-sm",
-            ativo ? "border-[#684A97] bg-[#684A97] text-white" : "border-gray-300 text-gray-700 hover:border-[#684A97]",
-          )}
+          className={classeFiltro(ativo)}
         >
           {rotulo}
         </Link>

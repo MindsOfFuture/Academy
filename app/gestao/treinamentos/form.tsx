@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PRIMARIO } from "@/components/ui/botoes";
+
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +21,7 @@ export function FormTreinamento({ proximo }: { proximo: number }) {
       </div>
       <label className="block space-y-1"><span className={rotuloCampo}>Link do YouTube</span><Input name="link" required placeholder="https://youtu.be/..." /></label>
       {estado && <Aviso estado={estado} />}
-      <Button type="submit" disabled={enviando}>{enviando ? "Publicando…" : "Publicar"}</Button>
+      <Button type="submit" disabled={enviando} className={BOTAO_PRIMARIO}>{enviando ? "Publicando…" : "Publicar"}</Button>
     </form>
   );
 }

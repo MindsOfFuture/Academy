@@ -1,5 +1,7 @@
 "use client";
 
+import { BOTAO_PERIGO, BOTAO_PRIMARIO } from "@/components/ui/botoes";
+
 import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,7 +119,7 @@ export function FormAtividade({ dataPadrao, colegas }: { dataPadrao: string; col
     <form action={acao} className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
       <h3 className="font-semibold">Cadastrar atividade</h3>
       <CamposAtividade key={versao} dataPadrao={dataPadrao} colegas={colegas} onEnviandoFoto={setEnviandoFoto} />
-      <Button type="submit" disabled={enviando || enviandoFoto}>
+      <Button type="submit" disabled={enviando || enviandoFoto} className={BOTAO_PRIMARIO}>
         {enviando ? "Salvando…" : "Salvar atividade"}
       </Button>
       <Aviso estado={estado} />
@@ -158,7 +160,7 @@ export function LinhaAtividade({
         <input type="hidden" name="id" value={atividade.id} />
         <CamposAtividade atividade={atividade} dataMinima={dataMinima} colegas={colegas} onEnviandoFoto={setEnviandoFoto} />
         <div className="flex gap-2">
-          <Button type="submit" size="sm" disabled={salvando || enviandoFoto}>
+          <Button type="submit" size="sm" disabled={salvando || enviandoFoto} className={BOTAO_PRIMARIO}>
             {salvando ? "Salvando…" : "Salvar"}
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => setEditando(false)}>
@@ -188,7 +190,7 @@ export function LinhaAtividade({
             onSubmit={confirmarEnvio(`Apagar “${atividade.nome}”?`, { rotulo: "Apagar", destrutivo: true })}
           >
             <input type="hidden" name="id" value={atividade.id} />
-            <Button type="submit" size="sm" variant="outline" disabled={apagando} aria-label={`Apagar ${atividade.nome}`}>
+            <Button type="submit" size="sm" variant="outline" disabled={apagando} aria-label={`Apagar ${atividade.nome}`} className={BOTAO_PERIGO}>
               {apagando ? "Apagando…" : "Apagar"}
             </Button>
           </form>
@@ -245,7 +247,7 @@ export function FormLinkEncontro({ encontroId, link, foto }: { encontroId: strin
       </label>
       <CampoFoto inicial={foto} onEnviando={setEnviandoFoto} />
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={salvando || enviandoFoto}>
+        <Button type="submit" size="sm" disabled={salvando || enviandoFoto} className={BOTAO_PRIMARIO}>
           {salvando ? "Salvando…" : "Salvar"}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={() => setAberto(false)}>

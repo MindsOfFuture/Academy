@@ -70,7 +70,7 @@ export function OurCourses({ cursos }: OurCoursesProps) {
             onClick={handleExploreAllClick} // Adicionando a função de clique ao botão
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 font-semibold text-white transition bg-purple-600 rounded-xl shadow-md hover:bg-purple-700"
+            className="px-6 py-3 font-semibold text-white transition bg-[#684A97] rounded-xl shadow-md hover:bg-[#553d7a]"
           >
             Explorar todos os cursos
           </motion.button>

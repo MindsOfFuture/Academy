@@ -40,25 +40,25 @@ export default function AnalyticsTab({ isAdmin, courses, paths, users }: Analyti
         <div className="flex flex-nowrap bg-gray-100 p-1 rounded-lg w-full xl:w-auto overflow-x-auto no-scrollbar">
           <button
             onClick={() => setLevel("global")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "global" ? "bg-white text-purple-700 shadow" : "text-gray-600 hover:text-gray-900"}`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "global" ? "bg-white text-[#684A97] shadow" : "text-gray-600 hover:text-gray-900"}`}
           >
             Visão Global
           </button>
           <button
             onClick={() => setLevel("path")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "path" ? "bg-white text-purple-700 shadow" : "text-gray-600 hover:text-gray-900"}`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "path" ? "bg-white text-[#684A97] shadow" : "text-gray-600 hover:text-gray-900"}`}
           >
             Por Trilha
           </button>
           <button
             onClick={() => setLevel("course")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "course" ? "bg-white text-purple-700 shadow" : "text-gray-600 hover:text-gray-900"}`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "course" ? "bg-white text-[#684A97] shadow" : "text-gray-600 hover:text-gray-900"}`}
           >
             Por Curso
           </button>
           <button
             onClick={() => setLevel("student")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "student" ? "bg-white text-purple-700 shadow" : "text-gray-600 hover:text-gray-900"}`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${level === "student" ? "bg-white text-[#684A97] shadow" : "text-gray-600 hover:text-gray-900"}`}
           >
             Por Aluno
           </button>
@@ -70,7 +70,7 @@ export default function AnalyticsTab({ isAdmin, courses, paths, users }: Analyti
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-              className="px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white w-full sm:w-auto"
+              className="px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97] bg-white w-full sm:w-auto"
             >
               <option value="7d">Últimos 7 dias</option>
               <option value="30d">Últimos 30 dias</option>

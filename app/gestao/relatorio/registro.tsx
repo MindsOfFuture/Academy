@@ -1,3 +1,5 @@
+import { AcaoComFormulario } from "@/components/ui/acao-formulario";
+import { CABECALHO_SECAO } from "@/components/ui/botoes";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -120,9 +122,12 @@ export function RegistroDoMes({
       </section>
 
       <section aria-labelledby="outras-atividades" className="space-y-3">
+        <div className={CABECALHO_SECAO}>
         <h3 id="outras-atividades" className="text-lg font-semibold">
           Outras atividades ({atividades.length})
         </h3>
+        {children && <AcaoComFormulario rotulo="Cadastrar atividade">{children}</AcaoComFormulario>}
+        </div>
         <ul className="divide-y rounded-lg border bg-white shadow-sm">
           {atividades.map((a) => (
             <li key={a.id} className="p-4">
@@ -140,7 +145,6 @@ export function RegistroDoMes({
             <li className="p-4 text-sm text-muted-foreground">Nenhuma atividade cadastrada neste mês.</li>
           )}
         </ul>
-        {children}
       </section>
     </>
   );

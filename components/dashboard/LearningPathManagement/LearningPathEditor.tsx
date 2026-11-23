@@ -45,7 +45,7 @@ export default function LearningPathEditor({
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#684A97] focus:border-[#684A97]"
                     placeholder="Nome da trilha"
                     disabled={loading}
                 />
@@ -58,7 +58,7 @@ export default function LearningPathEditor({
                 <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#684A97] focus:border-[#684A97]"
                     placeholder="Descrição da trilha (opcional)"
                     rows={3}
                     disabled={loading}
@@ -78,7 +78,7 @@ export default function LearningPathEditor({
                 <button
                     type="button"
                     onClick={() => setAudience(isTeacherOnly ? "student" : "teacher")}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-[#684A97]" : "bg-gray-300"
                         }`}
                     disabled={loading}
                 >
@@ -92,7 +92,7 @@ export default function LearningPathEditor({
             <div className="flex gap-3">
                 <button
                     type="submit"
-                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    className="bg-[#684A97] text-white px-4 py-2 rounded-lg hover:bg-[#553d7a] disabled:opacity-50"
                     disabled={loading}
                 >
                     {loading ? "Salvando..." : "Salvar"}

@@ -144,7 +144,7 @@ describe("Laboratório de Gestão — abas por turma", () => {
 
 describe("painel /protected", () => {
     it.each(["student", "teacher", "admin"])(
-        "mostra a seção Módulos para o papel %s",
+        "mostra a seção Atividades para o papel %s",
         async (papel) => {
             currentUser = { id: "user-1", user_metadata: {} };
             currentUserType = papel;
@@ -152,7 +152,7 @@ describe("painel /protected", () => {
             render(await ProtectedPage());
 
             expect(
-                screen.getByRole("heading", { level: 2, name: "Módulos" }),
+                screen.getByRole("heading", { level: 2, name: "Atividades" }),
             ).toBeInTheDocument();
             expect(
                 screen.getByRole("link", { name: /Educação Financeira/ }),

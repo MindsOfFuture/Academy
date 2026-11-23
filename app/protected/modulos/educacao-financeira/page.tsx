@@ -1,3 +1,5 @@
+import { BOTAO_PRIMARIO } from "@/components/ui/botoes";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Landmark, WalletCards } from "lucide-react";
 import ModulePageShell from "@/components/modules/ModulePageShell";
@@ -28,12 +30,12 @@ export default async function EducacaoFinanceiraPage() {
     <ModulePageShell title="Educação Financeira" description="Aprenda tomando decisões: do orçamento familiar à gestão do país.">
       <section className="grid gap-5 md:grid-cols-2" aria-label="Jogos de Educação Financeira">
         {jogos.map(({ title, description, details, href, icon: Icon }) => (
-          <article key={href} className="flex min-w-0 flex-col rounded-3xl border border-purple-100 bg-white p-6 shadow-sm">
+          <article key={href} className="flex min-w-0 flex-col rounded-3xl border border-[#684A97]/30 bg-white p-6 shadow-sm">
             <Icon className="h-9 w-9 text-coral-500 text-[#E8473A]" aria-hidden="true" />
-            <h2 className="mt-4 text-2xl font-bold text-purple-900">{title}</h2>
+            <h2 className="mt-4 text-2xl font-bold text-[#684A97]">{title}</h2>
             <p className="mt-2 flex-1 text-gray-600">{description}</p>
-            <p className="mt-4 text-sm font-semibold text-purple-700">{details}</p>
-            <Link className="mt-5 inline-flex justify-center rounded-xl bg-amber-300 px-5 py-3 font-bold text-purple-950 hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600" href={href}>
+            <p className="mt-4 text-sm font-semibold text-[#684A97]">{details}</p>
+            <Link className={cn(BOTAO_PRIMARIO, "mt-5")} href={href}>
               Abrir o jogo
             </Link>
           </article>

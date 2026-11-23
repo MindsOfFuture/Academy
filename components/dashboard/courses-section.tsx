@@ -16,15 +16,35 @@ import PendingCorrections from "@/components/dashboard/PendingCorrections";
 import GameResearchPanel from "@/components/dashboard/GameResearch/GameResearchPanel";
 import { listUsersClient } from "@/lib/api/profiles";
 import toast from "react-hot-toast";
+import { BOTAO_PRIMARIO, BOTAO_SECUNDARIO } from "@/components/ui/botoes";
+import { cn } from "@/lib/utils";
 
 const loadingPanel = () => <p role="status">Carregando painel...</p>;
 const CourseDetail = dynamic(() => import("@/components/dashboard/CourseManagement/courseDetail"), { loading: loadingPanel });
 const AnalyticsTab = dynamic(() => import("@/components/dashboard/Analytics/AnalyticsTab"), { loading: loadingPanel });
 
-type TabType = "courses" | "paths" | "chats" | "corrections" | "analytics" | "jogos";
-const validTabs: TabType[] = ["courses", "paths", "chats", "corrections", "analytics", "jogos"];
+type TabType = "courses" | "paths" | "users" | "chats" | "corrections" | "analytics" | "jogos";
+const validTabs: TabType[] = ["courses", "paths", "users", "chats", "corrections", "analytics", "jogos"];
 
-export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean }) {
+/** Abas na ordem do uso: conteúdo, pessoas, o que os alunos mandaram, números. */
+const ABAS: { id: TabType; rotulo: string; soAdmin?: boolean }[] = [
+  { id: "courses", rotulo: "Cursos" },
+  { id: "paths", rotulo: "Trilhas" },
+  { id: "users", rotulo: "Usuários", soAdmin: true },
+  { id: "corrections", rotulo: "Correções pendentes" },
+  { id: "chats", rotulo: "Chats" },
+  { id: "analytics", rotulo: "Analytics", soAdmin: true },
+  { id: "jogos", rotulo: "Respostas dos jogos", soAdmin: true },
+];
+
+export default function CoursesSection({
+  isAdmin = false,
+  usuarios = null,
+}: {
+  isAdmin?: boolean;
+  /** Lista de usuários (vem do servidor, só para admin): vira a aba "Usuários". */
+  usuarios?: React.ReactNode;
+}) {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>("courses");
   const [isOpen, setIsOpen] = useState(false);
@@ -169,66 +189,27 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
   return (
     <div ref={sectionRef}>
       {/* Tabs */}
-      <div className="flex gap-2 border-b mb-6 overflow-x-auto whitespace-nowrap">
-        <button
-          onClick={() => setActiveTab("courses")}
-          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "courses"
-            ? "text-purple-600 border-b-2 border-purple-600"
-            : "text-gray-500 hover:text-gray-700"
-            }`}
-        >
-          Cursos
-        </button>
-        <button
-          onClick={() => setActiveTab("paths")}
-          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "paths"
-            ? "text-purple-600 border-b-2 border-purple-600"
-            : "text-gray-500 hover:text-gray-700"
-            }`}
-        >
-          Trilhas de Aprendizagem
-        </button>
-        <button
-          onClick={() => setActiveTab("chats")}
-          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "chats"
-            ? "text-purple-600 border-b-2 border-purple-600"
-            : "text-gray-500 hover:text-gray-700"
-            }`}
-        >
-          Chats
-        </button>
-        <button
-          onClick={() => setActiveTab("corrections")}
-          className={`flex-shrink-0 px-4 py-2 font-medium transition-colors ${activeTab === "corrections"
-            ? "text-purple-600 border-b-2 border-purple-600"
-            : "text-gray-500 hover:text-gray-700"
-            }`}
-        >
-          Correções Pendentes
-        </button>
-        {isAdmin && (
+      <div className="flex gap-1 border-b mb-6 overflow-x-auto whitespace-nowrap">
+        {ABAS.filter((aba) => !aba.soAdmin || isAdmin).map((aba) => (
           <button
-            onClick={() => setActiveTab("analytics")}
-            className={`flex-shrink-0 px-4 py-2 font-medium transition-colors flex items-center gap-2 ${activeTab === "analytics"
-              ? "text-purple-600 border-b-2 border-purple-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
+            key={aba.id}
+            type="button"
+            aria-pressed={activeTab === aba.id}
+            onClick={() => setActiveTab(aba.id)}
+            className={cn(
+              "flex-shrink-0 min-h-11 px-4 py-2 font-medium transition-colors border-b-2",
+              activeTab === aba.id
+                ? "text-[#684A97] border-[#684A97]"
+                : "text-gray-500 border-transparent hover:text-gray-700",
+            )}
           >
-            Analytics
+            {aba.rotulo}
           </button>
-        )}
-        {isAdmin && (
-          <button
-            onClick={() => setActiveTab("jogos")}
-            className={`flex-shrink-0 px-4 py-2 font-medium transition-colors flex items-center gap-2 ${activeTab === "jogos"
-              ? "text-purple-600 border-b-2 border-purple-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-          >
-            Respostas dos jogos
-          </button>
-        )}
+        ))}
       </div>
+
+      {/* Conteúdo da Tab de Usuários */}
+      {activeTab === "users" && isAdmin && usuarios}
 
       {/* Conteúdo da Tab de Trilhas */}
       {activeTab === "paths" && (
@@ -258,9 +239,9 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
       {activeTab === "courses" && (
         <>
           {/* Cabeçalho */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div className="text-center sm:text-left">
-              <h2 className="text-xl font-semibold">Seus Cursos</h2>
+          <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+            <div>
+              <h3 className="text-lg font-semibold">Cursos da plataforma</h3>
               <p className="text-gray-600 text-sm">
                 Gerencie seus cursos e módulos abaixo.
               </p>
@@ -270,9 +251,9 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
                 resetForm();
                 setIsOpen(true);
               }}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 mx-auto sm:mx-0"
+              className={BOTAO_PRIMARIO}
             >
-              Criar novo curso
+              <span aria-hidden="true">+</span> Criar novo curso
             </button>
           </div>
 
@@ -306,7 +287,7 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
                   <div className="flex gap-2">
                     <button
                       onClick={() => setSelectedCourseId(course.id)}
-                      className="flex-auto bg-gray-100 rounded hover:bg-gray-200 py-2"
+                      className={cn(BOTAO_SECUNDARIO, "flex-auto")}
                     >
                       Gerenciar
                     </button>
@@ -387,7 +368,7 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
                     <button
                       type="button"
                       onClick={() => setIsTeacherOnly(!isTeacherOnly)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-purple-500" : "bg-gray-300"
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isTeacherOnly ? "bg-[#684A97]" : "bg-gray-300"
                         }`}
                     >
                       <span
@@ -404,14 +385,14 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
                       resetForm();
                       setIsOpen(false);
                     }}
-                    className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                    className={BOTAO_SECUNDARIO}
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSaveCourse}
                     disabled={saving}
-                    className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+                    className={BOTAO_PRIMARIO}
                   >
                     {editingCourse ? "Salvar alterações" : "Criar Curso"}
                   </button>
@@ -429,7 +410,7 @@ export default function CoursesSection({ isAdmin = false }: { isAdmin?: boolean 
                     await refreshCourses();
                     setSelectedCourseId(null);
                   }}
-                  className="mb-4 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  className={cn(BOTAO_SECUNDARIO, "mb-4")}
                 >
                   Fechar
                 </button>

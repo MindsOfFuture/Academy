@@ -12,11 +12,15 @@ export interface AbaGestao {
 /**
  * Abas da gestão. A lista chega pronta do layout (servidor), já filtrada pelo
  * papel: aqui só se marca a aba ativa. Aba só existe quando o módulo existe.
+ * No celular viram uma grade de 3 colunas: todas aparecem sem rolar de lado.
  */
 export function NavGestao({ abas }: { abas: AbaGestao[] }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="Seções da gestão" className="flex gap-1 overflow-x-auto border-b border-gray-200">
+    <nav
+      aria-label="Seções da gestão"
+      className="grid grid-cols-3 gap-2 md:flex md:gap-1 md:overflow-x-auto md:border-b md:border-gray-200"
+    >
       {abas.map((aba) => {
         const ativa = aba.href === "/gestao" ? pathname === "/gestao" : pathname.startsWith(aba.href);
         return (
@@ -25,10 +29,14 @@ export function NavGestao({ abas }: { abas: AbaGestao[] }) {
             href={aba.href}
             aria-current={ativa ? "page" : undefined}
             className={cn(
-              "whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+              "whitespace-nowrap text-sm font-medium transition-colors",
+              // celular: pílula de 44 px
+              "flex min-h-11 items-center justify-center rounded-full border px-2",
+              // computador: aba sublinhada, como antes
+              "md:min-h-0 md:rounded-none md:border-0 md:border-b-2 md:px-4 md:py-2",
               ativa
-                ? "border-[#684A97] text-[#684A97]"
-                : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900",
+                ? "border-[#684A97] bg-[#684A97] text-white md:bg-transparent md:text-[#684A97]"
+                : "border-gray-200 bg-white text-gray-700 hover:text-gray-900 md:border-transparent md:bg-transparent md:text-gray-600 md:hover:border-gray-300",
             )}
           >
             {aba.rotulo}

@@ -9,7 +9,7 @@ import Link from "next/link";
 import { normalizeNextPath } from "@/lib/utils";
 import { calcularIdade } from "@/components/auth/sign-up-form";
 
-const inputClass = "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]";
+const inputClass = "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97]";
 
 function CompleteProfileContent() {
     const searchParams = useSearchParams();
@@ -117,12 +117,12 @@ function CompleteProfileContent() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#6A4A98] to-[#8e6bc9] flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-[#684A97] to-[#8e6bc9] flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 md:p-8">
                 <div className="mb-6">
                     <Link
                         href="/auth"
-                        className="flex items-center gap-2 text-[#6A4A98] hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-2 text-[#684A97] hover:opacity-80 transition-opacity"
                     >
                         <ArrowLeft size={20} />
                         <span className="text-sm font-medium">Voltar</span>
@@ -145,7 +145,7 @@ function CompleteProfileContent() {
                                 type="button"
                                 onClick={() => setUserType("student")}
                                 className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all ${userType === "student"
-                                    ? "border-[#6A4A98] bg-purple-50 text-[#6A4A98]"
+                                    ? "border-[#684A97] bg-[#684A97]/10 text-[#684A97]"
                                     : "border-gray-200 text-gray-700 hover:border-gray-300"
                                     }`}
                             >
@@ -155,7 +155,7 @@ function CompleteProfileContent() {
                                 type="button"
                                 onClick={() => setUserType("teacher")}
                                 className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all ${userType === "teacher"
-                                    ? "border-[#6A4A98] bg-purple-50 text-[#6A4A98]"
+                                    ? "border-[#684A97] bg-[#684A97]/10 text-[#684A97]"
                                     : "border-gray-200 text-gray-700 hover:border-gray-300"
                                     }`}
                             >
@@ -176,7 +176,7 @@ function CompleteProfileContent() {
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                                 placeholder="Seu nome completo"
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6A4A98]"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#684A97]"
                             />
                         </div>
                     </div>
@@ -277,7 +277,7 @@ function CompleteProfileContent() {
                         </>
                     ) : (
                         <details className="rounded-lg border border-gray-200 p-3">
-                            <summary className="cursor-pointer text-sm font-medium text-[#6A4A98]">
+                            <summary className="cursor-pointer text-sm font-medium text-[#684A97]">
                                 Adicionar mais dados (opcional)
                             </summary>
                             <div className="mt-3 space-y-4">
@@ -353,7 +353,7 @@ function CompleteProfileContent() {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full rounded-full bg-[#6A4A98] py-2 text-base font-semibold text-white hover:bg-[#5a3e85] transition-all mt-6"
+                        className="w-full rounded-full bg-[#684A97] py-2 text-base font-semibold text-white hover:bg-[#5a3e85] transition-all mt-6"
                     >
                         {isLoading ? "Salvando..." : "Continuar"}
                     </Button>
@@ -365,7 +365,7 @@ function CompleteProfileContent() {
 
 export default function CompleteProfilePage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-[#6A4A98] to-[#8e6bc9]" />}>
+        <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-[#684A97] to-[#8e6bc9]" />}>
             <CompleteProfileContent />
         </Suspense>
     );

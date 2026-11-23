@@ -58,8 +58,11 @@ vi.mock("@/lib/api/enrollments-server", () => ({
 vi.mock("@/components/navbar/navbar", () => ({ default: () => <nav /> }));
 vi.mock("@/components/modules/ModulesSection", () => ({ default: () => <div /> }));
 vi.mock("@/components/dashboard/courses-section", () => ({
-    default: ({ isAdmin }: { isAdmin: boolean }) => (
-        <div data-testid="courses-section">{isAdmin ? "admin" : "teacher"}</div>
+    default: ({ isAdmin, usuarios }: { isAdmin: boolean; usuarios?: React.ReactNode }) => (
+        <>
+            <div data-testid="courses-section">{isAdmin ? "admin" : "teacher"}</div>
+            {usuarios}
+        </>
     ),
 }));
 vi.mock("@/components/dashboard/users-table", () => ({
