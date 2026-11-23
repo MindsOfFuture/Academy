@@ -36,11 +36,13 @@ export async function updateUserProfileClient(params: { userId: string; name: st
     });
     if (authError) throw authError;
 
+    // Sem `email`: o perfil recebe o e-mail do login só depois que a pessoa
+    // confirma o endereço novo (gatilho em auth.users). O banco recusa e-mail
+    // vindo do navegador (20261123_perfil_email_so_pelo_login.sql).
     const { error: tableError } = await supabase
         .from("user_profile")
         .update({
             full_name: trimmedName,
-            email,
             ...(phone !== undefined ? { phone: phone.trim() } : {}),
             ...(address !== undefined ? { address: address.trim() } : {}),
         })

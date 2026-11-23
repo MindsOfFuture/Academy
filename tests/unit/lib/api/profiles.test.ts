@@ -56,6 +56,8 @@ describe('Profiles API', () => {
         email: 'newemail@example.com',
         data: { full_name: 'John Doe', display_name: 'John Doe' },
       });
+      // O e-mail do perfil só muda pelo login, depois da confirmação: o navegador não o envia.
+      expect(mockClient.chain.update).toHaveBeenCalledWith({ full_name: 'John Doe' });
     });
 
     it('should throw error for invalid name (empty)', async () => {
