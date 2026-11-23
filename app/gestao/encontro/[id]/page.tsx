@@ -3,6 +3,7 @@ import { chamadaDoEncontro, obterEncontro } from "@/lib/api/gestao/alocacao";
 import { usuarioAtualId } from "@/lib/api/gestao/melhorias";
 import { urlsDasFotos } from "@/lib/api/gestao/relatorio";
 import { FormChamada, FormNotaEncerramento, FormPresentes } from "../../alocacao/forms";
+import { SalvarTudo } from "../../alocacao/salvar-tudo";
 import { NotasPendentes, Relatorio, Resumo, jaComecou } from "../../alocacao/resumo";
 import { TIPO_ENCONTRO, diaCurto } from "../../alocacao/rotulos";
 import { exigirMembro } from "../../guard";
@@ -33,8 +34,8 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
   const minhaFoto = podeEscrever ? minha.fotoComprovacao : null;
   const fotoUrl = minhaFoto ? (await urlsDasFotos([minhaFoto]))[minhaFoto] : null;
 
-  return (
-    <div className="space-y-6">
+  const conteudo = (
+    <>
       <section className="space-y-2 rounded-lg border bg-white p-5 shadow-sm">
         <h2 className="text-xl font-semibold">
           {diaCurto(encontro.data)} · {encontro.horario} · {encontro.modalidade}
@@ -74,6 +75,8 @@ export default async function EncontroBolsistaPage({ params }: { params: Promise
           ))}
         </ul>
       </section>
-    </div>
+    </>
   );
+  // Só quem pode escrever ganha o botão de salvar.
+  return <div className="space-y-6">{podeEscrever ? <SalvarTudo>{conteudo}</SalvarTudo> : conteudo}</div>;
 }
