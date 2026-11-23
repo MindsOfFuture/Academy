@@ -15,6 +15,7 @@ import {
   FormRemoverAlocacao,
 } from "../forms";
 import { NotasPendentes, Relatorio, Resumo, dataHoraBr, jaComecou } from "../resumo";
+import { SalvarTudo } from "../salvar-tudo";
 import { FUNCAO, SITUACAO, STATUS_TURMA, TIPO_ENCONTRO, diaCurto } from "../rotulos";
 
 /** Um encontro (spec 014): equipe, o que aconteceu com cada um e o histórico. */
@@ -92,6 +93,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
         ← Calendário
       </Link>
 
+      <SalvarTudo>
       <section className="space-y-2 rounded-lg border bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <h2 className="text-xl font-semibold">
@@ -174,6 +176,7 @@ export default async function EncontroPage({ params }: { params: Promise<{ id: s
         </ul>
         {!cancelado && <FormAlocar encontroId={encontro.id} pessoas={foraDoEncontro} />}
       </section>
+      </SalvarTudo>
 
       <section aria-labelledby="historico" className="space-y-3">
         <h3 id="historico" className="text-lg font-semibold">

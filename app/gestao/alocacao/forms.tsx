@@ -21,6 +21,8 @@ import type {
 } from "@/lib/api/gestao/types";
 import { Aviso, campoSelect, rotuloCampo } from "../equipe/forms";
 import { CampoFoto } from "../relatorio/foto";
+import { salvarLinkEncontroAction } from "../relatorio/actions";
+import { useBloco } from "./salvar-tudo";
 import { FUNCAO, SITUACAO, STATUS_TURMA, TIPO_ENCONTRO } from "./rotulos";
 import {
   adicionarCursoAction,
@@ -639,20 +641,28 @@ export function FormNotaEncerramento({
   foto: string | null;
   fotoUrl?: string | null;
 }) {
-  const [estado, acao, enviando] = useAcao(escreverNotaAction);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
-  // Controlado: o React limpa o formulário depois do envio, e uma nota recusada não pode sumir.
   const [texto, setTexto] = useState(nota ?? "");
   const [url, setUrl] = useState(link ?? "");
+  // Sem nota (ou curta demais), o link e a foto salvam mesmo assim; a nota fica para depois.
+  const { ref, onSubmit } = useBloco(
+    async (dados) => {
+      if (enviandoFoto) return { ok: false, mensagem: "Espere a foto terminar de enviar e salve de novo." };
+      const escrita = String(dados.get("nota") ?? "").trim();
+      if (escrita.length >= 10) return escreverNotaAction(null, dados);
+      const comprovacao = await salvarLinkEncontroAction(null, dados);
+      if (!comprovacao.ok || !escrita) return comprovacao;
+      return { ok: false, mensagem: `${comprovacao.mensagem} A nota precisa ter pelo menos 10 caracteres.` };
+    },
+    { ordem: 4 },
+  );
   return (
-    <form action={acao} className="space-y-2">
+    <form ref={ref} onSubmit={onSubmit} className="space-y-2">
       <input type="hidden" name="encontroId" value={encontroId} />
       <label className="block space-y-1">
         <span className={rotuloCampo}>Sua nota de encerramento</span>
         <textarea
           name="nota"
-          required
-          minLength={10}
           maxLength={5000}
           rows={5}
           value={texto}
@@ -666,41 +676,31 @@ export function FormNotaEncerramento({
         <Input name="link" type="url" maxLength={500} value={url} onChange={(e) => setUrl(e.target.value)} />
       </label>
       <CampoFoto inicial={foto} url={fotoUrl} onEnviando={setEnviandoFoto} />
-      <Button type="submit" size="sm" disabled={enviando || enviandoFoto}>
-        {enviando ? "Salvando…" : nota ? "Atualizar nota" : "Salvar nota"}
-      </Button>
-      <Aviso estado={estado} />
     </form>
   );
 }
 
 /** Quantos alunos estavam no encontro; quem registra depois sobrescreve. */
 export function FormPresentes({ encontroId, presentes }: { encontroId: string; presentes: number | null }) {
-  const [estado, acao, enviando] = useAcao(registrarPresentesAction);
+  const { ref, onSubmit } = useBloco((dados) => registrarPresentesAction(null, dados), { ordem: 3 });
   const [valor, setValor] = useState(presentes === null ? "" : String(presentes));
   return (
-    <form action={acao} className="space-y-2">
+    <form ref={ref} onSubmit={onSubmit} className="space-y-2">
       <input type="hidden" name="encontroId" value={encontroId} />
       <label className="block space-y-1">
         <span className={rotuloCampo}>Alunos presentes</span>
-        <div className="flex gap-2">
-          <Input
-            name="presentes"
-            type="number"
-            required
-            min={0}
-            max={9999}
-            step={1}
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            className="w-28"
-          />
-          <Button type="submit" size="sm" disabled={enviando}>
-            {enviando ? "Salvando…" : "Salvar"}
-          </Button>
-        </div>
+        <Input
+          name="presentes"
+          type="number"
+          required
+          min={0}
+          max={9999}
+          step={1}
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          className="w-28"
+        />
       </label>
-      <Aviso estado={estado} />
     </form>
   );
 }
@@ -791,7 +791,10 @@ export function FormAlocacao({
   substitutos: Opcao[];
   limites: { inicio: string | null; fim: string | null };
 }) {
-  const [estado, acao, enviando] = useAcao(atualizarAlocacaoAction);
+  const { ref, onSubmit } = useBloco((dados) => atualizarAlocacaoAction(null, dados), {
+    ordem: 1,
+    nome: alocacao.bolsistaNome,
+  });
   const [sub, executarSub, substituindo] = useAcao(substituirAction);
   const outras = pessoas.filter((p) => p.id !== alocacao.bolsistaId);
 
@@ -800,7 +803,7 @@ export function FormAlocacao({
 
   return (
     <div className="space-y-3">
-      <form action={acao} className="grid gap-2 sm:grid-cols-6 sm:items-end">
+      <form ref={ref} onSubmit={onSubmit} className="grid gap-2 sm:grid-cols-6 sm:items-end">
         <input type="hidden" name="alocacaoId" value={alocacao.id} />
         <label className="space-y-1 sm:col-span-2">
           <span className={rotuloCampo}>Situação</span>
@@ -844,14 +847,10 @@ export function FormAlocacao({
           <span className={rotuloCampo}>Motivo ou observação</span>
           <Input name="motivo" maxLength={500} defaultValue={alocacao.motivo ?? ""} placeholder="Aula na faculdade até 14h…" />
         </label>
-        <Button type="submit" size="sm" disabled={enviando}>
-          Salvar
-        </Button>
       </form>
       <p className="text-xs text-muted-foreground">
         Deixe chegada e saída em branco quando a pessoa ficou o encontro inteiro.
       </p>
-      <Aviso estado={estado} />
 
       {alocacao.situacao !== "cumprida" && alocacao.situacao !== "retirada" && (
         <form action={executarSub} className="flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-end">
@@ -886,28 +885,43 @@ export function FormEditarEncontro({
   escolas: Opcao[];
   espacos: Opcao[];
 }) {
-  const [estado, acao, enviando] = useAcao(editarEncontroAction);
   const [aberto, setAberto] = useState(false);
   const [turmaId, setTurmaId] = useState(encontro.turmaId ?? "");
   // A turma atual continua na lista mesmo se já fechou.
   const opcoesTurma = turmas.filter(
     (t) => t.status === "prevista" || t.status === "em_andamento" || t.id === encontro.turmaId,
   );
-  useEffect(() => {
-    if (estado?.ok) setAberto(false);
-  }, [estado]);
   if (!aberto) {
     return (
-      <div className="space-y-1">
-        <Button type="button" size="sm" variant="outline" onClick={() => setAberto(true)}>
-          Editar encontro
-        </Button>
-        <Aviso estado={estado} />
-      </div>
+      <Button type="button" size="sm" variant="outline" onClick={() => setAberto(true)}>
+        Editar encontro
+      </Button>
     );
   }
+  return <CamposEditarEncontro encontro={encontro} opcoesTurma={opcoesTurma} escolas={escolas} espacos={espacos} turmaId={turmaId} setTurmaId={setTurmaId} fechar={() => setAberto(false)} />;
+}
+
+function CamposEditarEncontro({
+  encontro,
+  opcoesTurma,
+  escolas,
+  espacos,
+  turmaId,
+  setTurmaId,
+  fechar,
+}: {
+  encontro: Encontro;
+  opcoesTurma: Turma[];
+  escolas: Opcao[];
+  espacos: Opcao[];
+  turmaId: string;
+  setTurmaId: (id: string) => void;
+  fechar: () => void;
+}) {
+  // Montado só com a edição aberta: fechado, não entra no "Salvar alterações".
+  const { ref, onSubmit } = useBloco((dados) => editarEncontroAction(null, dados), { ordem: 0, onSalvo: fechar });
   return (
-    <form action={acao} className="grid gap-3 rounded-md border p-3 sm:grid-cols-3">
+    <form ref={ref} onSubmit={onSubmit} className="grid gap-3 rounded-md border p-3 sm:grid-cols-3">
       <input type="hidden" name="encontroId" value={encontro.id} />
       <label className="space-y-1">
         <span className={rotuloCampo}>Data</span>
@@ -962,24 +976,18 @@ export function FormEditarEncontro({
         <span className={rotuloCampo}>Espaço</span>
         <Escolha name="espacoId" opcoes={espacos} vazio="Sem espaço" defaultValue={encontro.espacoId ?? ""} />
       </label>
-      <div className="flex flex-wrap gap-2 sm:col-span-3">
-        <Button type="submit" size="sm" disabled={enviando}>
-          {enviando ? "Salvando…" : "Salvar"}
-        </Button>
+      <div className="sm:col-span-3">
         <Button
           type="button"
           size="sm"
           variant="outline"
           onClick={() => {
-            setAberto(false);
+            fechar();
             setTurmaId(encontro.turmaId ?? "");
           }}
         >
-          Fechar
+          Fechar sem salvar
         </Button>
-      </div>
-      <div className="sm:col-span-3">
-        <Aviso estado={estado} />
       </div>
     </form>
   );
@@ -1148,10 +1156,10 @@ export function FormAlunos({ turma }: { turma: Turma }) {
 
 /** Chamada: todos começam presentes; desmarca quem faltou. */
 export function FormChamada({ encontroId, chamada }: { encontroId: string; chamada: Chamada }) {
-  const [estado, acao, enviando] = useAcao(registrarChamadaAction);
+  const { ref, onSubmit } = useBloco((dados) => registrarChamadaAction(null, dados), { ordem: 2 });
   const ausentes = new Set(chamada.ausentes);
   return (
-    <form action={acao} className="space-y-2">
+    <form ref={ref} onSubmit={onSubmit} className="space-y-2">
       <input type="hidden" name="encontroId" value={encontroId} />
       <fieldset className="space-y-1">
         <legend className={rotuloCampo}>Chamada</legend>
@@ -1167,10 +1175,6 @@ export function FormChamada({ encontroId, chamada }: { encontroId: string; chama
           ))}
         </ul>
       </fieldset>
-      <Button type="submit" size="sm" disabled={enviando}>
-        {enviando ? "Salvando…" : "Salvar chamada"}
-      </Button>
-      <Aviso estado={estado} />
     </form>
   );
 }

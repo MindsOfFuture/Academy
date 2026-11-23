@@ -106,7 +106,7 @@ test('coordenação: cria, edita, conclui e confere no histórico', async ({ pag
   const linhaA = equipe.getByRole('listitem');
   await linhaA.getByLabel('Situação').selectOption({ label: 'Faltou avisando' });
   await linhaA.getByLabel('Motivo ou observação').fill('Prova na faculdade');
-  await linhaA.getByRole('button', { name: 'Salvar' }).click();
+  await page.getByRole('button', { name: 'Salvar alterações' }).click();
   await expect(equipe).toContainText(new RegExp(`${BOLSISTA_A}\\s*(?:Responsável|Apoio)?\\s*·\\s*Faltou avisando`));
 
   await equipe.getByRole('group', { name: 'Acrescentar pessoas' }).getByLabel(BOLSISTA_B).check();
