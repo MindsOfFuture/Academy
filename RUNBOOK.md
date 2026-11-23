@@ -44,8 +44,10 @@ que encapsula os passos abaixo.
 
 ### 2.0 Do commit à produção
 
-Push na `main` dispara o deploy (`.github/workflows/deploy.yml`), então nada
-chega à `main` sem passar pelo CI antes:
+Push na `main` dispara o deploy (`.github/workflows/deploy.yml`) assim que o
+workflow **Tests** desse commit termina verde; Tests vermelho não publica. O
+Playwright ainda não trava o deploy, então nada chega à `main` sem passar pelo
+CI antes:
 
 1. Commit e push na `development`.
 2. Esperar **Tests** e **Playwright Tests** verdes nesse commit. Vermelho: parar

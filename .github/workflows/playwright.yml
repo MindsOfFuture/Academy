@@ -28,6 +28,8 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
     # Sem estes segredos o middleware responde 503 e o servidor de teste nunca fica pronto
     # (era o "Timed out waiting 120000ms from config.webServer" de toda execução até 10/10).
     - name: Conferir segredos do E2E
@@ -53,7 +55,8 @@ jobs:
         fi
     - uses: actions/setup-node@v4
       with:
-        node-version: lts/*
+        # Mesma versão dos outros workflows; lts/* mudava sozinha entre execuções.
+        node-version: '20'
     - name: Install dependencies
       run: npm ci
     - name: LibreOffice para o relatório em PDF (como no servidor)
