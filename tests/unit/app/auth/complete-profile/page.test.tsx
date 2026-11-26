@@ -28,12 +28,13 @@ describe("/auth/complete-profile (Google)", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("aluno: só nome e nascimento; o resto fica recolhido e opcional", async () => {
+    proximo = "/protected";
     render(<CompleteProfilePage />);
     expect(await screen.findByDisplayValue("Pessoa Google")).toBeInTheDocument();
     expect(screen.getByText("Adicionar mais dados (opcional)").closest("details")).not.toHaveAttribute("open");
     fireEvent.change(screen.getByLabelText("Data de Nascimento"), { target: { value: "2000-01-01" } });
     fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/lg2/jornada/index.html"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/protected"));
     const corpo = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(corpo).toMatchObject({ fullName: "Pessoa Google", birthDate: "2000-01-01", phone: "", address: "", document: "", parentName: "", userType: "student" });
   });
@@ -56,6 +57,9 @@ describe("/auth/complete-profile (Google)", () => {
     expect(screen.queryByRole("button", { name: "Aluno" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Professor" })).not.toBeInTheDocument();
     expect(screen.queryByText("Tipo de usuário")).not.toBeInTheDocument();
+    // Cadastro mínimo: dados pessoais ficam para o perfil, nem recolhidos aparecem aqui.
+    expect(screen.queryByText("Adicionar mais dados (opcional)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Telefone")).not.toBeInTheDocument();
   });
 
   it("professor: telefone, endereço e documento continuam obrigatórios e à mostra", async () => {

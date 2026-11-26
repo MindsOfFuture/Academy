@@ -279,7 +279,7 @@ function CompleteProfileContent() {
                     </div>
 
                         </>
-                    ) : (
+                    ) : empreendedor ? null : (
                         <details className="rounded-lg border border-gray-200 p-3">
                             <summary className="cursor-pointer text-sm font-medium text-[#684A97]">
                                 Adicionar mais dados (opcional)
@@ -344,7 +344,9 @@ function CompleteProfileContent() {
                     )}
                     {!isTeacher && (
                         <p className="text-xs text-gray-600">
-                            Telefone, endereço e documento você pode completar depois no seu perfil, se quiser.
+                            {empreendedor
+                                ? "Telefone e endereço você completa depois no seu perfil, se quiser."
+                                : "Telefone, endereço e documento você pode completar depois no seu perfil, se quiser."}
                         </p>
                     )}
 
