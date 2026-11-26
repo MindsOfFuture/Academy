@@ -162,7 +162,7 @@
   /* perguntas que repetem uma resposta já dada antes na jornada: com a resposta anterior, a tela não aparece
      (fica um cartão "Veio da Etapa N · Trocar"); sem ela, a pergunta aparece normalmente */
   const AUTO = ["M6.P04", "M6.PF", "M6.P05", "M6.SZ", "M6.P06", "M6.P07", "M6.P15", "M6.P16"];
-  const CURTA = { "M6.P04": "Como seus clientes vão pagar", "M6.PF": "Taxa, prazo e parte das vendas de cada forma", "M6.SZ": "Vendas conforme a época do ano", "M6.P05": "Quanto espera vender por mês", "M6.P06": "Gastos de todo mês",
+  const CURTA = { "M6.P04": "Como seus clientes vão pagar", "M6.PF": "Taxa, prazo para o dinheiro cair e proporção de cada forma", "M6.SZ": "Vendas conforme a época do ano", "M6.P05": "Quanto espera vender por mês", "M6.P06": "Gastos de todo mês",
     "M6.P07": "Dinheiro para usar no negócio", "M6.P15": "Materiais para produzir", "M6.P16": "Mercadorias para revender" };
   /* faixa do Módulo 1 -> valor usado aqui (o limite que a pessoa disse; dá para trocar pelo valor exato) */
   const CAIXA_M1 = { "Nada por enquanto": 0, "Até R$ 100": 100, "Entre R$ 100 e R$ 500": 100, "Entre R$ 500 e R$ 1.000": 500, "Mais de R$ 1.000": 1000 };
@@ -705,11 +705,11 @@
         const pad = (v, d) => (v !== undefined && String(v).trim() !== "" ? String(v).replace(".", ",") : d);
         ent.appendChild(el(`<fieldset class="forma" data-forma="${esc(f)}"><legend>${esc(f)}</legend>
           <label class="linha"><span class="lbl">Taxa${cartao ? "" : " (se tiver)"}</span><input class="campo taxa" inputmode="decimal" placeholder="Ex.: 3,5" value="${esc(pad(x.taxa, cartao ? "" : "0"))}"><span class="unid">%</span></label>
-          <label class="linha"><span class="lbl">O dinheiro cai em</span><input class="campo prazo" inputmode="numeric" placeholder="Ex.: 30" value="${esc(pad(x.prazo, cartao ? "" : "0"))}"><span class="unid">dias</span></label>
-          ${varias ? `<label class="linha"><span class="lbl">Parte das vendas</span><input class="campo parte" inputmode="decimal" placeholder="Ex.: 50" value="${esc(pad(x.parte, String(partePadrao(fs.indexOf(f), fs.length))))}"><span class="unid">%</span></label>` : ""}
+          <label class="linha"><span class="lbl">Prazo para o dinheiro cair na sua conta</span><input class="campo prazo" inputmode="numeric" placeholder="Ex.: 30" value="${esc(pad(x.prazo, cartao ? "" : "0"))}"><span class="unid">dias</span></label>
+          ${varias ? `<label class="linha"><span class="lbl">Proporção que você vende nesta modalidade</span><input class="campo parte" inputmode="decimal" placeholder="Ex.: 50" value="${esc(pad(x.parte, String(partePadrao(fs.indexOf(f), fs.length))))}"><span class="unid">%</span></label>` : ""}
         </fieldset>`));
       });
-      ent.appendChild(el(`<p class="mini-info">Cai na hora? Coloque 0 dias.${varias ? " As partes precisam somar 100%." : ""}</p>`));
+      ent.appendChild(el(`<p class="mini-info">Cai na hora? Coloque 0 dias.${varias ? " As proporções precisam somar 100%." : ""}</p>`));
     } else if (tipo === "sazonal") {
       const ant = resp && resp.estado === "opcao" ? resp : her && her.sz ? her.sz : null;
       escolhida = ant ? ant.opcao : null;
@@ -789,11 +789,11 @@
           if (x.taxa === "" || x.prazo === "") return { erro: `Preencha a taxa e em quantos dias cai o dinheiro de “${x.forma}”. Não sabe? Veja no aplicativo da maquininha ou do banco (sem taxa: 0).` };
           const t = Motor.num(x.taxa), d = Number(x.prazo), pt = Motor.num(x.parte);
           if (isNaN(t) || t < 0 || t >= 100) return { erro: `Taxa de “${x.forma}”: digite um número de 0 a 99. Ex.: 3,5` };
-          if (!/^\d+$/.test(x.prazo) || d > 365) return { erro: `Prazo de “${x.forma}”: digite os dias, só números. Ex.: 30 (na hora: 0)` };
-          if (isNaN(pt) || pt < 0) return { erro: `Parte das vendas de “${x.forma}”: digite um número. Ex.: 50` };
+          if (!/^\d+$/.test(x.prazo) || d > 365) return { erro: `Prazo para o dinheiro cair na sua conta (“${x.forma}”): digite os dias, só números. Ex.: 30 (na hora: 0)` };
+          if (isNaN(pt) || pt < 0) return { erro: `Proporção que você vende em “${x.forma}”: digite um número. Ex.: 50` };
         }
         const soma = lista.reduce((a, x) => a + Motor.num(x.parte), 0);
-        if (Math.abs(soma - 100) > 0.5) return { erro: `As partes das vendas somam ${String(Math.round(soma * 10) / 10).replace(".", ",")}%. Ajuste para somar 100%.` };
+        if (Math.abs(soma - 100) > 0.5) return { erro: `As proporções somam ${String(Math.round(soma * 10) / 10).replace(".", ",")}%. Ajuste para somar 100%.` };
         const r = { estado: "valor", valor: lista };
         if (her && her.formas && JSON.stringify(lista) === JSON.stringify(her.formas.map((x) => ({ forma: x.forma, taxa: x.taxa, prazo: x.prazo, parte: String(x.parte || "100") })))) r.herdado = her.modulo;
         return { r };

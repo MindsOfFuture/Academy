@@ -95,7 +95,15 @@
   const MODS = { 1: "lg2-turma-a-m01", 2: "lg2-turma-b-m02", 3: "lg2-turma-a-m03", 4: "lg2-turma-a-m04", 5: "lg2-turma-a-m05", 6: "lg2-turma-b-m06", 7: "lg2-turma-b-m07", 8: "lg2-turma-b-m08", 9: "lg2-turma-b-m09" };
   const LINK = (n) => `/lg2/${MODS[n].replace("lg2-", "").replace(/-m\d\d$/, "")}/m${String(n).padStart(2, "0")}/index.html`;
   function lerEstado(n) { try { return JSON.parse(localStorage.getItem(MODS[n])) || null; } catch (e) { return null; } }
-  const lerR = (n) => { const s = lerEstado(n); return (s && s.R) || {}; };
+  /* quem já vende (Etapa 1) não passa pelo teste da primeira oferta da Etapa 4: respostas antigas dessas
+     perguntas ficam salvas lá, mas não entram aqui */
+  const TESTE_M4 = ["M4.P13", "M4.P14", "M4.P15", "M4.P16", "M4.P17", "M4.P18", "M4.P19", "M4.P20", "M4.P21"];
+  const jaVendeM1 = () => { const s = lerEstado(1), r = s && s.R && s.R["M1.P01"]; return !!r && r.estado === "opcao" && /vend/i.test(String(r.opcao || "")); };
+  const lerR = (n) => {
+    const s = lerEstado(n), R = (s && s.R) || {};
+    if (n !== 4 || !jaVendeM1()) return R;
+    const c = Object.assign({}, R); TESTE_M4.forEach((k) => delete c[k]); return c;
+  };
   const valor = (r) => !r ? null : r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : null;
   const textoDe = (r) => { const x = valor(r); return typeof x === "string" && x.trim() ? x.trim() : typeof x === "number" ? String(x) : null; };
   const listaDe = (r) => !r ? [] : Array.isArray(r.opcoes) ? r.opcoes.filter((x) => x !== NS) : r.estado === "opcao" && r.opcao !== NS ? [r.opcao] : [];

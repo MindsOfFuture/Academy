@@ -16,7 +16,9 @@ const DIR = path.resolve(__dirname, '../public/lg2/turma-b/m07');
 const TIPOS = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ttf': 'font/ttf', '.webp': 'image/webp' };
 /* M07_SABOTAGEM=1: o "Não sei" das escolhas volta a gravar "naosei" (o teste tem de falhar).
    M07_SABOTAGEM=2: volta o passo extra (o 1º Continuar só mostra o retorno; lote 17/11, item A: o teste tem de falhar).
-   M07_SABOTAGEM=3: o Continuar volta a ficar sem lugar fixo no pé da tela (item C: o teste tem de falhar). */
+   M07_SABOTAGEM=3: o Continuar volta a ficar sem lugar fixo no pé da tela (item C: o teste tem de falhar).
+   M07_SABOTAGEM=5: quem já vende volta a ver e herdar o teste da ideia e a M4.P15 (lote 26/11, item F: tem de falhar).
+   M07_SABOTAGEM=4: "Outro" na frequência de compra aceita sem os dias e a conta ignora os dias digitados (lote 26/11: tem de falhar). */
 const SABOTAGEM = process.env.M07_SABOTAGEM === '1';
 const SAB = process.env.M07_SABOTAGEM || '';
 const servidor = http.createServer((req, res) => {
@@ -32,6 +34,16 @@ const servidor = http.createServer((req, res) => {
     const s = fs.readFileSync(f, 'utf8'), alvo = '    function avancar(r0) {\n';
     if (!s.includes(alvo)) throw new Error('sabotagem 2: alvo não encontrado');
     return res.end(s.split(alvo).join('    let passoExtra = true;\n' + alvo + '      if (passoExtra) { passoExtra = false; return; }\n'));
+  }
+  if (SAB === '4' && (f.endsWith('js/app.js') || f.endsWith('js/motor.js'))) {
+    const s = fs.readFileSync(f, 'utf8'), alvo = f.endsWith('app.js') ? '          if (!d) {' : 'if (opcao === REPOSICAO_OUTRO) {';
+    if (!s.includes(alvo)) throw new Error('sabotagem 4: alvo não encontrado');
+    return res.end(s.split(alvo).join(f.endsWith('app.js') ? '          if (false && !d) {' : 'if (false) {'));
+  }
+  if (SAB === '5' && f.endsWith('js/app.js')) {
+    const s = fs.readFileSync(f, 'utf8'), a = 'const jaVende = (x) => (x && x.estagio === ESTAGIOS[2]) || vendeM1();', b = 'const vende1 = vendeM1(m1);';
+    if (!s.includes(a) || !s.includes(b)) throw new Error('sabotagem 5: alvo não encontrado');
+    return res.end(s.split(a).join('const jaVende = () => false;').split(b).join('const vende1 = false;'));
   }
   if (SAB === '3' && f.endsWith('css/estilo.css')) {
     const s = fs.readFileSync(f, 'utf8'), alvo = '.acoes-fixas{position:sticky;';
@@ -101,6 +113,10 @@ function contas() {
   { const c8 = cap({ horas: 'Até 10 h', apoio: 'Até 2 h', minUn: 60 }), cf = cap({ horas: 'De 11 a 20 h', apoio: 'Até 2 h', minUn: 60 });
     const a = Mo.mesForte(120, 50, c8), b = Mo.mesForte(20, 25, c8), f = Mo.mesForte(50, 20, cf);
     check('Sazonalidade: 120 + 50% = 180 no mês forte = 42 por semana > 8 (falta); 25 → 6 (cabe); faixa 9 a 18 com 14 (talvez)', a.mes === 180 && a.semana === 42 && a.estado === 'falta' && b.mes === 25 && b.semana === 6 && b.estado === 'cabe' && cf.lo.semana === 9 && cf.hi.semana === 18 && f.semana === 14 && f.estado === 'talvez' && Mo.mesForte(0, 50, c8) === null && Mo.mesForte(120, 0, c8) === null, [a, b, f, cf.lo, cf.hi]); }
+  /* frequência de compra em dias (lote 26/11): Toda semana 7, 15 dias 15, Todo mês 30, Outro = dias digitados (inteiro > 0).
+     Compra de cada vez, à mão: 120 por mês ÷ 30 = 4 por dia × 0,5 kg = 2 kg por dia × 45 dias = 90 kg ÷ 95% = 94,7 → 95 */
+  check('Frequência em dias: 7 / 15 / 30 / Outro 45; Outro sem número, 0 ou 4,5 = sem resposta', Mo.diasReposicao('Toda semana') === 7 && Mo.diasReposicao('A cada 15 dias') === 15 && Mo.diasReposicao('Todo mês') === 30 && Mo.diasReposicao('Outro', 45) === 45 && Mo.diasReposicao('Outro', '45') === 45 && Mo.diasReposicao('Outro', '') === null && Mo.diasReposicao('Outro', 0) === null && Mo.diasReposicao('Outro', '4,5') === null && Mo.diasReposicao('Não sei') === null);
+  check('Compra de cada vez com 45 dias: 120/mês × 0,5 kg, perda 5% = 95; sem perda e 1 por venda = 180', Mo.compraPorVez(120, 0.5, 45, 5) === 95 && Mo.compraPorVez(120, 1, 45, 0) === 180 && Mo.compraPorVez(120, 1, null, 0) === null);
   /* "Cenários do Módulo 6" não é testado: o Módulo 6 publicado não guarda cenários de faturamento */
 }
 
@@ -296,9 +312,11 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   }
 
   /* ---------- 3. percurso completo com dados herdados ---------- */
+  /* lote 26/11 (F): quem já vende não faz mais o teste da ideia nem a M4.P15 na Etapa 4; este percurso usa quem ainda
+     não vende (fez amostras) para manter as checagens do teste e da atividade regulada; quem já vende: bloco no fim */
   await page.evaluate(() => {
     localStorage.clear();
-    localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 9, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'Pão caseiro' }, 'M1.P08': { estado: 'opcao', opcao: 'Ainda não sei fazer direito' } } }));
+    localStorage.setItem('lg2-turma-a-m01', JSON.stringify({ v: 9, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' }, 'M1.P03': { estado: 'valor', valor: 'Pão caseiro' }, 'M1.P08': { estado: 'opcao', opcao: 'Ainda não sei fazer direito' } } }));
     localStorage.setItem('lg2-turma-a-m04', JSON.stringify({ R: { 'M4.P15': { estado: 'opcao', opcao: 'Sim' }, 'M4.P19': { estado: 'valor', valor: '60 pedidos' }, 'M4.P20': { estado: 'valor', valor: '7' } } }));
     localStorage.setItem('lg2-turma-a-m05', JSON.stringify({ versao: 9, R: { 'M5.P01': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' }, 'M5.P02': { estado: 'valor', valor: 'Pão de fermentação natural' }, 'M5.P03': { estado: 'valor', valor: ['Farinha', 'Sal'] }, 'M5.P06': { estado: 'valor', valor: [{ q: '1', u: 'kg' }, { q: '20', u: 'g' }] }, 'M5.P07': { estado: 'valor', valor: '10' }, 'M5.P26': { estado: 'opcao', opcao: 'Sim' }, 'M5.P37': { estado: 'valor', valor: '200' } } }));
   });
@@ -396,7 +414,7 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
   check('Resumo: avisos dos instrumentos', D.instrumentos.every((i) => res.includes(nrm(i.avisos[0]).replace('[fizer] [oferta em foco]', 'fizer Pão de fermentação natural'))), D.instrumentos.map((i) => i.avisos[0]).filter((a) => !res.includes(a)));
   const ent = nrm(await page.innerText('#entendemos'));
   check('Resultado: caixa "O que entendemos até aqui" acima do retrato', await page.evaluate(() => { const a = document.querySelector('#entendemos'), b = document.querySelector('.concluido'); return !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }));
-  check('Entendemos: oferta, tipo e estágio', ent.includes('Você oferece Pão de fermentação natural, um produto que você mesmo faz, e já vende.'), ent);
+  check('Entendemos: oferta, tipo e estágio', ent.includes('Você oferece Pão de fermentação natural, um produto que você mesmo faz, e já fez testes ou amostras.') /* F (26/11): o percurso agora é de quem fez amostras */, ent);
   check('Entendemos: capacidade e volume', ent.includes('Com até 10 horas por semana e cerca de 10 min para fazer cada um, cabem no máximo 164 por mês.') && ent.includes('Você quer vender 200 por mês, mais do que cabe hoje'), ent);
   check('Entendemos: gargalo e fornecedor único', ent.includes('O que mais segura o seu ritmo hoje é um equipamento ou o espaço.') && ent.includes('Você depende de um só fornecedor para Farinha'), ent);
   /* texto corrido (relatório do Bento): frases agrupadas por assunto em 1 a 3 parágrafos, sem lista */
@@ -748,6 +766,90 @@ const fragmentos = (t) => t.replace(/\[Se [^\]]*\]:/g, '').split(/\[[^\]]*\]/).m
     check('Ponto de partida: escolher uma resposta tira a ajuda', !(await page.$('[data-campo="regulada"] .como-descobrir')));
     await ok();
     check('Ponto de partida: com resposta, grava e segue', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE)).regulada === 'Sim' && !!(await page.$('#pergunta')));
+    /* ---------- lote 26/11: "Outro" na frequência de compra abre "A cada quantos dias?" (obrigatório, inteiro > 0) ---------- */
+    try {
+      const MSG_DIAS = 'Digite de quantos em quantos dias você compra (um número inteiro maior que zero, ex.: 45).';
+      const mods = { 'lg2-turma-a-m05': { R: { 'M5.P01': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' }, 'M5.P10': { estado: 'valor', valor: 'Refrigerante 2 L' }, 'M5.P37': { estado: 'valor', valor: '120' } } }, 'lg2-turma-b-m06': { R: { 'M6.P18': { estado: 'opcao', opcao: 'Sim' } } } };
+      await semear(mods); await page.goto(URL); await page.click('#ir');
+      const ops = await page.evaluate(() => [...document.querySelectorAll('fieldset[data-campo="reposicao"] .opcao')].map((x) => x.querySelector('.op-txt > b').textContent.trim()));
+      check('Outro (frequência): opções antigas iguais e "Outro" antes do "Não sei"', JSON.stringify(ops) === JSON.stringify(['Toda semana', 'A cada 15 dias', 'Todo mês', 'Outro', 'Não sei']), ops);
+      check('Outro (frequência): o campo de dias só aparece depois de tocar "Outro"', await page.evaluate(() => document.querySelector('#w-reposicaoDias').hidden));
+      await page.click('fieldset[data-campo="reposicao"] .opcao[data-v="Outro"]');
+      const campo = await page.evaluate(() => { const w = document.querySelector('#w-reposicaoDias'), i = w.querySelector('input'); return { vis: !w.hidden && i.offsetParent !== null, rot: w.querySelector('label').textContent.trim(), ph: i.placeholder, suf: w.querySelector('.pre').textContent.trim(), alt: Math.round(i.getBoundingClientRect().height), sel: document.querySelector('fieldset[data-campo="reposicao"] .opcao[data-v="Outro"]').getAttribute('aria-pressed') }; });
+      check('Outro (frequência): abre "A cada quantos dias?" com sufixo "dias", "Ex.: 45" e alvo ≥ 44 px', campo.vis && campo.rot === 'A cada quantos dias?' && campo.ph === 'Ex.: 45' && campo.suf === 'dias' && campo.alt >= 44 && campo.sel === 'true', campo);
+      const naoAvanca = async (v) => { await page.fill('#f-reposicaoDias', v); await ok(); return nrm(await page.evaluate(() => (document.querySelector('#e-reposicao') || {}).textContent || '')) === MSG_DIAS && (await page.getAttribute('#f-reposicaoDias', 'aria-invalid')) === 'true' && !(await page.$('#pergunta')) && !(await page.evaluate((k) => localStorage.getItem(k), CHAVE)); };
+      const vazios = [];
+      for (const v of ['', '0', '4,5', '-3', 'abc']) if (!(await naoAvanca(v))) vazios.push(v);
+      check('Outro (frequência): sem número (vazio, 0, 4,5, negativo, texto) não avança nem grava', !vazios.length, vazios);
+      if (SHOTS) { await page.evaluate(() => document.querySelector('fieldset[data-campo="reposicao"]').scrollIntoView({ block: 'start' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_depois_reposicao_outro_vazio.png') }); }
+      await page.fill('#f-reposicaoDias', '45'); await ok();
+      const ini45 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE);
+      check('Outro (frequência): com 45 grava reposicao "Outro" + reposicaoDias 45 (número) e segue', ini45.reposicao === 'Outro' && ini45.reposicaoDias === 45 && !!(await page.$('#pergunta')), ini45);
+      /* resultado: a conta usa 45 dias (à mão: 120 ÷ 30 = 4 por dia × 45 = 180) e o alerta de validade curta fala "a cada 45 dias" */
+      const resultadoCom = async (ini) => {
+        const st = estadoAte('ZZ', Object.assign({}, ini, { minUn: 10, perda: '' }), { 'M7-08': { estado: 'opcao', opcao: 'Sim, em poucos dias' }, 'M7-09': { estado: 'opcao', opcao: 'Sigo uma lista de conferência anotada' } });
+        await abrir(st); await abrirRetrato();
+        return { vez: (await page.$('#compra-vez')) ? nrm(await page.innerText('#compra-vez')) : '', como: (await page.$('#como-compra-vez')) ? nrm(await page.innerText('#como-compra-vez')) : '', body: nrm(await page.innerText('body')) };
+      };
+      const r45 = await resultadoCom(ini45);
+      check('Outro (resultado): compra de cada vez a cada 45 dias = 180 (4 por dia × 45 dias)', r45.vez === 'Compra de cada vez (você compra a cada 45 dias): 180.' && r45.como === 'Como calculamos: 4 por dia × 45 dias entre uma compra e outra = 180 (arredondado para cima).', [r45.vez, r45.como]);
+      check('Outro (resultado): validade curta + reposição espaçada cita "a cada 45 dias"', r45.body.includes('a reposição é a cada 45 dias'), (r45.body.match(/.{60}estragam em poucos dias.{80}/) || [''])[0]);
+      if (SHOTS) { await page.evaluate(() => document.querySelector('#compra-vez').scrollIntoView({ block: 'center' })); await page.waitForTimeout(400); await page.screenshot({ path: path.join(SHOTS, 'm07_depois_resultado_compra_45.png') }); }
+      const r10 = await resultadoCom(Object.assign({}, ini45, { reposicaoDias: 10 }));
+      check('Outro (resultado): 10 dias = 40 e sem alerta de reposição espaçada (menos de 15 dias)', r10.vez === 'Compra de cada vez (você compra a cada 10 dias): 40.' && !r10.body.includes('estragam em poucos dias e a reposição'), [r10.vez]);
+      /* opções antigas: mesma regra de sempre, agora com a conta em dias (Todo mês = 30, Toda semana = 7) */
+      const ant = {};
+      for (const o of ['Toda semana', 'A cada 15 dias', 'Todo mês']) { const ini = Object.assign({}, ini45, { reposicao: o }); delete ini.reposicaoDias; ant[o] = await resultadoCom(ini); }
+      check('Opções antigas (resultado): Toda semana = 7 dias → 28; 15 dias → 60; Todo mês = 30 dias → 120', ant['Toda semana'].como === 'Como calculamos: Toda semana = 7 dias; 4 por dia × 7 dias entre uma compra e outra = 28 (arredondado para cima).' && ant['A cada 15 dias'].vez === 'Compra de cada vez (você compra a cada 15 dias): 60.' && ant['Todo mês'].como === 'Como calculamos: Todo mês = 30 dias; 4 por dia × 30 dias entre uma compra e outra = 120 (arredondado para cima).', Object.values(ant).map((x) => x.como));
+      check('Opções antigas (resultado): alerta de reposição espaçada só para 15 dias e todo mês, com o mesmo texto de antes', !ant['Toda semana'].body.includes('estragam em poucos dias e a reposição') && ant['A cada 15 dias'].body.includes('a reposição é a cada 15 dias') && ant['Todo mês'].body.includes('a reposição é todo mês'));
+      /* trocar de "Outro" para uma opção antiga: o campo some e os dias não ficam gravados */
+      await semear(mods); await page.goto(URL); await page.click('#ir');
+      await page.click('fieldset[data-campo="reposicao"] .opcao[data-v="Outro"]'); await page.fill('#f-reposicaoDias', '45');
+      await page.click('fieldset[data-campo="reposicao"] .opcao[data-v="Todo mês"]');
+      const escondeu = await page.evaluate(() => document.querySelector('#w-reposicaoDias').hidden);
+      await ok();
+      const iniM = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE);
+      check('Opção antiga: "Todo mês" grava igual a antes (sem dias) e esconde o campo de dias', escondeu && iniM.reposicao === 'Todo mês' && !('reposicaoDias' in iniM) && !!(await page.$('#pergunta')), iniM);
+      /* voltar ao ponto de partida com "Outro" salvo: o campo volta preenchido */
+      await abrir(estadoAte('M7-01', Object.assign({}, ini45))); await page.click('#v');
+      check('Outro: ao voltar ao ponto de partida, "Outro" marcado e 45 no campo', (await page.inputValue('#f-reposicaoDias')) === '45' && !(await page.evaluate(() => document.querySelector('#w-reposicaoDias').hidden)) && (await page.getAttribute('fieldset[data-campo="reposicao"] .opcao[data-v="Outro"]', 'aria-pressed')) === 'true');
+    } catch (e) { check('Outro (frequência): o fluxo do campo de dias roda até o fim', false, String(e).slice(0, 200)); }
+    /* ---------- lote 26/11 (F): quem já vende não vê o teste da ideia (M4.P19/P20) nem herda a M4.P15 ---------- */
+    try {
+      const m4 = { 'lg2-turma-a-m04': { R: { 'M4.P15': { estado: 'opcao', opcao: 'Sim' }, 'M4.P19': { estado: 'valor', valor: '60 pedidos' }, 'M4.P20': { estado: 'valor', valor: '7' } } } };
+      const m1 = (op) => ({ 'lg2-turma-a-m01': { R: { 'M1.P01': { estado: 'opcao', opcao: op }, 'M1.P03': { estado: 'valor', valor: 'Bolo de pote' } } } });
+      const vis = () => page.evaluate(() => ['testeN', 'testeDias'].map((c) => { const i = document.querySelector(`#f-${c}`), h = document.querySelector(`[data-herdado="${c}"]`); return !!i || !!h; }));
+      const ruinsV = [];
+      for (const op of ['Já vendi algumas vezes', 'Já vendo sempre']) {
+        await semear(Object.assign({}, m1(op), m4)); await page.goto(URL); await page.click('#ir');
+        const v = await vis();
+        const reg = await page.evaluate(() => { const fs = document.querySelector('fieldset[data-campo="regulada"]'); return { vis: !!fs && !fs.hidden && fs.offsetParent !== null, sel: !!document.querySelector('[data-campo="regulada"] .opcao.sel'), veio4: /Veio da Etapa 4/.test((document.querySelector('[data-c="regulada"]') || {}).textContent || '') }; });
+        const txt = nrm(await page.innerText('.cartao-q'));
+        if (v.some(Boolean) || /teste da ideia/i.test(txt) || !reg.vis || reg.sel || reg.veio4) ruinsV.push([op, v, reg]);
+      }
+      check('Já vende (F): sem os campos do teste da ideia e sem herdar o teste nem a M4.P15; o campo das regras aparece normal', !ruinsV.length, ruinsV);
+      await page.click('[data-campo="tipo"] .opcao >> nth=0'); await tocar('Não'); await ok();
+      const iniV = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE);
+      check('Já vende (F): grava sem testeN/testeDias e com a regra que a pessoa marcou aqui', !('testeN' in iniV) && !('testeDias' in iniV) && iniV.regulada === 'Não' && !!(await page.$('#pergunta')), iniV);
+      /* quem ainda não vende: igual a hoje (herda 60 em 7 dias e a M4.P15) */
+      await semear(Object.assign({}, m1('Já fiz um pouco para testar ou dar de amostra'), m4)); await page.goto(URL); await page.click('#ir');
+      const nv = await vis();
+      const iniN = { n: await page.evaluate(() => (document.querySelector('#f-testeN') || {}).value), d: await page.evaluate(() => (document.querySelector('#f-testeDias') || {}).value) };
+      const regN = await page.evaluate(() => ((document.querySelector('[data-campo="regulada"] .opcao.sel') || {}).textContent || '').trim());
+      check('Ainda não vende (F): igual a hoje, com o teste da ideia (60 em 7 dias) e a M4.P15 herdados', nv.every(Boolean) && iniN.n === '60' && iniN.d === '7' && regN === 'Sim', [nv, iniN, regN]);
+      /* mudar o momento para "Já vendo" na tela tira os campos na hora; voltar para "Já fiz testes" traz de novo */
+      await page.click('[data-trocar="estagio"]').catch(() => {});
+      await tocar('Já vendo');
+      const sumiu = !(await vis()).some(Boolean);
+      await tocar('Já fiz testes ou amostras');
+      check('Momento "Já vendo" na tela esconde o teste da ideia na hora; voltar o traz de novo com os números', sumiu && (await vis()).every(Boolean) && (await page.inputValue('#f-testeN')) === '60');
+      /* estado salvo antes com estágio "Já vendo" e teste 60 em 7 dias: o resultado não fala mais do teste */
+      const velhoV = estadoAte('ZZ', { testeN: '60', testeDias: '7', minUn: 90 });
+      await semear({ [CHAVE]: velhoV }); await page.goto(URL); await page.click('#ir'); await abrirRetrato();
+      const resV = nrm(await page.innerText('body'));
+      check('Já vende (F): números antigos do teste continuam salvos (não se perdem)', (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE)).testeN === '60');
+      check('Já vende (F): resultado sem "Teste da ideia" nem "Seu teste pede", mesmo com números antigos salvos', !/Teste da ideia|Seu teste pede/.test(resV) && !(await page.$('#como-teste')), (resV.match(/.{40}(Teste da ideia|Seu teste pede).{60}/) || [''])[0]);
+    } catch (e) { check('Já vende (F): o fluxo roda até o fim', false, String(e).slice(0, 200)); }
     /* respostas antigas "Não sei" (versão 1): viram sem resposta, sem apagar as outras */
     const velho = estadoAte('ZZ');
     Object.assign(velho, { v: 1 });

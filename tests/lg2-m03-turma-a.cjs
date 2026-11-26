@@ -23,6 +23,11 @@ const servidor = http.createServer((req, res) => {
   const sab = process.env.M03_SABOTAGEM;
   if (sab === 'seguir' && f.endsWith('js/app.js')) return res.end(fs.readFileSync(f, 'utf8').replace('if (vis.length && (!vistoEm || Date.now() - vistoEm < 800)) anterior = vis;', 'if (vis.length) { mostrar(msg, vis); return botoes("mesmo"); }'));
   if (sab === 'semfixo' && f.endsWith('css/estilo.css')) return res.end(fs.readFileSync(f, 'utf8').replace('.fixo-q{position:sticky;', '.fixo-q{position:static;'));
+  /* lote 26/11: SABOTAGEM=enunciado volta a encaixar o texto livre na pergunta 3 | p04 deixa "Não" escrito passar na novidade |
+     p11 desliga a herança da M2.P22 na pergunta do problema do cliente */
+  if (sab === 'enunciado' && f.endsWith('js/app.js')) return res.end(fs.readFileSync(f, 'utf8').replace('const enunciadoPergunta = (q) => enunciado(q);', 'const enunciadoPergunta = (q) => { const v = q.codigo === "M3.P03" ? oQueVende() : null; return v ? `Quando alguém precisa de ${v}, o que pode escolher no lugar?` : enunciado(q); };'));
+  if (sab === 'p04' && f.endsWith('js/app.js')) return res.end(fs.readFileSync(f, 'utf8').replace('if (q.semNovidade && r &&', 'if (false && q.semNovidade && r &&'));
+  if (sab === 'p11' && f.endsWith('js/motor.js')) return res.end(fs.readFileSync(f, 'utf8').replace('if (q.codigo === "M3.P11") return !!H.m2p22', 'if (false) return !!H.m2p22'));
   fs.createReadStream(f).pipe(res);
 });
 
@@ -123,7 +128,19 @@ check(JSON.stringify(P(3).alternativas.map((a) => a.valor)) === JSON.stringify([
   && P(3).alternativas.every((a) => ['Produto', 'Serviço', 'Mercadoria', ''].every((t) => /^Ex\.: /.test(a.ex[t]))), 'P03: 4 tipos de alternativa, cada um com exemplo por tipo de negócio');
 /* A: "Não sei" só onde a resposta é um fato a descobrir */
 check(['1', '5', '12', '14', '14B', '21', '19', '9', '2'].every((n) => !P(n).naosei), 'Não sei: saiu das perguntas sobre a própria pessoa');
-check(!P(12).nao && P(4).nao, 'botão "Não": só onde responde a pergunta (novidade)');
+check(!P(12).nao && !P(4).nao && D.perguntas.every((q) => !q.nao), 'lote 26/11: botão "Não" saiu da novidade (P04) e não existe em nenhuma pergunta');
+check(P(4).semNovidade === true && P(4).naosei === true && P(5).mostrarSe && P(5).mostrarSe.codigo === 'M3.P04' && P(5).mostrarSe.novidade === true, 'lote 26/11: P04 bloqueia "não/não sei" escrito; P05 depende de uma novidade escrita na P04');
+check(JSON.stringify(P(4).comoDescobrir.map((x) => /concorrentes/.test(x) ? 'conc' : /clientes/.test(x) ? 'cli' : /redes sociais/.test(x) && /bairro/.test(x) ? 'redes' : /datas/.test(x) && /eventos/.test(x) ? 'datas' : '?')) === '["conc","cli","redes","datas"]', 'lote 26/11: P04 "Como descobrir" com 4 passos práticos (concorrentes, clientes, redes/bairro, datas e eventos)');
+check(/concorrentes/.test(iaP04()) && /datas e eventos/.test(iaP04()) && /^Eu vendo \[produto ou serviço\]/.test(iaP04()) && /Me faça 5 perguntas simples/.test(iaP04()), 'lote 26/11: pedido para a IA da P04 cobre concorrentes, clientes, redes e datas');
+check(P(3).pergunta === 'Quando alguém precisa [do que você vende], o que pode escolher no lugar?' && P(3).variantes.ideia.pergunta === 'Quando alguém precisa [do que você quer vender], o que pode escolher no lugar?', 'lote 26/11: P03 com enunciado fixo (o que a pessoa escreveu não entra na frase)');
+const R0N = { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } };
+const telasCom = (p04) => Motor.telas(MM, Object.assign({}, R0N, p04 ? { 'M3.P04': { estado: 'valor', valor: p04 } } : {}), {}).flat();
+check(telasCom(null).includes('M3.P05') && telasCom('Mais gente pedindo pelo WhatsApp').includes('M3.P05') && ['Não', 'não', 'Não sei', 'nenhuma', 'Nada.'].every((v) => !telasCom(v).includes('M3.P05')), 'motor: P05 só aparece quando a P04 tem uma novidade escrita (some com "Não" antigo)');
+check(Motor.proxima(MM, Object.assign({}, R0N, { 'M3.P04': { estado: 'valor', valor: 'Não' } }), 'M3.P04', {}) === 'M3.P07', 'motor: "Não" antigo na P04 segue direto para a 7');
+const HP22 = { m2p22: 'Roupa confortável para dormir' };
+check(Motor.pulada(Q['M3.P11'], {}, HP22) && Motor.pulada(Q['M3.P11'], { 'M3.P11': { estado: 'valor', valor: 'x', doPerfil: true } }, HP22) && !Motor.pulada(Q['M3.P11'], { 'M3.P11': { estado: 'valor', valor: 'minha' } }, HP22) && !Motor.pulada(Q['M3.P11'], {}, {}),
+  'motor: P11 herdada da M2.P22 (precedência: resposta própria > Etapa 2 > perfil)');
+check(Motor.proxima(MM, R0N, 'M3.P11', {}) === 'M3.P12', 'motor: depois de "Trocar" na P11 (escondida), segue para a 12');
 /* G: balões que abriam para qualquer resposta foram para a dica */
 check(P(9).caminhos.filter((c) => c.tipo !== 'Nenhum').map((c) => c.opcao).join() === 'Também fora do Brasil' && P(13).caminhos.filter((c) => c.tipo === 'Dica').map((c) => c.opcao).join() === 'Aplicativos de entrega (iFood e outros)'
   && !P('13A').caminhos.some((c) => c.tipo === 'Dica'), 'G: retornos que abriam sempre viraram dica; ficam só fora do Brasil e taxa do aplicativo');
@@ -144,8 +161,9 @@ check(VISIVEIS.every((q) => palavrasQ(q.pergunta) <= 20 && Object.values(q.varia
 const COM_NS = VISIVEIS.filter((q) => q.naosei);
 const iaTexto = (q) => q.promptIA ? `Prompt: "${q.promptIA}"` : (q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto || '';
 const adaptarSemM1 = (t) => t;   // sem o Módulo 1 no aparelho, o texto do pedido aparece como está nos dados
+function iaP04() { return Motor.partesPrompt(P(4).caminhos.find((c) => c.opcao === 'Não sei').texto).prompt }
 const iaDe = (q) => q.promptIA || ((q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA') || {}).texto ? Motor.partesPrompt(q.caminhos.find((c) => /^Não sei/.test(c.opcao) && c.tipo === 'Prompt de IA').texto).prompt : '');
-check(COM_NS.length === 13 && COM_NS.every((q) => Array.isArray(q.comoDescobrir) && q.comoDescobrir.length === 2 && q.comoDescobrir.every((s) => s.trim().length > 20) && iaDe(q)), `leve: todo "Não sei" à vista tem 2 passos e um pedido para a IA (${COM_NS.filter((q) => !(q.comoDescobrir && iaDe(q))).map((q) => q.codigo)})`);
+check(COM_NS.length === 13 && COM_NS.every((q) => Array.isArray(q.comoDescobrir) && q.comoDescobrir.length === (q.codigo === 'M3.P04' ? 4 : 2) && q.comoDescobrir.every((s) => s.trim().length > 20) && iaDe(q)), `leve: todo "Não sei" à vista tem 2 passos e um pedido para a IA (${COM_NS.filter((q) => !(q.comoDescobrir && iaDe(q))).map((q) => q.codigo)})`);
 check(COM_NS.filter((q) => q.promptIA).every((q) => /^Eu vendo \[produto ou serviço\]/.test(q.promptIA) && /Me faça 5 perguntas simples/.test(q.promptIA)), 'leve: pedidos novos no mesmo gabarito (Eu vendo [..], 5 perguntas)');
 check(!/chatgpt|gemini|copilot|claude/i.test(JSON.stringify(D)), 'leve: nenhuma marca de IA nos textos');
 check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 && D.inicio.minutos > 0, 'leve: capa com uma frase e o tempo');
@@ -254,7 +272,8 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   }
 
   /* ============ 3. P03: alternativas estruturadas, exemplos por tipo, compatibilidade texto antigo ============ */
-  await abreCod('M3.P03', 'Quando alguém precisa de Meu negócio de teste, o que pode escolher no lugar?');
+  await abreCod('M3.P03', 'Quando alguém precisa do que você vende, o que pode escolher no lugar?');
+  check(norm(await page.locator('.contexto').textContent()) === 'Pensando em: Meu negócio de teste' && !(await titulo()).includes('Meu negócio de teste'), 'lote 26/11: P03 com enunciado fixo; o que a pessoa escreveu fica só em "Pensando em"');
   await shot('m03_depois_p03');
   check(await page.locator('#ent .opcao').count() === 4, 'P03: quatro tipos de alternativa');
   await page.locator('#ent .opcao').nth(1).click(); await espera();
@@ -406,13 +425,51 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   await page.locator('.lg2-rot-fechar').click(); await espera(150);
   check(!(await page.locator('.lg2-rot-fundo').count()) && await naTela('7') && await page.evaluate(() => document.querySelector('#ent .opcao[data-op="Não sei"]').classList.contains('sel')), 'roteiro: fechar mantém a marcação da pergunta de marcar');
 
-  /* ============ R3. botão "Não" (só na novidade) e escolha da pergunta 12 com o desvio para 12B ============ */
+  /* ============ R3. lote 26/11: a novidade (P04) não tem mais "Não"; "não"/"não sei" escrito bloqueia com a ajuda ============ */
   await abrir('4');
-  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#alt button')].map((b) => b.textContent))) === '["Não","Não sei"]', 'pergunta 4: "Não" ao lado do "Não sei"');
-  await clicar('#nao', 'Não'); await espera();
-  check(await page.inputValue('#ent textarea') === 'Não' && await page.evaluate(() => document.querySelector('#nao').getAttribute('aria-pressed') === 'true'), 'pergunta 4: "Não" responde sem digitar');
-  await clicar('#ok', 'Continuar'); await espera();
-  check(JSON.stringify((await RR())['M3.P04']) === '{"estado":"valor","valor":"Não"}' && await naTela('5'), 'pergunta 4: "Não" grava e segue sem dica de resposta curta');
+  check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#alt button')].map((b) => b.textContent))) === '["Não sei"]' && await page.locator('#nao').count() === 0, 'pergunta 4: só "Não sei" (sem o atalho "Não")');
+  for (const v of ['Não', 'não sei', 'Nenhuma']) {
+    await abrir('4');
+    const antes4 = JSON.stringify(await estado());
+    await digitar(v); await clicar('#ok', 'Continuar'); await espera();
+    const cx4 = await page.evaluate(() => ({ li: [...document.querySelectorAll('#ajudans .como-descobrir li')].map((x) => x.textContent.trim()), copiar: (document.querySelector('#ajudans .btn-copiar') || {}).textContent }));
+    check(await naTela('4') && await erroTxt() === 'Escreva uma novidade que você viu. Se ainda não viu nenhuma, use a ajuda acima para descobrir.' && JSON.stringify(await estado()) === antes4,
+      `pergunta 4 "${v}" escrito: não grava nem avança (${await erroTxt()})`);
+    check(JSON.stringify(cx4.li) === JSON.stringify(P(4).comoDescobrir) && cx4.copiar === 'Copiar', `pergunta 4 "${v}" escrito: mostra "Como descobrir" com os 4 passos e o pedido para a IA`);
+  }
+  await page.evaluate(() => document.querySelector('#ajudans .como-descobrir').scrollIntoView({ block: 'start' }));
+  await shot('m03_depois_p04_nao');
+  await digitar('Abriu uma academia na rua de cima'); await clicar('#ok', 'Continuar'); await espera();
+  check((await RR())['M3.P04'].valor === 'Abriu uma academia na rua de cima' && await naTela('5'), 'pergunta 4: com uma novidade escrita, grava e segue para a 5');
+  /* quem ainda não vende: a mesma regra na versão "a sua ideia" */
+  await abrir('4', {}, { 'lg2-turma-a-m01': { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Ainda está só na minha cabeça' } } } }, P(4).variantes.ideia.pergunta);
+  check(await page.locator('#nao').count() === 0 && await page.locator('#ns').count() === 1, 'pergunta 4 (ainda não vende): sem "Não", com "Não sei"');
+  await digitar('não'); await clicar('#ok', 'Continuar'); await espera();
+  check(norm(await titulo()) === norm(P(4).variantes.ideia.pergunta) && await page.locator('#ajudans .como-descobrir li').count() === 4 && !(await RR())['M3.P04'], 'pergunta 4 (ainda não vende): "não" escrito bloqueia e abre a ajuda');
+  check((await caixasR('#ajudans .caminho'))[0].prompt.startsWith('Eu quero vender [produto ou serviço]'), 'pergunta 4 (ainda não vende): pedido para a IA em "Eu quero vender"');
+  /* respostas antigas: "Não" fica salvo e a 5 some; "Não sei" reabre vazia com a ajuda */
+  await page.goto(URL);
+  await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 8, R: { 'M3.P02': { estado: 'opcao', opcao: 'Sim' }, 'M3.P04': { estado: 'valor', valor: 'Não' }, 'M3.P05': { estado: 'valor', valor: 'Resposta antiga da cinco' } }, hist: ['RESULTADO'] })); }, CHAVE);
+  await page.reload(); await espera(); await clicar('#ir', 'Continuar de onde parei'); await espera();
+  const leg = await page.evaluate(() => ({ e: [...document.querySelectorAll('.etapa')].map((x) => x.dataset.cod), r04: (document.querySelector('.etapa[data-cod="M3.P04"] .etapa-r') || {}).textContent }));
+  check(!leg.e.includes('M3.P05') && leg.r04 === 'Não' && (await RR())['M3.P04'].valor === 'Não' && (await RR())['M3.P05'].valor === 'Resposta antiga da cinco', `"Não" antigo na 4: continua salvo, a 5 sai do resumo e a resposta dela fica guardada (${JSON.stringify(leg)})`);
+  await page.goto(URL);
+  await page.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 8, R: { 'M3.P02': { estado: 'opcao', opcao: 'Sim' }, 'M3.P03': { estado: 'valor', valor: 'Padaria' }, 'M3.P04': { estado: 'valor', valor: 'Não' } }, hist: ['M3.P03'] })); }, CHAVE);
+  await page.reload(); await espera(); await clicar('#ir', 'Continuar de onde parei'); await espera();
+  await page.locator('#ent .opcao').nth(2).click(); await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('4') && await page.inputValue('#ent textarea') === 'Não', '"Não" antigo: a 4 reabre com o que estava salvo');
+  check(JSON.stringify(Motor.telas(MM, (await RR()), {}).flat().slice(0, 5)) === '["M3.P01","M3.P02","M3.P03","M3.P04","M3.P07"]', '"Não" antigo: a 5 não está no caminho');
+  for (const [nome, v, r04] of [['texto "Não sei"', 8, { estado: 'valor', valor: 'Não sei' }], ['"naosei" da versão 7', 7, { estado: 'naosei' }]]) {
+    await page.goto(URL);
+    await page.evaluate(([k, v, r04]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v, R: { 'M3.P02': { estado: 'opcao', opcao: 'Sim' }, 'M3.P04': r04, 'M3.P01': { estado: 'valor', valor: 'Bolo' } }, hist: ['M3.P04'] })); }, [CHAVE, v, r04]);
+    await page.reload(); await espera();
+    const sv = await estado();
+    check(!sv.R['M3.P04'] && sv.R['M3.P01'].valor === 'Bolo' && JSON.stringify(sv.reabrir) === '["M3.P04"]', `"Não sei" antigo na 4 (${nome}): vira sem resposta, o resto fica`);
+    await clicar('#ir', 'Continuar de onde parei'); await espera();
+    check(await naTela('4') && await page.inputValue('#ent textarea') === '' && await page.locator('#ajudans .como-descobrir li').count() === 4 && await page.evaluate(() => document.querySelector('#ns').getAttribute('aria-pressed') === 'true'), `"Não sei" antigo na 4 (${nome}): reabre vazia, com a ajuda à vista`);
+  }
+  await digitar('Feira nova no sábado'); await clicar('#ok', 'Continuar'); await espera();
+  check(await naTela('5') && !(await estado()).reabrir, '"Não sei" antigo: depois de responder, a marca de reabrir sai');
   await abrir('12');
   check(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#ent .opcao')].map((b) => b.dataset.op))) === JSON.stringify(P(12).opcoes) && await page.locator('#nao').count() === 0, 'pergunta 12: escolha fechada, sem botão "Não"');
   await clicar('.opcao', 'Não, seria fácil'); await clicar('#ok', 'Continuar'); await espera();
@@ -652,7 +709,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   await clicar('button', 'Começar'); await espera();
   await digitar('Bolos caseiros para festas no bairro'); await clicar('#ok', 'Continuar'); await espera();
   await clicar('.opcao', 'Sim'); await clicar('#ok', 'Continuar'); await espera();
-  check(norm(await titulo()) === norm('Quando alguém precisa de Bolos caseiros para festas no bairro, o que pode escolher no lugar?'), 'pergunta 3: lembra o que a pessoa vende no enunciado');
+  check(norm(await titulo()) === norm('Quando alguém precisa do que você vende, o que pode escolher no lugar?') && norm(await page.locator('.contexto').textContent()) === 'Pensando em: Bolos caseiros para festas no bairro', 'pergunta 3: enunciado fixo e lembra o que a pessoa vende em "Pensando em"');
   await clicar('#v', 'Voltar'); await espera();
   check(await naTela('2') && await page.evaluate(() => document.querySelector('#ent .opcao.sel').dataset.op) === 'Sim', 'Voltar: volta à pergunta anterior com a resposta marcada');
   await clicar('#v', 'Voltar'); await espera();
@@ -696,7 +753,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
 
   /* ============ R13. textos por tipo de negócio e versão "o que você imagina" ============ */
   const SERV = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'naosei' }, 'M1.P03A': { estado: 'opcao', opcao: 'Serviço: meu cliente paga pelo trabalho que realizo' } } };
-  await abrir('3', {}, { 'lg2-turma-a-m01': SERV }, 'O que as pessoas escolhem no lugar do seu serviço?');
+  await abrir('3', {}, { 'lg2-turma-a-m01': SERV }, 'Quando alguém precisa do seu serviço, o que pode escolher no lugar?');
   const alt3 = await page.evaluate(() => { const b = document.querySelector('#ent .opcao'); return { rot: b.querySelector('b').textContent, ex: b.querySelector('.op-ex').textContent }; });
   check(alt3.rot === 'Contrata outra pessoa ou empresa que faz o mesmo' && alt3.ex === 'Ex.: o salão do bairro, outra manicure', `serviço: alternativa e exemplo de serviço na pergunta 3 (${JSON.stringify(alt3)})`);
   await abrir('19', NOMES1, { 'lg2-turma-a-m01': SERV });
@@ -710,12 +767,13 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   const TESTANDO = { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' };
   for (const q of D.perguntas.filter((q) => !q.oculta && q.variantes && q.variantes.ideia && q.codigo !== 'M3.P01')) {
     const n = q.codigo.slice(4).replace(/^0/, '');
-    const txt = q.codigo === 'M3.P03' ? 'Quando alguém precisa de lavagem de carro em casa, o que pode escolher no lugar?' : comoServ(Motor.variante(q, 'comecando').pergunta);
+    const txt = comoServ(Motor.variante(q, 'comecando').pergunta);
     await abrir(n, {}, { 'lg2-turma-a-m01': M1(TESTANDO) }, txt);
   }
   await abrir('13', {}, { 'lg2-turma-a-m01': M1(SO_CABECA) }, P(13).variantes.ideia.pergunta);
   await page.locator('#ent .opcao[data-op="Não sei"]').click(); await espera();
-  check((await caixasR('#msg .caminho'))[0].prompt.startsWith('Eu quero vender lavagem de carro em casa em [cidade ou bairro]'), 'prompt: "Eu quero vender" + o que vende do Módulo 1');
+  { const pr = (await caixasR('#msg .caminho'))[0].prompt;
+    check(pr.startsWith('Eu quero vender [produto ou serviço] em [cidade ou bairro]') && !pr.includes('lavagem'), `prompt: "Eu quero vender" e o colchete para a pessoa trocar (o texto dela não entra no meio da frase) (${pr.slice(0, 60)})`); }
 
   /* ============ R14. caminhos completos até o resultado (persistência, contagem, "O que entendemos", entregas) ============ */
   async function responderAtual(p02) {
@@ -795,7 +853,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(!res.etapas.some((c) => ESCONDIDAS.map((n) => COD(n)).includes(c)) && res.etapas.length === 22 && res.semResp === 0, `resultado: as 22 perguntas respondidas, sem as escondidas (${res.etapas.length})`);
   const entJ = res.ent.join(' ');
   check(res.ent.length >= 1 && res.ent.length <= 3 && res.li === 0, `resultado: "O que entendemos" em 1 a 3 parágrafos, sem lista (${res.ent.length})`);
-  check(entJ.includes('Você vende “Resposta da pergunta 1 com detalhe”') && entJ.includes('Você vende no seu bairro e na sua cidade, e os clientes que você mais atende são pessoas comuns')
+  check(entJ.includes('O que você vende: “Resposta da pergunta 1 com detalhe”') && entJ.includes('Você vende no seu bairro e na sua cidade, e os clientes que você mais atende são pessoas comuns')
     && entJ.includes(`O que o cliente quer resolver com você: “${DORES[1]}”`), `"O que entendemos": negócio, alcance, cliente e dor (${res.ent[0]})`);
   check(entJ.includes('As pessoas ficam sabendo de você por indicação (boca a boca) e compram por WhatsApp.') && entJ.includes('Quem vende algo parecido: “Doces da Ana, Padaria Central”; eles cobram em torno de R$ 45,00.')
     && entJ.includes('O que faz o cliente preferir você: “Entrego no mesmo dia e faço sob medida”.'), `"O que entendemos": canais, concorrentes, preço médio e diferencial (${res.ent.slice(1).join(' / ')})`);
@@ -886,7 +944,7 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(res7.r04 === 'Novidade inventada' && res7.r14b === 'Fraqueza inventada' && res7.r20 === 'de R$ 10,00 a R$ 20,00', `migração v7: respostas mantidas aparecem no resultado (${JSON.stringify(res7)})`);
   check(res7.sem.includes('M3.P03') && res7.sem.includes('M3.P08') && res7.naoE3, 'migração v7: o antigo "Não sei" aparece em "Perguntas sem resposta"');
   await clicar('.preencher[data-cod="M3.P03"]', 'Responder agora'); await espera();
-  check(norm(await titulo()) === norm('Quando alguém precisa de Negócio inventado de teste, o que pode escolher no lugar?') && await page.locator('#ent .opcao.sel').count() === 0 && await page.locator('#ajudans .caminho').count() === 0, 'migração v7: "Responder agora" abre a pergunta vazia');
+  check(norm(await titulo()) === norm('Quando alguém precisa do que você vende, o que pode escolher no lugar?') && await page.locator('#ent .opcao.sel').count() === 0 && await page.locator('#ajudans .caminho').count() === 0, 'migração v7: "Responder agora" abre a pergunta vazia');
   await page.locator('#ent .opcao').nth(3).click(); await clicar('#ok', 'Continuar'); await espera();
   check(await page.evaluate(() => !!document.querySelector('#entendemos')) && (await RR())['M3.P03'].tipos[0] === 'Deixa para depois ou fica sem', 'migração v7: depois de responder, volta ao resultado');
   /* versão 4: canais antigos */
@@ -1001,6 +1059,52 @@ check(D.inicio && /\S/.test(D.inicio.frase) && palavrasQ(D.inicio.frase) <= 15 &
   check(await page.evaluate(() => document.querySelector('.tempo').textContent) === 'Esta etapa leva cerca de 10 minutos.', 'G: com as Etapas 1 e 2 feitas (20 perguntas), a capa promete 10 minutos');
   await clicar('#ir', 'Começar'); await espera();
   check(await kicker() === 'Pergunta 1 de 20', `G: com as Etapas 1 e 2 feitas, o contador é de 20 (${await kicker()})`);
+
+  /* ============ R17. lote 26/11 ============ */
+  /* A: texto livre da pessoa nunca no meio da frase (enunciado, pedido para a IA, roteiro, "O que entendemos") */
+  const PIJ = { v: 3, R: { 'M1.P01': { estado: 'opcao', opcao: 'Já vendo sempre' }, 'M1.P03': { estado: 'valor', valor: 'tenho uma loja de pijamas' }, 'M1.P03A': { estado: 'opcao', opcao: 'Mercadoria: compro pronto para revender' } } };
+  await abrir('3', {}, { 'lg2-turma-a-m01': PIJ }, 'Quando alguém precisa da mercadoria que você vende, o que pode escolher no lugar?');
+  check(!(await titulo()).includes('pijamas') && /Pensando em: tenho uma loja de pijamas/.test(norm(await page.locator('.contexto').textContent())), 'A: pergunta 3 sem o texto livre no enunciado; "Pensando em" mostra o que a pessoa escreveu');
+  await shot('m03_depois_pijamas');
+  await clicar('#ns', 'Não sei'); await espera();
+  check(!(await caixasR('#ajudans .caminho'))[0].prompt.includes('pijamas'), 'A: pedido para a IA sem o texto livre encaixado');
+  await page.goto(URL);
+  await page.evaluate(([k, m1]) => { localStorage.clear(); localStorage.setItem('lg2-turma-a-m01', m1); localStorage.setItem(k, JSON.stringify({ v: 8, R: { 'M3.P02': { estado: 'opcao', opcao: 'Sim' } }, hist: ['RESULTADO'] })); }, [CHAVE, JSON.stringify(PIJ)]);
+  await page.reload(); await espera(); await clicar('#ir', 'Continuar de onde parei'); await espera();
+  const rPij = await page.evaluate(() => ({ rot: document.querySelector('#roteiro').textContent, ent: document.querySelector('#entendemos').textContent }));
+  check(!/pijamas perto de mim/.test(rPij.rot) && /o que você vende e “perto de mim”/.test(rPij.rot), 'A: roteiro de pesquisa sem o texto livre encaixado na busca');
+  check(!/Você vende “/.test(rPij.ent) && /Sobre o seu negócio, você disse: “tenho uma loja de pijamas”/.test(rPij.ent), `A: "O que entendemos" põe o texto livre depois de dois-pontos (${rPij.ent.slice(0, 120)})`);
+  /* C: M2.P22 "O que os clientes buscam?" vale como a P11 (sem tela, cartão "Veio da Etapa 2 · Trocar") */
+  const P22 = 'Roupa confortável para dormir';
+  const M2C = { v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' }, 'M2.P13': { estado: 'opcao', opcao: 'Qualidade' }, 'M2.P22': { estado: 'valor', valor: P22 } } };
+  await abrir('12', {}, { 'lg2-turma-b-m02': M2C });
+  let R17 = await RR();
+  check(JSON.stringify(R17['M3.P11']) === JSON.stringify({ estado: 'valor', valor: P22, herdado: 'M2' }), `C: P11 gravada com a resposta da Etapa 2, mesmo com a dor do perfil (${JSON.stringify(R17['M3.P11'])})`);
+  const c11 = await page.evaluate(() => { const c = document.querySelector('.herdado-mini[data-cod="M3.P11"]'); return c && { selo: c.querySelector('.selo-m').textContent, txt: c.querySelector('.herdado-txt').textContent, b: c.querySelector('.trocar-h').textContent }; });
+  check(c11 && c11.selo === 'Veio da Etapa 2' && c11.txt === `O que os clientes buscam: ${P22}` && c11.b === 'Trocar' && await naTela('12'), `C: cartão "Veio da Etapa 2 · Trocar" da P11 na tela seguinte (${JSON.stringify(c11)})`);
+  await page.evaluate(() => document.querySelector('.herdado-mini[data-cod="M3.P11"]').scrollIntoView({ block: 'center' }));
+  await shot('m03_depois_p11_etapa2');
+  await alvos44('cartão da P11');
+  await page.locator('.herdado-mini[data-cod="M3.P11"] .trocar-h').click(); await espera();
+  check(await naTela('11') && await page.inputValue('#ent textarea') === P22 && await page.evaluate(() => document.querySelector('.selo-m').textContent) === 'Veio da Etapa 2. Confira e troque se quiser.', 'C: "Trocar" abre a P11 com o que veio da Etapa 2');
+  await digitar('Dormir bem e com conforto'); await clicar('#ok', 'Continuar'); await espera();
+  R17 = await RR();
+  check(JSON.stringify(R17['M3.P11']) === '{"estado":"valor","valor":"Dormir bem e com conforto"}' && await naTela('12') && await page.locator('.herdado-mini[data-cod="M3.P11"]').count() === 0, 'C: a troca vira resposta própria (vale mais que a Etapa 2) e o cartão sai');
+  check(await page.evaluate(() => localStorage.getItem('lg2-turma-b-m02')) === JSON.stringify(M2C), 'C: Etapa 2 nunca é alterada');
+  /* sem a M2.P22: a P11 segue como antes (escondida, recebe a dor do perfil), sem cartão */
+  await abrir('12', {}, { 'lg2-turma-b-m02': { v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' }, 'M2.P13': { estado: 'opcao', opcao: 'Qualidade' } } } });
+  R17 = await RR();
+  check(R17['M3.P11'] && R17['M3.P11'].doPerfil && R17['M3.P11'].valor === DORES[3] && !R17['M3.P11'].herdado && await page.locator('.herdado-mini[data-cod="M3.P11"]').count() === 0, `C: sem a M2.P22, a P11 vem do perfil como antes, sem cartão da Etapa 2 (${JSON.stringify(R17['M3.P11'])})`);
+  /* a M2.P22 sumiu depois: a P11 volta para a dor do perfil */
+  await abrir('12', { 'M3.P11': { estado: 'valor', valor: P22, herdado: 'M2' } }, { 'lg2-turma-b-m02': { v: 9, R: { 'M2.P07': { estado: 'opcao', opcao: 'Pessoas' } } } });
+  check(!(await RR())['M3.P11'], 'C: sem a M2.P22 e sem dor no perfil, a resposta herdada sai');
+  /* P10 respondido na tela com dor marcada: não passa por cima da Etapa 2 */
+  await abrir('10', {}, { 'lg2-turma-b-m02': { v: 9, R: { 'M2.P22': { estado: 'valor', valor: P22 } } } });
+  await clicar('.opcao', PESSOAS); await espera(); await clicar('.item-marcar[data-c="O que precisa resolver (a dor)"] .chip', DORES[1]); await clicar('#ok', 'Continuar'); await espera();
+  check(JSON.stringify((await RR())['M3.P11']) === JSON.stringify({ estado: 'valor', valor: P22, herdado: 'M2' }) && await page.locator('.herdado-mini[data-cod="M3.P11"]').count() === 1, 'C: perfil com dor não passa por cima da Etapa 2 (Etapa 2 > perfil)');
+  /* resposta própria antiga da P11 vale mais que a Etapa 2 */
+  await abrir('12', { 'M3.P11': { estado: 'valor', valor: 'Resposta minha' } }, { 'lg2-turma-b-m02': M2C });
+  check(JSON.stringify((await RR())['M3.P11']) === '{"estado":"valor","valor":"Resposta minha"}' && await page.locator('.herdado-mini[data-cod="M3.P11"]').count() === 0, 'C: resposta própria da P11 vale mais que a Etapa 2');
 
   check(erros.length === 0, 'sem erros de JavaScript: ' + erros.join(' | '));
   await browser.close(); servidor.close();

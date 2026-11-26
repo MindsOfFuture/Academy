@@ -578,7 +578,7 @@
             ${botaoVoltar()}
             ${inicial ? neg : neg || contexto(cod)}
             <h2 class="q">${esc(textoQ(q))}</h2>
-            ${verDica(q, (cartoesTipo ? `<p class="nota-info">Trabalha com mais de um tipo? Comece por um deles.</p>` : tipo === "taxas-formas" ? `<p class="nota-info">Prazo: em quantos dias o dinheiro cai na conta (deixe vazio se cai na hora). Com mais de uma forma, as partes das vendas precisam somar 100%.</p>` : junta ? `<p class="nota-info">Escreva quanto vem quando você compra (ex.: 1 kg, 12 unidades) e o preço que paga por essa quantidade.</p>` : "") + (comBotaoNS ? "" : termos(ajudaNS)))}
+            ${verDica(q, (cartoesTipo ? `<p class="nota-info">Trabalha com mais de um tipo? Comece por um deles.</p>` : tipo === "taxas-formas" ? `<p class="nota-info">Prazo para o dinheiro cair na sua conta: em quantos dias o dinheiro cai (deixe vazio se cai na hora). Com mais de uma forma, as proporções precisam somar 100%.</p>` : junta ? `<p class="nota-info">Escreva quanto vem quando você compra (ex.: 1 kg, 12 unidades) e o preço que paga por essa quantidade.</p>` : "") + (comBotaoNS ? "" : termos(ajudaNS)))}
             ${comBotaoNS ? "" : blocoVideo(q.video)}
             ${comSelo && !neg ? selo(comSelo) : ""}
             ${listaM4 || entregaM4 ? selo(4) : ""}
@@ -879,8 +879,8 @@
         const x = v.find((y) => y.forma === f) || {};
         ent.appendChild(el(`<fieldset class="forma" data-forma="${esc(f)}"><legend>${esc(f)}</legend>
           <label class="item"><span>Taxa</span><div class="linha"><input class="campo taxa" inputmode="decimal"${ph(0)} value="${esc(x.taxa ?? "")}"><span class="pre">%</span></div></label>
-          <label class="item"><span>Prazo</span><div class="linha"><input class="campo prazo" inputmode="numeric"${ph(1)} value="${esc(x.prazo ?? "")}"><span class="pre">dias</span></div></label>
-          ${varias ? `<label class="item"><span>Parte das vendas</span><div class="linha"><input class="campo parte" inputmode="decimal"${ph(2)} value="${esc(x.parte ?? "")}"><span class="pre">%</span></div></label>` : ""}
+          <label class="item"><span>Prazo para o dinheiro cair na sua conta</span><div class="linha"><input class="campo prazo" inputmode="numeric"${ph(1)} value="${esc(x.prazo ?? "")}"><span class="pre">dias</span></div></label>
+          ${varias ? `<label class="item"><span>Proporção que você vende nesta modalidade</span><div class="linha"><input class="campo parte" inputmode="decimal"${ph(2)} value="${esc(x.parte ?? "")}"><span class="pre">%</span></div></label>` : ""}
         </fieldset>`));
       });
       ent.appendChild(el(`<p class="nota">Sem taxa? Coloque 0.</p>`));

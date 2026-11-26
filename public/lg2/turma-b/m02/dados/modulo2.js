@@ -151,6 +151,7 @@ window.MODULO2 = {
  "perguntas": [
   {
    "codigo": "M2.P01",
+   "oculta": true,
    "modulo": "M2",
    "pergunta": "Você já sabe quem mais compraria o seu produto ou serviço?",
    "ajuda": "Pense na pessoa que mais compraria de você. Não precisa ter certeza: uma ideia inicial já vale.",
@@ -171,22 +172,82 @@ window.MODULO2 = {
   {
    "codigo": "M2.P02",
    "modulo": "M2",
-   "pergunta": "Quem mais compraria de você? Descreva em poucas palavras.",
-   "ajuda": "Pense em uma pessoa real que você conhece ou já atendeu, sem usar o nome dela.",
+   "pergunta": "Quem compra de você?",
+   "ajuda": "Se você ainda não vende, escreva quem compraria. Pense numa pessoa real que você conhece ou já atendeu, sem usar o nome dela.",
    "tipo": "Texto",
-   "condicao": "M2.P01 = Sim ou M2.P01 = Em parte",
+   "condicao": "sempre",
    "opcoes": "Não sei",
    "resposta": "Essa descrição inicial será comparada com o que você realmente ouvir nas entrevistas.",
    "alerta": "Descrever um público muito amplo (\"todo mundo\") dificulta a pesquisa.",
    "proximo": "Use essa descrição como ponto de partida do roteiro de entrevista (M2.I01).",
    "fonte": "Sebrae PR, 25/09/2026",
    "status": "Rascunho",
-   "placeholder": "Ex.: mães que trabalham fora e não têm tempo de cozinhar",
+   "placeholder": "Ex.: mães que trabalham fora, aqui do bairro. Se ainda não vende, escreva quem compraria.",
    "comoDescobrir": [
-    "Pense numa pessoa real que já comprou ou pediu algo parecido (sem o nome): quem é, em que momento compra e do que precisa.",
-    "Complete a frase: “Quem mais compraria é ___, quando ___, porque precisa de ___”."
+    "Converse com 2 ou 3 pessoas que já compraram ou comprariam de você: quem são, onde moram e em que momento compram?",
+    "Olhe quem pergunta o preço, pede encomenda ou comenta nas suas mensagens e redes: essas pessoas mostram quem compra.",
+    "Complete a frase: “Quem compra (ou compraria) de mim é ___, quando ___, porque precisa de ___”."
    ],
-   "promptIA": "Eu vendo [o que você vende] em [seu bairro e cidade]. Me ajude a descrever, numa frase curta, quem mais compraria de mim: a situação, o momento e a necessidade dessa pessoa. Me faça perguntas antes de sugerir."
+   "promptIA": "Eu vendo [o que você vende] em [seu bairro e cidade]. Me ajude a descobrir quem compra (ou compraria) de mim. Me dê 3 perguntas simples para eu fazer a quem já comprou ou perguntou o preço. Não responda por mim."
+  },
+  {
+   "codigo": "M2.P22",
+   "modulo": "M2",
+   "pergunta": "O que os clientes buscam?",
+   "ajuda": "Pense no que a pessoa quer resolver ou conseguir quando compra algo como o que você vende.",
+   "tipo": "Texto",
+   "condicao": "sempre",
+   "opcoes": "Não sei",
+   "resposta": "Saber o que os clientes buscam ajuda você a mostrar o que vende do jeito que importa para eles.",
+   "alerta": "Nenhum",
+   "proximo": "Confira isso nas conversas: pergunte o que a pessoa procurava na última compra parecida.",
+   "fonte": "Sebrae PR, 25/09/2026",
+   "status": "Rascunho",
+   "placeholder": "Ex.: comida caseira pronta, sem precisar cozinhar depois do trabalho",
+   "comoDescobrir": [
+    "Pergunte a 2 ou 3 clientes (ou pessoas que comprariam): “O que você procura quando compra algo assim?”",
+    "Repare no que as pessoas perguntam antes de comprar: preço, sabor, prazo, tamanho, entrega. Isso mostra o que elas buscam."
+   ],
+   "promptIA": "Eu vendo [o que você vende] para [quem compra] em [seu bairro e cidade]. Me dê 3 perguntas simples para descobrir, conversando com os clientes, o que eles buscam quando compram algo assim. Não responda por mim."
+  },
+  {
+   "codigo": "M2.P23",
+   "modulo": "M2",
+   "pergunta": "Por que eles compram?",
+   "ajuda": "Pense no motivo que faz a pessoa decidir comprar: falta de tempo, uma data especial, preço, confiança ou ficar perto de casa.",
+   "tipo": "Texto",
+   "condicao": "sempre",
+   "opcoes": "Não sei",
+   "resposta": "O motivo da compra mostra o que falar quando você for oferecer o que vende.",
+   "alerta": "Nenhum",
+   "proximo": "Nas conversas, pergunte o que fez a pessoa decidir na última compra parecida.",
+   "fonte": "Sebrae PR, 25/09/2026",
+   "status": "Rascunho",
+   "placeholder": "Ex.: não têm tempo de cozinhar e confiam em comida feita em casa",
+   "comoDescobrir": [
+    "Pergunte a quem já comprou (ou compraria): “Por que você comprou da última vez? O que te fez decidir?”",
+    "Anote as palavras da pessoa e veja o que se repete: tempo, preço, data especial, confiança ou lugar."
+   ],
+   "promptIA": "Eu vendo [o que você vende] para [quem compra]. Me dê 3 perguntas simples para descobrir, conversando, por que os clientes compram algo assim. Não responda por mim."
+  },
+  {
+   "codigo": "M2.P24",
+   "modulo": "M2",
+   "pergunta": "Qual é a condição financeira dos seus clientes?",
+   "ajuda": "Pode marcar mais de uma, se você vende para faixas de renda diferentes. Pense em quanto seus clientes costumam ganhar e gastar.",
+   "tipo": "Múltipla escolha",
+   "condicao": "sempre",
+   "opcoes": "Renda baixa; Renda média; Renda alta; Não sei",
+   "resposta": "A renda dos clientes ajuda a pensar num preço que eles conseguem pagar.",
+   "alerta": "Nenhum",
+   "proximo": "Confira nas conversas quanto as pessoas costumam pagar por algo parecido.",
+   "fonte": "QuestionPro Brasil, 01/10/2026",
+   "status": "Rascunho",
+   "comoDescobrir": [
+    "Repare onde seus clientes moram, trabalham e compram: o bairro, o tipo de trabalho, as lojas que frequentam.",
+    "Pergunte a 2 ou 3 clientes quanto costumam pagar por algo parecido e se acham caro."
+   ],
+   "promptIA": "Eu vendo [o que você vende] para [quem compra] em [seu bairro e cidade]. Me ajude a estimar se meus clientes são de renda baixa, média ou alta. Me faça perguntas simples sobre onde eles moram, trabalham e compram. Não decida por mim."
   },
   {
    "codigo": "M2.P03",
@@ -194,7 +255,7 @@ window.MODULO2 = {
    "pergunta": "De onde vem o que você sabe sobre esse público?",
    "ajuda": "Escolha a origem principal. Ser sincero aqui ajuda a separar o que já foi confirmado do que ainda é palpite.",
    "tipo": "Escolha",
-   "condicao": "M2.P01 = Sim ou M2.P01 = Em parte",
+   "condicao": "sempre",
    "opcoes": "Experiência própria com esse público; Pesquisa em internet/redes/dados; Conversa com conhecidos; Suposição, ainda sem conferir",
    "resposta": "Mostra o quanto do que você sabe sobre o público já foi conferido.",
    "alerta": "Decidir com base em suposição não conferida aumenta o risco.",
@@ -617,7 +678,7 @@ window.MODULO2 = {
    "codigo": "M2.R06",
    "pergunta": "M2.P02",
    "condicao": "M2.P02 = Não sei",
-   "texto": "Não conseguir descrever o público agora é aceitável nesta etapa. Pensar em uma pessoa real que já pediu algo parecido pode ajudar.",
+   "texto": "Para seguir, escreva quem compra ou compraria de você. Pensar numa pessoa real que já pediu algo parecido ajuda.",
    "alerta": "Nenhum",
    "lacuna": "Uma primeira descrição de quem compraria",
    "proximo": "Responda às perguntas para dividir os clientes em grupos (M2.P05 em diante); elas ajudam a montar essa descrição.",
@@ -1849,6 +1910,6 @@ window.MODULO2 = {
  ],
  "inicio": {
   "frase": "Descubra quem compraria de você e como encontrar essas pessoas.",
-  "tempo": "Esta etapa leva cerca de 5 minutos."
+  "tempo": "Esta etapa leva cerca de 10 minutos."
  }
 };

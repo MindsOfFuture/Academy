@@ -92,6 +92,26 @@
   const M1 = "lg2-turma-a-m01", M2 = "lg2-turma-b-m02", M3 = "lg2-turma-a-m03", M5 = "lg2-turma-a-m05";
   const textoDe = (r) => (r && r.estado === "valor" && typeof r.valor === "string" && r.valor.trim() ? r.valor.trim() : "");
   const opcaoDe = (r) => (r && r.estado === "opcao" && r.opcao ? String(r.opcao) : "");
+  /* lote 26/11 (Ana Beatriz): quem JÁ VENDE (Etapa 1, M1.P01 = "Já vendi algumas vezes" ou "Já vendo sempre";
+     mesmo critério /vend/ do resumo) não passa pelo bloco do teste da primeira oferta (P13 a P21). As respostas
+     antigas dessas perguntas ficam salvas; só deixam de aparecer e de entrar no resultado. Sem a Etapa 1 ou
+     com "ainda não vende", tudo como antes. */
+  const BLOCO_TESTE = ["M4.P13", "M4.P14", "M4.P15", "M4.P16", "M4.P17", "M4.P18", "M4.P19", "M4.P20", "M4.P21"];
+  const MINUTOS_VENDE = 5;   // ~35 s × 9 perguntas do caminho comum de quem já vende
+  const jaVende = () => /vend/i.test(opcaoDe(lerOutro(M1, "M1.P01")));
+  const oculta = (cod) => BLOCO_TESTE.includes(cod) && jaVende();
+  /* conceitos que só explicam o teste da primeira oferta (protótipo, oferta mínima, pré-venda, critério, hipótese,
+     informação e dados no teste): saem de "Entenda os termos" do resultado de quem já vende */
+  const BASE_TESTE = ["M4.BT04", "M4.BT05", "M4.BT06", "M4.BT07", "M4.BT08", "M4.BT11", "M4.BT12"];
+  /* enunciado que fala do "primeiro teste" fora do bloco: para quem já vende, sem essa parte */
+  const ENUNCIADO_VENDE = { "M4.P05": "Quantas versões ou sabores você vai oferecer?" };
+  const enunciado = (cod, texto) => (jaVende() && ENUNCIADO_VENDE[cod]) || texto;
+  /* próxima pergunta do caminho, sem as do bloco do teste para quem já vende */
+  function proxima(R, cod) {
+    let c = Motor.proxima(M, R, cod);
+    while (c !== "RESULTADO" && oculta(c)) c = Motor.proxima(M, R, c);
+    return c;
+  }
   /* pergunta do cliente no Módulo 3: "Ainda não tenho clientes" (versão nova) e "Não sei" não definem um cliente */
   const SEM_CLIENTE = /^(ainda n[ãa]o tenho clientes?|n[ãa]o sei)\.?$/i;
   /* texto que descreve o público de forma ampla demais para um primeiro teste */
@@ -222,8 +242,8 @@
   /* próxima pergunta com tela; as puladas ficam em `pulados` para o cartão da tela seguinte */
   let pulados = [];
   function seguinte(cod) {
-    let c = Motor.proxima(M, S.R, cod);
-    while (c !== "RESULTADO" && aplicarReuso(c)) { if (S.R[c]) pulados.push(c); c = Motor.proxima(M, S.R, c); }
+    let c = proxima(S.R, cod);
+    while (c !== "RESULTADO" && aplicarReuso(c)) { if (S.R[c]) pulados.push(c); c = proxima(S.R, c); }
     salvar();
     return c;
   }
@@ -618,7 +638,7 @@
             <h3>O que você recebe no final</h3><p>${esc(D.mapa.entrega)}</p>
             <button class="btn btn-linha" id="limites">O que esta etapa não faz</button>
           </details>
-          <p class="tempo">Esta etapa leva cerca de ${esc(D.leve.minutos)} minutos</p>
+          <p class="tempo">Esta etapa leva cerca de ${esc(jaVende() ? MINUTOS_VENDE : D.leve.minutos)} minutos</p>
           <div class="acoes">
             <button class="btn btn-primario seta" id="ir">${iniciado ? "Continuar de onde parei" : "Começar"}</button>
             ${iniciado ? `<button class="btn btn-claro" id="zerar">Recomeçar do zero</button>` : ""}
@@ -628,6 +648,7 @@
       </div>`);
     ligar(p);
     p.querySelector("#ir").onclick = () => {
+      tirarOcultasDoHist();
       const atual = S.hist[S.hist.length - 1];
       if (atual === "RESULTADO") ir(telaResultado);
       else ir(telaPergunta, atual || seguinte(null));
@@ -661,13 +682,26 @@
   /* lote 17/11 (item G): total estável = o caminho mais longo possível (21 perguntas; as três da proposta de
      valor, PV1–PV3, nunca ganham tela no caminho normal: reaproveitam a 9, a 11 e a 10). O número de cada pergunta
      é a sua posição nessa lista, então nunca volta e o total nunca muda; a PV usa o número da pergunta 11. */
-  const ORD = {};
-  M.perguntas.filter((q) => !/^M4\.PV/.test(q.codigo)).forEach((q, i) => { ORD[q.codigo] = i + 1; });
-  const TOTAL = Object.keys(ORD).length;
-  const ordem = (cod) => ORD[cod] || ORD["M4.P11"];
-  function progresso(cod) { return Math.min(100, Math.round(((ordem(cod) - 1) / TOTAL) * 100)); }
+  /* lote 26/11: para quem já vende, a lista não tem o bloco do teste (12 perguntas); o total vale para o caminho
+     inteiro da pessoa, então a barra continua só andando para a frente */
+  function ords() {
+    const o = {};
+    M.perguntas.filter((q) => !/^M4\.PV/.test(q.codigo) && !oculta(q.codigo)).forEach((q, i) => { o[q.codigo] = i + 1; });
+    return o;
+  }
+  const total = () => Object.keys(ords()).length;
+  const ordem = (cod) => { const o = ords(); return o[cod] || o["M4.P11"]; };
+  function progresso(cod) { return Math.min(100, Math.round(((ordem(cod) - 1) / total()) * 100)); }
+  /* histórico antigo com perguntas do bloco do teste (quem passou a vender depois): elas saem do caminho de volta */
+  function tirarOcultasDoHist() {
+    if (!jaVende()) return;
+    const h = S.hist.filter((c) => !oculta(c));
+    if (h.length !== S.hist.length) { S.hist = h; salvar(); }
+  }
 
   function telaPergunta(cod) {
+    if (oculta(cod)) { tirarOcultasDoHist(); S.hist = S.hist.filter((x) => x !== "RESULTADO"); const px = seguinte(S.hist[S.hist.length - 1] || null); if (px === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); return telaResultado(); } cod = px; }
+    tirarOcultasDoHist();
     const q0 = M.porCodigo[cod], q = adapt(q0);
     if (S.hist[S.hist.length - 1] !== cod) { S.hist.push(cod); salvar(); }
     const tipo = Motor.campo(q);
@@ -689,11 +723,11 @@
     const ficha = fichaVale(cod);
     const p = el(`
       <div class="pag">
-        ${heroi({ compacta: true, kicker: `Pergunta ${ordem(cod)} de ${TOTAL}`, progresso: progresso(cod) })}
+        ${heroi({ compacta: true, kicker: `Pergunta ${ordem(cod)} de ${total()}`, progresso: progresso(cod) })}
         <main class="corpo">
           <div class="cartao-q pergunta" data-cod="${esc(cod)}">
             ${voltarTopo()}
-            <h2 class="q" tabindex="-1">${esc(T(V.pergunta))}</h2>
+            <h2 class="q" tabindex="-1">${esc(T(enunciado(cod, V.pergunta)))}</h2>
             ${vazio(q.destaque) || !q.destaque_visivel ? "" : `<div class="bloco b-proximo destaque">${txt(q.destaque)}</div>`}
             ${motivo ? `<p class="lembra">Antes você marcou “${esc(motivo)}”. Explique com as suas palavras.</p>` : ""}
             ${verDica([
@@ -868,7 +902,7 @@
       if (avisoVisto !== null) return;
       const r = provisoria();
       const R = r ? Object.assign({}, S.R, { [cod]: r }) : S.R;
-      okBtn.textContent = Motor.proxima(M, R, cod) === "RESULTADO" ? "Ver meu resumo" : "Continuar";
+      okBtn.textContent = proxima(R, cod) === "RESULTADO" ? "Ver meu resumo" : "Continuar";
     }
     function aoVivo() {
       nomeOk();
@@ -935,11 +969,13 @@
 
   /* ================= resultado: resumo das respostas + alertas da planilha ================= */
   function telaResultado() {
+    tirarOcultasDoHist();
     const regras = Motor.regrasTodas(M, S.R);
     const lac = Motor.lacunas(regras), enc = Motor.encaminhamentos(regras), ale = Motor.alertas(regras);
-    const resp = Motor.respondidas(M, S.R);
+    /* quem já vende: as respostas antigas do bloco do teste não entram no resultado (continuam salvas) */
+    const resp = Motor.respondidas(M, S.R).filter((q) => !oculta(q.codigo));
     /* "Não sei" não é mais gravado; o que ficou para responder são os "Não sei" antigos que reabriram */
-    const ns = (S.reabrir || []).filter((c) => !S.R[c] && M.porCodigo[c] && Motor.avaliar(M, S.R, Motor.cond(M.porCodigo[c])) === true).map((c) => M.porCodigo[c]);
+    const ns = (S.reabrir || []).filter((c) => !S.R[c] && !oculta(c) && M.porCodigo[c] && Motor.avaliar(M, S.R, Motor.cond(M.porCodigo[c])) === true).map((c) => M.porCodigo[c]);
     const reusadas = resp.filter((q) => ehAuto(S.R[q.codigo]) && ROTULO_REUSO[q.codigo] && !(S.forcar || []).includes(q.codigo)).map((q) => q.codigo);
     const p = el(`
       <div class="pag resultado">
@@ -956,7 +992,7 @@
           <details class="respostas"><summary>Ver suas respostas (${resp.length})</summary>
           ${resp.map((q, i) => { const v = Motor.valor(S.R, q.codigo), se = Motor.retornoSe(q, v), de = S.R[q.codigo].de; return `
             <div class="etapa ${v === Motor.NS ? "e-conf" : "e-sim"}">
-              <div class="etapa-topo"><span class="etq">${i + 1}</span><b>${esc(T(Motor.versao(M, S.R, adapt(q)).pergunta))}</b></div>
+              <div class="etapa-topo"><span class="etq">${i + 1}</span><b>${esc(T(enunciado(q.codigo, Motor.versao(M, S.R, adapt(q)).pergunta)))}</b></div>
               <p>${txt(mostrar(q.codigo))}</p>
               ${S.R[q.codigo].ficha && S.R[q.codigo].ficha.custo_unidade !== undefined ? `<div class="fc-res">${fichaResHtml(S.R[q.codigo].ficha, fichaVale(q.codigo) || "Produto")}</div>` : ""}
               ${de ? `<p class="selo-m"><b>Veio da Etapa ${de}</b></p>` : S.R[q.codigo].igual ? `<p class="selo-m"><b>Veio da sua resposta anterior</b></p>` : ""}
@@ -975,7 +1011,7 @@
           <div class="cartao"><p>${esc(D.mapa.entrega)}</p></div>
           <div class="cartao"><h3>Quando procurar um profissional</h3><p>${esc(D.mapa.encaminhamentos)}</p></div>
           <div class="aviso">${esc(D.mapa.mensagem_limite)}</div>
-          ${blocoConceitos(D.base.filter(baseVale), true)}
+          ${blocoConceitos(D.base.filter((b) => baseVale(b) && !(jaVende() && BASE_TESTE.includes(b.codigo))), true)}
           </details>
 
           <div class="acoes">
@@ -1004,7 +1040,7 @@
 
   /* números fora do comum que a pessoa confirmou: o aviso continua no resumo */
   function avisosNumeros() {
-    const lista = ["M4.P19", "M4.P20", "M4.P21"].map((c) => {
+    const lista = ["M4.P19", "M4.P20", "M4.P21"].filter((c) => !oculta(c)).map((c) => {
       const v = Motor.valor(S.R, c), n = lerNumero(v);
       return v && v !== Motor.NS && !isNaN(n) ? avisoNumero(c, n) : "";
     }).filter(Boolean);
@@ -1033,7 +1069,9 @@
   }
 
   /* "Sua próxima tarefa" (versão leve): uma ação concreta com o que a pessoa planejou */
+  const PLANO_VENDE = "Como você já vende, use as vendas de agora para conferir o que funciona: anote quantas pessoas compram de novo e o que elas perguntam.";
   function tarefa(nNaoSei) {
+    if (jaVende()) return (nNaoSei ? "Primeiro, responda o que falta (abaixo). Depois, " + PLANO_VENDE.charAt(0).toLowerCase() + PLANO_VENDE.slice(1) : PLANO_VENDE);
     const val = (c) => { const v = Motor.valor(S.R, c); return v && v !== Motor.NS ? String(v).trim() : ""; };
     const teste = val("M4.P14"), dias = val("M4.P20"), crit = val("M4.P19"), unid = UNID_P17[val("M4.P17")];
     const n = lerNumero(crit);
@@ -1059,7 +1097,7 @@
     const est = opcaoDe(lerOutro(M1, "M1.P01"));
     if (/cabeça/i.test(est)) frases.push("Como a ideia ainda não saiu do papel, este teste vai ser o seu primeiro contato com clientes de verdade.");
     else if (/testar|amostra/i.test(est)) frases.push("Você já fez um pouco para testar; agora o teste ajuda a ver se as pessoas pagam de verdade.");
-    else if (/vend/i.test(est)) frases.push("Você já vende, então o teste serve para confirmar ou ajustar o que já faz.");
+    /* quem já vende: a frase sobre o teste vai no 2º parágrafo (sem plano de teste da primeira oferta) */
     const cli = val("M4.P08"), dor = val("M4.P09");
     if (cli && dor) frases.push(`Seu primeiro cliente é ${aspas(cli)}, e o problema que você ajuda a resolver é ${aspas(dor)}.`);
     else if (cli) frases.push(`Seu primeiro cliente é ${aspas(cli)}.`);
@@ -1072,7 +1110,9 @@
     if (prop) frases.push(`Por que comprar de você, por enquanto: ${aspas(prop)}.${pvTxt ? ` Ela ${pvTxt}.` : ""}`);
     else if (pvTxt) frases.push(`O que você oferece ${pvTxt}.`);
     else if (ganho || motivo) frases.push([ganho && `O cliente ganha ${aspas(ganho)}`, motivo && `e escolheria você por ${S.R["M4.P11"].detalhe ? aspas(motivo) : motivo.toLowerCase()}`].filter(Boolean).join(" ") + ".");
-    const teste = val("M4.P14"), dias = val("M4.P20"), gasto = val("M4.P21"), crit = val("M4.P19");
+    const vende = jaVende();
+    const teste = vende ? "" : val("M4.P14"), dias = val("M4.P20"), gasto = val("M4.P21"), crit = val("M4.P19");
+    if (vende) frases.push("Como você já vende, não precisa de um teste da primeira oferta: as vendas de agora já mostram o que funciona.");
     if (teste) {
       let f = `No primeiro teste, você vai ${teste.charAt(0).toLowerCase() + teste.slice(1)}`;
       if (dias) f += `, durante ${dias} dias`;
@@ -1084,7 +1124,7 @@
       frases.push(f);
     }
     const c2 = frases.length;   // 2º: proposta de valor e o teste; 3º: o que ficou em aberto
-    if (nNaoSei) frases.push(`Ainda ${nNaoSei === 1 ? "falta responder 1 pergunta" : `faltam responder ${nNaoSei} perguntas`}; vale voltar nelas antes de testar.`);
+    if (nNaoSei) frases.push(`Ainda ${nNaoSei === 1 ? "falta responder 1 pergunta" : `faltam responder ${nNaoSei} perguntas`}; vale voltar nelas${vende ? "" : " antes de testar"}.`);
     if (!frases.length) frases.push("Ainda faltam respostas para montarmos o resumo do seu negócio.");
     return `<section class="entendemos"><h2>O que entendemos até aqui</h2>${emParagrafos(frases, c1, c2).map((f) => `<p>${esc(f)}</p>`).join("")}</section>`;
   }

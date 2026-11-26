@@ -67,8 +67,19 @@
     s.v = 7;
   }
   const semNS = (xs) => xs.filter((x) => !Motor.ehNS(x));
+  /* lote 26/11: "Não sei" na novidade (P04) não é resposta: a antiga reabre como não respondida, com a ajuda à vista.
+     O "Não" antigo fica salvo (só esconde a pergunta seguinte, ver Motor.novidadeOk). Mesmo formato: sem subir a versão. */
+  const NS_TXT = /^n[aã]o sei( dizer)?[.!]*$/i;
+  function reabrirP04(s) {
+    const r = s.R["M3.P04"];
+    if (!r || !(r.estado === "naosei" || (r.estado === "valor" && NS_TXT.test(String(r.valor || "").trim())))) return false;
+    delete s.R["M3.P04"];
+    s.reabrir = [...new Set((s.reabrir || []).concat("M3.P04"))];
+    return true;
+  }
   function migrar7(s) {
     const R = s.R || {};
+    if (R["M3.P04"] && R["M3.P04"].estado === "naosei") reabrirP04(s);
     Object.keys(R).forEach((k) => { if (R[k] && R[k].estado === "naosei") delete R[k]; });
     /* "Indicação" saiu de "por onde compra" e foi para "como fica sabendo" */
     const IND = "Indicação (boca a boca)";
@@ -114,6 +125,7 @@
       if (s && s.v === 5) { migrar5(s); migrou = true; }
       if (s && s.v === 6) { migrar6(s); migrou = true; }
       if (s && s.v === 7) { migrar7(s); migrou = true; }
+      if (s && s.v === VERSAO && s.R && reabrirP04(s)) migrou = true;
       const ok = s && s.v === VERSAO && s.R && typeof s.R === "object" && Array.isArray(s.hist) &&
         Object.keys(s.R).every((k) => M.porCodigo[k]) && s.hist.every((k) => k === "RESULTADO" || M.porCodigo[k]);
       return ok ? s : novo();
@@ -152,6 +164,9 @@
     const estagio = op === "Ainda está só na minha cabeça" ? "ideia" : /^Já fiz um pouco/.test(op) ? "comecando" : /^Já vend/.test(op) ? "vende" : null;
     /* Módulo 2 (só leitura): tipo de cliente e o que ajuda a marcar o perfil */
     const op2 = (c) => { const r = lerOutro("lg2-turma-b-m02", c); return r && r.estado === "opcao" && r.opcao && !Motor.ehNS(r.opcao) ? String(r.opcao) : null; };
+    /* M2.P22 "O que os clientes buscam?" (texto, mesmo formato do M2.P02): vale como "que problema você resolve" */
+    const r22 = lerOutro("lg2-turma-b-m02", "M2.P22");
+    const m2p22 = r22 && r22.estado === "valor" && !vazio(r22.valor) && !Motor.ehNS(r22.valor) ? String(r22.valor).trim() : null;
     const m2 = { tipo: op2("M2.P07"), fase: op2("M2.P09"), preco: op2("M2.P10"), onde: op2("M2.P11"), situacao: op2("M2.P12"), pesa: op2("M2.P13") };
     const m1 = {};
     ["M1.P05", "M1.P06", "M1.P07", "M1.P07A"].forEach((c) => {
@@ -159,7 +174,7 @@
       const v = r && r.estado === "opcao" ? (Array.isArray(r.opcoes) ? r.opcoes.join("; ") : r.opcao) : r && r.estado === "valor" ? r.valor : null;
       if (v && !Motor.ehNS(v)) m1[c] = String(v).trim();
     });
-    return { ideia, tipo: t ? t[0] : null, tipoFrase: t ? t[1] : null, estagio, m2, m1,
+    return { ideia, tipo: t ? t[0] : null, tipoFrase: t ? t[1] : null, estagio, m2, m1, m2p22,
       /* resposta pronta para "em que ramo e o que vende" */
       p01: ideia ? ideia + (t ? ` (${t[0].toLowerCase()})` : "") : null };
   }
@@ -170,12 +185,10 @@
   const DO_TIPO = { Produto: "do seu produto", "Serviço": "do seu serviço", Mercadoria: "da mercadoria que você vende" };
   const enunciado = (q) => porTipo(Motor.variante(q, est()).pergunta || q.pergunta)
     .replace(/\[(do que você (?:quer vender|vende))\]/g, (m, x) => (H.tipo ? DO_TIPO[H.tipo].replace("você vende", /quer/.test(x) ? "você quer vender" : "você vende") : x));
-  /* Pergunta 3: quando veio do Módulo 1, nomeia o que a pessoa vende no enunciado. */
-  const enunciadoPergunta = (q) => {
-    let t = enunciado(q), v = q.codigo === "M3.P03" ? oQueVende() : null;
-    if (v) return `Quando alguém precisa de ${v}, o que pode escolher no lugar?`;
-    return t;
-  };
+  /* lote 26/11: o texto livre da pessoa nunca entra no meio do enunciado ("Quando alguém precisa de tenho uma loja…").
+     O enunciado é fixo ("do que você vende", ou "do seu serviço" pelo tipo da Etapa 1); o que ela escreveu aparece
+     separado, na linha "Pensando em: …". */
+  const enunciadoPergunta = (q) => enunciado(q);
   /* o que a pessoa vende, em poucas palavras (para lembrar na pergunta 3) */
   function oQueVende() {
     const r = S.R["M3.P01"];
@@ -208,7 +221,8 @@
   function adaptar(t) {
     let x = porTipo(t);
     if (naoVende()) x = x.replace(/\bEu vendo \[/g, "Eu quero vender [");
-    if (H.ideia) x = x.replace(/\[produto ou serviço\]/g, H.ideia);
+    /* lote 26/11: o que a pessoa escreveu não é encaixado no pedido para a IA ("Eu vendo tenho uma loja…");
+       o colchete fica para ela trocar, como diz a nota acima do pedido */
     return x;
   }
   /* menos texto na tela: ajuda com mais de LIMITE_TEXTO letras mostra a 1ª frase (ou linha); o resto fica em "Ver mais" */
@@ -243,6 +257,7 @@
   const MSG_ESCREVA_SEM = "Escreva a sua resposta no campo acima para continuar.";
   /* lote 16/11: depois de abrir a ajuda do "Não sei", o Continuar pede a resposta de verdade */
   const MSG_AJUDA = "Use a ajuda acima e escreva a sua resposta para continuar.";
+  const MSG_NOVIDADE = "Escreva uma novidade que você viu. Se ainda não viu nenhuma, use a ajuda acima para descobrir.";
   const MSG_AJUDA_MARQUE = "Use a ajuda acima e marque pelo menos uma opção para continuar.";
   const NOTA_NS_MARQUE = "Use a sugestão e marque acima o que as pessoas escolhem no lugar. Você segue depois de responder.";
   const NOTA_NS_CONC = "Use a sugestão e responda acima, em cada concorrente. Você segue depois de responder.";
@@ -280,9 +295,12 @@
   /* grava uma resposta; a dor escrita no perfil do cliente vira a resposta da pergunta seguinte */
   function gravarR(cod, r) {
     S.R[cod] = r;
+    if (S.reabrir) { S.reabrir = S.reabrir.filter((c) => c !== cod); if (!S.reabrir.length) delete S.reabrir; }
     if (cod === "M3.P10") {
       const d = Motor.dorDoPerfil(S.R), p11 = S.R["M3.P11"];
-      if (d && (!p11 || p11.doPerfil || (p11.estado === "valor" && vazio(p11.valor)))) S.R["M3.P11"] = { estado: "valor", valor: d, doPerfil: true };
+      /* a resposta da Etapa 2 (M2.P22) vale mais que a dor do perfil; a resposta própria da pessoa vale mais que as duas */
+      if (p11 && p11.herdado === "M2") { /* fica a da Etapa 2 */ }
+      else if (d && (!p11 || p11.doPerfil || (p11.estado === "valor" && vazio(p11.valor)))) S.R["M3.P11"] = { estado: "valor", valor: d, doPerfil: true };
       else if (!d && p11 && p11.doPerfil) delete S.R["M3.P11"];
     }
     /* "Não" na pergunta 2: as perguntas puladas não ficam no resumo */
@@ -303,18 +321,29 @@
       const r = { estado: "opcao", opcao: ini.ops[0], opcoes: ini.ops.slice(), campos: ini.campos, herdado: "M2" };
       if (JSON.stringify(r) !== JSON.stringify(S.R["M3.P10"])) gravarR("M3.P10", r);
     }
+    /* lote 26/11: "o que os clientes buscam" da Etapa 2 entra pronto na pergunta do problema do cliente (P11) */
+    const q11 = M.porCodigo["M3.P11"], p11 = S.R["M3.P11"];
+    if (Motor.pulada(q11, S.R, H)) {
+      if (!p11 || p11.valor !== H.m2p22 || p11.herdado !== "M2") { S.R["M3.P11"] = { estado: "valor", valor: H.m2p22, herdado: "M2" }; salvar(); }
+    } else if (p11 && p11.herdado === "M2" && !H.m2p22) {
+      /* a resposta da Etapa 2 sumiu: volta a dor do perfil (ou fica sem resposta) */
+      const d = Motor.dorDoPerfil(S.R);
+      if (d) S.R["M3.P11"] = { estado: "valor", valor: d, doPerfil: true }; else delete S.R["M3.P11"];
+      salvar();
+    }
   }
-  const ROT_HERDADO = { "M3.P01": ["Etapa 1", "O que você vende"], "M3.P10": ["Etapa 2", "Quem compra de você"] };
+  const ROT_HERDADO = { "M3.P01": ["Etapa 1", "O que você vende"], "M3.P10": ["Etapa 2", "Quem compra de você"], "M3.P11": ["Etapa 2", "O que os clientes buscam"] };
   function puladasAntes(cod) {
     const ts = Motor.telas(M, S.R, H), k = ts.findIndex((t) => t.includes(cod));
     if (k < 0) return [];
     const idx = (c) => M.perguntas.findIndex((x) => x.codigo === c);
     const de = k > 0 ? idx(ts[k - 1][ts[k - 1].length - 1]) : -1, ate = idx(cod);
-    return M.perguntas.filter((x, i) => i > de && i < ate && Motor.mostrada(x, S.R) && Motor.pulada(x, S.R, H) && ROT_HERDADO[x.codigo]);
+    /* a P11 é escondida (recebe a dor do perfil), mas quando vem da Etapa 2 ganha o cartão como as outras */
+    return M.perguntas.filter((x, i) => i > de && i < ate && (Motor.mostrada(x, S.R) || (x.codigo === "M3.P11" && Motor.visivel(x, S.R))) && Motor.pulada(x, S.R, H) && ROT_HERDADO[x.codigo]);
   }
   function cartaoHerdado(x) {
     const r = S.R[x.codigo], [mod, rot] = ROT_HERDADO[x.codigo];
-    const txt = x.codigo === "M3.P10" ? Motor.opcoesDe(r).map((o) => o.replace(/\s*\(.*\)$/, "")).join(" e ") : H.p01;
+    const txt = x.codigo === "M3.P10" ? Motor.opcoesDe(r).map((o) => o.replace(/\s*\(.*\)$/, "")).join(" e ") : x.codigo === "M3.P11" ? H.m2p22 : H.p01;
     return `<div class="herdado-mini" data-cod="${esc(x.codigo)}"><span class="selo-m">Veio da ${esc(mod)}</span>
       <p class="herdado-txt">${esc(rot)}: ${esc(txt)}</p><button class="btn-alt trocar-h" type="button" data-cod="${esc(x.codigo)}">Trocar</button></div>`;
   }
@@ -505,6 +534,7 @@
     if (doM1) { resp = { estado: "valor", valor: H.p01, doM1: true }; seloTxt = SELO_M1; }
     if (cod === "M3.P10" && resp && resp.herdado === "M2") seloTxt = SELO_M2;
     if (cod === "M3.P11" && resp && resp.doPerfil) seloTxt = SELO_DOR;
+    if (cod === "M3.P11" && resp && resp.herdado === "M2") seloTxt = SELO_M2;
     let escolhida = resp && resp.opcao ? resp.opcao : null;
     let marcadas = resp && resp.opcoes ? resp.opcoes.slice() : resp && resp.estado === "naosei" && tipo === "multipla" ? [Motor.NS] : [];
     /* pergunta que virou de marcar: a resposta antiga em texto vira "Outro" com o texto (nada se perde) */
@@ -964,6 +994,7 @@
       }
       const r = { estado: "valor", valor: ent.querySelector("textarea").value.trim() };
       if (cod === "M3.P01" && H.p01 && r.valor === H.p01) r.doM1 = true;
+      if (cod === "M3.P11" && H.m2p22 && r.valor === H.m2p22) r.herdado = "M2";
       return r;
     }
     const gravar = (r) => gravarR(cod, r);
@@ -1012,6 +1043,8 @@
         return avancar();
       }
       const r = coletar();
+      /* lote 26/11: na novidade (P04), "não", "não sei", "nenhuma" escrito no campo não é resposta: abre a ajuda e não grava */
+      if (q.semNovidade && r && r.estado === "valor" && Motor.semNovidade(r.valor)) { naoSei(); return erro(MSG_NOVIDADE); }
       const falta = faltando(r);
       if (tipo === "alternativas" && !antigoTxt && !(r && r.tipos && r.tipos.length) && ajudaAberta()) return erro(MSG_AJUDA_MARQUE);
       if (falta) return erro(falta);
@@ -1020,7 +1053,7 @@
       /* Alerta (ex.: nada marcado): não grava, não avança; a mensagem fica logo acima do Continuar */
       if (Motor.bloqueia(rets)) return erro(rets.filter((c) => c.tipo === "Alerta").map((c) => adaptar(c.texto)).join(" "));
       gravar(r);
-      if (r.doM1) return avancar();                                   // confirmou o que veio da Etapa 1
+      if (r.doM1 || (cod === "M3.P11" && r.herdado === "M2")) return avancar();                                   // confirmou o que veio da Etapa 1
       /* retorno que a pessoa não chegou a ver ao vivo (tocou logo depois de digitar) vai para o topo da próxima tela */
       const vis = VIVO ? Motor.mostraveis(q, r, est()).filter((c) => c.tipo !== "Alerta") : [];
       if (vis.length && (!vistoEm || Date.now() - vistoEm < 800)) anterior = vis;
@@ -1048,6 +1081,8 @@
     botoes("continuar");
     if (ent.classList.contains("opcoes")) pintar();
     marcarNao();
+    /* "Não sei" antigo que reabriu (lote 26/11): a pergunta volta vazia e com a ajuda "Como descobrir" à vista */
+    if (!S.R[cod] && (S.reabrir || []).includes(cod) && ns) naoSei();
     return p;
   }
 
@@ -1082,7 +1117,8 @@
     const estagio = { ideia: " A ideia ainda está no começo: você ainda não começou a vender.", comecando: " Você já fez um pouco para testar.", vende: " Você já vende." }[est()] || "";
     /* resposta escrita como frase ("Vendo marmitas…", "Faço unhas…") não cabe depois de "Você vende" */
     const frase = oque && /^(eu\s+)?(vendo|revendo|fa[cç]o|trabalho|quero|ofere[cç]o|sou|tenho|presto)\b/i.test(String(oque).trim());
-    if (oque) f.push(`${frase ? `Sobre o seu negócio, você disse: ${aspas(oque)}` : `Você ${ideia ? "quer vender" : "vende"} ${aspas(oque)}`}${H.tipoFrase ? ` — é ${H.tipoFrase}` : ""}.${estagio}`);
+    /* lote 26/11: o texto livre vai depois de dois-pontos, nunca no meio da frase */
+    if (oque) f.push(`${frase ? "Sobre o seu negócio, você disse" : `O que você ${ideia ? "quer vender" : "vende"}`}: ${aspas(oque)}${H.tipoFrase ? ` — é ${H.tipoFrase}` : ""}.${estagio}`);
     const p09 = RR["M3.P09"], p10 = RR["M3.P10"];
     let cli = "";
     if (p10 && p10.estado === "opcao") {
@@ -1181,8 +1217,8 @@
     const cs = op("M3.P13").concat(op("M3.P13A"));
     const tem = (re) => cs.some((o) => re.test(o));
     const servico = H.tipo === "Serviço", ideia = naoVende();
-    const oque = H.ideia || valorDe(RR, "M3.P01");
-    const termo = oque && oque.length <= 40 ? `“${oque.replace(/[.\s]+$/, "")} perto de mim”` : `o que você ${ideia ? "quer vender" : "vende"} e “perto de mim”`;
+    /* lote 26/11: sem encaixar o texto livre da pessoa na busca ("tenho uma loja de pijamas perto de mim") */
+    const termo = `o que você ${ideia ? "quer vender" : "vende"} e “perto de mim”`;
     const nomes = nomesConc(RR);
     const p09 = RR["M3.P09"], longe = p09 && p09.estado === "opcao" && /Brasil/.test(p09.opcao);
     const onde = [];
@@ -1211,7 +1247,7 @@
     const tabs = r19 && r19.porNome ? Object.entries(r19.porNome).map(([n, x]) => [n, (x && x.tabela) || {}]) : [[null, (r19 && r19.tabela) || {}]];
     const em = (t, v) => q19.criterios.filter((c) => t[c] === v).map((c) => porTipo(c).toLowerCase());
     const porNome = (c) => { const r = RR[c]; return r && r.porNome ? Object.entries(r.porNome).filter(([, v]) => !vazio(v)).map(([n, v]) => `${n}: ${v}`) : [valorDe(RR, c)]; };
-    const sim = (c) => { const v = valorDe(RR, c); return v && v !== Motor.NAO ? v : null; };
+    const sim = (c) => { const v = valorDe(RR, c); return v && v !== Motor.NAO && !Motor.semNovidade(v) ? v : null; };
     const r07 = RR["M3.P07"];
     const riscos = r07 && r07.estado === "opcoes" ? (r07.opcoes || []).filter((o) => o !== "Outro" && !Motor.ehNS(o)).map((o) => porTipo(o).toLowerCase()).concat(r07.detalhe ? [r07.detalhe] : [])
       : r07 && r07.estado === "valor" && !vazio(r07.valor) ? [r07.valor] : [];

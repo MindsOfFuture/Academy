@@ -21,7 +21,10 @@
       { codigo: 'M6.SZ', pergunta: 'Suas vendas mudam conforme a época do ano?', antes: 'M6.P06' }]
   };
   /* Telas que só confirmam o resultado ("Este é o retrato... Está certo?") e respostas repetidas de outro módulo. */
-  var FORA = { 'M5.P00': 1, 'M7-13': 1, 'M9-14': 1, 'M10-12': 1 };
+  var FORA = { 'M5.P00': 1, 'M7-13': 1, 'M9-14': 1, 'M10-12': 1, 'M2.P01': 1 };
+  /* quem já vende (Etapa 1) não passa pelo teste da primeira oferta da Etapa 4 */
+  var TESTE_M4 = { 'M4.P13': 1, 'M4.P14': 1, 'M4.P15': 1, 'M4.P16': 1, 'M4.P17': 1, 'M4.P18': 1, 'M4.P19': 1, 'M4.P20': 1, 'M4.P21': 1 };
+  function jaVende(ler) { var s = ler(1), r = s && s.R && s.R['M1.P01']; return !!r && r.estado === 'opcao' && /vend/i.test(String(r.opcao || '')); }
 
   function lerLocal(n) { try { return JSON.parse(raiz.localStorage.getItem(CHAVES[n])) || null; } catch (e) { return null; } }
 
@@ -230,12 +233,13 @@
     ler = ler || lerLocal;
     var ctx = contexto(ler);
     var abertos = [];
+    var vende = jaVende(ler);
     var blocos = modulos.map(function (m) {
       var est = ler(m.n) || {}, R = est.R || {};
       var itens = [];
       var lista = []; try { lista = perguntasDe(m.n, dados(m.n)); } catch (e) { lista = []; }
       lista.forEach(function (p) {
-        if (FORA[p.codigo] || !(p.codigo in R)) return;
+        if (FORA[p.codigo] || !(p.codigo in R) || (vende && TESTE_M4[p.codigo])) return;
         var resp; try { resp = formatar(R[p.codigo], p, est); } catch (e) { resp = null; }
         if (!resp) return;
         var q = textoPergunta(p, ctx);

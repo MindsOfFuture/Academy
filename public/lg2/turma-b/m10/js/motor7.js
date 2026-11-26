@@ -87,6 +87,19 @@
   /* vendas por dia = vendas do mês ÷ 30; consumo do item por dia = vendas por dia × quanto vai em cada unidade */
   const vendasDia = (volumeMes) => volumeMes / DIAS_MES;
   const consumoDia = (volumeMes, usoPorUn) => vendasDia(volumeMes) * usoPorUn;
+  /* frequência de compra (ponto de partida): cada opção vira dias corridos (mesma unidade do lembrete de reposição);
+     "Outro" usa os dias que a pessoa digitou (número inteiro maior que zero) */
+  const REPOSICAO_OUTRO = "Outro";
+  const REPOSICAO_DIAS = { "Toda semana": 7, "A cada 15 dias": 15, "Todo mês": DIAS_MES };
+  function diasReposicao(opcao, dias) {
+    if (opcao === REPOSICAO_OUTRO) { const n = typeof dias === "number" ? dias : /^\d+$/.test(String(dias ?? "").trim()) ? Number(String(dias).trim()) : NaN; return Number.isInteger(n) && n > 0 ? n : null; }
+    return REPOSICAO_DIAS[opcao] ?? null;
+  }
+  /* quanto comprar de cada vez: uso por dia × dias entre uma compra e outra, já com a perda (dividir); arredonda para cima */
+  function compraPorVez(volumeMes, usoPorUn, diasEntre, perdaPct) {
+    if (!(volumeMes > 0) || !(usoPorUn > 0) || !(diasEntre > 0)) return null;
+    return compraComPerda(consumoDia(volumeMes, usoPorUn) * diasEntre, perdaPct);
+  }
   /* compra com perda: dividir, não multiplicar */
   function compraComPerda(necessidade, perdaPct) {
     if (!(necessidade > 0)) return null;
@@ -118,7 +131,7 @@
   }
   const fmt = (n, casas = 0) => Number(n).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
-  const M = { SEMANAS_MES, DIAS_MES, LIMITE, vendasDia, HORAS, APOIO, capacidade, texto, comparar, teste, pontoDePedido, consumoDia, compraComPerda, mesForte, num, fmt, piso, teto };
+  const M = { SEMANAS_MES, DIAS_MES, LIMITE, vendasDia, HORAS, APOIO, capacidade, texto, comparar, teste, pontoDePedido, consumoDia, compraComPerda, REPOSICAO_OUTRO, REPOSICAO_DIAS, diasReposicao, compraPorVez, mesForte, num, fmt, piso, teto };
   if (typeof module !== "undefined" && module.exports) module.exports = M;
   raiz.Motor7 = M;
 })(typeof window !== "undefined" ? window : globalThis);

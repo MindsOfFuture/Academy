@@ -127,7 +127,9 @@
   function contexto() {
     const m1 = lerR("lg2-turma-a-m01"), m3 = lerR("lg2-turma-a-m03"), m4 = lerR("lg2-turma-a-m04"), m5 = lerR("lg2-turma-a-m05"), m6 = lerR("lg2-turma-b-m06"), m8 = lerR("lg2-turma-b-m08");
     const e7 = lerEstado("lg2-turma-b-m07");
-    const reg4 = valor(m4["M4-11"]) || valor(m4["M4.P15"]);
+    /* quem já vende (Etapa 1) não passa pelo teste da primeira oferta da Etapa 4: a P15 antiga não vale */
+    const jaVende = /vend/i.test(String(valor(m1["M1.P01"]) || ""));
+    const reg4 = valor(m4["M4-11"]) || (jaVende ? null : valor(m4["M4.P15"]));
     const cnpj = valor(m8["M8-02"]) || valor(m8["M8.P05"]);
     const exp = valor(m1["M1-08"]) || valor(m1["M1.P04"]);
     const preoc = valor(m1["M1.P08"]);

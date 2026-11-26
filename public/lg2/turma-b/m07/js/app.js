@@ -127,7 +127,13 @@
   const ESTAGIOS = ["Ainda é uma ideia", "Já fiz testes ou amostras", "Já vendo"];
   /* sobre a própria pessoa (horas, material, estoque): sem "Não sei". Fato a descobrir (reposição, regras): "Não sei" bloqueia */
   const HORAS = ["Até 10 h", "De 11 a 20 h", "Mais de 20 h"];
-  const REPOSICAO = ["Toda semana", "A cada 15 dias", "Todo mês", NS];
+  /* "Outro" (lote 26/11): abre "A cada quantos dias?" (inteiro > 0), gravado como ini.reposicao = "Outro" + ini.reposicaoDias = N */
+  const OUTRO_REP = Mo.REPOSICAO_OUTRO;
+  const REPOSICAO = ["Toda semana", "A cada 15 dias", "Todo mês", OUTRO_REP, NS];
+  const MSG_DIAS = "Digite de quantos em quantos dias você compra (um número inteiro maior que zero, ex.: 45).";
+  /* frequência para o texto: "todo mês" / "a cada 45 dias"; null sem resposta */
+  const repTexto = (ini) => { const r = ini && ini.reposicao; if (!r || r === NS) return null; if (r === OUTRO_REP) { const d = Mo.diasReposicao(r, ini.reposicaoDias); return d ? `a cada ${Mo.fmt(d)} ${d === 1 ? "dia" : "dias"}` : null; } return r.toLowerCase(); };
+  const repDias = (ini) => ini ? Mo.diasReposicao(ini.reposicao, ini.reposicaoDias) : null;
   const SN = ["Sim", "Não"];
   const SNN = ["Sim", "Não", NS];
   /* o Módulo 1 pergunta o tempo POR DIA; a conta daqui usa horas POR SEMANA (7 dias).
@@ -142,6 +148,12 @@
   const ESTOQUE = ["Sim, mantenho mercadoria guardada", "Não, compro quando o cliente pede"];
   const NAO_APLICA = "Não se aplica ao meu negócio";
 
+  /* "já vende" = M1.P01 "Já vendi algumas vezes"/"Já vendo sempre" (mesmo critério do M3/M4) ou momento "Já vendo" aqui:
+     sem teste da ideia (campos, herança, contas e textos) */
+  const vendeM1 = (m1) => /vend/.test(textoDe((m1 || M1())["M1.P01"]) || "");
+  const jaVende = (x) => (x && x.estagio === ESTAGIOS[2]) || vendeM1();
+  /* números do teste da ideia; null para quem já vende */
+  const testeIni = () => jaVende(I()) ? { n: null, d: null } : { n: Mo.num(I().testeN), d: Mo.num(I().testeDias) };
   /* tela de partida: o que dá para trazer dos módulos anteriores */
   function herdar() {
     const m1 = M1(), m3 = M3(), m4 = M4(), m5 = M5(), m6 = M6();
@@ -187,7 +199,9 @@
     if (u0) { pega("uso", u0.q, 5); ini.usoUn = u0.u; }
     /* unidades que saem de uma vez (M7-02): o que a receita do Módulo 5 rende */
     if (prod && rende > 0) { ini.unLote = String(rende); ini.de.unLote = 5; }
-    const reg = textoDe(m4["M4.P15"]); pega("regulada", SN.includes(reg) ? reg : null, 4);
+    /* quem já vende (M1.P01) não passa mais pelo teste da primeira oferta (M4.P13–P21) nem pela M4.P15 na Etapa 4 (lote 26/11) */
+    const vende1 = vendeM1(m1);
+    const reg = textoDe(m4["M4.P15"]); if (!vende1) pega("regulada", SN.includes(reg) ? reg : null, 4);
     /* Módulo 5 "Você costuma perder…?" = Não: a perda daqui já vem 0 (sem perguntar de novo) */
     if (textoDe(m5["M5.P26"]) === "Não") pega("perda", "0", 5);
     else if (textoDe(m5["M5.P26"]) === "Sim") {
@@ -197,8 +211,7 @@
     }
     if (rev && !ini.uso) ini.uso = "1";
     /* o Módulo 4 guarda texto livre ("60 pedidos"): fica só o número */
-    pega("testeN", numDe(textoDe(m4["M4.P19"])), 4);
-    pega("testeDias", numDe(textoDe(m4["M4.P20"])), 4);
+    if (!vende1) { pega("testeN", numDe(textoDe(m4["M4.P19"])), 4); pega("testeDias", numDe(textoDe(m4["M4.P20"])), 4); }
     /* só contexto (não aparecem como campo) */
     ini.entrega = textoDe(m4["M4.P04"]); ini.variedade = textoDe(m4["M4.P05"]); ini.etapas4 = textoDe(m4["M4.P06"]);
     ini.riscos3 = textoDe(m3["M3.P07"]); ini.experiencia = textoDe(m1["M1.P04"]); ini.preocupacao = textoDe(m1["M1.P08"]);
@@ -324,10 +337,10 @@
       "[fazer/atender]": verbo(), "[fazer]": verbo(), "[fizer]": verboFut(),
       "[etapas do Módulo 4]": I().etapas4 ? I().etapas4 : "um modelo para o seu tipo de negócio",
       "[forma de entrega]": I().entrega ? I().entrega.toLowerCase() : "a forma de entrega",
-      "[reposição do Módulo 6]": I().reposicao && I().reposicao !== NS ? "reposição " + I().reposicao.toLowerCase() : "a reposição",
+      "[reposição do Módulo 6]": repTexto(I()) ? "reposição " + repTexto(I()) : "a reposição",
       "[horas do Módulo 1]": I().horas && I().horas !== NS ? I().horas.toLowerCase().replace("até", "até").replace(" h", " horas") : "horas",
       "[item principal do Módulo 4]": I().item ? I().item : "o item principal",
-      "[frequência do Módulo 6]": I().reposicao && I().reposicao !== NS ? I().reposicao.toLowerCase() : "não informada",
+      "[frequência do Módulo 6]": repTexto(I()) || "não informada",
       "[riscos do Módulo 3]": I().riscos3 || "",
       "[variedade do Módulo 4]": I().variedade || "quantas opções você oferece",
     };
@@ -497,15 +510,17 @@
     const veio = (campo) => base.de && base.de[campo] ? `<span class="veio">Veio da Etapa ${base.de[campo]}${campo === "minUn" ? " · Trocar" : ""}</span>` : "";
     /* resposta que já veio de outro módulo: cartão pequeno (rótulo curto, valor, selo e "Trocar"); o campo só abre no "Trocar" */
     const CURTO = { oferta: "O que você vende", tipo: "Tipo", estagio: "Momento", horas: "Horas por semana", volume: "Vendas por mês", minUn: "Tempo por unidade", testeN: "Teste da ideia", testeDias: "Prazo para o teste", item: "Item principal", uso: "Em cada unidade", estoque: "Estoque", reposicao: "Compra", perda: "Perda", regulada: "Regras próprias", material: "Usa material" };
-    const mostra = (c) => { const v = f[c]; return c === "minUn" ? fmtMin(Mo.num(v)) : c === "uso" ? `${v}${f.usoUn ? " " + f.usoUn : ""}` : c === "perda" ? `${v}%` : c === "testeN" ? `${v} pedidos` : c === "testeDias" ? `${v} dias` : String(v); };
+    const mostra = (c) => { const v = f[c]; return c === "minUn" ? fmtMin(Mo.num(v)) : c === "uso" ? `${v}${f.usoUn ? " " + f.usoUn : ""}` : c === "perda" ? `${v}%` : c === "testeN" ? `${v} pedidos` : c === "testeDias" ? `${v} dias` : c === "reposicao" && v === OUTRO_REP ? (repTexto(f) || v) : String(v); };
     const aberto = new Set();
     const herdado = (c) => !!(base.de && base.de[c] && f[c] != null && f[c] !== "" && String(f[c]) === String(base[c] ?? "") && !aberto.has(c));
     const cartao = (c) => `<div class="herdado" data-herdado="${c}" ${herdado(c) ? "" : "hidden"}><span class="h-txt"><span class="h-rot">${esc(CURTO[c] || c)}:</span> <b>${esc(mostra(c))}</b> ${veio(c)}</span><button type="button" class="trocar" data-trocar="${c}" aria-label="Trocar ${esc((CURTO[c] || c).toLowerCase())}">Trocar</button></div>`;
     /* "Não sei" (só onde a resposta é um fato a descobrir: reposição e regras): mostra como descobrir e não marca nada */
     const nsTocado = new Set();
     const ajudaNS = (campo) => (nsTocado.has(campo) && D.partida_ajuda && D.partida_ajuda[campo] ? caixaComo(D.partida_ajuda[campo].comoDescobrir, D.partida_ajuda[campo].promptIA) + `<p class="nota-ns">Depois de descobrir, escolha uma opção acima.</p>` : "");
+    /* "Outro" da frequência de compra: campo obrigatório de dias logo abaixo das opções */
+    const outroDias = (campo) => campo !== "reposicao" ? "" : `<div class="outro-dias" id="w-reposicaoDias" ${f.reposicao === OUTRO_REP ? "" : "hidden"}><label class="rot-campo" for="f-reposicaoDias">A cada quantos dias?</label><div class="linha"><input class="campo" id="f-reposicaoDias" data-campo="reposicaoDias" inputmode="numeric" placeholder="Ex.: 45" value="${esc(f.reposicaoDias ?? "")}"><span class="pre">dias</span></div></div>`;
     const sel = (campo, ops, rot) => `<div class="campo-h" data-c="${campo}">${cartao(campo)}<fieldset class="grupo" data-campo="${campo}" ${herdado(campo) ? "hidden" : ""}><legend>${esc(rot)} ${veio(campo)}</legend>
-      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" aria-pressed="${f[campo] === x}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div><div class="ns-ajuda" aria-live="polite">${ajudaNS(campo)}</div><p class="erro-campo" id="e-${campo}" hidden></p></fieldset></div>`;
+      <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" aria-pressed="${f[campo] === x}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div>${outroDias(campo)}<div class="ns-ajuda" aria-live="polite">${ajudaNS(campo)}</div><p class="erro-campo" id="e-${campo}" hidden></p></fieldset></div>`;
     const txt = (campo, rot, attrs, depois) => `<div class="campo-h" data-c="${campo}">${cartao(campo)}<div class="campo-abre" ${herdado(campo) ? "hidden" : ""}><label class="rot-campo" for="f-${campo}">${esc(rot)} ${veio(campo)}</label><input class="campo" id="f-${campo}" data-campo="${campo}" value="${esc(f[campo] ?? "")}" ${attrs || ""}></div><p class="erro-campo" id="e-${campo}" hidden></p>${depois || ""}</div>`;
     /* abre o campo herdado (Trocar, ou quando há aviso nele) */
     function abrirCampo(c) {
@@ -535,8 +550,7 @@
           ${base.de && base.de.horas === 1 && base.horasM1 ? `<p class="nota-veio" id="nota-horas">Na Etapa 1 você respondeu “${esc(base.horasM1)}” (${esc(base.horasConv)}). Marcamos a faixa mais próxima. Confira e ajuste.</p>` : ""}
           ${txt("volume", "Quantas unidades ou atendimentos você pretende vender por mês?", 'inputmode="decimal" placeholder="Ex.: 40"')}
           ${base.minUn > 0 ? txt("minUn", "Tempo por unidade ou atendimento (minutos)", 'inputmode="decimal" placeholder="Ex.: 30"', comoMinUn()) : ""}
-          ${txt("testeN", "No teste da ideia: qual número mínimo de pedidos você combinou?", 'inputmode="decimal" placeholder="Ex.: 10"')}
-          ${txt("testeDias", "E em quantos dias?", 'inputmode="decimal" placeholder="Ex.: 7"')}
+          <div id="teste-ideia"></div>
           <div id="f3"></div>
           <h3 class="secao-titulo">Regras</h3>
           ${sel("regulada", SNN, "Sua oferta envolve alimentos, saúde, produtos para crianças ou outra atividade com regras próprias?")}
@@ -548,6 +562,8 @@
     </div>`);
     let avisou = null;
     function desenharCond() {
+      p.querySelector("#teste-ideia").innerHTML = jaVende(f) ? "" : `${txt("testeN", "No teste da ideia: qual número mínimo de pedidos você combinou?", 'inputmode="decimal" placeholder="Ex.: 10"')}
+          ${txt("testeDias", "E em quantos dias?", 'inputmode="decimal" placeholder="Ex.: 7"')}`;
       const serv = (f.tipo || "").startsWith("Serviço");
       p.querySelector("#mat").innerHTML = serv ? sel("material", SN, "Você usa algum produto ou material para atender?") : "";
       const fase3 = (f.tipo || "").startsWith("Produto") || (f.tipo || "").startsWith("Mercadoria") || (serv && f.material === "Sim");
@@ -590,7 +606,12 @@
             fs.querySelectorAll(".opcao").forEach((x) => { const on = v !== NS && x === b; x.classList.toggle("sel", on); x.setAttribute("aria-pressed", String(on)); });
             fs.querySelector(".ns-ajuda").innerHTML = ajudaNS(c);
             fs.querySelector(".erro-campo").hidden = true;
-            if (c === "tipo" || c === "material") { lerTextos(); desenharCond(); }
+            if (c === "reposicao") {
+              const w = fs.querySelector("#w-reposicaoDias"), inp = fs.querySelector("#f-reposicaoDias");
+              w.hidden = v !== OUTRO_REP; inp.removeAttribute("aria-invalid");
+              if (v === OUTRO_REP) inp.focus({ preventScroll: true });
+            }
+            if (c === "tipo" || c === "material" || c === "estagio") { lerTextos(); desenharCond(); }
           };
         });
       });
@@ -614,6 +635,20 @@
         e.textContent = "Confira o campo marcado acima."; e.hidden = false;
         p.querySelector(`fieldset[data-campo="${semResp}"]`).scrollIntoView({ block: "center" });
         return;
+      }
+      /* "Outro" na frequência de compra: os dias são obrigatórios (número inteiro maior que zero) */
+      if (p.querySelector('fieldset[data-campo="reposicao"]')) {
+        if (f.reposicao === OUTRO_REP) {
+          const d = Mo.diasReposicao(OUTRO_REP, String(f.reposicaoDias ?? "").trim().replace(/\s*dias?$/i, ""));
+          if (!d) {
+            const ec = p.querySelector("#e-reposicao"), inp = p.querySelector("#f-reposicaoDias");
+            ec.textContent = MSG_DIAS; ec.hidden = false; inp.setAttribute("aria-invalid", "true");
+            e.textContent = "Confira o campo marcado acima."; e.hidden = false;
+            inp.focus({ preventScroll: true }); inp.scrollIntoView({ block: "center" });
+            return;
+          }
+          f.reposicaoDias = d;
+        } else delete f.reposicaoDias;
       }
       /* campos de número são opcionais: em branco = "não sei" e fica fora das contas */
       let primeiro = null;
@@ -646,6 +681,7 @@
         return;
       }
       delete f.usoPor;
+      /* quem já vende: testeN/testeDias antigos ficam salvos (respostas reais não se perdem), mas fora das contas (testeIni) */
       if (f.minUn !== undefined && f.minUn !== "" && !(Mo.num(f.minUn) > 0)) f.minUn = null;
       else if (f.minUn) f.minUn = Mo.num(f.minUn);
       f.de = Object.fromEntries(Object.entries(base.de || {}).filter(([k]) => String(f[k] ?? "") === String(base[k] ?? "")));
@@ -1078,12 +1114,12 @@
     if (c.estado === "sem-producao") add("Apoio maior ou igual às horas (M1-09)");
     const cmp = Mo.comparar(c, vol);
     if (cmp && cmp.tipo === "falta") add("Volume do Módulo 5 acima da capacidade", { "[volume]": Mo.fmt(vol), "[N]": nTexto(c, "mes") });
-    const tn = Mo.num(I().testeN), td = Mo.num(I().testeDias);
+    const { n: tn, d: td } = testeIni();
     const t = Mo.teste(c, tn, td);
     if (t && t.passa) add("Critério do teste (M4-15) acima da capacidade semanal", { "[critério]": Mo.fmt(tn), "[prazo]": Mo.fmt(td), "[N]": Mo.fmt(t.semana) });
     const r4 = S.R["M7-04"];
     if (r4 && r4.opcao === "Sim, pago alguém" && I().temGastos5 && !/funcion|ajudant/i.test(I().gastos5 || "")) add("Ajuda paga (M7-04) sem gasto com funcionários no Módulo 5");
-    if (opR("M7-08") === "Sim, em poucos dias" && ["A cada 15 dias", "Todo mês"].includes(I().reposicao)) add("Validade curta (M7-08) e reposição espaçada (M6-09)", { "[frequência]": I().reposicao.toLowerCase() });
+    if (opR("M7-08") === "Sim, em poucos dias" && repDias(I()) >= 15) add("Validade curta (M7-08) e reposição espaçada (M6-09)", { "[frequência]": repTexto(I()) });
     if (opR("M7-08") === "Não" && I().perdas5 === "Sim") add("Perdas no Módulo 5 e validade 'Não'");
     const r6 = S.R["M7-06"];
     if (r6 && r6.p1 === "Só um" && r6.p2 === "Mais de 7 dias") add("Fornecedor único e prazo acima de 7 dias");
@@ -1264,7 +1300,7 @@
       const cmp = Mo.comparar(c, volume());
       const sem = semAjuda(c);
       const mu = minUnAtual();
-      const n4 = Mo.num(I().testeN), d4 = Mo.num(I().testeDias), tst = Mo.teste(c, n4, d4);
+      const { n: n4, d: d4 } = testeIni(), tst = Mo.teste(c, n4, d4);
       capHtml = `<div class="res-dupla">
           <div class="res-num"><div class="lbl">Por semana</div><div class="val">${esc(Mo.texto(c, "semana"))}</div></div>
           <div class="res-num"><div class="lbl">Por mês</div><div class="val">${esc(Mo.texto(c, "mes"))}</div>${sem ? `<div class="sub">com a ajuda que você contou</div>` : ""}</div>
@@ -1309,12 +1345,21 @@
           : `<p class="diag-r">Para calcular, faltam ${[!vol && "o volume por mês", !(uso > 0) && "a quantidade do item por unidade", prazo == null && "o prazo de entrega"].filter(Boolean).join(", ")}. Complete em “Seu ponto de partida”.</p>`;
       };
       repoAoVivo = repoHtml;
+      /* compra de cada vez: usa a frequência do ponto de partida em dias (Toda semana = 7, A cada 15 dias = 15,
+         Todo mês = 30, Outro = os dias digitados) */
+      const compraVezHtml = () => {
+        const dias = repDias(I()), vez = Mo.compraPorVez(vol, uso, dias, perda);
+        if (vez == null) return "";
+        const bruto = Mo.consumoDia(vol, uso) * dias, conv = I().reposicao === OUTRO_REP ? "" : `${I().reposicao} = ${Mo.fmt(dias)} dias; `;
+        return `<p class="diag-r" id="compra-vez">Compra de cada vez (você compra ${esc(repTexto(I()))}): ${esc(Mo.fmt(vez))}${un ? ` ${esc(un)}` : ""}${perda > 0 ? `, já contando a perda de ${esc(fmt1(perda))}%` : ""}.</p>${comoCalc(`${conv}${fmt1(Mo.consumoDia(vol, uso))}${un ? ` ${un}` : ""} por dia × ${Mo.fmt(dias)} dias entre uma compra e outra = ${fmt1(Math.round(bruto * 10) / 10)}${un ? ` ${un}` : ""}${perda > 0 ? `; com a perda de ${fmt1(perda)}%, dividimos por ${Mo.fmt(100 - perda, perda % 1 ? 1 : 0)}% = ${Mo.fmt(vez)}` : ""} (arredondado para cima).`, "como-compra-vez")}`;
+      };
       fornHtml = `<section class="cartao bloco-res"><h3>Fornecedores e estoque</h3>
         ${r6 && r6.estado === "partes" ? `<p class="diag-q">Fornecedores ${rev() ? "da mercadoria principal" : "do item principal"}</p><p class="diag-r">${esc(r6.p1)} · chega: ${esc(r6.p2.toLowerCase())}${r6.dias ? ` (${esc(r6.dias)} dias)` : ""}</p>` : ""}
         <h4>Lembrete de reposição${I().item ? ` · ${esc(I().item)}` : ""}</h4>
         <div id="repo">${repoHtml(S.inst.folga)}</div>
         <label class="rot-campo" for="folga">Folga que você quer manter (unidades a mais)</label><input class="campo" id="folga" inputmode="numeric" value="${esc(S.inst.folga)}">
         ${compra ? `<p class="diag-r">Compra do mês${perda > 0 ? `, já contando a perda de ${esc(Mo.fmt(perda, perda % 1 ? 1 : 0))}%` : ""}: ${esc(Mo.fmt(compra))}${I().usoUn ? ` ${esc(I().usoUn)}` : ""}.</p>${comoCalc(`${Mo.fmt(vol)} por mês × ${fmt1(uso)}${un ? ` ${un}` : ""} em cada um = ${fmt1(vol * uso)}${un ? ` ${un}` : ""}${perda > 0 ? `; com a perda de ${fmt1(perda)}%, dividimos por ${Mo.fmt(100 - perda, perda % 1 ? 1 : 0)}% (o que sobra depois da perda) = ${Mo.fmt(compra)}` : ""} (arredondado para cima).`, "como-compra")}` : ""}
+        ${compraVezHtml()}
         ${avisoInst("Lembrete de reposição")}
         ${rev() ? cuidadosRevenda() : ""}
         <h4>Quadro de fornecedores</h4>
@@ -1445,3 +1490,14 @@
 
   ir(telaCapa);
 })();
+
+/* campo marcado com erro: ao corrigir, o aviso some na hora (não espera o próximo Continuar) */
+document.addEventListener("input", (ev) => {
+  const inp = ev.target;
+  if (!inp || !inp.matches || !inp.matches("input[aria-invalid]")) return;
+  inp.removeAttribute("aria-invalid");
+  const box = inp.closest("fieldset, .campo-h");
+  const ec = box && box.querySelector(".erro-campo");
+  if (ec && !ec.classList.contains("aviso-campo")) ec.hidden = true;
+  if (!document.querySelector("input[aria-invalid]")) { const e = document.getElementById("erro"); if (e && e.textContent === "Confira o campo marcado acima.") e.hidden = true; }
+});

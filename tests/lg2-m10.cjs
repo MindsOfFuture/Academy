@@ -857,7 +857,8 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   /* A (17/11): sem número e data longe são lembretes ao vivo, junto com a frase do plano; o Continuar grava num toque */
   await planoVivo('conversar com o sócio', dias(10), 'acordo assinado', ''); await confere('', 'M10-11', 'Sem número', 2);
   const sug = await page.evaluate(() => document.querySelector('#retorno').innerText);
-  check('Caso: plano sem número = pergunta gentil com o critério do teste (Etapa 4), ao vivo e sem bloquear', sug.includes('você combinou: 10') && sug.includes('pedidos entregues no prazo') && (await blocos()).join(' ').startsWith('Seu plano:'), sug); conta();
+  /* 26/11: quem já vende (a herança diz "Já vendo sempre") não passa pelo teste da primeira oferta da Etapa 4: o critério dele não entra */
+  check('Caso: plano sem número = pergunta gentil, ao vivo e sem bloquear; quem já vende não recebe o critério do teste da Etapa 4', !sug.includes('você combinou') && sug.includes('pedidos entregues no prazo') && (await blocos()).join(' ').startsWith('Seu plano:'), sug); conta();
   await clicar('Continuar');
   check('A: M10-11 sem número segue com UM toque (vai ao resultado)', !!(await page.$('#q12')) && (await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).R['M10-11'].numero, CHAVE)) === '');
   await abrir('M10-11', { 'M10-09': { estado: 'multi', opcoes: [], outro: 'Organizar a agenda' } });
@@ -1025,6 +1026,11 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     hr['lg2-turma-b-m09'].R['M9-02'] = { estado: 'opcao', opcao: 'Não' };
     Object.assign(hr['lg2-turma-b-m02'].R, { 'M2.P02': { estado: 'valor', valor: 'Mães que trabalham fora. Problema que você resolve: falta de tempo para fazer sobremesa' }, 'M2.P20': { estado: 'valor', valor: 'Sabor de bolo caseiro' }, 'M2.P13': { estado: 'naosei' } });
     Object.assign(hr['lg2-turma-a-m04'].R, { 'M4.P19': { estado: 'naosei' }, 'M4.P10': { estado: 'valor', valor: '' } });
+    /* 26/11: o "Não sei" da P19 (teste da primeira oferta) só conta para quem ainda não vende */
+    { const hs = JSON.parse(JSON.stringify(hr)); await resumo({}, hs);
+      const r4 = await page.evaluate(() => [...document.querySelectorAll('.retrato')].map((x) => x.innerText.replace(/\s+/g, ' '))[3] || '');
+      check('Retrato: quem já vende não tem o \"Não sei\" do teste da Etapa 4 contado', r4.includes('Etapa 4') && !r4.includes('“Não sei”') && r4.includes('1 em branco'), r4); }
+    hr['lg2-turma-a-m01'].R['M1.P01'] = { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' };
     const tr = await resumo({}, hr);
     const sec = (h) => page.evaluate((h) => { const s = [...document.querySelectorAll('section.cartao')].find((x) => x.querySelector('h3').innerText === h); return s ? s.innerText.replace(/\s+/g, ' ') : ''; }, h);
     const pc = await sec('Pontos para conferir');

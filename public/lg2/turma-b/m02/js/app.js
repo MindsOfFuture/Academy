@@ -16,7 +16,11 @@
   /* v3 (lote 3): a pergunta sobre o que mais muda entre os clientes (M2.P08) passou a aceitar várias respostas
      e ganhou "Outra". A resposta única salva antes vira uma lista com ela (nada é descartado). */
   /* v5 (auditoria 17/11): P01 "Ainda não sei" é resposta real; P16 funde "Não sei" em "Ainda não". */
-  const VERSAO = 5;
+  /* v6 (lote 26/11, coordenação): a P01 ("Você já sabe quem compraria?") saiu do fluxo (a resposta salva fica).
+     A etapa começa por P02 "Quem compra de você?", P22, P23, P24 e P03, todas sempre. Quem já tinha começado e
+     não respondeu uma delas volta a ela no "Continuar de onde parei"; nada do que já respondeu é apagado. */
+  const VERSAO = 6;
+  const NOVAS_V6 = ["M2.P02", "M2.P22", "M2.P23", "M2.P24", "M2.P03"];
   const ERA_NS = (r) => !!r && (r.estado === "naosei" || (r.estado === "opcao" && (r.opcao === "Não sei" || r.opcao === "Ainda não pensei nisso"
     || (Array.isArray(r.opcoes) && r.opcoes.length > 0 && r.opcoes.every((o) => o === "Não sei")))));
   const P21_ANTIGAS = { "Problema confirmado": "Contaram um problema de verdade", "Só elogios": "Só elogiaram a ideia" };
@@ -55,6 +59,11 @@
             const i = (s.hist || []).findIndex((c) => tiradas.includes(c));
             if (i >= 0) s.hist = s.hist.slice(0, i + 1);
           }
+        }
+        if (!(lido.v >= 6) && Array.isArray(s.hist) && s.hist.length) {
+          const falta = NOVAS_V6.find((c) => s.R[c] === undefined);
+          s.hist = s.hist.filter((c) => c === "RESULTADO" || M.porCodigo[c]);   // tira a P01 (e P16/P20, que já saíram)
+          if (falta) s.hist = s.hist.filter((c) => c !== "RESULTADO" && c !== falta).concat(falta);
         }
         s.v = VERSAO;
         migrou = lido.v !== undefined || Object.keys(s.R).length > 0;
@@ -98,8 +107,16 @@
     },
     /* exemplo dentro do campo (versão leve), também conforme o tipo de negócio */
     "M2.P02.placeholder": {
-      "Serviço": "Ex.: mulheres que trabalham fora e querem fazer as unhas perto de casa",
-      "Mercadoria": "Ex.: mães do bairro que compram roupa infantil para presente",
+      "Serviço": "Ex.: mulheres que trabalham fora e querem fazer as unhas perto de casa. Se ainda não vende, escreva quem compraria.",
+      "Mercadoria": "Ex.: mães do bairro que compram roupa infantil para presente. Se ainda não vende, escreva quem compraria.",
+    },
+    "M2.P22.placeholder": {
+      "Serviço": "Ex.: unhas bem feitas perto de casa, sem esperar muito",
+      "Mercadoria": "Ex.: roupa infantil bonita e barata para dar de presente",
+    },
+    "M2.P23.placeholder": {
+      "Serviço": "Ex.: querem as unhas prontas para o fim de semana e não têm tempo de ir longe",
+      "Mercadoria": "Ex.: precisam de um presente de aniversário e querem pagar pouco",
     },
     "M2.P06.placeholder": {
       "Serviço": "Ex.: noivas que se arrumam para casamento; quem faz as unhas toda semana",
@@ -311,7 +328,7 @@
      como frase de abertura, e o caminho que ela sugeria vira o último passo */
   /* resposta real "ainda não sei" (sobre a própria pessoa): grava e segue, e os passos de "Como descobrir" aparecem
      ao vivo como dica, sem travar */
-  const AINDA_NAO_SABE = { "M2.P01": "Ainda não sei" };
+  const AINDA_NAO_SABE = {};   // lote 26/11: a P01 (única com "Ainda não sei") saiu do fluxo
   const regraNS = (q) => D.regras.find((r) => String(r.condicao).trim() === `${q.codigo} = Não sei`);
   function caixaComo(q, classe) {
     if (!q || !q.comoDescobrir || !q.comoDescobrir.length) return "";
@@ -1060,8 +1077,15 @@
     }
     const p07 = v("M2.P07"), p02 = v("M2.P02");
     const quem = { "Pessoas": "pessoas que compram para si ou para a família", "Empresas": "empresas que compram para o próprio negócio", "Os dois": "tanto pessoas quanto empresas" }[p07];
-    if (quem || p02) f.push(`Seus clientes seriam principalmente ${quem || "este público"}${p02 ? `. Como você descreve quem mais compraria: “${p02.replace(/[.]+$/, "")}”` : ""}${v("M2.P14") ? `. Entre as empresas, ${minus(v("M2.P14"))}` : ""}.`);
-    else f.push("Você ainda não sabe bem quem compraria: descobrir isso é o primeiro passo.");
+    if (quem || p02) f.push(`Seus clientes seriam principalmente ${quem || "este público"}${p02 ? `. Quem compra de você, nas suas palavras: “${p02.replace(/[.]+$/, "")}”` : ""}${v("M2.P14") ? `. Entre as empresas, ${minus(v("M2.P14"))}` : ""}.`);
+    else f.push("Você ainda não sabe bem quem compra de você: descobrir isso é o primeiro passo.");
+    /* lote 26/11: o que buscam, por que compram e a renda dos clientes */
+    const p22 = v("M2.P22"), p23 = v("M2.P23");
+    if (p22) f.push(`O que eles buscam: “${semPonto(p22)}”.`);
+    if (p23) f.push(`Por que eles compram: “${semPonto(p23)}”.`);
+    const r24 = S.R["M2.P24"];
+    const rendas = r24 && r24.estado === "opcao" ? (Array.isArray(r24.opcoes) ? r24.opcoes : [r24.opcao]).filter((o) => /^Renda /.test(o)).map((o) => minus(o.replace(/^Renda /, ""))) : [];
+    if (rendas.length) f.push(`Seus clientes são de renda ${rendas.length > 1 ? rendas.slice(0, -1).join(", ") + " e " + rendas[rendas.length - 1] : rendas[0]}.`);
     const c1 = f.length;   // 1º parágrafo: o que vende e quem compra
     const p05 = v("M2.P05");
     /* M2.P08 tem várias respostas: cada característica marcada vem com o detalhe da pergunta que ela abriu */

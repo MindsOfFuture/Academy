@@ -265,7 +265,7 @@ window.MODULO3 = {
    "codigo": "M3.P03",
    "bloco": "Bloco 1: Oportunidades do Negócio",
    "titulo": "Soluções Alternativas Conhecidas",
-   "pergunta": "O que as pessoas escolhem no lugar [do que você vende]?",
+   "pergunta": "Quando alguém precisa [do que você vende], o que pode escolher no lugar?",
    "tipo": "Alternativas (marcar + quais)",
    "caminhos": [
     {
@@ -287,7 +287,7 @@ window.MODULO3 = {
    "naosei": true,
    "variantes": {
     "ideia": {
-     "pergunta": "O que as pessoas escolhem no lugar [do que você quer vender]?"
+     "pergunta": "Quando alguém precisa [do que você quer vender], o que pode escolher no lugar?"
     }
    },
    "dica": "Pense em tudo o que a pessoa pode fazer em vez de comprar de você: comprar de outro negócio, levar outra coisa, fazer sozinha ou deixar para depois.",
@@ -370,7 +370,7 @@ window.MODULO3 = {
     {
      "opcao": "Não sei",
      "tipo": "Prompt de IA",
-     "texto": "Onde olhar: converse com clientes, veja as redes sociais e as novidades do bairro. Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu observar o meu bairro, conversar com os meus clientes e descobrir se alguma novidade ou mudança recente pode me ajudar a vender mais. Não tire conclusões sobre o mercado nem cite números.\""
+     "texto": "Onde olhar: converse com clientes, veja as redes sociais e as novidades do bairro. Prompt: \"Eu vendo [produto ou serviço] em [cidade ou bairro]. Me faça 5 perguntas simples para eu descobrir uma novidade que pode me ajudar a vender mais: o que os concorrentes começaram a oferecer, o que os clientes têm procurado, o que está aparecendo nas redes e nas lojas do bairro e que datas e eventos estão chegando. Não tire conclusões sobre o mercado nem cite números.\""
     }
    ],
    "naosei": true,
@@ -380,16 +380,22 @@ window.MODULO3 = {
     }
    },
    "dica": "Preste atenção ao seu redor! Mudou algo no bairro? Tem um evento novo, uma obra por perto ou mais pessoas pedindo entrega pelo WhatsApp? Isso é uma oportunidade.",
-   "nao": true,
    "comoDescobrir": [
-    "Dê uma volta no bairro e veja o que mudou: obra, loja nova, evento, mais movimento em algum horário.",
-    "Pergunte a 3 clientes como eles preferem pedir hoje (WhatsApp, entrega, Pix) e se isso mudou."
-   ]
+    "Olhe o que os seus concorrentes começaram a oferecer nos últimos meses: produto novo, entrega, horário, forma de pagar.",
+    "Pergunte a 3 clientes ou conhecidos o que eles têm procurado e não acham com facilidade.",
+    "Veja o que está aparecendo nas redes sociais e nas lojas do seu bairro: o que é novo, o que todo mundo está comentando.",
+    "Olhe o calendário: que datas, festas e eventos estão chegando perto de você (Dia das Mães, Natal, volta às aulas, feira, festa do bairro)."
+   ],
+   "semNovidade": true
   },
   {
    "codigo": "M3.P05",
    "bloco": "Bloco 1: Oportunidades do Negócio",
    "titulo": "Avaliação da Oportunidade",
+   "mostrarSe": {
+    "codigo": "M3.P04",
+    "novidade": true
+   },
    "pergunta": "Por que você acredita que essa ideia pode dar certo no seu negócio?",
    "tipo": "Texto livre",
    "caminhos": [

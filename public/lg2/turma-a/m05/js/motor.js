@@ -117,7 +117,7 @@
   }
   const NOTA_LUZ_AGUA = "Não coloque aqui a conta de luz nem a de água: tem uma pergunta sobre isso depois, e o valor ficaria contado duas vezes.";
   const MSG_QTD_ALTA = "A quantidade utilizada está maior que a embalagem. Confira o valor e a unidade informados.";
-  const MSG_SOMA_PARTES = "A soma das partes das vendas precisa dar 100%.";
+  const MSG_SOMA_PARTES = "A soma das proporções de cada forma precisa dar 100%.";
   const POUCAS_VENDAS = "Com poucas vendas, os gastos mensais ficam divididos entre menos unidades, aumentando a parcela que cada venda precisa cobrir.";
   const MARGEM_X_ACRESCIMO = {
     texto: "Acrescentar uma porcentagem ao custo é diferente de calcular a margem sobre o preço de venda.",

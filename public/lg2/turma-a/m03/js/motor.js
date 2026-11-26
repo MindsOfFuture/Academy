@@ -42,9 +42,15 @@
 
   /* visivel = não foi pulada pelo desvio (o que sai do caminho é descartado); mostrada = visível e não escondida */
   /* mostrarSe (lote 16/11): a pergunta depende da resposta de outra (ex.: "o que dificulta" some se copiar seria fácil) */
-  const condOk = (q, R) => { const c = q.mostrarSe; if (!c) return true; const r = R[c.codigo]; return !(r && (r.opcao === c.diferente || r.valor === c.diferente)); };
+  const condOk = (q, R) => { const c = q.mostrarSe; if (!c || c.novidade) return true; const r = R[c.codigo]; return !(r && (r.opcao === c.diferente || r.valor === c.diferente)); };
   const visivel = (q, R) => condOk(q, R) && !(DESVIO.pula.includes(q.codigo) && R[DESVIO.de] && R[DESVIO.de].opcao === DESVIO.se);
-  const mostrada = (q, R) => visivel(q, R) && !q.oculta;
+  /* lote 26/11: "o que você viu de novidade" (P04) não aceita "Não"/"Não sei" escrito: ajuda a descobrir e não grava.
+     Resposta antiga "Não" continua salva, mas a pergunta seguinte ("por que essa ideia pode dar certo") só aparece
+     quando a P04 tem uma novidade escrita. A resposta da P05 fica guardada (sai só da tela e do resumo). */
+  const SEM_NOVIDADE = /^(n[aã]o|n[aã]o sei|n[aã]o sei dizer|nenhuma?|nada|ainda n[aã]o|n[aã]o vi|n[aã]o vi nada|n[aã]o vi nenhuma)[.!]*$/i;
+  const semNovidade = (v) => SEM_NOVIDADE.test(String(v || "").trim().replace(/\s+/g, " "));
+  const novidadeOk = (q, R) => { const c = q.mostrarSe; if (!c || !c.novidade) return true; const r = R[c.codigo]; return !(r && (r.estado === "naosei" || (r.estado === "valor" && semNovidade(r.valor)))); };
+  const mostrada = (q, R) => visivel(q, R) && !q.oculta && novidadeOk(q, R);
   const visiveis = (M, R) => M.perguntas.filter((q) => mostrada(q, R));
 
   /* ---- telas: perguntas puladas por já terem resposta e perguntas que dividem a mesma tela ----
@@ -73,6 +79,9 @@
     const r = R[q.codigo];
     if (q.codigo === "M3.P01") return !!H.p01 && (!r || !!r.doM1);
     if (q.codigo === "M3.P10") return !!(H.m2 && H.m2.tipo) && (!r || r.herdado === "M2");
+    /* lote 26/11: "o que os clientes buscam" (M2.P22) já respondido na Etapa 2 vale como "que problema você resolve".
+       Precedência: resposta própria da P11 > M2.P22 > dor marcada no perfil (doPerfil). */
+    if (q.codigo === "M3.P11") return !!H.m2p22 && (!r || r.herdado === "M2" || !!r.doPerfil);
     return false;
   }
   function telas(M, R, H) {
@@ -86,7 +95,10 @@
   }
   const tela = (M, R, H, cod) => telas(M, R, H).find((t) => t.includes(cod)) || [cod];
   function proxima(M, R, cod, H) {
-    const lista = telas(M, R, H).flat(), i = cod ? lista.indexOf(cod) : -1;
+    const lista = telas(M, R, H).flat();
+    let i = cod ? lista.indexOf(cod) : -1;
+    /* pergunta fora das telas (aberta por "Trocar" num cartão de herança): segue para a primeira tela depois dela */
+    if (cod && i < 0) { const pos = (c) => M.perguntas.findIndex((x) => x.codigo === c), k = pos(cod); const j = lista.findIndex((c) => pos(c) > k); return j >= 0 ? lista[j] : "RESULTADO"; }
     return lista[i + 1] || "RESULTADO";
   }
   /* textos da versão "o que você imagina" (quem ainda não começou) */
@@ -259,7 +271,7 @@
     return !!String(r.valor || "").trim();
   }
 
-  const API = { montar, campo, visivel, precos, condOk, mostrada, ehNS, ehNao, NAO, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, naoVende, varias, opcoesDe, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
+  const API = { montar, campo, visivel, semNovidade, novidadeOk, precos, condOk, mostrada, ehNS, ehNao, NAO, visiveis, proxima, telas, tela, pulada, dorDoPerfil, variante, naoVende, varias, opcoesDe, PARES, PESSOAS, DOR, curta, generica, numeros, media, reais, piores, linha, retornos,
                 mostraveis, bloqueia, corrigir, lerPreco, faixaPreco, PRECO_ALTO, PRECO_RAZAO, partesPrompt, passos, pendente, texto, hipotese, NS, DESVIO };
   if (typeof module !== "undefined") module.exports = API; else raiz.Motor = API;
 })(this);

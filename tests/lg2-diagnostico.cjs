@@ -31,7 +31,7 @@ const OFERTA = 'bolo de pote';
 const ESTADO = {
   'lg2-jornada': { v: 1, feitos: [1, 3, 4, 5, 7], atual: 1 },
   'lg2-turma-a-m01': { v: 4, atual: 'RESULTADO', R: {
-    'M1.P01': { estado: 'opcao', opcao: 'Já vendi algumas vezes' },
+    'M1.P01': { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' },
     'M1.P03': { estado: 'valor', valor: OFERTA },
     'M1.P03A': { estado: 'opcao', opcao: 'Produto: eu compro materiais e faço o que vendo' },
     'M1.P05': { estado: 'opcao', opcao: 'Até 1 hora por dia' },
@@ -228,7 +228,10 @@ const ESTADO = {
     await ctx.close();
 
     // ---------- 2. No fim da jornada (todos concluídos), junto do resumo ----------
-    const fimEstado = { ...ESTADO, 'lg2-jornada': { v: 1, feitos: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], atual: null } };
+    /* 26/11: quem já vende não passa pelo teste da primeira oferta da Etapa 4 (M4.P13–P21 ficam fora do diagnóstico) */
+    const m1Vende = JSON.parse(JSON.stringify(ESTADO['lg2-turma-a-m01']));
+    m1Vende.R['M1.P01'] = { estado: 'opcao', opcao: 'Já vendi algumas vezes' };
+    const fimEstado = { ...ESTADO, 'lg2-turma-a-m01': m1Vende, 'lg2-jornada': { v: 1, feitos: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], atual: null } };
     const fim = await abrirJornada(fimEstado, { width: 1200, height: 1400 });
     const p2 = fim.page;
     await p2.waitForSelector('#fim:not([hidden])');
@@ -236,6 +239,8 @@ const ESTADO = {
     await p2.click('#ver-diag-fim');
     await esperarDiag(p2);
     const d2 = await ler(p2);
+    { const b4 = d2.blocos.find((b) => b.n === 4);
+      assert.ok(b4 && b4.itens.length > 0 && !b4.itens.some((i) => /teste vai ficar aberto|gastar no teste/.test(i.q)), 'quem já vende: perguntas do teste da primeira oferta fora do diagnóstico'); }
     assert.ok(d2.blocos.slice(0, 1).every((b) => b.estado === 'concluído'));
     assert.equal(d2.abertos.length, 2);
     if (shots) { await p2.waitForTimeout(400); await p2.screenshot({ path: path.join(shots, 'l4_jornada_diagnostico_1200.png') }); }

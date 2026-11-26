@@ -142,13 +142,14 @@
      Código solto no meio da frase vira o assunto da pergunta ("a pergunta sobre…"); código de qualquer
      módulo (M1.P03, M3-02…) entre parênteses sai, e solto vira "uma pergunta anterior". ---- */
   const TEMA = {
-    "M2.P01": "quem seria o principal comprador", "M2.P02": "quem teria mais interesse em comprar", "M2.P03": "de onde vem o que você sabe sobre o público",
+    "M2.P01": "quem seria o principal comprador", "M2.P02": "quem compra de você", "M2.P03": "de onde vem o que você sabe sobre o público",
     "M2.P04": "conversas com possíveis clientes", "M2.P05": "quantos grupos de clientes você imagina", "M2.P06": "os grupos que você imagina",
     "M2.P07": "se os clientes são pessoas ou empresas", "M2.P08": "o que mais muda entre um cliente e outro", "M2.P09": "a fase da vida dos clientes",
     "M2.P10": "como os clientes reagem ao preço", "M2.P11": "onde estão os clientes", "M2.P12": "em que situação os clientes compram",
     "M2.P13": "o que pesa na escolha dos clientes", "M2.P14": "o tipo de empresa que compraria de você", "M2.P15": "por qual grupo começar",
     "M2.P16": "onde o cliente encontra você (na Etapa 3)", "M2.P17": "a frequência de compra", "M2.P18": "quantas pessoas você já ouviu",
     "M2.P19": "se alguém já tomou uma ação concreta", "M2.P20": "o motivo para escolherem você (na Etapa 3)", "M2.P21": "se contaram um problema de verdade",
+    "M2.P22": "o que os clientes buscam", "M2.P23": "por que os clientes compram", "M2.P24": "a condição financeira dos clientes",
   };
   const CODIGO = /\bM\d{1,2}\s*[.\-]\s*[PIRT]\s*\d{1,2}[A-Za-z]?\b/;
   function limpa(t) {

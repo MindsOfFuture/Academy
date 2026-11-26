@@ -20,6 +20,8 @@ const SABOTAGEM4 = process.env.SABOTAGEM === '4';
 const SABOTAGEM5 = process.env.SABOTAGEM === '5';
 /* SABOTAGEM=6 mostra a lembrança da Etapa 3 mesmo sem resposta lá (o teste tem de acusar) */
 const SABOTAGEM6 = process.env.SABOTAGEM === '6';
+/* SABOTAGEM=7 desliga a regra do lote 26/11 (quem já vende não passa pelo bloco do teste da primeira oferta) */
+const SABOTAGEM7 = process.env.SABOTAGEM === '7';
 const servidor = http.createServer((req, res) => {
   const f = path.join(DIR, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   if (!f.startsWith(DIR) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); }
@@ -30,6 +32,7 @@ const servidor = http.createServer((req, res) => {
     'const prox = seguinte(cod); { const ac = p.querySelector("#acoes"); ac.innerHTML = ""; const b = document.createElement("button"); b.className = "btn btn-primario"; b.textContent = "Seguir"; b.onclick = () => { if (prox === "RESULTADO") { S.hist.push("RESULTADO"); salvar(); ir(telaResultado); } else ir(telaPergunta, prox); }; ac.appendChild(b); const c = document.createElement("button"); c.className = "btn btn-claro"; c.textContent = "Corrigir minha resposta"; c.onclick = () => ir(telaPergunta, cod); ac.appendChild(c); return; }\n      if (prox === "RESULTADO")'));
   if (SABOTAGEM5 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (cod === "M4.P12") { const r = rascunhoP12();', 'if (false) { const r = rascunhoP12();').replace('function refEtapa3(cod, atual) {', 'function refEtapa3(cod, atual) { return "";'));
   if (SABOTAGEM6 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('if (!v || v === String(atual || "").trim()) return "";', 'if (v && v === String(atual || "").trim()) return "";'));
+  if (SABOTAGEM7 && f.endsWith(path.join('js', 'app.js'))) return res.end(fs.readFileSync(f, 'utf8').replace('const jaVende = () => /vend/i.test(opcaoDe(lerOutro(M1, "M1.P01")));', 'const jaVende = () => false;'));
   if (SABOTAGEM4 && f.endsWith(path.join('css', 'estilo.css'))) return res.end(fs.readFileSync(f, 'utf8').replace('.corpo>.acoes-fixas{position:sticky;bottom:0;', '.corpo>.acoes-fixas{'));
   fs.createReadStream(f).pipe(res);
 });
@@ -90,7 +93,8 @@ const NA_PAGINA = {
 /* lote 17/11 (item A): um toque por pergunta. Onde antes havia "Seguir", agora só se confere que nenhum passo extra apareceu */
 const A17 = { extras: [], semAvanco: [], aria: [], foco: [], contador: [], retornoVivo: 0, palavrasModulo: [] };
 
-async function caminho(page, respostas, outros) {
+async function caminho(page, respostas, outros, opts) {
+  const TOTAL_ESPERADO = (opts && opts.de) || 21;   // lote 26/11: quem já vende tem um caminho de 12 perguntas
   /* começa do zero, responde cada pergunta pelo mapa (código -> valor) ou com um valor neutro;
      outros = estado de outros módulos semeado no localStorage ({ chave: estado }) */
   await page.evaluate((o) => { localStorage.clear(); Object.entries(o || {}).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v))); }, outros);
@@ -131,7 +135,7 @@ async function caminho(page, respostas, outros) {
     const todoNS = ns ? await page.evaluate(() => document.querySelector('#tela').textContent.replace(/\s+/g, ' ')) : null;
     const comoNS = ns ? await page.evaluate((c) => { const cx = document.querySelector('#tela .como-descobrir'); return { n: document.querySelectorAll('.como-descobrir').length, passos: cx ? [...cx.querySelectorAll('ol > li')].map((li) => li.textContent.trim()) : [], copiar: !!(cx && cx.querySelector('[data-copiar]')), prompt: cx && cx.querySelector('[data-prompt]') ? cx.querySelector('[data-prompt]').textContent : '', salvo: (JSON.parse(localStorage.getItem('lg2-turma-a-m04')).R || {})[c] || null }; }, cod) : null;
     const k = await page.evaluate(NA_PAGINA.contador);
-    if (!k || k.de !== 21 || (ultimo && (k.n < ultimo.n || k.barra < ultimo.barra))) A17.contador.push({ cod, k, ultimo });
+    if (!k || k.de !== TOTAL_ESPERADO || (ultimo && (k.n < ultimo.n || k.barra < ultimo.barra))) A17.contador.push({ cod, k, ultimo });
     ultimo = k;
     const e = await page.evaluate(NA_PAGINA.preparar, v);
     if (e) throw new Error(cod + ': ' + e);
@@ -1138,6 +1142,59 @@ async function caminho(page, respostas, outros) {
     await semear({ 'lg2-turma-a-m01': M1_SERV, 'lg2-turma-a-m03': M3_CLI }); await medir('P06 Já sabemos');
     await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2' }, { 'lg2-turma-a-m03': { v: 7, R: { 'M3.P21': { estado: 'valor', valor: 'Entrego na porta da escola' } } } }); await medir('resultado');
     check('F: todo resumo recolhível, botão e link-botão do módulo tem pelo menos 44 px de altura', pequenos.length === 0, pequenos.slice(0, 10));
+  }
+
+  /* ---- lote 26/11 (Ana Beatriz): quem JÁ VENDE (Etapa 1) não passa pelo bloco do teste da primeira oferta ---- */
+  {
+    const BLOCO = ['M4.P13', 'M4.P14', 'M4.P15', 'M4.P16', 'M4.P17', 'M4.P18', 'M4.P19', 'M4.P20', 'M4.P21'];
+    const m1 = (op) => ({ 'lg2-turma-a-m01': { R: { 'M1.P01': { estado: 'opcao', opcao: op } } } });
+    /* respostas antigas do bloco (de quando a pessoa ainda não vendia): ficam salvas, só deixam de aparecer */
+    const ANTIGAS = { 'M4.P13': { estado: 'valor', valor: 'Acho que vão gostar' }, 'M4.P14': { estado: 'opcao', opcao: 'Vender pouca quantidade, já com preço' }, 'M4.P15': { estado: 'opcao', opcao: 'Não' },
+      'M4.P16': { estado: 'opcao', opcao: 'Sim' }, 'M4.P17': { estado: 'opcao', opcao: 'Pedidos/reservas' }, 'M4.P19': { estado: 'valor', valor: '5' }, 'M4.P20': { estado: 'valor', valor: '7' }, 'M4.P21': { estado: 'valor', valor: '50' } };
+    const capaTempo = async (outros) => { await page.evaluate((o) => { localStorage.clear(); Object.entries(o).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v))); }, outros); await page.reload(); return page.evaluate(() => (document.querySelector('.tempo') || {}).textContent || ''); };
+    const resumo = () => page.evaluate(() => ({ tarefa: (document.querySelector('.tarefa p') || {}).textContent || '', ent: (document.querySelector('.entendemos') || {}).textContent || '',
+      prox: (() => { const a = document.querySelector('.lg2-proximo a'); return a && a.getClientRects().length ? a.textContent.trim() : ''; })() }));
+    for (const op of ['Já vendo sempre', 'Já vendi algumas vezes']) {
+      const tempo = await capaTempo(m1(op));
+      check(`26/11 (${op}): tempo da capa pelo caminho mais curto (5 minutos)`, /cerca de 5 minutos/.test(tempo), tempo);
+      const outros = Object.assign(m1(op), op === 'Já vendo sempre' ? { 'lg2-turma-a-m04': { v: 6, R: ANTIGAS, hist: [] } } : {});
+      const n0 = A17.contador.length;
+      const c = await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2' }, outros, { de: 12 });
+      const vistas = c.visitadas.filter((x) => BLOCO.includes(x));
+      check(`26/11 (${op}): nenhuma pergunta do teste da primeira oferta (13 a 21) aparece`, vistas.length === 0 && c.visitadas[c.visitadas.length - 1] === 'M4.P12', c.visitadas);
+      check(`26/11 (${op}): contador "Pergunta N de 12" e barra que nunca volta`, A17.contador.length === n0 && c.visitadas.length > 0, A17.contador.slice(n0));
+      check(`26/11 (${op}): na última pergunta (12) o botão já é "Ver meu resumo"`, /Ver meu resumo/.test((c.telas['M4.P12'] || {}).depois || ''));
+      const r = await resumo();
+      check(`26/11 (${op}): resultado troca o plano de teste por uma frase simples para quem já vende`, /^Como você já vende, use as vendas de agora para conferir o que funciona/.test(r.tarefa) && /Como você já vende, não precisa de um teste da primeira oferta/.test(r.ent), r);
+      const textosBloco = BLOCO.map((k) => P[k].pergunta);
+      check(`26/11 (${op}): resultado sem "não informado", sem pendência de teste e sem as perguntas do teste`, !/não informado|No primeiro teste|faça o teste|antes de testar|antes de gastar com o teste/i.test(c.finalTodo) && !textosBloco.some((t) => c.finalTodo.includes(t)) && !/Confira estes números/.test(c.finalTodo), textosBloco.filter((t) => c.finalTodo.includes(t)));
+      check(`26/11 (${op}): a caixa "Ir para a Etapa 5" continua igual e visível`, r.prox === 'Ir para a Etapa 5', r.prox);
+      if (op === 'Já vendo sempre') {
+        const R = await estado();
+        check('26/11: respostas antigas do bloco do teste continuam salvas (não apagadas)', Object.keys(ANTIGAS).every((k) => JSON.stringify(R[k]) === JSON.stringify(ANTIGAS[k])), Object.keys(ANTIGAS).filter((k) => JSON.stringify(R[k]) !== JSON.stringify(ANTIGAS[k])));
+        /* "Revisar respostas" passa pelo caminho de novo e as respostas antigas seguem salvas */
+        await page.evaluate(() => document.querySelector('#rev').click());
+        check('26/11: "Revisar respostas" de quem já vende começa sem o bloco do teste', !BLOCO.includes(await page.evaluate(NA_PAGINA.atual)) && (await page.evaluate(NA_PAGINA.contador) || {}).de === 12);
+        /* "Continuar de onde parei" com histórico antigo parado na pergunta 14: não reabre o bloco */
+        await page.evaluate((a) => { const s = JSON.parse(localStorage.getItem('lg2-turma-a-m04')); s.hist = ['M4.P01', 'M4.P02', 'M4.P13', 'M4.P14']; s.R = Object.assign({ 'M4.P01': { estado: 'valor', valor: 'Bolo de pote' }, 'M4.P02': { estado: 'opcao', opcao: 'Produto' } }, a); localStorage.setItem('lg2-turma-a-m04', JSON.stringify(s)); }, ANTIGAS);
+        await page.reload(); await page.click('#ir');
+        const onde = await page.evaluate(NA_PAGINA.atual);
+        check('26/11: "Continuar de onde parei" parado no bloco do teste volta para fora dele', onde && !BLOCO.includes(onde), onde);
+        const R2 = await estado();
+        check('26/11: depois de continuar, as respostas antigas do bloco seguem salvas', Object.keys(ANTIGAS).every((k) => JSON.stringify(R2[k]) === JSON.stringify(ANTIGAS[k])));
+      }
+    }
+    /* quem ainda não vende (ou sem Etapa 1): tudo como antes */
+    for (const [nome, outros] of [['Ainda está só na minha cabeça', m1('Ainda está só na minha cabeça')], ['Já fiz um pouco para testar ou dar de amostra', m1('Já fiz um pouco para testar ou dar de amostra')], ['sem Etapa 1', {}]]) {
+      const tempo = await capaTempo(outros);
+      check(`26/11 (${nome}): tempo da capa como antes (10 minutos)`, /cerca de 10 minutos/.test(tempo), tempo);
+      const n0 = A17.contador.length;
+      const c = await caminho(page, { 'M4.P02': 'Produto', 'M4.P05': '2', 'M4.P14': 'Vender pouca quantidade, já com preço' }, outros);
+      const falta = BLOCO.filter((k) => k !== 'M4.P18' && !c.visitadas.includes(k));
+      check(`26/11 (${nome}): o bloco do teste aparece inteiro (13 a 21), com "Pergunta N de 21"`, falta.length === 0 && A17.contador.length === n0, { falta, cont: A17.contador.slice(n0) });
+      const r = await resumo();
+      check(`26/11 (${nome}): resultado mantém o plano de teste`, /^Faça o teste/.test(r.tarefa) && /No primeiro teste, você vai vender pouca quantidade/.test(r.ent) && !/Como você já vende/.test(r.tarefa + r.ent) && r.prox === 'Ir para a Etapa 5', r);
+    }
   }
 
   check('nenhum texto "Rafael" aparece em nenhuma tela', rafael.length === 0, rafael);
