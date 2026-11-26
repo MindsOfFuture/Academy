@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { SignUpForm } from "@/components/auth/sign-up-form";
-import { normalizeNextPath } from "@/lib/utils";
+import { ehEmpreendaMais, normalizeNextPath } from "@/lib/utils";
 
 export function AuthForms() {
     const searchParams = useSearchParams();
@@ -13,6 +13,7 @@ export function AuthForms() {
         searchParams.get("modo") === "cadastro" ? 'signup' : 'login',
     );
     const nextPath = normalizeNextPath(searchParams.get("next"));
+    const empreendedor = ehEmpreendaMais(nextPath);
 
     const toggleView = () => {
         setView(view === 'login' ? 'signup' : 'login');
@@ -24,7 +25,7 @@ export function AuthForms() {
                 <Suspense fallback={<div className="w-full bg-white p-8 md:w-1/2 lg:p-12" />}>
                     <LoginForm onToggleView={toggleView} />
                 </Suspense>
-                <SignUpForm onToggleView={toggleView} nextPath={nextPath} />
+                <SignUpForm onToggleView={toggleView} nextPath={nextPath} empreendedor={empreendedor} />
             </div>
 
             <div className="md:hidden">
@@ -33,7 +34,7 @@ export function AuthForms() {
                         <LoginForm onToggleView={toggleView} />
                     </Suspense>
                 ) : (
-                    <SignUpForm onToggleView={toggleView} nextPath={nextPath} />
+                    <SignUpForm onToggleView={toggleView} nextPath={nextPath} empreendedor={empreendedor} />
                 )}
             </div>
         </div>

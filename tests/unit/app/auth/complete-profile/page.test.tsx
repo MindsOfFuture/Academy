@@ -2,9 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pushMock = vi.fn();
+let proximo = "/lg2/jornada/index.html";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
-  useSearchParams: () => new URLSearchParams({ from: "oauth", name: "Pessoa Google", next: "/lg2/jornada/index.html" }),
+  useSearchParams: () => new URLSearchParams({ from: "oauth", name: "Pessoa Google", next: proximo }),
 }));
 vi.mock("react-hot-toast", () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
@@ -20,6 +21,7 @@ describe("/auth/complete-profile (Google)", () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
     vi.clearAllMocks();
+    proximo = "/lg2/jornada/index.html";
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ok: true, userType: "student" }) });
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -48,7 +50,16 @@ describe("/auth/complete-profile (Google)", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).parentName).toBe("Maria Souza");
   });
 
+  it("Empreenda+ (next na jornada /lg2/): sem a escolha Aluno / Professor", async () => {
+    render(<CompleteProfilePage />);
+    expect(await screen.findByDisplayValue("Pessoa Google")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aluno" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Professor" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Tipo de usuário")).not.toBeInTheDocument();
+  });
+
   it("professor: telefone, endereço e documento continuam obrigatórios e à mostra", async () => {
+    proximo = "/protected";
     render(<CompleteProfilePage />);
     fireEvent.click(await screen.findByRole("button", { name: "Professor" }));
     expect(screen.queryByText("Adicionar mais dados (opcional)")).not.toBeInTheDocument();

@@ -99,10 +99,13 @@
      perguntas ficam salvas lá, mas não entram aqui */
   const TESTE_M4 = ["M4.P13", "M4.P14", "M4.P15", "M4.P16", "M4.P17", "M4.P18", "M4.P19", "M4.P20", "M4.P21"];
   const jaVendeM1 = () => { const s = lerEstado(1), r = s && s.R && s.R["M1.P01"]; return !!r && r.estado === "opcao" && /vend/i.test(String(r.opcao || "")); };
+  /* lote 26/11 (2): idem para as conversas com possíveis clientes da Etapa 2 (P04, P18, P19, P21) */
+  const CONVERSAS_M2 = ["M2.P04", "M2.P18", "M2.P19", "M2.P21"];
   const lerR = (n) => {
     const s = lerEstado(n), R = (s && s.R) || {};
-    if (n !== 4 || !jaVendeM1()) return R;
-    const c = Object.assign({}, R); TESTE_M4.forEach((k) => delete c[k]); return c;
+    const fora = n === 4 ? TESTE_M4 : n === 2 ? CONVERSAS_M2 : null;
+    if (!fora || !jaVendeM1()) return R;
+    const c = Object.assign({}, R); fora.forEach((k) => delete c[k]); return c;
   };
   const valor = (r) => !r ? null : r.estado === "opcao" ? r.opcao : r.estado === "valor" ? r.valor : null;
   const textoDe = (r) => { const x = valor(r); return typeof x === "string" && x.trim() ? x.trim() : typeof x === "number" ? String(x) : null; };

@@ -101,6 +101,16 @@ describe("SignUpForm Integration", { timeout: 30_000 }, () => {
     expect(screen.queryByPlaceholderText("Nome do responsável")).not.toBeInTheDocument();
   });
 
+  it("Empreenda+ (empreendedor): sem Aluno / Professor, título e nota próprios", async () => {
+    render(<SignUpForm {...defaultProps} empreendedor nextPath="/lg2/jornada/index.html" />);
+    await screen.findByPlaceholderText("Nome completo");
+    expect(screen.queryByRole("button", { name: /Aluno/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Professor/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Crie sua conta no Empreenda+")).toBeInTheDocument();
+    expect(screen.getByText("Telefone e endereço você completa depois no seu perfil, se quiser.")).toBeInTheDocument();
+    expect(screen.queryByText(/escola/i)).not.toBeInTheDocument();
+  });
+
   it("aluno: valida nome, idade mínima e responsável do menor", async () => {
     render(<SignUpForm {...defaultProps} />);
     fireEvent.click(await screen.findByText("Criar minha conta"));

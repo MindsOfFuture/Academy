@@ -23,7 +23,9 @@
   /* Telas que só confirmam o resultado ("Este é o retrato... Está certo?") e respostas repetidas de outro módulo. */
   var FORA = { 'M5.P00': 1, 'M7-13': 1, 'M9-14': 1, 'M10-12': 1, 'M2.P01': 1 };
   /* quem já vende (Etapa 1) não passa pelo teste da primeira oferta da Etapa 4 */
-  var TESTE_M4 = { 'M4.P13': 1, 'M4.P14': 1, 'M4.P15': 1, 'M4.P16': 1, 'M4.P17': 1, 'M4.P18': 1, 'M4.P19': 1, 'M4.P20': 1, 'M4.P21': 1 };
+  /* quem já vende não vê o teste da 1ª oferta (Etapa 4) nem as conversas com possíveis clientes (Etapa 2, lote 26/11) */
+  var TESTE_M4 = { 'M4.P13': 1, 'M4.P14': 1, 'M4.P15': 1, 'M4.P16': 1, 'M4.P17': 1, 'M4.P18': 1, 'M4.P19': 1, 'M4.P20': 1, 'M4.P21': 1,
+    'M2.P04': 1, 'M2.P18': 1, 'M2.P19': 1, 'M2.P21': 1 };
   function jaVende(ler) { var s = ler(1), r = s && s.R && s.R['M1.P01']; return !!r && r.estado === 'opcao' && /vend/i.test(String(r.opcao || '')); }
 
   function lerLocal(n) { try { return JSON.parse(raiz.localStorage.getItem(CHAVES[n])) || null; } catch (e) { return null; } }

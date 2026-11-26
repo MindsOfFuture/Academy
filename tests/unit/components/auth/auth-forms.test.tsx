@@ -5,7 +5,7 @@ let params = new URLSearchParams();
 vi.mock("next/navigation", () => ({ useSearchParams: () => params }));
 vi.mock("@/components/auth/login-form", () => ({ LoginForm: () => <div>tela-login</div> }));
 vi.mock("@/components/auth/sign-up-form", () => ({
-  SignUpForm: ({ nextPath }: { nextPath?: string | null }) => <div>tela-cadastro:{String(nextPath)}</div>,
+  SignUpForm: ({ nextPath, empreendedor }: { nextPath?: string | null; empreendedor?: boolean }) => <div>tela-cadastro:{String(nextPath)}{empreendedor ? ":empreendedor" : ""}</div>,
 }));
 
 import { AuthForms } from "@/components/auth/auth-forms";
@@ -24,7 +24,13 @@ describe("AuthForms", () => {
   it("modo=cadastro abre no cadastro e repassa o next validado", () => {
     params = new URLSearchParams({ modo: "cadastro", next: "/lg2/jornada/index.html" });
     const { container } = render(<AuthForms />);
-    expect(telaDoCelular(container)).toBe("tela-cadastro:/lg2/jornada/index.html");
+    expect(telaDoCelular(container)).toBe("tela-cadastro:/lg2/jornada/index.html:empreendedor");
+  });
+
+  it("cadastro comum (sem next da jornada) não é o do Empreenda+", () => {
+    params = new URLSearchParams({ modo: "cadastro", next: "/protected" });
+    const { container } = render(<AuthForms />);
+    expect(telaDoCelular(container)).toBe("tela-cadastro:/protected");
   });
 
   it("descarta next externo", () => {

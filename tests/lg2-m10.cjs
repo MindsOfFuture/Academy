@@ -699,9 +699,15 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
   await abrir('M10-02'); await clicar('Em 1 ou 2 dias');
   check('M10-02: sem apoio alto, a parte condicional não aparece', !(await blocos()).join(' ').includes('tempo de apoio'));
   /* M10-03: texto de apoio com pessoas ouvidas e roteiro pré-montado */
-  await abrir('M10-03');
+  /* lote 26/11 (2): pessoas ouvidas (M2.P18) só valem para quem ainda não vende; quem já vende não passa pelas
+     conversas com possíveis clientes na Etapa 2 e a resposta antiga salva não entra aqui */
+  const hNaoVende = JSON.parse(JSON.stringify(HERANCA)); hNaoVende['lg2-turma-a-m01'].R['M1.P01'] = { estado: 'opcao', opcao: 'Já fiz um pouco para testar ou dar de amostra' };
+  await abrir('M10-03', {}, hNaoVende);
   const ap3 = await page.evaluate(() => document.querySelector('.ajuda').textContent.replace(/\s+/g, ' '));
   check('M10-03: apoio com [pessoas ouvidas] e [etapas] do roteiro', ap3.startsWith('Você já ouviu 6 pessoas na Etapa 2.') && ap3.includes('Preço: R$ 12') && ap3.includes('Receber: Pix, dinheiro'), ap3);
+  await abrir('M10-03');
+  const ap3v = await page.evaluate(() => document.querySelector('.ajuda').textContent.replace(/\s+/g, ' '));
+  check('M10-03: quem já vende não vê [pessoas ouvidas] (P18 antiga fica de fora), o roteiro continua', !ap3v.includes('Você já ouviu') && ap3v.includes('Montamos um roteiro') && ap3v.includes('Preço: R$ 12'), ap3v);
   { /* menos texto (receita D): ajuda com mais de 220 caracteres mostra a 1ª frase e o resto em "Ver mais" fechado */
     const vm3 = await page.evaluate(() => { const a = document.querySelector('.dica-toggle'); return { aberto: a ? a.open : null, resumo: a?.querySelector('summary').innerText || '' }; });
     check('Menos texto: dica fechada por padrão entre pergunta e opções', vm3.aberto === false && vm3.resumo === 'Ver dica', vm3); }

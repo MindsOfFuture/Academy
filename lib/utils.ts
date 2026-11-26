@@ -9,6 +9,12 @@ export function cn(...inputs: ClassValue[]) {
  * Só aceita caminhos cuja resolução permaneça na origem interna. Também valida
  * decodificações sucessivas para bloquear controles e barras codificadas.
  */
+/** Entrada do Empreenda+ (app do Laboratório de Gestão, para empreendedores): o destino depois do login é a
+ * jornada em /lg2/. Nela o cadastro não pergunta "Aluno ou Professor" (pedido da coordenação, 26/11/2026). */
+export function ehEmpreendaMais(nextPath?: string | null): boolean {
+  return !!nextPath && nextPath.startsWith("/lg2/");
+}
+
 export function normalizeNextPath(nextPath?: string | null): string | null {
   if (!nextPath) return null;
 

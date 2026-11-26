@@ -22,6 +22,8 @@ interface SignUpFormProps extends React.ComponentPropsWithoutRef<"div"> {
   onToggleView: () => void;
   /** Caminho interno (já validado) para onde o link de confirmação devolve a pessoa. */
   nextPath?: string | null;
+  /** Cadastro do Empreenda+: sem a escolha "Aluno / Professor" (a conta é a comum, de um passo só). */
+  empreendedor?: boolean;
 }
 
 /** Idade em anos completos; a data do campo é lida como data local (evita o dia anterior no fuso -03). */
@@ -41,6 +43,7 @@ export function SignUpForm({
   className,
   onToggleView,
   nextPath,
+  empreendedor = false,
   ...props
 }: SignUpFormProps) {
   // Steps control
@@ -362,6 +365,7 @@ export function SignUpForm({
   );
 
   const getStepTitle = () => {
+    if (empreendedor) return "Para montar o plano do seu negócio. Leva menos de um minuto.";
     if (isStudent) return "Leva menos de um minuto";
     switch (step) {
       case 1: return "Quem é você?";
@@ -384,8 +388,8 @@ export function SignUpForm({
       <div className="w-full max-w-md space-y-2 z-10">
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-2xl font-bold text-white">Criar Conta</h2>
-            <p className="text-white/80 text-sm font-medium h-5">{getStepTitle()}</p>
+            <h2 className="text-2xl font-bold text-white">{empreendedor ? "Crie sua conta no Empreenda+" : "Criar Conta"}</h2>
+            <p className="text-white/80 text-sm font-medium min-h-5">{getStepTitle()}</p>
           </div>
           {!isStudent && (
             <div className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">
@@ -424,7 +428,8 @@ export function SignUpForm({
               transition={{ duration: 0.2 }}
               className="space-y-4 w-full"
             >
-              {/* User Type Selector */}
+              {/* User Type Selector (fora do Empreenda+, que é para empreendedores) */}
+              {!empreendedor && (
               <div className="flex w-full gap-4 mb-6">
                 <button
                   type="button"
@@ -453,6 +458,7 @@ export function SignUpForm({
                   Professor
                 </button>
               </div>
+              )}
 
               <div className="relative flex items-center">
                 <User className="absolute left-4 text-[#684A97] z-10" size={20} />
@@ -491,7 +497,9 @@ export function SignUpForm({
                 <>
                   {credentialFields}
                   <p className="text-sm text-white/80 leading-relaxed text-center pt-1">
-                    O resto (telefone, endereço, escola) você completa depois no seu perfil, se quiser.
+                    {empreendedor
+                      ? "Telefone e endereço você completa depois no seu perfil, se quiser."
+                      : "O resto (telefone, endereço, escola) você completa depois no seu perfil, se quiser."}
                   </p>
                 </>
               )}

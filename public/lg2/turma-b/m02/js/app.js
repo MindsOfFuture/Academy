@@ -2,7 +2,18 @@
    sem edição. As respostas ficam só neste aparelho. */
 (function () {
   "use strict";
-  const D = window.MODULO2, M = Motor.montar(D);
+  const D = window.MODULO2;
+  /* lote 26/11 (2, coordenação): quem JÁ VENDE (Etapa 1, M1.P01 = "Já vendi algumas vezes" ou "Já vendo sempre";
+     mesmo critério /vend/ da Etapa 4) não responde o bloco das conversas com POSSÍVEIS clientes (P04, P18, P19, P21):
+     é pergunta de quem ainda vai começar. As perguntas viram "oculta" só para essa pessoa: não aparecem, não contam na
+     posição, não disparam regra; a resposta antiga fica salva (a limpeza só olha as perguntas visíveis). */
+  const BLOCO_CONVERSAS = ["M2.P04", "M2.P18", "M2.P19", "M2.P21"];
+  const jaVende = (() => {
+    try { const s = JSON.parse(localStorage.getItem("lg2-turma-a-m01")), r = s && s.R && s.R["M1.P01"]; return !!r && r.estado === "opcao" && /vend/i.test(String(r.opcao || "")); } catch (e) { return false; }
+  })();
+  const M = Motor.montar(jaVende
+    ? Object.assign({}, D, { perguntas: D.perguntas.map((p) => (BLOCO_CONVERSAS.includes(p.codigo) ? Object.assign({}, p, { oculta: true }) : p)) })
+    : D);
   const tela = document.getElementById("tela");
   const CHAVE = "lg2-turma-b-m02";
   /* número de pessoas ouvidas (pergunta de número): acima disso mostra um aviso que não trava */
@@ -27,6 +38,8 @@
   let migrou = false;
   let S = carregar();               // { v, R: respostas (+ veio: módulo de origem), hist: [códigos] }
   if (migrou) salvar();             // estado antigo convertido já fica gravado no formato novo
+  /* quem já vende: o histórico não pode reabrir uma pergunta do bloco das conversas (Voltar / Continuar de onde parei) */
+  if (jaVende && S.hist.some((c) => c !== "RESULTADO" && !M.porCodigo[c])) { S.hist = S.hist.filter((c) => c === "RESULTADO" || M.porCodigo[c]); salvar(); }
   function carregar() {
     try {
       const lido = JSON.parse(localStorage.getItem(CHAVE)) || {};
@@ -1105,7 +1118,7 @@
     const p17 = v("M2.P17");
     if (p17) f.push(`Cada cliente compraria ${p17 === "Uma vez" ? "uma vez só" : minus(p17)}.`);
     const c2 = f.length;   // 2º: grupos e como compram; 3º: conversas com clientes
-    const p04 = v("M2.P04");
+    const p04 = jaVende ? null : v("M2.P04");   // quem já vende não passa pelas conversas com possíveis clientes
     if (p04 === "Não") f.push("Você ainda não conversou com possíveis clientes: esse é o passo mais importante agora.");
     else if (p04 === "Sim") {
       const n = parseInt(v("M2.P18"), 10);
