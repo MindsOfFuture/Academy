@@ -745,7 +745,7 @@
       <div class="opcoes mini">${ops.map((x) => `<button type="button" class="opcao ${f[campo] === x ? "sel" : ""}" aria-pressed="${f[campo] === x}" data-v="${esc(x)}"><span class="radio" aria-hidden="true"></span><span class="op-txt"><b>${esc(x)}</b></span></button>`).join("")}</div></fieldset>`;
     const p = el(`<div class="pag">
       ${topo("Antes de começar")}
-      ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nas etapas anteriores. Confira, corrija ou complete. Nada aqui é obrigatório." })}
+      ${heroi({ kicker: "Antes de começar", titulo: "Seu ponto de partida", texto: "Trouxemos o que você já respondeu nas etapas anteriores. Confira, corrija ou complete. Só “Como chega ao cliente” é obrigatório." })}
       <main class="corpo">
         <div class="cartao-q partida">
           ${botaoVoltar()}
@@ -759,7 +759,7 @@
           ${txt("canais", "Onde o cliente encontra você e compra", "", "Ex.: Instagram, WhatsApp, indicação de amigos, feira do bairro")}
           ${txt("preco", "Preço de venda de uma unidade (R$)", 'inputmode="decimal" placeholder="Ex.: 12,50"')}
           ${base.de && base.de.preco === 5 && comoPrecoM5() ? `<div id="como-preco">${comoLinha(comoPrecoM5())}</div>` : ""}
-          ${txt("entrega", "Como chega ao cliente", "", "Ex.: entrega em casa ou retirada")}
+          ${txt("entrega", "Como chega ao cliente", 'aria-required="true"', "Ex.: entrega em casa ou retirada")}
           ${txt("pagamento", "Formas de pagamento", "", "Ex.: Pix, dinheiro, cartão")}
           <div class="acoes acoes-fixas"><div class="erro" id="erro" role="alert" hidden></div><button class="btn btn-primario seta" id="ok">Continuar</button></div>
         </div>
@@ -775,6 +775,8 @@
     p.querySelector("#ok").onclick = () => {
       p.querySelectorAll("[data-campo]").forEach((i) => { f[i.dataset.campo] = i.value.trim(); });
       const e = p.querySelector("#erro");
+      /* coordenação 26/11: o jeito de o produto chegar ao cliente é obrigatório (entra no roteiro de venda) */
+      if (!f.entrega) { e.textContent = "Como chega ao cliente: escreva como o que você vende chega a quem compra. Ex.: entrega em casa ou retirada."; e.hidden = false; const ce = p.querySelector("#f-entrega"); if (ce) { ce.setAttribute("aria-invalid", "true"); ce.focus(); } return; }
       const n = f.preco ? Mo.num(f.preco) : null;
       if (n !== null && (isNaN(n) || n < 0)) { e.textContent = "Preço de venda: digite só números. Ex.: 12,50 (ou deixe em branco)."; e.hidden = false; return; }
       /* preço alto: avisa uma vez e deixa seguir com o mesmo valor */

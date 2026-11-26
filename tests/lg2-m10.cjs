@@ -1192,6 +1192,16 @@ const fragmentos = (t) => t.replace(/\s*\[Se [^\]]+\]:[\s\S]*$/, '').split(/\[[^
     check('Como calculamos (preço sugerido): R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido na Etapa 5) = R$ 15', nrm(cp) === 'Como calculamos: R$ 10 (custo de uma unidade) + 50% (acréscimo escolhido na Etapa 5) = R$ 15.', cp);
     await page.fill('#f-preco', '18');
     check('Como calculamos (preço sugerido): some quando a pessoa troca o preço', await page.evaluate(() => document.querySelector('#como-preco').hidden));
+    /* 26/11 (coordenação): "Como chega ao cliente" vazio não deixa seguir */
+    { await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { entrega: '' }) })); await clicar('Continuar de onde parei');
+      await page.evaluate(() => { const v = document.querySelector('#v'); if (v && !document.querySelector('#f-entrega')) v.click(); });
+      await page.waitForTimeout(300);
+      if (await page.$('#f-entrega')) { await page.fill('#f-entrega', ''); await clicar('Continuar'); await page.waitForTimeout(200);
+        const er = await page.evaluate(() => { const e = document.querySelector('#erro'); return e && !e.hidden ? e.innerText : ''; });
+        check('Partida: "Como chega ao cliente" vazio bloqueia com mensagem', !!(await page.$('#f-entrega')) && /Como chega ao cliente/.test(er), er);
+        await page.fill('#f-entrega', 'Retirada'); await clicar('Continuar'); await page.waitForTimeout(300);
+        check('Partida: com "Como chega ao cliente" preenchido segue', !(await page.$('#f-entrega')));
+      } else check('Partida: tela do ponto de partida alcançada para testar "Como chega ao cliente"', false); }
     /* ponto de partida já salvo com o preço vazio (Módulo 5 feito depois): completa sem apagar o resto */
     await semear(Object.assign(estadoAte('M10-01'), { ini: Object.assign({}, INI, { preco: '', oferta: 'Bolo no pote', de: {} }) }));
     const ini2 = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).ini, CHAVE);

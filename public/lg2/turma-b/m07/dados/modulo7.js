@@ -381,7 +381,7 @@ window.MODULO7 = {
   {
    "codigo": "M7-08",
    "fase": "Fornecedores e estoque",
-   "pergunta": "O que estraga ou vence na sua oferta, e em quanto tempo?",
+   "pergunta": "A sua oferta vence ou estraga em quanto tempo?",
    "descobre": "Validade e risco de perda",
    "aparece": "Mesma condição de M7-06",
    "guarda": "Validade",
