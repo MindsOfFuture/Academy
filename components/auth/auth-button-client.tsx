@@ -82,7 +82,12 @@ export function AuthButtonClient() {
             <NotificationBell />
             <Dropdown className="text-lg hover:cursor-pointer">
                 <DropdownTrigger className="text-lg rounded-lg outline-none">
-                    <button className="flex items-center gap-1 md:gap-2 hover:opacity-80 transition-opacity" aria-label="Menu da conta">
+                    <button className="flex items-center gap-1 md:gap-2 hover:opacity-80 transition-opacity" aria-label={s.perfilIncompleto ? "Menu da conta (complete seu perfil)" : "Menu da conta"}>
+                        <div className="relative">
+                        {/* Ponto coral: falta telefone ou endereço no perfil */}
+                        {s.perfilIncompleto ? (
+                            <span data-testid="aviso-perfil" className="absolute -right-0.5 -top-0.5 z-10 h-3.5 w-3.5 rounded-full bg-[#E8473A] ring-2 ring-white" aria-hidden="true" />
+                        ) : null}
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD300] to-[#FFA500] text-[#684A97] flex items-center justify-center text-sm font-bold shadow-md overflow-hidden">
                             {s.avatarUrl && isValidUrl(s.avatarUrl) ? (
                                 <Image src={s.avatarUrl} alt="Avatar" width={40} height={40} className="object-cover w-full h-full" />
@@ -90,11 +95,19 @@ export function AuthButtonClient() {
                                 iniciais(s)
                             )}
                         </div>
+                        </div>
                         <ChevronDown className="w-5 h-5 text-white" />
                     </button>
                 </DropdownTrigger>
                 <DropdownMenu aria-label="Menu do usuário" className="bg-[#FFD300] p-2 rounded-lg">
-                    <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" as={Link} href="/protected/perfil">Perfil</DropdownItem>
+                    <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="Perfil" as={Link} href="/protected/perfil">
+                        {s.perfilIncompleto ? (
+                            <span className="inline-flex items-center gap-2">
+                                Complete seu perfil
+                                <span className="h-2.5 w-2.5 rounded-full bg-[#E8473A]" aria-hidden="true" />
+                            </span>
+                        ) : "Perfil"}
+                    </DropdownItem>
                     <DropdownItem className="hover:bg-yellow-200 rounded-lg" key="logout" onPress={handleSignOut} color="danger">
                         Sair
                     </DropdownItem>

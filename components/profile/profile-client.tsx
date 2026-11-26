@@ -12,6 +12,7 @@ import Image from "next/image";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { DeleteAccountModal } from "@/components/profile/delete-account-modal";
 import { confirmar } from "@/components/ui/confirmar";
+import { faltaDadoPessoal, patchHeaderSession } from "@/lib/auth/header-session";
 
 interface ProfileClientProps {
     userId: string;
@@ -93,6 +94,8 @@ export function ProfileClient({
     const [email, setEmail] = useState(initialEmail);
     const [phone, setPhone] = useState(initialPhone || "");
     const [address, setAddress] = useState(initialAddress || "");
+    // O que está salvo (não o que está sendo digitado) decide o aviso de perfil incompleto.
+    const [perfilIncompleto, setPerfilIncompleto] = useState(() => faltaDadoPessoal({ phone: initialPhone, address: initialAddress }));
     const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
     const [bio, setBio] = useState(initialBio || "");
     const [specialtiesCsv, setSpecialtiesCsv] = useState(toCsv(initialSpecialties || []));
@@ -176,6 +179,9 @@ export function ProfileClient({
         setSavingProfile(true);
         try {
             const { message } = await updateUserProfileClient({ userId, name, email, originalEmail: initialEmail, phone, address });
+            const incompleto = faltaDadoPessoal({ phone, address });
+            setPerfilIncompleto(incompleto);
+            patchHeaderSession({ perfilIncompleto: incompleto });
             if (userType === "teacher") {
                 let nextDocumentUrl = qualificationDocumentUrl;
                 if (qualificationFile) {
@@ -345,6 +351,12 @@ export function ProfileClient({
                         )}
                     </div>
                 </div>
+                {perfilIncompleto && (
+                    <p role="status" className="mb-5 flex max-w-lg items-center gap-2 rounded-lg border border-[#E8473A]/40 bg-white px-4 py-3 text-sm text-gray-700">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#E8473A]" aria-hidden="true" />
+                        Falta completar seu perfil: preencha telefone e endereço e clique em salvar.
+                    </p>
+                )}
                 <form onSubmit={handleSaveProfile} className="space-y-5 max-w-lg">
                     <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 block">Nome</label>

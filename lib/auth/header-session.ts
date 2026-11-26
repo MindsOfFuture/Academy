@@ -21,6 +21,8 @@ export type HeaderSession = {
     avatarUrl: string | null;
     gestao: boolean;
     unread: number;
+    /** Falta telefone ou endereço: o topo mostra um aviso para completar o perfil. */
+    perfilIncompleto: boolean;
 };
 
 const STORAGE_KEY = "minds.topo.v1";
@@ -32,6 +34,7 @@ const UNKNOWN: HeaderSession = {
     avatarUrl: null,
     gestao: false,
     unread: 0,
+    perfilIncompleto: false,
 };
 const OUT: HeaderSession = { ...UNKNOWN, status: "out" };
 
@@ -77,9 +80,10 @@ export function getServerHeaderSession(): HeaderSession {
 
 async function carregarUsuario(userId: string, email: string | null, nomeMeta: string | null) {
     const supabase = createClient();
-    const [perfil, gestao] = await Promise.all([
+    const [perfil, gestao, incompleto] = await Promise.all([
         supabase.from("user_profile").select("full_name, avatar_url").eq("id", userId).maybeSingle(),
         temAcessoGestaoAction().catch(() => false),
+        perfilEstaIncompleto(supabase),
     ]);
     // Se a pessoa saiu ou trocou de conta enquanto isto chegava, descarta.
     if (getHeaderSession().userId !== userId) return;
@@ -87,7 +91,28 @@ async function carregarUsuario(userId: string, email: string | null, nomeMeta: s
         name: perfil.data?.full_name || nomeMeta || email,
         avatarUrl: perfil.data?.avatar_url ?? null,
         gestao: gestao === true,
+        perfilIncompleto: incompleto,
     });
+}
+
+/**
+ * Telefone e endereço ficam fora do cadastro (que é o mínimo) e se completam no
+ * perfil depois. Telefone/endereço não são legíveis direto por `authenticated`:
+ * a função devolve só os da própria pessoa. Na dúvida (erro), não acusa nada.
+ */
+export function faltaDadoPessoal(dados: { phone?: string | null; address?: string | null } | null | undefined): boolean {
+    if (!dados) return false;
+    return !dados.phone?.trim() || !dados.address?.trim();
+}
+
+async function perfilEstaIncompleto(supabase: ReturnType<typeof createClient>): Promise<boolean> {
+    try {
+        const { data, error } = await supabase.rpc("meus_dados_pessoais");
+        if (error) return false;
+        return faltaDadoPessoal((data as { phone: string | null; address: string | null }[] | null)?.[0]);
+    } catch {
+        return false;
+    }
 }
 
 function start() {
