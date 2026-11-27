@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import CidadaniaFinanceiraGame from "@/components/modules/cidadania-financeira/CidadaniaFinanceiraGame";
 import { BLOCOS, CENARIOS } from "@/components/modules/cidadania-financeira/data";
+import { ordemDasOpcoes } from "@/components/modules/cidadania-financeira/ordem";
 
 describe("Cidadania Financeira — invariantes de conteúdo", () => {
     it("tem exatamente 4 papéis", () => {
@@ -51,10 +52,46 @@ describe("Cidadania Financeira — invariantes de conteúdo", () => {
         }
     });
 
+    it("não deixa o tamanho da opção denunciar a resposta certa", () => {
+        let certaMaisLonga = 0;
+        for (const cenario of CENARIOS) {
+            const tamanhos = cenario.options.map((o) => o.text.length);
+            const maior = Math.max(...tamanhos);
+            expect(maior / Math.min(...tamanhos), `cenário ${cenario.id}`).toBeLessThanOrEqual(1.3);
+            const certa = cenario.options.find((o) => o.type === "correct")!;
+            if (certa.text.length === maior) certaMaisLonga += 1;
+        }
+        // Ao acaso, a certa seria a mais longa em ~25% dos cenários.
+        expect(certaMaisLonga).toBeLessThanOrEqual(40);
+    });
+
     it("usa ids sequenciais de 1 a 100", () => {
         expect(CENARIOS.map((c) => c.id)).toEqual(
             Array.from({ length: 100 }, (_, i) => i + 1),
         );
+    });
+});
+
+describe("Cidadania Financeira — ordem das opções na tela", () => {
+    it("sorteia uma permutação completa e repetível para a mesma partida", () => {
+        const ordem = ordemDasOpcoes(4, 12345, 7);
+        expect([...ordem].sort()).toEqual([0, 1, 2, 3]);
+        expect(ordemDasOpcoes(4, 12345, 7)).toEqual(ordem);
+    });
+
+    it("espalha a resposta certa pelas quatro posições", () => {
+        const contagem = [0, 0, 0, 0];
+        for (let semente = 1; semente <= 400; semente += 1) {
+            for (const cenario of CENARIOS.slice(0, 25)) {
+                const certa = cenario.options.findIndex((o) => o.type === "correct");
+                contagem[ordemDasOpcoes(4, semente * 7919, cenario.id).indexOf(certa)] += 1;
+            }
+        }
+        const total = contagem.reduce((a, b) => a + b, 0);
+        for (const vezes of contagem) {
+            expect(vezes / total).toBeGreaterThan(0.2);
+            expect(vezes / total).toBeLessThan(0.3);
+        }
     });
 });
 

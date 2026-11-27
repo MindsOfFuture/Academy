@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BLOCOS, CENARIOS, type OpcaoCenario } from "./data";
+import { LETRAS, ordemDasOpcoes } from "./ordem";
 import { GAME_CONTENT_VERSIONS } from "@/lib/api/game-telemetry-types";
 import { startGameRun, type GameRun } from "@/lib/services/game-tracking.service";
 
@@ -41,6 +42,7 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState(false);
+  const [semente, setSemente] = useState(0);
   const run = useRef<GameRun | null>(null);
 
   useEffect(() => setCompletedBlocks(readSaved(userId).completedBlocks), [userId]);
@@ -73,6 +75,7 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
     run.current?.abandon();
     const role = BLOCOS.find((item) => item.id === nextBlockId)?.role;
     run.current = startGameRun(GAME_KEY, CONTENT_VERSION, role);
+    setSemente(Math.floor(Math.random() * 0x100000000));
     setBlockId(nextBlockId);
     setScenarioIndex(0);
     setAnswers([]);
@@ -193,6 +196,7 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
 
   if (!scenario) return null;
   const selectedOption = selected === null ? null : scenario.options[selected];
+  const ordem = ordemDasOpcoes(scenario.options.length, semente, scenario.id);
   const progress = Math.round(((scenarioIndex + (selected === null ? 0 : 1)) / scenarios.length) * 100);
 
   return (
@@ -217,19 +221,23 @@ export default function CidadaniaFinanceiraGame({ userId }: { userId: string }) 
         </div>
         <fieldset className="mt-6 min-w-0 space-y-3">
           <legend className="mb-3 font-bold text-gray-900">Qual é a sua decisão?</legend>
-          {scenario.options.map((option, index) => (
+          {ordem.map((index, posicao) => {
+            const option = scenario.options[index];
+            const letra = LETRAS[posicao];
+            return (
             <button
               key={option.origLabel}
               type="button"
               disabled={selected !== null}
               onClick={() => choose(index)}
-              aria-label={`Opção ${option.origLabel}: ${option.text}`}
+              aria-label={`Opção ${letra}: ${option.text}`}
               className={`flex w-full min-w-0 items-start gap-3 rounded-2xl border-2 p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600 ${selected === index ? "border-purple-600 bg-purple-50" : "border-gray-200 hover:border-purple-300"} disabled:cursor-default`}
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-800">{option.origLabel}</span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-800">{letra}</span>
               <span className="min-w-0 break-words">{option.text}</span>
             </button>
-          ))}
+            );
+          })}
         </fieldset>
         {selectedOption && (
           <div role="alert" className={`mt-6 rounded-2xl border-l-4 p-5 ${selectedOption.type === "correct" ? "border-green-500 bg-green-50" : selectedOption.type === "partial" ? "border-amber-500 bg-amber-50" : "border-red-500 bg-red-50"}`}>

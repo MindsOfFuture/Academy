@@ -25,7 +25,7 @@ export const GAME_LABELS: Record<GameKey, string> = {
  */
 export const GAME_CONTENT_VERSIONS: Record<GameKey, string> = {
   "orcamento-familiar": "2026-09-01",
-  "cidadania-financeira": "2026-09-01",
+  "cidadania-financeira": "2026-11-27",
   "primeiro-passo": "2026-09-07",
 };
 
