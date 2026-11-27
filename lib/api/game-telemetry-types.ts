@@ -24,7 +24,7 @@ export const GAME_LABELS: Record<GameKey, string> = {
  * misturadas na mesma série e a comparação deixa de significar alguma coisa.
  */
 export const GAME_CONTENT_VERSIONS: Record<GameKey, string> = {
-  "orcamento-familiar": "2026-09-01",
+  "orcamento-familiar": "2026-11-27",
   "cidadania-financeira": "2026-11-27",
   "primeiro-passo": "2026-09-07",
 };

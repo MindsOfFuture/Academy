@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import FinancityGame from "@/components/modules/financity/FinancityGame";
 import {
     DECISOES,
@@ -92,13 +92,13 @@ describe("Financity — invariantes de conteúdo", () => {
             imprevisto: "seguro",
         }));
 
-        expect(extrato.inss).toBeCloseTo(728.82, 2);
-        expect(extrato.impostoRendaMensal).toBeCloseTo(531.8, 2);
+        expect(extrato.inss).toBeCloseTo(711.51, 2);
+        expect(extrato.impostoRendaMensal).toBeCloseTo(465.65, 2);
         expect(extrato.despesasFamilia).toBe(1350);
         expect(extrato.despesasStreaming).toBe(70);
         expect(extrato.despesasAlimentacao).toBeCloseTo(3722.5, 2);
         expect(extrato.totalDespesas).toBeCloseTo(8302.5, 2);
-        expect(extrato.saldo).toBeCloseTo(-2140.238, 3);
+        expect(extrato.saldo).toBeCloseTo(-2058.509, 3);
     });
 
     it("mantém paridade financeira PJ com DAS deduzido do saldo", () => {
@@ -146,7 +146,7 @@ describe("Financity — invariantes de conteúdo", () => {
         const extrato = calcExtrato(game);
 
         expect(extrato.despesasPets).toBe(300);
-        expect(extrato.saldo).toBeCloseTo(-141.719, 3);
+        expect(extrato.saldo).toBeCloseTo(-73.17, 3);
         expect(diagnosticar(game, extrato).id).toBe("superendividado");
     });
 });
@@ -184,7 +184,7 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
 
         // Etapa 3 — família
         await user.click(screen.getByRole("button", { name: "Solteiro(a)" }));
-        await user.click(screen.getByRole("button", { name: "0" }));
+        await user.click(screen.getByRole("button", { name: /^0/ }));
         await user.click(screen.getByRole("button", { name: "Continuar" }));
 
         // Etapa 4 — moradia
@@ -246,7 +246,7 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
         await user.click(screen.getByRole("button", { name: /^CLT/ }));
         await user.click(screen.getByRole("button", { name: "Continuar" }));
         await user.click(screen.getByRole("button", { name: "Solteiro(a)" }));
-        await user.click(screen.getByRole("button", { name: "0" }));
+        await user.click(screen.getByRole("button", { name: /^0/ }));
         await user.click(screen.getByRole("button", { name: "Adicionar cachorro" }));
         await user.click(screen.getByRole("button", { name: "Adicionar cachorro" }));
         expect(screen.getByText("2 cachorros")).toBeInTheDocument();
@@ -266,7 +266,7 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
 
         expect(screen.getByTestId("financity-perfil")).toHaveTextContent("Superendividado");
         expect(screen.getByText("Família e pets").parentElement).toHaveTextContent("R$ 300,00");
-        expect(screen.getByText("Saldo mensal").parentElement).toHaveTextContent("-R$ 141,72");
+        expect(screen.getByText("Saldo mensal").parentElement).toHaveTextContent("-R$ 73,17");
     }, 30000);
 
     it("exibe o seguro e reconcilia as despesas do extrato completo", async () => {
@@ -280,7 +280,7 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
         await user.click(screen.getByRole("button", { name: /^CLT/ }));
         await user.click(screen.getByRole("button", { name: "Continuar" }));
         await user.click(screen.getByRole("button", { name: "Casado(a)" }));
-        await user.click(screen.getByRole("button", { name: "2" }));
+        await user.click(screen.getByRole("button", { name: /^2/ }));
         await user.click(screen.getByRole("button", { name: "Adicionar cachorro" }));
         await user.click(screen.getByRole("button", { name: "Adicionar gato" }));
         await user.click(screen.getByRole("button", { name: "Continuar" }));
@@ -332,5 +332,50 @@ describe("Financity — smoke de interação até o diagnóstico", () => {
             expect(screen.getByText(label).parentElement).toHaveTextContent(brl(valor).replace(/\u00a0/g, " "));
         }
         expect(screen.getByText("Despesas de consumo").parentElement).toHaveTextContent("R$ 8.302,50");
+    }, 30000);
+});
+
+
+describe("Financity — escolhas e imprevistos", () => {
+    it.each([
+        ["Contratar seguro", "O seguro cobre o evento."],
+        ["Confiar na reserva", "faltam"],
+        ["Não me preparar", "O valor sai da sobra"],
+    ])("mostra o resultado de %s e permite ajustar", async (escolha, resultado) => {
+        const random = vi.spyOn(Math, "random").mockReturnValue(0);
+        try {
+            const user = userEvent.setup();
+            render(<FinancityGame userId="cenario" />);
+            await user.click(screen.getByRole("button", { name: /Iniciar Nova Sessão/i }));
+            await user.type(screen.getByLabelText("Nome"), "Ana");
+            await user.type(screen.getByLabelText("Profissão"), "Vendedor");
+            expect(screen.getByLabelText("Seu mês")).toHaveTextContent("Renda do mês: R$ 0,00");
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: /^CLT/ }));
+            expect(screen.getByLabelText("Seu mês")).not.toHaveTextContent("Renda do mês: R$ 0,00");
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: "Voltar" }));
+            expect(screen.getByRole("button", { name: /^CLT/ })).toHaveAttribute("aria-pressed", "true");
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: "Solteiro(a)" }));
+            await user.click(screen.getByRole("button", { name: /^0/ }));
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: /^Casa/ }));
+            await user.click(screen.getByRole("button", { name: /^Própria/ }));
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: /^Bicicleta/ }));
+            await user.click(screen.getByRole("button", { name: /^Cozinho/ }));
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: /^Não guardar/ }));
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: "Continuar" }));
+            await user.click(screen.getByRole("button", { name: new RegExp(escolha) }));
+            await user.click(screen.getByRole("button", { name: /Ver diagnóstico/ }));
+            await user.click(screen.getByRole("button", { name: /Finalizar/ }));
+            expect(screen.getByText(new RegExp(resultado))).toBeInTheDocument();
+            await user.click(screen.getByRole("button", { name: "Ajustar escolhas" }));
+            expect(screen.getByRole("heading", { name: "Forma de trabalho" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: /^CLT/ })).toHaveAttribute("aria-pressed", "true");
+        } finally { random.mockRestore(); }
     }, 30000);
 });

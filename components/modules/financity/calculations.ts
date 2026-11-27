@@ -22,7 +22,7 @@ export type Extrato = {
   integrantesAdicionais: number;
 };
 
-const SALARIOS: Record<string, number> = {
+export const SALARIOS: Record<string, number> = {
   "analista de sistemas": 6500,
   analista: 5500,
   medico: 12000,
@@ -40,18 +40,18 @@ function normalizar(value: string) {
 export function lookupSalario(profissao: string) {
   let key = normalizar(profissao);
   if (key.endsWith("a") && SALARIOS[`${key.slice(0, -1)}o`]) key = `${key.slice(0, -1)}o`;
-  const match = Object.keys(SALARIOS).find((item) => key.includes(item) || item.includes(key));
+  const match = key ? Object.keys(SALARIOS).find((item) => key.includes(item) || item.includes(key)) : undefined;
   return { salario: match ? SALARIOS[match] : 4000, reconhecida: Boolean(match) };
 }
 
 const INSS_FAIXAS = [
-  { ate: 1412, aliquota: 0.075 },
-  { ate: 2666.68, aliquota: 0.09 },
-  { ate: 4000.03, aliquota: 0.12 },
-  { ate: 7786.02, aliquota: 0.14 },
+  { ate: 1621, aliquota: 0.075 },
+  { ate: 2902.84, aliquota: 0.09 },
+  { ate: 4354.27, aliquota: 0.12 },
+  { ate: 8475.55, aliquota: 0.14 },
 ] as const;
 
-function descontosCLT(bruto: number) {
+export function descontosCLT(bruto: number) {
   let anterior = 0;
   let inss = 0;
   for (const faixa of INSS_FAIXAS) {
@@ -60,7 +60,7 @@ function descontosCLT(bruto: number) {
     anterior = faixa.ate;
   }
   return {
-    inss: Math.min(908.86, Math.round(inss * 100) / 100),
+    inss: Math.min(988.09, Math.round(inss * 100) / 100),
     fgts: Math.round(bruto * 0.08 * 100) / 100,
   };
 }
@@ -70,11 +70,11 @@ function qtdFilhos(g: GameState) {
 }
 
 const IRRF_FAIXAS = [
-  { ate: 2259.2, aliquota: 0, deducao: 0 },
-  { ate: 2826.65, aliquota: 0.075, deducao: 169.44 },
-  { ate: 3751.05, aliquota: 0.15, deducao: 381.44 },
-  { ate: 4664.68, aliquota: 0.225, deducao: 662.77 },
-  { ate: Number.POSITIVE_INFINITY, aliquota: 0.275, deducao: 896 },
+  { ate: 2428.8, aliquota: 0, deducao: 0 },
+  { ate: 2826.65, aliquota: 0.075, deducao: 182.16 },
+  { ate: 3751.05, aliquota: 0.15, deducao: 394.16 },
+  { ate: 4664.68, aliquota: 0.225, deducao: 675.49 },
+  { ate: Number.POSITIVE_INFINITY, aliquota: 0.275, deducao: 908.73 },
 ] as const;
 
 function irrfSobreBase(base: number) {
@@ -87,24 +87,31 @@ export function calcDasPJ(bruto: number) {
   return bruto <= 6750 ? 85 : Math.round(bruto * 0.06 * 100) / 100;
 }
 
+export function calcIRRF(bruto: number, inss: number, dependentes = 0) {
+  const legal = Math.max(0, bruto - inss - dependentes * 189.59);
+  const simplificada = Math.max(0, bruto - 607.20);
+  const imposto = Math.min(irrfSobreBase(legal), irrfSobreBase(simplificada));
+  const reducao = bruto <= 5000 ? 312.89 : bruto <= 7350 ? Math.max(0, 978.62 - 0.133145 * bruto) : 0;
+  return Math.round(Math.max(0, imposto - reducao) * 100) / 100;
+}
+
 function impostoMensal(g: GameState, inss: number) {
   if (g.regime === "PJ") return calcDasPJ(g.salarioBruto);
   if (g.regime !== "CLT") return 0;
-
-  const deducaoDependentes = qtdFilhos(g) * 189.59;
-  const deducaoSaude = g.imprevisto === "seguro" ? 200 : 0;
-  const baseCompleta = Math.max(0, g.salarioBruto - inss - deducaoDependentes - deducaoSaude);
-  const baseSimplificada = Math.max(0, g.salarioBruto - 564.8);
-  return Math.round(Math.min(irrfSobreBase(baseCompleta), irrfSobreBase(baseSimplificada)) * 100) / 100;
+  return calcIRRF(g.salarioBruto, inss, qtdFilhos(g));
 }
 
-const CUSTO_PET = { cachorro: 150, gato: 100, outros: 80 } as const;
-const CUSTO_FILHOS = { "0": 0, "1": 600, "2": 1100, "3+": 1600 } as const;
-const MORADIA = { apartamento: 480, casa: 330, mansao: 1300, sitio: 300 } as const;
-const TRANSPORTE = { carro: 1200, moto: 500, bicicleta: 30, publico: 220 } as const;
-const STREAMING = { netflix: 45, disney: 34, spotify: 25, prime: 20, academia: 110 } as const;
-const ALIMENTACAO = { masterchef: 0.25, delivery: 0.35, gourmet: 0.45 } as const;
-const LAZER = { cinema: 80, restaurantes: 250, shopping: 300, viagens: 500 } as const;
+export const CUSTO_PET = { cachorro: 150, gato: 100, outros: 80 } as const;
+export const CUSTO_FILHOS = { "0": 0, "1": 600, "2": 1100, "3+": 1600 } as const;
+export const MORADIA = { apartamento: 480, casa: 330, mansao: 1300, sitio: 300 } as const;
+export const TRANSPORTE = { carro: 1200, moto: 500, bicicleta: 30, publico: 220 } as const;
+export const STREAMING = { netflix: 45, disney: 34, spotify: 25, prime: 20, academia: 110 } as const;
+export const ALIMENTACAO = { masterchef: 0.25, delivery: 0.35, gourmet: 0.45 } as const;
+export const LAZER = { cinema: 80, restaurantes: 250, shopping: 300, viagens: 500 } as const;
+
+export const CONTRATO = { aluguel: 1200, aluguelLuxo: 3500, parcela: 1600, parcelaLuxo: 4500 } as const;
+export const CUSTO_SEGURO = 200;
+export const RESERVA = { nao: 0, "5%": 0.05, "10%": 0.1, "20%": 0.2 } as const;
 
 export function calcExtrato(g: GameState): Extrato {
   const descontos = g.regime === "CLT" ? descontosCLT(g.salarioBruto) : { inss: 0, fgts: 0 };
@@ -116,16 +123,16 @@ export function calcExtrato(g: GameState): Extrato {
   const integrantesAdicionais = (g.estadoCivil === "casado" ? 1 : 0) + qtdFilhos(g);
   const moradiaBase = g.imovel ? MORADIA[g.imovel] : 0;
   const luxo = g.imovel === "mansao" || g.imovel === "sitio";
-  const moradiaContrato = g.aquisicao === "alugada" ? (luxo ? 3500 : 1200) : g.aquisicao === "financiada" ? (luxo ? 4500 : 1600) : 0;
+  const moradiaContrato = g.aquisicao === "alugada" ? (luxo ? CONTRATO.aluguelLuxo : CONTRATO.aluguel) : g.aquisicao === "financiada" ? (luxo ? CONTRATO.parcelaLuxo : CONTRATO.parcela) : 0;
   const despesasMoradia = moradiaBase + moradiaContrato;
   const despesasTransporte = g.transporte ? TRANSPORTE[g.transporte] : 0;
   const despesasStreaming = g.streaming.reduce((total, item) => total + STREAMING[item], 0);
   const alimentacaoBase = g.alimentacao ? Math.min(g.salarioBruto, 12000) * ALIMENTACAO[g.alimentacao] : 0;
   const despesasAlimentacao = Math.max(0, alimentacaoBase * (1 + 0.3 * integrantesAdicionais) - valeRefeicao);
   const despesasLazer = g.lazer.reduce((total, item) => total + LAZER[item], 0);
-  const despesasSeguro = g.imprevisto === "seguro" ? 200 : 0;
+  const despesasSeguro = g.imprevisto === "seguro" ? CUSTO_SEGURO : 0;
   const totalDespesas = despesasFamilia + despesasMoradia + despesasTransporte + despesasStreaming + despesasAlimentacao + despesasLazer + despesasSeguro;
-  const percentualReserva = { nao: 0, "5%": 0.05, "10%": 0.1, "20%": 0.2 }[g.poupanca ?? "nao"];
+  const percentualReserva = RESERVA[g.poupanca ?? "nao"];
   const reservaMensal = salarioLiquido * percentualReserva;
   const impostoRendaMensal = impostoMensal(g, descontos.inss);
   const saldo = salarioLiquido + rendaExtra - totalDespesas - impostoRendaMensal - reservaMensal;

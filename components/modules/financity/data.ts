@@ -74,3 +74,9 @@ export const PERFIS = [
 ] as const;
 
 export const SESSOES_STORAGE_KEY = "academy-financity-sessoes-v1";
+
+export const IMPREVISTOS = [
+  { titulo: "Celular quebrou", valor: 900 },
+  { titulo: "Consulta e remédios", valor: 600 },
+  { titulo: "Conserto em casa", valor: 1200 },
+] as const;
